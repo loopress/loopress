@@ -1,2 +1,7 @@
 packages:
   - "assets"
+  - "website"
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@wordpress-dx/assets@1.0.0'
