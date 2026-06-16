@@ -4,4 +4,4 @@
 
 ### Major Changes
 
-- Initial release with logos in PNG and SVG format
+- Intial release containing logos (PNG and SVG)
