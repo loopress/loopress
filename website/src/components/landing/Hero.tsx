@@ -29,20 +29,20 @@ export function Hero() {
           </p>
 
           <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-xs text-muted-foreground sm:max-w-xl">
-            <span>$ wdx snippets pull</span>
-            <span>$ wdx snippets push</span>
+            <span>$ lps snippets pull</span>
+            <span>$ lps snippets push</span>
           </div>
 
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="https://console.wordpressdx.dev"
+              href="https://console.loopress.dev"
               className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Join the Beta
               <span className="ml-2 text-base">→</span>
             </a>
             <a
-              href="https://docs.wordpressdx.dev"
+              href="https://docs.loopress.dev"
               className="inline-flex h-10 items-center rounded-md border border-border bg-card/40 px-5 text-sm font-medium text-foreground transition-colors hover:bg-card"
             >
               View Documentation

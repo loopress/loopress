@@ -5,8 +5,8 @@ import { Footer } from "@/components/landing/Footer";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy - WordPress DX" },
-      { name: "description", content: "WordPress DX privacy policy." },
+      { title: "Privacy Policy - Loopress" },
+      { name: "description", content: "Loopress privacy policy." },
     ],
   }),
   component: PrivacyPage,

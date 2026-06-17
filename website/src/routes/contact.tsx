@@ -22,8 +22,8 @@ import { contactSchema, sendContactEmail } from "@/lib/contact";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact - WordPress DX" },
-      { name: "description", content: "Get in touch with the WordPress DX team." },
+      { title: "Contact - Loopress" },
+      { name: "description", content: "Get in touch with the Loopress team." },
     ],
   }),
   component: ContactPage,

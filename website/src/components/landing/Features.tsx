@@ -67,7 +67,7 @@ function SnippetsBlock() {
 + remove_filter('the_content_feed', 'wp_staticize_emoji');`}
       </pre>
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
-        <Line c="muted">$ wdx snippets push</Line>
+        <Line c="muted">$ lps snippets push</Line>
         <Line c="success">✓ Updated: disable-emojis</Line>
       </div>
     </div>
@@ -78,14 +78,14 @@ function ComposerBlock() {
   return (
     <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
       <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
-        WordPress Admin · WDX · Dependency Management
+        WordPress Admin · Loopress · Dependency Management
       </div>
       <pre className="px-3 py-3">
         <Line c="muted">Search: tcpdf</Line>
         <Line c="success">✓ tecnickcom/tcpdf found on Packagist</Line>
         <Line c="muted">&gt; Install</Line>
         <Line c="success">✓ Installing tecnickcom/tcpdf ^6.7</Line>
-        <Line c="success">✓ Autoloader updated in wp-content/wdx/</Line>
+        <Line c="success">✓ Autoloader updated in wp-content/lps/</Line>
       </pre>
     </div>
   );

@@ -8,10 +8,10 @@ type Node = {
 
 const NODES: Node[] = [
   { label: "WordPress Admin", sub: "Source of truth", logo: "/logo-wordpress.svg" },
-  { label: "wdx pull", sub: "Serialize config", icon: "↓", mono: true },
+  { label: "lps pull", sub: "Serialize config", icon: "↓", mono: true },
   { label: "Git", sub: "Commit & review", logo: "/logo-git.svg" },
   { label: "Pull Request", sub: "Diff & approve", icon: "⤴" },
-  { label: "wdx push", sub: "Apply to env", icon: "↑", mono: true },
+  { label: "lps push", sub: "Apply to env", icon: "↑", mono: true },
 ];
 
 export function WorkflowDiagram() {
@@ -22,7 +22,7 @@ export function WorkflowDiagram() {
           <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          {/* <span className="ml-3">wdx · workflow</span> */}
+          {/* <span className="ml-3">lps · workflow</span> */}
         </div>
         {/* <span className="hidden sm:inline">reproducible.diff</span> */}
       </div>
@@ -56,7 +56,7 @@ export function WorkflowDiagram() {
 
       <div className="mt-8 grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-background/50 p-4 font-mono text-[12px] md:grid-cols-2">
         <div>
-          <div className="text-muted-foreground">$ wdx pull</div>
+          <div className="text-muted-foreground">$ lps pull</div>
           <div className="text-foreground">
             <span className="text-success">+</span> config/acf.yaml
           </div>
@@ -70,7 +70,7 @@ export function WorkflowDiagram() {
         <div>
           <div className="text-muted-foreground">$ git diff --stat</div>
           <div className="text-foreground/80">3 files changed, 47 insertions(+), 8 deletions(-)</div>
-          <div className="mt-1 text-muted-foreground">$ wdx push --env=staging</div>
+          <div className="mt-1 text-muted-foreground">$ lps push --env=staging</div>
           <div className="text-success">✓ applied · environment reproducible</div>
         </div>
       </div>

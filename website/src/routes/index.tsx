@@ -13,10 +13,10 @@ import { Footer } from "@/components/landing/Footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Wordpress DX - Make WordPress reproducible" },
+      { title: "Loopress - Make WordPress reproducible" },
       { name: "description", content: "Modern development workflows for WordPress. Configuration as code, version control, reproducible environments. Join the beta." },
-      { property: "og:title", content: "WDX - Make WordPress reproducible" },
-      { property: "og:description", content: "WDX brings Git, Composer and reproducible environments to WordPress." },
+      { property: "og:title", content: "Loopress - Make WordPress reproducible" },
+      { property: "og:description", content: "Loopress brings Git, Composer and reproducible environments to WordPress." },
     ],
     scripts: [
       {
@@ -24,12 +24,12 @@ export const Route = createFileRoute("/")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "WordPress DX",
+          name: "Loopress",
           applicationCategory: "DeveloperApplication",
           operatingSystem: "Web",
           description: "Modern development workflows for WordPress. Configuration as code, version control, reproducible environments.",
-          url: "https://wordpressdx.dev",
-          author: { "@id": "https://wordpressdx.dev/#organization" },
+          url: "https://loopress.dev",
+          author: { "@id": "https://loopress.dev/#organization" },
           offers: {
             "@type": "Offer",
             price: "0",

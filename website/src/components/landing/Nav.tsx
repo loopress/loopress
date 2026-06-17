@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
-import logoBlack from "@wordpress-dx/assets/logo-black.svg?url";
-import logoWhite from "@wordpress-dx/assets/logo-white.svg?url";
+import logoBlack from "@loopress/assets/loopress-logo-black.svg?url";
+import logoWhite from "@loopress/assets/loopress-logo-white.svg?url";
 
 export function Nav() {
   const { theme, toggle } = useTheme();
@@ -13,7 +13,7 @@ export function Nav() {
         <Link to="/" className="flex items-center">
           <img
             src={theme === "dark" ? logoWhite : logoBlack}
-            alt="WDX"
+            alt="Loopress"
             className="h-6 w-auto"
           />
         </Link>
@@ -23,7 +23,7 @@ export function Nav() {
           <a href="/#features" className="transition-colors hover:text-foreground">Features</a>
           <a href="/#integrations" className="transition-colors hover:text-foreground">Integrations</a>
           <a href="/#pricing" className="transition-colors hover:text-foreground">Pricing</a>
-          <a href="https://docs.wordpressdx.dev" className="transition-colors hover:text-foreground">Docs</a>
+          <a href="https://docs.loopress.dev" className="transition-colors hover:text-foreground">Docs</a>
         </nav>
         <div className="flex items-center gap-2">
           <button
@@ -34,7 +34,7 @@ export function Nav() {
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           <a
-            href="https://console.wordpressdx.dev"
+            href="https://console.loopress.dev"
             className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             Join the Beta

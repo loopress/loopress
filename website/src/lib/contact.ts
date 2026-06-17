@@ -17,7 +17,7 @@ export const sendContactEmail = createServerFn({ method: "POST" })
     });
 
     await brevo.transactionalEmails.sendTransacEmail({
-      sender: { name: "WordPress DX Contact", email: "noreply@wordpressdx.dev" },
+      sender: { name: "Loopress Contact", email: "noreply@loopress.dev" },
       to: [{ email: process.env.CONTACT_EMAIL!, name: "Maxime Blanc" }],
       replyTo: { email: data.email, name: data.name },
       subject: `[Contact] ${data.subject}`,

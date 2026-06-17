@@ -20,7 +20,7 @@ export function Vision() {
               engineering practices.
             </p>
             <p className="text-foreground">
-              WDX brings both worlds together.
+              Loopress brings both worlds together.
             </p>
           </div>
         </div>

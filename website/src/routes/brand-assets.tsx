@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import licenseText from "@wordpress-dx/assets/LICENSE?raw";
+import licenseText from "@loopress/assets/LICENSE?raw";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 
 export const Route = createFileRoute("/brand-assets")({
   head: () => ({
     meta: [
-      { title: "Brand Assets - WordPress DX" },
-      { name: "description", content: "WordPress DX trademark and brand asset usage policy." },
+      { title: "Brand Assets - Loopress" },
+      { name: "description", content: "Loopress trademark and brand asset usage policy." },
     ],
   }),
   component: BrandAssetsPage,
@@ -21,7 +21,7 @@ function BrandAssetsPage() {
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight">Brand Assets</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Trademark and usage policy for the WordPress DX name and logos.
+            Trademark and usage policy for the Loopress name and logos.
           </p>
         </div>
         <pre className="whitespace-pre-wrap rounded-lg border border-border bg-card/40 px-6 py-6 font-mono text-sm leading-relaxed text-foreground/80">
