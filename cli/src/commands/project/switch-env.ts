@@ -5,7 +5,7 @@ import {configManager} from '../../config/project-config.manager.js'
 
 export default class SwitchEnv extends Command {
   static description = 'Switch the active environment within the current project'
-  static examples = ['$ wdx project switch-env']
+  static examples = ['$ lps project switch-env']
 
   async run(): Promise<void> {
     await this.parse(SwitchEnv)
@@ -13,7 +13,7 @@ export default class SwitchEnv extends Command {
     const project = configManager.getCurrentProject()
 
     if (!project) {
-      this.error('No project configured. Run `wdx project config` first.')
+      this.error('No project configured. Run `lps project config` first.')
     }
 
     const envs = configManager.listEnvironments(project.name)

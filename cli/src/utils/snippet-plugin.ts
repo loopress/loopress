@@ -43,7 +43,7 @@ class CodeSnippetsPlugin implements SnippetPlugin {
 
 class WPCodePlugin implements SnippetPlugin {
   endpoint(siteUrl: string): string {
-    return `${siteUrl}/wp-json/wdx/v1/wpcode/snippets`
+    return `${siteUrl}/wp-json/loopress/v1/wpcode/snippets`
   }
 
   fromRemote(data: Record<string, unknown>): NormalizedSnippet {

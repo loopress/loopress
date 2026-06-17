@@ -25,7 +25,7 @@ describe('ProjectConfigManager', () => {
   let manager: ProjectConfigManager
 
   beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), 'wdx-test-'))
+    tmpDir = mkdtempSync(join(tmpdir(), 'lps-test-'))
     manager = new ProjectConfigManager(tmpDir)
   })
 
@@ -207,7 +207,7 @@ describe('ProjectConfigManager', () => {
 
     it('persists config.json at the expected path', () => {
       manager.setProject('acme', makeProject('acme'))
-      expect(manager.getConfigFilePath()).to.equal(join(tmpDir, '.wdx', 'config.json'))
+      expect(manager.getConfigFilePath()).to.equal(join(tmpDir, '.lps', 'config.json'))
       expect(existsSync(manager.getConfigFilePath())).to.be.true
     })
   })

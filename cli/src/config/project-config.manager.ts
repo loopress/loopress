@@ -2,7 +2,7 @@ import {existsSync, mkdirSync, readFileSync, renameSync, writeFileSync} from 'no
 import {homedir} from 'node:os'
 import {join} from 'node:path'
 
-import {EnvironmentConfig, ProjectConfig, WdxConfig} from './types.js'
+import {EnvironmentConfig, LoopressConfig, ProjectConfig} from './types.js'
 
 export class ProjectConfigManager {
   private static instance: ProjectConfigManager
@@ -18,26 +18,26 @@ export class ProjectConfigManager {
   }
 
   getConfigFilePath(): string {
-    return join(this.homeDir, '.wdx', 'config.json')
+    return join(this.homeDir, '.lps', 'config.json')
   }
 
   ensureConfigDir(): void {
-    const dir = join(this.homeDir, '.wdx')
+    const dir = join(this.homeDir, '.lps')
     if (!existsSync(dir)) {
       mkdirSync(dir, {recursive: true})
     }
   }
 
-  readConfig(): WdxConfig {
+  readConfig(): LoopressConfig {
     const filePath = this.getConfigFilePath()
     if (!existsSync(filePath)) {
       return {currentProject: null, projects: {}}
     }
 
-    return JSON.parse(readFileSync(filePath, 'utf8')) as WdxConfig
+    return JSON.parse(readFileSync(filePath, 'utf8')) as LoopressConfig
   }
 
-  writeConfig(config: WdxConfig): void {
+  writeConfig(config: LoopressConfig): void {
     this.ensureConfigDir()
     const filePath = this.getConfigFilePath()
     const tmpPath = `${filePath}.tmp`

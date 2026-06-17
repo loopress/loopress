@@ -5,12 +5,12 @@ import {type AddressInfo} from 'node:net'
 
 import {authManager} from '../config/auth.manager.js'
 
-const CONSOLE_URL = 'https://console.wordpressdx.dev'
+const CONSOLE_URL = 'https://console.loopress.dev'
 const TIMEOUT_MS = 5 * 60 * 1000
 
 export default class Login extends Command {
-  static description = 'Log in to WordPress DX via the console'
-  static examples = ['$ wdx login']
+  static description = 'Log in to Loopress via the console'
+  static examples = ['$ lps login']
 
   async run(): Promise<void> {
     const {email, token} = await this.waitForCallback()
@@ -73,7 +73,7 @@ export default class Login extends Command {
         const callbackUrl = `http://localhost:${port}/callback`
         const loginUrl = `${CONSOLE_URL}/cli-auth?callbackUrl=${encodeURIComponent(callbackUrl)}`
 
-        this.log('Opening WordPress DX console in your browser...')
+        this.log('Opening Loopress console in your browser...')
         this.log(`\nIf it doesn't open automatically, visit:\n${loginUrl}\n`)
 
         this.openBrowser(loginUrl)
@@ -87,7 +87,7 @@ const SUCCESS_PAGE = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WordPress DX: Logged in</title>
+  <title>Loopress: Logged in</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {

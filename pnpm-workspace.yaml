@@ -1,10 +1,11 @@
 packages:
   - "assets"
+  - "cli"
   - "documentation"
   - "eslint-config"
   - "website"
 allowBuilds:
   esbuild: true
   sharp: true
-minimumReleaseAgeExclude:
-  - '@loopress/assets@1.0.0'
+  unrs-resolver: true
+  yarn: true

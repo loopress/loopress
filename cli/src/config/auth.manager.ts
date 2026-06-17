@@ -22,7 +22,7 @@ export class AuthManager {
   }
 
   getAuthFilePath(): string {
-    return join(this.homeDir, '.wdx', 'auth.json')
+    return join(this.homeDir, '.lps', 'auth.json')
   }
 
   getAuth(): ConsoleAuth | null {
@@ -37,7 +37,7 @@ export class AuthManager {
   }
 
   setAuth(auth: ConsoleAuth): void {
-    const dir = join(this.homeDir, '.wdx')
+    const dir = join(this.homeDir, '.lps')
     if (!existsSync(dir)) mkdirSync(dir, {recursive: true})
 
     const filePath = this.getAuthFilePath()

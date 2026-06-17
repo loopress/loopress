@@ -2,21 +2,21 @@ import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
 import {PluginName, getSnippetPlugin} from '../../utils/snippet-plugin.js'
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
-export default class Pull extends WordpressDXCommand {
+export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({default: './snippets', description: 'Path to snippets directory'}),
   }
   static description = 'Pull snippets from WordPress'
   static examples = [
-    '$ wdx snippets pull',
-    '$ wdx snippets pull --url http://example.com',
-    '$ wdx snippets pull --path ./snippets',
-    '$ wdx snippets pull --plugin wpcode',
+    '$ lps snippets pull',
+    '$ lps snippets pull --url http://example.com',
+    '$ lps snippets pull --path ./snippets',
+    '$ lps snippets pull --plugin wpcode',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
     force: Flags.boolean({char: 'f', description: 'Force overwrite existing snippets'}),
     plugin: Flags.string({

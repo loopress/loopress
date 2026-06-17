@@ -2,20 +2,20 @@ import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
 import {PluginName, getSnippetPlugin} from '../../utils/snippet-plugin.js'
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
-export default class List extends WordpressDXCommand {
+export default class List extends LoopressCommand {
   static args = {
     path: Args.string({default: './snippets', description: 'Path to snippets directory'}),
   }
   static description = 'List snippets from WordPress'
   static examples = [
-    '$ wdx snippets list',
-    '$ wdx snippets list --url http://example.com',
-    '$ wdx snippets list --plugin wpcode',
+    '$ lps snippets list',
+    '$ lps snippets list --url http://example.com',
+    '$ lps snippets list --plugin wpcode',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     json: Flags.boolean({char: 'j', description: 'Output in JSON format'}),
     plugin: Flags.string({
       char: 'p',

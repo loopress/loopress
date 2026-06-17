@@ -1,7 +1,7 @@
 import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
 interface Theme {
   _links: {
@@ -18,18 +18,18 @@ interface GlobalStyles {
   styles: object
 }
 
-export default class Pull extends WordpressDXCommand {
+export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({default: './styles.json', description: 'Path to styles file'}),
   }
   static description = 'Pull Global Styles from WordPress'
   static examples = [
-    '$ wdx styles pull',
-    '$ wdx styles pull --url http://example.com',
-    '$ wdx styles pull --path ./my-styles.json',
+    '$ lps styles pull',
+    '$ lps styles pull --url http://example.com',
+    '$ lps styles pull --path ./my-styles.json',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
   }
 

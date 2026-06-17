@@ -2,20 +2,20 @@ import {Args, Flags} from '@oclif/core'
 import {glob} from 'glob'
 import got from 'got'
 
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
-export default class Push extends WordpressDXCommand {
+export default class Push extends LoopressCommand {
   static args = {
     path: Args.string({default: './styles.json', description: 'Path to styles file'}),
   }
   static description = 'Push Global Styles to WordPress'
   static examples = [
-    '$ wdx styles push',
-    '$ wdx styles push --url http://example.com',
-    '$ wdx styles push --path ./my-styles.json',
+    '$ lps styles push',
+    '$ lps styles push --url http://example.com',
+    '$ lps styles push --path ./my-styles.json',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
   }
 

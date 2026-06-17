@@ -7,7 +7,7 @@ import {isLocalUrl} from '../../utils/local-detection.js'
 
 export default class Config extends Command {
   static description = 'Add or update a WordPress project environment'
-  static examples = ['$ wdx project config']
+  static examples = ['$ lps project config']
 
   async run(): Promise<void> {
     await this.parse(Config)
@@ -104,7 +104,7 @@ export default class Config extends Command {
     }
 
     this.log(`✓ "${projectName}/${envName}" configured`)
-    this.log('→ Run `wdx project switch` to change active project')
-    this.log('→ Run `wdx project switch-env` to change active environment')
+    this.log('→ Run `lps project switch` to change active project')
+    this.log('→ Run `lps project switch-env` to change active environment')
   }
 }

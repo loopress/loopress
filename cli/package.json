@@ -1,13 +1,13 @@
 {
-  "name": "@wordpress-dx/cli",
+  "name": "@loopress/cli",
   "description": "CLI tool for syncing WordPress CodeSnippets, styles, and menus via the REST API",
   "version": "0.1.0",
   "author": "jean-smaug",
   "bin": {
-    "wdx": "bin/run.js"
+    "lps": "bin/run.js"
   },
   "bugs": {
-    "url": "https://github.com/wordpress-dx/wordpress-dx/issues"
+    "url": "https://github.com/loopress/loopress/issues"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.71.0",
@@ -45,7 +45,7 @@
     "./dist",
     "./oclif.manifest.json"
   ],
-  "homepage": "https://github.com/wordpress-dx/wordpress-dx",
+  "homepage": "https://github.com/loopress/loopress",
   "keywords": [
     "oclif"
   ],
@@ -53,8 +53,8 @@
   "main": "dist/index.js",
   "type": "module",
   "oclif": {
-    "bin": "wdx",
-    "dirname": "wdx",
+    "bin": "lps",
+    "dirname": "lps",
     "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
@@ -64,7 +64,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wordpress-dx/wordpress-dx.git"
+    "url": "git+https://github.com/loopress/loopress.git"
   },
   "scripts": {
     "watch": "tsc -b --watch",

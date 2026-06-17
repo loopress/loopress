@@ -12,7 +12,7 @@ export interface ProjectConfig {
   addedAt: string
 }
 
-export interface WdxConfig {
+export interface LoopressConfig {
   currentProject: string | null
   projects: Record<string, ProjectConfig>
 }

@@ -4,24 +4,24 @@ import {configManager} from '../config/project-config.manager.js'
 import {EnvironmentConfig} from '../config/types.js'
 import {isLocalUrl} from '../utils/local-detection.js'
 
-export abstract class WordpressDXCommand extends Command {
+export abstract class LoopressCommand extends Command {
   protected siteConfig!: EnvironmentConfig
 
   // Kept for backward compatibility (CI, env vars, direct flag override).
   // Values are used as fallback when no config.json entry is active.
   static baseFlags = {
     password: Flags.string({
-      description: 'WordPress application password (fallback; prefer `wdx project config`)',
+      description: 'WordPress application password (fallback; prefer `lps project config`)',
       env: 'WP_APP_PASSWORD',
       helpGroup: 'GLOBAL',
     }),
     url: Flags.string({
-      description: 'WordPress URL (fallback; prefer `wdx project config`)',
+      description: 'WordPress URL (fallback; prefer `lps project config`)',
       env: 'WP_URL',
       helpGroup: 'GLOBAL',
     }),
     user: Flags.string({
-      description: 'WordPress username (fallback; prefer `wdx project config`)',
+      description: 'WordPress username (fallback; prefer `lps project config`)',
       env: 'WP_USERNAME',
       helpGroup: 'GLOBAL',
     }),
@@ -54,7 +54,7 @@ export abstract class WordpressDXCommand extends Command {
       return
     }
 
-    this.error('No environment configured. Run `wdx project config` first.')
+    this.error('No environment configured. Run `lps project config` first.')
   }
 
   async buildAuthHeaders(): Promise<Record<string, string>> {
@@ -64,6 +64,6 @@ export abstract class WordpressDXCommand extends Command {
       return {Authorization: `Basic ${Buffer.from(token).toString('base64')}`}
     }
 
-    this.error(`No credentials configured for ${url}. Run \`wdx project config\` to add them.`)
+    this.error(`No credentials configured for ${url}. Run \`lps project config\` to add them.`)
   }
 }

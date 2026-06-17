@@ -4,13 +4,13 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import {NavMenu} from '../../types/menu.js'
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
-export default class Pull extends WordpressDXCommand {
+export default class Pull extends LoopressCommand {
   static description = 'Pull Menus from WordPress'
-  static examples = ['$ wdx menu pull', '$ wdx menu pull --url http://example.com']
+  static examples = ['$ lps menu pull', '$ lps menu pull --url http://example.com']
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     config: Flags.string({default: 'menus.json', description: 'Config file to save menus to'}),
   }
 

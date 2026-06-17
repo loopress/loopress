@@ -5,7 +5,7 @@ import {configManager} from '../../config/project-config.manager.js'
 
 export default class Remove extends Command {
   static description = 'Remove one or more WordPress project configurations'
-  static examples = ['$ wdx project remove']
+  static examples = ['$ lps project remove']
 
   async run(): Promise<void> {
     await this.parse(Remove)

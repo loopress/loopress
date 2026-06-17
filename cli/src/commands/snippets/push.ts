@@ -3,21 +3,21 @@ import got from 'got'
 
 import {Snippet} from '../../types/snippet.js'
 import {NormalizedSnippet, PluginName, getSnippetPlugin} from '../../utils/snippet-plugin.js'
-import {WordpressDXCommand} from '../base.js'
+import {LoopressCommand} from '../base.js'
 
-export default class Push extends WordpressDXCommand {
+export default class Push extends LoopressCommand {
   static args = {
     path: Args.string({default: './snippets', description: 'Path to snippets directory'}),
   }
   static description = 'Push snippets to WordPress'
   static examples = [
-    '$ wdx snippets push',
-    '$ wdx snippets push --url http://example.com',
-    '$ wdx snippets push --path ./snippets',
-    '$ wdx snippets push --plugin wpcode',
+    '$ lps snippets push',
+    '$ lps snippets push --url http://example.com',
+    '$ lps snippets push --path ./snippets',
+    '$ lps snippets push --plugin wpcode',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
     plugin: Flags.string({
       char: 'p',

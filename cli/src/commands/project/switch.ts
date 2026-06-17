@@ -5,7 +5,7 @@ import {configManager} from '../../config/project-config.manager.js'
 
 export default class Switch extends Command {
   static description = 'Switch the active project'
-  static examples = ['$ wdx project switch']
+  static examples = ['$ lps project switch']
 
   async run(): Promise<void> {
     await this.parse(Switch)
@@ -13,7 +13,7 @@ export default class Switch extends Command {
     const projects = configManager.listProjects()
 
     if (projects.length === 0) {
-      this.error('No projects configured. Run `wdx project config` first.')
+      this.error('No projects configured. Run `lps project config` first.')
     }
 
     if (projects.length === 1) {

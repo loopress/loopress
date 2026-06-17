@@ -1,19 +1,19 @@
 import {Args, Command, Flags} from '@oclif/core'
 import got from 'got'
 
-import {WordpressDXCommand} from './base.js'
+import {LoopressCommand} from './base.js'
 
-export default class Import extends WordpressDXCommand {
+export default class Import extends LoopressCommand {
   static args = {
     file: Args.string({description: 'Input file path', required: true}),
   }
   static description = 'Import CodeSnippets from a file'
   static examples = [
-    '$ wdx import --file snippets.json',
-    '$ wdx import --file snippets.json --url http://example.com',
+    '$ lps import --file snippets.json',
+    '$ lps import --file snippets.json --url http://example.com',
   ]
   static flags = {
-    ...WordpressDXCommand.baseFlags,
+    ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
     force: Flags.boolean({char: 'f', description: 'Force overwrite existing snippets'}),
   }

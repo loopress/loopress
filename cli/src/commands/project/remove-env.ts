@@ -5,7 +5,7 @@ import {configManager} from '../../config/project-config.manager.js'
 
 export default class RemoveEnv extends Command {
   static description = 'Remove one or more environments from the current project'
-  static examples = ['$ wdx project remove-env']
+  static examples = ['$ lps project remove-env']
 
   async run(): Promise<void> {
     await this.parse(RemoveEnv)
@@ -13,7 +13,7 @@ export default class RemoveEnv extends Command {
     const project = configManager.getCurrentProject()
 
     if (!project) {
-      this.error('No project configured. Run `wdx project config` first.')
+      this.error('No project configured. Run `lps project config` first.')
     }
 
     const envs = configManager.listEnvironments(project.name)
