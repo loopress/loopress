@@ -1,0 +1,46 @@
+---
+import Default from '@astrojs/starlight/components/PageFrame.astro';
+---
+
+<div class="wip-banner" role="alert">
+  🚧 This documentation is a work in progress — Loopress is not yet ready for production use.
+</div>
+<Default {...Astro.props}>
+  <slot name="header" slot="header" />
+  <slot name="sidebar" slot="sidebar" />
+  <slot />
+</Default>
+
+<style is:global>
+  :root {
+    --wip-banner-height: 2.5rem;
+  }
+
+  .wip-banner {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 100%;
+    height: var(--wip-banner-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f59e0b;
+    color: #1c1917;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: calc(var(--sl-z-index-navbar) + 1);
+  }
+
+  .header {
+    inset-block-start: var(--wip-banner-height) !important;
+  }
+
+  .sidebar-pane {
+    inset-block: calc(var(--sl-nav-height) + var(--wip-banner-height)) 0 !important;
+  }
+
+  .main-frame {
+    padding-top: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height) + var(--wip-banner-height)) !important;
+  }
+</style>

@@ -36,6 +36,9 @@ export default defineConfig({
         starlight({
             title: 'Loopress',
             favicon: '/favicon.svg',
+            components: {
+                PageFrame: './src/components/PageFrame.astro',
+            },
             plugins: [
                 starlightBlog({
                     authors: {
