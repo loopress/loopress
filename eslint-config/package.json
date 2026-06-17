@@ -1,7 +1,6 @@
 {
   "name": "@loopress/eslint-config",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "exports": {
     "./base": "./base.js",

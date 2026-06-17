@@ -3,6 +3,7 @@
   "description": "CLI tool for syncing WordPress CodeSnippets, styles, and menus via the REST API",
   "version": "0.1.0",
   "author": "jean-smaug",
+  "private": true,
   "bin": {
     "lps": "bin/run.js"
   },
