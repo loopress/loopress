@@ -11,23 +11,23 @@ Supports the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugi
 
 ```bash
 # 1. Download existing snippets from WordPress
-wdx snippets pull
+lps snippets pull
 
 # 2. Edit locally, commit to Git
 git add snippets/ && git commit -m "feat: update price formatter snippet"
 
 # 3. Deploy back to WordPress
-wdx snippets push
+lps snippets push
 ```
 
 ## Commands
 
-### `wdx snippets pull`
+### `lps snippets pull`
 
 Download all snippets from WordPress and write them as `.php` files.
 
 ```bash
-wdx snippets pull [path]
+lps snippets pull [path]
 ```
 
 | Argument | Default | Description |
@@ -43,18 +43,18 @@ wdx snippets pull [path]
 **Example:**
 
 ```bash
-wdx snippets pull ./wp-snippets --dryRun
-wdx snippets pull --plugin wpcode
+lps snippets pull ./wp-snippets --dryRun
+lps snippets pull --plugin wpcode
 ```
 
 ---
 
-### `wdx snippets push`
+### `lps snippets push`
 
 Upload `.php` files from a local directory to WordPress. If a snippet with the same name already exists it is updated; otherwise a new snippet is created.
 
 ```bash
-wdx snippets push [path]
+lps snippets push [path]
 ```
 
 | Argument | Default | Description |
@@ -69,18 +69,18 @@ wdx snippets push [path]
 **Example:**
 
 ```bash
-wdx snippets push ./wp-snippets
-wdx snippets push --plugin wpcode
+lps snippets push ./wp-snippets
+lps snippets push --plugin wpcode
 ```
 
 ---
 
-### `wdx snippets list`
+### `lps snippets list`
 
 Print all snippets currently on WordPress.
 
 ```bash
-wdx snippets list
+lps snippets list
 ```
 
 | Flag | Description |
@@ -115,9 +115,9 @@ snippets/
 
 ## WPCode support
 
-To target [WPCode](https://wpcode.com/) instead of Code Snippets, pass `--plugin wpcode` to any command. The WDX plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
+To target [WPCode](https://wpcode.com/) instead of Code Snippets, pass `--plugin wpcode` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
 
 ```bash
-wdx snippets pull --plugin wpcode
-wdx snippets push --plugin wpcode
+lps snippets pull --plugin wpcode
+lps snippets push --plugin wpcode
 ```

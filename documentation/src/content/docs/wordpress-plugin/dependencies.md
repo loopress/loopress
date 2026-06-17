@@ -7,12 +7,12 @@ The **Dependency Management** card lets you browse [Packagist](https://packagist
 
 ## Where packages are stored
 
-WDX maintains its own `composer.json` under `wp-content/wdx/`. Installed packages land in `wp-content/wdx/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
+Loopress maintains its own `composer.json` under `wp-content/lps/`. Installed packages land in `wp-content/lps/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
 
 ```
 wp-content/
-  wdx/
-    composer.json        ← managed by WDX
+  lps/
+    composer.json        ← managed by Loopress
     vendor/
       autoload.php       ← require this in your snippets
       guzzlehttp/guzzle/
@@ -40,13 +40,13 @@ In the **Installed Packages** card, click **Remove** next to the package you wan
 
 ## Repair
 
-The **Repair** action runs `composer update` against `wp-content/wdx/composer.json`. Use it when:
+The **Repair** action runs `composer update` against `wp-content/lps/composer.json`. Use it when:
 
 - The autoloader is missing after a server migration
 - The lockfile has drifted from `composer.json`
 - A previous install left the dependencies in an inconsistent state
 
-The autoload error banner at the top of the page appears automatically when WDX detects a missing or broken autoloader and prompts you to run Repair.
+The autoload error banner at the top of the page appears automatically when Loopress detects a missing or broken autoloader and prompts you to run Repair.
 
 ## Notes
 

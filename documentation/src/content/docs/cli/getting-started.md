@@ -1,26 +1,26 @@
 ---
 title: CLI - Getting Started
-description: Install and configure the WDX CLI to connect to your WordPress instances.
+description: Install and configure the Loopress CLI to connect to your WordPress instances.
 ---
 
-The WDX CLI (`wdx`) is a Node.js command-line tool for version-controlling WordPress data and syncing it between your local machine and any WordPress instance.
+The Loopress CLI (`lps`) is a Node.js command-line tool for version-controlling WordPress data and syncing it between your local machine and any WordPress instance.
 
 ## Installation
 
 ```bash
-npm install -g @wordpress-dx/cli
+npm install -g @loopress/cli
 ```
 
 Or with pnpm:
 
 ```bash
-pnpm add -g @wordpress-dx/cli
+pnpm add -g @loopress/cli
 ```
 
 Verify the installation:
 
 ```bash
-wdx --version
+lps --version
 ```
 
 ## Requirements
@@ -34,7 +34,7 @@ wdx --version
 Before running any command, register your WordPress site:
 
 ```bash
-wdx site config
+lps site config
 ```
 
 You will be prompted for:
@@ -48,12 +48,12 @@ You will be prompted for:
 
 ### Manage multiple sites
 
-WDX stores site configurations in `~/.config/wdx/sites.json` and keeps track of the currently active site.
+Loopress stores site configurations in `~/.config/loopress/sites.json` and keeps track of the currently active site.
 
 ```bash
-wdx site config          # Add or update a site
-wdx site switch          # Interactively pick the active site
-wdx site remove <name>   # Remove a saved site
+lps site config          # Add or update a site
+lps site switch          # Interactively pick the active site
+lps site remove <name>   # Remove a saved site
 ```
 
 All commands operate against the **active site** unless overridden via environment variables.
@@ -67,7 +67,7 @@ export WP_URL=https://example.com
 export WP_USERNAME=admin
 export WP_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
 
-wdx snippets push
+lps snippets push
 ```
 
 ## Dry run
@@ -75,7 +75,7 @@ wdx snippets push
 Most commands accept a `--dryRun` (`-d`) flag that shows what would happen without making any changes:
 
 ```bash
-wdx snippets push --dryRun
-wdx snippets pull --dryRun
-wdx acf pull --dryRun
+lps snippets push --dryRun
+lps snippets pull --dryRun
+lps acf pull --dryRun
 ```

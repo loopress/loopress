@@ -3,7 +3,7 @@ title: Platform Diagnostics
 description: Detect and fix PHP version mismatches before they cause Composer install failures.
 ---
 
-The **Platform Diagnostics** banner appears automatically at the top of the WDX admin page when an issue is detected. It helps you catch PHP version mismatches before they cause packages to be installed for the wrong runtime.
+The **Platform Diagnostics** banner appears automatically at the top of the Loopress admin page when an issue is detected. It helps you catch PHP version mismatches before they cause packages to be installed for the wrong runtime.
 
 ## What it checks
 
@@ -15,7 +15,7 @@ Composer uses the `config.platform.php` value in `composer.json` to decide which
 
 ### `config.platform.php` mismatch
 
-The platform PHP version in `wp-content/wdx/composer.json` does not match the PHP version the server is actually running. This can happen after a PHP upgrade.
+The platform PHP version in `wp-content/lps/composer.json` does not match the PHP version the server is actually running. This can happen after a PHP upgrade.
 
 **Detected issue code:** `platform_php_mismatch`
 
@@ -25,13 +25,13 @@ The platform PHP version in `wp-content/wdx/composer.json` does not match the PH
 
 ## Fixing a detected issue
 
-Click the **Set to PHP x.x.x** button in the banner. This updates `config.platform.php` in `wp-content/wdx/composer.json` to match the currently running PHP version.
+Click the **Set to PHP x.x.x** button in the banner. This updates `config.platform.php` in `wp-content/lps/composer.json` to match the currently running PHP version.
 
 This action is blocked when the [Production Lock](/wordpress-plugin/environment/) is active.
 
 ## REST API
 
-The diagnostics data is exposed at `GET /wp-json/wdx/v1/vendor/diagnostics`:
+The diagnostics data is exposed at `GET /wp-json/lps/v1/vendor/diagnostics`:
 
 ```json
 {
@@ -46,4 +46,4 @@ The diagnostics data is exposed at `GET /wp-json/wdx/v1/vendor/diagnostics`:
 }
 ```
 
-The fix endpoint is `POST /wp-json/wdx/v1/vendor/fix-platform`.
+The fix endpoint is `POST /wp-json/lps/v1/vendor/fix-platform`.

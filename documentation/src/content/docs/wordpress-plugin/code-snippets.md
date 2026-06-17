@@ -1,16 +1,16 @@
 ---
 title: Using dependencies in code snippets
-description: How to use Composer packages installed via WDX in WordPress code snippets.
+description: How to use Composer packages installed via Loopress in WordPress code snippets.
 ---
 
-Once you have installed a package through the WDX plugin, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
+Once you have installed a package through the Loopress plugin, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
 
 ## Loading the autoloader
 
-WDX stores its packages under `wp-content/wdx/vendor/`. You need to require the Composer autoloader once before using any installed package:
+Loopress stores its packages under `wp-content/lps/vendor/`. You need to require the Composer autoloader once before using any installed package:
 
 ```php
-require_once WP_CONTENT_DIR . '/wdx/vendor/autoload.php';
+require_once WP_CONTENT_DIR . '/lps/vendor/autoload.php';
 ```
 
 Place this at the top of your snippet, before any `use` statements.
@@ -21,12 +21,12 @@ This example installs [Guzzle](https://packagist.org/packages/guzzlehttp/guzzle)
 
 **1. Install the package**
 
-In the WDX admin page, search for `guzzlehttp/guzzle` and install it.
+In the Loopress admin page, search for `guzzlehttp/guzzle` and install it.
 
 **2. Use it in a snippet**
 
 ```php
-require_once WP_CONTENT_DIR . '/wdx/vendor/autoload.php';
+require_once WP_CONTENT_DIR . '/lps/vendor/autoload.php';
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -54,6 +54,6 @@ add_action('wp_footer', function () {
 
 ## Tips
 
-- The autoloader path (`WP_CONTENT_DIR . '/wdx/vendor/autoload.php'`) is the same regardless of which package you install.
-- If the autoloader is missing (e.g. after a fresh WordPress install), run **Repair** from the WDX admin page to regenerate it.
+- The autoloader path (`WP_CONTENT_DIR . '/lps/vendor/autoload.php'`) is the same regardless of which package you install.
+- If the autoloader is missing (e.g. after a fresh WordPress install), run **Repair** from the Loopress admin page to regenerate it.
 - Always escape output with `esc_html()` or `esc_url()` before echoing data from external sources.

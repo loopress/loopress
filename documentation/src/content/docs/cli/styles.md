@@ -11,12 +11,12 @@ WordPress stores Global Styles as a custom post. The CLI fetches that post (incl
 
 ## Commands
 
-### `wdx styles pull`
+### `lps styles pull`
 
 Download the current Global Styles from WordPress and save them to a JSON file.
 
 ```bash
-wdx styles pull [path]
+lps styles pull [path]
 ```
 
 | Argument | Default | Description |
@@ -26,18 +26,18 @@ wdx styles pull [path]
 **Example:**
 
 ```bash
-wdx styles pull
-wdx styles pull ./theme/styles.json
+lps styles pull
+lps styles pull ./theme/styles.json
 ```
 
 ---
 
-### `wdx styles push`
+### `lps styles push`
 
 Upload Global Styles back to WordPress. The command also bundles any `*.css` files found in `./styles/**/*.css` and injects them as the custom CSS property.
 
 ```bash
-wdx styles push [path]
+lps styles push [path]
 ```
 
 | Argument | Default | Description |
@@ -52,7 +52,7 @@ wdx styles push [path]
 
 ```bash
 # Edit styles.json, then:
-wdx styles push
+lps styles push
 
 # With extra CSS files:
 # ./styles/typography.css and ./styles/components.css are bundled automatically

@@ -34,29 +34,29 @@ Some agencies build a site-specific plugin to hold all their custom code. This i
 
 None of these feel like a real developer workflow.
 
-## The WDX approach
+## The Loopress approach
 
-WDX treats your snippets as plain files in a Git repository. Pull them down from WordPress, edit them locally, push them back. Every change is a commit.
+Loopress treats your snippets as plain files in a Git repository. Pull them down from WordPress, edit them locally, push them back. Every change is a commit.
 
 ### Setup
 
-Install the WDX CLI:
+Install the Loopress CLI:
 
 ```bash
-npm install -g @wordpress-dx/cli
+npm install -g @loopress/cli
 ```
 
 Configure your site:
 
 ```bash
-wdx site config
+lps site config
 # Enter your WordPress URL, username, and application password
 ```
 
 ### Pull your snippets
 
 ```bash
-wdx snippets pull
+lps snippets pull
 ```
 
 This creates a `snippets/` directory with one `.php` file per snippet:
@@ -84,39 +84,39 @@ Now you have a commit. A diff. A message explaining why. This is reviewable, rev
 ### Push back to WordPress
 
 ```bash
-wdx snippets push
+lps snippets push
 ```
 
-WDX syncs your local files back to WordPress via the REST API. No FTP, no copy-paste.
+Loopress syncs your local files back to WordPress via the REST API. No FTP, no copy-paste.
 
 If you want to see what would change without actually changing anything:
 
 ```bash
-wdx snippets push --dry-run
+lps snippets push --dry-run
 ```
 
 ## Working across environments
 
-The real value shows up when you're working with local, staging, and production environments. With WDX:
+The real value shows up when you're working with local, staging, and production environments. With Loopress:
 
 ```bash
 # Pull from production
-wdx snippets pull --url https://production.example.com
+lps snippets pull --url https://production.example.com
 
 # Test locally, commit changes
 
 # Push to staging first
-wdx snippets push --url https://staging.example.com
+lps snippets push --url https://staging.example.com
 
 # When ready, push to production
-wdx snippets push --url https://production.example.com
+lps snippets push --url https://production.example.com
 ```
 
 Your snippets flow between environments the same way your code does. No database exports, no manual copy-paste.
 
 ## One thing to keep in mind
 
-WDX syncs snippets by name. If you rename a snippet in the admin panel, WDX will treat it as a new snippet on the next push. Keep names consistent, and treat the files as the source of truth once you're in this workflow.
+Loopress syncs snippets by name. If you rename a snippet in the admin panel, Loopress will treat it as a new snippet on the next push. Keep names consistent, and treat the files as the source of truth once you're in this workflow.
 
 ---
 

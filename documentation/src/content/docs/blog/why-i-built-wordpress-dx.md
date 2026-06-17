@@ -1,5 +1,5 @@
 ---
-title: Why I Built WordPress DX
+title: Why I Built Loopress
 description: From Terraform's "infrastructure as code" philosophy to a frustrating WordPress project. How a side project for my sister turned into a developer tooling ecosystem.
 date: 2026-06-08
 authors:
@@ -35,7 +35,7 @@ That's not a knock on WordPress. It's built for a different audience. But the de
 
 ## What I built
 
-I started building **WDX**: a CLI to version-control code snippets in Git and sync them to any WordPress instance, and a plugin that brings Composer dependency management into the admin panel, no SSH needed.
+I started building **Loopress**: a CLI to version-control code snippets in Git and sync them to any WordPress instance, and a plugin that brings Composer dependency management into the admin panel, no SSH needed.
 
 The goal was to bring the same idea I took away from Terraform into WordPress: your snippets, your dependencies, your configuration, all of it living in a repo, reviewable, deployable, not scattered across admin panels and SSH sessions you'll never remember.
 

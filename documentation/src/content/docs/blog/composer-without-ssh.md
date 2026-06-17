@@ -10,7 +10,7 @@ tags:
   - php
   - wordpress
   - dependencies
-excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The WDX plugin does this from the admin panel.
+excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The Loopress plugin does this from the admin panel.
 ---
 
 You need to add a PHP dependency to a WordPress site. Maybe a PDF generation library, a CSV parser, an image manipulation package. Something available on Packagist.
@@ -38,17 +38,17 @@ Run Composer locally, then upload the `vendor/` directory to the server via FTP 
 
 Neither option is good.
 
-## What WDX does differently
+## What Loopress does differently
 
-The WDX plugin adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access.
+The Loopress plugin adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access.
 
 ### Installing a package
 
-Navigate to **WordPress Admin → WDX → Dependencies**.
+Navigate to **WordPress Admin → Loopress → Dependencies**.
 
-Search for a package by name (`tecnickcom/tcpdf`, `league/csv`, whatever you need). WDX queries Packagist directly and shows you available versions.
+Search for a package by name (`tecnickcom/tcpdf`, `league/csv`, whatever you need). Loopress queries Packagist directly and shows you available versions.
 
-Select the version, click **Install**. WDX runs `composer require` on the server and installs the package into a managed `vendor/` directory inside the plugin's scope.
+Select the version, click **Install**. Loopress runs `composer require` on the server and installs the package into a managed `vendor/` directory inside the plugin's scope.
 
 The installed packages are then available to your code snippets via autoloading:
 
@@ -65,7 +65,7 @@ If you manage multiple client sites, the usual Composer workflow means either:
 - Teaching clients how to run terminal commands (not happening)
 - Keeping a pile of FTP credentials and manually uploading `vendor/` directories
 
-With WDX, the dependency management surface moves into the WordPress admin. You can install, update, and remove packages from the same interface you use to manage everything else. No server access required.
+With Loopress, the dependency management surface moves into the WordPress admin. You can install, update, and remove packages from the same interface you use to manage everything else. No server access required.
 
 ### Seeing what's installed
 
@@ -76,12 +76,12 @@ The **Dependencies** panel shows:
 
 This is the equivalent of `composer show` and `composer outdated`, surfaced in the UI.
 
-## What WDX doesn't replace
+## What Loopress doesn't replace
 
-WDX's dependency management is designed for adding libraries to a running WordPress site, pulling in packages that your snippets or custom code need. It's not a replacement for a full Bedrock/Composer setup where WordPress itself is a Composer dependency.
+Loopress's dependency management is designed for adding libraries to a running WordPress site, pulling in packages that your snippets or custom code need. It's not a replacement for a full Bedrock/Composer setup where WordPress itself is a Composer dependency.
 
-If you're building on [Roots/Bedrock](https://roots.io/bedrock/), you already have a proper Composer workflow and probably don't need this. WDX fills the gap for the other 90% of WordPress sites that aren't running a full stack framework: sites on shared hosting, client sites where the server environment is opaque, or projects where "set up Bedrock" isn't a conversation you can have.
+If you're building on [Roots/Bedrock](https://roots.io/bedrock/), you already have a proper Composer workflow and probably don't need this. Loopress fills the gap for the other 90% of WordPress sites that aren't running a full stack framework: sites on shared hosting, client sites where the server environment is opaque, or projects where "set up Bedrock" isn't a conversation you can have.
 
 ---
 
-The WDX plugin is available on [GitHub](https://github.com/jean-smaug/wordpress-dx). Installation is a standard WordPress plugin install, no server configuration required.
+The Loopress plugin is available on [GitHub](https://github.com/loopress). Installation is a standard WordPress plugin install, no server configuration required.

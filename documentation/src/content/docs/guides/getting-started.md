@@ -1,9 +1,9 @@
 ---
 title: Getting Started
-description: Install the WDX plugin and CLI and run your first snippet sync.
+description: Install the Loopress plugin and CLI and run your first snippet sync.
 ---
 
-WordPress DX is made up of two independent tools. You can use one, the other, or both depending on your needs.
+Loopress is made up of two independent tools. You can use one, the other, or both depending on your needs.
 
 ## Wordpress Plugin
 
@@ -11,7 +11,7 @@ Install the plugin on your WordPress site to manage Composer packages from the a
 
 → [Learn more about the plugin](/wordpress-plugin/)
 
-## WDX CLI
+## Loopress CLI
 
 Install the CLI to version-control your code snippets as plain `.php` files in Git and sync them to any WordPress instance.
 
@@ -36,15 +36,15 @@ Install the CLI to version-control your code snippets as plain `.php` files in G
 
 ### 1. Install the plugin
 
-Download and activate the WDX plugin from the WordPress admin (**Plugins → Add New → Upload Plugin**).
+Download and activate the Loopress plugin from the WordPress admin (**Plugins → Add New → Upload Plugin**).
 
-After activation, a **WDX** entry appears in the admin sidebar. From there you can search and install Composer packages without touching the server.
+After activation, a **Loopress** entry appears in the admin sidebar. From there you can search and install Composer packages without touching the server.
 
 ### 2. Install and configure the CLI
 
 ```bash
-npm install -g @wordpress-dx/cli
-wdx site config
+npm install -g @loopress/cli
+lps site config
 ```
 
 Enter your WordPress URL, username and application password when prompted.
@@ -53,8 +53,8 @@ Enter your WordPress URL, username and application password when prompted.
 
 ```bash
 # Download your existing snippets as .php files
-wdx snippets pull
+lps snippets pull
 
 # Edit locally, commit to Git, then deploy back
-wdx snippets push
+lps snippets push
 ```

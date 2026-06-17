@@ -7,12 +7,12 @@ The `menu` command group syncs [Block-based Navigation menus](https://developer.
 
 ## Commands
 
-### `wdx menu pull`
+### `lps menu pull`
 
 Download all navigation menus from WordPress.
 
 ```bash
-wdx menu pull
+lps menu pull
 ```
 
 | Flag | Description |
@@ -22,8 +22,8 @@ wdx menu pull
 **Example:**
 
 ```bash
-wdx menu pull
-wdx menu pull --config ./theme/menus.json
+lps menu pull
+lps menu pull --config ./theme/menus.json
 ```
 
 The output file contains an array of navigation post objects including their block content and IDs:
@@ -40,12 +40,12 @@ The output file contains an array of navigation post objects including their blo
 
 ---
 
-### `wdx menu push`
+### `lps menu push`
 
 Upload menus from a local JSON file back to WordPress. Each menu is matched by its `id`.
 
 ```bash
-wdx menu push
+lps menu push
 ```
 
 | Flag | Description |
@@ -55,23 +55,23 @@ wdx menu push
 **Example:**
 
 ```bash
-wdx menu push
-wdx menu push --config ./theme/menus.json
+lps menu push
+lps menu push --config ./theme/menus.json
 ```
 
 ## Typical workflow
 
 ```bash
 # 1. Pull menus from staging
-wdx site switch   # select staging
-wdx menu pull --config menus.json
+lps site switch   # select staging
+lps menu pull --config menus.json
 
 # 2. Commit to Git
 git add menus.json && git commit -m "sync: menus from staging"
 
 # 3. Push to production
-wdx site switch   # select production
-wdx menu push --config menus.json
+lps site switch   # select production
+lps menu push --config menus.json
 ```
 
 ## Notes

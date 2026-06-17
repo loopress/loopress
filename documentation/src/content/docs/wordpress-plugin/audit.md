@@ -3,7 +3,7 @@ title: Security Audit
 description: Surface known CVEs and abandoned packages in your installed Composer dependencies.
 ---
 
-The **Security Audit** banner runs `composer audit` against your installed packages and surfaces the results in the WDX admin page. It checks for known security advisories and packages that have been marked as abandoned by their authors.
+The **Security Audit** banner runs `composer audit` against your installed packages and surfaces the results in the Loopress admin page. It checks for known security advisories and packages that have been marked as abandoned by their authors.
 
 ## What it reports
 
@@ -23,7 +23,7 @@ A yellow warning is shown for packages that Packagist has flagged as abandoned. 
 
 ## Behaviour
 
-- The audit runs automatically when the WDX admin page is loaded, with results cached for **5 minutes**.
+- The audit runs automatically when the Loopress admin page is loaded, with results cached for **5 minutes**.
 - If the audit returns no results (no advisories, no abandoned packages), the banner is hidden.
 - If the audit request fails, the banner is hidden silently and never blocks normal usage.
 
@@ -35,7 +35,7 @@ A yellow warning is shown for packages that Packagist has flagged as abandoned. 
 
 ## REST API
 
-The audit data is exposed at `GET /wp-json/wdx/v1/vendor/audit`:
+The audit data is exposed at `GET /wp-json/lps/v1/vendor/audit`:
 
 ```json
 {

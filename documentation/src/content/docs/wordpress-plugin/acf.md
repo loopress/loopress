@@ -1,6 +1,6 @@
 ---
 title: ACF Sync
-description: REST endpoints for syncing Advanced Custom Fields field groups via the WDX CLI.
+description: REST endpoints for syncing Advanced Custom Fields field groups via the Loopress CLI.
 badge:
   text: Beta
   variant: caution
@@ -12,17 +12,17 @@ import { Aside } from '@astrojs/starlight/components';
 ACF sync requires **Advanced Custom Fields** (free or Pro) to be installed and activated. If ACF is not active, all endpoints return `400 Bad Request`.
 </Aside>
 
-The WDX plugin exposes a REST API that the WDX CLI uses to pull and push ACF field group definitions. The admin UI does not surface ACF features directly; use the CLI.
+The Loopress plugin exposes a REST API that the Loopress CLI uses to pull and push ACF field group definitions. The admin UI does not surface ACF features directly; use the CLI.
 
 ## Requirements
 
 - Advanced Custom Fields (free or Pro) installed and active
-- WDX plugin installed and active
+- Loopress plugin installed and active
 - Administrator role (`manage_options` capability)
 
 ## REST API
 
-### `GET /wp-json/wdx/v1/acf/field-groups`
+### `GET /wp-json/lps/v1/acf/field-groups`
 
 Returns all ACF field groups with their nested fields.
 
@@ -46,7 +46,7 @@ Returns all ACF field groups with their nested fields.
 ]
 ```
 
-### `POST /wp-json/wdx/v1/acf/field-groups`
+### `POST /wp-json/lps/v1/acf/field-groups`
 
 Import a field group. The request body must be a valid ACF field group object with a `key` property. Equivalent to ACF's own **Tools → Import** feature.
 
@@ -65,7 +65,7 @@ Import a field group. The request body must be a valid ACF field group object wi
 
 ## CLI usage
 
-→ See [ACF Field Groups (CLI)](/cli/acf/) for the `wdx acf pull` and `wdx acf push` commands.
+→ See [ACF Field Groups (CLI)](/cli/acf/) for the `lps acf pull` and `lps acf push` commands.
 
 ## Error responses
 

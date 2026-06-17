@@ -1,6 +1,6 @@
 ---
 title: Custom Post Type API
-description: Read-only REST endpoints for querying custom post types via the WDX plugin.
+description: Read-only REST endpoints for querying custom post types via the Loopress plugin.
 badge:
   text: Beta
   variant: caution
@@ -12,7 +12,7 @@ import { Aside } from '@astrojs/starlight/components';
 The CPT API is a read-only convenience wrapper. It exposes posts with their meta in a single request, suitable for headless or CLI use cases.
 </Aside>
 
-The WDX plugin registers read-only REST endpoints for any registered custom post type. This lets you query CPT content without building a custom endpoint or dealing with multiple requests for meta.
+The Loopress plugin registers read-only REST endpoints for any registered custom post type. This lets you query CPT content without building a custom endpoint or dealing with multiple requests for meta.
 
 ## Requirements
 
@@ -21,7 +21,7 @@ The WDX plugin registers read-only REST endpoints for any registered custom post
 
 ## REST API
 
-### `GET /wp-json/wdx/v1/cpt/{post_type}`
+### `GET /wp-json/lps/v1/cpt/{post_type}`
 
 List all posts of a given post type. `{post_type}` must be a registered post type slug.
 
@@ -29,7 +29,7 @@ List all posts of a given post type. `{post_type}` must be a registered post typ
 
 ```bash
 curl -H "X-WP-Nonce: <nonce>" \
-  https://example.com/wp-json/wdx/v1/cpt/product
+  https://example.com/wp-json/lps/v1/cpt/product
 ```
 
 **Response:**
@@ -51,7 +51,7 @@ curl -H "X-WP-Nonce: <nonce>" \
 ]
 ```
 
-### `GET /wp-json/wdx/v1/cpt/{post_type}/{id}`
+### `GET /wp-json/lps/v1/cpt/{post_type}/{id}`
 
 Retrieve a single post by ID. Returns `404` if the post does not exist or belongs to a different post type.
 
@@ -59,7 +59,7 @@ Retrieve a single post by ID. Returns `404` if the post does not exist or belong
 
 ```bash
 curl -H "X-WP-Nonce: <nonce>" \
-  https://example.com/wp-json/wdx/v1/cpt/product/42
+  https://example.com/wp-json/lps/v1/cpt/product/42
 ```
 
 ## Error responses

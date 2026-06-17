@@ -1,6 +1,6 @@
 ---
 title: Syncing WordPress Configuration Between Environments Without a Database Dump
-description: Pushing a menu change from staging to production shouldn't require a full database sync. WDX lets you push specific configuration as code.
+description: Pushing a menu change from staging to production shouldn't require a full database sync. Loopress lets you push specific configuration as code.
 date: 2026-06-09
 draft: true
 authors:
@@ -10,7 +10,7 @@ tags:
   - workflow
   - staging
   - wordpress
-excerpt: The standard answer for syncing WordPress between environments is "sync the database." That's a nuclear option for what should be a surgical change. WDX treats menus and styles as files you can push independently.
+excerpt: The standard answer for syncing WordPress between environments is "sync the database." That's a nuclear option for what should be a surgical change. Loopress treats menus and styles as files you can push independently.
 ---
 
 You've updated a menu on staging. Added a new item, reorganized the structure. Now you need to get that change to production.
@@ -35,20 +35,20 @@ The result is that configuration changes (menus, global styles, widget layouts) 
 
 ## Treating configuration as code
 
-WDX takes a different approach: menus and styles are serialized as JSON files in your project. You pull them from one environment, commit them, and push to another.
+Loopress takes a different approach: menus and styles are serialized as JSON files in your project. You pull them from one environment, commit them, and push to another.
 
 ### Menus
 
 Pull the current menu structure from production:
 
 ```bash
-wdx menu pull --url https://production.example.com
+lps menu pull --url https://production.example.com
 ```
 
 This writes a JSON file representing the full menu structure: items, labels, URLs, hierarchy. Update it, or pull from staging instead:
 
 ```bash
-wdx menu pull --url https://staging.example.com
+lps menu pull --url https://staging.example.com
 ```
 
 Commit the change:
@@ -61,7 +61,7 @@ git commit -m "nav: add Services submenu"
 Push to production:
 
 ```bash
-wdx menu push --url https://production.example.com
+lps menu push --url https://production.example.com
 ```
 
 That's the entire workflow. No database involved. No manual recreation. The diff shows exactly what changed: which menu items were added, removed, or reordered.
@@ -71,11 +71,11 @@ That's the entire workflow. No database involved. No manual recreation. The diff
 The same pattern applies to WordPress global styles (the CSS customizations from the Site Editor):
 
 ```bash
-wdx styles pull  # pulls from configured site
-wdx styles push --url https://production.example.com
+lps styles pull  # pulls from configured site
+lps styles push --url https://production.example.com
 ```
 
-Global styles are a pain point for teams using the block editor. Every environment ends up with slight variations: font size tweaks made directly in production, color palette changes that never made it back to staging. WDX gives you a file you can diff and version.
+Global styles are a pain point for teams using the block editor. Every environment ends up with slight variations: font size tweaks made directly in production, color palette changes that never made it back to staging. Loopress gives you a file you can diff and version.
 
 ## Where this fits in a real workflow
 
@@ -83,9 +83,9 @@ The practical use case is a deployment checklist that looks like this:
 
 ```bash
 # Before deploying
-wdx snippets push --url https://production.example.com
-wdx menu push --url https://production.example.com
-wdx styles push --url https://production.example.com
+lps snippets push --url https://production.example.com
+lps menu push --url https://production.example.com
+lps styles push --url https://production.example.com
 ```
 
 You could wrap this in a shell script or a CI step. The point is that configuration changes become explicit, versioned, and deployable, the same as any other code change.
@@ -94,11 +94,11 @@ You could wrap this in a shell script or a CI step. The point is that configurat
 
 Agencies managing multiple client sites hit this problem constantly. Client A wants the menu changed on three environments. Client B needs a style tweak applied everywhere. Without tooling, this is manual work multiplied by the number of environments.
 
-WDX's multi-site support (`wdx site config`, `wdx site switch`) lets you maintain named configurations per site and per environment. Push the same menu to ten sites:
+Loopress's multi-site support (`lps site config`, `lps site switch`) lets you maintain named configurations per site and per environment. Push the same menu to ten sites:
 
 ```bash
 for site in client-a client-b client-c; do
-  wdx menu push --site $site
+  lps menu push --site $site
 done
 ```
 
@@ -106,4 +106,4 @@ This is what WordPress configuration management looks like when it's treated as 
 
 ---
 
-The full CLI reference is in the [WDX docs](/cli/menus/). If you're starting from scratch, [Getting Started](/cli/getting-started/) covers the authentication setup.
+The full CLI reference is in the [Loopress docs](/cli/menus/). If you're starting from scratch, [Getting Started](/cli/getting-started/) covers the authentication setup.

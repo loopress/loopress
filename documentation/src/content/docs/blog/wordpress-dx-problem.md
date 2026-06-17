@@ -54,19 +54,19 @@ Imagine instead:
 
 ```bash
 # Pull your snippets down as files
-wdx snippets pull
+lps snippets pull
 
 # Edit them locally, in your editor, with Git tracking changes
 git add snippets/my-function.php
 git commit -m "fix: correct tax calculation logic"
 
 # Push back to WordPress
-wdx snippets push
+lps snippets push
 ```
 
 Your snippet is now version-controlled. You have a diff. You can roll back. You can review the change in a PR. This is how software is supposed to work.
 
-This is what WDX is: a set of tools that brings this workflow to WordPress. A CLI that treats your snippets, menus, and styles as files. A plugin that lets you manage PHP dependencies from the admin panel without server access.
+This is what Loopress is: a set of tools that brings this workflow to WordPress. A CLI that treats your snippets, menus, and styles as files. A plugin that lets you manage PHP dependencies from the admin panel without server access.
 
 WordPress stays WordPress. Your clients can still use it the way they love. You just work with it like a developer.
 
