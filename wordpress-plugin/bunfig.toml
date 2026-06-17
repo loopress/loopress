@@ -1,0 +1,2 @@
+[test]
+preload = ["./frontend/dom-setup.ts", "./frontend/wp-mocks.tsx", "./frontend/test-setup.ts"]

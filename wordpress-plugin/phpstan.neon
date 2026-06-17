@@ -1,0 +1,22 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - src
+    bootstrapFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    excludePaths:
+        - vendor
+
+    # The return types in service methods use plain `array` : enforce more specific
+    # types incrementally rather than blocking the first run.
+    ignoreErrors:
+        # Suppress untyped array return types : add specific types incrementally
+        - '#has no value type specified in iterable type array#'
+        # Constants defined in the plugin root file (loopress.php), not in src/
+        - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
+
+        # ACF functions are provided by the ACF plugin at runtime, not in WP stubs
+        - '#Function acf_(get_field_groups|get_fields|import_field_group) not found#'

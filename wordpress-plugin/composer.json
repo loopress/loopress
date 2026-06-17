@@ -1,0 +1,37 @@
+{
+    "name": "loopress/wordpress-plugin",
+    "autoload": {
+        "psr-4": {
+            "Loopress\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Loopress\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "jean-smaug"
+        }
+    ],
+    "require": {
+        "composer/composer": "^2.10"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.29"
+        }
+    },
+    "require-dev": {
+        "php-stubs/wordpress-stubs": "^6.6",
+        "phpunit/phpunit": "^11.0",
+        "brain/monkey": "^2.6",
+        "phpstan/phpstan": "^2.0",
+        "szepeviktor/phpstan-wordpress": "^2.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse"
+    }
+}
