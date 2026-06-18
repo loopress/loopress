@@ -11,15 +11,17 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
 
+const logoBlack = require.resolve('@loopress/assets/loopress-logo-black.svg');
+const logoWhite = require.resolve('@loopress/assets/loopress-logo-white.svg');
+
 /** @returns {import('astro').AstroIntegration} */
 function loopressFavicon() {
     return {
         name: 'loopress-favicon',
         hooks: {
             'astro:config:setup': () => {
-                const src = require.resolve('@loopress/assets/loopress-logo-black.svg');
                 mkdirSync(join(__dirname, 'public'), { recursive: true });
-                copyFileSync(src, join(__dirname, 'public', 'favicon.svg'));
+                copyFileSync(logoBlack, join(__dirname, 'public', 'favicon.svg'));
             },
         },
     };
@@ -36,6 +38,11 @@ export default defineConfig({
         starlight({
             title: 'Loopress',
             favicon: '/favicon.svg',
+            logo: {
+                light: logoBlack,
+                dark: logoWhite,
+                alt: 'Loopress',
+            },
             components: {
                 PageFrame: './src/components/PageFrame.astro',
             },
