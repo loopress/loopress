@@ -1,2 +1,5 @@
 tsconfig.tsbuildinfo
 oclif.manifest.json
+*.tgz
+npm-shrinkwrap.json
+package-lock.json
