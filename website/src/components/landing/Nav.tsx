@@ -14,7 +14,7 @@ export function Nav() {
           <img
             src={theme === "dark" ? logoWhite : logoBlack}
             alt="Loopress"
-            className="h-6 w-auto"
+            className="h-10 w-auto"
           />
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
