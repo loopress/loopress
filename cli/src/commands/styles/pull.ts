@@ -1,7 +1,7 @@
 import {Flags} from '@oclif/core'
 import got from 'got'
 
-import {LoopressCommand} from '../base.js'
+import {LoopressCommand} from '../../lib/base.js'
 
 interface Theme {
   _links: {

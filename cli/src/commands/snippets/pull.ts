@@ -2,7 +2,7 @@ import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
 import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
-import {LoopressCommand} from '../base.js'
+import {LoopressCommand} from '../../lib/base.js'
 
 export default class Pull extends LoopressCommand {
   static args = {

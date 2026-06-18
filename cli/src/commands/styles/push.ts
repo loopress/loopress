@@ -2,7 +2,7 @@ import {Flags} from '@oclif/core'
 import {glob} from 'glob'
 import got from 'got'
 
-import {LoopressCommand} from '../base.js'
+import {LoopressCommand} from '../../lib/base.js'
 
 interface Theme {
   _links: {'wp:user-global-styles': Array<{href: string}>}
