@@ -31,7 +31,7 @@ export default class Push extends LoopressCommand {
     const {args, flags} = await this.parse(Push)
     const {dryRun, plugin} = flags as {dryRun: boolean; plugin: PluginName}
     const {url} = this.siteConfig
-    const path = this.resolveSnippetsPath(args.path)
+    const path = await this.resolveSnippetsPath(args.path)
 
     this.log(`🚀 Pushing snippets to ${url} via ${plugin}`)
     this.log(`📂 From snippet path: ${path}`)

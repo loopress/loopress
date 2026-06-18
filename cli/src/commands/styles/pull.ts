@@ -33,7 +33,7 @@ export default class Pull extends LoopressCommand {
     const {flags} = await this.parse(Pull)
     const {dryRun} = flags as {dryRun: boolean}
     const {url} = this.siteConfig
-    const stylesDir = this.resolveStylesPath()
+    const stylesDir = await this.resolveStylesPath()
     const outputPath = `${stylesDir}/global-styles.json`
 
     this.log(`📥 Pulling Global Styles from ${url}`)

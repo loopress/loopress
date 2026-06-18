@@ -19,7 +19,7 @@ export default class Push extends LoopressCommand {
     const {flags} = await this.parse(Push)
     const {dryRun} = flags as {dryRun: boolean}
     const {url} = this.siteConfig
-    const stylesDir = this.resolveStylesPath()
+    const stylesDir = await this.resolveStylesPath()
     const jsonPath = `${stylesDir}/global-styles.json`
 
     this.log(`📤 Pushing Global Styles to ${url}`)

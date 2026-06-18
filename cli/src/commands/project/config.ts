@@ -81,16 +81,6 @@ export default class Config extends Command {
       validate: (value) => (value.trim().length > 0 ? true : 'Application password cannot be empty'),
     })
 
-    const snippetsPath = await input({
-      message: 'Snippets directory',
-      default: existingProject?.paths?.snippets ?? './snippets',
-    })
-
-    const stylesPath = await input({
-      message: 'Styles directory',
-      default: existingProject?.paths?.styles ?? './styles',
-    })
-
     const token = `${user}:${appPassword}`
 
     const env: EnvironmentConfig = {
@@ -105,15 +95,11 @@ export default class Config extends Command {
         name: projectName,
         currentEnv: envName,
         environments: {[envName]: env},
-        paths: {snippets: snippetsPath, styles: stylesPath},
         addedAt: new Date().toISOString(),
       }
       configManager.setProject(projectName, project)
     } else {
       configManager.setEnvironment(projectName, envName, env)
-      const config = configManager.readConfig()
-      config.projects[projectName].paths = {snippets: snippetsPath, styles: stylesPath}
-      configManager.writeConfig(config)
     }
 
     this.log(`✓ "${projectName}/${envName}" configured`)

@@ -1,7 +1,10 @@
+import {join} from 'node:path'
+
 import {Command, Flags} from '@oclif/core'
 
 import {configManager} from '../config/project-config.manager.js'
 import {EnvironmentConfig} from '../config/types.js'
+import {readLocalConfig} from '../utils/loopress-config.js'
 
 export abstract class LoopressCommand extends Command {
   protected siteConfig!: EnvironmentConfig
@@ -33,12 +36,16 @@ export abstract class LoopressCommand extends Command {
     this.error('No environment configured. Run `lps project config` first.')
   }
 
-  protected resolveSnippetsPath(override?: string): string {
-    return override ?? configManager.getCurrentProject()?.paths?.snippets ?? './snippets'
+  protected async resolveSnippetsPath(override?: string): Promise<string> {
+    if (override) return override
+    const config = await readLocalConfig()
+    return join(config.rootDir ?? '.', config.snippets ?? 'snippets')
   }
 
-  protected resolveStylesPath(override?: string): string {
-    return override ?? configManager.getCurrentProject()?.paths?.styles ?? './styles'
+  protected async resolveStylesPath(override?: string): Promise<string> {
+    if (override) return override
+    const config = await readLocalConfig()
+    return join(config.rootDir ?? '.', config.styles ?? 'styles')
   }
 
   async buildAuthHeaders(): Promise<Record<string, string>> {

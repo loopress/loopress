@@ -30,7 +30,7 @@ export default class Pull extends LoopressCommand {
     const {args, flags} = await this.parse(Pull)
     const {dryRun, plugin} = flags as {dryRun: boolean; plugin: PluginName}
     const {url} = this.siteConfig
-    const path = this.resolveSnippetsPath(args.path)
+    const path = await this.resolveSnippetsPath(args.path)
 
     this.log(`📥 Pulling snippets from ${url} via ${plugin}`)
     this.log(`📂 From snippet path: ${path}`)
