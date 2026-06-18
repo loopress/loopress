@@ -1,18 +1,24 @@
-import {Args, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 import {glob} from 'glob'
 import got from 'got'
 
 import {LoopressCommand} from '../base.js'
 
+interface Theme {
+  _links: {'wp:user-global-styles': Array<{href: string}>}
+}
+
+interface GlobalStylesData {
+  id: string
+  settings: object
+  styles: object
+}
+
 export default class Push extends LoopressCommand {
-  static args = {
-    path: Args.string({default: './styles.json', description: 'Path to styles file'}),
-  }
   static description = 'Push Global Styles to WordPress'
   static examples = [
     '$ lps styles push',
     '$ lps styles push --url http://example.com',
-    '$ lps styles push --path ./my-styles.json',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
@@ -20,26 +26,24 @@ export default class Push extends LoopressCommand {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Push)
+    const {flags} = await this.parse(Push)
     const {dryRun} = flags as {dryRun: boolean}
     const {url} = this.siteConfig
-    const {path} = args
+    const stylesDir = await this.resolveStylesPath()
+    const jsonPath = `${stylesDir}/global-styles.json`
 
     this.log(`📤 Pushing Global Styles to ${url}`)
-    this.log(`📂 From file: ${path}`)
+    this.log(`📂 From directory: ${stylesDir}`)
     this.log(`🔄 Dry run: ${dryRun ? 'yes' : 'no'}`)
 
     try {
       const fs = await import('node:fs/promises')
-      const content = await fs.readFile(path, 'utf8')
-      const data = JSON.parse(content)
+      const headers = await this.buildAuthHeaders()
 
-      if (!data.id) {
-        this.error('❌ File does not contain a global styles ID. Please run "styles pull" first.')
-      }
+      const data = await this.readOrFetchGlobalStyles(jsonPath, url, headers, fs)
 
       this.log('🎨 Bundling CSS files in memory...')
-      const cssFiles = await glob('./styles/**/*.css')
+      const cssFiles = await glob(`${stylesDir}/**/*.css`)
 
       let bundledCss = ''
       if (cssFiles.length > 0) {
@@ -47,12 +51,10 @@ export default class Push extends LoopressCommand {
         bundledCss = cssContents.join('\n').trim()
         this.log(`✨ Bundled ${cssFiles.length} CSS files`)
       } else {
-        this.log('⚠️ No CSS files found in ./styles/**/*.css')
+        this.log(`⚠️ No CSS files found in ${stylesDir}/**/*.css`)
       }
 
       const endpoint = `${url}/wp-json/wp/v2/global-styles/${data.id}`
-      const headers = await this.buildAuthHeaders()
-
       const payload = {
         settings: data.settings,
         styles: {
@@ -68,10 +70,40 @@ export default class Push extends LoopressCommand {
       }
 
       await got.post(endpoint, {headers, json: payload})
-
       this.log(`✅ Successfully pushed global styles to ID: ${data.id}`)
     } catch (error) {
       this.error(`❌ Error pushing global styles: ${(error as Error).message}`)
     }
+  }
+
+  private async readOrFetchGlobalStyles(
+    jsonPath: string,
+    url: string,
+    headers: Record<string, string>,
+    fs: typeof import('node:fs/promises'),
+  ): Promise<GlobalStylesData> {
+    try {
+      const content = await fs.readFile(jsonPath, 'utf8')
+      return JSON.parse(content) as GlobalStylesData
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+
+    this.log('ℹ️  No local cache found — fetching global styles from WordPress...')
+    const themes: Theme[] = await got.get(`${url}/wp-json/wp/v2/themes?status=active`, {headers}).json()
+
+    if (!themes || themes.length === 0) {
+      this.error('❌ No active theme found.')
+    }
+
+    const globalStylesEndpoint = themes[0]._links['wp:user-global-styles'][0].href
+    const globalStyles: GlobalStylesData = await got.get(globalStylesEndpoint, {headers}).json()
+    const data = {id: globalStyles.id, settings: globalStyles.settings, styles: globalStyles.styles}
+
+    await fs.mkdir(jsonPath.replace(/\/[^/]+$/, ''), {recursive: true})
+    await fs.writeFile(jsonPath, JSON.stringify(data, null, 2))
+    this.log(`💾 Cached to ${jsonPath}`)
+
+    return data
   }
 }

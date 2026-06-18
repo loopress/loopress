@@ -11,7 +11,6 @@
     "url": "https://github.com/loopress/loopress/issues"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.71.0",
     "@inquirer/prompts": "^8.5.2",
     "@oclif/core": "^4.11.4",
     "@oclif/plugin-help": "^6.2.50",
@@ -75,7 +74,6 @@
     "posttest": "pnpm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\" --reporter spec --full-trace --verbose",
-    "test:env": "dotenvx run -- pnpm test",
     "version": "oclif readme && git add README.md",
     "format": "prettier . --write"
   },

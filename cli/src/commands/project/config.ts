@@ -3,7 +3,6 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 
 import {configManager} from '../../config/project-config.manager.js'
 import {EnvironmentConfig, ProjectConfig} from '../../config/types.js'
-import {isLocalUrl} from '../../utils/local-detection.js'
 
 export default class Config extends Command {
   static description = 'Add or update a WordPress project environment'

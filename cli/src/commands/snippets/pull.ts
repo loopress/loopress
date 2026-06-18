@@ -6,7 +6,7 @@ import {LoopressCommand} from '../base.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
-    path: Args.string({default: './snippets', description: 'Path to snippets directory'}),
+    path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description = 'Pull snippets from WordPress'
   static examples = [
@@ -18,7 +18,6 @@ export default class Pull extends LoopressCommand {
   static flags = {
     ...LoopressCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
-    force: Flags.boolean({char: 'f', description: 'Force overwrite existing snippets'}),
     plugin: Flags.string({
       char: 'p',
       default: 'code-snippets',
@@ -29,9 +28,9 @@ export default class Pull extends LoopressCommand {
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Pull)
-    const {dryRun, plugin} = flags as {dryRun: boolean; force: boolean; plugin: PluginName}
+    const {dryRun, plugin} = flags as {dryRun: boolean; plugin: PluginName}
     const {url} = this.siteConfig
-    const {path} = args
+    const path = await this.resolveSnippetsPath(args.path)
 
     this.log(`📥 Pulling snippets from ${url} via ${plugin}`)
     this.log(`📂 From snippet path: ${path}`)

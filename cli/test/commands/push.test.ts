@@ -8,7 +8,7 @@ describe('push', () => {
 
   it('runs push command with dry run', async () => {
     const {error, stdout} = await runCommand(
-      `push ./test-snippets-push --user ${user} --password "${password}" --dryRun --url ${url}`,
+      `push ./test/__fixtures__ --user ${user} --password "${password}" --dryRun --url ${url}`,
     )
     expect(error).to.be.undefined
     expect(stdout).to.be.a('string')

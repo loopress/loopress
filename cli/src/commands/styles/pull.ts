@@ -1,4 +1,4 @@
-import {Args, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 import got from 'got'
 
 import {LoopressCommand} from '../base.js'
@@ -19,14 +19,10 @@ interface GlobalStyles {
 }
 
 export default class Pull extends LoopressCommand {
-  static args = {
-    path: Args.string({default: './styles.json', description: 'Path to styles file'}),
-  }
   static description = 'Pull Global Styles from WordPress'
   static examples = [
     '$ lps styles pull',
     '$ lps styles pull --url http://example.com',
-    '$ lps styles pull --path ./my-styles.json',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
@@ -34,13 +30,14 @@ export default class Pull extends LoopressCommand {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Pull)
+    const {flags} = await this.parse(Pull)
     const {dryRun} = flags as {dryRun: boolean}
     const {url} = this.siteConfig
-    const {path} = args
+    const stylesDir = await this.resolveStylesPath()
+    const outputPath = `${stylesDir}/global-styles.json`
 
     this.log(`📥 Pulling Global Styles from ${url}`)
-    this.log(`📂 Target file: ${path}`)
+    this.log(`📂 Target file: ${outputPath}`)
     this.log(`🔄 Dry run: ${dryRun ? 'yes' : 'no'}`)
 
     try {
@@ -75,9 +72,10 @@ export default class Pull extends LoopressCommand {
       }
 
       const fs = await import('node:fs/promises')
-      await fs.writeFile(path, JSON.stringify(dataToSave, null, 2))
+      await fs.mkdir(stylesDir, {recursive: true})
+      await fs.writeFile(outputPath, JSON.stringify(dataToSave, null, 2))
 
-      this.log(`✅ Successfully pulled global styles to ${path}`)
+      this.log(`✅ Successfully pulled global styles to ${outputPath}`)
     } catch (error) {
       this.error(`❌ Error pulling global styles: ${(error as Error).message}`)
     }

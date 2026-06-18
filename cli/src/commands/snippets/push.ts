@@ -7,7 +7,7 @@ import {LoopressCommand} from '../base.js'
 
 export default class Push extends LoopressCommand {
   static args = {
-    path: Args.string({default: './snippets', description: 'Path to snippets directory'}),
+    path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description = 'Push snippets to WordPress'
   static examples = [
@@ -31,13 +31,14 @@ export default class Push extends LoopressCommand {
     const {args, flags} = await this.parse(Push)
     const {dryRun, plugin} = flags as {dryRun: boolean; plugin: PluginName}
     const {url} = this.siteConfig
+    const path = await this.resolveSnippetsPath(args.path)
 
     this.log(`🚀 Pushing snippets to ${url} via ${plugin}`)
-    this.log(`📂 From snippet path: ${args.path}`)
+    this.log(`📂 From snippet path: ${path}`)
     this.log(`🔄 Dry run: ${dryRun ? 'yes' : 'no'}`)
 
     try {
-      const snippets = await this.loadSnippets(args.path)
+      const snippets = await this.loadSnippets(path)
       this.log(`✅ Found ${snippets.length} snippets to push`)
 
       const headers = await this.buildAuthHeaders()

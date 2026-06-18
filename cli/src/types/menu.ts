@@ -1,8 +1,3 @@
-export interface MenuLocation {
-  menu: number
-  name: string
-}
-
 export interface NavMenu {
   id: number
   name: string
