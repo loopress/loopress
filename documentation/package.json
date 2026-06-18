@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "@astrojs/starlight": "^0.39.3",
+    "@astrojs/starlight": "^0.40.0",
     "@loopress/assets": "workspace:*",
     "astro": "^6.3.1",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.1",
     "starlight-blog": "^0.26.1"
   }
 }
