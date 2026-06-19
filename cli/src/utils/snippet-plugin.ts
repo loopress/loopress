@@ -11,7 +11,7 @@ export interface NormalizedSnippet {
   type: SnippetType
 }
 
-function parseType(raw: unknown): SnippetType | null {
+function parseType(raw: unknown): null | SnippetType {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
   const value = String(raw ?? '').toLowerCase()
   return valid.includes(value as SnippetType) ? (value as SnippetType) : null

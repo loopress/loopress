@@ -1,8 +1,8 @@
 import {Flags} from '@oclif/core'
 import got from 'got'
 
-import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
 import {LoopressCommand} from '../../lib/base.js'
+import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
 
 export default class List extends LoopressCommand {
   static description = 'List snippets from WordPress'

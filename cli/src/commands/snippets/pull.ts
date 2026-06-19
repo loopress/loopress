@@ -2,8 +2,8 @@ import {Args, Flags} from '@oclif/core'
 import got from 'got'
 import slugify from 'slugify'
 
-import {getSnippetPlugin, NormalizedSnippet, PluginName, SnippetType} from '../../utils/snippet-plugin.js'
 import {LoopressCommand} from '../../lib/base.js'
+import {getSnippetPlugin, NormalizedSnippet, PluginName, SnippetType} from '../../utils/snippet-plugin.js'
 
 const EXTENSIONS: Record<SnippetType, string> = {
   css: 'css',

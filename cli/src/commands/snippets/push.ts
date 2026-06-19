@@ -1,9 +1,9 @@
 import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
+import {LoopressCommand} from '../../lib/base.js'
 import {Snippet} from '../../types/snippet.js'
 import {getSnippetPlugin, NormalizedSnippet, PluginName} from '../../utils/snippet-plugin.js'
-import {LoopressCommand} from '../../lib/base.js'
 
 export default class Push extends LoopressCommand {
   static args = {
