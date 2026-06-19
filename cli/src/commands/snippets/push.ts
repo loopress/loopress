@@ -53,6 +53,21 @@ export default class Push extends LoopressCommand {
     }
   }
 
+  private async injectIdIntoFile(filePath: string, content: string, id: number): Promise<void> {
+    const fs = await import('node:fs/promises')
+    let updated: string
+
+    if (content.includes('/**')) {
+      updated = content.replace('/**', `/**\n * id: ${id}`)
+    } else if (content.includes('<!--')) {
+      updated = content.replace('<!--', `<!--\n  id: ${id}`)
+    } else {
+      return
+    }
+
+    await fs.writeFile(filePath, updated)
+  }
+
   private async loadSnippets(path: string): Promise<Snippet[]> {
     const fs = await import('node:fs/promises')
     const snippets: Snippet[] = []
@@ -77,21 +92,6 @@ export default class Push extends LoopressCommand {
     }
 
     return snippets
-  }
-
-  private async injectIdIntoFile(filePath: string, content: string, id: number): Promise<void> {
-    const fs = await import('node:fs/promises')
-    let updated: string
-
-    if (content.includes('/**')) {
-      updated = content.replace('/**', `/**\n * id: ${id}`)
-    } else if (content.includes('<!--')) {
-      updated = content.replace('<!--', `<!--\n  id: ${id}`)
-    } else {
-      return
-    }
-
-    await fs.writeFile(filePath, updated)
   }
 
   private parseMetaFromContent(content: string): {id?: number; name?: string} {
