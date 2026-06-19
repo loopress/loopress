@@ -142,15 +142,15 @@ class VendorServiceTest extends TestCase
         $this->service->repair();
     }
 
-    public function test_repair_runs_composer_update(): void
+    public function test_repair_runs_composer_install(): void
     {
         $this->settings->method('isLocked')->willReturn(false);
         $this->runner->method('run')
-            ->with(['update'])
-            ->willReturn(['exit_code' => 0, 'output' => 'Nothing to update.']);
+            ->with(['install'])
+            ->willReturn(['exit_code' => 0, 'output' => 'Nothing to install.']);
 
         $output = $this->service->repair();
-        $this->assertSame('Nothing to update.', $output);
+        $this->assertSame('Nothing to install.', $output);
     }
 
     // ── getDiagnostics ────────────────────────────────────────────────────────
