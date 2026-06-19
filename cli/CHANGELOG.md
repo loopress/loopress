@@ -1,5 +1,11 @@
 # @loopress/cli
 
+## 0.3.0
+
+### Minor Changes
+
+- Add detection by id for push/pull of snippets
+
 ## 0.2.0
 
 ### Minor Changes
