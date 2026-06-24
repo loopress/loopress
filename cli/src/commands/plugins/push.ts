@@ -1,5 +1,5 @@
-import {Flags} from '@oclif/core'
 import {confirm} from '@inquirer/prompts'
+import {Flags} from '@oclif/core'
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'

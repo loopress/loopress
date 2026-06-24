@@ -38,10 +38,10 @@ export function diffPlugins(manifest: PluginManifest, installed: InstalledPlugin
       continue
     }
 
-    if (live.version !== targetVersion) {
-      drifted.push({currentVersion: live.version, slug, targetVersion})
-    } else {
+    if (live.version === targetVersion) {
       upToDate.push(slug)
+    } else {
+      drifted.push({currentVersion: live.version, slug, targetVersion})
     }
   }
 

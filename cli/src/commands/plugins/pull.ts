@@ -42,6 +42,7 @@ export default class Pull extends LoopressCommand {
       if (updated.length > 0) {
         for (const u of updated) this.log(`  ~ ${u.slug} (${u.from} → ${u.to})`)
       }
+
       return
     }
 
