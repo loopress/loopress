@@ -13,8 +13,7 @@ export async function readLocalConfig(): Promise<LoopressLocalConfig> {
   const configPath = join(process.cwd(), 'loopress.config.js')
   if (!existsSync(configPath)) return {}
   try {
-    // Bust the import cache on repeated calls within the same process (e.g. pull then push).
-    const mod = await import(`${configPath}?t=${Date.now()}`)
+    const mod = await import(configPath)
     return mod.default ?? {}
   } catch {
     return {}

@@ -4,6 +4,7 @@ import got from 'got'
 import {LoopressCommand} from '../../lib/base.js'
 import {InstalledPlugin} from '../../types/plugin.js'
 import {readLocalConfig, writeLocalConfig} from '../../utils/loopress-config.js'
+import {mergePluginManifest} from '../../utils/plugins.js'
 
 export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.config.js'
@@ -28,24 +29,19 @@ export default class Pull extends LoopressCommand {
       .get(`${url}/wp-json/loopress/v1/plugins`, {headers})
       .json()
 
-    const incoming: Record<string, string> = {}
-    for (const plugin of installed) {
-      incoming[plugin.slug] = plugin.version
-    }
+    const incoming: Record<string, string> = Object.fromEntries(
+      installed.map((p) => [p.slug, p.version]),
+    )
 
     const localConfig = await readLocalConfig()
-    const existing = localConfig.plugins ?? {}
-    const merged = {...existing, ...incoming}
-
-    const added = Object.keys(incoming).filter((s) => !(s in existing))
-    const updated = Object.keys(incoming).filter(
-      (s) => s in existing && existing[s] !== incoming[s],
-    )
+    const {added, merged, updated} = mergePluginManifest(localConfig.plugins ?? {}, incoming)
 
     if (dryRun) {
       this.log(`[dry-run] Would write ${Object.keys(merged).length} plugins to loopress.config.js`)
       if (added.length > 0) this.log(`  + ${added.join(', ')}`)
-      if (updated.length > 0) this.log(`  ~ ${updated.map((s) => `${s} (${existing[s]} → ${incoming[s]})`).join(', ')}`)
+      if (updated.length > 0) {
+        for (const u of updated) this.log(`  ~ ${u.slug} (${u.from} → ${u.to})`)
+      }
       return
     }
 
@@ -53,11 +49,7 @@ export default class Pull extends LoopressCommand {
 
     this.log(`Wrote ${Object.keys(merged).length} plugins to loopress.config.js`)
     if (added.length > 0) this.log(`  + Added: ${added.join(', ')}`)
-    if (updated.length > 0) {
-      for (const slug of updated) {
-        this.log(`  ~ Updated: ${slug} ${existing[slug]} → ${incoming[slug]}`)
-      }
-    }
+    for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
 
     if (Object.keys(merged).length > 0) {
       await got

@@ -5,6 +5,7 @@ import got from 'got'
 import {LoopressCommand} from '../../lib/base.js'
 import {InstalledPlugin, InstallResult} from '../../types/plugin.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
+import {diffPlugins} from '../../utils/plugins.js'
 
 export default class Push extends LoopressCommand {
   static description = 'Sync plugins on WordPress to match loopress.config.js'
@@ -36,24 +37,7 @@ export default class Push extends LoopressCommand {
       .get(`${url}/wp-json/loopress/v1/plugins`, {headers})
       .json()
 
-    const installedMap = new Map(installed.map((p) => [p.slug, p]))
-
-    type Action = {slug: string; targetVersion: string; type: 'install' | 'update'; currentVersion?: string}
-    const toInstall: Action[] = []
-    const drifted: Action[] = []
-
-    for (const [slug, targetVersion] of Object.entries(manifest)) {
-      const live = installedMap.get(slug)
-
-      if (!live) {
-        toInstall.push({slug, targetVersion, type: 'install'})
-        continue
-      }
-
-      if (live.version !== targetVersion) {
-        drifted.push({slug, targetVersion, type: 'update', currentVersion: live.version})
-      }
-    }
+    const {drifted, toInstall} = diffPlugins(manifest, installed)
 
     if (toInstall.length === 0 && drifted.length === 0) {
       this.log('Everything is already in sync.')
