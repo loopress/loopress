@@ -1,4 +1,7 @@
 {
   "$schema": "./loopress.schema.json",
-  "rootDir": "./demo"
+  "rootDir": "./demo",
+  "plugins": {
+    "fluent-smtp": "2.2.95"
+  }
 }

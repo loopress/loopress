@@ -34,16 +34,16 @@ export async function resolvePluginVersion(slug: string, version: string): Promi
   return info.version
 }
 
-export default class Add extends LoopressCommand {
+export default class Require extends LoopressCommand {
   static args = {
     slug: Args.string({description: 'Plugin slug (WordPress.org)', required: true}),
     version: Args.string({description: 'Version to pin (default: latest)'}),
   }
   static description = 'Add a plugin to loopress.json, resolving its latest version from WordPress.org'
   static examples = [
-    '$ lps plugins add woocommerce',
-    '$ lps plugins add woocommerce 8.9.1',
-    '$ lps plugins add contact-form-7 --dry-run',
+    '$ lps plugins require woocommerce',
+    '$ lps plugins require woocommerce 8.9.1',
+    '$ lps plugins require contact-form-7 --dry-run',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
@@ -51,7 +51,7 @@ export default class Add extends LoopressCommand {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Add)
+    const {args, flags} = await this.parse(Require)
     const dryRun = flags['dry-run']
     const {slug} = args
     const requestedVersion = args.version ?? 'latest'
