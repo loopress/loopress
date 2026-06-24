@@ -9,10 +9,7 @@ import {diffPlugins} from '../../utils/plugins.js'
 
 export default class Push extends LoopressCommand {
   static description = 'Sync plugins on WordPress to match loopress.json'
-  static examples = [
-    '$ lps plugins push',
-    '$ lps plugins push --dry-run',
-  ]
+  static examples = ['$ lps plugins push', '$ lps plugins push --dry-run']
   static flags = {
     ...LoopressCommand.baseFlags,
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
@@ -33,9 +30,7 @@ export default class Push extends LoopressCommand {
     this.log(`Pushing plugins to ${url}`)
 
     const headers = await this.buildAuthHeaders()
-    const installed: InstalledPlugin[] = await got
-      .get(`${url}/wp-json/loopress/v1/plugins`, {headers})
-      .json()
+    const installed: InstalledPlugin[] = await got.get(`${url}/wp-json/loopress/v1/plugins`, {headers}).json()
 
     const {drifted, toInstall} = diffPlugins(manifest, installed)
 

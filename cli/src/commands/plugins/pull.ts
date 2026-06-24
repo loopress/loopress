@@ -8,10 +8,7 @@ import {mergePluginManifest} from '../../utils/plugins.js'
 
 export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.json'
-  static examples = [
-    '$ lps plugins pull',
-    '$ lps plugins pull --dry-run',
-  ]
+  static examples = ['$ lps plugins pull', '$ lps plugins pull --dry-run']
   static flags = {
     ...LoopressCommand.baseFlags,
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
@@ -25,13 +22,9 @@ export default class Pull extends LoopressCommand {
     this.log(`Pulling plugins from ${url}`)
 
     const headers = await this.buildAuthHeaders()
-    const installed: InstalledPlugin[] = await got
-      .get(`${url}/wp-json/loopress/v1/plugins`, {headers})
-      .json()
+    const installed: InstalledPlugin[] = await got.get(`${url}/wp-json/loopress/v1/plugins`, {headers}).json()
 
-    const incoming: Record<string, string> = Object.fromEntries(
-      installed.map((p) => [p.slug, p.version]),
-    )
+    const incoming: Record<string, string> = Object.fromEntries(installed.map((p) => [p.slug, p.version]))
 
     const localConfig = await readLocalConfig()
     const {added, merged, updated} = mergePluginManifest(localConfig.plugins ?? {}, incoming)

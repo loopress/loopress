@@ -64,6 +64,9 @@ class PluginService
         return ['message' => "{$slug} {$version} installed successfully.", 'version' => $version];
     }
 
+    /**
+     * @param string[] $slugs
+     */
     public function disableAutoUpdatesForManaged(array $slugs): void
     {
         $autoUpdates = get_option('auto_update_plugins', []);

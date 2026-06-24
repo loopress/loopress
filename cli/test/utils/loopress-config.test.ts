@@ -32,13 +32,13 @@ describe('loopress-config', () => {
   describe('writeLocalConfig / readLocalConfig roundtrip', () => {
     it('persists and reads back a full config', async () => {
       await writeLocalConfig({
-        plugins: {'woocommerce': '8.9.1', 'wpcode': '2.1.0'},
+        plugins: {woocommerce: '8.9.1', wpcode: '2.1.0'},
         rootDir: './src',
         snippets: './snippets',
       })
 
       const config = await readLocalConfig()
-      expect(config.plugins).to.deep.equal({'woocommerce': '8.9.1', 'wpcode': '2.1.0'})
+      expect(config.plugins).to.deep.equal({woocommerce: '8.9.1', wpcode: '2.1.0'})
       expect(config.rootDir).to.equal('./src')
       expect(config.snippets).to.equal('./snippets')
     })
@@ -51,20 +51,20 @@ describe('loopress-config', () => {
     })
 
     it('overwrites an existing config file', async () => {
-      await writeLocalConfig({plugins: {'woocommerce': '8.9.1'}})
-      await writeLocalConfig({plugins: {'woocommerce': '9.0.0', 'acf': '6.3.2'}})
+      await writeLocalConfig({plugins: {woocommerce: '8.9.1'}})
+      await writeLocalConfig({plugins: {woocommerce: '9.0.0', acf: '6.3.2'}})
 
       const config = await readLocalConfig()
-      expect(config.plugins).to.deep.equal({'woocommerce': '9.0.0', 'acf': '6.3.2'})
+      expect(config.plugins).to.deep.equal({woocommerce: '9.0.0', acf: '6.3.2'})
     })
 
     it('writes valid JSON', async () => {
-      await writeLocalConfig({plugins: {'hello': '1.0.0'}})
+      await writeLocalConfig({plugins: {hello: '1.0.0'}})
 
       const {readFile} = await import('node:fs/promises')
       const content = await readFile(join(tmpDir, 'loopress.json'), 'utf8')
       const parsed = JSON.parse(content)
-      expect(parsed.plugins).to.deep.equal({'hello': '1.0.0'})
+      expect(parsed.plugins).to.deep.equal({hello: '1.0.0'})
     })
   })
 })

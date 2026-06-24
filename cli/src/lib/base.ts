@@ -20,7 +20,7 @@ export abstract class LoopressCommand extends Command {
       helpGroup: 'GLOBAL',
     }),
   }
-protected siteConfig!: EnvironmentConfig
+  protected siteConfig!: EnvironmentConfig
 
   async buildAuthHeaders(): Promise<Record<string, string>> {
     const {token, url} = this.siteConfig
