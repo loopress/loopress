@@ -9,7 +9,7 @@ The `styles` command group syncs the [Global Styles](https://developer.wordpress
 
 WordPress stores Global Styles as a custom post. The CLI fetches that post (including its ID) on `pull` and writes it back on `push`. Because the ID is embedded in the saved JSON file, you must always **pull before push** on a fresh checkout.
 
-The CLI reads the styles directory from `loopress.config.js` (`styles` key, default `./styles`). All files are read from and written to that directory.
+The CLI reads the styles directory from `loopress.json` (`styles` key, default `./styles`). All files are read from and written to that directory.
 
 ## Commands
 
@@ -65,11 +65,11 @@ styles/
 
 The JSON file is committed to Git. CSS files are bundled on the fly during `push` so you can split your custom CSS across multiple files without touching `global-styles.json` manually.
 
-You can change the styles directory via `loopress.config.js`:
+You can change the styles directory via `loopress.json`:
 
-```js
-export default {
-  styles: 'theme/styles',
+```json
+{
+  "styles": "theme/styles"
 }
 ```
 
