@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://loopress.dev/schema/loopress.json",
+  "title": "Loopress project configuration",
+  "description": "Project-level config for the Loopress CLI (loopress.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "rootDir": {
+      "type": "string",
+      "description": "Base directory for all Loopress paths. All other path options are resolved relative to this directory.",
+      "default": "."
+    },
+    "snippets": {
+      "type": "string",
+      "description": "Directory where code snippets are read from and written to, relative to rootDir.",
+      "default": "snippets"
+    },
+    "styles": {
+      "type": "string",
+      "description": "Directory where Global Styles files are read from and written to, relative to rootDir.",
+      "default": "styles"
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Pinned plugin versions. Keys are WordPress.org plugin slugs, values are version constraints.",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Version to pin. Use an exact version (e.g. \"8.9.1\") or \"latest\".",
+        "examples": ["8.9.1", "latest"]
+      },
+      "examples": [
+        {
+          "woocommerce": "8.9.1",
+          "contact-form-7": "latest"
+        }
+      ]
+    }
+  }
+}

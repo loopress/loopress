@@ -78,14 +78,13 @@ All commands operate against the **active project/environment**.
 
 ## Project-level configuration
 
-Place a `loopress.config.js` file in your project root to customise the default paths for snippets and styles:
+Place a `loopress.json` file in your project root to customise the default paths for snippets and styles:
 
-```js
-// loopress.config.js
-export default {
-  rootDir: './wp-content',   // base directory (optional)
-  snippets: 'snippets',      // relative to rootDir (default: 'snippets')
-  styles: 'styles',          // relative to rootDir (default: 'styles')
+```json
+{
+  "rootDir": "./wp-content",
+  "snippets": "snippets",
+  "styles": "styles"
 }
 ```
 

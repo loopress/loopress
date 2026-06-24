@@ -7,11 +7,13 @@ use Loopress\Infrastructure\LoopressEnvironment;
 use Loopress\Infrastructure\PackagistClient;
 use Loopress\RestApi\AcfController;
 use Loopress\RestApi\CustomPostTypeController;
+use Loopress\RestApi\PluginController;
 use Loopress\RestApi\SettingsController;
 use Loopress\RestApi\VendorController;
 use Loopress\RestApi\WPCodeController;
 use Loopress\Service\AcfService;
 use Loopress\Service\CustomPostTypeService;
+use Loopress\Service\PluginService;
 use Loopress\Service\SettingsService;
 use Loopress\Service\VendorService;
 use Loopress\Service\WPCodeService;
@@ -24,6 +26,7 @@ class Plugin
     private CustomPostTypeService $cptService;
     private AcfService $acfService;
     private WPCodeService $wpCodeService;
+    private PluginService $pluginService;
     private ?string $autoloadError = null;
 
     public function __construct()
@@ -40,6 +43,7 @@ class Plugin
         $this->cptService    = new CustomPostTypeService();
         $this->acfService    = new AcfService();
         $this->wpCodeService = new WPCodeService();
+        $this->pluginService = new PluginService();
 
         $this->dxEnv->ensureInitialized();
 
@@ -70,6 +74,7 @@ class Plugin
         (new CustomPostTypeController($this->cptService))->register_routes();
         (new AcfController($this->acfService))->register_routes();
         (new WPCodeController($this->wpCodeService))->register_routes();
+        (new PluginController($this->pluginService))->register_routes();
     }
 
     public function add_menu_page(): void

@@ -1,20 +1,21 @@
-Loopress
-=================
+# Loopress
 
 A new CLI generated with oclif
-
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/mynewcli.svg)](https://npmjs.org/package/mynewcli)
 [![Downloads/week](https://img.shields.io/npm/dw/mynewcli.svg)](https://npmjs.org/package/mynewcli)
 
-
 <!-- toc -->
-* [Usage](#usage)
-* [Commands](#commands)
+
+- [Usage](#usage)
+- [Commands](#commands)
 <!-- tocstop -->
+
 # Usage
+
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @loopress/cli
 $ lps COMMAND
@@ -26,33 +27,37 @@ USAGE
   $ lps COMMAND
 ...
 ```
+
 <!-- usagestop -->
+
 # Commands
+
 <!-- commands -->
-* [`lps help [COMMAND]`](#lps-help-command)
-* [`lps login`](#lps-login)
-* [`lps logout`](#lps-logout)
-* [`lps plugins`](#lps-plugins)
-* [`lps plugins add PLUGIN`](#lps-plugins-add-plugin)
-* [`lps plugins:inspect PLUGIN...`](#lps-pluginsinspect-plugin)
-* [`lps plugins install PLUGIN`](#lps-plugins-install-plugin)
-* [`lps plugins link PATH`](#lps-plugins-link-path)
-* [`lps plugins remove [PLUGIN]`](#lps-plugins-remove-plugin)
-* [`lps plugins reset`](#lps-plugins-reset)
-* [`lps plugins uninstall [PLUGIN]`](#lps-plugins-uninstall-plugin)
-* [`lps plugins unlink [PLUGIN]`](#lps-plugins-unlink-plugin)
-* [`lps plugins update`](#lps-plugins-update)
-* [`lps project config`](#lps-project-config)
-* [`lps project list`](#lps-project-list)
-* [`lps project remove`](#lps-project-remove)
-* [`lps project remove-env`](#lps-project-remove-env)
-* [`lps project switch`](#lps-project-switch)
-* [`lps project switch-env`](#lps-project-switch-env)
-* [`lps snippets list`](#lps-snippets-list)
-* [`lps snippets pull [PATH]`](#lps-snippets-pull-path)
-* [`lps snippets push [PATH]`](#lps-snippets-push-path)
-* [`lps styles pull`](#lps-styles-pull)
-* [`lps styles push`](#lps-styles-push)
+
+- [`lps help [COMMAND]`](#lps-help-command)
+- [`lps login`](#lps-login)
+- [`lps logout`](#lps-logout)
+- [`lps plugins`](#lps-plugins)
+- [`lps plugins add PLUGIN`](#lps-plugins-add-plugin)
+- [`lps plugins:inspect PLUGIN...`](#lps-pluginsinspect-plugin)
+- [`lps plugins install PLUGIN`](#lps-plugins-install-plugin)
+- [`lps plugins link PATH`](#lps-plugins-link-path)
+- [`lps plugins remove [PLUGIN]`](#lps-plugins-remove-plugin)
+- [`lps plugins reset`](#lps-plugins-reset)
+- [`lps plugins uninstall [PLUGIN]`](#lps-plugins-uninstall-plugin)
+- [`lps plugins unlink [PLUGIN]`](#lps-plugins-unlink-plugin)
+- [`lps plugins update`](#lps-plugins-update)
+- [`lps project config`](#lps-project-config)
+- [`lps project list`](#lps-project-list)
+- [`lps project remove`](#lps-project-remove)
+- [`lps project remove-env`](#lps-project-remove-env)
+- [`lps project switch`](#lps-project-switch)
+- [`lps project switch-env`](#lps-project-switch-env)
+- [`lps snippets list`](#lps-snippets-list)
+- [`lps snippets pull [PATH]`](#lps-snippets-pull-path)
+- [`lps snippets push [PATH]`](#lps-snippets-push-path)
+- [`lps styles pull`](#lps-styles-pull)
+- [`lps styles push`](#lps-styles-push)
 
 ## `lps help [COMMAND]`
 
@@ -656,4 +661,5 @@ EXAMPLES
 ```
 
 _See code: [src/commands/styles/push.ts](https://github.com/loopress/loopress/blob/v0.1.0/src/commands/styles/push.ts)_
+
 <!-- commandsstop -->
