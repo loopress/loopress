@@ -3,6 +3,7 @@ import got from 'got'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {Snippet} from '../../types/snippet.js'
+import {recordDeployment} from '../../utils/api.js'
 import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
 
 export default class Push extends PushCommand {
@@ -49,9 +50,10 @@ export default class Push extends PushCommand {
         await this.pushSnippet(snippet, url, headers, dryRun, adapter)
       }
 
-      await this.recordSuccess()
+      if (!dryRun) await recordDeployment({url, snippetCount: snippets.length, status: 'success'})
       this.log('🎉 All snippets pushed successfully!')
     } catch (error) {
+      if (!dryRun) await recordDeployment({url, snippetCount: snippets.length, status: 'failure'})
       this.error((error as Error).message)
     }
   }
