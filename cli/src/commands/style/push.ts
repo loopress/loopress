@@ -2,8 +2,7 @@ import {Flags} from '@oclif/core'
 import {glob} from 'glob'
 import got from 'got'
 
-import {LoopressCommand} from '../../lib/base.js'
-import {recordDeployment} from '../../utils/api.js'
+import {PushCommand} from '../../lib/push-command.js'
 
 interface Theme {
   _links: {'wp:user-global-styles': Array<{href: string}>}
@@ -15,17 +14,18 @@ interface GlobalStylesData {
   styles: object
 }
 
-export default class Push extends LoopressCommand {
+export default class Push extends PushCommand {
   static description = 'Push Global Styles to WordPress'
   static examples = ['$ lps styles push', '$ lps styles push --url http://example.com']
   static flags = {
-    ...LoopressCommand.baseFlags,
+    ...PushCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
   }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Push)
     const {dryRun} = flags as {dryRun: boolean}
+    this.dryRun = dryRun
     const {url} = this.siteConfig
     const stylesDir = await this.resolveStylesPath()
     const jsonPath = `${stylesDir}/global-styles.json`
@@ -68,10 +68,9 @@ export default class Push extends LoopressCommand {
       }
 
       await got.post(endpoint, {headers, json: payload})
-      await recordDeployment({url, snippetCount: 1, status: 'success'})
+      await this.recordSuccess()
       this.log(`✅ Successfully pushed global styles to ID: ${data.id}`)
     } catch (error) {
-      await recordDeployment({url, snippetCount: 0, status: 'failure'})
       this.error(`❌ Error pushing global styles: ${(error as Error).message}`)
     }
   }

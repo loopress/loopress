@@ -1,12 +1,11 @@
 import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
-import {LoopressCommand} from '../../lib/base.js'
+import {PushCommand} from '../../lib/push-command.js'
 import {Snippet} from '../../types/snippet.js'
-import {recordDeployment} from '../../utils/api.js'
 import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
 
-export default class Push extends LoopressCommand {
+export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
@@ -18,7 +17,7 @@ export default class Push extends LoopressCommand {
     '$ lps snippets push --plugin wpcode',
   ]
   static flags = {
-    ...LoopressCommand.baseFlags,
+    ...PushCommand.baseFlags,
     dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
     plugin: Flags.string({
       char: 'p',
@@ -31,6 +30,7 @@ export default class Push extends LoopressCommand {
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Push)
     const {dryRun, plugin} = flags as {dryRun: boolean; plugin: PluginName}
+    this.dryRun = dryRun
     const {url} = this.siteConfig
     const path = await this.resolveSnippetsPath(args.path)
 
@@ -49,10 +49,9 @@ export default class Push extends LoopressCommand {
         await this.pushSnippet(snippet, url, headers, dryRun, adapter)
       }
 
-      if (!dryRun) await recordDeployment({url, snippetCount: snippets.length, status: 'success'})
+      await this.recordSuccess()
       this.log('🎉 All snippets pushed successfully!')
     } catch (error) {
-      if (!dryRun) await recordDeployment({url, snippetCount: snippets.length, status: 'failure'})
       this.error((error as Error).message)
     }
   }
