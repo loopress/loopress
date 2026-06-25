@@ -1,5 +1,13 @@
 # @loopress/cli
 
+## 0.4.0
+
+### Minor Changes
+
+- 2d33230: Add commands to manage plugins
+- 2d33230: Add cli-plugins command as wrapper around oclif plugin plugins
+- a3e2a67: Activate plugin after installation
+
 ## 0.3.0
 
 ### Minor Changes
