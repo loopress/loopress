@@ -11,4 +11,8 @@ export interface InstallResult {
   version: string
 }
 
+export interface ActivateResult {
+  message: string
+}
+
 export type PluginManifest = Record<string, string>

@@ -28,6 +28,25 @@ class PluginService
         return $result;
     }
 
+    public function activate(string $slug): array
+    {
+        if (!function_exists('get_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        $file = $this->findInstalledFile($slug);
+        if ($file === null) {
+            throw new \RuntimeException("Plugin \"{$slug}\" is not installed.");
+        }
+
+        $result = activate_plugin($file);
+        if (is_wp_error($result)) {
+            throw new \RuntimeException($result->get_error_message());
+        }
+
+        return ['message' => "{$slug} activated successfully."];
+    }
+
     public function install(string $slug, string $version): array
     {
         $this->requireUpgraderIncludes();

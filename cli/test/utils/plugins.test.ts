@@ -1,6 +1,6 @@
 import {expect} from 'chai'
 
-import {resolvePluginVersion} from '../../src/commands/plugins/require.js'
+import {resolvePluginVersion} from '../../src/commands/plugin/require.js'
 import {InstalledPlugin} from '../../src/types/plugin.js'
 import {diffPlugins, mergePluginManifest} from '../../src/utils/plugins.js'
 
@@ -62,9 +62,21 @@ describe('plugins', () => {
       expect(upToDate).to.be.empty
     })
 
-    it('puts a version-matched plugin into upToDate', () => {
-      const {upToDate, toInstall, drifted} = diffPlugins({woocommerce: '8.9.1'}, [makePlugin('woocommerce', '8.9.1')])
+    it('puts a version-matched active plugin into upToDate', () => {
+      const {upToDate, toInstall, drifted, toActivate} = diffPlugins({woocommerce: '8.9.1'}, [makePlugin('woocommerce', '8.9.1')])
       expect(upToDate).to.deep.equal(['woocommerce'])
+      expect(toInstall).to.be.empty
+      expect(drifted).to.be.empty
+      expect(toActivate).to.be.empty
+    })
+
+    it('puts a version-matched inactive plugin into toActivate', () => {
+      const {toActivate, upToDate, toInstall, drifted} = diffPlugins(
+        {woocommerce: '8.9.1'},
+        [makePlugin('woocommerce', '8.9.1', false)],
+      )
+      expect(toActivate).to.deep.equal([{slug: 'woocommerce'}])
+      expect(upToDate).to.be.empty
       expect(toInstall).to.be.empty
       expect(drifted).to.be.empty
     })
@@ -83,19 +95,25 @@ describe('plugins', () => {
       expect(upToDate).to.be.empty
     })
 
-    it('handles mixed install / drift / up-to-date in one call', () => {
+    it('handles mixed install / drift / up-to-date / activate in one call', () => {
       const manifest = {
         acf: '6.3.2',
         'contact-form-7': '5.9.0',
+        wpcode: '2.0.0',
         woocommerce: '8.9.1',
       }
-      const installed = [makePlugin('woocommerce', '8.9.1'), makePlugin('acf', '6.0.0')]
+      const installed = [
+        makePlugin('woocommerce', '8.9.1'),
+        makePlugin('acf', '6.0.0'),
+        makePlugin('wpcode', '2.0.0', false),
+      ]
 
-      const {toInstall, drifted, upToDate} = diffPlugins(manifest, installed)
+      const {toInstall, drifted, upToDate, toActivate} = diffPlugins(manifest, installed)
 
       expect(toInstall).to.deep.equal([{slug: 'contact-form-7', targetVersion: '5.9.0'}])
       expect(drifted).to.deep.equal([{currentVersion: '6.0.0', slug: 'acf', targetVersion: '6.3.2'}])
       expect(upToDate).to.deep.equal(['woocommerce'])
+      expect(toActivate).to.deep.equal([{slug: 'wpcode'}])
     })
 
     it('returns all empty arrays for an empty manifest', () => {

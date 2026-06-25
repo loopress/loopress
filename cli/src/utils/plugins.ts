@@ -2,6 +2,7 @@ import {InstalledPlugin, PluginManifest} from '../types/plugin.js'
 
 export interface PluginDiff {
   drifted: Array<{currentVersion: string; slug: string; targetVersion: string}>
+  toActivate: Array<{slug: string}>
   toInstall: Array<{slug: string; targetVersion: string}>
   upToDate: string[]
 }
@@ -27,6 +28,7 @@ export function diffPlugins(manifest: PluginManifest, installed: InstalledPlugin
   const installedMap = new Map(installed.map((p) => [p.slug, p]))
 
   const toInstall: PluginDiff['toInstall'] = []
+  const toActivate: PluginDiff['toActivate'] = []
   const drifted: PluginDiff['drifted'] = []
   const upToDate: string[] = []
 
@@ -39,11 +41,15 @@ export function diffPlugins(manifest: PluginManifest, installed: InstalledPlugin
     }
 
     if (live.version === targetVersion) {
-      upToDate.push(slug)
+      if (live.active) {
+        upToDate.push(slug)
+      } else {
+        toActivate.push({slug})
+      }
     } else {
       drifted.push({currentVersion: live.version, slug, targetVersion})
     }
   }
 
-  return {drifted, toInstall, upToDate}
+  return {drifted, toActivate, toInstall, upToDate}
 }
