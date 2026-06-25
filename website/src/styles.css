@@ -55,7 +55,7 @@
 
 :root {
   --radius: 0.625rem;
-  /* WDX light theme - clean off-white with strong visual hierarchy */
+  /* Loopress light theme - clean off-white with strong visual hierarchy */
   --background: oklch(0.982 0.004 250);
   --foreground: oklch(0.12 0.04 265);
   --card: oklch(0.972 0.005 252);

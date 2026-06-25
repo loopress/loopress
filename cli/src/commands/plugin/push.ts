@@ -2,22 +2,23 @@ import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import got from 'got'
 
-import {LoopressCommand} from '../../lib/base.js'
+import {PushCommand} from '../../lib/push-command.js'
 import {ActivateResult, InstalledPlugin, InstallResult} from '../../types/plugin.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
 import {diffPlugins} from '../../utils/plugins.js'
 
-export default class Push extends LoopressCommand {
+export default class Push extends PushCommand {
   static description = 'Sync plugins on WordPress to match loopress.json'
   static examples = ['$ lps plugins push', '$ lps plugins push --dry-run']
   static flags = {
-    ...LoopressCommand.baseFlags,
+    ...PushCommand.baseFlags,
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
   }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Push)
     const dryRun = flags['dry-run']
+    this.dryRun = dryRun
     const {url} = this.siteConfig
 
     const localConfig = await readLocalConfig()
@@ -112,6 +113,8 @@ export default class Push extends LoopressCommand {
 
       await this.activatePlugin(url, headers, action.slug)
     }
+
+    await this.recordSuccess()
   }
 
   private async activatePlugin(url: string, headers: Record<string, string>, slug: string): Promise<void> {

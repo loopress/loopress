@@ -24,9 +24,9 @@ export default class Config extends Command {
 
     const envChoice = await select({
       choices: [
-        {name: 'production', value: 'production'},
+        {name: 'local', value: 'local'},
         {name: 'staging', value: 'staging'},
-        {name: 'development', value: 'development'},
+        {name: 'production', value: 'production'},
         {name: 'Custom…', value: '__custom__'},
       ],
       message: 'Environment',
