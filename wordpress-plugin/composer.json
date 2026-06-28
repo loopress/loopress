@@ -28,10 +28,12 @@
         "phpunit/phpunit": "^11.0",
         "brain/monkey": "^2.6",
         "phpstan/phpstan": "^2.0",
-        "szepeviktor/phpstan-wordpress": "^2.0"
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "vimeo/psalm": "^6.16"
     },
     "scripts": {
         "test": "phpunit",
-        "analyse": "phpstan analyse"
+        "analyse": "phpstan analyse",
+        "psalm": "./vendor/bin/psalm --no-cache"
     }
 }
