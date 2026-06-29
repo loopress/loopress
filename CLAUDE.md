@@ -2,8 +2,8 @@
 
 ## Worktrees
 
-Crée les worktrees dans `.claude/worktree/`. Ce dossier doit être dans le `.gitignore`.
+Create worktrees inside `.claude/worktree/`. This folder must be listed in `.gitignore`.
 
-## Style d'écriture
+## Writing style
 
-N'utilise jamais le tiret long "—" (em dash) dans le code ou le contenu du site. Utilise à la place une virgule, un point, ou reformule la phrase.
+Never use the em dash "—" in code or website content. Use a comma, a period, or rephrase the sentence instead.
