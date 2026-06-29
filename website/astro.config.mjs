@@ -10,5 +10,10 @@ export default defineConfig({
   output: "server",
   vite: {
     plugins: [tailwindcss(), tsConfigPaths({ projects: ["./tsconfig.json"] })],
+    server: {
+      fs: {
+        allow: [".."],
+      },
+    },
   },
 });

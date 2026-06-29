@@ -1,5 +1,6 @@
 const PAINS = [
   { code: "SNP", text: "Snippets edited in the admin, no history, no rollback" },
+  { code: "PLG", text: "Plugin versions are ad hoc, no lockfile, no reproducible installs" },
   { code: "DEP", text: "Composer packages require SSH to install" },
 ];
 
@@ -12,7 +13,7 @@ export function Problem() {
           WordPress wasn't built for modern development workflows.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          Snippets live in the database with no history. PHP packages require SSH access to the server. Two problems that have been solved everywhere else.
+          Snippets edited in the admin. Plugin versions untracked. Theme styles overwritten. PHP packages requiring SSH. Problems solved everywhere else, still open in WordPress.
         </p>
 
         <div className="mt-14 grid gap-10 md:grid-cols-2">

@@ -20,6 +20,14 @@ export function Features() {
 
           <FeatureCard
             tag="02"
+            title="Plugin Lockfile"
+            body="Declare plugin versions in loopress.json like a package.json. Push to any environment and get an exact, reproducible install."
+          >
+            <PluginsBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="03"
             title="Composer without SSH"
             body="Search and install any Packagist package from the WordPress admin panel, without opening a terminal."
           >
@@ -73,6 +81,29 @@ function SnippetsBlock() {
     </div>
   );
 }
+
+function PluginsBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        loopress.json · plugins
+      </div>
+      <pre className="px-3 py-3">
+{`  "plugins": {
+    "woocommerce": "9.4.2",
+    "contact-form-7": "6.0.5",
+    "fluent-crm": "3.1.6"
+  }`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps plugins push</Line>
+        <Line c="success">✓ Installed: contact-form-7 6.0.5</Line>
+        <Line c="success">✓ Already up to date: woocommerce, fluent-crm</Line>
+      </div>
+    </div>
+  );
+}
+
 
 function ComposerBlock() {
   return (

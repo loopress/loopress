@@ -2,7 +2,7 @@ import { SectionLabel } from "./Problem";
 
 export function Vision() {
   return (
-    <section className="border-b border-border/60">
+    <section id="vision" className="border-b border-border/60">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">

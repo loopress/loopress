@@ -8,10 +8,10 @@ type Node = {
 
 const NODES: Node[] = [
   { label: "WordPress Admin", sub: "Source of truth", logo: "/logo-wordpress.svg" },
-  { label: "lps pull", sub: "Serialize config", icon: "↓", mono: true },
+  { label: "lps snippets pull", sub: "Pull to local files", icon: "↓", mono: true },
   { label: "Git", sub: "Commit & review", logo: "/logo-git.svg" },
   { label: "Pull Request", sub: "Diff & approve", icon: "⤴" },
-  { label: "lps push", sub: "Apply to env", icon: "↑", mono: true },
+  { label: "lps snippets push", sub: "Apply to env", icon: "↑", mono: true },
 ];
 
 export function WorkflowDiagram() {
@@ -56,22 +56,22 @@ export function WorkflowDiagram() {
 
       <div className="mt-8 grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-background/50 p-4 font-mono text-[12px] md:grid-cols-2">
         <div>
-          <div className="text-muted-foreground">$ lps pull</div>
+          <div className="text-muted-foreground">$ lps snippets pull</div>
           <div className="text-foreground">
-            <span className="text-success">+</span> config/acf.yaml
+            <span className="text-success">+</span> snippets/disable-emojis.php
           </div>
           <div className="text-foreground">
-            <span className="text-success">+</span> config/snippets.yaml
+            <span className="text-success">+</span> snippets/custom-login.php
           </div>
           <div className="text-foreground">
-            <span className="text-warning">~</span> config/options.yaml
+            <span className="text-warning">~</span> snippets/redirect-404.php
           </div>
         </div>
         <div>
           <div className="text-muted-foreground">$ git diff --stat</div>
-          <div className="text-foreground/80">3 files changed, 47 insertions(+), 8 deletions(-)</div>
-          <div className="mt-1 text-muted-foreground">$ lps push --env=staging</div>
-          <div className="text-success">✓ applied · environment reproducible</div>
+          <div className="text-foreground/80">3 files changed, 18 insertions(+), 4 deletions(-)</div>
+          <div className="mt-1 text-muted-foreground">$ lps snippets push</div>
+          <div className="text-success">✓ Updated · 3 snippets synced</div>
         </div>
       </div>
     </div>
