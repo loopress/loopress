@@ -46,8 +46,6 @@ USAGE
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
-* [`lps style pull`](#lps-style-pull)
-* [`lps style push`](#lps-style-push)
 
 ## `lps help [COMMAND]`
 
@@ -394,58 +392,4 @@ EXAMPLES
 ```
 
 _See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/snippet/push.ts)_
-
-## `lps style pull`
-
-Pull Global Styles from WordPress
-
-```
-USAGE
-  $ lps style pull [--password <value>] [--url <value>] [--user <value>] [-d]
-
-FLAGS
-  -d, --dryRun  Dry run - show what would happen without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
-  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
-  --user=<value>      WordPress username (fallback; prefer `lps project config`)
-
-DESCRIPTION
-  Pull Global Styles from WordPress
-
-EXAMPLES
-  $ lps styles pull
-
-  $ lps styles pull --url http://example.com
-```
-
-_See code: [src/commands/style/pull.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/style/pull.ts)_
-
-## `lps style push`
-
-Push Global Styles to WordPress
-
-```
-USAGE
-  $ lps style push [--password <value>] [--url <value>] [--user <value>] [-d]
-
-FLAGS
-  -d, --dryRun  Dry run - show what would happen without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
-  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
-  --user=<value>      WordPress username (fallback; prefer `lps project config`)
-
-DESCRIPTION
-  Push Global Styles to WordPress
-
-EXAMPLES
-  $ lps styles push
-
-  $ lps styles push --url http://example.com
-```
-
-_See code: [src/commands/style/push.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/style/push.ts)_
 <!-- commandsstop -->
