@@ -14,8 +14,8 @@ const TIERS = [
       "WordPress plugin",
       "Snippets in Git",
       "Plugin lockfile",
-      "Global Styles sync",
       "Composer without SSH",
+      "Loopress console",
       "Community support",
     ],
   },
@@ -29,7 +29,7 @@ const TIERS = [
     ctaHref: "https://console.loopress.dev",
     features: [
       "Everything in Free",
-      "Loopress console",
+      "Pro features in the console",
       "Deployment history",
       "Multiple environments",
       "Unlimited projects",

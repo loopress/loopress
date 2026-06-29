@@ -23,6 +23,7 @@ export function Nav() {
           <a href="/#solution" className="transition-colors hover:text-foreground">Solution</a>
           <a href="/#features" className="transition-colors hover:text-foreground">Features</a>
           <a href="/#integrations" className="transition-colors hover:text-foreground">Integrations</a>
+          <a href="/#vision" className="transition-colors hover:text-foreground">Vision</a>
           <a href="/#pricing" className="transition-colors hover:text-foreground">Pricing</a>
           <a href="https://docs.loopress.dev" className="transition-colors hover:text-foreground">Docs</a>
         </nav>

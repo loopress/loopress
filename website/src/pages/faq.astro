@@ -1,0 +1,135 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { Nav } from "@/components/landing/Nav";
+import { Footer } from "@/components/landing/Footer";
+
+const FAQS = [
+  {
+    section: "General",
+    items: [
+      {
+        q: "What is Loopress?",
+        a: "Loopress is a developer toolbox for WordPress. It ships as a CLI and a WordPress plugin that work together to bring version control, reproducible environments, and modern workflows to WordPress projects.",
+      },
+      {
+        q: "Is it free?",
+        a: "The CLI and the WordPress plugin are open source. A console with paid tiers is planned — pricing will be announced separately.",
+      },
+      {
+        q: "Who is Loopress for?",
+        a: "Developers and agencies who build and maintain WordPress sites and want to manage their projects like modern applications: Git, lockfiles, and reproducible installs.",
+      },
+    ],
+  },
+  {
+    section: "CLI",
+    items: [
+      {
+        q: "What does the CLI do?",
+        a: "The CLI lets you pull snippets from WordPress as local .php files, push them back after editing, and manage plugin versions through a loopress.json lockfile — similar to how npm manages packages.",
+      },
+      {
+        q: "How do I authenticate?",
+        a: "Loopress uses WordPress application passwords. No SSH access required. You configure a project once with lps project config and credentials are stored locally in ~/.lps/config.json.",
+      },
+      {
+        q: "Can I manage multiple projects or environments?",
+        a: "Yes. The CLI supports multiple named projects, each with multiple environments (local, staging, production). You switch between them with lps project switch.",
+      },
+      {
+        q: "Does it work with any WordPress installation?",
+        a: "It works with any self-hosted WordPress site that has the Loopress plugin installed and the REST API enabled.",
+      },
+    ],
+  },
+  {
+    section: "Snippets",
+    items: [
+      {
+        q: "Which snippet plugins are supported?",
+        a: "Code Snippets and WPCode are both supported. You can target either one using the --plugin flag.",
+      },
+      {
+        q: "What happens when I push a snippet?",
+        a: "Loopress reads the metadata in the .php file header (id, name, tags, active status) and creates or updates the corresponding snippet in WordPress via the REST API.",
+      },
+      {
+        q: "Can I create new snippets from the CLI?",
+        a: "Yes. Any .php file without an id in its header will be created as a new snippet. The generated id is written back into the file after creation.",
+      },
+    ],
+  },
+  {
+    section: "Plugin management",
+    items: [
+      {
+        q: "How does the plugin lockfile work?",
+        a: "You declare plugin slugs and versions in loopress.json under a plugins key. Running lps plugins push installs missing plugins, activates them, and flags version mismatches for review.",
+      },
+      {
+        q: "Where do plugins come from?",
+        a: "From the official WordPress.org plugin directory. Loopress downloads and installs any plugin available at wordpress.org/plugins.",
+      },
+      {
+        q: "What if a plugin is already installed but inactive?",
+        a: "Loopress will activate it automatically as part of lps plugins push.",
+      },
+    ],
+  },
+  {
+    section: "WordPress plugin",
+    items: [
+      {
+        q: "What does the WordPress plugin do?",
+        a: "It exposes a REST API that the CLI communicates with, and provides an admin panel to manage Composer dependencies directly from the WordPress dashboard — no terminal or SSH access needed.",
+      },
+      {
+        q: "Is there a production lock?",
+        a: "Yes. You can lock a site to prevent package installs or removals, either from the admin panel or by setting LOOPRESS_PRODUCTION_LOCK in wp-config.php.",
+      },
+      {
+        q: "Does it support Composer?",
+        a: "Yes. The WordPress plugin runs Composer via PHP and installs packages from Packagist into wp-content/loopress/. The autoloader is registered automatically.",
+      },
+    ],
+  },
+];
+---
+
+<Layout
+  title="FAQ - Loopress"
+  description="Frequently asked questions about Loopress — the CLI and WordPress plugin for modern development workflows."
+  canonical="https://loopress.dev/faq"
+>
+  <div class="min-h-screen bg-background text-foreground">
+    <Nav client:load />
+    <main class="mx-auto max-w-2xl px-6 py-24">
+      <div class="mb-14">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent-cyan">FAQ</p>
+        <h1 class="mt-3 text-3xl font-semibold tracking-tight">Frequently asked questions</h1>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Something missing? <a href="/contact" class="underline underline-offset-2 hover:text-foreground">Send us a message.</a>
+        </p>
+      </div>
+
+      <div class="space-y-14">
+        {FAQS.map((section) => (
+          <div>
+            <h2 class="mb-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+              {section.section}
+            </h2>
+            <div class="divide-y divide-border/60">
+              {section.items.map((item) => (
+                <div class="py-5">
+                  <p class="text-sm font-medium text-foreground">{item.q}</p>
+                  <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+    <Footer />
+  </div>
+</Layout>

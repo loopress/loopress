@@ -11,6 +11,7 @@ export function Footer() {
         <div className="flex flex-wrap gap-5 font-mono text-xs text-muted-foreground">
           <a href="https://docs.loopress.dev" className="hover:text-foreground">Docs</a>
           <a href="https://github.com/loopress" className="hover:text-foreground">GitHub</a>
+          <a href="/faq" className="hover:text-foreground">FAQ</a>
           <a href="/privacy" className="hover:text-foreground">Privacy</a>
           <a href="/brand-assets" className="hover:text-foreground">Brand</a>
           <a href="/contact" className="hover:text-foreground">Contact</a>

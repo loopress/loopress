@@ -1,7 +1,6 @@
 const PAINS = [
   { code: "SNP", text: "Snippets edited in the admin, no history, no rollback" },
   { code: "PLG", text: "Plugin versions are ad hoc, no lockfile, no reproducible installs" },
-  { code: "STY", text: "Global Styles tweaked in the editor, lost on theme updates" },
   { code: "DEP", text: "Composer packages require SSH to install" },
 ];
 
