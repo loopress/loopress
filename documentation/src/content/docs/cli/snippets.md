@@ -11,23 +11,23 @@ Supports the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugi
 
 ```bash
 # 1. Download existing snippets from WordPress
-lps snippets pull
+lps snippet pull
 
 # 2. Edit locally, commit to Git
 git add snippets/ && git commit -m "feat: update price formatter snippet"
 
 # 3. Deploy back to WordPress
-lps snippets push
+lps snippet push
 ```
 
 ## Commands
 
-### `lps snippets pull`
+### `lps snippet pull`
 
 Download all snippets from WordPress and write them as `.php` files.
 
 ```bash
-lps snippets pull [path]
+lps snippet pull [path]
 ```
 
 | Argument | Default | Description |
@@ -36,19 +36,19 @@ lps snippets pull [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 | `--plugin` / `-p` | Target plugin: `code-snippets` (default) or `wpcode` |
 
 **Example:**
 
 ```bash
-lps snippets pull ./wp-snippets --dryRun
-lps snippets pull --plugin wpcode
+lps snippet pull ./wp-snippets --dry-run
+lps snippet pull --plugin wpcode
 ```
 
 ---
 
-### `lps snippets push`
+### `lps snippet push`
 
 Upload `.php` files from a local directory to WordPress.
 
@@ -56,7 +56,7 @@ Upload `.php` files from a local directory to WordPress.
 - Otherwise, a new snippet is created.
 
 ```bash
-lps snippets push [path]
+lps snippet push [path]
 ```
 
 | Argument | Default | Description |
@@ -65,24 +65,24 @@ lps snippets push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed without making any changes |
 | `--plugin` / `-p` | Target plugin: `code-snippets` (default) or `wpcode` |
 
 **Example:**
 
 ```bash
-lps snippets push ./wp-snippets
-lps snippets push --plugin wpcode
+lps snippet push ./wp-snippets
+lps snippet push --plugin wpcode
 ```
 
 ---
 
-### `lps snippets list`
+### `lps snippet list`
 
 Print all snippets currently on WordPress.
 
 ```bash
-lps snippets list
+lps snippet list
 ```
 
 | Flag | Description |
@@ -117,7 +117,7 @@ snippets/
 
 ### Header comments
 
-`lps snippets pull` automatically writes a header comment at the top of each file containing the snippet's metadata. This header is read back by `lps snippets push` to identify and configure the snippet on WordPress.
+`lps snippet pull` automatically writes a header comment at the top of each file containing the snippet's metadata. This header is read back by `lps snippet push` to identify and configure the snippet on WordPress.
 
 **PHP:**
 
@@ -173,7 +173,7 @@ body { ... }
 | `active` | Whether the snippet is active (`true` / `false`). |
 
 :::tip
-Always run `lps snippets pull` before editing locally so that your files have the `id` header. This ensures `push` updates the right snippet even if you rename the file.
+Always run `lps snippet pull` before editing locally so that your files have the `id` header. This ensures `push` updates the right snippet even if you rename the file.
 :::
 
 ## WPCode support
@@ -181,6 +181,6 @@ Always run `lps snippets pull` before editing locally so that your files have th
 To target [WPCode](https://wpcode.com/) instead of Code Snippets, pass `--plugin wpcode` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
 
 ```bash
-lps snippets pull --plugin wpcode
-lps snippets push --plugin wpcode
+lps snippet pull --plugin wpcode
+lps snippet push --plugin wpcode
 ```

@@ -78,22 +78,33 @@ All commands operate against the **active project/environment**.
 
 ## Project-level configuration
 
-Place a `loopress.json` file in your project root to customise the default paths for snippets and styles:
+Place a `loopress.json` file in your project root to customise paths and track managed plugins:
 
 ```json
 {
   "rootDir": "./wp-content",
   "snippets": "snippets",
-  "styles": "styles"
+  "plugins": {
+    "woocommerce": "9.0.2",
+    "contact-form-7": "5.9.8"
+  }
 }
 ```
 
+| Field | Default | Description |
+|-------|---------|-------------|
+| `rootDir` | `.` | Base directory — all other paths are resolved relative to it |
+| `snippets` | `snippets` | Directory for snippet files |
+| `plugins` | — | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/require`. |
+
+The `plugins` field is populated automatically by `lps plugin pull` and `lps plugin require`. Commit `loopress.json` to Git so every environment can be synced with `lps plugin push`.
+
 ## Dry run
 
-Most commands accept a `--dryRun` (`-d`) flag that shows what would happen without making any changes:
+Most commands accept a `--dry-run` (`-d`) flag that shows what would happen without making any changes:
 
 ```bash
-lps snippets push --dryRun
-lps snippets pull --dryRun
-lps styles push --dryRun
+lps snippet push --dry-run
+lps snippet pull --dry-run
+lps plugin push --dry-run
 ```
