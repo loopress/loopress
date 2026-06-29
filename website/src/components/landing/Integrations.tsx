@@ -3,11 +3,13 @@ import { SectionLabel } from "./Problem";
 const AVAILABLE = [
   { name: "Code Snippets", desc: "Pull, push, and list snippets via the CLI." },
   { name: "WPCode", desc: "Same CLI commands, targets WPCode instead." },
+  { name: "Plugin Directory", desc: "Install and version any plugin from the WordPress.org directory." },
   { name: "Packagist", desc: "Install any public Composer package from the admin." },
 ];
 
 const SOON = [
-  { name: "WordPress Core", desc: "Options, settings, and roles as code." },
+  { name: "Site Options", desc: "WordPress options and site settings as code." },
+  { name: "Roles & Caps", desc: "User roles and capabilities as code." },
   { name: "ACF", desc: "Field groups as JSON, synced via CLI." },
   { name: "WooCommerce", desc: "Settings and shipping zones as code." },
 ];
@@ -18,7 +20,7 @@ export function Integrations() {
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
         <SectionLabel>04 · Integrations</SectionLabel>
         <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
-          Works with the plugins you already use.
+          Fits into the tools you already use.
         </h2>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-2">
@@ -31,7 +33,7 @@ export function Integrations() {
             </div>
           </div>
           <div>
-            <Header status="soon">In Development</Header>
+            <Header status="soon">Planned</Header>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {SOON.map((i) => (
                 <IntegrationCard key={i.name} status="soon" {...i} />
@@ -49,7 +51,7 @@ function Header({ status, children }: { status: "available" | "soon"; children: 
   return (
     <div className="flex items-center gap-2">
       <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest ${color}`}>
-        {status === "available" ? "Live" : "Soon"}
+        {status === "available" ? "Live" : "Planned"}
       </span>
       <span className="text-sm font-medium text-foreground">{children}</span>
     </div>
@@ -77,7 +79,7 @@ function IntegrationCard({
         {status === "available" ? (
           <span className="h-2 w-2 rounded-full bg-success animate-pulse-dot" />
         ) : (
-          <span className="font-mono text-[10px] text-muted-foreground">in dev</span>
+          <span className="font-mono text-[10px] text-muted-foreground">planned</span>
         )}
       </div>
       <div className="mt-2 text-xs text-muted-foreground">{desc}</div>

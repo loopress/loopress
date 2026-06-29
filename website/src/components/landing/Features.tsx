@@ -20,6 +20,22 @@ export function Features() {
 
           <FeatureCard
             tag="02"
+            title="Plugin Lockfile"
+            body="Declare plugin versions in loopress.json like a package.json. Push to any environment and get an exact, reproducible install."
+          >
+            <PluginsBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="03"
+            title="Global Styles in Git"
+            body="Pull your active theme's Global Styles as JSON and CSS files. Tweak locally, commit, push back. No more editor-only changes."
+          >
+            <StylesBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="04"
             title="Composer without SSH"
             body="Search and install any Packagist package from the WordPress admin panel, without opening a terminal."
           >
@@ -69,6 +85,51 @@ function SnippetsBlock() {
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
         <Line c="muted">$ lps snippets push</Line>
         <Line c="success">✓ Updated: disable-emojis</Line>
+      </div>
+    </div>
+  );
+}
+
+function PluginsBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        loopress.json · plugins
+      </div>
+      <pre className="px-3 py-3">
+{`  "plugins": {
+    "woocommerce": "9.4.2",
+    "contact-form-7": "latest",
+    "fluent-crm": "3.1.6"
+  }`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps plugins push</Line>
+        <Line c="success">✓ Installed: contact-form-7 6.0.5</Line>
+        <Line c="success">✓ Already up to date: woocommerce, fluent-crm</Line>
+      </div>
+    </div>
+  );
+}
+
+function StylesBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="flex items-center justify-between border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        <span>styles/global-styles.json</span>
+        <span>+ 2 / − 1</span>
+      </div>
+      <pre className="px-3 py-3">
+{`  "settings": {
+-   "color": { "palette": [] }
++   "color": { "palette": [
++     { "slug": "primary", "color": "#1a1a2e" }
++   ]}
+  }`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps styles push</Line>
+        <Line c="success">✓ Global Styles updated</Line>
       </div>
     </div>
   );

@@ -2,10 +2,12 @@ import { SectionLabel } from "./Problem";
 
 const PILLARS = [
   { t: "Snippets in Git", d: "Pull snippets as .php files, edit them locally, commit, push back." },
+  { t: "Plugin Lockfile", d: "Declare plugin versions in loopress.json and sync any environment with one command." },
+  { t: "Global Styles in Git", d: "Pull your theme's Global Styles as JSON and CSS. Edit locally, push back when ready." },
   { t: "Composer without SSH", d: "Search and install Packagist packages from the WordPress admin panel." },
 ];
 
-const COMPAT = ["Code Snippets", "WPCode", "Git", "Composer", "Packagist"];
+const COMPAT = ["Code Snippets", "WPCode", "WordPress.org", "Git", "Composer", "Packagist"];
 
 export function Solution() {
   return (
@@ -13,10 +15,10 @@ export function Solution() {
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
         <SectionLabel>02 · The Solution</SectionLabel>
         <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
-          Two tools. Two problems solved.
+          One CLI. One plugin. Every workflow.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          A CLI to version-control your snippets, and a WordPress plugin to install PHP packages without touching the server.
+          A CLI to version-control snippets, plugins, and theme styles. A WordPress plugin to manage Composer dependencies without touching a terminal.
         </p>
 
         <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border/80 bg-border/80 md:grid-cols-2">

@@ -25,12 +25,14 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Version-control your code snippets in Git. Install Composer packages from the WordPress admin, no SSH needed.
+            Version-control your snippets, plugins, and theme styles in Git. Install Composer packages from the WordPress admin, no SSH needed.
           </p>
 
           <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-xs text-muted-foreground sm:max-w-xl">
             <span>$ lps snippets pull</span>
             <span>$ lps snippets push</span>
+            <span>$ lps plugins pull</span>
+            <span>$ lps plugins push</span>
           </div>
 
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
