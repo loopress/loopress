@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Theme = "dark" | "light";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light",
+  );
 
   const toggle = () => {
     setTheme((current) => {
@@ -16,7 +15,9 @@ export function useTheme() {
       document.documentElement.classList.toggle("dark", next === "dark");
       try {
         localStorage.setItem("theme", next);
-      } catch {}
+      } catch {
+        // ignore localStorage errors in restricted environments
+      }
       return next;
     });
   };
