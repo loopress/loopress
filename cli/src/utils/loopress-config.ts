@@ -8,7 +8,6 @@ export interface LoopressLocalConfig {
   rootDir?: string
   snippetPlugin?: 'code-snippets' | 'wpcode'
   snippetsDir?: string
-  styles?: string
 }
 
 export async function readLocalConfig(): Promise<LoopressLocalConfig> {

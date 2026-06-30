@@ -71,10 +71,4 @@ export abstract class LoopressCommand extends Command {
     const config = await readLocalConfig()
     return join(config.rootDir ?? '.', config.snippetsDir ?? 'snippets')
   }
-
-  protected async resolveStylesPath(override?: string): Promise<string> {
-    if (override) return override
-    const config = await readLocalConfig()
-    return join(config.rootDir ?? '.', config.styles ?? 'styles')
-  }
 }

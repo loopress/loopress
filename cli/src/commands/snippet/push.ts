@@ -63,8 +63,8 @@ export default class Push extends PushCommand {
     try {
       const existing = await fs.readFile(metaPath, 'utf8')
       meta = JSON.parse(existing) as Record<string, unknown>
-    } catch {
-      // no existing sidecar
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
 
     meta.id = id
@@ -94,8 +94,8 @@ export default class Push extends PushCommand {
           const meta = JSON.parse(metaContent) as Record<string, unknown>
           id = meta.id ? Number(meta.id) : undefined
           name = meta.name ? String(meta.name) : undefined
-        } catch {
-          // no sidecar, fallback to filename
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
         }
 
         snippets.push({
