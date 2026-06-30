@@ -2,7 +2,7 @@
 
 ## Worktrees
 
-Create worktrees inside `.claude/worktree/`. This folder must be listed in `.gitignore`.
+Create worktrees inside `.claude/worktrees/`. This folder must be listed in `.gitignore`.
 
 ## Writing style
 
