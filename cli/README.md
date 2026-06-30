@@ -32,6 +32,7 @@ USAGE
 
 <!-- commands -->
 * [`lps help [COMMAND]`](#lps-help-command)
+* [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
 * [`lps plugin pull`](#lps-plugin-pull)
@@ -65,7 +66,24 @@ DESCRIPTION
   Display help for lps.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.50/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.52/src/commands/help.ts)_
+
+## `lps init`
+
+Initialize a loopress.json config file in the current directory
+
+```
+USAGE
+  $ lps init
+
+DESCRIPTION
+  Initialize a loopress.json config file in the current directory
+
+EXAMPLES
+  $ lps init
+```
+
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -300,7 +318,7 @@ USAGE
 
 FLAGS
   -j, --json             Output in JSON format
-  -p, --plugin=<option>  [default: code-snippets] WordPress snippet plugin to target
+  -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
 GLOBAL FLAGS
@@ -334,7 +352,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dryRun           Dry run - show what would happen without making changes
-  -p, --plugin=<option>  [default: code-snippets] WordPress snippet plugin to target
+  -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
 GLOBAL FLAGS
@@ -370,7 +388,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dryRun           Dry run - show what would happen without making changes
-  -p, --plugin=<option>  [default: code-snippets] WordPress snippet plugin to target
+  -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
 GLOBAL FLAGS

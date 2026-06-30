@@ -38,11 +38,11 @@ export class AuthManager {
   }
 
   getAuthFilePath(): string {
-    return join(this.homeDir, '.lps', 'auth.json')
+    return join(this.homeDir, '.loopress', 'auth.json')
   }
 
   setAuth(auth: ConsoleAuth): void {
-    const dir = join(this.homeDir, '.lps')
+    const dir = join(this.homeDir, '.loopress')
     if (!existsSync(dir)) mkdirSync(dir, {recursive: true})
 
     const filePath = this.getAuthFilePath()
