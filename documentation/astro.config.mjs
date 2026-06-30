@@ -45,6 +45,7 @@ export default defineConfig({
             },
             components: {
                 PageFrame: './src/components/PageFrame.astro',
+                Head: './src/components/Head.astro',
             },
             plugins: [
                 starlightBlog({
