@@ -4,7 +4,9 @@ type Theme = "dark" | "light";
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() =>
-    document.documentElement.classList.contains("dark") ? "dark" : "light",
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light",
   );
 
   const toggle = () => {
