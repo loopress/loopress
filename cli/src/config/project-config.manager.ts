@@ -18,14 +18,14 @@ export class ProjectConfigManager {
   }
 
   ensureConfigDir(): void {
-    const dir = join(this.homeDir, '.lps')
+    const dir = join(this.homeDir, '.loopress')
     if (!existsSync(dir)) {
       mkdirSync(dir, {recursive: true})
     }
   }
 
   getConfigFilePath(): string {
-    return join(this.homeDir, '.lps', 'config.json')
+    return join(this.homeDir, '.loopress', 'config.json')
   }
 
   getCurrentEnv(): EnvironmentConfig | null {

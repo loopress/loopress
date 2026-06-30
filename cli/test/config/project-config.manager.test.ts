@@ -207,7 +207,7 @@ describe('ProjectConfigManager', () => {
 
     it('persists config.json at the expected path', () => {
       manager.setProject('acme', makeProject('acme'))
-      expect(manager.getConfigFilePath()).toBe(join(tmpDir, '.lps', 'config.json'))
+      expect(manager.getConfigFilePath()).toBe(join(tmpDir, '.loopress', 'config.json'))
       expect(existsSync(manager.getConfigFilePath())).toBe(true)
     })
   })
