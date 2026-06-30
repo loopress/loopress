@@ -1,5 +1,15 @@
 # @loopress/cli
 
+## 0.5.0
+
+### Minor Changes
+
+- 138acfd: Remove style commands in favor of snippets for custom CSS
+- 6aba757: Use sidekick files to store snippets state
+- 249b128: Add init command
+- 7f4ac7c: CLI can read projectId in loopress.json
+- 6aba757: Record deployments in Loopress console
+
 ## 0.4.0
 
 ### Minor Changes
