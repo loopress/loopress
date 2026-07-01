@@ -13,7 +13,7 @@
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
     "@oclif/core": "^4.11.11",
-    "@oclif/plugin-help": "^6.2.52",
+    "@oclif/plugin-help": "^6.2.53",
     "@oclif/plugin-plugins": "^5.4.80",
     "glob": "13.0.6",
     "got": "^15.0.7",
@@ -27,12 +27,12 @@
     "eslint": "^9",
     "eslint-config-oclif": "^6.0.174",
     "eslint-config-prettier": "^10",
-    "oclif": "^4.23.22",
-    "prettier": "3.9.1",
+    "oclif": "^4.23.24",
+    "prettier": "3.9.4",
     "shx": "^0.4.0",
     "tsx": "4.22.4",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=18.0.0"
