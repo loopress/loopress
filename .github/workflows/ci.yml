@@ -34,8 +34,8 @@ jobs:
       - name: Extract app password
         id: wp-creds
         run: |
-          APP_PASS=$(jq -r '.sites[0].app_password' ~/.loopress/sites.json)
-          echo "app-password=$APP_PASS" >> $GITHUB_OUTPUT
+          TOKEN=$(jq -r '.projects[.currentProject] as $p | $p.environments[$p.currentEnv].token' ~/.loopress/config.json)
+          echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
       - name: Run CLI tests
         working-directory: cli

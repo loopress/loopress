@@ -1,0 +1,34 @@
+---
+title: GitLab CI
+description: Use the Loopress GitLab CI template to bootstrap WordPress in your pipeline.
+---
+
+Reference the template via remote include. Do not copy the file: reference it so you always get the latest version.
+
+```yaml
+include:
+  - remote: 'https://raw.githubusercontent.com/loopress/setup-ci/v1/gitlab/template.yml'
+
+test:
+  extends: .loopress-test
+
+deploy:
+  extends: .loopress-deploy
+  variables:
+    LOOPRESS_SITE: "production"
+```
+
+## Variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `LOOPRESS_WP_VERSION` | WordPress version | `latest` |
+| `LOOPRESS_WP_PORT` | WordPress port | `8080` |
+| `LOOPRESS_SITE` | Site ID for deploy jobs | `staging` |
+| `LOOPRESS_TOKEN` | Loopress cloud token | |
+
+## Available templates
+
+`.loopress-test` boots WordPress and runs `loopress push`. Triggers on branches and merge requests.
+
+`.loopress-deploy` deploys to a real site with `loopress push` then verifies with `loopress diff`. Requires a `LOOPRESS_TOKEN` variable set in your project CI settings.

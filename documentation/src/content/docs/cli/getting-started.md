@@ -37,7 +37,7 @@ Authenticate with your Loopress account to unlock cloud features:
 lps login
 ```
 
-This opens `console.loopress.dev` in your browser. After you approve, the CLI stores a token in `~/.lps/auth.json` and returns you to the terminal.
+This opens `console.loopress.dev` in your browser. After you approve, the CLI stores a token in `~/.loopress/auth.json` and returns you to the terminal.
 
 ```bash
 lps logout   # Remove the stored token
@@ -63,7 +63,7 @@ You will be prompted for:
 
 ### Manage multiple projects and environments
 
-Loopress stores configurations in `~/.lps/config.json` and tracks the currently active project and environment.
+Loopress stores configurations in `~/.loopress/config.json` and tracks the currently active project and environment.
 
 ```bash
 lps project config          # Add or update a project/environment
@@ -78,12 +78,14 @@ All commands operate against the **active project/environment**.
 
 ## Project-level configuration
 
-Place a `loopress.json` file in your project root to customise paths and track managed plugins:
+Run `lps init` in your project root to generate `loopress.json` interactively, or create it manually:
 
 ```json
 {
+  "projectId": "my-site",
+  "snippetPlugin": "wpcode",
   "rootDir": "./wp-content",
-  "snippets": "snippets",
+  "snippetsDir": "snippets",
   "plugins": {
     "woocommerce": "9.0.2",
     "contact-form-7": "5.9.8"
@@ -93,8 +95,10 @@ Place a `loopress.json` file in your project root to customise paths and track m
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `rootDir` | `.` | Base directory — all other paths are resolved relative to it |
-| `snippets` | `snippets` | Directory for snippet files |
+| `projectId` | — | Name of the project to use, as configured via `lps project config`. Overrides the currently active project. |
+| `snippetPlugin` | `wpcode` | Snippet plugin to use: `wpcode` or `code-snippets` |
+| `rootDir` | `.` | Base directory, all other paths are resolved relative to it |
+| `snippetsDir` | `snippets` | Directory for snippet files |
 | `plugins` | — | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/require`. |
 
 The `plugins` field is populated automatically by `lps plugin pull` and `lps plugin require`. Commit `loopress.json` to Git so every environment can be synced with `lps plugin push`.

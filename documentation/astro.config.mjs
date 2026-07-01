@@ -66,6 +66,15 @@ export default defineConfig({
                     ],
                 },
                 {
+                    label: 'CLI',
+                    items: [
+                        { label: 'Overview', slug: 'cli' },
+                        { label: 'Getting Started', slug: 'cli/getting-started' },
+                        { label: 'Snippets', slug: 'cli/snippets' },
+                        { label: 'Plugins', slug: 'cli/plugins' },
+                    ],
+                },
+                {
                     label: 'WordPress Plugin',
                     items: [
                         { label: 'Overview', slug: 'wordpress-plugin' },
@@ -76,12 +85,12 @@ export default defineConfig({
                     ],
                 },
                 {
-                    label: 'CLI',
+                    label: 'CI/CD',
                     items: [
-                        { label: 'Overview', slug: 'cli' },
-                        { label: 'Getting Started', slug: 'cli/getting-started' },
-                        { label: 'Snippets', slug: 'cli/snippets' },
-                        { label: 'Plugins', slug: 'cli/plugins' },
+                        { label: 'Overview', slug: 'ci' },
+                        { label: 'GitHub Actions', slug: 'ci/github-actions' },
+                        { label: 'GitLab CI', slug: 'ci/gitlab' },
+                        { label: 'CircleCI', slug: 'ci/circleci' },
                     ],
                 },
             ],

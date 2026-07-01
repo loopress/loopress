@@ -53,8 +53,8 @@ Enter your WordPress URL, username and application password when prompted.
 
 ```bash
 # Download your existing snippets as .php files
-lps snippets pull
+lps snippet pull
 
 # Edit locally, commit to Git, then deploy back
-lps snippets push
+lps snippet push
 ```
