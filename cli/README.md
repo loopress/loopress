@@ -20,7 +20,7 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.4.0 darwin-arm64 node-v24.11.0
+@loopress/cli/0.5.0 darwin-arm64 node-v24.11.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
@@ -31,6 +31,8 @@ USAGE
 # Commands
 
 <!-- commands -->
+* [`lps composer pull`](#lps-composer-pull)
+* [`lps composer push`](#lps-composer-push)
 * [`lps help [COMMAND]`](#lps-help-command)
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
@@ -47,6 +49,60 @@ USAGE
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
+
+## `lps composer pull`
+
+Pull composer.lock from the WordPress server
+
+```
+USAGE
+  $ lps composer pull [--password <value>] [--url <value>] [--user <value>] [-d]
+
+FLAGS
+  -d, --dry-run  Show what would be written without making changes
+
+GLOBAL FLAGS
+  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
+  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
+  --user=<value>      WordPress username (fallback; prefer `lps project config`)
+
+DESCRIPTION
+  Pull composer.lock from the WordPress server
+
+EXAMPLES
+  $ lps composer pull
+
+  $ lps composer pull --dry-run
+```
+
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/composer/pull.ts)_
+
+## `lps composer push`
+
+Upload composer.json and composer.lock to WordPress and run composer install
+
+```
+USAGE
+  $ lps composer push [--password <value>] [--url <value>] [--user <value>] [-d]
+
+FLAGS
+  -d, --dry-run  Show what would change without making changes
+
+GLOBAL FLAGS
+  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
+  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
+  --user=<value>      WordPress username (fallback; prefer `lps project config`)
+
+DESCRIPTION
+  Upload composer.json and composer.lock to WordPress and run composer install
+
+EXAMPLES
+  $ lps composer push
+
+  $ lps composer push --dry-run
+```
+
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/composer/push.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -83,7 +139,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -100,7 +156,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -117,7 +173,7 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/logout.ts)_
 
 ## `lps plugin pull`
 
@@ -144,7 +200,7 @@ EXAMPLES
   $ lps plugins pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -171,18 +227,18 @@ EXAMPLES
   $ lps plugins push --dry-run
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/push.ts)_
 
 ## `lps plugin require SLUG [VERSION]`
 
-Add a plugin to loopress.json, resolving its latest version from WordPress.org
+Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
 
 ```
 USAGE
   $ lps plugin require SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
 
 ARGUMENTS
-  SLUG       Plugin slug (WordPress.org)
+  SLUG       Plugin slug (WordPress.org) or Composer package (vendor/package)
   [VERSION]  Version to pin (default: latest)
 
 FLAGS
@@ -194,17 +250,19 @@ GLOBAL FLAGS
   --user=<value>      WordPress username (fallback; prefer `lps project config`)
 
 DESCRIPTION
-  Add a plugin to loopress.json, resolving its latest version from WordPress.org
+  Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
 
 EXAMPLES
   $ lps plugins require woocommerce
 
   $ lps plugins require woocommerce 8.9.1
 
+  $ lps plugins require wpackagist-plugin/advanced-custom-fields
+
   $ lps plugins require contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/require.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/plugin/require.ts)_
+_See code: [src/commands/plugin/require.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/require.ts)_
 
 ## `lps project config`
 
@@ -221,7 +279,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -238,7 +296,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/list.ts)_
 
 ## `lps project remove`
 
@@ -255,7 +313,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/remove.ts)_
 
 ## `lps project remove-env`
 
@@ -272,7 +330,7 @@ EXAMPLES
   $ lps project remove-env
 ```
 
-_See code: [src/commands/project/remove-env.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/remove-env.ts)_
+_See code: [src/commands/project/remove-env.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/remove-env.ts)_
 
 ## `lps project switch`
 
@@ -289,7 +347,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/switch.ts)_
 
 ## `lps project switch-env`
 
@@ -306,7 +364,7 @@ EXAMPLES
   $ lps project switch-env
 ```
 
-_See code: [src/commands/project/switch-env.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/project/switch-env.ts)_
+_See code: [src/commands/project/switch-env.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/project/switch-env.ts)_
 
 ## `lps snippet list`
 
@@ -337,7 +395,7 @@ EXAMPLES
   $ lps snippets list --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/snippet/list.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -373,7 +431,7 @@ EXAMPLES
   $ lps snippets pull --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -409,5 +467,5 @@ EXAMPLES
   $ lps snippets push --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.4.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/snippet/push.ts)_
 <!-- commandsstop -->

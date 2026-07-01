@@ -3,6 +3,7 @@ import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {InstalledPlugin} from '../../types/plugin.js'
+import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {readLocalConfig, writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest} from '../../utils/plugins.js'
 
@@ -24,7 +25,19 @@ export default class Pull extends LoopressCommand {
     const headers = await this.buildAuthHeaders()
     const installed: InstalledPlugin[] = await got.get(`${url}/wp-json/loopress/v1/plugins`, {headers}).json()
 
-    const incoming: Record<string, string> = Object.fromEntries(installed.map((p) => [p.slug, p.version]))
+    const composerJson = await readComposerJson()
+    const composerSlugs = composerJson ? getComposerManagedSlugs(composerJson) : []
+
+    const incoming: Record<string, string> = Object.fromEntries(
+      installed.filter((p) => !composerSlugs.includes(p.slug)).map((p) => [p.slug, p.version]),
+    )
+
+    if (composerSlugs.length > 0) {
+      const found = installed.filter((p) => composerSlugs.includes(p.slug)).map((p) => p.slug)
+      if (found.length > 0) {
+        this.log(`Skipping ${found.length} Composer-managed ${found.length === 1 ? 'plugin' : 'plugins'}: ${found.join(', ')}`)
+      }
+    }
 
     const localConfig = await readLocalConfig()
     const {added, merged, updated} = mergePluginManifest(localConfig.plugins ?? {}, incoming)
