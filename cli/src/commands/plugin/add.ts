@@ -35,17 +35,17 @@ export async function resolvePluginVersion(slug: string, version: string): Promi
   return info.version
 }
 
-export default class Require extends LoopressCommand {
+export default class Add extends LoopressCommand {
   static args = {
     slug: Args.string({description: 'Plugin slug (WordPress.org) or Composer package (vendor/package)', required: true}),
     version: Args.string({description: 'Version to pin (default: latest)'}),
   }
   static description = 'Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)'
   static examples = [
-    '$ lps plugins require woocommerce',
-    '$ lps plugins require woocommerce 8.9.1',
-    '$ lps plugins require wpackagist-plugin/advanced-custom-fields',
-    '$ lps plugins require contact-form-7 --dry-run',
+    '$ lps plugin add woocommerce',
+    '$ lps plugin add woocommerce 8.9.1',
+    '$ lps plugin add wpackagist-plugin/advanced-custom-fields',
+    '$ lps plugin add contact-form-7 --dry-run',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
@@ -53,7 +53,7 @@ export default class Require extends LoopressCommand {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Require)
+    const {args, flags} = await this.parse(Add)
     const dryRun = flags['dry-run']
     const {slug} = args
     const requestedVersion = args.version ?? 'latest'
@@ -97,7 +97,7 @@ export default class Require extends LoopressCommand {
     const existing = localConfig.plugins ?? {}
 
     if (existing[slug] === resolvedVersion) {
-      this.log(`${slug}@${resolvedVersion} is already in loopress.json — nothing to do.`)
+      this.log(`${slug}@${resolvedVersion} is already in loopress.json, nothing to do.`)
       return
     }
 

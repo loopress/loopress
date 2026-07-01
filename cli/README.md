@@ -37,9 +37,9 @@ USAGE
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
+* [`lps plugin add SLUG [VERSION]`](#lps-plugin-add-slug-version)
 * [`lps plugin pull`](#lps-plugin-pull)
 * [`lps plugin push`](#lps-plugin-push)
-* [`lps plugin require SLUG [VERSION]`](#lps-plugin-require-slug-version)
 * [`lps project config`](#lps-project-config)
 * [`lps project list`](#lps-project-list)
 * [`lps project remove`](#lps-project-remove)
@@ -175,6 +175,41 @@ EXAMPLES
 
 _See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/logout.ts)_
 
+## `lps plugin add SLUG [VERSION]`
+
+Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
+
+```
+USAGE
+  $ lps plugin add SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
+
+ARGUMENTS
+  SLUG       Plugin slug (WordPress.org) or Composer package (vendor/package)
+  [VERSION]  Version to pin (default: latest)
+
+FLAGS
+  -d, --dry-run  Show what would be written without making changes
+
+GLOBAL FLAGS
+  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
+  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
+  --user=<value>      WordPress username (fallback; prefer `lps project config`)
+
+DESCRIPTION
+  Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
+
+EXAMPLES
+  $ lps plugin add woocommerce
+
+  $ lps plugin add woocommerce 8.9.1
+
+  $ lps plugin add wpackagist-plugin/advanced-custom-fields
+
+  $ lps plugin add contact-form-7 --dry-run
+```
+
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/add.ts)_
+
 ## `lps plugin pull`
 
 Pull installed plugins from WordPress into loopress.json
@@ -228,41 +263,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/push.ts)_
-
-## `lps plugin require SLUG [VERSION]`
-
-Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
-
-```
-USAGE
-  $ lps plugin require SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
-
-ARGUMENTS
-  SLUG       Plugin slug (WordPress.org) or Composer package (vendor/package)
-  [VERSION]  Version to pin (default: latest)
-
-FLAGS
-  -d, --dry-run  Show what would be written without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (fallback; prefer `lps project config`)
-  --url=<value>       WordPress URL (fallback; prefer `lps project config`)
-  --user=<value>      WordPress username (fallback; prefer `lps project config`)
-
-DESCRIPTION
-  Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
-
-EXAMPLES
-  $ lps plugins require woocommerce
-
-  $ lps plugins require woocommerce 8.9.1
-
-  $ lps plugins require wpackagist-plugin/advanced-custom-fields
-
-  $ lps plugins require contact-form-7 --dry-run
-```
-
-_See code: [src/commands/plugin/require.ts](https://github.com/loopress/loopress/blob/v0.5.0/src/commands/plugin/require.ts)_
 
 ## `lps project config`
 
