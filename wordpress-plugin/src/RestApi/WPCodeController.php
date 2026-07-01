@@ -22,6 +22,14 @@ class WPCodeController
                 'methods'             => 'POST',
                 'callback'            => [$this, 'create_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
+                'args'                => [
+                    'title'  => ['required' => true,  'type' => 'string'],
+                    'code'   => ['required' => true,  'type' => 'string'],
+                    'type'   => ['required' => false, 'type' => 'string', 'default' => 'php', 'enum' => ['php', 'js', 'css', 'html', 'text']],
+                    'active' => ['required' => false, 'type' => 'boolean', 'default' => false],
+                    'note'   => ['required' => false, 'type' => 'string',  'default' => ''],
+                    'tags'   => ['required' => false, 'type' => 'array',   'default' => [], 'items' => ['type' => 'string']],
+                ],
             ],
         ]);
 
@@ -36,7 +44,14 @@ class WPCodeController
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'update_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
-                'args'                => $this->idArg(),
+                'args'                => array_merge($this->idArg(), [
+                    'title'  => ['required' => false, 'type' => 'string'],
+                    'code'   => ['required' => false, 'type' => 'string'],
+                    'type'   => ['required' => false, 'type' => 'string', 'enum' => ['php', 'js', 'css', 'html', 'text']],
+                    'active' => ['required' => false, 'type' => 'boolean'],
+                    'note'   => ['required' => false, 'type' => 'string'],
+                    'tags'   => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
+                ]),
             ],
         ]);
     }
@@ -71,13 +86,14 @@ class WPCodeController
             return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
         }
 
-        $data = $request->get_json_params();
-
-        if (empty($data['title']) || empty($data['code'])) {
-            return new WP_REST_Response(['error' => 'Missing required fields: title, code'], 400);
-        }
-
-        $snippet = $this->wpCodeService->createSnippet($data);
+        $snippet = $this->wpCodeService->createSnippet([
+            'title'  => $request->get_param('title'),
+            'code'   => $request->get_param('code'),
+            'type'   => $request->get_param('type'),
+            'active' => $request->get_param('active'),
+            'note'   => $request->get_param('note'),
+            'tags'   => $request->get_param('tags'),
+        ]);
 
         return new WP_REST_Response($snippet, 201);
     }
@@ -88,10 +104,16 @@ class WPCodeController
             return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
         }
 
-        $snippet = $this->wpCodeService->updateSnippet(
-            (int) $request->get_param('id'),
-            $request->get_json_params(),
-        );
+        $data = array_filter([
+            'title'  => $request->get_param('title'),
+            'code'   => $request->get_param('code'),
+            'type'   => $request->get_param('type'),
+            'active' => $request->get_param('active'),
+            'note'   => $request->get_param('note'),
+            'tags'   => $request->get_param('tags'),
+        ], fn($v) => $v !== null);
+
+        $snippet = $this->wpCodeService->updateSnippet((int) $request->get_param('id'), $data);
 
         if ($snippet === null) {
             return new WP_REST_Response(['error' => 'Snippet not found'], 404);
@@ -100,7 +122,7 @@ class WPCodeController
         return new WP_REST_Response($snippet, 200);
     }
 
-    /** @return array<string, mixed>[] */
+    /** @return array<string, mixed> */
     private function idArg(): array
     {
         return [

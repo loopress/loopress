@@ -17,18 +17,28 @@ class VendorController
             'methods'             => 'POST',
             'callback'            => [$this, 'require_package'],
             'permission_callback' => fn() => current_user_can('manage_options'),
+            'args'                => [
+                'package' => $this->packageArg(required: true),
+                'version' => $this->versionArg(required: false, default: '*'),
+            ],
         ]);
 
         register_rest_route('loopress/v1', '/vendor/remove', [
             'methods'             => 'POST',
             'callback'            => [$this, 'remove_package'],
             'permission_callback' => fn() => current_user_can('manage_options'),
+            'args'                => [
+                'package' => $this->packageArg(required: true),
+            ],
         ]);
 
         register_rest_route('loopress/v1', '/vendor/versions', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_versions'],
             'permission_callback' => fn() => current_user_can('manage_options'),
+            'args'                => [
+                'package' => $this->packageArg(required: true),
+            ],
         ]);
 
         register_rest_route('loopress/v1', '/vendor/installed', [
@@ -64,14 +74,8 @@ class VendorController
 
     public function get_versions(WP_REST_Request $request): WP_REST_Response
     {
-        $package = $request->get_param('package');
-
-        if (empty($package) || !preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $package)) {
-            return new WP_REST_Response(['error' => 'Invalid package name'], 400);
-        }
-
         try {
-            $versions = $this->vendorService->getVersions($package);
+            $versions = $this->vendorService->getVersions($request->get_param('package'));
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -91,15 +95,7 @@ class VendorController
     public function require_package(WP_REST_Request $request): WP_REST_Response
     {
         $package = $request->get_param('package');
-
-        if (empty($package) || !preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $package)) {
-            return new WP_REST_Response(['error' => 'Invalid package name'], 400);
-        }
-
-        $version = $request->get_param('version') ?? '*';
-        if (!preg_match('/^[v\^~\*]?[0-9a-z\.\-\*]+$/i', $version)) {
-            return new WP_REST_Response(['error' => 'Invalid version constraint'], 400);
-        }
+        $version = $request->get_param('version');
 
         try {
             $output = $this->vendorService->requirePackage($package, $version);
@@ -114,10 +110,6 @@ class VendorController
     public function remove_package(WP_REST_Request $request): WP_REST_Response
     {
         $package = $request->get_param('package');
-
-        if (empty($package) || !preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $package)) {
-            return new WP_REST_Response(['error' => 'Invalid package name'], 400);
-        }
 
         try {
             $output = $this->vendorService->removePackage($package);
@@ -169,5 +161,30 @@ class VendorController
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function packageArg(bool $required): array
+    {
+        return [
+            'required'          => $required,
+            'type'              => 'string',
+            'description'       => 'Composer package name (vendor/package)',
+            'validate_callback' => fn($v) => (bool) preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $v),
+            'sanitize_callback' => 'sanitize_text_field',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function versionArg(bool $required, string $default = '*'): array
+    {
+        return [
+            'required'          => $required,
+            'default'           => $default,
+            'type'              => 'string',
+            'description'       => 'Composer version constraint',
+            'validate_callback' => fn($v) => (bool) preg_match('/^[v\^~\*]?[0-9a-z\.\-\*]+$/i', $v),
+            'sanitize_callback' => 'sanitize_text_field',
+        ];
     }
 }
