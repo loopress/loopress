@@ -31,21 +31,43 @@ class VendorControllerTest extends TestCase
         parent::tearDown();
     }
 
+    /** @return mixed */
+    private function invokePrivate(string $method, mixed ...$args): mixed
+    {
+        $ref = new \ReflectionMethod(VendorController::class, $method);
+        $ref->setAccessible(true);
+        return $ref->invoke($this->controller, ...$args);
+    }
+
+    // ── arg validation ───────────────────────────────────────────────────────
+
+    public function test_package_arg_is_required(): void
+    {
+        $arg = $this->invokePrivate('packageArg', true);
+        $this->assertTrue($arg['required']);
+    }
+
+    public function test_package_arg_rejects_invalid_names(): void
+    {
+        $validate = $this->invokePrivate('packageArg', true)['validate_callback'];
+        $this->assertFalse($validate(''));
+        $this->assertFalse($validate('../../../etc/passwd'));
+        $this->assertFalse($validate('no-slash'));
+        $this->assertTrue($validate('vendor/package'));
+        $this->assertTrue($validate('guzzlehttp/guzzle'));
+    }
+
+    public function test_version_arg_rejects_invalid_constraints(): void
+    {
+        $validate = $this->invokePrivate('versionArg', false)['validate_callback'];
+        $this->assertFalse($validate('; rm -rf /'));
+        $this->assertFalse($validate('$(evil)'));
+        $this->assertTrue($validate('^1.0'));
+        $this->assertTrue($validate('*'));
+        $this->assertTrue($validate('1.2.3'));
+    }
+
     // ── get_versions ─────────────────────────────────────────────────────────
-
-    public function test_get_versions_returns_400_for_missing_package(): void
-    {
-        $request  = new WP_REST_Request([]);
-        $response = $this->controller->get_versions($request);
-        $this->assertSame(400, $response->status);
-    }
-
-    public function test_get_versions_returns_400_for_invalid_package_name(): void
-    {
-        $request  = new WP_REST_Request(['package' => '../../../etc/passwd']);
-        $response = $this->controller->get_versions($request);
-        $this->assertSame(400, $response->status);
-    }
 
     public function test_get_versions_returns_404_when_package_not_found(): void
     {
@@ -76,20 +98,6 @@ class VendorControllerTest extends TestCase
 
     // ── require_package ───────────────────────────────────────────────────────
 
-    public function test_require_package_returns_400_for_missing_package(): void
-    {
-        $request  = new WP_REST_Request(['version' => '1.0.0']);
-        $response = $this->controller->require_package($request);
-        $this->assertSame(400, $response->status);
-    }
-
-    public function test_require_package_returns_400_for_invalid_version(): void
-    {
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '; rm -rf /']);
-        $response = $this->controller->require_package($request);
-        $this->assertSame(400, $response->status);
-    }
-
     public function test_require_package_returns_403_when_locked(): void
     {
         $this->vendorService->method('requirePackage')
@@ -119,13 +127,6 @@ class VendorControllerTest extends TestCase
     }
 
     // ── remove_package ────────────────────────────────────────────────────────
-
-    public function test_remove_package_returns_400_for_invalid_package(): void
-    {
-        $request  = new WP_REST_Request(['package' => '']);
-        $response = $this->controller->remove_package($request);
-        $this->assertSame(400, $response->status);
-    }
 
     public function test_remove_package_returns_403_when_locked(): void
     {
