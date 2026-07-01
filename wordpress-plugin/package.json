@@ -1,5 +1,5 @@
 {
-  "name": "loopress",
+  "name": "@loopress/wordpress-plugin",
   "version": "2026.6.0",
   "private": true,
   "scripts": {
@@ -7,29 +7,32 @@
     "build": "wp-scripts build frontend/index.tsx",
     "dev": "wp-scripts start frontend/index.tsx",
     "type-check": "tsc --noEmit",
-    "test": "bun test",
+    "test": "vitest run",
     "zip": "wp-scripts plugin-zip",
-    "pack": "composer install --no-dev && bun run build && bun run zip",
+    "pack": "composer install --no-dev && pnpm run build && pnpm run zip",
     "postpack": "composer install"
   },
   "files": ["assets", "build", "src", "vendor", "composer.json", "loopress-plugin.php"],
   "dependencies": {
-    "@tanstack/react-query": "^5.101.2",
-    "@loopress/assets": "file:../assets",
-    "react-hook-form": "^7.80.0",
+    "@tanstack/react-query": "^5.0.0",
+    "@loopress/assets": "workspace:*",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.78.0",
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/bun": "^1.3.14",
-    "@types/react": "~18.3.31",
-    "@types/react-dom": "~18.3.7",
-    "@wordpress/components": "^35.0.1",
-    "@wordpress/element": "^8.1.0",
+    "@vitejs/plugin-react": "^4",
+    "@types/react": "~18",
+    "@types/react-dom": "~18",
+    "@wordpress/components": "^35.0.0",
+    "@wordpress/element": "^8.0.0",
     "@wordpress/scripts": "32.4.0",
-    "happy-dom": "^20.10.6",
-    "typescript": "^6.0.3"
+    "happy-dom": "^20.10.2",
+    "typescript": "^6.0.3",
+    "vitest": "^3"
   }
 }

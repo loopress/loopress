@@ -1,10 +1,10 @@
 // Replaces @wordpress/components with thin wrappers so tests run with a single
 // React copy. @wordpress/element ships its own react, which causes "Invalid hook
 // call" errors when the component tree mixes it with the top-level react.
+import { vi } from 'vitest';
 import React from 'react';
-import { mock } from 'bun:test';
 
-mock.module('@wordpress/components', () => ({
+vi.mock('@wordpress/components', () => ({
     Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style }: any) => (
         <button onClick={onClick} disabled={disabled} type={type ?? 'button'} style={style}>
             {children}
@@ -27,7 +27,7 @@ mock.module('@wordpress/components', () => ({
             <input
                 type="checkbox"
                 checked={checked}
-                onChange={(e) => onChange(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
                 disabled={disabled}
             />
             {label}
@@ -37,7 +37,7 @@ mock.module('@wordpress/components', () => ({
     SelectControl: ({ label, value, options, onChange }: any) => (
         <div>
             <label htmlFor="select-control">{label}</label>
-            <select id="select-control" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+            <select id="select-control" aria-label={label} value={value} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}>
                 {options?.map((opt: any) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -46,14 +46,12 @@ mock.module('@wordpress/components', () => ({
     ),
     ComboboxControl: ({ label, value, options, onChange, onFilterValueChange, placeholder, isLoading }: any) => (
         <div>
-            <label htmlFor="combo-input">
-                {label}
-            </label>
+            <label htmlFor="combo-input">{label}</label>
             <input
                 id="combo-input"
                 aria-label={label}
                 placeholder={placeholder}
-                onChange={(e) => onFilterValueChange?.(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFilterValueChange?.(e.target.value)}
                 value={value ?? ''}
             />
             {options?.map((opt: any) => (
@@ -65,7 +63,7 @@ mock.module('@wordpress/components', () => ({
     ),
 }));
 
-mock.module('@wordpress/element', () => ({
+vi.mock('@wordpress/element', () => ({
     ...React,
     createElement: React.createElement,
     Fragment: React.Fragment,
