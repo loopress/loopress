@@ -91,3 +91,7 @@ jobs:
       - name: Run tests
         working-directory: wordpress-plugin
         run: pnpm test
+
+      - name: Run build
+        working-directory: wordpress-plugin
+        run: pnpm build

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "zip": "wp-scripts plugin-zip",
     "pack": "composer install --no-dev && pnpm run build && pnpm run zip",
-    "postpack": "composer install"
+    "postpack": "composer install",
+    "version": "node scripts/sync-version.js && git add loopress-plugin.php"
   },
   "files": ["assets", "build", "src", "vendor", "composer.json", "loopress-plugin.php"],
   "dependencies": {
@@ -22,6 +23,7 @@
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {
+    "@svgr/webpack": "^8.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -33,6 +35,7 @@
     "@wordpress/scripts": "32.4.0",
     "happy-dom": "^20.10.2",
     "typescript": "^6.0.3",
+    "url-loader": "^4.1.1",
     "vitest": "^3"
   }
 }
