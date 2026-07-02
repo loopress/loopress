@@ -118,20 +118,14 @@ class WPCodeService
         }
     }
 
-    /** @param string[] $tags */
+    /**
+     * @param string[] $tags
+     *
+     * wp_set_post_terms() already creates any term passed by name that doesn't exist
+     * yet in the taxonomy, so there's no need to look up/insert terms by hand first.
+     */
     private function setTags(int $id, array $tags): void
     {
-        $termIds = [];
-        foreach ($tags as $tag) {
-            $term = get_term_by('name', $tag, self::TAXONOMY);
-            if (!$term instanceof \WP_Term) {
-                $result    = wp_insert_term($tag, self::TAXONOMY);
-                $termIds[] = is_wp_error($result) ? null : $result['term_id'];
-            } else {
-                $termIds[] = $term->term_id;
-            }
-        }
-
-        wp_set_post_terms($id, array_filter($termIds), self::TAXONOMY);
+        wp_set_post_terms($id, $tags, self::TAXONOMY);
     }
 }

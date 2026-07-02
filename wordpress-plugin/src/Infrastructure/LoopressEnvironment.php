@@ -2,14 +2,19 @@
 
 namespace Loopress\Infrastructure;
 
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
+use Symfony\Component\Filesystem\Filesystem;
+
 class LoopressEnvironment
 {
     private string $dxDir;
     private bool $initialized = false;
+    private Filesystem $filesystem;
 
     public function __construct()
     {
-        $this->dxDir = WP_CONTENT_DIR . '/loopress/';
+        $this->dxDir      = WP_CONTENT_DIR . '/loopress/';
+        $this->filesystem = new Filesystem();
     }
 
     public function getDxDir(): string
@@ -91,9 +96,12 @@ class LoopressEnvironment
             throw new \RuntimeException('Failed to encode composer.json: ' . json_last_error_msg());
         }
 
-        $result = file_put_contents($this->dxDir . 'composer.json', $encoded);
-        if ($result === false) {
-            throw new \RuntimeException("Failed to write composer.json to {$this->dxDir}");
+        // dumpFile() writes to a temp file then renames, so a reader (or a crash mid-write)
+        // never sees a partially-written composer.json.
+        try {
+            $this->filesystem->dumpFile($this->dxDir . 'composer.json', $encoded);
+        } catch (IOExceptionInterface $e) {
+            throw new \RuntimeException("Failed to write composer.json to {$this->dxDir}: " . $e->getMessage());
         }
     }
 
@@ -112,9 +120,10 @@ class LoopressEnvironment
     {
         $this->ensureInitialized();
 
-        $result = file_put_contents($this->dxDir . 'composer.lock', $contents);
-        if ($result === false) {
-            throw new \RuntimeException("Failed to write composer.lock to {$this->dxDir}");
+        try {
+            $this->filesystem->dumpFile($this->dxDir . 'composer.lock', $contents);
+        } catch (IOExceptionInterface $e) {
+            throw new \RuntimeException("Failed to write composer.lock to {$this->dxDir}: " . $e->getMessage());
         }
     }
 

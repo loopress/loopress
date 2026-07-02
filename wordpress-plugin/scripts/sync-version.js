@@ -4,7 +4,7 @@ const path = require('path')
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
 
 const targets = [
-  { file: 'loopress-plugin.php', pattern: /(\* Version: )[\d.]+/, label: 'Version header' },
+  { file: 'loopress.php', pattern: /(\* Version: )[\d.]+/, label: 'Version header' },
   { file: 'readme.txt', pattern: /(Stable tag: )[\d.]+/, label: 'Stable tag' },
 ]
 

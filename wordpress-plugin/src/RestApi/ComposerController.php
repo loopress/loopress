@@ -2,6 +2,7 @@
 
 namespace Loopress\RestApi;
 
+use Composer\Semver\VersionParser;
 use Loopress\Exception\ConcurrentOperationException;
 use Loopress\Exception\ProductionLockException;
 use Loopress\Service\ComposerService;
@@ -244,7 +245,16 @@ class ComposerController
             'default'           => $default,
             'type'              => 'string',
             'description'       => 'Composer version constraint',
-            'validate_callback' => fn($v) => (bool) preg_match('/^[a-z0-9@\.\-\*\^~><=|,+ ]+$/i', $v),
+            // Delegates to the same parser Composer itself uses to interpret `composer require`
+            // constraints, instead of a hand-rolled regex trying to approximate its syntax.
+            'validate_callback' => function ($v): bool {
+                try {
+                    (new VersionParser())->parseConstraints($v);
+                    return true;
+                } catch (\UnexpectedValueException) {
+                    return false;
+                }
+            },
             'sanitize_callback' => 'sanitize_text_field',
         ];
     }
