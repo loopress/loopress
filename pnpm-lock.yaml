@@ -37,6 +37,9 @@ importers:
       slugify:
         specifier: ^1.6.9
         version: 1.6.9
+      write-file-atomic:
+        specifier: ^5.0.1
+        version: 5.0.1
     devDependencies:
       '@eslint/compat':
         specifier: 2.1.0
@@ -50,6 +53,9 @@ importers:
       '@types/node':
         specifier: 26.0.1
         version: 26.0.1
+      '@types/write-file-atomic':
+        specifier: ^4.0.3
+        version: 4.0.3
       '@vitest/coverage-v8':
         specifier: 4.1.9
         version: 4.1.9(vitest@4.1.9)
@@ -4149,6 +4155,9 @@ packages:
 
   '@types/wrap-ansi@3.0.0':
     resolution: {integrity: sha512-ltIpx+kM7g/MLRZfkbL7EsCEjfzCcScLpkg37eXEtx5kmrAKBkTJwd1GIAjDSL8wTpM6Hzn5YO4pSb91BEwu1g==}
+
+  '@types/write-file-atomic@4.0.3':
+    resolution: {integrity: sha512-qdo+vZRchyJIHNeuI1nrpsLw+hnkgqP/8mlaN6Wle/NKhydHmUN9l4p3ZE8yP90AJNJW4uB8HQhedb4f1vNayQ==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -16020,6 +16029,10 @@ snapshots:
   '@types/whatwg-mimetype@3.0.2': {}
 
   '@types/wrap-ansi@3.0.0': {}
+
+  '@types/write-file-atomic@4.0.3':
+    dependencies:
+      '@types/node': 26.0.1
 
   '@types/ws@8.18.1':
     dependencies:
