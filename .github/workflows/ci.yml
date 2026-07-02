@@ -65,8 +65,8 @@ jobs:
       - name: PHPStan analysis
         run: composer run analyse
 
-      # - name: Run psalm
-      #   run: composer run psalm
+      - name: Run psalm
+        run: composer run psalm
 
       - name: PHPUnit tests
         run: composer run test
