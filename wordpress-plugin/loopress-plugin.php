@@ -5,7 +5,7 @@
  * Description: Manage and install Composer dependencies from the WordPress admin.
  * Version: 2026.7.0
  * Author: jean-smaug
- * Text Domain: loopress-plugin
+ * Text Domain: loopress
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */

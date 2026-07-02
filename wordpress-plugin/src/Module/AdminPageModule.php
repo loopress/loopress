@@ -21,7 +21,7 @@ class AdminPageModule implements Module
             'Loopress',
             'Loopress',
             'manage_options',
-            'loopress-plugin',
+            'loopress',
             [$this, 'renderPage'],
             LOOPRESS_PLUGIN_URL . 'assets/logo.svg',
             6
@@ -30,12 +30,12 @@ class AdminPageModule implements Module
 
     public function addMenuIconStyle(): void
     {
-        echo '<style>#toplevel_page_loopress-plugin .wp-menu-image img { width: 26px; height: 100%; padding: 0; vertical-align: middle }</style>';
+        echo '<style>#toplevel_page_loopress .wp-menu-image img { width: 26px; height: 100%; padding: 0; vertical-align: middle }</style>';
     }
 
     public function enqueueScripts(string $hook): void
     {
-        if ($hook !== 'toplevel_page_loopress-plugin') {
+        if ($hook !== 'toplevel_page_loopress') {
             return;
         }
 
@@ -45,7 +45,7 @@ class AdminPageModule implements Module
             : ['dependencies' => [], 'version' => '1.0.0'];
 
         wp_enqueue_script(
-            'loopress-plugin-admin',
+            'loopress-admin',
             LOOPRESS_PLUGIN_URL . 'build/index.tsx.js',
             $asset['dependencies'],
             $asset['version'],
@@ -54,7 +54,7 @@ class AdminPageModule implements Module
 
         wp_enqueue_style('wp-components');
 
-        wp_localize_script('loopress-plugin-admin', 'loopressData', [
+        wp_localize_script('loopress-admin', 'loopressData', [
             'apiUrl'        => get_rest_url(null, 'loopress/v1'),
             'nonce'         => wp_create_nonce('wp_rest'),
             'autoloadError' => $this->autoloadError,

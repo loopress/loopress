@@ -250,6 +250,32 @@ class WPCodeServiceTest extends TestCase
         $this->service->updateSnippet(6, ['title' => 'New title']);
     }
 
+    // ── setTags (via updateSnippet) ──────────────────────────────────────────
+    // setTags() now delegates entirely to wp_set_post_terms(), which creates any
+    // term passed by name that doesn't already exist in the taxonomy.
+
+    public function test_update_snippet_passes_tag_names_straight_to_wp_set_post_terms(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('wp_set_post_terms')
+            ->once()
+            ->with(6, ['php', 'utility'], 'wpcode_tags');
+
+        $this->service->updateSnippet(6, ['tags' => ['php', 'utility']]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_does_not_touch_tags_when_omitted(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('wp_set_post_terms')->never();
+
+        $this->service->updateSnippet(6, ['title' => 'New title']);
+        $this->addToAssertionCount(1);
+    }
+
     /**
      * @param string[]             $typeTerms
      * @param string[]             $locationTerms
