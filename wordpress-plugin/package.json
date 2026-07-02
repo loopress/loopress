@@ -12,7 +12,7 @@
     "prepack": "jq '.name = \"loopress\"' package.json > package.json.tmp && mv package.json.tmp package.json",
     "pack": "composer install --no-dev && pnpm run build && pnpm run zip",
     "postpack": "jq '.name = \"@loopress/wordpress-plugin\"' package.json > package.json.tmp && mv package.json.tmp package.json && composer install",
-    "version": "node scripts/sync-version.js && git add loopress-plugin.php"
+    "version": "node scripts/sync-version.js && git add loopress.php readme.txt"
   },
   "files": [
     "assets",
@@ -20,7 +20,7 @@
     "src",
     "vendor",
     "composer.json",
-    "loopress-plugin.php"
+    "loopress.php"
   ],
   "dependencies": {
     "@loopress/assets": "workspace:*",

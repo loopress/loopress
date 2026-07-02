@@ -11,7 +11,7 @@
 >
     <projectFiles>
         <directory name="src" />
-        <file name="loopress-plugin.php" />
+        <file name="loopress.php" />
         <ignoreFiles>
             <directory name="vendor" />
         </ignoreFiles>
