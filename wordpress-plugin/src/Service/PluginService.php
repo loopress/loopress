@@ -63,8 +63,15 @@ class PluginService
                 return ['message' => "{$slug} is already at version {$version}.", 'version' => $version];
             }
 
-            // Download zip and upgrade in-place using the specific version URL.
-            $result = $upgrader->install($downloadUrl, ['overwrite_package' => true]);
+            // Download zip and upgrade in-place using the specific version URL. `clear_destination`
+            // is required here because the plugin's folder already exists at the destination;
+            // without it, WP_Upgrader::install_package() aborts (abort_if_destination_exists defaults to true).
+            /**
+             * @psalm-suppress InvalidArgument the wordpress-stubs package only types `clear_update_cache`
+             * for Plugin_Upgrader::install(), but WP core's own install_package()/run() docblocks also
+             * document and support `clear_destination` (and other install_package() args) here.
+             */
+            $result = $upgrader->install($downloadUrl, ['clear_destination' => true]);
         } else {
             $result = $upgrader->install($downloadUrl);
         }
@@ -128,7 +135,7 @@ class PluginService
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
 
-        foreach (get_plugins() as $file => $data) {
+        foreach (array_keys(get_plugins()) as $file) {
             if ($this->slugFromFile($file) === $slug) {
                 return $file;
             }
