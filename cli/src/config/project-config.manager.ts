@@ -1,8 +1,9 @@
+import {randomUUID} from 'node:crypto'
 import {existsSync, mkdirSync, readFileSync, renameSync, writeFileSync} from 'node:fs'
 import {homedir} from 'node:os'
 import {join} from 'node:path'
 
-import {EnvironmentConfig, LoopressConfig, ProjectConfig} from './types.js'
+import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig} from './types.js'
 
 export class ProjectConfigManager {
   private static instance: ProjectConfigManager
@@ -17,6 +18,10 @@ export class ProjectConfigManager {
     return ProjectConfigManager.instance
   }
 
+  createProjectId(): string {
+    return randomUUID()
+  }
+
   ensureConfigDir(): void {
     const dir = join(this.homeDir, '.loopress')
     if (!existsSync(dir)) {
@@ -29,42 +34,48 @@ export class ProjectConfigManager {
   }
 
   getCurrentEnv(): EnvironmentConfig | null {
-    const project = this.getCurrentProject()
-    if (!project || !project.currentEnv) return null
-    return project.environments[project.currentEnv] ?? null
-  }
-
-  getCurrentProject(): null | ProjectConfig {
     const config = this.readConfig()
-    if (!config.currentProject || !config.projects[config.currentProject]) return null
-    return config.projects[config.currentProject]
+    if (!config.currentProject) return null
+    const project = config.projects[config.currentProject.id]
+    if (!project) return null
+    return project.environments[config.currentProject.env] ?? null
   }
 
-  getEnvironment(projectName: string, envName: string): EnvironmentConfig | null {
-    const project = this.getProject(projectName)
+  getCurrentProject(): null | (ProjectConfig & {id: string}) {
+    const config = this.readConfig()
+    if (!config.currentProject) return null
+    const project = config.projects[config.currentProject.id]
+    if (!project) return null
+    return {...project, id: config.currentProject.id}
+  }
+
+  getEnvironment(projectId: string, envName: string): EnvironmentConfig | null {
+    const project = this.getProject(projectId)
     if (!project) return null
     return project.environments[envName] ?? null
   }
 
-  getProject(name: string): null | ProjectConfig {
+  getProject(id: string): null | ProjectConfig {
     const config = this.readConfig()
-    return config.projects[name] ?? null
+    return config.projects[id] ?? null
   }
 
-  listEnvironments(projectName: string): Array<EnvironmentConfig & {isCurrent: boolean}> {
-    const project = this.getProject(projectName)
+  listEnvironments(projectId: string): Array<EnvironmentConfig & {isCurrent: boolean}> {
+    const config = this.readConfig()
+    const project = config.projects[projectId]
     if (!project) return []
     return Object.values(project.environments).map((env) => ({
       ...env,
-      isCurrent: env.name === project.currentEnv,
+      isCurrent: config.currentProject?.id === projectId && config.currentProject.env === env.name,
     }))
   }
 
-  listProjects(): Array<ProjectConfig & {isCurrent: boolean}> {
+  listProjects(): Array<ProjectConfig & {id: string; isCurrent: boolean}> {
     const config = this.readConfig()
-    return Object.values(config.projects).map((project) => ({
+    return Object.entries(config.projects).map(([id, project]) => ({
       ...project,
-      isCurrent: project.name === config.currentProject,
+      id,
+      isCurrent: config.currentProject?.id === id,
     }))
   }
 
@@ -74,61 +85,70 @@ export class ProjectConfigManager {
       return {currentProject: null, projects: {}}
     }
 
-    return JSON.parse(readFileSync(filePath, 'utf8')) as LoopressConfig
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(filePath, 'utf8'))
+      return this.sanitizeConfig(parsed)
+    } catch {
+      return {currentProject: null, projects: {}}
+    }
   }
 
-  removeEnvironment(projectName: string, envName: string): void {
+  removeEnvironment(projectId: string, envName: string): void {
     const config = this.readConfig()
-    if (!config.projects[projectName]) return
-    const project = config.projects[projectName]
+    const project = config.projects[projectId]
+    if (!project) return
+
     delete project.environments[envName]
-    if (project.currentEnv === envName) {
+
+    if (config.currentProject?.id === projectId && config.currentProject.env === envName) {
       const remaining = Object.keys(project.environments)
-      project.currentEnv = remaining.length > 0 ? remaining[0] : null
+      config.currentProject = remaining.length > 0 ? {env: remaining[0], id: projectId} : null
     }
 
     this.writeConfig(config)
   }
 
-  removeProject(name: string): void {
+  removeProject(id: string): void {
     const config = this.readConfig()
-    delete config.projects[name]
-    if (config.currentProject === name) {
-      const remaining = Object.keys(config.projects)
-      config.currentProject = remaining.length > 0 ? remaining[0] : null
+    delete config.projects[id]
+
+    if (config.currentProject?.id === id) {
+      const [nextId] = Object.keys(config.projects)
+      const nextProject = nextId ? config.projects[nextId] : undefined
+      const [nextEnv] = nextProject ? Object.keys(nextProject.environments) : []
+      config.currentProject = nextId && nextEnv ? {env: nextEnv, id: nextId} : null
     }
 
     this.writeConfig(config)
   }
 
-  setCurrentEnv(projectName: string, envName: string): void {
+  setCurrent(projectId: string, envName: string): void {
     const config = this.readConfig()
-    if (!config.projects[projectName]) return
-    config.projects[projectName].currentEnv = envName
+    if (!config.projects[projectId]) return
+    config.currentProject = {env: envName, id: projectId}
     this.writeConfig(config)
   }
 
-  setCurrentProject(name: string): void {
+  setEnvironment(projectId: string, envName: string, env: EnvironmentConfig): void {
     const config = this.readConfig()
-    config.currentProject = name
-    this.writeConfig(config)
-  }
+    const project = config.projects[projectId]
+    if (!project) return
 
-  setEnvironment(projectName: string, envName: string, env: EnvironmentConfig): void {
-    const config = this.readConfig()
-    if (!config.projects[projectName]) return
-    const project = config.projects[projectName]
-    const isFirst = Object.keys(project.environments).length === 0
     project.environments[envName] = env
-    if (isFirst) project.currentEnv = envName
+    if (!config.currentProject) config.currentProject = {env: envName, id: projectId}
+
     this.writeConfig(config)
   }
 
-  setProject(name: string, project: ProjectConfig): void {
+  setProject(id: string, project: ProjectConfig): void {
     const config = this.readConfig()
-    const isFirst = Object.keys(config.projects).length === 0
-    config.projects[name] = project
-    if (isFirst) config.currentProject = name
+    config.projects[id] = project
+
+    if (!config.currentProject) {
+      const [firstEnv] = Object.keys(project.environments)
+      if (firstEnv) config.currentProject = {env: firstEnv, id}
+    }
+
     this.writeConfig(config)
   }
 
@@ -138,6 +158,39 @@ export class ProjectConfigManager {
     const tmpPath = `${filePath}.tmp`
     writeFileSync(tmpPath, JSON.stringify(config, null, 2))
     renameSync(tmpPath, filePath)
+  }
+
+  private isProjectConfig(value: unknown): value is ProjectConfig {
+    if (typeof value !== 'object' || value === null) return false
+    const candidate = value as Record<string, unknown>
+    return typeof candidate.name === 'string' && typeof candidate.environments === 'object' && candidate.environments !== null
+  }
+
+  private sanitizeConfig(value: unknown): LoopressConfig {
+    if (typeof value !== 'object' || value === null) return {currentProject: null, projects: {}}
+
+    const candidate = value as Record<string, unknown>
+    return {
+      currentProject: this.sanitizeCurrentProject(candidate.currentProject),
+      projects: this.sanitizeProjects(candidate.projects),
+    }
+  }
+
+  private sanitizeCurrentProject(value: unknown): CurrentProjectPointer | null {
+    if (value === null || typeof value !== 'object') return null
+    const pointer = value as Partial<CurrentProjectPointer>
+    return typeof pointer.id === 'string' && typeof pointer.env === 'string' ? {env: pointer.env, id: pointer.id} : null
+  }
+
+  private sanitizeProjects(value: unknown): Record<string, ProjectConfig> {
+    if (typeof value !== 'object' || value === null) return {}
+
+    const projects: Record<string, ProjectConfig> = {}
+    for (const [id, project] of Object.entries(value as Record<string, unknown>)) {
+      if (this.isProjectConfig(project)) projects[id] = project
+    }
+
+    return projects
   }
 }
 

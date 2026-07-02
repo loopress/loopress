@@ -19,7 +19,7 @@ export default class List extends Command {
     }
 
     for (const project of projects) {
-      const envs = Object.values(project.environments)
+      const envs = configManager.listEnvironments(project.id)
       const marker = project.isCurrent ? c('green', '●') : c('dim', '○')
       const name = project.isCurrent ? c('green', project.name) : project.name
       const currentTag = project.isCurrent ? ` ${c('green', '[current]')}` : ''
@@ -27,11 +27,10 @@ export default class List extends Command {
       this.log(`${marker} ${name}${currentTag}`)
 
       for (const env of envs) {
-        const isActiveEnv = env.name === project.currentEnv
-        const envMarker = isActiveEnv ? c('cyan', '·') : c('dim', '·')
-        const envName = isActiveEnv ? c('cyan', env.name.padEnd(15)) : c('dim', env.name.padEnd(15))
+        const envMarker = env.isCurrent ? c('cyan', '·') : c('dim', '·')
+        const envName = env.isCurrent ? c('cyan', env.name.padEnd(15)) : c('dim', env.name.padEnd(15))
         const envUrl = c('dim', env.url)
-        const activeTag = isActiveEnv ? ` ${c('cyan', '←')}` : ''
+        const activeTag = env.isCurrent ? ` ${c('cyan', '←')}` : ''
         this.log(`  ${envMarker} ${envName} ${envUrl}${activeTag}`)
       }
 

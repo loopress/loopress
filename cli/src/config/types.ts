@@ -7,12 +7,16 @@ export interface EnvironmentConfig {
 
 export interface ProjectConfig {
   addedAt: string
-  currentEnv: null | string
   environments: Record<string, EnvironmentConfig>
   name: string
 }
 
+export interface CurrentProjectPointer {
+  env: string
+  id: string
+}
+
 export interface LoopressConfig {
-  currentProject: null | string
+  currentProject: CurrentProjectPointer | null
   projects: Record<string, ProjectConfig>
 }

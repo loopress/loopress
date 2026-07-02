@@ -24,7 +24,7 @@ The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs; the v
 
 ### `lps plugin add`
 
-Add a plugin to `loopress.json`. Accepts either a WordPress.org slug or a Composer package name.
+Add a WordPress.org plugin to `loopress.json`.
 
 ```bash
 lps plugin add <slug> [version]
@@ -32,14 +32,14 @@ lps plugin add <slug> [version]
 
 | Argument | Description |
 |----------|-------------|
-| `slug` | WordPress.org plugin slug (e.g. `woocommerce`) or Composer package (e.g. `wpackagist-plugin/advanced-custom-fields`) |
-| `version` | Version to pin. Omit to resolve the latest version automatically (WordPress.org only). |
+| `slug` | WordPress.org plugin slug (e.g. `woocommerce`) |
+| `version` | Version to pin. Omit to resolve the latest stable version automatically. |
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching `loopress.json` |
 
-**WordPress.org slug** — resolves the current stable version from the WordPress.org API and writes it to `loopress.json`:
+Resolves the current stable version from the WordPress.org API and writes it to `loopress.json`:
 
 ```bash
 lps plugin add woocommerce          # pins latest stable version
@@ -47,14 +47,7 @@ lps plugin add woocommerce 9.0.2   # pins a specific version
 lps plugin add contact-form-7 --dry-run
 ```
 
-**Composer package** — delegates directly to `composer require` (requires Composer to be installed locally):
-
-```bash
-lps plugin add wpackagist-plugin/advanced-custom-fields
-lps plugin add wpackagist-plugin/contact-form-7:5.9.8
-```
-
-The slug format is the distinguishing factor: anything containing `/` is treated as a Composer package.
+Need to manage a Composer package instead? See the [`composer` command group](/cli/composer/) - Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
 
 ---
 

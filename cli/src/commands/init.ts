@@ -29,10 +29,11 @@ export default class Init extends Command {
     const projects = configManager.listProjects()
 
     let projectId: string
+    let projectLabel: string
 
     if (projects.length > 0) {
       const choices = [
-        ...projects.map((p) => ({name: p.name, value: p.name})),
+        ...projects.map((p) => ({name: p.name, value: p.id})),
         {name: 'Enter a project ID manually', value: '__manual__'},
       ]
 
@@ -41,16 +42,23 @@ export default class Init extends Command {
         message: 'WordPress project',
       })
 
-      projectId = choice === '__manual__' ? (await input({
+      if (choice === '__manual__') {
+        projectId = await input({
           message: 'Project ID',
           validate: (value) => (value.trim().length > 0 ? true : 'Project ID cannot be empty'),
-        })) : choice;
+        })
+        projectLabel = projectId
+      } else {
+        projectId = choice
+        projectLabel = projects.find((p) => p.id === choice)!.name
+      }
     } else {
       this.log('No projects configured yet. Run `lps project config` to add one first.')
       projectId = await input({
         message: 'Project ID',
         validate: (value) => (value.trim().length > 0 ? true : 'Project ID cannot be empty'),
       })
+      projectLabel = projectId
     }
 
     const snippetPlugin = await select({
@@ -81,7 +89,7 @@ export default class Init extends Command {
     await writeLocalConfig(config)
 
     this.log(`\n✓ loopress.json created`)
-    this.log(`  Project:  ${projectId}`)
+    this.log(`  Project:  ${projectLabel}`)
     this.log(`  Plugin:   ${snippetPlugin}`)
     this.log(`  Snippets: ${join(rootDir, snippetsDir)}`)
   }

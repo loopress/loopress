@@ -14,23 +14,33 @@ describe('snippet-plugin', () => {
 
     describe('toPayload', () => {
       it('strips <?php and trailing whitespace from code before sending', () => {
-        const payload = plugin.toPayload('My snippet', '<?php\n\nadd_filter("x", "y");', 'snippets/1-my-snippet.php')
+        const payload = plugin.toPayload(
+          'My snippet',
+          '<?php\n\nadd_filter("x", "y");',
+          'snippets/1-my-snippet.php',
+          'php',
+        )
         expect(payload.code).toBe('add_filter("x", "y");')
       })
 
       it('strips <?php case-insensitively', () => {
-        const payload = plugin.toPayload('My snippet', '<?PHP echo 1;', 'snippets/1-my-snippet.php')
+        const payload = plugin.toPayload('My snippet', '<?PHP echo 1;', 'snippets/1-my-snippet.php', 'php')
         expect(payload.code).toBe('echo 1;')
       })
 
       it('leaves code unchanged when there is no <?php', () => {
-        const payload = plugin.toPayload('My snippet', 'add_filter("x", "y");', 'snippets/1-my-snippet.php')
+        const payload = plugin.toPayload('My snippet', 'add_filter("x", "y");', 'snippets/1-my-snippet.php', 'php')
         expect(payload.code).toBe('add_filter("x", "y");')
       })
 
       it('sets name from argument', () => {
-        const payload = plugin.toPayload('My snippet', '', 'snippets/1-my-snippet.php')
+        const payload = plugin.toPayload('My snippet', '', 'snippets/1-my-snippet.php', 'php')
         expect(payload.name).toBe('My snippet')
+      })
+
+      it('sends the type argument as-is, without hardcoding it', () => {
+        const payload = plugin.toPayload('My snippet', 'Just a message', 'snippets/1-my-snippet.txt', 'text')
+        expect(payload.type).toBe('text')
       })
     })
 
@@ -105,14 +115,19 @@ describe('snippet-plugin', () => {
 
     describe('toPayload', () => {
       it('sets title from name argument', () => {
-        const payload = plugin.toPayload('My snippet', '<?php echo 1;', 'snippets/1-my-snippet.php')
+        const payload = plugin.toPayload('My snippet', '<?php echo 1;', 'snippets/1-my-snippet.php', 'php')
         expect(payload.title).toBe('My snippet')
       })
 
       it('passes code as-is without stripping <?php', () => {
         const code = '<?php echo 1;'
-        const payload = plugin.toPayload('x', code, 'snippets/1-x.php')
+        const payload = plugin.toPayload('x', code, 'snippets/1-x.php', 'php')
         expect(payload.code).toBe(code)
+      })
+
+      it('sends the type argument as-is, instead of hardcoding "php"', () => {
+        const payload = plugin.toPayload('My snippet', 'Just a message', 'snippets/1-my-snippet.txt', 'text')
+        expect(payload.type).toBe('text')
       })
     })
 

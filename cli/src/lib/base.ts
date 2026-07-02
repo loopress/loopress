@@ -43,11 +43,23 @@ export abstract class LoopressCommand extends Command {
         this.error(`Project "${localConfig.projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
       }
 
-      if (!project.currentEnv || !project.environments[project.currentEnv]) {
-        this.error(`Project "${localConfig.projectId}" has no active environment. Run \`lps project config\` to configure one.`)
+      const envNames = Object.keys(project.environments)
+      if (envNames.length === 0) {
+        this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
       }
 
-      this.siteConfig = project.environments[project.currentEnv]
+      if (envNames.length === 1) {
+        this.siteConfig = project.environments[envNames[0]]
+        return
+      }
+
+      const current = configManager.getCurrentProject()
+      const currentEnv = current?.id === localConfig.projectId ? configManager.getCurrentEnv() : null
+      if (!currentEnv) {
+        this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
+      }
+
+      this.siteConfig = currentEnv
       return
     }
 

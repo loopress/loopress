@@ -47,7 +47,7 @@ export default class Pull extends LoopressCommand {
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
-    dryRun: Flags.boolean({char: 'd', description: 'Dry run - show what would happen without making changes'}),
+    'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
     plugin: Flags.string({
       char: 'p',
       description: 'WordPress snippet plugin to target (overrides loopress.json)',
@@ -57,7 +57,8 @@ export default class Pull extends LoopressCommand {
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Pull)
-    const {dryRun, plugin} = flags as {dryRun: boolean; plugin: string | undefined}
+    const dryRun = flags['dry-run']
+    const {plugin} = flags
     const {url} = this.siteConfig
     const path = await this.resolveSnippetsPath(args.path)
     const resolvedPlugin = await this.resolveSnippetPlugin(plugin)

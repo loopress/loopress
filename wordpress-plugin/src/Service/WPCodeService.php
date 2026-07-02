@@ -101,7 +101,9 @@ class WPCodeService
             update_post_meta($id, self::META_NOTE, sanitize_text_field($data['note']));
         }
 
-        update_post_meta($id, self::META_TYPE, sanitize_text_field($data['type'] ?? 'php'));
+        if (isset($data['type'])) {
+            update_post_meta($id, self::META_TYPE, sanitize_text_field($data['type']));
+        }
 
         if (isset($data['tags']) && is_array($data['tags'])) {
             $this->setTags($id, $data['tags']);

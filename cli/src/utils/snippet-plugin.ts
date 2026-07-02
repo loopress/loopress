@@ -11,7 +11,7 @@ export interface NormalizedSnippet {
   type: SnippetType
 }
 
-function parseType(raw: unknown): null | SnippetType {
+export function parseType(raw: unknown): null | SnippetType {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
   const value = String(raw ?? '').toLowerCase()
   return valid.includes(value as SnippetType) ? (value as SnippetType) : null
@@ -31,7 +31,7 @@ function resolveType(raw: unknown, code: string): SnippetType {
 export interface SnippetPlugin {
   endpoint(siteUrl: string): string
   fromRemote(data: Record<string, unknown>): NormalizedSnippet
-  toPayload(name: string, code: string, path: string): Record<string, unknown>
+  toPayload(name: string, code: string, path: string, type: SnippetType): Record<string, unknown>
 }
 
 class CodeSnippetsPlugin implements SnippetPlugin {
@@ -51,12 +51,13 @@ class CodeSnippetsPlugin implements SnippetPlugin {
     }
   }
 
-  toPayload(name: string, code: string, path: string): Record<string, unknown> {
+  toPayload(name: string, code: string, path: string, type: SnippetType): Record<string, unknown> {
     return {
       code: code.replace(/^<\?php\s*/i, ''),
       desc: `Imported from ${path}`,
       name,
       tags: ['cli-import'],
+      type,
     }
   }
 }
@@ -78,13 +79,13 @@ class WPCodePlugin implements SnippetPlugin {
     }
   }
 
-  toPayload(name: string, code: string, path: string): Record<string, unknown> {
+  toPayload(name: string, code: string, path: string, type: SnippetType): Record<string, unknown> {
     return {
       code,
       note: `Imported from ${path}`,
       tags: ['cli-import'],
       title: name,
-      type: 'php',
+      type,
     }
   }
 }
