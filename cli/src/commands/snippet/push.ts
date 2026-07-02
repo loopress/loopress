@@ -1,11 +1,12 @@
-import {Args, Flags} from '@oclif/core'
-import got from 'got'
+import {Args} from '@oclif/core'
+import {readdir, readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {Snippet} from '../../types/snippet.js'
-import {getSnippetPlugin, parseType, PluginName, SnippetType} from '../../utils/snippet-plugin.js'
+import {getSnippetPlugin, parseType, SnippetPlugin, SnippetType} from '../../utils/snippet-plugin.js'
+import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',
@@ -29,51 +30,43 @@ export default class Push extends PushCommand {
   ]
   static flags = {
     ...PushCommand.baseFlags,
-    'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
-    plugin: Flags.string({
-      char: 'p',
-      description: 'WordPress snippet plugin to target (overrides loopress.json)',
-      options: ['code-snippets', 'wpcode'],
-    }),
+    ...PushCommand.dryRunFlag,
+    ...snippetPluginFlag,
   }
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Push)
-    const dryRun = flags['dry-run']
-    const {plugin} = flags
-    this.dryRun = dryRun
     const {url} = this.siteConfig
-    const path = await this.resolveSnippetsPath(args.path)
-    const resolvedPlugin = await this.resolveSnippetPlugin(plugin)
+    const path = this.resolveSnippetsPath(args.path)
+    const resolvedPlugin = this.resolveSnippetPlugin(flags.plugin)
 
-    this.log(`🚀 Pushing snippets to ${url} via ${resolvedPlugin}`)
-    this.log(`📂 From snippet path: ${path}`)
-    this.log(`🔄 Dry run: ${dryRun ? 'yes' : 'no'}`)
+    this.log(`Pushing snippets to ${url} via ${resolvedPlugin}`)
+    this.log(`Snippets path: ${path}`)
 
-    let snippets: Snippet[] = []
-    try {
-      snippets = await this.loadSnippets(path)
-      this.log(`✅ Found ${snippets.length} snippets to push`)
+    const snippets = await this.loadSnippets(path)
+    this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
-      const headers = await this.buildAuthHeaders()
-      const adapter = getSnippetPlugin(resolvedPlugin)
-      for (const snippet of snippets) {
-        await this.pushSnippet(snippet, {adapter, dryRun, headers, url})
-      }
-
-      await this.recordSuccess()
-      this.log('🎉 All snippets pushed successfully!')
-    } catch (error) {
-      this.error((error as Error).message)
+    const adapter = getSnippetPlugin(resolvedPlugin)
+    let failed = 0
+    for (const snippet of snippets) {
+      const pushed = await this.pushSnippet(snippet, adapter)
+      if (!pushed) failed++
     }
+
+    if (failed > 0) {
+      this.error(`${failed} snippet${failed === 1 ? '' : 's'} failed to push.`)
+    }
+
+    if (this.dryRun) return
+
+    await this.recordSuccess()
+    this.log('All snippets pushed.')
   }
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `snippet pull` whenever
   // it doesn't already match (e.g. a hand-created `demo.php` with no id, or a stale slug after a rename).
   // This is a side effect of `push`: local files on disk are renamed, not just the remote snippet.
   private async ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void> {
-    const fs = await import('node:fs/promises')
-
     const dir = dirname(snippet.path)
     const ext = extname(snippet.path)
     const currentBase = basename(snippet.path, ext)
@@ -82,7 +75,7 @@ export default class Push extends PushCommand {
     const oldMetaPath = join(dir, `${currentBase}.json`)
     let meta: Record<string, unknown> = {}
     try {
-      const existing = await fs.readFile(oldMetaPath, 'utf8')
+      const existing = await readFile(oldMetaPath, 'utf8')
       meta = JSON.parse(existing) as Record<string, unknown>
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
@@ -92,41 +85,38 @@ export default class Push extends PushCommand {
     meta.name = name
 
     if (currentBase === canonicalBase) {
-      await fs.writeFile(oldMetaPath, JSON.stringify(meta, null, 2) + '\n')
+      await writeFile(oldMetaPath, JSON.stringify(meta, null, 2) + '\n')
       return
     }
 
     const newPath = join(dir, `${canonicalBase}${ext}`)
     const newMetaPath = join(dir, `${canonicalBase}.json`)
 
-    await fs.rename(snippet.path, newPath)
-    await fs.writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
-    if (oldMetaPath !== newMetaPath) await fs.rm(oldMetaPath, {force: true})
+    await rename(snippet.path, newPath)
+    await writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
+    if (oldMetaPath !== newMetaPath) await rm(oldMetaPath, {force: true})
 
-    this.log(`📁 Renamed: ${snippet.path} → ${newPath}`)
+    this.log(`  Renamed: ${snippet.path} → ${newPath}`)
   }
 
   private async loadSnippets(path: string): Promise<Snippet[]> {
-    const fs = await import('node:fs/promises')
     const snippets: Snippet[] = []
 
-    const SNIPPET_EXTENSIONS = new Set(Object.keys(TYPE_BY_EXTENSION))
-
     try {
-      const files = await fs.readdir(path)
+      const files = await readdir(path)
       for (const file of files) {
-        const ext = file.slice(file.lastIndexOf('.'))
-        if (!SNIPPET_EXTENSIONS.has(ext)) continue
+        const ext = extname(file)
+        if (!(ext in TYPE_BY_EXTENSION)) continue
 
-        const filePath = `${path}/${file}`
-        const metaPath = filePath.slice(0, filePath.lastIndexOf('.')) + '.json'
-        const content = await fs.readFile(filePath, 'utf8')
+        const filePath = join(path, file)
+        const metaPath = join(path, `${basename(file, ext)}.json`)
+        const content = await readFile(filePath, 'utf8')
 
         let id: number | undefined
         let name: string | undefined
         let type: SnippetType | undefined
         try {
-          const metaContent = await fs.readFile(metaPath, 'utf8')
+          const metaContent = await readFile(metaPath, 'utf8')
           const meta = JSON.parse(metaContent) as Record<string, unknown>
           id = meta.id ? Number(meta.id) : undefined
           name = meta.name ? String(meta.name) : undefined
@@ -138,49 +128,43 @@ export default class Push extends PushCommand {
         snippets.push({
           code: content,
           id,
-          name: name ?? file.slice(0, file.lastIndexOf('.')),
+          name: name ?? basename(file, ext),
           path: filePath,
-          type: type ?? TYPE_BY_EXTENSION[ext] ?? 'php',
+          type: type ?? TYPE_BY_EXTENSION[ext],
         })
       }
     } catch (error) {
-      this.error(`❌ Error loading snippets: ${(error as Error).message}`)
+      this.error(`Error loading snippets: ${(error as Error).message}`)
     }
 
     return snippets
   }
 
-  private async pushSnippet(
-    snippet: Snippet,
-    ctx: {adapter: ReturnType<typeof getSnippetPlugin>; dryRun: boolean; headers: Record<string, string>; url: string},
-  ) {
-    const {adapter, dryRun, headers, url} = ctx
-
-    if (dryRun) {
-      this.log(`📝 [DRY RUN] Would push snippet: ${snippet.name}`)
-      this.log(`📄 Code preview: ${snippet.code.slice(0, 100)}...`)
-      return
+  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin): Promise<boolean> {
+    if (this.dryRun) {
+      this.log(`[dry-run] Would push: ${snippet.name}`)
+      return true
     }
 
-    try {
-      const endpoint = adapter.endpoint(url)
-      const payload = adapter.toPayload(snippet.name, snippet.code, snippet.path, snippet.type)
+    const endpointPath = adapter.endpointPath()
+    const payload = adapter.toPayload(snippet.name, snippet.code, snippet.path, snippet.type)
 
+    try {
       if (snippet.id) {
-        this.log(`🔄 Updating snippet by id (${snippet.id}): ${snippet.name}`)
-        await got.put(`${endpoint}/${snippet.id}`, {headers, json: payload})
-        this.log(`✅ Updated: ${snippet.name}`)
+        await this.wp.put(`${endpointPath}/${snippet.id}`, payload)
+        this.log(`  Updated: ${snippet.name} (id: ${snippet.id})`)
         await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
-        return
+      } else {
+        const response = await this.wp.post<Record<string, unknown>>(endpointPath, payload)
+        const created = adapter.fromRemote(response)
+        this.log(`  Created: ${snippet.name} (id: ${created.id})`)
+        await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 
-      this.log(`➕ Creating new snippet: ${snippet.name}`)
-      const response: Record<string, unknown> = await got.post(endpoint, {headers, json: payload}).json()
-      const created = adapter.fromRemote(response)
-      this.log(`✅ Created: ${snippet.name} (id: ${created.id})`)
-      await this.ensureCanonicalFilename(snippet, created.id, created.name)
+      return true
     } catch (error) {
-      this.error(`❌ Error pushing snippet ${snippet.name}: ${(error as Error).message}`)
+      this.warn(`  Failed to push ${snippet.name}: ${(error as Error).message}`)
+      return false
     }
   }
 }

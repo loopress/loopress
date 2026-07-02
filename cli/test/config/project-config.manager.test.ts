@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {ProjectConfigManager} from '../../src/config/project-config.manager.js'
-import {EnvironmentConfig, ProjectConfig} from '../../src/config/types.js'
+import {EnvironmentConfig, ProjectConfig} from '../../src/types/config.js'
 
 const makeEnv = (name: string, url = 'https://example.com'): EnvironmentConfig => ({
   addedAt: '2024-01-01T00:00:00.000Z',

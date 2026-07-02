@@ -1,11 +1,8 @@
 import {confirm} from '@inquirer/prompts'
-import {Flags} from '@oclif/core'
-import got from 'got'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {ActivateResult, InstalledPlugin, InstallResult} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
-import {readLocalConfig} from '../../utils/loopress-config.js'
 import {diffPlugins} from '../../utils/plugins.js'
 
 export default class Push extends PushCommand {
@@ -13,17 +10,13 @@ export default class Push extends PushCommand {
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
     ...PushCommand.baseFlags,
-    'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
+    ...PushCommand.dryRunFlag,
   }
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(Push)
-    const dryRun = flags['dry-run']
-    this.dryRun = dryRun
     const {url} = this.siteConfig
 
-    const localConfig = await readLocalConfig()
-    const manifest = localConfig.plugins
+    const manifest = this.localConfig.plugins
 
     if (!manifest || Object.keys(manifest).length === 0) {
       this.error('No plugins found in loopress.json. Run `lps plugin pull` first.')
@@ -44,8 +37,7 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing plugins to ${url}`)
 
-    const headers = await this.buildAuthHeaders()
-    const installed: InstalledPlugin[] = await got.get(`${url}/wp-json/loopress/v1/plugins`, {headers}).json()
+    const installed = await this.wp.get<InstalledPlugin[]>('loopress/v1/plugins')
 
     const {drifted, toActivate, toInstall} = diffPlugins(filteredManifest, installed)
 
@@ -71,31 +63,18 @@ export default class Push extends PushCommand {
       }
     }
 
-    if (dryRun) return
+    if (this.dryRun) return
 
     // Install missing plugins and activate them.
     for (const action of toInstall) {
       this.log(`\nInstalling ${action.slug} @ ${action.targetVersion}...`)
-      try {
-        const result: InstallResult = await got
-          .post(`${url}/wp-json/loopress/v1/plugins/install`, {
-            headers,
-            json: {slug: action.slug, version: action.targetVersion},
-          })
-          .json()
-        this.log(`  ✓ ${result.message}`)
-      } catch (error) {
-        this.warn(`  Failed to install ${action.slug}: ${(error as Error).message}`)
-        continue
-      }
-
-      await this.activatePlugin(url, headers, action.slug)
+      await this.installAndActivate(action.slug, action.targetVersion)
     }
 
     // Activate installed-but-inactive plugins without prompting.
     for (const action of toActivate) {
       this.log(`\nActivating ${action.slug}...`)
-      await this.activatePlugin(url, headers, action.slug)
+      await this.activatePlugin(action.slug)
     }
 
     // Prompt per drifted plugin before syncing.
@@ -112,33 +91,30 @@ export default class Push extends PushCommand {
       }
 
       this.log(`  Syncing ${action.slug} to ${action.targetVersion}...`)
-      try {
-        const result: InstallResult = await got
-          .post(`${url}/wp-json/loopress/v1/plugins/install`, {
-            headers,
-            json: {slug: action.slug, version: action.targetVersion},
-          })
-          .json()
-        this.log(`  ✓ ${result.message}`)
-      } catch (error) {
-        this.warn(`  Failed to sync ${action.slug}: ${(error as Error).message}`)
-        continue
-      }
-
-      await this.activatePlugin(url, headers, action.slug)
+      await this.installAndActivate(action.slug, action.targetVersion)
     }
 
     await this.recordSuccess()
   }
 
-  private async activatePlugin(url: string, headers: Record<string, string>, slug: string): Promise<void> {
+  private async activatePlugin(slug: string): Promise<void> {
     try {
-      const result: ActivateResult = await got
-        .post(`${url}/wp-json/loopress/v1/plugins/activate`, {headers, json: {slug}})
-        .json()
+      const result = await this.wp.post<ActivateResult>('loopress/v1/plugins/activate', {slug})
       this.log(`  ✓ ${result.message}`)
     } catch (error) {
       this.warn(`  Failed to activate ${slug}: ${(error as Error).message}`)
     }
+  }
+
+  private async installAndActivate(slug: string, version: string): Promise<void> {
+    try {
+      const result = await this.wp.post<InstallResult>('loopress/v1/plugins/install', {slug, version})
+      this.log(`  ✓ ${result.message}`)
+    } catch (error) {
+      this.warn(`  Failed to install ${slug}: ${(error as Error).message}`)
+      return
+    }
+
+    await this.activatePlugin(slug)
   }
 }

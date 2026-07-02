@@ -2,7 +2,7 @@ import {select} from '@inquirer/prompts'
 import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
-import {ProjectConfig} from '../../config/types.js'
+import {ProjectConfig} from '../../types/config.js'
 
 export default class Switch extends Command {
   static description = 'Switch the active project and environment'

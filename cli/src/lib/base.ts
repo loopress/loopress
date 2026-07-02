@@ -2,45 +2,102 @@ import {Command, Flags} from '@oclif/core'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {EnvironmentConfig} from '../config/types.js'
-import {readLocalConfig} from '../utils/loopress-config.js'
+import {EnvironmentConfig} from '../types/config.js'
+import {LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
+import {WpClient} from './wp-client.js'
+
+interface ParsedBaseFlags {
+  'dry-run'?: boolean
+  password?: string
+  url?: string
+  user?: string
+}
 
 export abstract class LoopressCommand extends Command {
   static baseFlags = {
     password: Flags.string({
-      description: 'WordPress application password (fallback; prefer `lps project config`)',
+      description: 'WordPress application password (overrides project config, requires --user)',
       helpGroup: 'GLOBAL',
     }),
     url: Flags.string({
-      description: 'WordPress URL (fallback; prefer `lps project config`)',
+      description: 'WordPress URL (overrides project config)',
       helpGroup: 'GLOBAL',
     }),
     user: Flags.string({
-      description: 'WordPress username (fallback; prefer `lps project config`)',
+      description: 'WordPress username (overrides project config, requires --password)',
       helpGroup: 'GLOBAL',
     }),
   }
+  static dryRunFlag = {
+    'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
+  }
+  protected dryRun = false
+  protected localConfig: LoopressLocalConfig = {}
   protected siteConfig!: EnvironmentConfig
+  private wpClient?: WpClient
 
-  async buildAuthHeaders(): Promise<Record<string, string>> {
-    const {token, url} = this.siteConfig
+  protected get rootDir(): string {
+    return this.localConfig.rootDir ?? '.'
+  }
 
-    if (token) {
-      return {Authorization: `Basic ${Buffer.from(token).toString('base64')}`}
+  protected get wp(): WpClient {
+    if (!this.wpClient) {
+      const {token, url} = this.siteConfig
+      if (!token) {
+        this.error(`No credentials configured for ${url}. Run \`lps project config\` to add them.`)
+      }
+
+      this.wpClient = new WpClient(url, token)
     }
 
-    this.error(`No credentials configured for ${url}. Run \`lps project config\` to add them.`)
+    return this.wpClient
   }
 
   async init(): Promise<void> {
     await super.init()
 
-    const localConfig = await readLocalConfig()
+    const {flags} = (await this.parse({
+      args: this.ctor.args,
+      flags: this.ctor.flags,
+      strict: this.ctor.strict,
+    })) as unknown as {flags: ParsedBaseFlags}
 
-    if (localConfig.projectId) {
-      const project = configManager.getProject(localConfig.projectId)
+    this.dryRun = Boolean(flags['dry-run'])
+    this.localConfig = await readLocalConfig()
+
+    const flagToken = flags.user && flags.password ? `${flags.user}:${flags.password}` : undefined
+
+    if (flags.url) {
+      this.siteConfig = {
+        addedAt: new Date().toISOString(),
+        name: 'cli-flags',
+        token: flagToken,
+        url: flags.url.replace(/\/+$/, ''),
+      }
+      return
+    }
+
+    const env = this.resolveEnvironment()
+    this.siteConfig = flagToken ? {...env, token: flagToken} : env
+  }
+
+  protected resolveSnippetPlugin(flag?: string): 'code-snippets' | 'wpcode' {
+    if (flag) return flag as 'code-snippets' | 'wpcode'
+    return this.localConfig.snippetPlugin ?? 'wpcode'
+  }
+
+  protected resolveSnippetsPath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
+  }
+
+  private resolveEnvironment(): EnvironmentConfig {
+    if (this.localConfig.projectId) {
+      const project = configManager.getProject(this.localConfig.projectId)
       if (!project) {
-        this.error(`Project "${localConfig.projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
+        this.error(
+          `Project "${this.localConfig.projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`,
+        )
       }
 
       const envNames = Object.keys(project.environments)
@@ -49,38 +106,21 @@ export abstract class LoopressCommand extends Command {
       }
 
       if (envNames.length === 1) {
-        this.siteConfig = project.environments[envNames[0]]
-        return
+        return project.environments[envNames[0]]
       }
 
       const current = configManager.getCurrentProject()
-      const currentEnv = current?.id === localConfig.projectId ? configManager.getCurrentEnv() : null
+      const currentEnv = current?.id === this.localConfig.projectId ? configManager.getCurrentEnv() : null
       if (!currentEnv) {
         this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
       }
 
-      this.siteConfig = currentEnv
-      return
+      return currentEnv
     }
 
     const env = configManager.getCurrentEnv()
-    if (env) {
-      this.siteConfig = env
-      return
-    }
+    if (env) return env
 
     this.error('No environment configured. Run `lps project config` first.')
-  }
-
-  protected async resolveSnippetPlugin(flag?: string): Promise<'code-snippets' | 'wpcode'> {
-    if (flag) return flag as 'code-snippets' | 'wpcode'
-    const config = await readLocalConfig()
-    return config.snippetPlugin ?? 'wpcode'
-  }
-
-  protected async resolveSnippetsPath(override?: string): Promise<string> {
-    if (override) return override
-    const config = await readLocalConfig()
-    return join(config.rootDir ?? '.', config.snippetsDir ?? 'snippets')
   }
 }

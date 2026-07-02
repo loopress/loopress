@@ -1,10 +1,11 @@
-import {Args, Flags} from '@oclif/core'
+import {Args} from '@oclif/core'
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {readLocalConfig, writeLocalConfig} from '../../utils/loopress-config.js'
+import {writeLocalConfig} from '../../utils/loopress-config.js'
 
 const WP_ORG_API = 'https://api.wordpress.org/plugins/info/1.2/'
+const WP_ORG_TIMEOUT_MS = 10_000
 
 interface WpOrgPluginInfo {
   error?: string
@@ -23,6 +24,7 @@ export async function resolvePluginVersion(slug: string, version: string): Promi
           action: 'plugin_information',
           'request[slug]': slug,
         },
+        timeout: {request: WP_ORG_TIMEOUT_MS},
       })
       .json()
   } catch {
@@ -47,12 +49,11 @@ export default class Add extends LoopressCommand {
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
-    'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
+    ...LoopressCommand.dryRunFlag,
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Add)
-    const dryRun = flags['dry-run']
+    const {args} = await this.parse(Add)
     const {slug} = args
     const requestedVersion = args.version ?? 'latest'
 
@@ -67,8 +68,7 @@ export default class Add extends LoopressCommand {
 
     this.log(`Resolved: ${slug}@${resolvedVersion}`)
 
-    const localConfig = await readLocalConfig()
-    const existing = localConfig.plugins ?? {}
+    const existing = this.localConfig.plugins ?? {}
 
     if (existing[slug] === resolvedVersion) {
       this.log(`${slug}@${resolvedVersion} is already in loopress.json, nothing to do.`)
@@ -78,13 +78,13 @@ export default class Add extends LoopressCommand {
     const updated = existing[slug] !== undefined
     const label = updated ? `${existing[slug]} → ${resolvedVersion}` : resolvedVersion
 
-    if (dryRun) {
+    if (this.dryRun) {
       this.log(`[dry-run] Would ${updated ? 'update' : 'add'} ${slug}: ${label}`)
       return
     }
 
     await writeLocalConfig({
-      ...localConfig,
+      ...this.localConfig,
       plugins: {...existing, [slug]: resolvedVersion},
     })
 

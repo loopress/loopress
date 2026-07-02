@@ -6,8 +6,6 @@ import {LoopressCommand} from './base.js'
 const API_URL = process.env.LPS_API_URL ?? 'https://api.loopress.dev'
 
 export abstract class PushCommand extends LoopressCommand {
-  protected dryRun = false
-
   async catch(err: Error): Promise<void> {
     if (!this.dryRun && this.siteConfig) {
       await this.recordDeployment('failure')
