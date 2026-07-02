@@ -4,6 +4,8 @@ import {Command} from '@oclif/core'
 import {configManager} from '../../config/project-config.manager.js'
 import {EnvironmentConfig, ProjectConfig} from '../../config/types.js'
 
+const NEW_PROJECT = '__new__'
+
 export default class Config extends Command {
   static description = 'Add or update a WordPress project environment'
   static examples = ['$ lps project config']
@@ -11,16 +13,7 @@ export default class Config extends Command {
   async run(): Promise<void> {
     await this.parse(Config)
 
-    const projectName = await input({
-      message: 'Project name (identifier, no spaces)',
-      validate(value) {
-        if (!/^[a-z0-9_-]+$/.test(value)) {
-          return 'Name must be lowercase with only letters, numbers, - and _'
-        }
-
-        return true
-      },
-    })
+    const {projectId, projectName} = await this.resolveProject()
 
     const envChoice = await select({
       choices: [
@@ -40,8 +33,7 @@ export default class Config extends Command {
           })
         : envChoice
 
-    const existingProject = configManager.getProject(projectName)
-    const existingEnv = existingProject?.environments[envName]
+    const existingEnv = configManager.getEnvironment(projectId, envName)
 
     if (existingEnv) {
       const overwrite = await confirm({
@@ -90,20 +82,51 @@ export default class Config extends Command {
       url,
     }
 
-    if (existingProject) {
-      configManager.setEnvironment(projectName, envName, env)
+    if (configManager.getProject(projectId)) {
+      configManager.setEnvironment(projectId, envName, env)
     } else {
       const project: ProjectConfig = {
         addedAt: new Date().toISOString(),
-        currentEnv: envName,
         environments: {[envName]: env},
         name: projectName,
       }
-      configManager.setProject(projectName, project)
+      configManager.setProject(projectId, project)
     }
 
     this.log(`✓ "${projectName}/${envName}" configured`)
-    this.log('→ Run `lps project switch` to change active project')
-    this.log('→ Run `lps project switch-env` to change active environment')
+    this.log('→ Run `lps project switch` to change the active project or environment')
+  }
+
+  private async resolveProject(): Promise<{projectId: string; projectName: string}> {
+    const projects = configManager.listProjects()
+
+    if (projects.length > 0) {
+      const choice = await select({
+        choices: [
+          ...projects.map((project) => ({name: project.name, value: project.id})),
+          {name: 'Add a new project…', value: NEW_PROJECT},
+        ],
+        message: 'Project',
+      })
+
+      if (choice !== NEW_PROJECT) {
+        const project = projects.find((p) => p.id === choice)!
+        return {projectId: project.id, projectName: project.name}
+      }
+    }
+
+    const existingNames = new Set(projects.map((project) => project.name.trim().toLowerCase()))
+
+    const projectName = await input({
+      message: 'Project name',
+      validate(value) {
+        const trimmed = value.trim()
+        if (trimmed.length === 0) return 'Name cannot be empty'
+        if (existingNames.has(trimmed.toLowerCase())) return `A project named "${trimmed}" already exists`
+        return true
+      },
+    })
+
+    return {projectId: configManager.createProjectId(), projectName: projectName.trim()}
   }
 }

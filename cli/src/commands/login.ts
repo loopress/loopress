@@ -9,7 +9,7 @@ const CONSOLE_URL = 'https://console.loopress.dev'
 const TIMEOUT_MS = 5 * 60 * 1000
 
 export default class Login extends Command {
-  static description = 'Log in to Loopress via the console'
+  static description = 'Log in to the Loopress console'
   static examples = ['$ lps login']
 
   async run(): Promise<void> {

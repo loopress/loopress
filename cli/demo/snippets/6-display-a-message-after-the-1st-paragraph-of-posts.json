@@ -1,0 +1,7 @@
+{
+  "id": 6,
+  "name": "Display a message after the 1st paragraph of posts",
+  "type": "text",
+  "active": false,
+  "description": "Imported from demo/snippets/6-display-a-message-after-the-1st-paragraph-of-posts.txt"
+}

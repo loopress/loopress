@@ -1,0 +1,7 @@
+{
+  "id": 7,
+  "name": "Completely Disable Comments",
+  "type": "php",
+  "active": false,
+  "description": "Imported from demo/snippets/7-completely-disable-comments.php"
+}

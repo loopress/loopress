@@ -1,9 +1,8 @@
 {
   "$schema": "./loopress.schema.json",
   "rootDir": "./demo",
+  "snippetPlugin": "wpcode",
   "plugins": {
-    "fluent-smtp": "2.2.95",
-    "fluentform": "6.2.5",
-    "fluent-crm": "3.1.6"
+    "insert-headers-and-footers": "2.3.7"
   }
 }

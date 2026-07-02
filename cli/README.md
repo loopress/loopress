@@ -43,16 +43,15 @@ USAGE
 * [`lps project config`](#lps-project-config)
 * [`lps project list`](#lps-project-list)
 * [`lps project remove`](#lps-project-remove)
-* [`lps project remove-env`](#lps-project-remove-env)
 * [`lps project switch`](#lps-project-switch)
-* [`lps project switch-env`](#lps-project-switch-env)
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
+* [`lps status`](#lps-status)
 
 ## `lps composer pull`
 
-Pull composer.lock from the WordPress server
+Pull composer.lock from WordPress
 
 ```
 USAGE
@@ -67,7 +66,7 @@ GLOBAL FLAGS
   --user=<value>      WordPress username (fallback; prefer `lps project config`)
 
 DESCRIPTION
-  Pull composer.lock from the WordPress server
+  Pull composer.lock from WordPress
 
 EXAMPLES
   $ lps composer pull
@@ -79,7 +78,7 @@ _See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/
 
 ## `lps composer push`
 
-Upload composer.json and composer.lock to WordPress and run composer install
+Push composer.json and composer.lock to WordPress and run composer install
 
 ```
 USAGE
@@ -94,7 +93,7 @@ GLOBAL FLAGS
   --user=<value>      WordPress username (fallback; prefer `lps project config`)
 
 DESCRIPTION
-  Upload composer.json and composer.lock to WordPress and run composer install
+  Push composer.json and composer.lock to WordPress and run composer install
 
 EXAMPLES
   $ lps composer push
@@ -143,14 +142,14 @@ _See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.6
 
 ## `lps login`
 
-Log in to Loopress via the console
+Log in to the Loopress console
 
 ```
 USAGE
   $ lps login
 
 DESCRIPTION
-  Log in to Loopress via the console
+  Log in to the Loopress console
 
 EXAMPLES
   $ lps login
@@ -160,14 +159,14 @@ _See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.
 
 ## `lps logout`
 
-Log out from Loopress console
+Log out from the Loopress console
 
 ```
 USAGE
   $ lps logout
 
 DESCRIPTION
-  Log out from Loopress console
+  Log out from the Loopress console
 
 EXAMPLES
   $ lps logout
@@ -177,14 +176,14 @@ _See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0
 
 ## `lps plugin add SLUG [VERSION]`
 
-Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
+Add a WordPress.org plugin to loopress.json
 
 ```
 USAGE
   $ lps plugin add SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
 
 ARGUMENTS
-  SLUG       Plugin slug (WordPress.org) or Composer package (vendor/package)
+  SLUG       Plugin slug on WordPress.org
   [VERSION]  Version to pin (default: latest)
 
 FLAGS
@@ -196,14 +195,12 @@ GLOBAL FLAGS
   --user=<value>      WordPress username (fallback; prefer `lps project config`)
 
 DESCRIPTION
-  Add a plugin to loopress.json (WordPress.org) or run composer require (vendor/package)
+  Add a WordPress.org plugin to loopress.json
 
 EXAMPLES
   $ lps plugin add woocommerce
 
   $ lps plugin add woocommerce 8.9.1
-
-  $ lps plugin add wpackagist-plugin/advanced-custom-fields
 
   $ lps plugin add contact-form-7 --dry-run
 ```
@@ -239,7 +236,7 @@ _See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/bl
 
 ## `lps plugin push`
 
-Sync plugins on WordPress to match loopress.json
+Push plugins to WordPress to match loopress.json
 
 ```
 USAGE
@@ -254,7 +251,7 @@ GLOBAL FLAGS
   --user=<value>      WordPress username (fallback; prefer `lps project config`)
 
 DESCRIPTION
-  Sync plugins on WordPress to match loopress.json
+  Push plugins to WordPress to match loopress.json
 
 EXAMPLES
   $ lps plugin push
@@ -300,14 +297,14 @@ _See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/b
 
 ## `lps project remove`
 
-Remove one or more WordPress project configurations
+Remove one or more WordPress projects or environments
 
 ```
 USAGE
   $ lps project remove
 
 DESCRIPTION
-  Remove one or more WordPress project configurations
+  Remove one or more WordPress projects or environments
 
 EXAMPLES
   $ lps project remove
@@ -315,56 +312,22 @@ EXAMPLES
 
 _See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/project/remove.ts)_
 
-## `lps project remove-env`
-
-Remove one or more environments from the current project
-
-```
-USAGE
-  $ lps project remove-env
-
-DESCRIPTION
-  Remove one or more environments from the current project
-
-EXAMPLES
-  $ lps project remove-env
-```
-
-_See code: [src/commands/project/remove-env.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/project/remove-env.ts)_
-
 ## `lps project switch`
 
-Switch the active project
+Switch the active project and environment
 
 ```
 USAGE
   $ lps project switch
 
 DESCRIPTION
-  Switch the active project
+  Switch the active project and environment
 
 EXAMPLES
   $ lps project switch
 ```
 
 _See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/project/switch.ts)_
-
-## `lps project switch-env`
-
-Switch the active environment within the current project
-
-```
-USAGE
-  $ lps project switch-env
-
-DESCRIPTION
-  Switch the active environment within the current project
-
-EXAMPLES
-  $ lps project switch-env
-```
-
-_See code: [src/commands/project/switch-env.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/project/switch-env.ts)_
 
 ## `lps snippet list`
 
@@ -409,7 +372,7 @@ ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
 
 FLAGS
-  -d, --dryRun           Dry run - show what would happen without making changes
+  -d, --dry-run          Show what would be written without making changes
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
@@ -445,7 +408,7 @@ ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
 
 FLAGS
-  -d, --dryRun           Dry run - show what would happen without making changes
+  -d, --dry-run          Show what would change without making changes
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
@@ -468,4 +431,21 @@ EXAMPLES
 ```
 
 _See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/snippet/push.ts)_
+
+## `lps status`
+
+Show which WordPress project and environment commands will target
+
+```
+USAGE
+  $ lps status
+
+DESCRIPTION
+  Show which WordPress project and environment commands will target
+
+EXAMPLES
+  $ lps status
+```
+
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.6.0/src/commands/status.ts)_
 <!-- commandsstop -->

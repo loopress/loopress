@@ -68,10 +68,8 @@ Loopress stores configurations in `~/.loopress/config.json` and tracks the curre
 ```bash
 lps project config          # Add or update a project/environment
 lps project list            # Show all configured projects and their environments
-lps project switch          # Interactively pick the active project
-lps project switch-env      # Interactively pick the active environment
-lps project remove          # Remove a saved project
-lps project remove-env      # Remove a saved environment
+lps project switch          # Interactively pick the active project and environment
+lps project remove          # Remove a saved project or environment
 ```
 
 All commands operate against the **active project/environment**.

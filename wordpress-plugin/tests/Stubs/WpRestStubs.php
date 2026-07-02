@@ -51,6 +51,17 @@ if (!class_exists('WP_REST_Server')) {
     class WP_REST_Server {}
 }
 
+if (!class_exists('WP_Post')) {
+    class WP_Post
+    {
+        public int $ID = 0;
+        public string $post_content = '';
+        public string $post_status = 'draft';
+        public string $post_title = '';
+        public string $post_type = 'post';
+    }
+}
+
 if (!function_exists('wp_mkdir_p')) {
     function wp_mkdir_p(string $path): bool
     {

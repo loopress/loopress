@@ -53,9 +53,7 @@ Switch between them:
 
 ```bash
 lps project switch
-# Presents a list of configured projects
-lps project switch-env
-# Presents a list of environments for the current project
+# Presents a list of configured projects, then a list of environments for the one you pick
 ```
 
 From that point, every Loopress command runs against the active site.
@@ -81,8 +79,7 @@ A developer makes a change:
 
 ```bash
 # Switch to the staging environment for client-a
-lps project switch      # select client-a
-lps project switch-env  # select staging
+lps project switch      # select client-a, then staging
 
 # Pull current state from staging
 lps snippet pull
@@ -98,7 +95,7 @@ git commit -m "fix: tax exemption for nonprofit accounts"
 lps snippet push
 
 # After sign-off, switch to production and push
-lps project switch-env  # select production
+lps project switch  # select client-a, then production
 lps snippet push
 ```
 

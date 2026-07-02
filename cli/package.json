@@ -24,6 +24,7 @@
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4.1.20",
     "@types/node": "26.0.1",
+    "@vitest/coverage-v8": "4.1.9",
     "eslint": "^9",
     "eslint-config-oclif": "^6.0.174",
     "eslint-config-prettier": "^10",
@@ -65,7 +66,21 @@
     "plugins": [
       "@oclif/plugin-help"
     ],
-    "topicSeparator": " "
+    "topicSeparator": " ",
+    "topics": {
+      "composer": {
+        "description": "Sync composer.json and composer.lock between your project and WordPress"
+      },
+      "plugin": {
+        "description": "Manage WordPress.org plugins tracked in loopress.json"
+      },
+      "project": {
+        "description": "Manage WordPress project and environment configurations"
+      },
+      "snippet": {
+        "description": "Manage WordPress code snippets"
+      }
+    }
   },
   "repository": {
     "type": "git",

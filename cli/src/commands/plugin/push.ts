@@ -9,7 +9,7 @@ import {readLocalConfig} from '../../utils/loopress-config.js'
 import {diffPlugins} from '../../utils/plugins.js'
 
 export default class Push extends PushCommand {
-  static description = 'Sync plugins on WordPress to match loopress.json'
+  static description = 'Push plugins to WordPress to match loopress.json'
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
     ...PushCommand.baseFlags,

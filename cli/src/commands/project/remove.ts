@@ -3,8 +3,12 @@ import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
 
+type RemovalTarget =
+  | {env: string; kind: 'env'; projectId: string; projectName: string}
+  | {kind: 'project'; projectId: string; projectName: string}
+
 export default class Remove extends Command {
-  static description = 'Remove one or more WordPress project configurations'
+  static description = 'Remove one or more WordPress projects or environments'
   static examples = ['$ lps project remove']
 
   async run(): Promise<void> {
@@ -16,17 +20,32 @@ export default class Remove extends Command {
       this.error('No projects configured.')
     }
 
-    const chosen = await checkbox({
-      choices: projects.map((project) => {
-        const envCount = Object.keys(project.environments).length
-        const envLabel = `${envCount} env${envCount > 1 ? 's' : ''}`
-        const currentMarker = project.isCurrent ? ' [current]' : ''
+    const targets: RemovalTarget[] = []
+    const choices = projects.flatMap((project) => {
+      const envCount = Object.keys(project.environments).length
+      const envLabel = `${envCount} env${envCount > 1 ? 's' : ''}`
+      const currentMarker = project.isCurrent ? ' [current]' : ''
+
+      targets.push({kind: 'project', projectId: project.id, projectName: project.name})
+      const projectChoice = {
+        name: `${project.isCurrent ? '●' : '○'} ${project.name.padEnd(20)} (${envLabel})${currentMarker}`,
+        value: String(targets.length - 1),
+      }
+
+      const envChoices = configManager.listEnvironments(project.id).map((env) => {
+        targets.push({env: env.name, kind: 'env', projectId: project.id, projectName: project.name})
         return {
-          name: `${project.isCurrent ? '●' : '○'} ${project.name.padEnd(20)} (${envLabel})${currentMarker}`,
-          value: project.name,
+          name: `    ${env.isCurrent ? '●' : '○'} ${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
+          value: String(targets.length - 1),
         }
-      }),
-      message: 'Select projects to remove',
+      })
+
+      return [projectChoice, ...envChoices]
+    })
+
+    const chosen = await checkbox({
+      choices,
+      message: 'Select projects or environments to remove',
     })
 
     if (chosen.length === 0) {
@@ -34,10 +53,23 @@ export default class Remove extends Command {
       return
     }
 
-    for (const name of chosen) {
-      configManager.removeProject(name)
-    }
+    const selected = chosen.map((index) => targets[Number(index)])
+    const projectsToRemove = new Map(
+      selected.filter((target) => target.kind === 'project').map((target) => [target.projectId, target.projectName]),
+    )
+    const envsToRemove = selected.filter(
+      (target): target is Extract<RemovalTarget, {kind: 'env'}> =>
+        target.kind === 'env' && !projectsToRemove.has(target.projectId),
+    )
 
-    this.log(`✓ Removed: ${chosen.join(', ')}`)
+    for (const projectId of projectsToRemove.keys()) configManager.removeProject(projectId)
+    for (const {env, projectId} of envsToRemove) configManager.removeEnvironment(projectId, env)
+
+    const removedLabels = [
+      ...projectsToRemove.values(),
+      ...envsToRemove.map(({env, projectName}) => `${projectName}/${env}`),
+    ]
+
+    this.log(`✓ Removed: ${removedLabels.join(', ')}`)
   }
 }

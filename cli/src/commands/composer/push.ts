@@ -9,7 +9,7 @@ import {ComposerJson} from '../../utils/composer.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
 
 export default class ComposerPush extends PushCommand {
-  static description = 'Upload composer.json and composer.lock to WordPress and run composer install'
+  static description = 'Push composer.json and composer.lock to WordPress and run composer install'
   static examples = ['$ lps composer push', '$ lps composer push --dry-run']
   static flags = {
     ...PushCommand.baseFlags,
