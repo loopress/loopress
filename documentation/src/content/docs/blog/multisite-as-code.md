@@ -58,7 +58,7 @@ lps project switch-env
 # Presents a list of environments for the current project
 ```
 
-From that point, every Loopress command runs against the active site, or you can target one explicitly with `--site`.
+From that point, every Loopress command runs against the active site.
 
 ## What a real agency workflow looks like
 
@@ -80,8 +80,12 @@ This directory is the source of truth. Not the database on production. Not "what
 A developer makes a change:
 
 ```bash
+# Switch to the staging environment for client-a
+lps project switch      # select client-a
+lps project switch-env  # select staging
+
 # Pull current state from staging
-lps snippets pull --site client-a-staging
+lps snippet pull
 
 # Edit the snippet locally
 vim snippets/checkout-tax-fix.php
@@ -91,10 +95,11 @@ git add snippets/checkout-tax-fix.php
 git commit -m "fix: tax exemption for nonprofit accounts"
 
 # Push to staging for review
-lps snippets push --site client-a-staging
+lps snippet push
 
-# After sign-off, push to production
-lps snippets push --site client-a-production
+# After sign-off, switch to production and push
+lps project switch-env  # select production
+lps snippet push
 ```
 
 The change is tracked in Git. The commit message documents why. Another developer can pick this up, see the history, and understand what's deployed where.
@@ -109,9 +114,10 @@ With Loopress:
 # Update the shared snippet once
 vim shared/snippets/security-headers.php
 
-# Push to all clients
-for site in $(lps project list); do
-  lps snippets push --site $site --path shared/snippets/
+# Push to all clients by switching to each project in turn
+for project in client-a client-b client-c; do
+  lps project switch  # select $project interactively, or configure loopress.json per client repo
+  lps snippet push --path shared/snippets/
 done
 ```
 

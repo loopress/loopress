@@ -40,10 +40,10 @@ export default class Pull extends LoopressCommand {
   }
   static description = 'Pull snippets from WordPress'
   static examples = [
-    '$ lps snippets pull',
-    '$ lps snippets pull --url http://example.com',
-    '$ lps snippets pull --path ./snippets',
-    '$ lps snippets pull --plugin wpcode',
+    '$ lps snippet pull',
+    '$ lps snippet pull --url http://example.com',
+    '$ lps snippet pull --path ./snippets',
+    '$ lps snippet pull --plugin wpcode',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,

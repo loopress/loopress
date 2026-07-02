@@ -22,30 +22,39 @@ The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs; the v
 
 ## Commands
 
-### `lps plugin require`
+### `lps plugin add`
 
-Add a plugin to `loopress.json`, resolving its current version from WordPress.org.
+Add a plugin to `loopress.json`. Accepts either a WordPress.org slug or a Composer package name.
 
 ```bash
-lps plugin require <slug> [version]
+lps plugin add <slug> [version]
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `slug` | WordPress.org plugin slug (e.g. `woocommerce`) |
-| `version` | Version to pin. Omit to resolve the latest version automatically. |
+| `slug` | WordPress.org plugin slug (e.g. `woocommerce`) or Composer package (e.g. `wpackagist-plugin/advanced-custom-fields`) |
+| `version` | Version to pin. Omit to resolve the latest version automatically (WordPress.org only). |
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching `loopress.json` |
 
-**Examples:**
+**WordPress.org slug** — resolves the current stable version from the WordPress.org API and writes it to `loopress.json`:
 
 ```bash
-lps plugin require woocommerce          # pins latest stable version
-lps plugin require woocommerce 9.0.2   # pins a specific version
-lps plugin require contact-form-7 --dry-run
+lps plugin add woocommerce          # pins latest stable version
+lps plugin add woocommerce 9.0.2   # pins a specific version
+lps plugin add contact-form-7 --dry-run
 ```
+
+**Composer package** — delegates directly to `composer require` (requires Composer to be installed locally):
+
+```bash
+lps plugin add wpackagist-plugin/advanced-custom-fields
+lps plugin add wpackagist-plugin/contact-form-7:5.9.8
+```
+
+The slug format is the distinguishing factor: anything containing `/` is treated as a Composer package.
 
 ---
 
@@ -131,5 +140,5 @@ All three commands accept `--dry-run` (`-d`). Use it to preview changes before c
 ```bash
 lps plugin pull --dry-run
 lps plugin push --dry-run
-lps plugin require yoast-seo --dry-run
+lps plugin add yoast-seo --dry-run
 ```

@@ -3,7 +3,7 @@ title: CI/CD Integration
 description: Bootstrap a full WordPress environment in CI with a single step and run Loopress against it.
 ---
 
-`loopress/setup-ci` starts MySQL and WordPress via Docker, installs WP-CLI, creates the REST credentials, and installs the Loopress CLI. Your pipeline can run `loopress push` immediately after.
+`loopress/setup-ci` starts MySQL and WordPress via Docker, installs WP-CLI, creates the REST credentials, and installs the Loopress CLI. Your pipeline can run `lps snippet push` immediately after.
 
 ## How it works
 

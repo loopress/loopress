@@ -56,19 +56,22 @@ lps project config
 ### Pull your snippets
 
 ```bash
-lps snippets pull
+lps snippet pull
 ```
 
-This creates a `snippets/` directory with one `.php` file per snippet:
+This creates a `snippets/` directory with one `.php` file and one `.json` sidecar per snippet:
 
 ```
 snippets/
-  my-custom-function.php
-  woocommerce-checkout-tweak.php
-  disable-gutenberg.php
+  1-my-custom-function.php
+  1-my-custom-function.json
+  2-woocommerce-checkout-tweak.php
+  2-woocommerce-checkout-tweak.json
+  3-disable-gutenberg.php
+  3-disable-gutenberg.json
 ```
 
-Each file is the raw PHP content of your snippet, nothing more.
+Each `.php` file contains the raw snippet code. The `.json` sidecar stores the metadata (id, name, type, active status, tags) that Loopress uses to identify and update the snippet on WordPress.
 
 ### Edit locally
 
@@ -84,7 +87,7 @@ Now you have a commit. A diff. A message explaining why. This is reviewable, rev
 ### Push back to WordPress
 
 ```bash
-lps snippets push
+lps snippet push
 ```
 
 Loopress syncs your local files back to WordPress via the REST API. No FTP, no copy-paste.
@@ -92,7 +95,7 @@ Loopress syncs your local files back to WordPress via the REST API. No FTP, no c
 If you want to see what would change without actually changing anything:
 
 ```bash
-lps snippets push --dry-run
+lps snippet push --dry-run
 ```
 
 ## Working across environments
@@ -101,22 +104,22 @@ The real value shows up when you're working with local, staging, and production 
 
 ```bash
 # Pull from production
-lps snippets pull --url https://production.example.com
+lps snippet pull --url https://production.example.com
 
 # Test locally, commit changes
 
 # Push to staging first
-lps snippets push --url https://staging.example.com
+lps snippet push --url https://staging.example.com
 
 # When ready, push to production
-lps snippets push --url https://production.example.com
+lps snippet push --url https://production.example.com
 ```
 
 Your snippets flow between environments the same way your code does. No database exports, no manual copy-paste.
 
 ## One thing to keep in mind
 
-Loopress syncs snippets by name. If you rename a snippet in the admin panel, Loopress will treat it as a new snippet on the next push. Keep names consistent, and treat the files as the source of truth once you're in this workflow.
+Loopress syncs snippets by ID (stored in the `.json` sidecar). If you pull first, the ID is saved and subsequent pushes update the correct snippet regardless of name changes. Without a sidecar ID, Loopress creates a new snippet. Treat the files as the source of truth once you're in this workflow.
 
 ---
 

@@ -7,9 +7,9 @@ import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
 export default class List extends LoopressCommand {
   static description = 'List snippets from WordPress'
   static examples = [
-    '$ lps snippets list',
-    '$ lps snippets list --url http://example.com',
-    '$ lps snippets list --plugin wpcode',
+    '$ lps snippet list',
+    '$ lps snippet list --url http://example.com',
+    '$ lps snippet list --plugin wpcode',
   ]
   static flags = {
     ...LoopressCommand.baseFlags,

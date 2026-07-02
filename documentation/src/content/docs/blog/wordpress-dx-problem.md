@@ -54,14 +54,14 @@ Imagine instead:
 
 ```bash
 # Pull your snippets down as files
-lps snippets pull
+lps snippet pull
 
 # Edit them locally, in your editor, with Git tracking changes
 git add snippets/my-function.php
 git commit -m "fix: correct tax calculation logic"
 
 # Push back to WordPress
-lps snippets push
+lps snippet push
 ```
 
 Your snippet is now version-controlled. You have a diff. You can roll back. You can review the change in a PR. This is how software is supposed to work.

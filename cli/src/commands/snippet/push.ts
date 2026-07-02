@@ -11,10 +11,10 @@ export default class Push extends PushCommand {
   }
   static description = 'Push snippets to WordPress'
   static examples = [
-    '$ lps snippets push',
-    '$ lps snippets push --url http://example.com',
-    '$ lps snippets push --path ./snippets',
-    '$ lps snippets push --plugin wpcode',
+    '$ lps snippet push',
+    '$ lps snippet push --url http://example.com',
+    '$ lps snippet push --path ./snippets',
+    '$ lps snippet push --plugin wpcode',
   ]
   static flags = {
     ...PushCommand.baseFlags,

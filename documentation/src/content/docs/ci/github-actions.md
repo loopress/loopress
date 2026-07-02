@@ -9,7 +9,7 @@ Add the `loopress/setup-ci` action to your workflow. It starts a full WordPress 
 steps:
   - uses: actions/checkout@v4
   - uses: loopress/setup-ci@main
-  - run: loopress push
+  - run: lps snippet push
 ```
 
 ## Inputs
@@ -39,7 +39,7 @@ steps:
       port: "9090"
       token: ${{ secrets.LOOPRESS_TOKEN }}
 
-  - run: loopress push
+  - run: lps snippet push
 ```
 
 ## Test and deploy workflow
@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: loopress/setup-ci@main
-      - run: loopress push
+      - run: lps snippet push
 
   deploy:
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install -g @loopress/cli
-      - run: loopress push --site production
+      - run: lps snippet push
         env:
           LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
 ```

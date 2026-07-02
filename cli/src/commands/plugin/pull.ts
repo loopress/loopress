@@ -9,7 +9,7 @@ import {mergePluginManifest} from '../../utils/plugins.js'
 
 export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.json'
-  static examples = ['$ lps plugins pull', '$ lps plugins pull --dry-run']
+  static examples = ['$ lps plugin pull', '$ lps plugin pull --dry-run']
   static flags = {
     ...LoopressCommand.baseFlags,
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
