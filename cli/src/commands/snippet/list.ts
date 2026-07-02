@@ -1,8 +1,8 @@
 import {Flags} from '@oclif/core'
-import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {getSnippetPlugin, PluginName} from '../../utils/snippet-plugin.js'
+import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
+import {getSnippetPlugin} from '../../utils/snippet-plugin.js'
 
 export default class List extends LoopressCommand {
   static description = 'List snippets from WordPress'
@@ -14,54 +14,41 @@ export default class List extends LoopressCommand {
   static flags = {
     ...LoopressCommand.baseFlags,
     json: Flags.boolean({char: 'j', description: 'Output in JSON format'}),
-    plugin: Flags.string({
-      char: 'p',
-      description: 'WordPress snippet plugin to target (overrides loopress.json)',
-      options: ['code-snippets', 'wpcode'],
-    }),
+    ...snippetPluginFlag,
   }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(List)
-    const {json, plugin} = flags as {json: boolean; plugin: string | undefined}
-    const {url} = this.siteConfig
-    const resolvedPlugin = await this.resolveSnippetPlugin(plugin)
+    const adapter = getSnippetPlugin(this.resolveSnippetPlugin(flags.plugin))
 
-    try {
-      const adapter = getSnippetPlugin(resolvedPlugin)
-      const endpoint = adapter.endpoint(url)
-      const headers = await this.buildAuthHeaders()
+    const remoteList = await this.wp.get<Record<string, unknown>[]>(adapter.endpointPath())
+    const snippets = remoteList.map((r) => adapter.fromRemote(r))
 
-      const remoteList: Record<string, unknown>[] = await got.get(endpoint, {headers}).json()
-      const snippets = remoteList.map((r) => adapter.fromRemote(r))
+    if (flags.json) {
+      this.log(JSON.stringify(snippets, null, 2))
+      return
+    }
 
-      if (json) {
-        this.log(JSON.stringify(snippets, null, 2))
-      } else {
-        if (snippets.length === 0) {
-          this.log('No snippets found')
-          return
-        }
+    if (snippets.length === 0) {
+      this.log('No snippets found')
+      return
+    }
 
-        this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}:`)
-        console.log('')
+    this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}:`)
+    this.log('')
 
-        for (const snippet of snippets) {
-          this.log(`  ${snippet.id}. ${snippet.name}`)
-          this.log(`     Active: ${snippet.active ? '✓' : '✗'}`)
-          if (snippet.tags && snippet.tags.length > 0) {
-            this.log(`     Tags: ${snippet.tags.join(', ')}`)
-          }
-
-          if (snippet.description) {
-            this.log(`     Description: ${snippet.description}`)
-          }
-
-          console.log('')
-        }
+    for (const snippet of snippets) {
+      this.log(`  ${snippet.id}. ${snippet.name}`)
+      this.log(`     Active: ${snippet.active ? 'yes' : 'no'}`)
+      if (snippet.tags.length > 0) {
+        this.log(`     Tags: ${snippet.tags.join(', ')}`)
       }
-    } catch (error) {
-      this.error(`❌ Error listing snippets: ${(error as Error).message}`)
+
+      if (snippet.description) {
+        this.log(`     Description: ${snippet.description}`)
+      }
+
+      this.log('')
     }
   }
 }

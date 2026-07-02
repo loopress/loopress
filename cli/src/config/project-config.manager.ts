@@ -1,22 +1,13 @@
 import {randomUUID} from 'node:crypto'
-import {existsSync, mkdirSync, readFileSync, renameSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync} from 'node:fs'
 import {homedir} from 'node:os'
 import {join} from 'node:path'
 
-import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig} from './types.js'
+import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig} from '../types/config.js'
+import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
-  private static instance: ProjectConfigManager
-
   constructor(private readonly homeDir: string = homedir()) {}
-
-  static getInstance(): ProjectConfigManager {
-    if (!ProjectConfigManager.instance) {
-      ProjectConfigManager.instance = new ProjectConfigManager()
-    }
-
-    return ProjectConfigManager.instance
-  }
 
   createProjectId(): string {
     return randomUUID()
@@ -80,17 +71,12 @@ export class ProjectConfigManager {
   }
 
   readConfig(): LoopressConfig {
-    const filePath = this.getConfigFilePath()
-    if (!existsSync(filePath)) {
+    const parsed = readJsonFile<unknown>(this.getConfigFilePath())
+    if (parsed === null) {
       return {currentProject: null, projects: {}}
     }
 
-    try {
-      const parsed: unknown = JSON.parse(readFileSync(filePath, 'utf8'))
-      return this.sanitizeConfig(parsed)
-    } catch {
-      return {currentProject: null, projects: {}}
-    }
+    return this.sanitizeConfig(parsed)
   }
 
   removeEnvironment(projectId: string, envName: string): void {
@@ -153,11 +139,7 @@ export class ProjectConfigManager {
   }
 
   writeConfig(config: LoopressConfig): void {
-    this.ensureConfigDir()
-    const filePath = this.getConfigFilePath()
-    const tmpPath = `${filePath}.tmp`
-    writeFileSync(tmpPath, JSON.stringify(config, null, 2))
-    renameSync(tmpPath, filePath)
+    writeJsonFileAtomic(this.getConfigFilePath(), config)
   }
 
   private isProjectConfig(value: unknown): value is ProjectConfig {
@@ -194,4 +176,4 @@ export class ProjectConfigManager {
   }
 }
 
-export const configManager = ProjectConfigManager.getInstance()
+export const configManager = new ProjectConfigManager()

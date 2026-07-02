@@ -1,6 +1,8 @@
-import {existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync} from 'node:fs'
+import {existsSync, unlinkSync} from 'node:fs'
 import {homedir} from 'node:os'
 import {join} from 'node:path'
+
+import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export interface ConsoleAuth {
   email?: string
@@ -9,17 +11,7 @@ export interface ConsoleAuth {
 }
 
 export class AuthManager {
-  private static instance: AuthManager
-
   constructor(private readonly homeDir: string = homedir()) {}
-
-  static getInstance(): AuthManager {
-    if (!AuthManager.instance) {
-      AuthManager.instance = new AuthManager()
-    }
-
-    return AuthManager.instance
-  }
 
   clearAuth(): void {
     const filePath = this.getAuthFilePath()
@@ -27,14 +19,7 @@ export class AuthManager {
   }
 
   getAuth(): ConsoleAuth | null {
-    const filePath = this.getAuthFilePath()
-    if (!existsSync(filePath)) return null
-
-    try {
-      return JSON.parse(readFileSync(filePath, 'utf8')) as ConsoleAuth
-    } catch {
-      return null
-    }
+    return readJsonFile<ConsoleAuth>(this.getAuthFilePath())
   }
 
   getAuthFilePath(): string {
@@ -42,14 +27,8 @@ export class AuthManager {
   }
 
   setAuth(auth: ConsoleAuth): void {
-    const dir = join(this.homeDir, '.loopress')
-    if (!existsSync(dir)) mkdirSync(dir, {recursive: true})
-
-    const filePath = this.getAuthFilePath()
-    const tmpPath = `${filePath}.tmp`
-    writeFileSync(tmpPath, JSON.stringify(auth, null, 2))
-    renameSync(tmpPath, filePath)
+    writeJsonFileAtomic(this.getAuthFilePath(), auth)
   }
 }
 
-export const authManager = AuthManager.getInstance()
+export const authManager = new AuthManager()

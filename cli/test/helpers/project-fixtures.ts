@@ -1,4 +1,4 @@
-import {EnvironmentConfig, ProjectConfig} from '../../src/config/types.js'
+import {EnvironmentConfig, ProjectConfig} from '../../src/types/config.js'
 
 export function makeEnv(name: string, url = 'https://example.com', token = 'user:pass'): EnvironmentConfig {
   return {addedAt: '2024-01-01T00:00:00.000Z', name, token, url}

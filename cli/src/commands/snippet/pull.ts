@@ -1,9 +1,11 @@
-import {Args, Flags} from '@oclif/core'
-import got from 'got'
+import {Args} from '@oclif/core'
+import {mkdir, writeFile} from 'node:fs/promises'
+import {join} from 'node:path'
 import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {getSnippetPlugin, NormalizedSnippet, PluginName, SnippetType} from '../../utils/snippet-plugin.js'
+import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
+import {getSnippetPlugin, NormalizedSnippet, SnippetType} from '../../utils/snippet-plugin.js'
 
 const EXTENSIONS: Record<SnippetType, string> = {
   css: 'css',
@@ -12,7 +14,6 @@ const EXTENSIONS: Record<SnippetType, string> = {
   php: 'php',
   text: 'txt',
 }
-
 
 export function buildSnippetFile(snippet: NormalizedSnippet): string {
   if (snippet.type === 'php' && !snippet.code.trimStart().startsWith('<?')) {
@@ -47,68 +48,50 @@ export default class Pull extends LoopressCommand {
   ]
   static flags = {
     ...LoopressCommand.baseFlags,
-    'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
-    plugin: Flags.string({
-      char: 'p',
-      description: 'WordPress snippet plugin to target (overrides loopress.json)',
-      options: ['code-snippets', 'wpcode'],
-    }),
+    ...LoopressCommand.dryRunFlag,
+    ...snippetPluginFlag,
   }
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Pull)
-    const dryRun = flags['dry-run']
-    const {plugin} = flags
     const {url} = this.siteConfig
-    const path = await this.resolveSnippetsPath(args.path)
-    const resolvedPlugin = await this.resolveSnippetPlugin(plugin)
+    const path = this.resolveSnippetsPath(args.path)
+    const resolvedPlugin = this.resolveSnippetPlugin(flags.plugin)
 
-    this.log(`📥 Pulling snippets from ${url} via ${resolvedPlugin}`)
-    this.log(`📂 From snippet path: ${path}`)
-    this.log(`🔄 Dry run: ${dryRun ? 'yes' : 'no'}`)
+    this.log(`Pulling snippets from ${url} via ${resolvedPlugin}`)
+    this.log(`Snippets path: ${path}`)
 
-    try {
-      const adapter = getSnippetPlugin(resolvedPlugin)
-      const endpoint = adapter.endpoint(url)
-      const headers = await this.buildAuthHeaders()
+    const adapter = getSnippetPlugin(resolvedPlugin)
+    const remoteList = await this.wp.get<Record<string, unknown>[]>(adapter.endpointPath())
+    const snippets = remoteList.map((r) => adapter.fromRemote(r))
 
-      const remoteList: Record<string, unknown>[] = await got.get(endpoint, {headers}).json()
-      const snippets = remoteList.map((r) => adapter.fromRemote(r))
+    if (this.dryRun) {
+      this.log(`[dry-run] Would pull ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to ${path}`)
+      return
+    }
 
-      const fs = await import('node:fs/promises')
-      await fs.mkdir(path, {recursive: true})
+    await mkdir(path, {recursive: true})
 
-      if (dryRun) {
-        this.log(`📝 [DRY RUN] Would pull ${snippets.length} snippets`)
-        this.log(`🔍 Raw API sample:\n${JSON.stringify(remoteList[0], null, 2)}`)
-        return
+    let count = 0
+    let skipped = 0
+    for (const snippet of snippets) {
+      if (!snippet.name.trim()) {
+        skipped++
+        continue
       }
 
-      let count = 0
-      let skipped = 0
-      for (const snippet of snippets) {
-        if (!snippet.name.trim()) {
-          skipped++
-          continue
-        }
+      const ext = EXTENSIONS[snippet.type]
+      const slug = slugify(snippet.name, {lower: true, strict: true})
+      const base = `${snippet.id}-${slug}`
+      await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
+      await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
+      count++
+      this.log(`  Pulled: ${snippet.name}`)
+    }
 
-        const ext = EXTENSIONS[snippet.type]
-        const slug = slugify(snippet.name, {lower: true, strict: true})
-        const base = `${snippet.id}-${slug}`
-        const filePath = `${path}/${base}.${ext}`
-        const metaPath = `${path}/${base}.json`
-        await fs.writeFile(filePath, buildSnippetFile(snippet))
-        await fs.writeFile(metaPath, buildMetaFile(snippet))
-        count++
-        this.log(`✅ Pulled: ${snippet.name}`)
-      }
-
-      this.log(`🎉 Successfully pulled ${count} snippet${count === 1 ? '' : 's'} to ${path}`)
-      if (skipped > 0) {
-        this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
-      }
-    } catch (error) {
-      this.error(`❌ Error pulling snippets: ${(error as Error).message}`)
+    this.log(`Pulled ${count} snippet${count === 1 ? '' : 's'} to ${path}`)
+    if (skipped > 0) {
+      this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
   }
 }

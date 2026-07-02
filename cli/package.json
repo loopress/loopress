@@ -1,6 +1,6 @@
 {
   "name": "@loopress/cli",
-  "description": "CLI tool for syncing WordPress CodeSnippets, styles, and menus via the REST API",
+  "description": "CLI tool for syncing WordPress code snippets, plugins, and Composer dependencies via the REST API",
   "version": "0.7.0",
   "author": "jean-smaug",
   "bin": {
@@ -17,13 +17,15 @@
     "@oclif/plugin-plugins": "^5.4.80",
     "glob": "13.0.6",
     "got": "^15.0.7",
-    "slugify": "^1.6.9"
+    "slugify": "^1.6.9",
+    "write-file-atomic": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/compat": "2.1.0",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4.1.20",
     "@types/node": "26.0.1",
+    "@types/write-file-atomic": "^4.0.3",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "^9",
     "eslint-config-oclif": "^6.0.174",

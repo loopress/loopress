@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
-import {EnvironmentConfig} from '../../src/config/types.js'
 import {PushCommand} from '../../src/lib/push-command.js'
+import {EnvironmentConfig} from '../../src/types/config.js'
 
 const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', url: 'http://example.com'}
 

@@ -15,6 +15,6 @@ export default class Logout extends Command {
     }
 
     authManager.clearAuth()
-    this.log(`✅ Logged out${auth.email ? ` (${auth.email})` : ''}.`)
+    this.log(`Logged out${auth.email ? ` (${auth.email})` : ''}.`)
   }
 }

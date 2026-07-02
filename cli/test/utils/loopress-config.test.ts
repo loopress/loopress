@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync} from 'node:fs'
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
@@ -26,6 +26,12 @@ describe('loopress-config', () => {
     it('returns an empty object when loopress.json does not exist', async () => {
       const config = await readLocalConfig()
       expect(config).toEqual({})
+    })
+
+    it('throws instead of silently returning {} when loopress.json is invalid JSON', async () => {
+      writeFileSync(join(tmpDir, 'loopress.json'), '{not json')
+
+      await expect(readLocalConfig()).rejects.toThrow('loopress.json is not valid JSON')
     })
   })
 

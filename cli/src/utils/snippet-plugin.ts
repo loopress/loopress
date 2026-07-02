@@ -29,14 +29,14 @@ function resolveType(raw: unknown, code: string): SnippetType {
 }
 
 export interface SnippetPlugin {
-  endpoint(siteUrl: string): string
+  endpointPath(): string
   fromRemote(data: Record<string, unknown>): NormalizedSnippet
   toPayload(name: string, code: string, path: string, type: SnippetType): Record<string, unknown>
 }
 
 class CodeSnippetsPlugin implements SnippetPlugin {
-  endpoint(siteUrl: string): string {
-    return `${siteUrl}/wp-json/code-snippets/v1/snippets`
+  endpointPath(): string {
+    return 'code-snippets/v1/snippets'
   }
 
   fromRemote(data: Record<string, unknown>): NormalizedSnippet {
@@ -63,8 +63,8 @@ class CodeSnippetsPlugin implements SnippetPlugin {
 }
 
 class WPCodePlugin implements SnippetPlugin {
-  endpoint(siteUrl: string): string {
-    return `${siteUrl}/wp-json/loopress/v1/wpcode/snippets`
+  endpointPath(): string {
+    return 'loopress/v1/wpcode/snippets'
   }
 
   fromRemote(data: Record<string, unknown>): NormalizedSnippet {

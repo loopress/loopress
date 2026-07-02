@@ -2,7 +2,7 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
-import {EnvironmentConfig, ProjectConfig} from '../../config/types.js'
+import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
 
 const NEW_PROJECT = '__new__'
 

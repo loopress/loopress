@@ -1,10 +1,7 @@
-import {Flags} from '@oclif/core'
-import got from 'got'
-
 import {LoopressCommand} from '../../lib/base.js'
 import {InstalledPlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
-import {readLocalConfig, writeLocalConfig} from '../../utils/loopress-config.js'
+import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest} from '../../utils/plugins.js'
 
 export default class Pull extends LoopressCommand {
@@ -12,18 +9,15 @@ export default class Pull extends LoopressCommand {
   static examples = ['$ lps plugin pull', '$ lps plugin pull --dry-run']
   static flags = {
     ...LoopressCommand.baseFlags,
-    'dry-run': Flags.boolean({char: 'd', description: 'Show what would be written without making changes'}),
+    ...LoopressCommand.dryRunFlag,
   }
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(Pull)
-    const dryRun = flags['dry-run']
     const {url} = this.siteConfig
 
     this.log(`Pulling plugins from ${url}`)
 
-    const headers = await this.buildAuthHeaders()
-    const installed: InstalledPlugin[] = await got.get(`${url}/wp-json/loopress/v1/plugins`, {headers}).json()
+    const installed = await this.wp.get<InstalledPlugin[]>('loopress/v1/plugins')
 
     const composerJson = await readComposerJson()
     const composerSlugs = composerJson ? getComposerManagedSlugs(composerJson) : []
@@ -39,10 +33,9 @@ export default class Pull extends LoopressCommand {
       }
     }
 
-    const localConfig = await readLocalConfig()
-    const {added, merged, updated} = mergePluginManifest(localConfig.plugins ?? {}, incoming)
+    const {added, merged, updated} = mergePluginManifest(this.localConfig.plugins ?? {}, incoming)
 
-    if (dryRun) {
+    if (this.dryRun) {
       this.log(`[dry-run] Would write ${Object.keys(merged).length} plugins to loopress.json`)
       if (added.length > 0) this.log(`  + ${added.join(', ')}`)
       if (updated.length > 0) {
@@ -52,19 +45,14 @@ export default class Pull extends LoopressCommand {
       return
     }
 
-    await writeLocalConfig({...localConfig, plugins: merged})
+    await writeLocalConfig({...this.localConfig, plugins: merged})
 
     this.log(`Wrote ${Object.keys(merged).length} plugins to loopress.json`)
     if (added.length > 0) this.log(`  + Added: ${added.join(', ')}`)
     for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
 
     if (Object.keys(merged).length > 0) {
-      await got
-        .post(`${url}/wp-json/loopress/v1/plugins/auto-updates/disable`, {
-          headers,
-          json: {slugs: Object.keys(merged)},
-        })
-        .json()
+      await this.wp.post('loopress/v1/plugins/auto-updates/disable', {slugs: Object.keys(merged)})
     }
   }
 }

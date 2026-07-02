@@ -10,14 +10,19 @@ export interface LoopressLocalConfig {
   snippetsDir?: string
 }
 
+// Only a missing file is treated as "no config" (returns {}). A file that exists but
+// fails to read or parse throws, so callers don't silently fall back to the global
+// current environment when loopress.json is actually broken.
 export async function readLocalConfig(): Promise<LoopressLocalConfig> {
   const configPath = join(process.cwd(), 'loopress.json')
   if (!existsSync(configPath)) return {}
+
+  const content = await readFile(configPath, 'utf8')
+
   try {
-    const content = await readFile(configPath, 'utf8')
     return JSON.parse(content) as LoopressLocalConfig
   } catch {
-    return {}
+    throw new Error('loopress.json is not valid JSON. Fix or delete it, then run `lps init` again.')
   }
 }
 
