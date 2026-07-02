@@ -1,5 +1,11 @@
 # @loopress/cli
 
+## 0.7.0
+
+### Minor Changes
+
+- 56cca02: Refine command descriptions. Improve compatibility with WPCode. Add unit tests
+
 ## 0.6.0
 
 ### Minor Changes
