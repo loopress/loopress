@@ -68,6 +68,12 @@ jobs:
       - name: Run psalm
         run: composer run psalm
 
+      # Non-blocking until the pre-existing findings are cleared; flip to blocking
+      # (remove continue-on-error) once `composer run cs` is clean.
+      - name: PHP CodeSniffer
+        run: composer run cs
+        continue-on-error: true
+
       - name: PHPUnit tests
         run: composer run test
 
