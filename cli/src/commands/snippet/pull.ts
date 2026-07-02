@@ -4,8 +4,8 @@ import {join} from 'node:path'
 import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {getSnippetPlugin, NormalizedSnippet, SnippetType} from '../../utils/snippet-plugin.js'
 import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
+import {getSnippetPlugin, NormalizedSnippet, SnippetType} from '../../utils/snippet-plugin.js'
 
 const EXTENSIONS: Record<SnippetType, string> = {
   css: 'css',

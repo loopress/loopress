@@ -5,8 +5,8 @@ import slugify from 'slugify'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {Snippet} from '../../types/snippet.js'
-import {getSnippetPlugin, parseType, SnippetPlugin, SnippetType} from '../../utils/snippet-plugin.js'
 import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
+import {getSnippetPlugin, parseType, SnippetPlugin, SnippetType} from '../../utils/snippet-plugin.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',

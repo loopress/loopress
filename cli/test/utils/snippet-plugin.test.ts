@@ -6,9 +6,9 @@ describe('snippet-plugin', () => {
   describe('CodeSnippetsPlugin', () => {
     const plugin = getSnippetPlugin('code-snippets')
 
-    describe('endpoint', () => {
-      it('builds the correct URL', () => {
-        expect(plugin.endpoint('https://example.com')).toBe('https://example.com/wp-json/code-snippets/v1/snippets')
+    describe('endpointPath', () => {
+      it('builds the correct wp-json path', () => {
+        expect(plugin.endpointPath()).toBe('code-snippets/v1/snippets')
       })
     })
 
@@ -105,11 +105,9 @@ describe('snippet-plugin', () => {
   describe('WPCodePlugin', () => {
     const plugin = getSnippetPlugin('wpcode')
 
-    describe('endpoint', () => {
-      it('builds the correct URL', () => {
-        expect(plugin.endpoint('https://example.com')).toBe(
-          'https://example.com/wp-json/loopress/v1/wpcode/snippets',
-        )
+    describe('endpointPath', () => {
+      it('builds the correct wp-json path', () => {
+        expect(plugin.endpointPath()).toBe('loopress/v1/wpcode/snippets')
       })
     })
 

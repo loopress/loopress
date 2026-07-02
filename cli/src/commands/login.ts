@@ -17,7 +17,7 @@ export default class Login extends Command {
 
     authManager.setAuth({email, savedAt: new Date().toISOString(), token})
 
-    this.log(`\n✅ Logged in${email ? ` as ${email}` : ''}. You're all set!`)
+    this.log(`\nLogged in${email ? ` as ${email}` : ''}. You're all set!`)
   }
 
   private openBrowser(url: string): void {
