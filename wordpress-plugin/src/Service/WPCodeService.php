@@ -51,10 +51,6 @@ class WPCodeService
             throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message());
         }
 
-        if ($id === 0) {
-            throw new \RuntimeException('Failed to create snippet.');
-        }
-
         $this->saveMeta($id, $data);
 
         return $this->getSnippet($id) ?? [];

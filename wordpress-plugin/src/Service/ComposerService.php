@@ -25,23 +25,26 @@ class ComposerService
     {
         $this->dxEnv->ensureInitialized();
 
-        $json = $this->dxEnv->readComposerJson();
+        $json    = $this->dxEnv->readComposerJson();
+        $require = $json['require'] ?? [];
 
-        if (empty($json['require'])) {
+        if (!is_array($require) || $require === []) {
             return [];
         }
 
-        $locked = $this->getLockedVersions();
+        $locked    = $this->getLockedVersions();
+        $installed = [];
 
-        return array_map(
-            fn($name, $constraint) => [
+        foreach ($require as $name => $constraint) {
+            $name        = (string) $name;
+            $installed[] = [
                 'name'       => $name,
                 'constraint' => $constraint,
                 'version'    => $locked[$name] ?? $constraint,
-            ],
-            array_keys($json['require']),
-            $json['require']
-        );
+            ];
+        }
+
+        return $installed;
     }
 
     /** @return array<string, string> package name to exact locked version */

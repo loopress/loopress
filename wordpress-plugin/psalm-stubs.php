@@ -5,6 +5,7 @@
 // WordPress core constants, defined at runtime by wp-load.php.
 define('ABSPATH', '/var/www/html/');
 define('WP_CONTENT_DIR', '/var/www/html/wp-content');
+define('MINUTE_IN_SECONDS', 60);
 
 // Defined in loopress-plugin.php (the plugin bootstrap file, outside src/). Psalm scans that
 // file too (see psalm.xml <projectFiles>) for other purposes, but for some reason doesn't pick

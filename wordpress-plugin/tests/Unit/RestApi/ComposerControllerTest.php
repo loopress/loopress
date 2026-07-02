@@ -3,6 +3,7 @@
 namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
+use Loopress\Exception\ConcurrentOperationException;
 use Loopress\Exception\ProductionLockException;
 use Loopress\RestApi\ComposerController;
 use Loopress\Service\ComposerService;
@@ -67,6 +68,17 @@ class ComposerControllerTest extends TestCase
         $this->assertTrue($validate('1.2.3'));
     }
 
+    public function test_version_arg_accepts_common_composer_constraints(): void
+    {
+        $validate = $this->invokePrivate('versionArg', false)['validate_callback'];
+        $this->assertTrue($validate('>=8.0'));
+        $this->assertTrue($validate('~1.2'));
+        $this->assertTrue($validate('^1.0 || ^2.0'));
+        $this->assertTrue($validate('>=1.0, <2.0'));
+        $this->assertTrue($validate('dev-main'));
+        $this->assertTrue($validate('1.0.0-beta1@dev'));
+    }
+
     // ── get_versions ─────────────────────────────────────────────────────────
 
     public function test_get_versions_returns_404_when_package_not_found(): void
@@ -124,6 +136,24 @@ class ComposerControllerTest extends TestCase
         $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
         $response = $this->controller->require_package($request);
         $this->assertSame(500, $response->status);
+    }
+
+    public function test_require_package_returns_409_when_another_operation_is_running(): void
+    {
+        $this->composerService->method('requirePackage')
+            ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
+        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
+        $response = $this->controller->require_package($request);
+        $this->assertSame(409, $response->status);
+    }
+
+    public function test_sync_returns_409_when_another_operation_is_running(): void
+    {
+        $this->composerService->method('sync')
+            ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
+        $request  = new WP_REST_Request(['composerJson' => '{}']);
+        $response = $this->controller->sync($request);
+        $this->assertSame(409, $response->status);
     }
 
     // ── remove_package ────────────────────────────────────────────────────────

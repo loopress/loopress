@@ -53,7 +53,7 @@ class ComposerServiceTest extends TestCase
         $this->assertSame([], $this->service->getInstalled());
     }
 
-    public function test_getInstalled_maps_packages(): void
+    public function test_getInstalled_falls_back_to_constraint_without_lock_file(): void
     {
         $this->dxEnv->method('readComposerJson')->willReturn([
             'require' => [
@@ -61,13 +61,32 @@ class ComposerServiceTest extends TestCase
                 'monolog/monolog'   => '^3.0',
             ],
         ]);
+        $this->dxEnv->method('readComposerLock')->willReturn(null);
 
         $result = $this->service->getInstalled();
 
         $this->assertCount(2, $result);
         $this->assertSame('guzzlehttp/guzzle', $result[0]['name']);
         $this->assertSame('^7.0', $result[0]['version']);
+        $this->assertSame('^7.0', $result[0]['constraint']);
         $this->assertSame('monolog/monolog', $result[1]['name']);
+    }
+
+    public function test_getInstalled_reports_exact_locked_versions(): void
+    {
+        $this->dxEnv->method('readComposerJson')->willReturn([
+            'require' => ['guzzlehttp/guzzle' => '^7.0'],
+        ]);
+        $this->dxEnv->method('readComposerLock')->willReturn(json_encode([
+            'packages' => [
+                ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.1'],
+            ],
+        ]));
+
+        $result = $this->service->getInstalled();
+
+        $this->assertSame('7.8.1', $result[0]['version']);
+        $this->assertSame('^7.0', $result[0]['constraint']);
     }
 
     // ── getVersions ──────────────────────────────────────────────────────────
@@ -252,5 +271,101 @@ class ComposerServiceTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $this->service->audit();
+    }
+
+    // ── sync ──────────────────────────────────────────────────────────────────
+
+    public function test_sync_throws_when_locked(): void
+    {
+        $this->settings->method('isLocked')->willReturn(true);
+        $this->expectException(ProductionLockException::class);
+        $this->service->sync('{}', null);
+    }
+
+    public function test_sync_rejects_invalid_json(): void
+    {
+        $this->settings->method('isLocked')->willReturn(false);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->service->sync('{not json', null);
+    }
+
+    public function test_sync_writes_manifests_and_runs_install_when_lock_provided(): void
+    {
+        $this->settings->method('isLocked')->willReturn(false);
+        $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
+        $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
+
+        $this->dxEnv->expects($this->once())
+            ->method('writeComposerJson')
+            ->with(['name' => 'new/manifest']);
+        $this->dxEnv->expects($this->once())
+            ->method('writeComposerLock')
+            ->with('{"new": "lock"}');
+
+        $this->runner->method('run')
+            ->with(['install'])
+            ->willReturn(['exit_code' => 0, 'output' => 'Installed.']);
+
+        $output = $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
+        $this->assertSame('Installed.', $output);
+    }
+
+    public function test_sync_runs_update_when_no_lock_provided(): void
+    {
+        $this->settings->method('isLocked')->willReturn(false);
+        $this->dxEnv->method('readComposerJson')->willReturn([]);
+        $this->dxEnv->method('readComposerLock')->willReturn(null);
+
+        $this->runner->method('run')
+            ->with(['update'])
+            ->willReturn(['exit_code' => 0, 'output' => 'Updated.']);
+
+        $output = $this->service->sync('{"name": "new/manifest"}', null);
+        $this->assertSame('Updated.', $output);
+    }
+
+    public function test_sync_restores_previous_manifests_on_failure(): void
+    {
+        $this->settings->method('isLocked')->willReturn(false);
+        $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
+        $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
+
+        // First write: the incoming manifest. Second write: the rollback.
+        $writtenJson = [];
+        $this->dxEnv->method('writeComposerJson')
+            ->willReturnCallback(function (array $json) use (&$writtenJson): void {
+                $writtenJson[] = $json;
+            });
+
+        $writtenLock = [];
+        $this->dxEnv->method('writeComposerLock')
+            ->willReturnCallback(function (string $lock) use (&$writtenLock): void {
+                $writtenLock[] = $lock;
+            });
+
+        $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
+
+        try {
+            $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
+            $this->fail('Expected RuntimeException');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Install failed.', $e->getMessage());
+        }
+
+        $this->assertSame([['name' => 'new/manifest'], ['name' => 'old/manifest']], $writtenJson);
+        $this->assertSame(['{"new": "lock"}', '{"old": "lock"}'], $writtenLock);
+    }
+
+    public function test_sync_deletes_written_lock_on_failure_when_none_existed_before(): void
+    {
+        $this->settings->method('isLocked')->willReturn(false);
+        $this->dxEnv->method('readComposerJson')->willReturn([]);
+        $this->dxEnv->method('readComposerLock')->willReturn(null);
+
+        $this->dxEnv->expects($this->once())->method('deleteComposerLock');
+        $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
     }
 }

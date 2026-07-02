@@ -113,10 +113,49 @@ class LoopressEnvironmentTest extends TestCase
         $json['config']['platform']['php'] = '8.0.0';
         $env->writeComposerJson($json);
 
-        // Re-initialize: should fix the mismatch
-        $env->ensureInitialized();
-        $updated = $env->readComposerJson();
+        // ensureInitialized is memoized per instance (one run per request), so use a
+        // fresh instance to simulate the next request: it should fix the mismatch.
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+        $updated = $env2->readComposerJson();
         $this->assertSame(PHP_VERSION, $updated['config']['platform']['php']);
+    }
+
+    public function test_ensureInitialized_runs_at_most_once_per_instance(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        // Corrupt the platform version, then re-call on the same instance:
+        // memoization means no re-check happens within the same request.
+        $json = $env->readComposerJson();
+        $json['config']['platform']['php'] = '8.0.0';
+        $env->writeComposerJson($json);
+
+        $env->ensureInitialized();
+        $this->assertSame('8.0.0', $env->readComposerJson()['config']['platform']['php']);
+    }
+
+    // ── deleteComposerLock ───────────────────────────────────────────────────
+
+    public function test_deleteComposerLock_removes_the_file(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $env->writeComposerLock('{"packages": []}');
+
+        $this->assertNotNull($env->readComposerLock());
+        $env->deleteComposerLock();
+        $this->assertNull($env->readComposerLock());
+    }
+
+    public function test_deleteComposerLock_is_a_noop_when_file_missing(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        $env->deleteComposerLock();
+        $this->assertNull($env->readComposerLock());
     }
 
     // ── readComposerJson / writeComposerJson ─────────────────────────────────
