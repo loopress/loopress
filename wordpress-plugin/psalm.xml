@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <psalm
     errorLevel="3"
+    phpVersion="8.2"
     resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
@@ -10,6 +11,7 @@
 >
     <projectFiles>
         <directory name="src" />
+        <file name="loopress-plugin.php" />
         <ignoreFiles>
             <directory name="vendor" />
         </ignoreFiles>
@@ -17,5 +19,48 @@
 
     <stubs>
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php" />
+        <file name="psalm-stubs.php" />
     </stubs>
+
+    <issueHandlers>
+        <!-- REST callback methods are invoked indirectly by WordPress via register_rest_route(),
+             so Psalm can't trace calls to them, and their required WP_REST_Request $request
+             is part of the callback contract even when a given endpoint doesn't read any params. -->
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <directory name="src/RestApi" />
+                <referencedMethod name="Loopress\Service\SettingsService::updateLock" />
+            </errorLevel>
+        </PossiblyUnusedMethod>
+        <PossiblyUnusedParam>
+            <errorLevel type="suppress">
+                <directory name="src/RestApi" />
+            </errorLevel>
+        </PossiblyUnusedParam>
+
+        <!-- WP_REST_Request::get_param() is typed as nullable by the WordPress stubs, but the
+             route's own `args` schema marks these as required, so WordPress rejects the request
+             before the callback runs if they're missing. -->
+        <PossiblyNullArgument>
+            <errorLevel type="suppress">
+                <directory name="src/RestApi" />
+            </errorLevel>
+        </PossiblyNullArgument>
+
+        <!-- Registered as a `rest_post_dispatch` filter; the return value is consumed by
+             WordPress's filter chain, not by any caller Psalm can see. -->
+        <PossiblyUnusedReturnValue>
+            <errorLevel type="suppress">
+                <file name="src/Module/RestCacheModule.php" />
+            </errorLevel>
+        </PossiblyUnusedReturnValue>
+
+        <!-- #[\Override] is a PHP 8.3+ builtin attribute; this project's platform (composer.json,
+             config.platform.php) targets 8.2, so it isn't used here despite phpVersion being set. -->
+        <MissingOverrideAttribute errorLevel="suppress" />
+
+        <!-- require_once ABSPATH . 'wp-admin/includes/...' paths only resolve inside a real
+             WordPress install, which isn't present in this analysis environment. -->
+        <MissingFile errorLevel="suppress" />
+    </issueHandlers>
 </psalm>
