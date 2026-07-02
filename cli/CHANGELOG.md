@@ -1,5 +1,11 @@
 # @loopress/cli
 
+## 0.8.0
+
+### Minor Changes
+
+- 540c702: Improve structure with fable
+
 ## 0.7.0
 
 ### Minor Changes
