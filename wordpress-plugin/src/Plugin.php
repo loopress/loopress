@@ -19,16 +19,17 @@ class Plugin
         $env      = new LoopressEnvironment();
         $settings = new SettingsService();
 
-        $env->ensureInitialized();
-
         $autoloadError = null;
         $autoload      = $env->getAutoloadPath();
         if ($autoload) {
+            // A broken vendor/ can surface as any Throwable (\Error for missing files,
+            // E_USER_ERROR from Composer's platform check, ...): catch everything so the
+            // admin UI can offer the auto-repair flow instead of white-screening the site.
             try {
                 ob_start();
                 require_once $autoload;
                 ob_end_clean();
-            } catch (\RuntimeException $e) {
+            } catch (\Throwable $e) {
                 ob_end_clean();
                 $autoloadError = $e->getMessage();
             }

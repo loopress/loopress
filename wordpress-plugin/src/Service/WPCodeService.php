@@ -49,11 +49,19 @@ class WPCodeService
             'post_title'   => sanitize_text_field($data['title'] ?? ''),
             'post_content' => wp_unslash($data['code'] ?? ''),
             'post_status'  => !empty($data['active']) ? 'publish' : 'draft',
-        ]);
+        ], true);
 
-        $this->saveMeta((int) $id, $data);
+        if (is_wp_error($id)) {
+            throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message());
+        }
 
-        return $this->getSnippet((int) $id) ?? [];
+        if ($id === 0) {
+            throw new \RuntimeException('Failed to create snippet.');
+        }
+
+        $this->saveMeta($id, $data);
+
+        return $this->getSnippet($id) ?? [];
     }
 
     /** @param array<string, mixed> $data @return array<string, mixed>|null */
@@ -76,7 +84,11 @@ class WPCodeService
             $update['post_status'] = $data['active'] ? 'publish' : 'draft';
         }
 
-        wp_update_post($update);
+        $result = wp_update_post($update, true);
+        if (is_wp_error($result)) {
+            throw new \RuntimeException('Failed to update snippet: ' . $result->get_error_message());
+        }
+
         $this->saveMeta($id, $data);
 
         return $this->getSnippet($id);
