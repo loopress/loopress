@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<ruleset name="Loopress">
+    <description>Coding standard for the Loopress WordPress plugin.</description>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <file>src</file>
+    <file>tests</file>
+    <file>loopress-plugin.php</file>
+    <file>uninstall.php</file>
+    <file>psalm-stubs.php</file>
+
+    <!--
+        Base standard: WordPress-Extra (WordPress-Core + best-practice sniffs).
+        This codebase is a PSR-4/OOP plugin (namespaced classes, camelCase methods,
+        space indentation, PSR-12-style braces, short array syntax) rather than WP
+        core's C-style procedural conventions, so the purely stylistic sniff groups
+        below are excluded. What's left is the part of WordPress-Extra that actually
+        catches bugs and WordPress-specific footguns: escaping, discouraged/raw
+        filesystem and runtime-config functions, and general code hygiene.
+    -->
+    <rule ref="WordPress-Extra">
+        <!-- Requires tabs; this codebase (like the rest of the monorepo) indents with spaces. -->
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+
+        <!-- Brace placement: WP core wants K&R (brace on the same line); this codebase
+             uses PSR-12-style braces on their own line for classes and functions. -->
+        <exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie"/>
+        <exclude name="Generic.Classes.OpeningBraceSameLine"/>
+
+        <!-- Whitespace/array-formatting conventions (space-inside-parens, array
+             alignment, array short syntax, etc.): PSR-12 style, not WP core style. -->
+        <exclude name="WordPress.WhiteSpace"/>
+        <exclude name="WordPress.Arrays"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+
+        <!-- Naming conventions: snake_case is WP core's convention; this codebase
+             deliberately uses camelCase for classes/methods/properties (PSR-4/PSR-12). -->
+        <exclude name="WordPress.NamingConventions.ValidVariableName"/>
+        <exclude name="WordPress.NamingConventions.ValidFunctionName"/>
+
+        <!-- File naming (e.g. class-composer-controller.php): incompatible with PSR-4
+             autoloading, which maps class names to file names directly. -->
+        <exclude name="WordPress.Files.FileName"/>
+
+        <!-- Yoda conditions: deliberately not used in this codebase. -->
+        <exclude name="WordPress.PHP.YodaConditions"/>
+
+        <!-- uninstall.php is required directly by WordPress and must run top-level
+             code outside a class by convention; not a "functions mixed with OO" smell. -->
+        <exclude name="Universal.Files.SeparateFunctionsFromOO"/>
+
+        <!-- This sniff can't distinguish an echoed HTML string from a message passed to
+             an exception constructor, so it flags every `throw new RuntimeException(...)`
+             as unescaped output. In this codebase exception messages are only ever caught
+             and placed in a WP_REST_Response (JSON-encoded), never echoed as HTML, so the
+             rule has no true positives here; the rest of WordPress.Security stays active. -->
+        <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
+    </rule>
+
+    <!-- REST callback methods are invoked indirectly by register_rest_route(), so their
+         WP_REST_Request $request parameter is part of the callback contract even when a
+         given endpoint doesn't read any params. Mirrors the same suppression already
+         applied to this directory in psalm.xml (PossiblyUnusedParam). -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude-pattern>src/RestApi/*</exclude-pattern>
+    </rule>
+
+    <!-- tests/Stubs intentionally bundles several lightweight WP class/interface stubs
+         in one file rather than one-per-file; it isn't PSR-4 autoloaded. -->
+    <rule ref="Generic.Files.OneObjectStructurePerFile">
+        <exclude-pattern>tests/Stubs/*</exclude-pattern>
+    </rule>
+
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.2-"/>
+</ruleset>
