@@ -5,6 +5,7 @@ namespace Loopress\Infrastructure;
 class LoopressEnvironment
 {
     private string $dxDir;
+    private bool $initialized = false;
 
     public function __construct()
     {
@@ -16,8 +17,17 @@ class LoopressEnvironment
         return $this->dxDir;
     }
 
+    // Idempotent per instance: runs its filesystem checks at most once per request,
+    // and only on code paths that actually touch the Composer environment (REST,
+    // admin page), never on regular front-end page loads.
     public function ensureInitialized(): void
     {
+        if ($this->initialized) {
+            return;
+        }
+
+        $this->initialized = true;
+
         if (!is_dir($this->dxDir)) {
             wp_mkdir_p($this->dxDir);
         }
@@ -74,6 +84,8 @@ class LoopressEnvironment
     /** @param array<string, mixed> $json */
     public function writeComposerJson(array $json): void
     {
+        $this->ensureInitialized();
+
         $encoded = json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
             throw new \RuntimeException('Failed to encode composer.json: ' . json_last_error_msg());
@@ -98,9 +110,19 @@ class LoopressEnvironment
 
     public function writeComposerLock(string $contents): void
     {
+        $this->ensureInitialized();
+
         $result = file_put_contents($this->dxDir . 'composer.lock', $contents);
         if ($result === false) {
             throw new \RuntimeException("Failed to write composer.lock to {$this->dxDir}");
+        }
+    }
+
+    public function deleteComposerLock(): void
+    {
+        $path = $this->dxDir . 'composer.lock';
+        if (file_exists($path)) {
+            unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
         }
     }
 }

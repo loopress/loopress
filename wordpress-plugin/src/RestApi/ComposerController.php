@@ -2,6 +2,7 @@
 
 namespace Loopress\RestApi;
 
+use Loopress\Exception\ConcurrentOperationException;
 use Loopress\Exception\ProductionLockException;
 use Loopress\Service\ComposerService;
 use WP_REST_Request;
@@ -124,6 +125,8 @@ class ComposerController
             return new WP_REST_Response(['message' => "{$package}:{$version} installed successfully.", 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => "Failed to install {$package}:{$version}.", 'output' => $e->getMessage()], 500);
         }
@@ -138,6 +141,8 @@ class ComposerController
             return new WP_REST_Response(['message' => "{$package} removed successfully.", 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => "Failed to remove {$package}.", 'output' => $e->getMessage()], 500);
         }
@@ -150,6 +155,8 @@ class ComposerController
             return new WP_REST_Response(['message' => 'Dependencies repaired successfully.', 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Repair failed.', 'output' => $e->getMessage()], 500);
         }
@@ -164,6 +171,8 @@ class ComposerController
     {
         try {
             return new WP_REST_Response($this->composerService->audit(), 200);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -208,6 +217,8 @@ class ComposerController
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Sync failed.', 'output' => $e->getMessage()], 500);
         }
@@ -233,7 +244,7 @@ class ComposerController
             'default'           => $default,
             'type'              => 'string',
             'description'       => 'Composer version constraint',
-            'validate_callback' => fn($v) => (bool) preg_match('/^[v\^~\*]?[0-9a-z\.\-\*]+$/i', $v),
+            'validate_callback' => fn($v) => (bool) preg_match('/^[a-z0-9@\.\-\*\^~><=|,+ ]+$/i', $v),
             'sanitize_callback' => 'sanitize_text_field',
         ];
     }
