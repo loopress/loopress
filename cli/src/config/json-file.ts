@@ -1,20 +1,23 @@
-import {existsSync, mkdirSync, readFileSync, renameSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, readFileSync} from 'node:fs'
 import {dirname} from 'node:path'
+import writeFileAtomic from 'write-file-atomic'
 
+// Missing file or invalid JSON are treated as "no data" (returns null). Any other
+// read failure (permissions, EISDIR, ...) propagates instead of being swallowed.
 export function readJsonFile<T>(filePath: string): null | T {
   if (!existsSync(filePath)) return null
 
+  const content = readFileSync(filePath, 'utf8')
+
   try {
-    return JSON.parse(readFileSync(filePath, 'utf8')) as T
+    return JSON.parse(content) as T
   } catch {
     return null
   }
 }
 
-// Writes to a temp file then renames, so a crash never leaves a half-written config.
+// Mode 0o600 (owner read/write only) since these files hold auth tokens.
 export function writeJsonFileAtomic(filePath: string, data: unknown): void {
   mkdirSync(dirname(filePath), {recursive: true})
-  const tmpPath = `${filePath}.tmp`
-  writeFileSync(tmpPath, JSON.stringify(data, null, 2))
-  renameSync(tmpPath, filePath)
+  writeFileAtomic.sync(filePath, JSON.stringify(data, null, 2), {mode: 0o600})
 }

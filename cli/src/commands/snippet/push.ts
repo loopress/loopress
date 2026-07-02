@@ -84,17 +84,20 @@ export default class Push extends PushCommand {
     meta.id = id
     meta.name = name
 
-    if (currentBase === canonicalBase) {
-      await writeFile(oldMetaPath, JSON.stringify(meta, null, 2) + '\n')
-      return
-    }
+    // Persist the id against the *current* file pairing before renaming anything, so a
+    // crash between the rename and the sidecar write still leaves a valid `<name>.<ext>` /
+    // `<name>.json` pair with the id on disk, and a retried `snippet push` won't re-create
+    // this snippet as a duplicate because it looks unlinked.
+    await writeFile(oldMetaPath, JSON.stringify(meta, null, 2) + '\n')
+
+    if (currentBase === canonicalBase) return
 
     const newPath = join(dir, `${canonicalBase}${ext}`)
     const newMetaPath = join(dir, `${canonicalBase}.json`)
 
     await rename(snippet.path, newPath)
     await writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
-    if (oldMetaPath !== newMetaPath) await rm(oldMetaPath, {force: true})
+    await rm(oldMetaPath, {force: true})
 
     this.log(`  Renamed: ${snippet.path} → ${newPath}`)
   }

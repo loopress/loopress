@@ -65,6 +65,10 @@ export abstract class LoopressCommand extends Command {
     this.dryRun = Boolean(flags['dry-run'])
     this.localConfig = await readLocalConfig()
 
+    if (Boolean(flags.user) !== Boolean(flags.password)) {
+      this.error('--user and --password must be provided together.')
+    }
+
     const flagToken = flags.user && flags.password ? `${flags.user}:${flags.password}` : undefined
 
     if (flags.url) {

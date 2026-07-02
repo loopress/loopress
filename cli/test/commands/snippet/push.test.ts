@@ -1,11 +1,17 @@
 import {existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/snippet/push.js'
 import {Snippet} from '../../../src/types/snippet.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return {...actual, rename: vi.fn(actual.rename)}
+})
 
 // loadSnippets() and ensureCanonicalFilename() are private; the cast below is the
 // same escape hatch used throughout this suite to unit-test command internals
@@ -115,6 +121,22 @@ describe('snippet push', () => {
       )
 
       expect(readdirSync(dir).sort()).toEqual(['9-weird-name.json', '9-weird-name.php'])
+    })
+
+    it('persists the id under the current filename before attempting the rename, so a failed rename does not lose it', async () => {
+      writeFileSync(join(dir, 'demo.php'), '<?php echo 1;')
+
+      vi.mocked(rename).mockRejectedValueOnce(new Error('EPERM'))
+
+      await expect(ensureCanonicalFilename({code: '<?php echo 1;', path: join(dir, 'demo.php'), type: 'php'} as Snippet, 8, 'demo')).rejects.toThrow(
+        'EPERM',
+      )
+
+      // The source file was never renamed (rename failed), but its sidecar already carries
+      // the id: a retry of `snippet push` will read demo.php + demo.json and see the id,
+      // so it PUTs an update instead of POSTing a duplicate create.
+      expect(existsSync(join(dir, 'demo.php'))).toBe(true)
+      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo'})
     })
   })
 })
