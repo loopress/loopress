@@ -110,18 +110,22 @@ class WPCodeController
             return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
         }
 
-        $snippet = $this->wpCodeService->createSnippet([
-            'title'                => $request->get_param('title'),
-            'code'                 => $request->get_param('code'),
-            'type'                 => $request->get_param('type'),
-            'active'               => $request->get_param('active'),
-            'note'                 => $request->get_param('note'),
-            'tags'                 => $request->get_param('tags'),
-            'location'             => $request->get_param('location'),
-            'insert_method'        => $request->get_param('insert_method'),
-            'priority'             => $request->get_param('priority'),
-            'shortcode_attributes' => $request->get_param('shortcode_attributes'),
-        ]);
+        try {
+            $snippet = $this->wpCodeService->createSnippet([
+                'title'                => $request->get_param('title'),
+                'code'                 => $request->get_param('code'),
+                'type'                 => $request->get_param('type'),
+                'active'               => $request->get_param('active'),
+                'note'                 => $request->get_param('note'),
+                'tags'                 => $request->get_param('tags'),
+                'location'             => $request->get_param('location'),
+                'insert_method'        => $request->get_param('insert_method'),
+                'priority'             => $request->get_param('priority'),
+                'shortcode_attributes' => $request->get_param('shortcode_attributes'),
+            ]);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
 
         return new WP_REST_Response($snippet, 201);
     }
@@ -145,7 +149,11 @@ class WPCodeController
             'shortcode_attributes' => $request->get_param('shortcode_attributes'),
         ], fn($v) => $v !== null);
 
-        $snippet = $this->wpCodeService->updateSnippet((int) $request->get_param('id'), $data);
+        try {
+            $snippet = $this->wpCodeService->updateSnippet((int) $request->get_param('id'), $data);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
 
         if ($snippet === null) {
             return new WP_REST_Response(['error' => 'Snippet not found'], 404);

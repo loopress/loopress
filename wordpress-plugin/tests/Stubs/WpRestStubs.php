@@ -62,6 +62,26 @@ if (!class_exists('WP_Post')) {
     }
 }
 
+if (!class_exists('WP_Error')) {
+    class WP_Error
+    {
+        public function __construct(
+            private string $code = '',
+            private string $message = '',
+        ) {}
+
+        public function get_error_message(): string
+        {
+            return $this->message;
+        }
+
+        public function get_error_code(): string
+        {
+            return $this->code;
+        }
+    }
+}
+
 if (!function_exists('wp_mkdir_p')) {
     function wp_mkdir_p(string $path): bool
     {

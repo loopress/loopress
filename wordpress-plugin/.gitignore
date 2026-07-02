@@ -4,3 +4,4 @@ build/
 *.zip
 .phpunit.result.cache
 assets/logo.svg
+.DS_Store
