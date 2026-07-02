@@ -83,7 +83,7 @@ The practical use case is a deployment checklist that looks like this:
 
 ```bash
 # Before deploying
-lps snippets push --url https://production.example.com
+lps snippet push --url https://production.example.com
 lps menu push --url https://production.example.com
 lps styles push --url https://production.example.com
 ```
@@ -98,7 +98,8 @@ Loopress's multi-project support (`lps project config`, `lps project switch`) le
 
 ```bash
 for site in client-a client-b client-c; do
-  lps menu push --site $site
+  lps project switch  # select $site
+  lps menu push
 done
 ```
 

@@ -30,7 +30,7 @@ const FAQS = [
       },
       {
         q: "How do I authenticate?",
-        a: "Loopress uses WordPress application passwords. No SSH access required. You configure a project once with lps project config and credentials are stored locally in ~/.lps/config.json.",
+        a: "Loopress uses WordPress application passwords. No SSH access required. You configure a project once with lps project config and credentials are stored locally in ~/.loopress/config.json.",
       },
       {
         q: "Can I manage multiple projects or environments?",
@@ -51,11 +51,11 @@ const FAQS = [
       },
       {
         q: "What happens when I push a snippet?",
-        a: "Loopress reads the metadata in the .php file header (id, name, tags, active status) and creates or updates the corresponding snippet in WordPress via the REST API.",
+        a: "Loopress reads the metadata from the .json sidecar file (id, name, tags, active status) and creates or updates the corresponding snippet in WordPress via the REST API.",
       },
       {
         q: "Can I create new snippets from the CLI?",
-        a: "Yes. Any .php file without an id in its header will be created as a new snippet. The generated id is written back into the file after creation.",
+        a: "Yes. Any snippet file without an id in its .json sidecar will be created as a new snippet. The generated id is written back into the .json metadata file after creation.",
       },
     ],
   },
@@ -64,7 +64,7 @@ const FAQS = [
     items: [
       {
         q: "How does the plugin lockfile work?",
-        a: "You declare plugin slugs and versions in loopress.json under a plugins key. Running lps plugins push installs missing plugins, activates them, and flags version mismatches for review.",
+        a: "You declare plugin slugs and versions in loopress.json under a plugins key. Running lps plugin push installs missing plugins, activates them, and flags version mismatches for review.",
       },
       {
         q: "Where do plugins come from?",
@@ -72,7 +72,7 @@ const FAQS = [
       },
       {
         q: "What if a plugin is already installed but inactive?",
-        a: "Loopress will activate it automatically as part of lps plugins push.",
+        a: "Loopress will activate it automatically as part of lps plugin push.",
       },
     ],
   },

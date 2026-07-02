@@ -93,7 +93,7 @@ function SnippetsBlock() {
 + remove_filter('the_content_feed', 'wp_staticize_emoji');`}
       </pre>
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
-        <Line c="muted">$ lps snippets push</Line>
+        <Line c="muted">$ lps snippet push</Line>
         <Line c="success">✓ Updated: disable-emojis</Line>
       </div>
     </div>
@@ -114,7 +114,7 @@ function PluginsBlock() {
   }`}
       </pre>
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
-        <Line c="muted">$ lps plugins push</Line>
+        <Line c="muted">$ lps plugin push</Line>
         <Line c="success">✓ Installed: contact-form-7 6.0.5</Line>
         <Line c="success">✓ Already up to date: woocommerce, fluent-crm</Line>
       </div>

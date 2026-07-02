@@ -3,9 +3,9 @@ title: Snippets
 description: Push, pull and list WordPress code snippets from the command line.
 ---
 
-The `snippets` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a `.php` file in a local directory that you commit like any other code.
+The `snippet` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a code file alongside a `.json` sidecar in a local directory that you commit like any other code.
 
-Supports the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin (default) and [WPCode](https://wpcode.com/).
+Supports [WPCode](https://wpcode.com/) (default) and the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin.
 
 ## Typical workflow
 
@@ -36,14 +36,14 @@ lps snippet pull [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
-| `--plugin` / `-p` | Target plugin: `code-snippets` (default) or `wpcode` |
+| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example:**
 
 ```bash
-lps snippet pull ./wp-snippets --dry-run
-lps snippet pull --plugin wpcode
+lps snippet pull ./wp-snippets --dryRun
+lps snippet pull --plugin code-snippets
 ```
 
 ---
@@ -52,7 +52,7 @@ lps snippet pull --plugin wpcode
 
 Upload `.php` files from a local directory to WordPress.
 
-- If the file has an `id` in its header comment, the snippet with that id is updated directly.
+- If the sidecar `.json` contains an `id`, that snippet is updated by ID.
 - Otherwise, a new snippet is created.
 
 ```bash
@@ -65,14 +65,14 @@ lps snippet push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dry-run` / `-d` | Show what would be pushed without making any changes |
-| `--plugin` / `-p` | Target plugin: `code-snippets` (default) or `wpcode` |
+| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example:**
 
 ```bash
 lps snippet push ./wp-snippets
-lps snippet push --plugin wpcode
+lps snippet push --plugin code-snippets
 ```
 
 ---
@@ -106,81 +106,54 @@ Found 3 snippets:
 
 ## File format
 
-Each snippet is stored as a plain file in the snippets directory. The file extension reflects the snippet type (`.php`, `.css`, `.js`, `.html`, `.txt`).
+Each snippet is stored as two files in the snippets directory: a code file and a `.json` sidecar that holds the metadata. Files are named `{id}-{slug}.{ext}`, where `{slug}` is the snippet name lowercased and slugified.
 
 ```
 snippets/
-  price-formatter.php
-  redirect-homepage.php
-  custom-login-logo.css
+  42-price-formatter.php
+  42-price-formatter.json
+  17-redirect-homepage.php
+  17-redirect-homepage.json
+  11-custom-login-logo.css
+  11-custom-login-logo.json
 ```
 
-### Header comments
+### Sidecar files
 
-`lps snippet pull` automatically writes a header comment at the top of each file containing the snippet's metadata. This header is read back by `lps snippet push` to identify and configure the snippet on WordPress.
+`lps snippet pull` writes a `.json` sidecar next to each snippet file. The sidecar holds the metadata that `lps snippet push` uses to identify and configure the snippet on WordPress.
 
-**PHP:**
-
-```php
-<?php
-/**
- * id: 42
- * name: Price Formatter
- * description: Formats WooCommerce prices
- * type: php
- * tags: woocommerce, formatting
- * active: true
- */
-
-// snippet code here...
-```
-
-**CSS / JS:**
-
-```css
-/**
- * id: 17
- * name: Custom Admin Styles
- * type: css
- * active: true
- */
-
-body { ... }
-```
-
-**HTML:**
-
-```html
-<!--
-  id: 11
-  name: Cookie Banner
-  type: html
-  active: false
--->
-
-<div class="cookie-banner">...</div>
+```json
+{
+  "id": 42,
+  "name": "Price Formatter",
+  "type": "php",
+  "active": true,
+  "description": "Formats WooCommerce prices",
+  "tags": ["woocommerce", "formatting"]
+}
 ```
 
 ### Supported fields
 
 | Field | Description |
 |-------|-------------|
-| `id` | WordPress snippet ID. Used by `push` to update the correct snippet without fetching the full remote list. |
+| `id` | WordPress snippet ID. Used by `push` to update the correct snippet. |
 | `name` | Snippet title in WordPress. Takes precedence over the filename. |
 | `description` | Optional description shown in the WordPress admin. |
 | `type` | Snippet type: `php`, `css`, `js`, `html`, or `text`. |
-| `tags` | Comma-separated list of tags. |
+| `tags` | Array of tag strings. |
 | `active` | Whether the snippet is active (`true` / `false`). |
 
 :::tip
-Always run `lps snippet pull` before editing locally so that your files have the `id` header. This ensures `push` updates the right snippet even if you rename the file.
+Always run `lps snippet pull` before editing locally so that your files have the `id` in the sidecar. This ensures `push` updates the right snippet even if you rename the file.
 :::
 
-## WPCode support
+## Code Snippets support
 
-To target [WPCode](https://wpcode.com/) instead of Code Snippets, pass `--plugin wpcode` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
+WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
 
 ```bash
-lps snippet pull --plugin wpcode
-lps snippet push --plugin wpcode
+lps snippet pull --plugin code-snippets
+lps snippet push --plugin code-snippets
 ```
+

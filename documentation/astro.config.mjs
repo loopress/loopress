@@ -70,8 +70,11 @@ export default defineConfig({
                     items: [
                         { label: 'Overview', slug: 'cli' },
                         { label: 'Getting Started', slug: 'cli/getting-started' },
+                        { label: 'Init', slug: 'cli/init' },
                         { label: 'Snippets', slug: 'cli/snippets' },
                         { label: 'Plugins', slug: 'cli/plugins' },
+                        { label: 'Composer', slug: 'cli/composer' },
+                        { label: 'Application Passwords', slug: 'cli/application-passwords' },
                     ],
                 },
                 {

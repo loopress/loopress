@@ -8,10 +8,10 @@ type Node = {
 
 const NODES: Node[] = [
   { label: "WordPress Admin", sub: "Source of truth", logo: "/logo-wordpress.svg" },
-  { label: "lps snippets pull", sub: "Pull to local files", icon: "↓", mono: true },
+  { label: "lps snippet pull", sub: "Pull to local files", icon: "↓", mono: true },
   { label: "Git", sub: "Commit & review", logo: "/logo-git.svg" },
   { label: "Pull Request", sub: "Diff & approve", icon: "⤴" },
-  { label: "lps snippets push", sub: "Apply to env", icon: "↑", mono: true },
+  { label: "lps snippet push", sub: "Apply to env", icon: "↑", mono: true },
 ];
 
 export function WorkflowDiagram() {
@@ -64,7 +64,7 @@ export function WorkflowDiagram() {
 
       <div className="mt-8 grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-background/50 p-4 font-mono text-[12px] md:grid-cols-2">
         <div>
-          <div className="text-muted-foreground">$ lps snippets pull</div>
+          <div className="text-muted-foreground">$ lps snippet pull</div>
           <div className="text-foreground">
             <span className="text-success">+</span> snippets/disable-emojis.php
           </div>
@@ -80,7 +80,7 @@ export function WorkflowDiagram() {
           <div className="text-foreground/80">
             3 files changed, 18 insertions(+), 4 deletions(-)
           </div>
-          <div className="mt-1 text-muted-foreground">$ lps snippets push</div>
+          <div className="mt-1 text-muted-foreground">$ lps snippet push</div>
           <div className="text-success">✓ Updated · 3 snippets synced</div>
         </div>
       </div>

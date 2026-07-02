@@ -10,20 +10,22 @@ The Loopress CLI (`lps`) is a Node.js command-line tool that connects to the Wor
 | Group | Command | Description |
 |-------|---------|-------------|
 | **Auth** | `lps login` | Log in to Loopress via the console |
-| | `lps logout` | Remove the stored authentication token |
+| | `lps logout` | Log out from Loopress console |
 | **Setup** | `lps init` | Create a `loopress.json` config file interactively |
-| **Snippets** | `lps snippet pull` | Download snippets from WordPress |
-| | `lps snippet push` | Upload local snippet files to WordPress |
+| **Snippets** | `lps snippet pull` | Pull snippets from WordPress |
+| | `lps snippet push` | Push snippets to WordPress |
 | | `lps snippet list` | List all snippets on the site |
-| **Plugins** | `lps plugin pull` | Snapshot installed plugin versions into `loopress.json` |
-| | `lps plugin push` | Sync WordPress plugins to match `loopress.json` |
-| | `lps plugin require` | Add a plugin to `loopress.json` (resolves version from WordPress.org) |
-| **Project** | `lps project config` | Add or update a project/environment credential |
-| | `lps project list` | List all configured projects |
+| **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
+| | `lps plugin push` | Sync plugins on WordPress to match `loopress.json` |
+| | `lps plugin add` | Add a plugin to `loopress.json` (WordPress.org slug or Composer package) |
+| **Composer** | `lps composer pull` | Pull `composer.lock` from the WordPress server |
+| | `lps composer push` | Upload `composer.json` and `composer.lock` to WordPress and run `composer install` |
+| **Project** | `lps project config` | Add or update a WordPress project environment |
+| | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project |
-| | `lps project switch-env` | Switch the active environment |
-| | `lps project remove` | Remove a saved project |
-| | `lps project remove-env` | Remove a saved environment |
+| | `lps project switch-env` | Switch the active environment within the current project |
+| | `lps project remove` | Remove one or more WordPress project configurations |
+| | `lps project remove-env` | Remove one or more environments from the current project |
 
 ## Quick start
 

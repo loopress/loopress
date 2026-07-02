@@ -29,6 +29,6 @@ deploy:
 
 ## Available templates
 
-`.loopress-test` boots WordPress and runs `loopress push`. Triggers on branches and merge requests.
+`.loopress-test` boots WordPress and runs `lps snippet push`. Triggers on branches and merge requests.
 
-`.loopress-deploy` deploys to a real site with `loopress push` then verifies with `loopress diff`. Requires a `LOOPRESS_TOKEN` variable set in your project CI settings.
+`.loopress-deploy` deploys to a real site with `lps snippet push`. Requires a `LOOPRESS_TOKEN` variable set in your project CI settings.

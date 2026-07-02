@@ -38,6 +38,6 @@ workflows:
 
 ## Jobs
 
-`loopress/test` checks out the repo, boots a WordPress stack, and runs `loopress push` against it.
+`loopress/test` checks out the repo, boots a WordPress stack, and runs `lps snippet push` against it.
 
-`loopress/deploy` checks out the repo, runs `loopress push --site <site>`, and verifies the result with `loopress diff`.
+`loopress/deploy` checks out the repo and runs `lps snippet push` against the configured site.

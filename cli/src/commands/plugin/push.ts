@@ -10,7 +10,7 @@ import {diffPlugins} from '../../utils/plugins.js'
 
 export default class Push extends PushCommand {
   static description = 'Sync plugins on WordPress to match loopress.json'
-  static examples = ['$ lps plugins push', '$ lps plugins push --dry-run']
+  static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
     ...PushCommand.baseFlags,
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
@@ -26,7 +26,7 @@ export default class Push extends PushCommand {
     const manifest = localConfig.plugins
 
     if (!manifest || Object.keys(manifest).length === 0) {
-      this.error('No plugins found in loopress.json. Run `lps plugins pull` first.')
+      this.error('No plugins found in loopress.json. Run `lps plugin pull` first.')
     }
 
     const composerJson = await readComposerJson()

@@ -26,7 +26,7 @@ lps --version
 ## Requirements
 
 - Node.js 18+
-- A WordPress installation with the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin active (for snippet commands)
+- A WordPress installation with the [WPCode](https://wpcode.com/) plugin active (for snippet commands; [Code Snippets](https://wordpress.org/plugins/code-snippets/) is also supported via `--plugin code-snippets`)
 - A WordPress [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) for authentication
 
 ## Log in to Loopress
@@ -59,7 +59,7 @@ You will be prompted for:
 | Environment | `production`, `staging`, `development`, or a custom name |
 | WordPress URL | Full URL including scheme (`https://example.com`) |
 | Username | Your WordPress administrator username |
-| Application password | Generated in **Users → Profile → Application Passwords** |
+| Application password | Generated in **Users → Profile → Application Passwords** (see [troubleshooting](/cli/application-passwords/) if the section is missing) |
 
 ### Manage multiple projects and environments
 
@@ -99,16 +99,17 @@ Run `lps init` in your project root to generate `loopress.json` interactively, o
 | `snippetPlugin` | `wpcode` | Snippet plugin to use: `wpcode` or `code-snippets` |
 | `rootDir` | `.` | Base directory, all other paths are resolved relative to it |
 | `snippetsDir` | `snippets` | Directory for snippet files |
-| `plugins` | — | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/require`. |
+| `plugins` | — | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/add`. |
 
-The `plugins` field is populated automatically by `lps plugin pull` and `lps plugin require`. Commit `loopress.json` to Git so every environment can be synced with `lps plugin push`.
+The `plugins` field is populated automatically by `lps plugin pull` and `lps plugin add`. Commit `loopress.json` to Git so every environment can be synced with `lps plugin push`.
 
 ## Dry run
 
-Most commands accept a `--dry-run` (`-d`) flag that shows what would happen without making any changes:
+Most commands accept a dry-run flag (`-d`) that shows what would happen without making any changes. Note that snippet commands use `--dryRun` (camelCase) while plugin and composer commands use `--dry-run`:
 
 ```bash
-lps snippet push --dry-run
-lps snippet pull --dry-run
+lps snippet push --dryRun
+lps snippet pull --dryRun
 lps plugin push --dry-run
+lps composer push --dry-run
 ```
