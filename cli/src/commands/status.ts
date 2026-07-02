@@ -30,7 +30,12 @@ export default class Status extends Command {
       return
     }
 
-    const project = configManager.getCurrentProject()!
+    const project = configManager.getCurrentProject()
+
+    if (!project) {
+      this.log('No project configured. Run `lps project config` first.')
+      return
+    }
 
     this.log(`Project:  ${project.name} (${env.name})`)
     this.log(`URL:      ${env.url}`)

@@ -1,5 +1,6 @@
 import {Args, Flags} from '@oclif/core'
 import got from 'got'
+import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {PushCommand} from '../../lib/push-command.js'
@@ -18,7 +19,8 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
-  static description = 'Push snippets to WordPress'
+  static description =
+    'Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
   static examples = [
     '$ lps snippet push',
     '$ lps snippet push --url http://example.com',
@@ -68,16 +70,16 @@ export default class Push extends PushCommand {
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `snippet pull` whenever
   // it doesn't already match (e.g. a hand-created `demo.php` with no id, or a stale slug after a rename).
+  // This is a side effect of `push`: local files on disk are renamed, not just the remote snippet.
   private async ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void> {
     const fs = await import('node:fs/promises')
 
-    const lastSlash = snippet.path.lastIndexOf('/')
-    const dir = snippet.path.slice(0, lastSlash)
-    const ext = snippet.path.slice(snippet.path.lastIndexOf('.'))
-    const currentBase = snippet.path.slice(lastSlash + 1, snippet.path.lastIndexOf('.'))
+    const dir = dirname(snippet.path)
+    const ext = extname(snippet.path)
+    const currentBase = basename(snippet.path, ext)
     const canonicalBase = `${id}-${slugify(name, {lower: true, strict: true})}`
 
-    const oldMetaPath = snippet.path.slice(0, snippet.path.lastIndexOf('.')) + '.json'
+    const oldMetaPath = join(dir, `${currentBase}.json`)
     let meta: Record<string, unknown> = {}
     try {
       const existing = await fs.readFile(oldMetaPath, 'utf8')
@@ -94,8 +96,8 @@ export default class Push extends PushCommand {
       return
     }
 
-    const newPath = `${dir}/${canonicalBase}${ext}`
-    const newMetaPath = `${dir}/${canonicalBase}.json`
+    const newPath = join(dir, `${canonicalBase}${ext}`)
+    const newMetaPath = join(dir, `${canonicalBase}.json`)
 
     await fs.rename(snippet.path, newPath)
     await fs.writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
