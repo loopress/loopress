@@ -77,35 +77,26 @@ export default class Pull extends LoopressCommand {
 
     await mkdir(path, {recursive: true})
 
-    const ctx = {count: 0, skipped: 0}
-    await new Listr<typeof ctx>(
-      [
-        {
-          async task(ctx, task) {
-            for (const snippet of snippets) {
-              if (!snippet.name.trim()) {
-                ctx.skipped++
-                continue
-              }
+    const pullable = snippets.filter((snippet) => snippet.name.trim())
+    const skipped = snippets.length - pullable.length
 
-              const ext = EXTENSIONS[snippet.type]
-              const slug = slugify(snippet.name, {lower: true, strict: true})
-              const base = `${snippet.id}-${slug}`
-              await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
-              await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
-              ctx.count++
-              task.output = `Pulled: ${snippet.name}`
-            }
-          },
-          title: `Pulling ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}`,
+    await new Listr(
+      pullable.map((snippet) => ({
+        async task(_ctx, task) {
+          const ext = EXTENSIONS[snippet.type]
+          const slug = slugify(snippet.name, {lower: true, strict: true})
+          const base = `${snippet.id}-${slug}`
+          await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
+          await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
+          task.output = `Pulled: ${snippet.name}`
         },
-      ],
-      {ctx},
+        title: `Pull ${snippet.name}`,
+      })),
     ).run()
 
-    this.log(`Pulled ${ctx.count} snippet${ctx.count === 1 ? '' : 's'} to ${path}`)
-    if (ctx.skipped > 0) {
-      this.warn(`${ctx.skipped} snippet${ctx.skipped === 1 ? '' : 's'} skipped because they have no name`)
+    this.log(`Pulled ${pullable.length} snippet${pullable.length === 1 ? '' : 's'} to ${path}`)
+    if (skipped > 0) {
+      this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
   }
 }
