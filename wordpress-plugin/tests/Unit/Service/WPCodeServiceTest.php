@@ -220,6 +220,62 @@ class WPCodeServiceTest extends TestCase
         $this->assertSame([], $result['shortcode_attributes']);
     }
 
+    // ── createSnippet error handling ─────────────────────────────────────────
+    // Regression coverage for the bug where a failed wp_insert_post returned a
+    // WP_Error that was cast to int 1, writing snippet meta onto post ID 1.
+
+    public function test_create_snippet_throws_when_wp_insert_post_fails(): void
+    {
+        Functions\when('sanitize_text_field')->returnArg();
+        Functions\when('wp_unslash')->returnArg();
+        Functions\when('wp_insert_post')->justReturn(new \WP_Error('db_insert_error', 'Could not insert post.'));
+        Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
+        Functions\expect('update_post_meta')->never();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Could not insert post.');
+
+        $this->service->createSnippet(['title' => 'Broken', 'code' => 'echo 1;']);
+    }
+
+    public function test_update_snippet_throws_when_wp_update_post_fails(): void
+    {
+        $this->stubExistingSnippet(6);
+        Functions\when('wp_update_post')->justReturn(new \WP_Error('db_update_error', 'Could not update post.'));
+        Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Could not update post.');
+
+        $this->service->updateSnippet(6, ['title' => 'New title']);
+    }
+
+    // ── setTags (via updateSnippet) ──────────────────────────────────────────
+    // setTags() now delegates entirely to wp_set_post_terms(), which creates any
+    // term passed by name that doesn't already exist in the taxonomy.
+
+    public function test_update_snippet_passes_tag_names_straight_to_wp_set_post_terms(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('wp_set_post_terms')
+            ->once()
+            ->with(6, ['php', 'utility'], 'wpcode_tags');
+
+        $this->service->updateSnippet(6, ['tags' => ['php', 'utility']]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_does_not_touch_tags_when_omitted(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('wp_set_post_terms')->never();
+
+        $this->service->updateSnippet(6, ['title' => 'New title']);
+        $this->addToAssertionCount(1);
+    }
+
     /**
      * @param string[]             $typeTerms
      * @param string[]             $locationTerms

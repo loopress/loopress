@@ -62,10 +62,32 @@ if (!class_exists('WP_Post')) {
     }
 }
 
+if (!class_exists('WP_Error')) {
+    class WP_Error
+    {
+        public function __construct(
+            private string $code = '',
+            private string $message = '',
+        ) {}
+
+        public function get_error_message(): string
+        {
+            return $this->message;
+        }
+
+        public function get_error_code(): string
+        {
+            return $this->code;
+        }
+    }
+}
+
 if (!function_exists('wp_mkdir_p')) {
     function wp_mkdir_p(string $path): bool
     {
-        return mkdir($path, 0755, true);
+        // This *is* the fake implementation of wp_mkdir_p() for tests; there's no
+        // WP_Filesystem to defer to since WordPress itself isn't loaded here.
+        return mkdir($path, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
     }
 }
 

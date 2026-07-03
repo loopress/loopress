@@ -49,11 +49,15 @@ class WPCodeService
             'post_title'   => sanitize_text_field($data['title'] ?? ''),
             'post_content' => wp_unslash($data['code'] ?? ''),
             'post_status'  => !empty($data['active']) ? 'publish' : 'draft',
-        ]);
+        ], true);
 
-        $this->saveMeta((int) $id, $data);
+        if (is_wp_error($id)) {
+            throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message());
+        }
 
-        return $this->getSnippet((int) $id) ?? [];
+        $this->saveMeta($id, $data);
+
+        return $this->getSnippet($id) ?? [];
     }
 
     /** @param array<string, mixed> $data @return array<string, mixed>|null */
@@ -76,7 +80,11 @@ class WPCodeService
             $update['post_status'] = $data['active'] ? 'publish' : 'draft';
         }
 
-        wp_update_post($update);
+        $result = wp_update_post($update, true);
+        if (is_wp_error($result)) {
+            throw new \RuntimeException('Failed to update snippet: ' . $result->get_error_message());
+        }
+
         $this->saveMeta($id, $data);
 
         return $this->getSnippet($id);
@@ -148,20 +156,14 @@ class WPCodeService
         }
     }
 
-    /** @param string[] $tags */
+    /**
+     * @param string[] $tags
+     *
+     * wp_set_post_terms() already creates any term passed by name that doesn't exist
+     * yet in the taxonomy, so there's no need to look up/insert terms by hand first.
+     */
     private function setTags(int $id, array $tags): void
     {
-        $termIds = [];
-        foreach ($tags as $tag) {
-            $term = get_term_by('name', $tag, self::TAXONOMY);
-            if (!$term instanceof \WP_Term) {
-                $result    = wp_insert_term($tag, self::TAXONOMY);
-                $termIds[] = is_wp_error($result) ? null : $result['term_id'];
-            } else {
-                $termIds[] = $term->term_id;
-            }
-        }
-
-        wp_set_post_terms($id, array_filter($termIds), self::TAXONOMY);
+        wp_set_post_terms($id, $tags, self::TAXONOMY);
     }
 }

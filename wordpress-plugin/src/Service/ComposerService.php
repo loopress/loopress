@@ -23,17 +23,51 @@ class ComposerService
 
     public function getInstalled(): array
     {
-        $json = $this->dxEnv->readComposerJson();
+        $this->dxEnv->ensureInitialized();
 
-        if (empty($json['require'])) {
+        $json    = $this->dxEnv->readComposerJson();
+        $require = $json['require'] ?? [];
+
+        if (!is_array($require) || $require === []) {
             return [];
         }
 
-        return array_map(
-            fn($name, $constraint) => ['name' => $name, 'version' => $constraint],
-            array_keys($json['require']),
-            $json['require']
-        );
+        $locked    = $this->getLockedVersions();
+        $installed = [];
+
+        foreach ($require as $name => $constraint) {
+            $name        = (string) $name;
+            $installed[] = [
+                'name'       => $name,
+                'constraint' => $constraint,
+                'version'    => $locked[$name] ?? $constraint,
+            ];
+        }
+
+        return $installed;
+    }
+
+    /** @return array<string, string> package name to exact locked version */
+    private function getLockedVersions(): array
+    {
+        $lock = $this->dxEnv->readComposerLock();
+        if ($lock === null) {
+            return [];
+        }
+
+        $data = json_decode($lock, true);
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $versions = [];
+        foreach (array_merge($data['packages'] ?? [], $data['packages-dev'] ?? []) as $package) {
+            if (is_array($package) && isset($package['name'], $package['version'])) {
+                $versions[(string) $package['name']] = (string) $package['version'];
+            }
+        }
+
+        return $versions;
     }
 
     public function requirePackage(string $package, string $version): string
@@ -83,6 +117,8 @@ class ComposerService
 
     public function getDiagnostics(): array
     {
+        $this->dxEnv->ensureInitialized();
+
         $phpVersion  = PHP_VERSION;
         $json        = $this->dxEnv->readComposerJson();
         $platformPhp = $json['config']['platform']['php'] ?? null;
@@ -161,6 +197,9 @@ class ComposerService
             throw new \InvalidArgumentException('Invalid composer.json: ' . json_last_error_msg());
         }
 
+        $previousJson = $this->dxEnv->readComposerJson();
+        $previousLock = $this->dxEnv->readComposerLock();
+
         $this->dxEnv->writeComposerJson($decoded);
 
         if ($composerLock !== null) {
@@ -170,6 +209,15 @@ class ComposerService
         $result = $this->composerRunner->run($composerLock !== null ? ['install'] : ['update']);
 
         if ($result['exit_code'] !== 0) {
+            // Restore the previous manifests so a failed sync doesn't leave the site
+            // pointing at dependencies that were never actually installed.
+            $this->dxEnv->writeComposerJson($previousJson);
+            if ($previousLock !== null) {
+                $this->dxEnv->writeComposerLock($previousLock);
+            } elseif ($composerLock !== null) {
+                $this->dxEnv->deleteComposerLock();
+            }
+
             throw new \RuntimeException($result['output']);
         }
 

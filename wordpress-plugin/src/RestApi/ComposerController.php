@@ -2,6 +2,8 @@
 
 namespace Loopress\RestApi;
 
+use Composer\Semver\VersionParser;
+use Loopress\Exception\ConcurrentOperationException;
 use Loopress\Exception\ProductionLockException;
 use Loopress\Service\ComposerService;
 use WP_REST_Request;
@@ -19,7 +21,7 @@ class ComposerController
             'permission_callback' => fn() => current_user_can('manage_options'),
             'args'                => [
                 'package' => $this->packageArg(required: true),
-                'version' => $this->versionArg(required: false, default: '*'),
+                'version' => $this->versionArg(required: false, defaultVersion: '*'),
             ],
         ]);
 
@@ -124,6 +126,8 @@ class ComposerController
             return new WP_REST_Response(['message' => "{$package}:{$version} installed successfully.", 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => "Failed to install {$package}:{$version}.", 'output' => $e->getMessage()], 500);
         }
@@ -138,6 +142,8 @@ class ComposerController
             return new WP_REST_Response(['message' => "{$package} removed successfully.", 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => "Failed to remove {$package}.", 'output' => $e->getMessage()], 500);
         }
@@ -150,6 +156,8 @@ class ComposerController
             return new WP_REST_Response(['message' => 'Dependencies repaired successfully.', 'output' => $output], 200);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Repair failed.', 'output' => $e->getMessage()], 500);
         }
@@ -164,6 +172,8 @@ class ComposerController
     {
         try {
             return new WP_REST_Response($this->composerService->audit(), 200);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -208,6 +218,8 @@ class ComposerController
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
         } catch (ProductionLockException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 403);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Sync failed.', 'output' => $e->getMessage()], 500);
         }
@@ -226,14 +238,23 @@ class ComposerController
     }
 
     /** @return array<string, mixed> */
-    private function versionArg(bool $required, string $default = '*'): array
+    private function versionArg(bool $required, string $defaultVersion = '*'): array
     {
         return [
             'required'          => $required,
-            'default'           => $default,
+            'default'           => $defaultVersion,
             'type'              => 'string',
             'description'       => 'Composer version constraint',
-            'validate_callback' => fn($v) => (bool) preg_match('/^[v\^~\*]?[0-9a-z\.\-\*]+$/i', $v),
+            // Delegates to the same parser Composer itself uses to interpret `composer require`
+            // constraints, instead of a hand-rolled regex trying to approximate its syntax.
+            'validate_callback' => function ($v): bool {
+                try {
+                    (new VersionParser())->parseConstraints($v);
+                    return true;
+                } catch (\UnexpectedValueException) {
+                    return false;
+                }
+            },
             'sanitize_callback' => 'sanitize_text_field',
         ];
     }
