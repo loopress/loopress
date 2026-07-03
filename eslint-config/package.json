@@ -5,12 +5,14 @@
   "exports": {
     "./base": "./base.js",
     "./nest": "./nest.js",
+    "./node": "./node.js",
     "./react": "./react.js"
   },
   "dependencies": {
     "@darraghor/eslint-plugin-nestjs-typed": "latest",
     "@eslint-react/eslint-plugin": "latest",
     "@eslint/js": "^10.0.1",
+    "eslint-plugin-n": "^18.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",

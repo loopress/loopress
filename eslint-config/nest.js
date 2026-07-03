@@ -1,19 +1,5 @@
 import nestjsTyped from "@darraghor/eslint-plugin-nestjs-typed";
-import globals from "globals";
 import tseslint from "typescript-eslint";
-import base from "./base.js";
+import node from "./node.js";
 
-export default tseslint.config(
-  ...base,
-  nestjsTyped.configs.flatRecommended,
-  {
-    files: ["**/*.ts"],
-    languageOptions: {
-      globals: globals.node,
-      parser: tseslint.parser,
-      parserOptions: {
-        projectService: true,
-      },
-    },
-  }
-);
+export default tseslint.config(...node, nestjsTyped.configs.flatRecommended);
