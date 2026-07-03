@@ -1,4 +1,5 @@
 import {Args} from '@oclif/core'
+import {Listr} from 'listr2'
 import {readdir, readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
@@ -43,6 +44,7 @@ export default class Push extends PushCommand {
     ...PushCommand.dryRunFlag,
     ...snippetPluginFlag,
   }
+  private failedCount = 0
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Push)
@@ -57,14 +59,16 @@ export default class Push extends PushCommand {
     this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
     const adapter = getSnippetPlugin(resolvedPlugin)
-    let failed = 0
-    for (const snippet of snippets) {
-      const pushed = await this.pushSnippet(snippet, adapter)
-      if (!pushed) failed++
-    }
+    await new Listr(
+      snippets.map((snippet) => ({
+        task: async (_ctx, task) => this.pushSnippet(snippet, adapter, task),
+        title: `Push ${snippet.name}`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
 
-    if (failed > 0) {
-      this.error(`${failed} snippet${failed === 1 ? '' : 's'} failed to push.`)
+    if (this.failedCount > 0) {
+      this.error(`${this.failedCount} snippet${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
     if (this.dryRun) return
@@ -109,8 +113,6 @@ export default class Push extends PushCommand {
     await rename(snippet.path, newPath)
     await writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
     await rm(oldMetaPath, {force: true})
-
-    this.log(`  Renamed: ${snippet.path} → ${newPath}`)
   }
 
   private async loadSnippets(path: string): Promise<Snippet[]> {
@@ -174,10 +176,13 @@ export default class Push extends PushCommand {
     return snippets
   }
 
-  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin): Promise<boolean> {
+  // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
+  // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
+  // sibling snippets push regardless.
+  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
-      this.log(`[dry-run] Would push: ${snippet.name}`)
-      return true
+      if (task) task.output = `[dry-run] Would push: ${snippet.name}`
+      return
     }
 
     const endpointPath = adapter.endpointPath()
@@ -187,19 +192,20 @@ export default class Push extends PushCommand {
 
       if (snippet.id) {
         await this.wp.put(`${endpointPath}/${snippet.id}`, payload)
-        this.log(`  Updated: ${snippet.name} (id: ${snippet.id})`)
         await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
       } else {
         const response = await this.wp.post<Record<string, unknown>>(endpointPath, payload)
         const created = adapter.fromRemote(response)
-        this.log(`  Created: ${snippet.name} (id: ${created.id})`)
         await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 
-      return true
+      if (task) task.output = `Pushed: ${snippet.name}`
     } catch (error) {
-      this.warn(`  Failed to push ${snippet.name}: ${(error as Error).message}`)
-      return false
+      const message = `Failed to push ${snippet.name}: ${(error as Error).message}`
+      if (task) task.output = message
+      else this.warn(`  ${message}`)
+      this.failedCount++
+      throw error
     }
   }
 }

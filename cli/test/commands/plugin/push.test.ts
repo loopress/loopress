@@ -7,6 +7,7 @@ import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 // same escape hatch used throughout this suite to unit-test command internals.
 interface PushInternals {
   activatePlugin(slug: string): Promise<void>
+  failedCount: number
   installAndActivate(slug: string, version: string): Promise<void>
   wpClient: {post: ReturnType<typeof vi.fn>}
 }
@@ -35,25 +36,27 @@ describe('plugin push', () => {
       expect(post).toHaveBeenNthCalledWith(2, 'loopress/v1/plugins/activate', {slug: 'akismet'})
     })
 
-    it('warns and skips activation when the install fails', async () => {
+    it('warns, rethrows, and skips activation when the install fails', async () => {
       const {cmd, logs, post} = make()
       post.mockRejectedValueOnce(new Error('boom'))
 
-      await cmd.installAndActivate('akismet', '5.3')
+      await expect(cmd.installAndActivate('akismet', '5.3')).rejects.toThrow('boom')
 
       expect(post).toHaveBeenCalledOnce()
       expect(logs.warn).toHaveBeenCalledWith('  Failed to install akismet: boom')
+      expect(cmd.failedCount).toBe(1)
     })
   })
 
   describe('activatePlugin', () => {
-    it('warns without throwing when the activation fails', async () => {
+    it('warns and rethrows when the activation fails, so Listr marks the task as failed', async () => {
       const {cmd, logs, post} = make()
       post.mockRejectedValueOnce(new Error('nope'))
 
-      await cmd.activatePlugin('akismet')
+      await expect(cmd.activatePlugin('akismet')).rejects.toThrow('nope')
 
       expect(logs.warn).toHaveBeenCalledWith('  Failed to activate akismet: nope')
+      expect(cmd.failedCount).toBe(1)
     })
   })
 })

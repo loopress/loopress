@@ -1,4 +1,5 @@
 import {Args} from '@oclif/core'
+import {Listr} from 'listr2'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import slugify from 'slugify'
@@ -76,24 +77,24 @@ export default class Pull extends LoopressCommand {
 
     await mkdir(path, {recursive: true})
 
-    let count = 0
-    let skipped = 0
-    for (const snippet of snippets) {
-      if (!snippet.name.trim()) {
-        skipped++
-        continue
-      }
+    const pullable = snippets.filter((snippet) => snippet.name.trim())
+    const skipped = snippets.length - pullable.length
 
-      const ext = EXTENSIONS[snippet.type]
-      const slug = slugify(snippet.name, {lower: true, strict: true})
-      const base = `${snippet.id}-${slug}`
-      await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
-      await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
-      count++
-      this.log(`  Pulled: ${snippet.name}`)
-    }
+    await new Listr(
+      pullable.map((snippet) => ({
+        async task(_ctx, task) {
+          const ext = EXTENSIONS[snippet.type]
+          const slug = slugify(snippet.name, {lower: true, strict: true})
+          const base = `${snippet.id}-${slug}`
+          await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
+          await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
+          task.output = `Pulled: ${snippet.name}`
+        },
+        title: `Pull ${snippet.name}`,
+      })),
+    ).run()
 
-    this.log(`Pulled ${count} snippet${count === 1 ? '' : 's'} to ${path}`)
+    this.log(`Pulled ${pullable.length} snippet${pullable.length === 1 ? '' : 's'} to ${path}`)
     if (skipped > 0) {
       this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
