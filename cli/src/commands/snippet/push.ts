@@ -93,6 +93,7 @@ export default class Push extends PushCommand {
 
     meta.id = id
     meta.name = name
+    meta.type = snippet.type
 
     // Persist the id against the *current* file pairing before renaming anything, so a
     // crash between the rename and the sidecar write still leaves a valid `<name>.<ext>` /
