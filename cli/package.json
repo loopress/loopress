@@ -32,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-oclif": "^6.0.174",
     "eslint-config-prettier": "^10",
+    "json-schema-to-typescript": "^15.0.4",
     "oclif": "^4.23.24",
     "prettier": "3.9.4",
     "shx": "^0.4.0",
@@ -55,7 +56,7 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./schema": "./loopress.schema.json"
+    "./schema": "./schemas/project-config.schema.json"
   },
   "type": "module",
   "oclif": {
@@ -95,10 +96,13 @@
     "url": "git+https://github.com/loopress/loopress.git"
   },
   "scripts": {
+    "prewatch": "pnpm run schema:types",
     "watch": "tsc -b --watch",
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "shx rm -rf dist && pnpm run schema:types && tsc -b",
     "lint": "eslint",
+    "pretest": "pnpm run schema:types",
     "posttest": "pnpm run lint",
+    "schema:types": "tsx scripts/generate-config-types.ts",
     "prepack": "oclif manifest && oclif readme",
     "test": "vitest run",
     "version": "oclif readme && git add README.md",

@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://loopress.dev/schema/global-config.json",
+  "title": "Loopress global configuration",
+  "description": "Global CLI state stored at ~/.loopress/config.json: known projects, their environments, and which one is currently active.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["currentProject", "projects"],
+  "properties": {
+    "currentProject": {
+      "description": "Pointer to the currently active project and environment, or null if none is selected.",
+      "oneOf": [{"type": "null"}, {"$ref": "#/definitions/CurrentProjectPointer"}]
+    },
+    "projects": {
+      "type": "object",
+      "description": "Known projects, keyed by project id.",
+      "additionalProperties": {"$ref": "#/definitions/ProjectConfig"}
+    }
+  },
+  "definitions": {
+    "CurrentProjectPointer": {
+      "title": "CurrentProjectPointer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["env", "id"],
+      "properties": {
+        "env": {
+          "type": "string",
+          "description": "Name of the currently active environment."
+        },
+        "id": {
+          "type": "string",
+          "description": "Id of the currently active project."
+        }
+      }
+    },
+    "ProjectConfig": {
+      "title": "ProjectConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addedAt", "environments", "name"],
+      "properties": {
+        "addedAt": {
+          "type": "string",
+          "description": "ISO timestamp of when the project was added."
+        },
+        "environments": {
+          "type": "object",
+          "description": "Environments for this project, keyed by environment name.",
+          "additionalProperties": {"$ref": "#/definitions/EnvironmentConfig"}
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable project name."
+        }
+      }
+    },
+    "EnvironmentConfig": {
+      "title": "EnvironmentConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addedAt", "name", "url"],
+      "properties": {
+        "addedAt": {
+          "type": "string",
+          "description": "ISO timestamp of when the environment was added."
+        },
+        "name": {
+          "type": "string",
+          "description": "Environment name (e.g. \"production\", \"staging\")."
+        },
+        "token": {
+          "type": "string",
+          "description": "API token used to authenticate against this environment."
+        },
+        "url": {
+          "type": "string",
+          "description": "Base URL of the WordPress site for this environment."
+        }
+      }
+    }
+  }
+}
