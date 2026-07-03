@@ -151,7 +151,7 @@ export default class Push extends PushCommand {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
         }
 
-        const resolvedType = type ?? TYPE_BY_EXTENSION[ext]
+        const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext as keyof typeof TYPE_BY_EXTENSION] : 'php')
 
         snippets.push({
           active,

@@ -41,16 +41,22 @@ export function parseInsertMethod(raw: unknown): null | SnippetInsertMethod {
 }
 
 // The sensible default placement for a freshly pushed snippet that doesn't specify a location.
-const DEFAULT_LOCATION_BY_TYPE: Record<SnippetType, SnippetLocation> = {
-  css: 'header',
-  html: 'footer',
-  js: 'footer',
-  php: 'everywhere',
-  text: 'footer',
-}
-
 export function defaultLocationForType(type: SnippetType): SnippetLocation {
-  return DEFAULT_LOCATION_BY_TYPE[type]
+  switch (type) {
+    case 'css': {
+      return 'header'
+    }
+
+    case 'html':
+    case 'js':
+    case 'text': {
+      return 'footer'
+    }
+
+    case 'php': {
+      return 'everywhere'
+    }
+  }
 }
 
 function inferTypeFromCode(code: string): SnippetType {
