@@ -44,6 +44,7 @@ export default class Push extends PushCommand {
     ...PushCommand.dryRunFlag,
     ...snippetPluginFlag,
   }
+  private failedCount = 0
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Push)
@@ -58,28 +59,16 @@ export default class Push extends PushCommand {
     this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
     const adapter = getSnippetPlugin(resolvedPlugin)
-    const ctx = {failed: 0}
-    await new Listr<typeof ctx>(
-      [
-        {
-          task: async (ctx, task) => {
-            for (const snippet of snippets) {
-              const pushed = await this.pushSnippet(snippet, adapter, task)
-              if (pushed) {
-                task.output = this.dryRun ? `[dry-run] Would push: ${snippet.name}` : `Pushed: ${snippet.name}`
-              } else {
-                ctx.failed++
-              }
-            }
-          },
-          title: `Pushing ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}`,
-        },
-      ],
-      {ctx},
+    await new Listr(
+      snippets.map((snippet) => ({
+        task: async (_ctx, task) => this.pushSnippet(snippet, adapter, task),
+        title: `Push ${snippet.name}`,
+      })),
+      {concurrent: false, exitOnError: false},
     ).run()
 
-    if (ctx.failed > 0) {
-      this.error(`${ctx.failed} snippet${ctx.failed === 1 ? '' : 's'} failed to push.`)
+    if (this.failedCount > 0) {
+      this.error(`${this.failedCount} snippet${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
     if (this.dryRun) return
@@ -187,9 +176,13 @@ export default class Push extends PushCommand {
     return snippets
   }
 
-  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin, task?: {output: string}): Promise<boolean> {
+  // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
+  // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
+  // sibling snippets push regardless.
+  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
-      return true
+      if (task) task.output = `[dry-run] Would push: ${snippet.name}`
+      return
     }
 
     const endpointPath = adapter.endpointPath()
@@ -206,13 +199,13 @@ export default class Push extends PushCommand {
         await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 
-      return true
+      if (task) task.output = `Pushed: ${snippet.name}`
     } catch (error) {
       const message = `Failed to push ${snippet.name}: ${(error as Error).message}`
       if (task) task.output = message
       else this.warn(`  ${message}`)
-
-      return false
+      this.failedCount++
+      throw error
     }
   }
 }

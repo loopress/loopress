@@ -101,36 +101,36 @@ export default class Push extends PushCommand {
   // `task` is only passed when called from within a running Listr task list (see `run()`); it lets
   // status lines go through `task.output` instead of `this.log`/`this.warn`, which would otherwise
   // race with the renderer repainting the terminal. Called without `task` (e.g. directly in tests),
-  // it falls back to plain logging.
+  // it falls back to plain logging. Rethrowing on failure (rather than swallowing) is what lets Listr
+  // mark the task as failed (red cross) instead of completed, even though `exitOnError: false` stops
+  // that failure from aborting sibling tasks in the same list.
   private async activatePlugin(slug: string, task?: {output: string}): Promise<void> {
-    try {
-      const result = await this.wp.post<ActivateResult>('loopress/v1/plugins/activate', {slug})
-      const message = `✓ ${result.message}`
-      if (task) task.output = message
-      else this.log(`  ${message}`)
-    } catch (error) {
-      const message = `Failed to activate ${slug}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-      this.failedCount++
-    }
+    await this.performPluginAction<ActivateResult>('activate', {body: {slug}, endpoint: 'loopress/v1/plugins/activate', slug}, task)
   }
 
   private async installAndActivate(slug: string, version: string, task?: {output: string}): Promise<void> {
+    await this.performPluginAction<InstallResult>('install', {body: {slug, version}, endpoint: 'loopress/v1/plugins/install', slug}, task)
+    await this.activatePlugin(slug, task)
+  }
+
+  private async performPluginAction<T extends {message: string}>(
+    verb: 'activate' | 'install',
+    request: {body: Record<string, unknown>; endpoint: string; slug: string},
+    task?: {output: string},
+  ): Promise<void> {
+    const {body, endpoint, slug} = request
     try {
-      const result = await this.wp.post<InstallResult>('loopress/v1/plugins/install', {slug, version})
+      const result = await this.wp.post<T>(endpoint, body)
       const message = `✓ ${result.message}`
       if (task) task.output = message
       else this.log(`  ${message}`)
     } catch (error) {
-      const message = `Failed to install ${slug}: ${(error as Error).message}`
+      const message = `Failed to ${verb} ${slug}: ${(error as Error).message}`
       if (task) task.output = message
       else this.warn(`  ${message}`)
       this.failedCount++
-      return
+      throw error
     }
-
-    await this.activatePlugin(slug, task)
   }
 
   // Prompt per drifted plugin before syncing. Prompts run sequentially on plain stdout,

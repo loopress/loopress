@@ -19,7 +19,8 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 type PushWithLoadSnippets = {loadSnippets(path: string): Promise<Snippet[]>}
 type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void>}
 type PushWithPushSnippet = {
-  pushSnippet(snippet: Snippet, adapter: unknown, task?: {output: string}): Promise<boolean>
+  failedCount: number
+  pushSnippet(snippet: Snippet, adapter: unknown, task?: {output: string}): Promise<void>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
@@ -305,18 +306,18 @@ describe('snippet push', () => {
     } as Snippet
     const adapter = {endpointPath: () => 'code-snippets/v1/snippets', toPayload: () => ({})}
 
-    it('routes the failure message through task.output instead of warn, to avoid racing the Listr renderer', async () => {
+    it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
       ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
       const task = {output: ''}
 
-      const pushed = await (cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter, task)
+      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter, task)).rejects.toThrow('boom')
 
-      expect(pushed).toBe(false)
       expect(task.output).toBe('Failed to push demo: boom')
       expect(logs.warn).not.toHaveBeenCalled()
+      expect((cmd as unknown as PushWithPushSnippet).failedCount).toBe(1)
     })
 
     it('falls back to warn when called without a task (e.g. directly in tests)', async () => {
@@ -325,10 +326,10 @@ describe('snippet push', () => {
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
       ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
 
-      const pushed = await (cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter)
+      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter)).rejects.toThrow('boom')
 
-      expect(pushed).toBe(false)
       expect(logs.warn).toHaveBeenCalledWith('  Failed to push demo: boom')
+      expect((cmd as unknown as PushWithPushSnippet).failedCount).toBe(1)
     })
   })
 })
