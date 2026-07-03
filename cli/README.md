@@ -31,10 +31,9 @@ USAGE
 
 # Error reporting
 
-Loopress sends crash reports to Sentry, but only when a `SENTRY_DSN` environment
-variable is configured. If it's not set, no error reporting happens at all.
+Loopress sends crash reports to our Sentry project so we can find and fix bugs.
 
-To opt out even when `SENTRY_DSN` is configured, either:
+To opt out, either:
 
 - set `LOOPRESS_TELEMETRY_DISABLED=1`, or
 - pass `--no-error-reporting` on the command.

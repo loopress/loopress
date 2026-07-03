@@ -8,7 +8,7 @@ import {isTelemetryDisabled, runtimeContext, scrubArgv} from '../lib/sentry.js'
 // is the closest equivalent: it always runs at the end of the CLI lifecycle and carries
 // the error, if any, so it's where we report crashes before the process exits.
 const hook: Hook.Finally = async function (options) {
-  if (!options.error || !process.env.SENTRY_DSN || isTelemetryDisabled()) return
+  if (!options.error || isTelemetryDisabled()) return
 
   try {
     Sentry.captureException(options.error, {

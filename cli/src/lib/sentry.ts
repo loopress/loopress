@@ -2,6 +2,9 @@ import {platform, release} from 'node:os'
 
 const SENSITIVE_FLAGS = new Set(['--password', '--token', '--user'])
 
+// DSNs are write-only and safe to embed in a distributed CLI, see https://docs.sentry.io/product/security/#can-i-make-my-sentry-dsn-private
+export const SENTRY_DSN = 'https://a08dd56bfffc2a45d5b8f665e4cb8b7d@o4511586904309760.ingest.de.sentry.io/4511673275973712'
+
 export function consumeErrorReportingFlag(argv: string[]): void {
   const index = argv.indexOf('--no-error-reporting')
   if (index === -1) return
