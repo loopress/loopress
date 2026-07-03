@@ -8,7 +8,11 @@ const base: NormalizedSnippet = {
   code: '',
   description: '',
   id: 1,
+  insertMethod: 'auto',
+  location: 'everywhere',
   name: 'My Snippet',
+  priority: 10,
+  shortcodeAttributes: [],
   tags: [],
   type: 'php',
 }
@@ -48,6 +52,7 @@ describe('pull helpers', () => {
       expect(meta.name).toBe('My Snippet')
       expect(meta.type).toBe('php')
       expect(meta.active).toBe(false)
+      expect(meta.location).toBe('everywhere')
     })
 
     it('omits description when empty', () => {
@@ -68,6 +73,36 @@ describe('pull helpers', () => {
     it('includes tags when present', () => {
       const meta = JSON.parse(buildMetaFile({...base, tags: ['sample', 'dates']}))
       expect(meta.tags).toEqual(['sample', 'dates'])
+    })
+
+    it('omits insertMethod when it is the default "auto"', () => {
+      const meta = JSON.parse(buildMetaFile({...base, insertMethod: 'auto'}))
+      expect(meta).not.toHaveProperty('insertMethod')
+    })
+
+    it('includes insertMethod when it is "shortcode"', () => {
+      const meta = JSON.parse(buildMetaFile({...base, insertMethod: 'shortcode'}))
+      expect(meta.insertMethod).toBe('shortcode')
+    })
+
+    it('omits priority when it is the default 10', () => {
+      const meta = JSON.parse(buildMetaFile({...base, priority: 10}))
+      expect(meta).not.toHaveProperty('priority')
+    })
+
+    it('includes priority when it differs from the default', () => {
+      const meta = JSON.parse(buildMetaFile({...base, priority: 20}))
+      expect(meta.priority).toBe(20)
+    })
+
+    it('omits shortcodeAttributes when empty', () => {
+      const meta = JSON.parse(buildMetaFile({...base, shortcodeAttributes: []}))
+      expect(meta).not.toHaveProperty('shortcodeAttributes')
+    })
+
+    it('includes shortcodeAttributes when present', () => {
+      const meta = JSON.parse(buildMetaFile({...base, shortcodeAttributes: ['color', 'size']}))
+      expect(meta.shortcodeAttributes).toEqual(['color', 'size'])
     })
 
     it('produces valid JSON ending with a newline', () => {
