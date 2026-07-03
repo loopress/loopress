@@ -8,6 +8,22 @@ use WP_REST_Response;
 
 class WPCodeController
 {
+    /**
+     * WPCode's own `wpcode_location` taxonomy term slugs, limited to the free-tier locations
+     * supported by this integration (see WPCode_Auto_Insert_Everywhere/Site_Wide upstream).
+     *
+     * @var string[]
+     */
+    private const LOCATIONS = [
+        'everywhere',
+        'frontend_only',
+        'admin_only',
+        'on_demand',
+        'site_wide_header',
+        'site_wide_body',
+        'site_wide_footer',
+    ];
+
     public function __construct(private WPCodeService $wpCodeService) {}
 
     public function register_routes(): void
@@ -23,12 +39,16 @@ class WPCodeController
                 'callback'            => [$this, 'create_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
                 'args'                => [
-                    'title'  => ['required' => true,  'type' => 'string'],
-                    'code'   => ['required' => true,  'type' => 'string'],
-                    'type'   => ['required' => false, 'type' => 'string', 'default' => 'php', 'enum' => ['php', 'js', 'css', 'html', 'text']],
-                    'active' => ['required' => false, 'type' => 'boolean', 'default' => false],
-                    'note'   => ['required' => false, 'type' => 'string',  'default' => ''],
-                    'tags'   => ['required' => false, 'type' => 'array',   'default' => [], 'items' => ['type' => 'string']],
+                    'title'                => ['required' => true,  'type' => 'string'],
+                    'code'                 => ['required' => true,  'type' => 'string'],
+                    'type'                 => ['required' => false, 'type' => 'string', 'default' => 'php', 'enum' => ['php', 'js', 'css', 'html', 'text']],
+                    'active'               => ['required' => false, 'type' => 'boolean', 'default' => false],
+                    'note'                 => ['required' => false, 'type' => 'string',  'default' => ''],
+                    'tags'                 => ['required' => false, 'type' => 'array',   'default' => [], 'items' => ['type' => 'string']],
+                    'location'             => ['required' => false, 'type' => 'string', 'enum' => self::LOCATIONS],
+                    'insert_method'        => ['required' => false, 'type' => 'string', 'default' => 'auto', 'enum' => ['auto', 'shortcode']],
+                    'priority'             => ['required' => false, 'type' => 'integer', 'default' => 10],
+                    'shortcode_attributes' => ['required' => false, 'type' => 'array', 'default' => [], 'items' => ['type' => 'string']],
                 ],
             ],
         ]);
@@ -45,12 +65,16 @@ class WPCodeController
                 'callback'            => [$this, 'update_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
                 'args'                => array_merge($this->idArg(), [
-                    'title'  => ['required' => false, 'type' => 'string'],
-                    'code'   => ['required' => false, 'type' => 'string'],
-                    'type'   => ['required' => false, 'type' => 'string', 'enum' => ['php', 'js', 'css', 'html', 'text']],
-                    'active' => ['required' => false, 'type' => 'boolean'],
-                    'note'   => ['required' => false, 'type' => 'string'],
-                    'tags'   => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
+                    'title'                => ['required' => false, 'type' => 'string'],
+                    'code'                 => ['required' => false, 'type' => 'string'],
+                    'type'                 => ['required' => false, 'type' => 'string', 'enum' => ['php', 'js', 'css', 'html', 'text']],
+                    'active'               => ['required' => false, 'type' => 'boolean'],
+                    'note'                 => ['required' => false, 'type' => 'string'],
+                    'tags'                 => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
+                    'location'             => ['required' => false, 'type' => 'string', 'enum' => self::LOCATIONS],
+                    'insert_method'        => ['required' => false, 'type' => 'string', 'enum' => ['auto', 'shortcode']],
+                    'priority'             => ['required' => false, 'type' => 'integer'],
+                    'shortcode_attributes' => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
                 ]),
             ],
         ]);
@@ -87,12 +111,16 @@ class WPCodeController
         }
 
         $snippet = $this->wpCodeService->createSnippet([
-            'title'  => $request->get_param('title'),
-            'code'   => $request->get_param('code'),
-            'type'   => $request->get_param('type'),
-            'active' => $request->get_param('active'),
-            'note'   => $request->get_param('note'),
-            'tags'   => $request->get_param('tags'),
+            'title'                => $request->get_param('title'),
+            'code'                 => $request->get_param('code'),
+            'type'                 => $request->get_param('type'),
+            'active'               => $request->get_param('active'),
+            'note'                 => $request->get_param('note'),
+            'tags'                 => $request->get_param('tags'),
+            'location'             => $request->get_param('location'),
+            'insert_method'        => $request->get_param('insert_method'),
+            'priority'             => $request->get_param('priority'),
+            'shortcode_attributes' => $request->get_param('shortcode_attributes'),
         ]);
 
         return new WP_REST_Response($snippet, 201);
@@ -105,12 +133,16 @@ class WPCodeController
         }
 
         $data = array_filter([
-            'title'  => $request->get_param('title'),
-            'code'   => $request->get_param('code'),
-            'type'   => $request->get_param('type'),
-            'active' => $request->get_param('active'),
-            'note'   => $request->get_param('note'),
-            'tags'   => $request->get_param('tags'),
+            'title'                => $request->get_param('title'),
+            'code'                 => $request->get_param('code'),
+            'type'                 => $request->get_param('type'),
+            'active'               => $request->get_param('active'),
+            'note'                 => $request->get_param('note'),
+            'tags'                 => $request->get_param('tags'),
+            'location'             => $request->get_param('location'),
+            'insert_method'        => $request->get_param('insert_method'),
+            'priority'             => $request->get_param('priority'),
+            'shortcode_attributes' => $request->get_param('shortcode_attributes'),
         ], fn($v) => $v !== null);
 
         $snippet = $this->wpCodeService->updateSnippet((int) $request->get_param('id'), $data);

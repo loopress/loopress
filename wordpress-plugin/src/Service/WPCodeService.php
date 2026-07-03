@@ -4,10 +4,14 @@ namespace Loopress\Service;
 
 class WPCodeService
 {
-    private const POST_TYPE   = 'wpcode';
-    private const META_TYPE   = '_wpcode_snippet_type';
-    private const META_NOTE   = '_wpcode_note';
-    private const TAXONOMY    = 'wpcode-tags';
+    private const POST_TYPE         = 'wpcode';
+    private const META_NOTE         = '_wpcode_note';
+    private const META_AUTO_INSERT  = '_wpcode_auto_insert';
+    private const META_PRIORITY     = '_wpcode_priority';
+    private const META_SHORTCODE_ATTRIBUTES = '_wpcode_shortcode_attributes';
+    private const TYPE_TAXONOMY     = 'wpcode_type';
+    private const LOCATION_TAXONOMY = 'wpcode_location';
+    private const TAXONOMY          = 'wpcode_tags';
 
     public function isWPCodeActive(): bool
     {
@@ -81,17 +85,35 @@ class WPCodeService
     /** @return array<string, mixed> */
     private function normalize(\WP_Post $post): array
     {
-        $terms = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'names']);
+        $terms               = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'names']);
+        $typeTerm            = $this->getSingleTerm($post->ID, self::TYPE_TAXONOMY);
+        $locationTerm        = $this->getSingleTerm($post->ID, self::LOCATION_TAXONOMY);
+        $autoInsert          = get_post_meta($post->ID, self::META_AUTO_INSERT, true);
+        $priority            = get_post_meta($post->ID, self::META_PRIORITY, true);
+        $shortcodeAttributes = get_post_meta($post->ID, self::META_SHORTCODE_ATTRIBUTES, true);
+        $note                = get_post_meta($post->ID, self::META_NOTE, true);
 
         return [
-            'active' => $post->post_status === 'publish',
-            'code'   => $post->post_content,
-            'id'     => $post->ID,
-            'note'   => get_post_meta($post->ID, self::META_NOTE, true) ?: '',
-            'tags'   => is_wp_error($terms) ? [] : $terms,
-            'title'  => $post->post_title,
-            'type'   => get_post_meta($post->ID, self::META_TYPE, true) ?: 'php',
+            'active'               => $post->post_status === 'publish',
+            'code'                 => $post->post_content,
+            'id'                   => $post->ID,
+            'insert_method'        => '0' === $autoInsert ? 'shortcode' : 'auto',
+            'location'             => $locationTerm,
+            'note'                 => $note ? $note : '',
+            'priority'             => '' === $priority ? 10 : (int) $priority,
+            'shortcode_attributes' => is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
+            'tags'                 => is_wp_error($terms) ? [] : $terms,
+            'title'                => $post->post_title,
+            'type'                 => $typeTerm !== '' ? $typeTerm : 'php',
         ];
+    }
+
+    /** WPCode stores the code type and location as single terms of their own taxonomies, not as post meta. */
+    private function getSingleTerm(int $id, string $taxonomy): string
+    {
+        $terms = wp_get_post_terms($id, $taxonomy, ['fields' => 'slugs']);
+
+        return is_wp_error($terms) || empty($terms) ? '' : (string) $terms[0];
     }
 
     /** @param array<string, mixed> $data */
@@ -102,11 +124,27 @@ class WPCodeService
         }
 
         if (isset($data['type'])) {
-            update_post_meta($id, self::META_TYPE, sanitize_text_field($data['type']));
+            wp_set_post_terms($id, [sanitize_text_field($data['type'])], self::TYPE_TAXONOMY);
         }
 
         if (isset($data['tags']) && is_array($data['tags'])) {
             $this->setTags($id, $data['tags']);
+        }
+
+        if (isset($data['insert_method'])) {
+            update_post_meta($id, self::META_AUTO_INSERT, 'shortcode' === $data['insert_method'] ? 0 : 1);
+        }
+
+        if (isset($data['location'])) {
+            wp_set_post_terms($id, [sanitize_text_field($data['location'])], self::LOCATION_TAXONOMY);
+        }
+
+        if (isset($data['priority'])) {
+            update_post_meta($id, self::META_PRIORITY, (int) $data['priority']);
+        }
+
+        if (isset($data['shortcode_attributes']) && is_array($data['shortcode_attributes'])) {
+            update_post_meta($id, self::META_SHORTCODE_ATTRIBUTES, array_map('sanitize_key', $data['shortcode_attributes']));
         }
     }
 

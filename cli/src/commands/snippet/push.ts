@@ -6,7 +6,17 @@ import slugify from 'slugify'
 import {PushCommand} from '../../lib/push-command.js'
 import {Snippet} from '../../types/snippet.js'
 import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
-import {getSnippetPlugin, parseType, SnippetPlugin, SnippetType} from '../../utils/snippet-plugin.js'
+import {
+  defaultLocationForType,
+  getSnippetPlugin,
+  parseInsertMethod,
+  parseLocation,
+  parseType,
+  SnippetInsertMethod,
+  SnippetLocation,
+  SnippetPlugin,
+  SnippetType,
+} from '../../utils/snippet-plugin.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',
@@ -118,22 +128,42 @@ export default class Push extends PushCommand {
         let id: number | undefined
         let name: string | undefined
         let type: SnippetType | undefined
+        let active = false
+        let tags: string[] = []
+        let location: null | SnippetLocation = null
+        let insertMethod: null | SnippetInsertMethod = null
+        let priority = 10
+        let shortcodeAttributes: string[] = []
         try {
           const metaContent = await readFile(metaPath, 'utf8')
           const meta = JSON.parse(metaContent) as Record<string, unknown>
           id = meta.id ? Number(meta.id) : undefined
           name = meta.name ? String(meta.name) : undefined
           type = parseType(meta.type) ?? undefined
+          active = Boolean(meta.active)
+          tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
+          location = parseLocation(meta.location)
+          insertMethod = parseInsertMethod(meta.insertMethod)
+          priority = meta.priority === undefined ? 10 : Number(meta.priority)
+          shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
         }
 
+        const resolvedType = type ?? TYPE_BY_EXTENSION[ext]
+
         snippets.push({
+          active,
           code: content,
           id,
+          insertMethod: insertMethod ?? 'auto',
+          location: location ?? defaultLocationForType(resolvedType),
           name: name ?? basename(file, ext),
           path: filePath,
-          type: type ?? TYPE_BY_EXTENSION[ext],
+          priority,
+          shortcodeAttributes,
+          tags,
+          type: resolvedType,
         })
       }
     } catch (error) {
@@ -150,9 +180,10 @@ export default class Push extends PushCommand {
     }
 
     const endpointPath = adapter.endpointPath()
-    const payload = adapter.toPayload(snippet.name, snippet.code, snippet.path, snippet.type)
 
     try {
+      const payload = adapter.toPayload(snippet)
+
       if (snippet.id) {
         await this.wp.put(`${endpointPath}/${snippet.id}`, payload)
         this.log(`  Updated: ${snippet.name} (id: ${snippet.id})`)

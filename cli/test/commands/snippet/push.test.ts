@@ -76,13 +76,69 @@ describe('snippet push', () => {
     })
   })
 
+  describe('loadSnippets active resolution', () => {
+    it('uses the active flag recorded in the sidecar .json meta file', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({active: true, id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(true)
+      })
+    })
+
+    it('defaults to inactive when the meta file has no active flag', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(false)
+      })
+    })
+
+    it('defaults to inactive when there is no meta file at all', () => {
+      writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(false)
+      })
+    })
+  })
+
+  describe('loadSnippets tags resolution', () => {
+    it('uses the tags recorded in the sidecar .json meta file', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello', tags: ['foo', 'bar']}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual(['foo', 'bar'])
+      })
+    })
+
+    it('defaults to no tags when the meta file has no tags', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual([])
+      })
+    })
+
+    it('defaults to no tags when there is no meta file at all', () => {
+      writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual([])
+      })
+    })
+  })
+
   describe('ensureCanonicalFilename', () => {
     it('renames a file with no id/slug in its name (e.g. a hand-created demo.php)', async () => {
       writeFileSync(join(dir, 'demo.php'), '<?php\n\necho "salut";')
       writeFileSync(join(dir, 'demo.json'), JSON.stringify({id: 8}))
 
       await ensureCanonicalFilename(
-        {code: '<?php\n\necho "salut";', id: 8, name: 'demo', path: join(dir, 'demo.php'), type: 'php'},
+        {active: false, code: '<?php\n\necho "salut";', id: 8, name: 'demo', path: join(dir, 'demo.php'), tags: [], type: 'php'},
         8,
         'demo',
       )
@@ -106,7 +162,11 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '6-hello.txt'), 'hi')
       writeFileSync(join(dir, '6-hello.json'), JSON.stringify({id: 6, name: 'hello', type: 'text'}))
 
-      await ensureCanonicalFilename({code: 'hi', id: 6, name: 'hello', path: join(dir, '6-hello.txt'), type: 'text'}, 6, 'hello')
+      await ensureCanonicalFilename(
+        {active: false, code: 'hi', id: 6, name: 'hello', path: join(dir, '6-hello.txt'), tags: [], type: 'text'},
+        6,
+        'hello',
+      )
 
       expect(readdirSync(dir).sort()).toEqual(['6-hello.json', '6-hello.txt'])
     })

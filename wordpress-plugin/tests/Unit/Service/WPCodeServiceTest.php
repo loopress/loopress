@@ -28,26 +28,45 @@ class WPCodeServiceTest extends TestCase
     // ── saveMeta (via updateSnippet) ─────────────────────────────────────────
     // Regression coverage for the bug where an update that omitted `type`
     // silently reset the stored snippet type back to 'php'.
+    //
+    // WPCode itself stores the code type as a term of its `wpcode_type` taxonomy
+    // (not post meta) — see WPCode_Snippet::save()/get_code_type() in the real
+    // plugin. Writing to post meta instead means WPCode's own admin UI never
+    // sees the value. Location, priority, insert method and shortcode attributes
+    // follow the same principle: they must land in the same storage WPCode's own
+    // admin UI reads from.
 
-    public function test_update_snippet_does_not_touch_type_meta_when_type_is_omitted(): void
+    public function test_update_snippet_does_not_touch_type_taxonomy_when_type_is_omitted(): void
     {
         $this->stubExistingSnippet(6);
 
-        Functions\expect('update_post_meta')->never();
+        Functions\expect('wp_set_post_terms')->never();
 
         $this->service->updateSnippet(6, ['title' => 'New title']);
         $this->addToAssertionCount(1);
     }
 
-    public function test_update_snippet_writes_type_meta_when_type_is_present(): void
+    public function test_update_snippet_writes_type_taxonomy_when_type_is_present(): void
     {
         $this->stubExistingSnippet(6);
 
-        Functions\expect('update_post_meta')
+        Functions\expect('wp_set_post_terms')
             ->once()
-            ->with(6, '_wpcode_snippet_type', 'text');
+            ->with(6, ['text'], 'wpcode_type');
 
         $this->service->updateSnippet(6, ['type' => 'text']);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_writes_location_taxonomy_when_location_is_present(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('wp_set_post_terms')
+            ->once()
+            ->with(6, ['site_wide_footer'], 'wpcode_location');
+
+        $this->service->updateSnippet(6, ['location' => 'site_wide_footer']);
         $this->addToAssertionCount(1);
     }
 
@@ -61,29 +80,152 @@ class WPCodeServiceTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_update_snippet_sets_auto_insert_meta_to_zero_for_shortcode_insert_method(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('update_post_meta')
+            ->once()
+            ->with(6, '_wpcode_auto_insert', 0);
+
+        $this->service->updateSnippet(6, ['insert_method' => 'shortcode']);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_sets_auto_insert_meta_to_one_for_auto_insert_method(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('update_post_meta')
+            ->once()
+            ->with(6, '_wpcode_auto_insert', 1);
+
+        $this->service->updateSnippet(6, ['insert_method' => 'auto']);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_writes_priority_meta_when_present(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('update_post_meta')
+            ->once()
+            ->with(6, '_wpcode_priority', 20);
+
+        $this->service->updateSnippet(6, ['priority' => 20]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_sanitizes_and_writes_shortcode_attributes(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        Functions\expect('update_post_meta')
+            ->once()
+            ->with(6, '_wpcode_shortcode_attributes', ['color', 'size']);
+
+        $this->service->updateSnippet(6, ['shortcode_attributes' => ['color', 'size']]);
+        $this->addToAssertionCount(1);
+    }
+
     // ── normalize (via getSnippet) ────────────────────────────────────────────
 
     public function test_get_snippet_reports_the_stored_type(): void
     {
-        $this->stubExistingSnippet(6);
-        Functions\when('get_post_meta')->justReturn('text');
+        $this->stubExistingSnippet(6, typeTerms: ['text']);
 
         $result = $this->service->getSnippet(6);
 
         $this->assertSame('text', $result['type']);
     }
 
-    public function test_get_snippet_falls_back_to_php_only_when_meta_is_empty(): void
+    public function test_get_snippet_falls_back_to_php_only_when_no_type_term_is_set(): void
     {
-        $this->stubExistingSnippet(6);
-        Functions\when('get_post_meta')->justReturn('');
+        $this->stubExistingSnippet(6, typeTerms: []);
 
         $result = $this->service->getSnippet(6);
 
         $this->assertSame('php', $result['type']);
     }
 
-    private function stubExistingSnippet(int $id): void
+    public function test_get_snippet_reports_the_stored_location(): void
+    {
+        $this->stubExistingSnippet(6, locationTerms: ['site_wide_header']);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame('site_wide_header', $result['location']);
+    }
+
+    public function test_get_snippet_reports_empty_location_when_no_location_term_is_set(): void
+    {
+        $this->stubExistingSnippet(6, locationTerms: []);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame('', $result['location']);
+    }
+
+    public function test_get_snippet_defaults_priority_to_10_when_meta_is_empty(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame(10, $result['priority']);
+    }
+
+    public function test_get_snippet_reports_the_stored_priority(): void
+    {
+        $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_priority' => '5']);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame(5, $result['priority']);
+    }
+
+    public function test_get_snippet_defaults_insert_method_to_auto_when_meta_is_empty(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame('auto', $result['insert_method']);
+    }
+
+    public function test_get_snippet_reports_insert_method_shortcode_when_auto_insert_is_disabled(): void
+    {
+        $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_auto_insert' => '0']);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame('shortcode', $result['insert_method']);
+    }
+
+    public function test_get_snippet_reports_shortcode_attributes(): void
+    {
+        $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_shortcode_attributes' => ['color', 'size']]);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame(['color', 'size'], $result['shortcode_attributes']);
+    }
+
+    public function test_get_snippet_defaults_shortcode_attributes_to_empty_array(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        $result = $this->service->getSnippet(6);
+
+        $this->assertSame([], $result['shortcode_attributes']);
+    }
+
+    /**
+     * @param string[]             $typeTerms
+     * @param string[]             $locationTerms
+     * @param array<string, mixed> $metaOverrides
+     */
+    private function stubExistingSnippet(int $id, array $typeTerms = [], array $locationTerms = [], array $metaOverrides = []): void
     {
         $post               = new WP_Post();
         $post->ID           = $id;
@@ -94,10 +236,19 @@ class WPCodeServiceTest extends TestCase
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wp_update_post')->justReturn($id);
-        Functions\when('get_post_meta')->justReturn('');
-        Functions\when('wp_get_post_terms')->justReturn([]);
+        Functions\when('get_post_meta')->alias(
+            fn($postId, $key) => $metaOverrides[$key] ?? '',
+        );
+        Functions\when('wp_get_post_terms')->alias(
+            fn($postId, $taxonomy) => match ($taxonomy) {
+                'wpcode_type' => $typeTerms,
+                'wpcode_location' => $locationTerms,
+                default => [],
+            },
+        );
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('sanitize_text_field')->returnArg();
+        Functions\when('sanitize_key')->returnArg();
         Functions\when('wp_unslash')->returnArg();
     }
 }
