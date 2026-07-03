@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.8.0
+
+### Minor Changes
+
+- 540c702: Improve structure with fable
+- 6122ddc: Align better sidecar file with WPCode api
+
 ## 0.7.0
 
 ### Minor Changes
