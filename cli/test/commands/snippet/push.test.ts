@@ -220,7 +220,7 @@ describe('snippet push', () => {
       expect(files).toEqual(['8-demo.json', '8-demo.php'])
       expect(existsSync(join(dir, 'demo.php'))).toBe(false)
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
-      expect(JSON.parse(readFileSync(join(dir, '8-demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo'})
+      expect(JSON.parse(readFileSync(join(dir, '8-demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
     })
 
     it('renames a file with no sidecar at all', async () => {
@@ -281,7 +281,7 @@ describe('snippet push', () => {
       // the id: a retry of `snippet push` will read demo.php + demo.json and see the id,
       // so it PUTs an update instead of POSTing a duplicate create.
       expect(existsSync(join(dir, 'demo.php'))).toBe(true)
-      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo'})
+      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
     })
   })
 })
