@@ -1,11 +1,6 @@
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {
-  consumeErrorReportingFlag,
-  isTelemetryDisabled,
-  resolveEnvironment,
-  scrubArgv,
-} from '../../src/lib/sentry.js'
+import {consumeErrorReportingFlag, isTelemetryDisabled, resolveEnvironment} from '../../src/lib/sentry.js'
 
 describe('sentry', () => {
   afterEach(() => {
@@ -56,31 +51,6 @@ describe('sentry', () => {
 
     it('falls back to production otherwise', () => {
       expect(resolveEnvironment()).toBe('production')
-    })
-  })
-
-  describe('scrubArgv', () => {
-    it('redacts the value following --user and --password', () => {
-      expect(scrubArgv(['snippet', 'pull', '--user', 'me', '--password', 'secret'])).toEqual([
-        'snippet',
-        'pull',
-        '--user',
-        '[REDACTED]',
-        '--password',
-        '[REDACTED]',
-      ])
-    })
-
-    it('redacts --flag=value form', () => {
-      expect(scrubArgv(['--token=abc123', '--url', 'https://example.com'])).toEqual([
-        '--token=[REDACTED]',
-        '--url',
-        'https://example.com',
-      ])
-    })
-
-    it('leaves non-sensitive argv untouched', () => {
-      expect(scrubArgv(['snippet', 'pull', '--dry-run'])).toEqual(['snippet', 'pull', '--dry-run'])
     })
   })
 })

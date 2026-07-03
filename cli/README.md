@@ -38,10 +38,10 @@ To opt out, either:
 - set `LOOPRESS_TELEMETRY_DISABLED=1`, or
 - pass `--no-error-reporting` on the command.
 
-No sensitive data is ever sent: WordPress credentials (`--user`, `--password`,
-`--token`) are redacted from the reported command before it leaves your machine.
-Only the command name, its non-sensitive flags/args, your Node.js version, and OS
-are attached to help diagnose the crash.
+A crash report includes the command name, its flags/args as typed, your Node.js
+version, and OS. WordPress credentials are configured via `lps project config`
+and are never passed as command-line arguments, so they don't end up in a
+report.
 
 # Commands
 
