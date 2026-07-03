@@ -11,7 +11,6 @@ export default class ComposerPull extends LoopressCommand {
   static description = 'Pull composer.lock from WordPress'
   static examples = ['$ lps composer pull', '$ lps composer pull --dry-run']
   static flags = {
-    ...LoopressCommand.baseFlags,
     ...LoopressCommand.dryRunFlag,
   }
 

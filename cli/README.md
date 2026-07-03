@@ -9,6 +9,7 @@ A new CLI generated with oclif
 <!-- toc -->
 * [Loopress](#loopress)
 * [Usage](#usage)
+* [Error reporting](#error-reporting)
 * [Commands](#commands)
 <!-- tocstop -->
 
@@ -20,13 +21,27 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.7.0 darwin-arm64 node-v24.11.0
+@loopress/cli/0.8.0 darwin-arm64 node-v24.11.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
 ...
 ```
 <!-- usagestop -->
+
+# Error reporting
+
+Loopress sends crash reports to our Sentry project so we can find and fix bugs.
+
+To opt out, either:
+
+- set `LOOPRESS_TELEMETRY_DISABLED=1`, or
+- pass `--no-error-reporting` on the command.
+
+A crash report includes the command name, its flags/args as typed, your Node.js
+version, and OS. WordPress credentials are configured via `lps project config`
+and are never passed as command-line arguments, so they don't end up in a
+report.
 
 # Commands
 
@@ -55,15 +70,10 @@ Pull composer.lock from WordPress
 
 ```
 USAGE
-  $ lps composer pull [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps composer pull [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Pull composer.lock from WordPress
@@ -74,7 +84,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -82,15 +92,10 @@ Push composer.json and composer.lock to WordPress and run composer install
 
 ```
 USAGE
-  $ lps composer push [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps composer push [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Push composer.json and composer.lock to WordPress and run composer install
@@ -101,7 +106,7 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/composer/push.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -138,7 +143,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -155,7 +160,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -172,7 +177,7 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/logout.ts)_
 
 ## `lps plugin add SLUG [VERSION]`
 
@@ -180,7 +185,7 @@ Add a WordPress.org plugin to loopress.json
 
 ```
 USAGE
-  $ lps plugin add SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin add SLUG [VERSION] [-d]
 
 ARGUMENTS
   SLUG       Plugin slug on WordPress.org
@@ -188,11 +193,6 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Add a WordPress.org plugin to loopress.json
@@ -205,7 +205,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/add.ts)_
 
 ## `lps plugin pull`
 
@@ -213,15 +213,10 @@ Pull installed plugins from WordPress into loopress.json
 
 ```
 USAGE
-  $ lps plugin pull [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin pull [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Pull installed plugins from WordPress into loopress.json
@@ -232,7 +227,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -240,15 +235,10 @@ Push plugins to WordPress to match loopress.json
 
 ```
 USAGE
-  $ lps plugin push [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin push [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Push plugins to WordPress to match loopress.json
@@ -259,7 +249,7 @@ EXAMPLES
   $ lps plugin push --dry-run
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/push.ts)_
 
 ## `lps project config`
 
@@ -276,7 +266,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -293,7 +283,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/list.ts)_
 
 ## `lps project remove`
 
@@ -310,7 +300,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/remove.ts)_
 
 ## `lps project switch`
 
@@ -327,7 +317,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/switch.ts)_
 
 ## `lps snippet list`
 
@@ -335,17 +325,12 @@ List snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet list [--password <value>] [--url <value>] [--user <value>] [-j] [-p code-snippets|wpcode]
+  $ lps snippet list [-j] [-p code-snippets|wpcode]
 
 FLAGS
   -j, --json             Output in JSON format
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   List snippets from WordPress
@@ -353,12 +338,10 @@ DESCRIPTION
 EXAMPLES
   $ lps snippet list
 
-  $ lps snippet list --url http://example.com
-
   $ lps snippet list --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/list.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -366,7 +349,7 @@ Pull snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet pull [PATH] [--password <value>] [--url <value>] [--user <value>] [-d] [-p code-snippets|wpcode]
+  $ lps snippet pull [PATH] [-d] [-p code-snippets|wpcode]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
@@ -375,11 +358,6 @@ FLAGS
   -d, --dry-run          Show what would change without making changes
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Pull snippets from WordPress
@@ -387,14 +365,12 @@ DESCRIPTION
 EXAMPLES
   $ lps snippet pull
 
-  $ lps snippet pull --url http://example.com
-
   $ lps snippet pull --path ./snippets
 
   $ lps snippet pull --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -402,7 +378,7 @@ Push snippets to WordPress. Local snippet files created or updated remotely are 
 
 ```
 USAGE
-  $ lps snippet push [PATH] [--password <value>] [--url <value>] [--user <value>] [-d] [-p code-snippets|wpcode]
+  $ lps snippet push [PATH] [-d] [-p code-snippets|wpcode]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
@@ -411,11 +387,6 @@ FLAGS
   -d, --dry-run          Show what would change without making changes
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>`
@@ -424,14 +395,12 @@ DESCRIPTION
 EXAMPLES
   $ lps snippet push
 
-  $ lps snippet push --url http://example.com
-
   $ lps snippet push --path ./snippets
 
   $ lps snippet push --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/push.ts)_
 
 ## `lps status`
 
@@ -448,5 +417,5 @@ EXAMPLES
   $ lps status
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/status.ts)_
 <!-- commandsstop -->

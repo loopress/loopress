@@ -33,14 +33,8 @@ export default class Push extends PushCommand {
   }
   static description =
     'Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
-  static examples = [
-    '$ lps snippet push',
-    '$ lps snippet push --url http://example.com',
-    '$ lps snippet push --path ./snippets',
-    '$ lps snippet push --plugin wpcode',
-  ]
+  static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets', '$ lps snippet push --plugin wpcode']
   static flags = {
-    ...PushCommand.baseFlags,
     ...PushCommand.dryRunFlag,
     ...snippetPluginFlag,
   }

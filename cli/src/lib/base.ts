@@ -8,26 +8,9 @@ import {WpClient} from './wp-client.js'
 
 interface ParsedBaseFlags {
   'dry-run'?: boolean
-  password?: string
-  url?: string
-  user?: string
 }
 
 export abstract class LoopressCommand extends Command {
-  static baseFlags = {
-    password: Flags.string({
-      description: 'WordPress application password (overrides project config, requires --user)',
-      helpGroup: 'GLOBAL',
-    }),
-    url: Flags.string({
-      description: 'WordPress URL (overrides project config)',
-      helpGroup: 'GLOBAL',
-    }),
-    user: Flags.string({
-      description: 'WordPress username (overrides project config, requires --password)',
-      helpGroup: 'GLOBAL',
-    }),
-  }
   static dryRunFlag = {
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
   }
@@ -64,25 +47,7 @@ export abstract class LoopressCommand extends Command {
 
     this.dryRun = Boolean(flags['dry-run'])
     this.localConfig = await readLocalConfig()
-
-    if (Boolean(flags.user) !== Boolean(flags.password)) {
-      this.error('--user and --password must be provided together.')
-    }
-
-    const flagToken = flags.user && flags.password ? `${flags.user}:${flags.password}` : undefined
-
-    if (flags.url) {
-      this.siteConfig = {
-        addedAt: new Date().toISOString(),
-        name: 'cli-flags',
-        token: flagToken,
-        url: flags.url.replace(/\/+$/, ''),
-      }
-      return
-    }
-
-    const env = this.resolveEnvironment()
-    this.siteConfig = flagToken ? {...env, token: flagToken} : env
+    this.siteConfig = this.resolveEnvironment()
   }
 
   protected resolveSnippetPlugin(flag?: string): 'code-snippets' | 'wpcode' {

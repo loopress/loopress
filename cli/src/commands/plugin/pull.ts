@@ -8,7 +8,6 @@ export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.json'
   static examples = ['$ lps plugin pull', '$ lps plugin pull --dry-run']
   static flags = {
-    ...LoopressCommand.baseFlags,
     ...LoopressCommand.dryRunFlag,
   }
 
