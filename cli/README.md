@@ -9,6 +9,7 @@ A new CLI generated with oclif
 <!-- toc -->
 * [Loopress](#loopress)
 * [Usage](#usage)
+* [Error reporting](#error-reporting)
 * [Commands](#commands)
 <!-- tocstop -->
 
@@ -20,13 +21,28 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.7.0 darwin-arm64 node-v24.11.0
+@loopress/cli/0.8.0 darwin-arm64 node-v24.11.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
 ...
 ```
 <!-- usagestop -->
+
+# Error reporting
+
+Loopress sends crash reports to Sentry, but only when a `SENTRY_DSN` environment
+variable is configured. If it's not set, no error reporting happens at all.
+
+To opt out even when `SENTRY_DSN` is configured, either:
+
+- set `LOOPRESS_TELEMETRY_DISABLED=1`, or
+- pass `--no-error-reporting` on the command.
+
+No sensitive data is ever sent: WordPress credentials (`--user`, `--password`,
+`--token`) are redacted from the reported command before it leaves your machine.
+Only the command name, its non-sensitive flags/args, your Node.js version, and OS
+are attached to help diagnose the crash.
 
 # Commands
 
@@ -74,7 +90,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -101,7 +117,7 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/composer/push.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -138,7 +154,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -155,7 +171,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -172,7 +188,7 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/logout.ts)_
 
 ## `lps plugin add SLUG [VERSION]`
 
@@ -205,7 +221,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/add.ts)_
 
 ## `lps plugin pull`
 
@@ -232,7 +248,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -259,7 +275,7 @@ EXAMPLES
   $ lps plugin push --dry-run
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/plugin/push.ts)_
 
 ## `lps project config`
 
@@ -276,7 +292,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -293,7 +309,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/list.ts)_
 
 ## `lps project remove`
 
@@ -310,7 +326,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/remove.ts)_
 
 ## `lps project switch`
 
@@ -327,7 +343,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/project/switch.ts)_
 
 ## `lps snippet list`
 
@@ -358,7 +374,7 @@ EXAMPLES
   $ lps snippet list --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/list.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -394,7 +410,7 @@ EXAMPLES
   $ lps snippet pull --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -431,7 +447,7 @@ EXAMPLES
   $ lps snippet push --plugin wpcode
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/snippet/push.ts)_
 
 ## `lps status`
 
@@ -448,5 +464,5 @@ EXAMPLES
   $ lps status
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.7.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.8.0/src/commands/status.ts)_
 <!-- commandsstop -->
