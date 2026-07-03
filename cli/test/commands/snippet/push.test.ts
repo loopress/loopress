@@ -76,13 +76,142 @@ describe('snippet push', () => {
     })
   })
 
+  describe('loadSnippets active resolution', () => {
+    it('uses the active flag recorded in the sidecar .json meta file', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({active: true, id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(true)
+      })
+    })
+
+    it('defaults to inactive when the meta file has no active flag', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(false)
+      })
+    })
+
+    it('defaults to inactive when there is no meta file at all', () => {
+      writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].active).toBe(false)
+      })
+    })
+  })
+
+  describe('loadSnippets tags resolution', () => {
+    it('uses the tags recorded in the sidecar .json meta file', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello', tags: ['foo', 'bar']}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual(['foo', 'bar'])
+      })
+    })
+
+    it('defaults to no tags when the meta file has no tags', () => {
+      writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual([])
+      })
+    })
+
+    it('defaults to no tags when there is no meta file at all', () => {
+      writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].tags).toEqual([])
+      })
+    })
+  })
+
+  describe('loadSnippets location resolution', () => {
+    it('uses the location recorded in the sidecar .json meta file', () => {
+      writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'frontend', name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].location).toBe('frontend')
+      })
+    })
+
+    it('defaults to a type-appropriate location when the meta file has no location', () => {
+      writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
+      writeFileSync(join(dir, '2-style.css'), 'body { margin: 0; }')
+      writeFileSync(join(dir, '2-style.json'), JSON.stringify({id: 2, name: 'Style'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        const byType: Record<string, string> = {}
+        for (const snippet of snippets) byType[snippet.type] = snippet.location
+
+        expect(byType.php).toBe('everywhere')
+        expect(byType.css).toBe('header')
+      })
+    })
+
+    it('ignores an invalid location and falls back to the type default', () => {
+      writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
+      writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'not-a-real-location', name: 'Hello'}))
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].location).toBe('everywhere')
+      })
+    })
+  })
+
+  describe('loadSnippets insertMethod/priority/shortcodeAttributes resolution', () => {
+    it('uses the insertMethod, priority and shortcodeAttributes recorded in the sidecar', () => {
+      writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
+      writeFileSync(
+        join(dir, '1-hello.json'),
+        JSON.stringify({id: 1, insertMethod: 'shortcode', name: 'Hello', priority: 25, shortcodeAttributes: ['color']}),
+      )
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].insertMethod).toBe('shortcode')
+        expect(snippets[0].priority).toBe(25)
+        expect(snippets[0].shortcodeAttributes).toEqual(['color'])
+      })
+    })
+
+    it('defaults insertMethod to "auto", priority to 10 and shortcodeAttributes to an empty array', () => {
+      writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
+
+      return loadSnippets(dir).then((snippets) => {
+        expect(snippets[0].insertMethod).toBe('auto')
+        expect(snippets[0].priority).toBe(10)
+        expect(snippets[0].shortcodeAttributes).toEqual([])
+      })
+    })
+  })
+
   describe('ensureCanonicalFilename', () => {
     it('renames a file with no id/slug in its name (e.g. a hand-created demo.php)', async () => {
       writeFileSync(join(dir, 'demo.php'), '<?php\n\necho "salut";')
       writeFileSync(join(dir, 'demo.json'), JSON.stringify({id: 8}))
 
       await ensureCanonicalFilename(
-        {code: '<?php\n\necho "salut";', id: 8, name: 'demo', path: join(dir, 'demo.php'), type: 'php'},
+        {
+          active: false,
+          code: '<?php\n\necho "salut";',
+          id: 8,
+          insertMethod: 'auto',
+          location: 'everywhere',
+          name: 'demo',
+          path: join(dir, 'demo.php'),
+          priority: 10,
+          shortcodeAttributes: [],
+          tags: [],
+          type: 'php',
+        },
         8,
         'demo',
       )
@@ -91,7 +220,7 @@ describe('snippet push', () => {
       expect(files).toEqual(['8-demo.json', '8-demo.php'])
       expect(existsSync(join(dir, 'demo.php'))).toBe(false)
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
-      expect(JSON.parse(readFileSync(join(dir, '8-demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo'})
+      expect(JSON.parse(readFileSync(join(dir, '8-demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
     })
 
     it('renames a file with no sidecar at all', async () => {
@@ -106,7 +235,23 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '6-hello.txt'), 'hi')
       writeFileSync(join(dir, '6-hello.json'), JSON.stringify({id: 6, name: 'hello', type: 'text'}))
 
-      await ensureCanonicalFilename({code: 'hi', id: 6, name: 'hello', path: join(dir, '6-hello.txt'), type: 'text'}, 6, 'hello')
+      await ensureCanonicalFilename(
+        {
+          active: false,
+          code: 'hi',
+          id: 6,
+          insertMethod: 'auto',
+          location: 'footer',
+          name: 'hello',
+          path: join(dir, '6-hello.txt'),
+          priority: 10,
+          shortcodeAttributes: [],
+          tags: [],
+          type: 'text',
+        },
+        6,
+        'hello',
+      )
 
       expect(readdirSync(dir).sort()).toEqual(['6-hello.json', '6-hello.txt'])
     })
@@ -136,7 +281,7 @@ describe('snippet push', () => {
       // the id: a retry of `snippet push` will read demo.php + demo.json and see the id,
       // so it PUTs an update instead of POSTing a duplicate create.
       expect(existsSync(join(dir, 'demo.php'))).toBe(true)
-      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo'})
+      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
     })
   })
 })

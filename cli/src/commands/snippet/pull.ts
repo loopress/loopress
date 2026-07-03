@@ -29,9 +29,13 @@ export function buildMetaFile(snippet: NormalizedSnippet): string {
     name: snippet.name,
     type: snippet.type,
     active: snippet.active,
+    location: snippet.location,
   }
   if (snippet.description) meta.description = snippet.description
   if (snippet.tags.length > 0) meta.tags = snippet.tags
+  if (snippet.insertMethod === 'shortcode') meta.insertMethod = snippet.insertMethod
+  if (snippet.priority !== 10) meta.priority = snippet.priority
+  if (snippet.shortcodeAttributes.length > 0) meta.shortcodeAttributes = snippet.shortcodeAttributes
   return JSON.stringify(meta, null, 2) + '\n'
 }
 
