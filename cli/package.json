@@ -56,7 +56,9 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./schema": "./schemas/project-config.schema.json"
+    "./schema/global-config": "./schemas/global-config.schema.json",
+    "./schema/project-config": "./schemas/project-config.schema.json",
+    "./schema/snippet": "./schemas/snippet.schema.json"
   },
   "type": "module",
   "oclif": {

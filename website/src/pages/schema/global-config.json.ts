@@ -1,6 +1,6 @@
 export const prerender = true;
 
-import schema from "@loopress/cli/schema/project-config";
+import schema from "@loopress/cli/schema/global-config";
 
 export async function GET() {
   return new Response(JSON.stringify(schema, null, 2), {
