@@ -93,7 +93,6 @@ class WPCodeService
     /** @return array<string, mixed> */
     private function normalize(\WP_Post $post): array
     {
-<<<<<<< HEAD
         $terms               = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'names']);
         $typeTerm            = $this->getSingleTerm($post->ID, self::TYPE_TAXONOMY);
         $locationTerm        = $this->getSingleTerm($post->ID, self::LOCATION_TAXONOMY);
@@ -114,20 +113,6 @@ class WPCodeService
             'tags'                 => is_wp_error($terms) ? [] : $terms,
             'title'                => $post->post_title,
             'type'                 => $typeTerm !== '' ? $typeTerm : 'php',
-=======
-        $terms = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'names']);
-        $note  = get_post_meta($post->ID, self::META_NOTE, true);
-        $type  = get_post_meta($post->ID, self::META_TYPE, true);
-
-        return [
-            'active' => $post->post_status === 'publish',
-            'code'   => $post->post_content,
-            'id'     => $post->ID,
-            'note'   => $note !== '' ? $note : '',
-            'tags'   => is_wp_error($terms) ? [] : $terms,
-            'title'  => $post->post_title,
-            'type'   => $type !== '' ? $type : 'php',
->>>>>>> 5a1a6c9 (fix php cs issues)
         ];
     }
 
