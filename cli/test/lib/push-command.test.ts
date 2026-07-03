@@ -6,7 +6,6 @@ import {EnvironmentConfig} from '../../src/types/config.js'
 const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', url: 'http://example.com'}
 
 class TestPush extends PushCommand {
-  static flags = {...PushCommand.baseFlags}
   calls: Array<'failure' | 'success'> = []
 
   protected override async recordDeployment(status: 'failure' | 'success'): Promise<void> {

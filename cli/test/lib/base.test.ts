@@ -13,7 +13,6 @@ vi.mock('../../src/utils/loopress-config.js', () => ({
 
 class TestCommand extends LoopressCommand {
   static flags = {
-    ...LoopressCommand.baseFlags,
     ...LoopressCommand.dryRunFlag,
   }
 
@@ -40,29 +39,6 @@ describe('LoopressCommand.init', () => {
     vi.mocked(readLocalConfig).mockResolvedValue({})
   })
 
-  it('builds siteConfig entirely from --url, --user and --password', async () => {
-    const cmd = await initWith(['--url', 'https://flags.example.com/', '--user', 'admin', '--password', 'secret'])
-
-    expect(cmd.resolvedSiteConfig.url).toBe('https://flags.example.com')
-    expect(cmd.resolvedSiteConfig.token).toBe('admin:secret')
-  })
-
-  it('uses --url without credentials (token stays empty)', async () => {
-    const cmd = await initWith(['--url', 'https://flags.example.com'])
-
-    expect(cmd.resolvedSiteConfig.url).toBe('https://flags.example.com')
-    expect(cmd.resolvedSiteConfig.token).toBeUndefined()
-  })
-
-  it('overrides only the token of the configured environment with --user/--password', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production', 'https://acme.com', 'old:token'))
-
-    const cmd = await initWith(['--user', 'admin', '--password', 'secret'])
-
-    expect(cmd.resolvedSiteConfig.url).toBe('https://acme.com')
-    expect(cmd.resolvedSiteConfig.token).toBe('admin:secret')
-  })
-
   it('falls back to the configured environment when no flags are given', async () => {
     vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production', 'https://acme.com'))
 
@@ -80,14 +56,6 @@ describe('LoopressCommand.init', () => {
 
     const cmd2 = await initWith([])
     expect(cmd2.resolvedDryRun).toBe(false)
-  })
-
-  it('rejects a lone --user without --password', async () => {
-    await expect(initWith(['--user', 'admin'])).rejects.toThrow('--user and --password must be provided together.')
-  })
-
-  it('rejects a lone --password without --user', async () => {
-    await expect(initWith(['--password', 'secret'])).rejects.toThrow('--user and --password must be provided together.')
   })
 
   it('does not fall back to the global environment when loopress.json is broken', async () => {

@@ -45,14 +45,8 @@ export default class Pull extends LoopressCommand {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description = 'Pull snippets from WordPress'
-  static examples = [
-    '$ lps snippet pull',
-    '$ lps snippet pull --url http://example.com',
-    '$ lps snippet pull --path ./snippets',
-    '$ lps snippet pull --plugin wpcode',
-  ]
+  static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets', '$ lps snippet pull --plugin wpcode']
   static flags = {
-    ...LoopressCommand.baseFlags,
     ...LoopressCommand.dryRunFlag,
     ...snippetPluginFlag,
   }

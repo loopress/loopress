@@ -48,7 +48,6 @@ export default class Add extends LoopressCommand {
     '$ lps plugin add contact-form-7 --dry-run',
   ]
   static flags = {
-    ...LoopressCommand.baseFlags,
     ...LoopressCommand.dryRunFlag,
   }
 

@@ -9,7 +9,6 @@ export default class ComposerPush extends PushCommand {
   static description = 'Push composer.json and composer.lock to WordPress and run composer install'
   static examples = ['$ lps composer push', '$ lps composer push --dry-run']
   static flags = {
-    ...PushCommand.baseFlags,
     ...PushCommand.dryRunFlag,
   }
 

@@ -10,7 +10,6 @@ export default class Push extends PushCommand {
   static description = 'Push plugins to WordPress to match loopress.json'
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
-    ...PushCommand.baseFlags,
     ...PushCommand.dryRunFlag,
   }
   private failedCount = 0

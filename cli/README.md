@@ -70,15 +70,10 @@ Pull composer.lock from WordPress
 
 ```
 USAGE
-  $ lps composer pull [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps composer pull [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Pull composer.lock from WordPress
@@ -97,15 +92,10 @@ Push composer.json and composer.lock to WordPress and run composer install
 
 ```
 USAGE
-  $ lps composer push [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps composer push [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Push composer.json and composer.lock to WordPress and run composer install
@@ -195,7 +185,7 @@ Add a WordPress.org plugin to loopress.json
 
 ```
 USAGE
-  $ lps plugin add SLUG [VERSION] [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin add SLUG [VERSION] [-d]
 
 ARGUMENTS
   SLUG       Plugin slug on WordPress.org
@@ -203,11 +193,6 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Add a WordPress.org plugin to loopress.json
@@ -228,15 +213,10 @@ Pull installed plugins from WordPress into loopress.json
 
 ```
 USAGE
-  $ lps plugin pull [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin pull [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Pull installed plugins from WordPress into loopress.json
@@ -255,15 +235,10 @@ Push plugins to WordPress to match loopress.json
 
 ```
 USAGE
-  $ lps plugin push [--password <value>] [--url <value>] [--user <value>] [-d]
+  $ lps plugin push [-d]
 
 FLAGS
   -d, --dry-run  Show what would change without making changes
-
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
 
 DESCRIPTION
   Push plugins to WordPress to match loopress.json
@@ -350,25 +325,18 @@ List snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet list [--password <value>] [--url <value>] [--user <value>] [-j] [-p code-snippets|wpcode]
+  $ lps snippet list [-j] [-p code-snippets|wpcode]
 
 FLAGS
   -j, --json             Output in JSON format
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
-
 DESCRIPTION
   List snippets from WordPress
 
 EXAMPLES
   $ lps snippet list
-
-  $ lps snippet list --url http://example.com
 
   $ lps snippet list --plugin wpcode
 ```
@@ -381,7 +349,7 @@ Pull snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet pull [PATH] [--password <value>] [--url <value>] [--user <value>] [-d] [-p code-snippets|wpcode]
+  $ lps snippet pull [PATH] [-d] [-p code-snippets|wpcode]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
@@ -391,18 +359,11 @@ FLAGS
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
-
 DESCRIPTION
   Pull snippets from WordPress
 
 EXAMPLES
   $ lps snippet pull
-
-  $ lps snippet pull --url http://example.com
 
   $ lps snippet pull --path ./snippets
 
@@ -417,7 +378,7 @@ Push snippets to WordPress. Local snippet files created or updated remotely are 
 
 ```
 USAGE
-  $ lps snippet push [PATH] [--password <value>] [--url <value>] [--user <value>] [-d] [-p code-snippets|wpcode]
+  $ lps snippet push [PATH] [-d] [-p code-snippets|wpcode]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
@@ -427,19 +388,12 @@ FLAGS
   -p, --plugin=<option>  WordPress snippet plugin to target (overrides loopress.json)
                          <options: code-snippets|wpcode>
 
-GLOBAL FLAGS
-  --password=<value>  WordPress application password (overrides project config, requires --user)
-  --url=<value>       WordPress URL (overrides project config)
-  --user=<value>      WordPress username (overrides project config, requires --password)
-
 DESCRIPTION
   Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>`
   convention.
 
 EXAMPLES
   $ lps snippet push
-
-  $ lps snippet push --url http://example.com
 
   $ lps snippet push --path ./snippets
 
