@@ -1,4 +1,5 @@
 import {Args} from '@oclif/core'
+import {Listr} from 'listr2'
 import {readdir, readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
@@ -57,14 +58,28 @@ export default class Push extends PushCommand {
     this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
     const adapter = getSnippetPlugin(resolvedPlugin)
-    let failed = 0
-    for (const snippet of snippets) {
-      const pushed = await this.pushSnippet(snippet, adapter)
-      if (!pushed) failed++
-    }
+    const ctx = {failed: 0}
+    await new Listr<typeof ctx>(
+      [
+        {
+          task: async (ctx, task) => {
+            for (const snippet of snippets) {
+              const pushed = await this.pushSnippet(snippet, adapter)
+              if (pushed) {
+                task.output = this.dryRun ? `[dry-run] Would push: ${snippet.name}` : `Pushed: ${snippet.name}`
+              } else {
+                ctx.failed++
+              }
+            }
+          },
+          title: `Pushing ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}`,
+        },
+      ],
+      {ctx},
+    ).run()
 
-    if (failed > 0) {
-      this.error(`${failed} snippet${failed === 1 ? '' : 's'} failed to push.`)
+    if (ctx.failed > 0) {
+      this.error(`${ctx.failed} snippet${ctx.failed === 1 ? '' : 's'} failed to push.`)
     }
 
     if (this.dryRun) return
@@ -109,8 +124,6 @@ export default class Push extends PushCommand {
     await rename(snippet.path, newPath)
     await writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
     await rm(oldMetaPath, {force: true})
-
-    this.log(`  Renamed: ${snippet.path} → ${newPath}`)
   }
 
   private async loadSnippets(path: string): Promise<Snippet[]> {
@@ -176,7 +189,6 @@ export default class Push extends PushCommand {
 
   private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin): Promise<boolean> {
     if (this.dryRun) {
-      this.log(`[dry-run] Would push: ${snippet.name}`)
       return true
     }
 
@@ -187,12 +199,10 @@ export default class Push extends PushCommand {
 
       if (snippet.id) {
         await this.wp.put(`${endpointPath}/${snippet.id}`, payload)
-        this.log(`  Updated: ${snippet.name} (id: ${snippet.id})`)
         await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
       } else {
         const response = await this.wp.post<Record<string, unknown>>(endpointPath, payload)
         const created = adapter.fromRemote(response)
-        this.log(`  Created: ${snippet.name} (id: ${created.id})`)
         await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 

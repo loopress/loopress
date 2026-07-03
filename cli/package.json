@@ -17,6 +17,7 @@
     "@oclif/plugin-plugins": "^5.4.80",
     "glob": "13.0.6",
     "got": "^15.0.7",
+    "listr2": "^10.2.2",
     "slugify": "^1.6.9",
     "write-file-atomic": "^5.0.1"
   },

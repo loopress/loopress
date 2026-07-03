@@ -1,4 +1,5 @@
 import {Args} from '@oclif/core'
+import {Listr} from 'listr2'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import slugify from 'slugify'
@@ -76,26 +77,35 @@ export default class Pull extends LoopressCommand {
 
     await mkdir(path, {recursive: true})
 
-    let count = 0
-    let skipped = 0
-    for (const snippet of snippets) {
-      if (!snippet.name.trim()) {
-        skipped++
-        continue
-      }
+    const ctx = {count: 0, skipped: 0}
+    await new Listr<typeof ctx>(
+      [
+        {
+          async task(ctx, task) {
+            for (const snippet of snippets) {
+              if (!snippet.name.trim()) {
+                ctx.skipped++
+                continue
+              }
 
-      const ext = EXTENSIONS[snippet.type]
-      const slug = slugify(snippet.name, {lower: true, strict: true})
-      const base = `${snippet.id}-${slug}`
-      await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
-      await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
-      count++
-      this.log(`  Pulled: ${snippet.name}`)
-    }
+              const ext = EXTENSIONS[snippet.type]
+              const slug = slugify(snippet.name, {lower: true, strict: true})
+              const base = `${snippet.id}-${slug}`
+              await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
+              await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
+              ctx.count++
+              task.output = `Pulled: ${snippet.name}`
+            }
+          },
+          title: `Pulling ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}`,
+        },
+      ],
+      {ctx},
+    ).run()
 
-    this.log(`Pulled ${count} snippet${count === 1 ? '' : 's'} to ${path}`)
-    if (skipped > 0) {
-      this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
+    this.log(`Pulled ${ctx.count} snippet${ctx.count === 1 ? '' : 's'} to ${path}`)
+    if (ctx.skipped > 0) {
+      this.warn(`${ctx.skipped} snippet${ctx.skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
   }
 }

@@ -1,9 +1,10 @@
 import {confirm} from '@inquirer/prompts'
+import {Listr} from 'listr2'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {ActivateResult, InstalledPlugin, InstallResult} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
-import {diffPlugins} from '../../utils/plugins.js'
+import {diffPlugins, PluginDiff} from '../../utils/plugins.js'
 
 export default class Push extends PushCommand {
   static description = 'Push plugins to WordPress to match loopress.json'
@@ -66,55 +67,90 @@ export default class Push extends PushCommand {
     if (this.dryRun) return
 
     // Install missing plugins and activate them.
-    for (const action of toInstall) {
-      this.log(`\nInstalling ${action.slug} @ ${action.targetVersion}...`)
-      await this.installAndActivate(action.slug, action.targetVersion)
+    if (toInstall.length > 0) {
+      await new Listr(
+        toInstall.map((action) => ({
+          task: async (_ctx, task) => this.installAndActivate(action.slug, action.targetVersion, task),
+          title: `Install ${action.slug} @ ${action.targetVersion}`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
     }
 
     // Activate installed-but-inactive plugins without prompting.
-    for (const action of toActivate) {
-      this.log(`\nActivating ${action.slug}...`)
-      await this.activatePlugin(action.slug)
+    if (toActivate.length > 0) {
+      await new Listr(
+        toActivate.map((action) => ({
+          task: async (_ctx, task) => this.activatePlugin(action.slug, task),
+          title: `Activate ${action.slug}`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
     }
 
-    // Prompt per drifted plugin before syncing.
+    await this.syncDrifted(drifted)
+
+    await this.recordSuccess()
+  }
+
+  // `task` is only passed when called from within a running Listr task list (see `run()`); it lets
+  // status lines go through `task.output` instead of `this.log`/`this.warn`, which would otherwise
+  // race with the renderer repainting the terminal. Called without `task` (e.g. directly in tests),
+  // it falls back to plain logging.
+  private async activatePlugin(slug: string, task?: {output: string}): Promise<void> {
+    try {
+      const result = await this.wp.post<ActivateResult>('loopress/v1/plugins/activate', {slug})
+      const message = `✓ ${result.message}`
+      if (task) task.output = message
+      else this.log(`  ${message}`)
+    } catch (error) {
+      const message = `Failed to activate ${slug}: ${(error as Error).message}`
+      if (task) task.output = message
+      else this.warn(`  ${message}`)
+    }
+  }
+
+  private async installAndActivate(slug: string, version: string, task?: {output: string}): Promise<void> {
+    try {
+      const result = await this.wp.post<InstallResult>('loopress/v1/plugins/install', {slug, version})
+      const message = `✓ ${result.message}`
+      if (task) task.output = message
+      else this.log(`  ${message}`)
+    } catch (error) {
+      const message = `Failed to install ${slug}: ${(error as Error).message}`
+      if (task) task.output = message
+      else this.warn(`  ${message}`)
+      return
+    }
+
+    await this.activatePlugin(slug, task)
+  }
+
+  // Prompt per drifted plugin before syncing. Prompts run sequentially on plain stdout,
+  // before the Listr renderer takes over the terminal for the confirmed subset.
+  private async syncDrifted(drifted: PluginDiff['drifted']): Promise<void> {
+    const confirmedDrift: typeof drifted = []
     for (const action of drifted) {
-      this.log('')
       const proceed = await confirm({
         default: false,
         message: `${action.slug} is at ${action.currentVersion} on the site but manifest wants ${action.targetVersion}. Sync to ${action.targetVersion}?`,
       })
 
-      if (!proceed) {
+      if (proceed) {
+        confirmedDrift.push(action)
+      } else {
         this.log(`  Skipped ${action.slug}`)
-        continue
       }
-
-      this.log(`  Syncing ${action.slug} to ${action.targetVersion}...`)
-      await this.installAndActivate(action.slug, action.targetVersion)
     }
 
-    await this.recordSuccess()
-  }
+    if (confirmedDrift.length === 0) return
 
-  private async activatePlugin(slug: string): Promise<void> {
-    try {
-      const result = await this.wp.post<ActivateResult>('loopress/v1/plugins/activate', {slug})
-      this.log(`  ✓ ${result.message}`)
-    } catch (error) {
-      this.warn(`  Failed to activate ${slug}: ${(error as Error).message}`)
-    }
-  }
-
-  private async installAndActivate(slug: string, version: string): Promise<void> {
-    try {
-      const result = await this.wp.post<InstallResult>('loopress/v1/plugins/install', {slug, version})
-      this.log(`  ✓ ${result.message}`)
-    } catch (error) {
-      this.warn(`  Failed to install ${slug}: ${(error as Error).message}`)
-      return
-    }
-
-    await this.activatePlugin(slug)
+    await new Listr(
+      confirmedDrift.map((action) => ({
+        task: async (_ctx, task) => this.installAndActivate(action.slug, action.targetVersion, task),
+        title: `Sync ${action.slug} to ${action.targetVersion}`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
   }
 }
