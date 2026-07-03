@@ -7,6 +7,7 @@ import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 // same escape hatch used throughout this suite to unit-test command internals.
 interface PushInternals {
   activatePlugin(slug: string): Promise<void>
+  failedCount: number
   installAndActivate(slug: string, version: string): Promise<void>
   wpClient: {post: ReturnType<typeof vi.fn>}
 }
@@ -43,6 +44,7 @@ describe('plugin push', () => {
 
       expect(post).toHaveBeenCalledOnce()
       expect(logs.warn).toHaveBeenCalledWith('  Failed to install akismet: boom')
+      expect(cmd.failedCount).toBe(1)
     })
   })
 
@@ -54,6 +56,7 @@ describe('plugin push', () => {
       await cmd.activatePlugin('akismet')
 
       expect(logs.warn).toHaveBeenCalledWith('  Failed to activate akismet: nope')
+      expect(cmd.failedCount).toBe(1)
     })
   })
 })

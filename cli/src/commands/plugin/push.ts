@@ -13,6 +13,7 @@ export default class Push extends PushCommand {
     ...PushCommand.baseFlags,
     ...PushCommand.dryRunFlag,
   }
+  private failedCount = 0
 
   async run(): Promise<void> {
     const {url} = this.siteConfig
@@ -90,6 +91,10 @@ export default class Push extends PushCommand {
 
     await this.syncDrifted(drifted)
 
+    if (this.failedCount > 0) {
+      this.error(`${this.failedCount} plugin${this.failedCount === 1 ? '' : 's'} failed to install or activate.`)
+    }
+
     await this.recordSuccess()
   }
 
@@ -107,6 +112,7 @@ export default class Push extends PushCommand {
       const message = `Failed to activate ${slug}: ${(error as Error).message}`
       if (task) task.output = message
       else this.warn(`  ${message}`)
+      this.failedCount++
     }
   }
 
@@ -120,6 +126,7 @@ export default class Push extends PushCommand {
       const message = `Failed to install ${slug}: ${(error as Error).message}`
       if (task) task.output = message
       else this.warn(`  ${message}`)
+      this.failedCount++
       return
     }
 

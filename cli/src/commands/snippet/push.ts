@@ -64,7 +64,7 @@ export default class Push extends PushCommand {
         {
           task: async (ctx, task) => {
             for (const snippet of snippets) {
-              const pushed = await this.pushSnippet(snippet, adapter)
+              const pushed = await this.pushSnippet(snippet, adapter, task)
               if (pushed) {
                 task.output = this.dryRun ? `[dry-run] Would push: ${snippet.name}` : `Pushed: ${snippet.name}`
               } else {
@@ -187,7 +187,7 @@ export default class Push extends PushCommand {
     return snippets
   }
 
-  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin): Promise<boolean> {
+  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin, task?: {output: string}): Promise<boolean> {
     if (this.dryRun) {
       return true
     }
@@ -208,7 +208,10 @@ export default class Push extends PushCommand {
 
       return true
     } catch (error) {
-      this.warn(`  Failed to push ${snippet.name}: ${(error as Error).message}`)
+      const message = `Failed to push ${snippet.name}: ${(error as Error).message}`
+      if (task) task.output = message
+      else this.warn(`  ${message}`)
+
       return false
     }
   }

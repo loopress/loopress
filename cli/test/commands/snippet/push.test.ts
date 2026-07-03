@@ -18,6 +18,10 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 // without going through the full oclif run() lifecycle.
 type PushWithLoadSnippets = {loadSnippets(path: string): Promise<Snippet[]>}
 type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void>}
+type PushWithPushSnippet = {
+  pushSnippet(snippet: Snippet, adapter: unknown, task?: {output: string}): Promise<boolean>
+  wpClient: {put: ReturnType<typeof vi.fn>}
+}
 
 describe('snippet push', () => {
   let dir: string
@@ -282,6 +286,49 @@ describe('snippet push', () => {
       // so it PUTs an update instead of POSTing a duplicate create.
       expect(existsSync(join(dir, 'demo.php'))).toBe(true)
       expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
+    })
+  })
+
+  describe('pushSnippet', () => {
+    const snippet = {
+      active: false,
+      code: '<?php echo 1;',
+      id: 8,
+      insertMethod: 'auto',
+      location: 'everywhere',
+      name: 'demo',
+      path: join('/tmp', 'demo.php'),
+      priority: 10,
+      shortcodeAttributes: [],
+      tags: [],
+      type: 'php',
+    } as Snippet
+    const adapter = {endpointPath: () => 'code-snippets/v1/snippets', toPayload: () => ({})}
+
+    it('routes the failure message through task.output instead of warn, to avoid racing the Listr renderer', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+      const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
+      const task = {output: ''}
+
+      const pushed = await (cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter, task)
+
+      expect(pushed).toBe(false)
+      expect(task.output).toBe('Failed to push demo: boom')
+      expect(logs.warn).not.toHaveBeenCalled()
+    })
+
+    it('falls back to warn when called without a task (e.g. directly in tests)', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+      const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
+
+      const pushed = await (cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter)
+
+      expect(pushed).toBe(false)
+      expect(logs.warn).toHaveBeenCalledWith('  Failed to push demo: boom')
     })
   })
 })
