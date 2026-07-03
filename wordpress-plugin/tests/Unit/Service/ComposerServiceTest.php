@@ -77,7 +77,9 @@ class ComposerServiceTest extends TestCase
         $this->dxEnv->method('readComposerJson')->willReturn([
             'require' => ['guzzlehttp/guzzle' => '^7.0'],
         ]);
-        $this->dxEnv->method('readComposerLock')->willReturn(json_encode([
+        // wp_json_encode() isn't available in this unit test (WordPress isn't loaded); this is
+        // just building a fixture string, not runtime plugin code.
+        $this->dxEnv->method('readComposerLock')->willReturn(json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
             'packages' => [
                 ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.1'],
             ],

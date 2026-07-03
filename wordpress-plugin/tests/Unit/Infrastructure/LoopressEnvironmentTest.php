@@ -40,7 +40,9 @@ class LoopressEnvironmentTest extends TestCase
             return;
         }
         foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') continue;
+            if ($item === '.' || $item === '..') {
+				continue;
+            }
             $path = $dir . '/' . $item;
             is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
         }
@@ -192,7 +194,7 @@ class LoopressEnvironmentTest extends TestCase
         $env    = new LoopressEnvironment();
         $dxDir  = $env->getDxDir();
         mkdir($dxDir . 'vendor', 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($dxDir . 'vendor/autoload.php', '<?php');
+        file_put_contents($dxDir . 'vendor/autoload.php', '<?php'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
         $this->assertSame($dxDir . 'vendor/autoload.php', $env->getAutoloadPath());
     }

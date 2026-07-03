@@ -9,7 +9,7 @@
 
     <file>src</file>
     <file>tests</file>
-    <file>loopress-plugin.php</file>
+    <file>loopress.php</file>
     <file>uninstall.php</file>
     <file>psalm-stubs.php</file>
 

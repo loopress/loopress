@@ -21,7 +21,7 @@ class ComposerController
             'permission_callback' => fn() => current_user_can('manage_options'),
             'args'                => [
                 'package' => $this->packageArg(required: true),
-                'version' => $this->versionArg(required: false, default: '*'),
+                'version' => $this->versionArg(required: false, defaultVersion: '*'),
             ],
         ]);
 
@@ -238,11 +238,11 @@ class ComposerController
     }
 
     /** @return array<string, mixed> */
-    private function versionArg(bool $required, string $default = '*'): array
+    private function versionArg(bool $required, string $defaultVersion = '*'): array
     {
         return [
             'required'          => $required,
-            'default'           => $default,
+            'default'           => $defaultVersion,
             'type'              => 'string',
             'description'       => 'Composer version constraint',
             // Delegates to the same parser Composer itself uses to interpret `composer require`

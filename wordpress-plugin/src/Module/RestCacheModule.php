@@ -9,7 +9,7 @@ class RestCacheModule implements Module
     public function boot(): void
     {
         add_filter('rest_post_dispatch', [$this, 'addNoCacheHeaders'], 10, 3);
-        add_action('litespeed_init',    [$this, 'litespeedNoCache']);
+        add_action('litespeed_init', [$this, 'litespeedNoCache']);
     }
 
     public function addNoCacheHeaders(\WP_REST_Response $response, \WP_REST_Server $_server, \WP_REST_Request $request): \WP_REST_Response

@@ -29,7 +29,7 @@ class PluginServiceTest extends TestCase
     {
         Functions\when('get_plugins')->justReturn($plugins);
         Functions\when('get_option')->alias(
-            fn(string $key, mixed $default = false) => $key === 'active_plugins' ? $active : $default,
+            fn(string $key, mixed $defaultValue = false) => $key === 'active_plugins' ? $active : $defaultValue,
         );
     }
 
@@ -122,10 +122,10 @@ class PluginServiceTest extends TestCase
             'woocommerce/woocommerce.php' => ['Name' => 'WooCommerce', 'Version' => '8.9.1'],
             'akismet/akismet.php'         => ['Name' => 'Akismet', 'Version' => '5.3'],
         ]);
-        Functions\when('get_option')->alias(fn(string $key, mixed $default = false) => match ($key) {
+        Functions\when('get_option')->alias(fn(string $key, mixed $defaultValue = false) => match ($key) {
             'active_plugins'      => [],
             'auto_update_plugins' => ['woocommerce/woocommerce.php', 'akismet/akismet.php'],
-            default               => $default,
+            default               => $defaultValue,
         });
 
         Functions\expect('update_option')
@@ -141,10 +141,10 @@ class PluginServiceTest extends TestCase
         Functions\when('get_plugins')->justReturn([
             'akismet/akismet.php' => ['Name' => 'Akismet', 'Version' => '5.3'],
         ]);
-        Functions\when('get_option')->alias(fn(string $key, mixed $default = false) => match ($key) {
+        Functions\when('get_option')->alias(fn(string $key, mixed $defaultValue = false) => match ($key) {
             'active_plugins'      => [],
             'auto_update_plugins' => ['akismet/akismet.php'],
-            default               => $default,
+            default               => $defaultValue,
         });
 
         Functions\expect('update_option')

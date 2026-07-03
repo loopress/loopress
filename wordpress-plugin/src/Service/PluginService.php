@@ -81,8 +81,8 @@ class PluginService
         }
 
         if ($result === false) {
-            $errors = $skin->get_upgrade_messages();
-            throw new \RuntimeException(implode(' ', $errors) ?: 'Installation failed for unknown reason.');
+            $message = implode(' ', $skin->get_upgrade_messages());
+            throw new \RuntimeException($message !== '' ? $message : 'Installation failed for unknown reason.');
         }
 
         $this->disableAutoUpdate($slug);

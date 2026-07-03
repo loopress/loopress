@@ -30,8 +30,10 @@ class ComposerRunner
         // Save the previous values so a reused PHP worker isn't left with a modified env.
         $previousHome         = getenv('HOME');
         $previousComposerHome = getenv('COMPOSER_HOME');
-        putenv('HOME=' . sys_get_temp_dir());
-        putenv('COMPOSER_HOME=' . sys_get_temp_dir() . '/.composer-loopress');
+        // Composer's Application reads these via getenv() internally; there's no WP-native way
+        // to configure a third-party library's environment, and the previous values are restored below.
+        putenv('HOME=' . sys_get_temp_dir()); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
+        putenv('COMPOSER_HOME=' . sys_get_temp_dir() . '/.composer-loopress'); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
 
         // Composer installs can take well over the default 30 s execution limit.
         // set_time_limit may be disabled on some hosts; skip silently in that case.
@@ -64,10 +66,10 @@ class ComposerRunner
 
             return ['exit_code' => $exitCode, 'output' => trim($output->fetch())];
         } finally {
-            putenv($previousHome === false ? 'HOME' : "HOME={$previousHome}");
-            putenv($previousComposerHome === false ? 'COMPOSER_HOME' : "COMPOSER_HOME={$previousComposerHome}");
+            putenv($previousHome === false ? 'HOME' : "HOME={$previousHome}"); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
+            putenv($previousComposerHome === false ? 'COMPOSER_HOME' : "COMPOSER_HOME={$previousComposerHome}"); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
             flock($lockHandle, LOCK_UN);
-            fclose($lockHandle);
+            fclose($lockHandle); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
         }
     }
 
@@ -82,7 +84,7 @@ class ComposerRunner
         }
 
         if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
-            fclose($lockHandle);
+            fclose($lockHandle); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             throw new ConcurrentOperationException(
                 'Another Composer operation is already running on this site. Retry in a moment.'
             );

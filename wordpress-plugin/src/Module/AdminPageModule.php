@@ -10,8 +10,8 @@ class AdminPageModule implements Module
 
     public function boot(): void
     {
-        add_action('admin_menu',            [$this, 'addMenuPage']);
-        add_action('admin_head',            [$this, 'addMenuIconStyle']);
+        add_action('admin_menu', [$this, 'addMenuPage']);
+        add_action('admin_head', [$this, 'addMenuIconStyle']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueScripts']);
     }
 

@@ -73,7 +73,8 @@ class LoopressEnvironment
             return [];
         }
 
-        $contents = file_get_contents($path);
+        // Local file under our own working directory, not a remote URL: wp_remote_get() doesn't apply here.
+        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         if ($contents === false) {
             throw new \RuntimeException("Failed to read composer.json from {$path}");
         }
@@ -91,7 +92,7 @@ class LoopressEnvironment
     {
         $this->ensureInitialized();
 
-        $encoded = json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $encoded = wp_json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
             throw new \RuntimeException('Failed to encode composer.json: ' . json_last_error_msg());
         }
@@ -112,7 +113,8 @@ class LoopressEnvironment
             return null;
         }
 
-        $contents = file_get_contents($path);
+        // Local file under our own working directory, not a remote URL: wp_remote_get() doesn't apply here.
+        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         return $contents !== false ? $contents : null;
     }
 
