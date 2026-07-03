@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Plugin Name: Loopress
  * Description: Manage and install Composer dependencies from the WordPress admin.

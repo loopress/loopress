@@ -36,12 +36,12 @@ class PluginService
 
         $file = $this->findInstalledFile($slug);
         if ($file === null) {
-            throw new \RuntimeException("Plugin \"{$slug}\" is not installed.");
+            throw new \RuntimeException("Plugin \"{$slug}\" is not installed."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $result = activate_plugin($file);
         if (is_wp_error($result)) {
-            throw new \RuntimeException($result->get_error_message());
+            throw new \RuntimeException($result->get_error_message()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         return ['message' => "{$slug} activated successfully."];
@@ -77,12 +77,12 @@ class PluginService
         }
 
         if (is_wp_error($result)) {
-            throw new \RuntimeException($result->get_error_message());
+            throw new \RuntimeException($result->get_error_message()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         if ($result === false) {
             $message = implode(' ', $skin->get_upgrade_messages());
-            throw new \RuntimeException($message !== '' ? $message : 'Installation failed for unknown reason.');
+            throw new \RuntimeException($message !== '' ? $message : 'Installation failed for unknown reason.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $this->disableAutoUpdate($slug);

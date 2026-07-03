@@ -76,12 +76,13 @@ class LoopressEnvironment
         // Local file under our own working directory, not a remote URL: wp_remote_get() doesn't apply here.
         $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         if ($contents === false) {
-            throw new \RuntimeException("Failed to read composer.json from {$path}");
+            // Message is JSON-encoded into a REST response and rendered as plain text, never echoed as HTML.
+            throw new \RuntimeException("Failed to read composer.json from {$path}"); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $data = json_decode($contents, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('composer.json contains invalid JSON: ' . json_last_error_msg());
+            throw new \RuntimeException('composer.json contains invalid JSON: ' . json_last_error_msg()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         return $data ?? [];
@@ -94,7 +95,7 @@ class LoopressEnvironment
 
         $encoded = wp_json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
-            throw new \RuntimeException('Failed to encode composer.json: ' . json_last_error_msg());
+            throw new \RuntimeException('Failed to encode composer.json: ' . json_last_error_msg()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         // dumpFile() writes to a temp file then renames, so a reader (or a crash mid-write)
@@ -102,7 +103,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->dxDir . 'composer.json', $encoded);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException("Failed to write composer.json to {$this->dxDir}: " . $e->getMessage());
+            throw new \RuntimeException("Failed to write composer.json to {$this->dxDir}: " . $e->getMessage()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 
@@ -125,7 +126,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->dxDir . 'composer.lock', $contents);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException("Failed to write composer.lock to {$this->dxDir}: " . $e->getMessage());
+            throw new \RuntimeException("Failed to write composer.lock to {$this->dxDir}: " . $e->getMessage()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 

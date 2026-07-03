@@ -38,7 +38,7 @@ class ComposerRunner
         // Composer installs can take well over the default 30 s execution limit.
         // set_time_limit may be disabled on some hosts; skip silently in that case.
         if (!str_contains((string) ini_get('disable_functions'), 'set_time_limit')) {
-            set_time_limit(300);
+            set_time_limit(300); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
         }
 
         try {
@@ -80,7 +80,7 @@ class ComposerRunner
         $lockHandle = fopen($lockPath, 'c'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
         if ($lockHandle === false) {
-            throw new \RuntimeException("Failed to open lock file {$lockPath}");
+            throw new \RuntimeException("Failed to open lock file {$lockPath}"); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {

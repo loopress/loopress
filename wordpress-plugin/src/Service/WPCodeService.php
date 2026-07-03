@@ -52,7 +52,7 @@ class WPCodeService
         ], true);
 
         if (is_wp_error($id)) {
-            throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message());
+            throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $this->saveMeta($id, $data);
@@ -82,7 +82,7 @@ class WPCodeService
 
         $result = wp_update_post($update, true);
         if (is_wp_error($result)) {
-            throw new \RuntimeException('Failed to update snippet: ' . $result->get_error_message());
+            throw new \RuntimeException('Failed to update snippet: ' . $result->get_error_message()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $this->saveMeta($id, $data);
