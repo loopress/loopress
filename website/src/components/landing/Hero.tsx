@@ -32,7 +32,7 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Version-control your snippets, plugins, and theme styles in Git. Install Composer
+            Version-control your snippets and plugins in Git. Install Composer
             packages from the WordPress admin, no SSH needed.
           </p>
 

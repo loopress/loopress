@@ -14,6 +14,9 @@ export function Footer() {
           <a href="https://docs.loopress.dev" className="hover:text-foreground">
             Docs
           </a>
+          <a href="https://docs.loopress.dev/blog" className="hover:text-foreground">
+            Blog
+          </a>
           <a href="https://github.com/loopress" className="hover:text-foreground">
             GitHub
           </a>
@@ -22,6 +25,9 @@ export function Footer() {
           </a>
           <a href="/privacy" className="hover:text-foreground">
             Privacy
+          </a>
+          <a href="/terms" className="hover:text-foreground">
+            Terms
           </a>
           <a href="/brand-assets" className="hover:text-foreground">
             Brand

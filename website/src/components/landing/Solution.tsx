@@ -23,7 +23,7 @@ export function Solution() {
           One CLI. One plugin. Every workflow.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          A CLI to version-control snippets, plugins, and theme styles. A WordPress plugin to manage
+          A CLI to version-control snippets and plugins. A WordPress plugin to manage
           Composer dependencies without touching a terminal.
         </p>
 
