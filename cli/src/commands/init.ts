@@ -61,14 +61,6 @@ export default class Init extends Command {
       projectLabel = projectId
     }
 
-    const snippetPlugin = await select({
-      choices: [
-        {name: 'WPCode', value: 'wpcode'},
-        {name: 'Code Snippets', value: 'code-snippets'},
-      ],
-      message: 'Snippet plugin',
-    })
-
     const rootDir = await input({
       default: '.',
       message: 'Root directory',
@@ -82,7 +74,6 @@ export default class Init extends Command {
     const config: LoopressLocalConfig = {
       projectId,
       rootDir,
-      snippetPlugin: snippetPlugin as 'code-snippets' | 'wpcode',
       snippetsDir,
     }
 
@@ -90,7 +81,6 @@ export default class Init extends Command {
 
     this.log(`\n✓ loopress.json created`)
     this.log(`  Project:  ${projectLabel}`)
-    this.log(`  Plugin:   ${snippetPlugin}`)
     this.log(`  Snippets: ${join(rootDir, snippetsDir)}`)
   }
 }

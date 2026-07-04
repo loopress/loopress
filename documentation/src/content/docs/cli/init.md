@@ -16,7 +16,6 @@ The command is interactive: it prompts you for each field and writes the result 
 | Prompt | Description |
 |--------|-------------|
 | WordPress project | Select a project you have already configured with `lps project config`, or enter a project ID manually. |
-| Snippet plugin | `WPCode` or `Code Snippets`. Sets the default plugin used by `lps snippet pull/push`. |
 | Root directory | Base directory for the project. All other paths are resolved relative to it. Defaults to `.`. |
 | Snippets directory | Directory where snippet files are written and read. Relative to root. Defaults to `snippets`. |
 
@@ -25,7 +24,6 @@ The command is interactive: it prompts you for each field and writes the result 
 ```json
 {
   "projectId": "my-site",
-  "snippetPlugin": "wpcode",
   "rootDir": ".",
   "snippetsDir": "snippets"
 }
@@ -38,7 +36,6 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | Field | Default | Description |
 |-------|---------|-------------|
 | `projectId` | — | Name of the project configured via `lps project config`. Overrides the globally active project for all commands run in this directory. |
-| `snippetPlugin` | `wpcode` | Default snippet plugin: `wpcode` or `code-snippets`. Overridden per-command with `--plugin`. |
 | `rootDir` | `.` | Base directory. All relative paths in `loopress.json` are resolved from here. |
 | `snippetsDir` | `snippets` | Directory for snippet files, relative to `rootDir`. |
 | `plugins` | — | Pinned plugin versions (slug to version). Populated automatically by `lps plugin pull` and `lps plugin add`. |

@@ -1,23 +1,20 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
-import {getSnippetPlugin} from '../../utils/snippet-plugin.js'
+import {normalizeSnippet, SNIPPETS_ENDPOINT} from '../../utils/snippet-format.js'
 
 export default class List extends LoopressCommand {
   static description = 'List snippets from WordPress'
-  static examples = ['$ lps snippet list', '$ lps snippet list --plugin wpcode']
+  static examples = ['$ lps snippet list']
   static flags = {
     json: Flags.boolean({char: 'j', description: 'Output in JSON format'}),
-    ...snippetPluginFlag,
   }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(List)
-    const adapter = getSnippetPlugin(this.resolveSnippetPlugin(flags.plugin))
 
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(adapter.endpointPath())
-    const snippets = remoteList.map((r) => adapter.fromRemote(r))
+    const remoteList = await this.wp.get<Record<string, unknown>[]>(SNIPPETS_ENDPOINT)
+    const snippets = remoteList.map((r) => normalizeSnippet(r))
 
     if (flags.json) {
       this.log(JSON.stringify(snippets, null, 2))

@@ -39,7 +39,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     /** @return array<int, array<string, mixed>> */
     public function getSnippets(): array
     {
-        $response = $this->dispatch('GET', self::ROUTE);
+        $response = $this->dispatchList('GET', self::ROUTE);
 
         return array_map([$this, 'fromRemote'], $response);
     }
@@ -48,7 +48,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     public function getSnippet(int $id): ?array
     {
         try {
-            $response = $this->dispatch('GET', self::ROUTE . "/{$id}");
+            $response = $this->dispatchOne('GET', self::ROUTE . "/{$id}");
         } catch (\RuntimeException $e) {
             return null;
         }
@@ -59,7 +59,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     /** @param array<string, mixed> $data @return array<string, mixed> */
     public function createSnippet(array $data): array
     {
-        $response = $this->dispatch('POST', self::ROUTE, $this->toPayload($data));
+        $response = $this->dispatchOne('POST', self::ROUTE, $this->toPayload($data));
 
         return $this->fromRemote($response);
     }
@@ -68,7 +68,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     public function updateSnippet(int $id, array $data): ?array
     {
         try {
-            $response = $this->dispatch('PUT', self::ROUTE . "/{$id}", $this->toPayload($data));
+            $response = $this->dispatchOne('PUT', self::ROUTE . "/{$id}", $this->toPayload($data));
         } catch (\RuntimeException $e) {
             return null;
         }
@@ -182,10 +182,19 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
         };
     }
 
-    /**
-     * @param array<string, mixed> $body
-     * @return array<string, mixed>|array<int, array<string, mixed>>
-     */
+    /** @param array<string, mixed> $body @return array<string, mixed> */
+    private function dispatchOne(string $method, string $path, array $body = []): array
+    {
+        return $this->dispatch($method, $path, $body);
+    }
+
+    /** @param array<string, mixed> $body @return array<int, array<string, mixed>> */
+    private function dispatchList(string $method, string $path, array $body = []): array
+    {
+        return $this->dispatch($method, $path, $body);
+    }
+
+    /** @param array<string, mixed> $body @return array<mixed> */
     private function dispatch(string $method, string $path, array $body = []): array
     {
         $request = new WP_REST_Request($method, self::NAMESPACE . $path);

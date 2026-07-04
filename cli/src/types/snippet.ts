@@ -1,4 +1,4 @@
-import {SnippetInsertMethod, SnippetLocation, SnippetType} from '../utils/snippet-plugin.js'
+import {SnippetInsertMethod, SnippetLocation, SnippetType} from '../utils/snippet-format.js'
 
 export interface Snippet {
   active: boolean

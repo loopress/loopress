@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
 import {buildMetaFile, buildSnippetFile} from '../../../src/commands/snippet/pull.js'
-import {NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-plugin.js'
+import {NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-format.js'
 
 const base: NormalizedSnippet = {
   active: false,

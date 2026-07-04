@@ -7,18 +7,18 @@ import slugify from 'slugify'
 import {PushCommand} from '../../lib/push-command.js'
 import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {Snippet} from '../../types/snippet.js'
-import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
 import {
   defaultLocationForType,
-  getSnippetPlugin,
+  normalizeSnippet,
   parseInsertMethod,
   parseLocation,
   parseType,
   SnippetInsertMethod,
   SnippetLocation,
-  SnippetPlugin,
+  SNIPPETS_ENDPOINT,
   SnippetType,
-} from '../../utils/snippet-plugin.js'
+  stripPhpOpeningTag,
+} from '../../utils/snippet-format.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',
@@ -34,29 +34,26 @@ export default class Push extends PushCommand {
   }
   static description =
     'Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
-  static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets', '$ lps snippet push --plugin wpcode']
+  static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets']
   static flags = {
     ...PushCommand.dryRunFlag,
-    ...snippetPluginFlag,
   }
   private failedCount = 0
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Push)
+    const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveSnippetsPath(args.path)
-    const resolvedPlugin = this.resolveSnippetPlugin(flags.plugin)
 
-    this.log(`Pushing snippets to ${url} via ${resolvedPlugin}`)
+    this.log(`Pushing snippets to ${url}`)
     this.log(`Snippets path: ${path}`)
 
     const snippets = await this.loadSnippets(path)
     this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
-    const adapter = getSnippetPlugin(resolvedPlugin)
     await new Listr(
       snippets.map((snippet) => ({
-        task: async (_ctx, task) => this.pushSnippet(snippet, adapter, task),
+        task: async (_ctx, task) => this.pushSnippet(snippet, task),
         title: `Push ${snippet.name}`,
       })),
       {concurrent: false, exitOnError: false},
@@ -174,23 +171,21 @@ export default class Push extends PushCommand {
   // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
   // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
   // sibling snippets push regardless.
-  private async pushSnippet(snippet: Snippet, adapter: SnippetPlugin, task?: {output: string}): Promise<void> {
+  private async pushSnippet(snippet: Snippet, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${snippet.name}`
       return
     }
 
-    const endpointPath = adapter.endpointPath()
-
     try {
-      const payload = adapter.toPayload(snippet)
+      const payload = this.toPayload(snippet)
 
       if (snippet.id) {
-        await this.wp.put(`${endpointPath}/${snippet.id}`, payload)
+        await this.wp.put(`${SNIPPETS_ENDPOINT}/${snippet.id}`, payload)
         await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
       } else {
-        const response = await this.wp.post<Record<string, unknown>>(endpointPath, payload)
-        const created = adapter.fromRemote(response)
+        const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
+        const created = normalizeSnippet(response)
         await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 
@@ -201,6 +196,21 @@ export default class Push extends PushCommand {
       else this.warn(`  ${message}`)
       this.failedCount++
       throw error
+    }
+  }
+
+  private toPayload(snippet: Snippet): Record<string, unknown> {
+    return {
+      active: snippet.active,
+      code: stripPhpOpeningTag(snippet.code),
+      description: `Imported from ${snippet.path}`,
+      insertMethod: snippet.insertMethod,
+      location: snippet.location,
+      name: snippet.name,
+      priority: snippet.priority,
+      shortcodeAttributes: snippet.shortcodeAttributes,
+      tags: snippet.tags,
+      type: snippet.type,
     }
   }
 }
