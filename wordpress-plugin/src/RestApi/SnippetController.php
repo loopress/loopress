@@ -2,11 +2,11 @@
 
 namespace Loopress\RestApi;
 
-use Loopress\Service\WPCodeService;
+use Loopress\Service\SnippetService;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class WPCodeController
+class SnippetController
 {
     /**
      * WPCode's own `wpcode_location` taxonomy term slugs, limited to the free-tier locations
@@ -24,7 +24,7 @@ class WPCodeController
         'site_wide_footer',
     ];
 
-    public function __construct(private WPCodeService $wpCodeService) {}
+    public function __construct(private SnippetService $snippetService) {}
 
     public function register_routes(): void
     {
@@ -82,20 +82,20 @@ class WPCodeController
 
     public function get_snippets(): WP_REST_Response
     {
-        if (!$this->wpCodeService->isWPCodeActive()) {
-            return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
+        if (!$this->snippetService->isActive()) {
+            return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
-        return new WP_REST_Response($this->wpCodeService->getSnippets(), 200);
+        return new WP_REST_Response($this->snippetService->getSnippets(), 200);
     }
 
     public function get_snippet(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->wpCodeService->isWPCodeActive()) {
-            return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
+        if (!$this->snippetService->isActive()) {
+            return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
-        $snippet = $this->wpCodeService->getSnippet((int) $request->get_param('id'));
+        $snippet = $this->snippetService->getSnippet((int) $request->get_param('id'));
 
         if ($snippet === null) {
             return new WP_REST_Response(['error' => 'Snippet not found'], 404);
@@ -106,12 +106,12 @@ class WPCodeController
 
     public function create_snippet(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->wpCodeService->isWPCodeActive()) {
-            return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
+        if (!$this->snippetService->isActive()) {
+            return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
         try {
-            $snippet = $this->wpCodeService->createSnippet([
+            $snippet = $this->snippetService->createSnippet([
                 'title'                => $request->get_param('title'),
                 'code'                 => $request->get_param('code'),
                 'type'                 => $request->get_param('type'),
@@ -132,8 +132,8 @@ class WPCodeController
 
     public function update_snippet(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->wpCodeService->isWPCodeActive()) {
-            return new WP_REST_Response(['error' => 'WPCode plugin is not active'], 400);
+        if (!$this->snippetService->isActive()) {
+            return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
         $data = array_filter([
@@ -150,7 +150,7 @@ class WPCodeController
         ], fn($v) => $v !== null);
 
         try {
-            $snippet = $this->wpCodeService->updateSnippet((int) $request->get_param('id'), $data);
+            $snippet = $this->snippetService->updateSnippet((int) $request->get_param('id'), $data);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }

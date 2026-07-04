@@ -4,19 +4,19 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Service\WPCodeService;
+use Loopress\Service\WPCodeSnippetProvider;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
 
-class WPCodeServiceTest extends TestCase
+class WPCodeSnippetProviderTest extends TestCase
 {
-    private WPCodeService $service;
+    private WPCodeSnippetProvider $service;
 
     protected function setUp(): void
     {
         parent::setUp();
         Monkey\setUp();
-        $this->service = new WPCodeService();
+        $this->service = new WPCodeSnippetProvider();
     }
 
     protected function tearDown(): void

@@ -2,7 +2,9 @@
 
 namespace Loopress\Service;
 
-class WPCodeService
+use Loopress\Contract\SnippetProvider;
+
+class WPCodeSnippetProvider implements SnippetProvider
 {
     private const POST_TYPE         = 'wpcode';
     private const META_NOTE         = '_wpcode_note';
@@ -13,7 +15,7 @@ class WPCodeService
     private const LOCATION_TAXONOMY = 'wpcode_location';
     private const TAXONOMY          = 'wpcode_tags';
 
-    public function isWPCodeActive(): bool
+    public function isActive(): bool
     {
         return post_type_exists(self::POST_TYPE);
     }

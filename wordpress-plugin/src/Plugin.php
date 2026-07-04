@@ -7,7 +7,7 @@ use Loopress\Infrastructure\LoopressEnvironment;
 use Loopress\Module\AdminPageModule;
 use Loopress\Module\RestCacheModule;
 use Loopress\Module\ComposerModule;
-use Loopress\Module\WPCodeModule;
+use Loopress\Module\SnippetModule;
 use Loopress\Module\WpPluginsModule;
 
 class Plugin
@@ -36,7 +36,7 @@ class Plugin
         $modules = apply_filters('loopress_modules', [
             new AdminPageModule($autoloadError),
             new ComposerModule($env),
-            new WPCodeModule(),
+            new SnippetModule(),
             new WpPluginsModule(),
             new RestCacheModule(),
         ]);
