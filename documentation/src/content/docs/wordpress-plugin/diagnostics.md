@@ -27,8 +27,6 @@ The platform PHP version in `wp-content/loopress/composer.json` does not match t
 
 Click the **Set to PHP x.x.x** button in the banner. This updates `config.platform.php` in `wp-content/loopress/composer.json` to match the currently running PHP version.
 
-This action is blocked when the Production Lock is active (configured via **Loopress → Settings** or the `LOOPRESS_PRODUCTION_LOCK` PHP constant).
-
 ## REST API
 
 The diagnostics data is exposed at `GET /wp-json/loopress/v1/composer/diagnostics`:
