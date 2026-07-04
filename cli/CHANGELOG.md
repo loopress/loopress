@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.9.0
+
+### Minor Changes
+
+- f5bae31: Add list2 to improve UX
+- 34a4a22: Setup sentry to monitor the CLI
+
 ## 0.8.0
 
 ### Minor Changes
