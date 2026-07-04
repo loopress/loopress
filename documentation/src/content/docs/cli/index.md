@@ -5,6 +5,8 @@ description: Version-control your WordPress code snippets and plugins in Git.
 
 The Loopress CLI (`lps`) is a Node.js command-line tool that connects to the WordPress REST API to sync code snippets and plugins between your local machine and any WordPress instance.
 
+The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active on the site you want to manage.
+
 ## Command overview
 
 | Group | Command | Description |
@@ -29,18 +31,21 @@ The Loopress CLI (`lps`) is a Node.js command-line tool that connects to the Wor
 ## Quick start
 
 ```bash
-# 1. Initialize your project config
+# 1. Connect to your WordPress site
+lps project config
+
+# 2. Initialize your project config
 lps init
 
-# 2. Pull your snippets
+# 3. Pull your snippets
 lps snippet pull
 
-# 3. Edit, commit, push
+# 4. Edit, commit, push
 git add snippets/ && git commit -m "update snippet"
 lps snippet push
 ```
 
-→ [Full setup guide](/cli/getting-started/)
+→ [Full 3-minute setup guide](/guides/getting-started/)
 
 ## Authentication
 

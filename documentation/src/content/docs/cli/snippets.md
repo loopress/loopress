@@ -88,7 +88,7 @@ lps snippet list
 | Flag | Description |
 |------|-------------|
 | `--json` / `-j` | Output raw JSON instead of formatted text |
-| `--plugin` / `-p` | Target plugin: `code-snippets` (default) or `wpcode` |
+| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example output:**
 
@@ -150,7 +150,7 @@ Always run `lps snippet pull` before editing locally so that your files have the
 
 ## Code Snippets support
 
-WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
+WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command.
 
 ```bash
 lps snippet pull --plugin code-snippets
