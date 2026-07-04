@@ -6,18 +6,15 @@ use Loopress\Contract\Module;
 use Loopress\Infrastructure\LoopressEnvironment;
 use Loopress\Module\AdminPageModule;
 use Loopress\Module\RestCacheModule;
-use Loopress\Module\SettingsModule;
 use Loopress\Module\ComposerModule;
-use Loopress\Module\WPCodeModule;
+use Loopress\Module\SnippetModule;
 use Loopress\Module\WpPluginsModule;
-use Loopress\Service\SettingsService;
 
 class Plugin
 {
     public function __construct()
     {
-        $env      = new LoopressEnvironment();
-        $settings = new SettingsService();
+        $env = new LoopressEnvironment();
 
         $autoloadError = null;
         $autoload      = $env->getAutoloadPath();
@@ -38,9 +35,8 @@ class Plugin
         /** @var Module[] $modules */
         $modules = apply_filters('loopress_modules', [
             new AdminPageModule($autoloadError),
-            new ComposerModule($env, $settings),
-            new SettingsModule($settings),
-            new WPCodeModule(),
+            new ComposerModule($env),
+            new SnippetModule(),
             new WpPluginsModule(),
             new RestCacheModule(),
         ]);

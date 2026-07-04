@@ -20,7 +20,7 @@ type PushWithLoadSnippets = {loadSnippets(path: string): Promise<Snippet[]>}
 type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void>}
 type PushWithPushSnippet = {
   failedCount: number
-  pushSnippet(snippet: Snippet, adapter: unknown, task?: {output: string}): Promise<void>
+  pushSnippet(snippet: Snippet, task?: {output: string}): Promise<void>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
@@ -304,7 +304,6 @@ describe('snippet push', () => {
       tags: [],
       type: 'php',
     } as Snippet
-    const adapter = {endpointPath: () => 'code-snippets/v1/snippets', toPayload: () => ({})}
 
     it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
@@ -313,7 +312,7 @@ describe('snippet push', () => {
       ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
       const task = {output: ''}
 
-      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter, task)).rejects.toThrow('boom')
+      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, task)).rejects.toThrow('boom')
 
       expect(task.output).toBe('Failed to push demo: boom')
       expect(logs.warn).not.toHaveBeenCalled()
@@ -326,7 +325,7 @@ describe('snippet push', () => {
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
       ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
 
-      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, adapter)).rejects.toThrow('boom')
+      await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet)).rejects.toThrow('boom')
 
       expect(logs.warn).toHaveBeenCalledWith('  Failed to push demo: boom')
       expect((cmd as unknown as PushWithPushSnippet).failedCount).toBe(1)

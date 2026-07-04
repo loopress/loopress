@@ -4,7 +4,6 @@ namespace Loopress\RestApi;
 
 use Composer\Semver\VersionParser;
 use Loopress\Exception\ConcurrentOperationException;
-use Loopress\Exception\ProductionLockException;
 use Loopress\Service\ComposerService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -124,8 +123,6 @@ class ComposerController
         try {
             $output = $this->composerService->requirePackage($package, $version);
             return new WP_REST_Response(['message' => "{$package}:{$version} installed successfully.", 'output' => $output], 200);
-        } catch (ProductionLockException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 403);
         } catch (ConcurrentOperationException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
@@ -140,8 +137,6 @@ class ComposerController
         try {
             $output = $this->composerService->removePackage($package);
             return new WP_REST_Response(['message' => "{$package} removed successfully.", 'output' => $output], 200);
-        } catch (ProductionLockException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 403);
         } catch (ConcurrentOperationException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
@@ -154,8 +149,6 @@ class ComposerController
         try {
             $output = $this->composerService->repair();
             return new WP_REST_Response(['message' => 'Dependencies repaired successfully.', 'output' => $output], 200);
-        } catch (ProductionLockException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 403);
         } catch (ConcurrentOperationException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
@@ -188,8 +181,6 @@ class ComposerController
                 'php_version'  => PHP_VERSION,
                 'platform_php' => PHP_VERSION,
             ], 200);
-        } catch (ProductionLockException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 403);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -216,8 +207,6 @@ class ComposerController
             return new WP_REST_Response(['message' => 'composer install completed.', 'output' => $output], 200);
         } catch (\InvalidArgumentException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
-        } catch (ProductionLockException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 403);
         } catch (ConcurrentOperationException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {

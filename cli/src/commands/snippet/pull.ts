@@ -6,8 +6,7 @@ import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
-import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
-import {getSnippetPlugin, NormalizedSnippet, SnippetType} from '../../utils/snippet-plugin.js'
+import {NormalizedSnippet, normalizeSnippet, SNIPPETS_ENDPOINT, SnippetType} from '../../utils/snippet-format.js'
 
 const EXTENSIONS: Record<SnippetType, string> = {
   css: 'css',
@@ -46,24 +45,21 @@ export default class Pull extends LoopressCommand {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description = 'Pull snippets from WordPress'
-  static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets', '$ lps snippet pull --plugin wpcode']
+  static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets']
   static flags = {
     ...LoopressCommand.dryRunFlag,
-    ...snippetPluginFlag,
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Pull)
+    const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveSnippetsPath(args.path)
-    const resolvedPlugin = this.resolveSnippetPlugin(flags.plugin)
 
-    this.log(`Pulling snippets from ${url} via ${resolvedPlugin}`)
+    this.log(`Pulling snippets from ${url}`)
     this.log(`Snippets path: ${path}`)
 
-    const adapter = getSnippetPlugin(resolvedPlugin)
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(adapter.endpointPath())
-    const snippets = remoteList.map((r) => adapter.fromRemote(r))
+    const remoteList = await this.wp.get<Record<string, unknown>[]>(SNIPPETS_ENDPOINT)
+    const snippets = remoteList.map((r) => normalizeSnippet(r))
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to ${path}`)

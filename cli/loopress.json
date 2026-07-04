@@ -1,7 +1,6 @@
 {
   "$schema": "./schemas/project-config.schema.json",
   "rootDir": "./demo",
-  "snippetPlugin": "wpcode",
   "plugins": {
     "insert-headers-and-footers": "2.3.7"
   }

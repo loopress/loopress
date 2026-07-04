@@ -5,7 +5,7 @@ description: Push, pull and list WordPress code snippets from the command line.
 
 The `snippet` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a code file alongside a `.json` sidecar in a local directory that you commit like any other code.
 
-Supports [WPCode](https://wpcode.com/) (default) and the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin.
+Works with either [WPCode](https://wpcode.com/) or the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin. The Loopress WordPress plugin detects whichever one is active on the site, so the CLI commands are the same either way.
 
 ## Typical workflow
 
@@ -37,13 +37,11 @@ lps snippet pull [path]
 | Flag | Description |
 |------|-------------|
 | `--dryRun` / `-d` | Show what would be written without touching the filesystem |
-| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example:**
 
 ```bash
 lps snippet pull ./wp-snippets --dryRun
-lps snippet pull --plugin code-snippets
 ```
 
 ---
@@ -66,13 +64,11 @@ lps snippet push [path]
 | Flag | Description |
 |------|-------------|
 | `--dryRun` / `-d` | Show what would be pushed without making any changes |
-| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example:**
 
 ```bash
 lps snippet push ./wp-snippets
-lps snippet push --plugin code-snippets
 ```
 
 ---
@@ -88,7 +84,6 @@ lps snippet list
 | Flag | Description |
 |------|-------------|
 | `--json` / `-j` | Output raw JSON instead of formatted text |
-| `--plugin` / `-p` | Target plugin: `wpcode` (default) or `code-snippets` |
 
 **Example output:**
 
@@ -147,13 +142,4 @@ snippets/
 :::tip
 Always run `lps snippet pull` before editing locally so that your files have the `id` in the sidecar. This ensures `push` updates the right snippet even if you rename the file.
 :::
-
-## Code Snippets support
-
-WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command.
-
-```bash
-lps snippet pull --plugin code-snippets
-lps snippet push --plugin code-snippets
-```
 

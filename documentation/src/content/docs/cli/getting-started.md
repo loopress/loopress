@@ -27,7 +27,7 @@ lps --version
 
 - Node.js 18+
 - The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage
-- A WordPress installation with the [WPCode](https://wpcode.com/) plugin active (for snippet commands; [Code Snippets](https://wordpress.org/plugins/code-snippets/) is also supported via `--plugin code-snippets`)
+- A WordPress installation with either [WPCode](https://wpcode.com/) or [Code Snippets](https://wordpress.org/plugins/code-snippets/) active (for snippet commands; the Loopress WordPress plugin detects whichever one is installed)
 - A WordPress [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) for authentication
 
 ## Log in to Loopress
@@ -82,7 +82,6 @@ Run `lps init` in your project root to generate `loopress.json` interactively, o
 ```json
 {
   "projectId": "my-site",
-  "snippetPlugin": "wpcode",
   "rootDir": "./wp-content",
   "snippetsDir": "snippets",
   "plugins": {
@@ -95,7 +94,6 @@ Run `lps init` in your project root to generate `loopress.json` interactively, o
 | Field | Default | Description |
 |-------|---------|-------------|
 | `projectId` | none | Name of the project to use, as configured via `lps project config`. Overrides the currently active project. |
-| `snippetPlugin` | `wpcode` | Snippet plugin to use: `wpcode` or `code-snippets` |
 | `rootDir` | `.` | Base directory, all other paths are resolved relative to it |
 | `snippetsDir` | `snippets` | Directory for snippet files |
 | `plugins` | none | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/add`. |

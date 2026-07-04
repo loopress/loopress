@@ -29,7 +29,6 @@
         <PossiblyUnusedMethod>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
-                <referencedMethod name="Loopress\Service\SettingsService::updateLock" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>

@@ -2,7 +2,6 @@
 
 namespace Loopress\Service;
 
-use Loopress\Exception\ProductionLockException;
 use Loopress\Infrastructure\ComposerRunner;
 use Loopress\Infrastructure\LoopressEnvironment;
 use Loopress\Infrastructure\PackagistClient;
@@ -13,7 +12,6 @@ class ComposerService
         private LoopressEnvironment $dxEnv,
         private ComposerRunner $composerRunner,
         private PackagistClient $packagistClient,
-        private SettingsService $settings,
     ) {}
 
     public function getVersions(string $package): ?array
@@ -72,10 +70,6 @@ class ComposerService
 
     public function requirePackage(string $package, string $version): string
     {
-        if ($this->settings->isLocked()) {
-            throw new ProductionLockException('Cannot install packages: production lock is enabled.');
-        }
-
         $result = $this->composerRunner->run(['require', "{$package}:{$version}"]);
 
         if ($result['exit_code'] !== 0) {
@@ -87,10 +81,6 @@ class ComposerService
 
     public function removePackage(string $package): string
     {
-        if ($this->settings->isLocked()) {
-            throw new ProductionLockException('Cannot remove packages: production lock is enabled.');
-        }
-
         $result = $this->composerRunner->run(['remove', $package]);
 
         if ($result['exit_code'] !== 0) {
@@ -102,10 +92,6 @@ class ComposerService
 
     public function repair(): string
     {
-        if ($this->settings->isLocked()) {
-            throw new ProductionLockException('Cannot repair dependencies: production lock is enabled.');
-        }
-
         $result = $this->composerRunner->run(['install']);
 
         if ($result['exit_code'] !== 0) {
@@ -172,10 +158,6 @@ class ComposerService
 
     public function fixPlatform(): void
     {
-        if ($this->settings->isLocked()) {
-            throw new ProductionLockException('Cannot fix platform: production lock is enabled.');
-        }
-
         $json = $this->dxEnv->readComposerJson();
         $json['config']['platform']['php'] = PHP_VERSION;
         $this->dxEnv->writeComposerJson($json);
@@ -188,10 +170,6 @@ class ComposerService
 
     public function sync(string $composerJson, ?string $composerLock): string
     {
-        if ($this->settings->isLocked()) {
-            throw new ProductionLockException('Cannot sync dependencies: production lock is enabled.');
-        }
-
         $decoded = json_decode($composerJson, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \InvalidArgumentException('Invalid composer.json: ' . json_last_error_msg());

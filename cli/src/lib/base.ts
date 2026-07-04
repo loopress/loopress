@@ -50,11 +50,6 @@ export abstract class LoopressCommand extends Command {
     this.siteConfig = this.resolveEnvironment()
   }
 
-  protected resolveSnippetPlugin(flag?: string): 'code-snippets' | 'wpcode' {
-    if (flag) return flag as 'code-snippets' | 'wpcode'
-    return this.localConfig.snippetPlugin ?? 'wpcode'
-  }
-
   protected resolveSnippetsPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')

@@ -20,7 +20,7 @@ describe('DiagnosticsBanner', () => {
             issues: [],
         };
         const { container } = render(
-            <DiagnosticsBanner isLocked={false} />,
+            <DiagnosticsBanner />,
             { wrapper: wrapperWithData(data) },
         );
         expect(container.firstChild).toBeNull();
@@ -38,7 +38,7 @@ describe('DiagnosticsBanner', () => {
             ],
         };
 
-        render(<DiagnosticsBanner isLocked={false} />, { wrapper: wrapperWithData(data) });
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
         expect(screen.getByText(/Platform issue detected/i)).toBeInTheDocument();
         expect(screen.getByText(/config\.platform\.php is 8\.1\.0/i)).toBeInTheDocument();
     });
@@ -50,33 +50,21 @@ describe('DiagnosticsBanner', () => {
             issues: [{ code: 'platform_php_mismatch', message: 'Mismatch detected.' }],
         };
 
-        render(<DiagnosticsBanner isLocked={false} />, { wrapper: wrapperWithData(data) });
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
         expect(screen.getByText(/Running PHP 8\.2\.29/i)).toBeInTheDocument();
         expect(screen.getByText(/composer\.json declares 8\.1\.0/i)).toBeInTheDocument();
     });
 
-    test('fix button is enabled when not locked', () => {
+    test('fix button is enabled', () => {
         const data: Diagnostics = {
             php_version: '8.2.29',
             platform_php: '8.1.0',
             issues: [{ code: 'platform_php_mismatch', message: 'Mismatch.' }],
         };
 
-        render(<DiagnosticsBanner isLocked={false} />, { wrapper: wrapperWithData(data) });
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
         const button = screen.getByRole('button', { name: /Set to PHP/i });
         expect(button).not.toBeDisabled();
-    });
-
-    test('fix button is disabled when production lock is active', () => {
-        const data: Diagnostics = {
-            php_version: '8.2.29',
-            platform_php: '8.1.0',
-            issues: [{ code: 'platform_php_mismatch', message: 'Mismatch.' }],
-        };
-
-        render(<DiagnosticsBanner isLocked={true} />, { wrapper: wrapperWithData(data) });
-        const button = screen.getByRole('button', { name: /Set to PHP/i });
-        expect(button).toBeDisabled();
     });
 
     test('renders multiple issues', () => {
@@ -88,7 +76,7 @@ describe('DiagnosticsBanner', () => {
             ],
         };
 
-        render(<DiagnosticsBanner isLocked={false} />, { wrapper: wrapperWithData(data) });
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
         expect(screen.getByText(/Platform issue detected/i)).toBeInTheDocument();
         expect(screen.getByText(/config\.platform\.php is not set/i)).toBeInTheDocument();
     });
