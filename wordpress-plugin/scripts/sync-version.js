@@ -1,7 +1,17 @@
 const fs = require('fs')
 const path = require('path')
 
-const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
+const rootDir = path.join(__dirname, '..')
+
+function resolveInRoot(relativePath) {
+  const resolved = path.resolve(rootDir, relativePath)
+  if (resolved !== rootDir && !resolved.startsWith(rootDir + path.sep)) {
+    throw new Error(`Refusing to access path outside plugin root: ${relativePath}`)
+  }
+  return resolved
+}
+
+const pkg = JSON.parse(fs.readFileSync(resolveInRoot('package.json'), 'utf8'))
 
 const targets = [
   { file: 'loopress.php', pattern: /(\* Version: )[\d.]+/, label: 'Version header' },
@@ -9,7 +19,7 @@ const targets = [
 ]
 
 for (const { file, pattern, label } of targets) {
-  const filePath = path.join(__dirname, '..', file)
+  const filePath = resolveInRoot(file)
   const content = fs.readFileSync(filePath, 'utf8')
   const updated = content.replace(pattern, `$1${pkg.version}`)
 

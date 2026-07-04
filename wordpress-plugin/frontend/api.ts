@@ -12,7 +12,18 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
         throw new ApiError('Loopress data unavailable. Please reload the page.');
     }
     const { apiUrl, nonce } = window.loopressData;
-    const response = await fetch(`${apiUrl}${path}`, {
+
+    let url: URL;
+    try {
+        url = new URL(path, apiUrl);
+    } catch {
+        throw new ApiError('Invalid API path.');
+    }
+    if (url.origin !== new URL(apiUrl).origin) {
+        throw new ApiError('Refusing to fetch a different origin than the configured API.');
+    }
+
+    const response = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
