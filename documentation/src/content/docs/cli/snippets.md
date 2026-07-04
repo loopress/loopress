@@ -150,7 +150,9 @@ Always run `lps snippet pull` before editing locally so that your files have the
 
 ## Code Snippets support
 
-WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command. The Loopress plugin must be installed and active on your WordPress site for this to work; it exposes the REST endpoint that the CLI uses.
+WPCode is the default plugin. To target [Code Snippets](https://wordpress.org/plugins/code-snippets/) instead, pass `--plugin code-snippets` to any command.
+
+Note the dependency runs the other way from what you might expect: the default WPCode target goes through the Loopress plugin's REST API, so it requires the [Loopress WordPress plugin](/wordpress-plugin/) to be installed and active. Code Snippets exposes its own REST API, so targeting it is the only snippet workflow that does **not** require the Loopress plugin.
 
 ```bash
 lps snippet pull --plugin code-snippets

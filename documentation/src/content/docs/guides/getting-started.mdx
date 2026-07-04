@@ -1,0 +1,60 @@
+---
+title: Getting Started
+description: Install the Loopress plugin and CLI and sync your first snippet in about 3 minutes.
+---
+
+import PluginDownload from '../../../components/PluginDownload.astro';
+
+Loopress has two parts: a WordPress plugin and a CLI.
+
+The plugin works standalone, straight from the WordPress admin, for Composer dependency management. The CLI needs the plugin installed and active on the target site, except when syncing snippets via `--plugin code-snippets`.
+
+## Prerequisites
+
+- A WordPress installation (6.0+) with administrator access
+- PHP 8.2+ on the server
+- Node.js 18+ on your machine, for the CLI
+- A WordPress [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) for the site you want to manage
+
+## Quick start (about 3 minutes)
+
+### 1. Install the Loopress plugin
+
+<PluginDownload />
+
+Upload `loopress.zip` via **Plugins → Add New → Upload Plugin**, then activate it. See the [plugin page](/wordpress-plugin/) for details.
+
+This step is required before the CLI can talk to the site.
+
+### 2. Install the CLI
+
+```bash
+npm install -g @loopress/cli
+```
+
+### 3. Connect it to your site
+
+```bash
+lps project config
+```
+
+Enter your WordPress URL, username and application password when prompted. See the [Application Passwords guide](/cli/application-passwords/) if you can't find that section in your WordPress admin.
+
+### 4. Sync your first snippets
+
+```bash
+# Download your existing snippets as .php files
+lps snippet pull
+
+# Edit locally, commit to Git
+git add snippets/ && git commit -m "chore: import snippets"
+
+# Push changes back to WordPress
+lps snippet push
+```
+
+By default this targets [WPCode](https://wpcode.com/). Pass `--plugin code-snippets` instead to target the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin.
+
+---
+
+Need Composer or plugin version management too? Continue with the [CLI reference](/cli/) or the [WordPress plugin docs](/wordpress-plugin/).

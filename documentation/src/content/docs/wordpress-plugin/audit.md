@@ -35,7 +35,7 @@ A yellow warning is shown for packages that Packagist has flagged as abandoned. 
 
 ## REST API
 
-The audit data is exposed at `GET /wp-json/loopress/v1/vendor/audit`:
+The audit data is exposed at `GET /wp-json/loopress/v1/composer/audit`:
 
 ```json
 {
