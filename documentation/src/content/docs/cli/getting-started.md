@@ -26,8 +26,8 @@ lps --version
 ## Requirements
 
 - Node.js 18+
-- The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage. It registers the `loopress/v1` REST API that the CLI depends on for snippet sync (WPCode), plugin management, and Composer sync.
-- A WordPress installation with the [WPCode](https://wpcode.com/) plugin active (for snippet commands; [Code Snippets](https://wordpress.org/plugins/code-snippets/) is also supported via `--plugin code-snippets`, the only snippet workflow that does not require the Loopress plugin)
+- The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage
+- A WordPress installation with the [WPCode](https://wpcode.com/) plugin active (for snippet commands; [Code Snippets](https://wordpress.org/plugins/code-snippets/) is also supported via `--plugin code-snippets`)
 - A WordPress [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) for authentication
 
 ## Log in to Loopress
