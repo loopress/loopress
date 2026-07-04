@@ -50,6 +50,5 @@ The autoload error banner at the top of the page appears automatically when Loop
 
 ## Notes
 
-- All write operations (install, remove, repair) are blocked on production environments.
 - Composer is executed in-process (via the `composer/composer` library). Long-running installs extend the PHP execution time limit to 5 minutes automatically.
 - Only stable versions are shown in the version picker (no `dev-*` releases).
