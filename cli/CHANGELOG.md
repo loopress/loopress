@@ -1,5 +1,11 @@
 # @loopress/cli
 
+## 0.10.0
+
+### Minor Changes
+
+- Publish schemas on NPM
+
 ## 0.9.0
 
 ### Minor Changes
