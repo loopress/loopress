@@ -45,7 +45,7 @@ export class WpClient {
 }
 
 export function isNotFoundError(error: unknown): boolean {
-  const cause = (error as {cause?: {response?: {statusCode?: number}}}).cause
+  const cause = (error as {cause?: {response?: {statusCode?: number}}})?.cause
   return cause?.response?.statusCode === 404
 }
 
