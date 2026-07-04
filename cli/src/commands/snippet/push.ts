@@ -5,6 +5,7 @@ import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {PushCommand} from '../../lib/push-command.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
 import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {Snippet} from '../../types/snippet.js'
 import {
@@ -181,8 +182,18 @@ export default class Push extends PushCommand {
       const payload = this.toPayload(snippet)
 
       if (snippet.id) {
-        await this.wp.put(`${SNIPPETS_ENDPOINT}/${snippet.id}`, payload)
-        await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
+        try {
+          await this.wp.put(`${SNIPPETS_ENDPOINT}/${snippet.id}`, payload)
+          await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
+        } catch (error) {
+          // The id recorded locally doesn't exist on this site (e.g. a fresh install): create it
+          // instead of failing, and adopt whatever id the site assigns.
+          if (!isNotFoundError(error)) throw error
+
+          const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
+          const created = normalizeSnippet(response)
+          await this.ensureCanonicalFilename(snippet, created.id, created.name)
+        }
       } else {
         const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
         const created = normalizeSnippet(response)
