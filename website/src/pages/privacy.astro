@@ -2,6 +2,8 @@
 import Layout from "@/layouts/Layout.astro";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
+
+const LAST_UPDATED = "July 4, 2026";
 ---
 
 <Layout
@@ -13,7 +15,106 @@ import { Footer } from "@/components/landing/Footer";
     <Nav client:load />
     <main class="mx-auto max-w-3xl px-6 py-24">
       <h1 class="text-2xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p class="mt-4 text-sm text-muted-foreground">Coming soon.</p>
+      <p class="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
+
+      <p class="mt-6 text-sm leading-relaxed text-muted-foreground">
+        Loopress ("we", "us") is currently in private beta. This policy describes the data we
+        collect today, at this stage of the product, and will be updated as new features (paid
+        plans, team accounts) ship. Questions? <a href="/contact" class="underline underline-offset-2 hover:text-foreground">Contact us</a>.
+      </p>
+
+      <div class="mt-10 space-y-10 text-sm leading-relaxed text-muted-foreground">
+        <section>
+          <h2 class="text-base font-medium text-foreground">What we collect</h2>
+          <ul class="mt-3 list-disc space-y-2 pl-5">
+            <li>
+              <strong class="text-foreground/90">Beta waitlist:</strong> if you leave your email to join the beta,
+              we store it with our email provider (Brevo) to notify you about product updates.
+            </li>
+            <li>
+              <strong class="text-foreground/90">Contact form:</strong> name, email, subject, and message, sent to
+              our team and used only to reply to your request.
+            </li>
+            <li>
+              <strong class="text-foreground/90">Loopress account:</strong> if you sign in to the Loopress console
+              with Google, we store your email address and a Google account identifier. We do not
+              request or store your Google password.
+            </li>
+            <li>
+              <strong class="text-foreground/90">CLI usage:</strong> the CLI and WordPress plugin run against your
+              own WordPress site. Nothing is sent to Loopress unless you run <code class="rounded bg-card px-1 py-0.5 font-mono text-xs">lps login</code>
+              to connect a project to your account, in which case project metadata and WordPress
+              credentials (encrypted at rest) are synced so CI deployments don't need separate secrets.
+            </li>
+            <li>
+              <strong class="text-foreground/90">Website analytics:</strong> we use Vercel Analytics, which does not
+              use cookies and reports aggregated, non-identifying traffic data.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">How we use it</h2>
+          <p class="mt-3">
+            To operate the service, respond to your messages, send product updates you've opted
+            into, and understand how the site is used so we can improve it. We do not sell your
+            data, and we do not share it with third parties for their own marketing purposes.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Third-party services</h2>
+          <p class="mt-3">
+            We rely on a small number of providers to run Loopress: <strong class="text-foreground/90">Brevo</strong> (email
+            and contact form delivery), <strong class="text-foreground/90">Google</strong> (sign-in), <strong class="text-foreground/90">Vercel</strong> (hosting
+            and analytics), and <strong class="text-foreground/90">GitHub</strong> (distribution of the open-source CLI and
+            plugin). Each processes data under its own privacy policy.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Data retention</h2>
+          <p class="mt-3">
+            We keep account and contact data for as long as your account is active, or as needed
+            to respond to your request. You can ask us to delete your data at any time via the
+            <a href="/contact" class="underline underline-offset-2 hover:text-foreground">contact page</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Your rights</h2>
+          <p class="mt-3">
+            Depending on where you live, you may have the right to access, correct, export, or
+            delete your personal data. Reach out via the <a href="/contact" class="underline underline-offset-2 hover:text-foreground">contact page</a>
+            and we'll act on it.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Cookies &amp; local storage</h2>
+          <p class="mt-3">
+            The website does not use tracking or advertising cookies. It stores a single local
+            storage entry on your device to remember your light/dark theme preference.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Children</h2>
+          <p class="mt-3">
+            Loopress is a developer tool and is not directed at, or knowingly used to collect data
+            from, children under 16.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="text-base font-medium text-foreground">Changes to this policy</h2>
+          <p class="mt-3">
+            As Loopress moves out of beta and adds paid plans and team features, this policy will
+            be updated to reflect what's actually collected. We'll update the date at the top when
+            that happens.
+          </p>
+        </section>
+      </div>
     </main>
     <Footer />
   </div>
