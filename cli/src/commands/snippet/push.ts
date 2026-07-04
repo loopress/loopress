@@ -5,6 +5,7 @@ import {basename, dirname, extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {PushCommand} from '../../lib/push-command.js'
+import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {Snippet} from '../../types/snippet.js'
 import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
 import {
@@ -81,10 +82,10 @@ export default class Push extends PushCommand {
     const canonicalBase = `${id}-${slugify(name, {lower: true, strict: true})}`
 
     const oldMetaPath = join(dir, `${currentBase}.json`)
-    let meta: Record<string, unknown> = {}
+    let meta: LoopressSnippetMetadata = {}
     try {
       const existing = await readFile(oldMetaPath, 'utf8')
-      meta = JSON.parse(existing) as Record<string, unknown>
+      meta = JSON.parse(existing) as LoopressSnippetMetadata
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
@@ -133,7 +134,7 @@ export default class Push extends PushCommand {
         let shortcodeAttributes: string[] = []
         try {
           const metaContent = await readFile(metaPath, 'utf8')
-          const meta = JSON.parse(metaContent) as Record<string, unknown>
+          const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
           id = meta.id ? Number(meta.id) : undefined
           name = meta.name ? String(meta.name) : undefined
           type = parseType(meta.type) ?? undefined

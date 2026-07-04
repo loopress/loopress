@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {snippetPluginFlag} from '../../utils/snippet-plugin-flag.js'
 import {getSnippetPlugin, NormalizedSnippet, SnippetType} from '../../utils/snippet-plugin.js'
 
@@ -25,7 +26,7 @@ export function buildSnippetFile(snippet: NormalizedSnippet): string {
 }
 
 export function buildMetaFile(snippet: NormalizedSnippet): string {
-  const meta: Record<string, unknown> = {
+  const meta: LoopressSnippetMetadata = {
     id: snippet.id,
     name: snippet.name,
     type: snippet.type,

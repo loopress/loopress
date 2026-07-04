@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://loopress.dev/schema/snippet.json",
+  "title": "Loopress snippet metadata",
+  "description": "Sidecar .json file paired with a snippet's code file in the snippets directory (e.g. `123-my-snippet.php` + `123-my-snippet.json`).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "integer",
+      "description": "Remote snippet id. Omitted until the snippet has been pushed for the first time."
+    },
+    "name": {
+      "type": "string",
+      "description": "Snippet name/title. Defaults to the code file's name when omitted."
+    },
+    "type": {
+      "type": "string",
+      "description": "Snippet language. Defaults to the type inferred from the code file's extension when omitted.",
+      "enum": ["css", "html", "js", "php", "text"]
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether the snippet is enabled.",
+      "default": false
+    },
+    "location": {
+      "type": "string",
+      "description": "Where the snippet runs. Supported values depend on the target plugin and snippet type.",
+      "enum": ["admin", "body", "everywhere", "footer", "frontend", "header", "once"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Free-text note about the snippet."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for organizing snippets.",
+      "items": {"type": "string"}
+    },
+    "insertMethod": {
+      "type": "string",
+      "description": "How the snippet is inserted into the page.",
+      "enum": ["auto", "shortcode"],
+      "default": "auto"
+    },
+    "priority": {
+      "type": "integer",
+      "description": "Execution priority. Lower runs earlier.",
+      "default": 10
+    },
+    "shortcodeAttributes": {
+      "type": "array",
+      "description": "Attribute names accepted by the snippet's shortcode, used when insertMethod is \"shortcode\".",
+      "items": {"type": "string"}
+    }
+  }
+}

@@ -8,7 +8,7 @@ const gitignorePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 
 export default [
   includeIgnoreFile(gitignorePath),
-  {ignores: ['dist/**']},
+  {ignores: ['dist/**', 'src/types/*.generated.ts']},
   ...oclif,
   prettier,
   {
