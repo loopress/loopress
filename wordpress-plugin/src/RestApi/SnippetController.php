@@ -9,26 +9,18 @@ use WP_REST_Response;
 class SnippetController
 {
     /**
-     * WPCode's own `wpcode_location` taxonomy term slugs, limited to the free-tier locations
-     * supported by this integration (see WPCode_Auto_Insert_Everywhere/Site_Wide upstream).
+     * Canonical snippet locations, shared across every supported snippet plugin.
+     * Each SnippetProvider translates these to/from its own backend's vocabulary.
      *
      * @var string[]
      */
-    private const LOCATIONS = [
-        'everywhere',
-        'frontend_only',
-        'admin_only',
-        'on_demand',
-        'site_wide_header',
-        'site_wide_body',
-        'site_wide_footer',
-    ];
+    private const LOCATIONS = ['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'];
 
     public function __construct(private SnippetService $snippetService) {}
 
     public function register_routes(): void
     {
-        register_rest_route('loopress/v1', '/wpcode/snippets', [
+        register_rest_route('loopress/v1', '/snippets', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_snippets'],
@@ -39,21 +31,21 @@ class SnippetController
                 'callback'            => [$this, 'create_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
                 'args'                => [
-                    'title'                => ['required' => true,  'type' => 'string'],
+                    'name'                 => ['required' => true,  'type' => 'string'],
                     'code'                 => ['required' => true,  'type' => 'string'],
                     'type'                 => ['required' => false, 'type' => 'string', 'default' => 'php', 'enum' => ['php', 'js', 'css', 'html', 'text']],
                     'active'               => ['required' => false, 'type' => 'boolean', 'default' => false],
-                    'note'                 => ['required' => false, 'type' => 'string',  'default' => ''],
+                    'description'          => ['required' => false, 'type' => 'string',  'default' => ''],
                     'tags'                 => ['required' => false, 'type' => 'array',   'default' => [], 'items' => ['type' => 'string']],
                     'location'             => ['required' => false, 'type' => 'string', 'enum' => self::LOCATIONS],
-                    'insert_method'        => ['required' => false, 'type' => 'string', 'default' => 'auto', 'enum' => ['auto', 'shortcode']],
+                    'insertMethod'         => ['required' => false, 'type' => 'string', 'default' => 'auto', 'enum' => ['auto', 'shortcode']],
                     'priority'             => ['required' => false, 'type' => 'integer', 'default' => 10],
-                    'shortcode_attributes' => ['required' => false, 'type' => 'array', 'default' => [], 'items' => ['type' => 'string']],
+                    'shortcodeAttributes'  => ['required' => false, 'type' => 'array', 'default' => [], 'items' => ['type' => 'string']],
                 ],
             ],
         ]);
 
-        register_rest_route('loopress/v1', '/wpcode/snippets/(?P<id>\d+)', [
+        register_rest_route('loopress/v1', '/snippets/(?P<id>\d+)', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_snippet'],
@@ -65,16 +57,16 @@ class SnippetController
                 'callback'            => [$this, 'update_snippet'],
                 'permission_callback' => fn() => current_user_can('manage_options'),
                 'args'                => array_merge($this->idArg(), [
-                    'title'                => ['required' => false, 'type' => 'string'],
+                    'name'                 => ['required' => false, 'type' => 'string'],
                     'code'                 => ['required' => false, 'type' => 'string'],
                     'type'                 => ['required' => false, 'type' => 'string', 'enum' => ['php', 'js', 'css', 'html', 'text']],
                     'active'               => ['required' => false, 'type' => 'boolean'],
-                    'note'                 => ['required' => false, 'type' => 'string'],
+                    'description'          => ['required' => false, 'type' => 'string'],
                     'tags'                 => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
                     'location'             => ['required' => false, 'type' => 'string', 'enum' => self::LOCATIONS],
-                    'insert_method'        => ['required' => false, 'type' => 'string', 'enum' => ['auto', 'shortcode']],
+                    'insertMethod'         => ['required' => false, 'type' => 'string', 'enum' => ['auto', 'shortcode']],
                     'priority'             => ['required' => false, 'type' => 'integer'],
-                    'shortcode_attributes' => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
+                    'shortcodeAttributes'  => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
                 ]),
             ],
         ]);
@@ -112,16 +104,16 @@ class SnippetController
 
         try {
             $snippet = $this->snippetService->createSnippet([
-                'title'                => $request->get_param('title'),
-                'code'                 => $request->get_param('code'),
-                'type'                 => $request->get_param('type'),
-                'active'               => $request->get_param('active'),
-                'note'                 => $request->get_param('note'),
-                'tags'                 => $request->get_param('tags'),
-                'location'             => $request->get_param('location'),
-                'insert_method'        => $request->get_param('insert_method'),
-                'priority'             => $request->get_param('priority'),
-                'shortcode_attributes' => $request->get_param('shortcode_attributes'),
+                'name'                => $request->get_param('name'),
+                'code'                => $request->get_param('code'),
+                'type'                => $request->get_param('type'),
+                'active'              => $request->get_param('active'),
+                'description'         => $request->get_param('description'),
+                'tags'                => $request->get_param('tags'),
+                'location'            => $request->get_param('location'),
+                'insertMethod'        => $request->get_param('insertMethod'),
+                'priority'            => $request->get_param('priority'),
+                'shortcodeAttributes' => $request->get_param('shortcodeAttributes'),
             ]);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
@@ -137,16 +129,16 @@ class SnippetController
         }
 
         $data = array_filter([
-            'title'                => $request->get_param('title'),
-            'code'                 => $request->get_param('code'),
-            'type'                 => $request->get_param('type'),
-            'active'               => $request->get_param('active'),
-            'note'                 => $request->get_param('note'),
-            'tags'                 => $request->get_param('tags'),
-            'location'             => $request->get_param('location'),
-            'insert_method'        => $request->get_param('insert_method'),
-            'priority'             => $request->get_param('priority'),
-            'shortcode_attributes' => $request->get_param('shortcode_attributes'),
+            'name'                => $request->get_param('name'),
+            'code'                => $request->get_param('code'),
+            'type'                => $request->get_param('type'),
+            'active'              => $request->get_param('active'),
+            'description'         => $request->get_param('description'),
+            'tags'                => $request->get_param('tags'),
+            'location'            => $request->get_param('location'),
+            'insertMethod'        => $request->get_param('insertMethod'),
+            'priority'            => $request->get_param('priority'),
+            'shortcodeAttributes' => $request->get_param('shortcodeAttributes'),
         ], fn($v) => $v !== null);
 
         try {

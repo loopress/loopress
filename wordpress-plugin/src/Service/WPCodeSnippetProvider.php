@@ -15,6 +15,35 @@ class WPCodeSnippetProvider implements SnippetProvider
     private const LOCATION_TAXONOMY = 'wpcode_location';
     private const TAXONOMY          = 'wpcode_tags';
 
+    /**
+     * WPCode's own `wpcode_location` taxonomy term slugs, limited to the free-tier locations
+     * supported by this integration (see WPCode_Auto_Insert_Everywhere/Site_Wide upstream).
+     * These apply to any snippet type.
+     */
+    private const UNIVERSAL_LOCATIONS = [
+        'body'   => 'site_wide_body',
+        'footer' => 'site_wide_footer',
+        'header' => 'site_wide_header',
+    ];
+
+    /** WPCode terms that only make sense for PHP snippets. */
+    private const PHP_ONLY_LOCATIONS = [
+        'admin'      => 'admin_only',
+        'everywhere' => 'everywhere',
+        'frontend'   => 'frontend_only',
+        'once'       => 'on_demand',
+    ];
+
+    private const LOCATION_TO_CANONICAL = [
+        'admin_only'       => 'admin',
+        'everywhere'       => 'everywhere',
+        'frontend_only'    => 'frontend',
+        'on_demand'        => 'once',
+        'site_wide_body'   => 'body',
+        'site_wide_footer' => 'footer',
+        'site_wide_header' => 'header',
+    ];
+
     public function isActive(): bool
     {
         return post_type_exists(self::POST_TYPE);
@@ -48,7 +77,7 @@ class WPCodeSnippetProvider implements SnippetProvider
     {
         $id = wp_insert_post([
             'post_type'    => self::POST_TYPE,
-            'post_title'   => sanitize_text_field($data['title'] ?? ''),
+            'post_title'   => sanitize_text_field($data['name'] ?? ''),
             'post_content' => wp_unslash($data['code'] ?? ''),
             'post_status'  => !empty($data['active']) ? 'publish' : 'draft',
         ], true);
@@ -72,8 +101,8 @@ class WPCodeSnippetProvider implements SnippetProvider
 
         $update = ['ID' => $id];
 
-        if (isset($data['title'])) {
-            $update['post_title'] = sanitize_text_field($data['title']);
+        if (isset($data['name'])) {
+            $update['post_title'] = sanitize_text_field($data['name']);
         }
         if (isset($data['code'])) {
             $update['post_content'] = wp_unslash($data['code']);
@@ -102,19 +131,20 @@ class WPCodeSnippetProvider implements SnippetProvider
         $priority            = get_post_meta($post->ID, self::META_PRIORITY, true);
         $shortcodeAttributes = get_post_meta($post->ID, self::META_SHORTCODE_ATTRIBUTES, true);
         $note                = get_post_meta($post->ID, self::META_NOTE, true);
+        $type                = $typeTerm !== '' ? $typeTerm : 'php';
 
         return [
-            'active'               => $post->post_status === 'publish',
-            'code'                 => $post->post_content,
-            'id'                   => $post->ID,
-            'insert_method'        => '0' === $autoInsert ? 'shortcode' : 'auto',
-            'location'             => $locationTerm,
-            'note'                 => $note ? $note : '',
-            'priority'             => '' === $priority ? 10 : (int) $priority,
-            'shortcode_attributes' => is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
-            'tags'                 => is_wp_error($terms) ? [] : $terms,
-            'title'                => $post->post_title,
-            'type'                 => $typeTerm !== '' ? $typeTerm : 'php',
+            'active'              => $post->post_status === 'publish',
+            'code'                => $post->post_content,
+            'id'                  => $post->ID,
+            'insertMethod'        => '0' === $autoInsert ? 'shortcode' : 'auto',
+            'location'            => self::LOCATION_TO_CANONICAL[$locationTerm] ?? $this->defaultLocationForType($type),
+            'description'         => $note ? $note : '',
+            'priority'            => '' === $priority ? 10 : (int) $priority,
+            'shortcodeAttributes' => is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
+            'tags'                => is_wp_error($terms) ? [] : $terms,
+            'name'                => $post->post_title,
+            'type'                => $type,
         ];
     }
 
@@ -129,8 +159,8 @@ class WPCodeSnippetProvider implements SnippetProvider
     /** @param array<string, mixed> $data */
     private function saveMeta(int $id, array $data): void
     {
-        if (isset($data['note'])) {
-            update_post_meta($id, self::META_NOTE, sanitize_text_field($data['note']));
+        if (isset($data['description'])) {
+            update_post_meta($id, self::META_NOTE, sanitize_text_field($data['description']));
         }
 
         if (isset($data['type'])) {
@@ -141,20 +171,22 @@ class WPCodeSnippetProvider implements SnippetProvider
             $this->setTags($id, $data['tags']);
         }
 
-        if (isset($data['insert_method'])) {
-            update_post_meta($id, self::META_AUTO_INSERT, 'shortcode' === $data['insert_method'] ? 0 : 1);
+        if (isset($data['insertMethod'])) {
+            update_post_meta($id, self::META_AUTO_INSERT, 'shortcode' === $data['insertMethod'] ? 0 : 1);
         }
 
         if (isset($data['location'])) {
-            wp_set_post_terms($id, [sanitize_text_field($data['location'])], self::LOCATION_TAXONOMY);
+            $type = $data['type'] ?? ($this->getSingleTerm($id, self::TYPE_TAXONOMY) ?: 'php');
+            $term = $this->locationTerm($type, $data['location']);
+            wp_set_post_terms($id, [$term], self::LOCATION_TAXONOMY);
         }
 
         if (isset($data['priority'])) {
             update_post_meta($id, self::META_PRIORITY, (int) $data['priority']);
         }
 
-        if (isset($data['shortcode_attributes']) && is_array($data['shortcode_attributes'])) {
-            update_post_meta($id, self::META_SHORTCODE_ATTRIBUTES, array_map('sanitize_key', $data['shortcode_attributes']));
+        if (isset($data['shortcodeAttributes']) && is_array($data['shortcodeAttributes'])) {
+            update_post_meta($id, self::META_SHORTCODE_ATTRIBUTES, array_map('sanitize_key', $data['shortcodeAttributes']));
         }
     }
 
@@ -167,5 +199,31 @@ class WPCodeSnippetProvider implements SnippetProvider
     private function setTags(int $id, array $tags): void
     {
         wp_set_post_terms($id, $tags, self::TAXONOMY);
+    }
+
+    private function locationTerm(string $type, string $location): string
+    {
+        if (isset(self::UNIVERSAL_LOCATIONS[$location])) {
+            return self::UNIVERSAL_LOCATIONS[$location];
+        }
+
+        if ($type === 'php' && isset(self::PHP_ONLY_LOCATIONS[$location])) {
+            return self::PHP_ONLY_LOCATIONS[$location];
+        }
+
+        $allowed = $type === 'php'
+            ? 'header, body, footer, everywhere, frontend, admin, once'
+            : 'header, body, footer';
+
+        throw new \RuntimeException("WPCode does not support the \"{$location}\" location for {$type} snippets. Use one of: {$allowed}.");
+    }
+
+    private function defaultLocationForType(string $type): string
+    {
+        return match ($type) {
+            'css' => 'header',
+            'html', 'js', 'text' => 'footer',
+            default => 'everywhere',
+        };
     }
 }
