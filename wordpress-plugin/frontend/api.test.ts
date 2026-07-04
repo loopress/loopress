@@ -47,4 +47,22 @@ describe('apiFetch', () => {
         await expect(apiFetch('http://evil.example/steal')).rejects.toThrow(ApiError);
         expect(fetch).not.toHaveBeenCalled();
     });
+
+    test('rejects an endpoint that is not on the allowlist', async () => {
+        stubLoopressData('http://localhost/wp-json/loopress/v1');
+
+        await expect(apiFetch('/composer/../../wp-admin/delete-everything')).rejects.toThrow(ApiError);
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test('allows a whitelisted endpoint with query params', async () => {
+        stubLoopressData('http://localhost/wp-json/loopress/v1');
+
+        await apiFetch('/composer/versions?package=guzzlehttp%2Fguzzle');
+
+        expect(fetch).toHaveBeenCalledWith(
+            new URL('http://localhost/wp-json/loopress/v1/composer/versions?package=guzzlehttp%2Fguzzle'),
+            expect.anything(),
+        );
+    });
 });
