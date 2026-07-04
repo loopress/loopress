@@ -4,11 +4,9 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Exception\ProductionLockException;
 use Loopress\Infrastructure\ComposerRunner;
 use Loopress\Infrastructure\LoopressEnvironment;
 use Loopress\Infrastructure\PackagistClient;
-use Loopress\Service\SettingsService;
 use Loopress\Service\ComposerService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +16,6 @@ class ComposerServiceTest extends TestCase
     private LoopressEnvironment&MockObject $dxEnv;
     private ComposerRunner&MockObject $runner;
     private PackagistClient&MockObject $packagist;
-    private SettingsService&MockObject $settings;
     private ComposerService $service;
 
     protected function setUp(): void
@@ -29,13 +26,11 @@ class ComposerServiceTest extends TestCase
         $this->dxEnv    = $this->createMock(LoopressEnvironment::class);
         $this->runner   = $this->createMock(ComposerRunner::class);
         $this->packagist = $this->createMock(PackagistClient::class);
-        $this->settings = $this->createMock(SettingsService::class);
 
         $this->service = new ComposerService(
             $this->dxEnv,
             $this->runner,
             $this->packagist,
-            $this->settings,
         );
     }
 
@@ -103,16 +98,8 @@ class ComposerServiceTest extends TestCase
 
     // ── requirePackage ────────────────────────────────────────────────────────
 
-    public function test_requirePackage_throws_when_locked(): void
-    {
-        $this->settings->method('isLocked')->willReturn(true);
-        $this->expectException(ProductionLockException::class);
-        $this->service->requirePackage('guzzlehttp/guzzle', '^7.0');
-    }
-
     public function test_requirePackage_runs_composer_and_returns_output(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->runner->method('run')
             ->with(['require', 'guzzlehttp/guzzle:^7.0'])
             ->willReturn(['exit_code' => 0, 'output' => 'Package installed.']);
@@ -123,7 +110,6 @@ class ComposerServiceTest extends TestCase
 
     public function test_requirePackage_throws_runtime_exception_on_composer_failure(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->runner->method('run')->willReturn([
             'exit_code' => 1,
             'output'    => 'Could not find package.',
@@ -136,16 +122,8 @@ class ComposerServiceTest extends TestCase
 
     // ── removePackage ─────────────────────────────────────────────────────────
 
-    public function test_removePackage_throws_when_locked(): void
-    {
-        $this->settings->method('isLocked')->willReturn(true);
-        $this->expectException(ProductionLockException::class);
-        $this->service->removePackage('guzzlehttp/guzzle');
-    }
-
     public function test_removePackage_runs_composer_and_returns_output(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->runner->method('run')
             ->with(['remove', 'guzzlehttp/guzzle'])
             ->willReturn(['exit_code' => 0, 'output' => 'Package removed.']);
@@ -156,16 +134,8 @@ class ComposerServiceTest extends TestCase
 
     // ── repair ───────────────────────────────────────────────────────────────
 
-    public function test_repair_throws_when_locked(): void
-    {
-        $this->settings->method('isLocked')->willReturn(true);
-        $this->expectException(ProductionLockException::class);
-        $this->service->repair();
-    }
-
     public function test_repair_runs_composer_install(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->runner->method('run')
             ->with(['install'])
             ->willReturn(['exit_code' => 0, 'output' => 'Nothing to install.']);
@@ -214,16 +184,8 @@ class ComposerServiceTest extends TestCase
 
     // ── fixPlatform ──────────────────────────────────────────────────────────
 
-    public function test_fixPlatform_throws_when_locked(): void
-    {
-        $this->settings->method('isLocked')->willReturn(true);
-        $this->expectException(ProductionLockException::class);
-        $this->service->fixPlatform();
-    }
-
     public function test_fixPlatform_writes_current_php_version(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->dxEnv->method('readComposerJson')->willReturn([
             'config' => ['platform' => ['php' => '8.0.0']],
         ]);
@@ -277,23 +239,14 @@ class ComposerServiceTest extends TestCase
 
     // ── sync ──────────────────────────────────────────────────────────────────
 
-    public function test_sync_throws_when_locked(): void
-    {
-        $this->settings->method('isLocked')->willReturn(true);
-        $this->expectException(ProductionLockException::class);
-        $this->service->sync('{}', null);
-    }
-
     public function test_sync_rejects_invalid_json(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->expectException(\InvalidArgumentException::class);
         $this->service->sync('{not json', null);
     }
 
     public function test_sync_writes_manifests_and_runs_install_when_lock_provided(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
         $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
 
@@ -314,7 +267,6 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_runs_update_when_no_lock_provided(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->dxEnv->method('readComposerJson')->willReturn([]);
         $this->dxEnv->method('readComposerLock')->willReturn(null);
 
@@ -328,7 +280,6 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_restores_previous_manifests_on_failure(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
         $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
 
@@ -360,7 +311,6 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_deletes_written_lock_on_failure_when_none_existed_before(): void
     {
-        $this->settings->method('isLocked')->willReturn(false);
         $this->dxEnv->method('readComposerJson')->willReturn([]);
         $this->dxEnv->method('readComposerLock')->willReturn(null);
 

@@ -38,7 +38,7 @@ class Plugin
         /** @var Module[] $modules */
         $modules = apply_filters('loopress_modules', [
             new AdminPageModule($autoloadError),
-            new ComposerModule($env, $settings),
+            new ComposerModule($env),
             new SettingsModule($settings),
             new WPCodeModule(),
             new WpPluginsModule(),

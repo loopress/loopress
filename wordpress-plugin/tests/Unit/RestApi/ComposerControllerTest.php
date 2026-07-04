@@ -4,13 +4,11 @@ namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
 use Loopress\Exception\ConcurrentOperationException;
-use Loopress\Exception\ProductionLockException;
 use Loopress\RestApi\ComposerController;
 use Loopress\Service\ComposerService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
-use WP_REST_Response;
 
 class ComposerControllerTest extends TestCase
 {
@@ -110,15 +108,6 @@ class ComposerControllerTest extends TestCase
 
     // ── require_package ───────────────────────────────────────────────────────
 
-    public function test_require_package_returns_403_when_locked(): void
-    {
-        $this->composerService->method('requirePackage')
-            ->willThrowException(new ProductionLockException('Locked.'));
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
-        $response = $this->controller->require_package($request);
-        $this->assertSame(403, $response->status);
-    }
-
     public function test_require_package_returns_200_on_success(): void
     {
         $this->composerService->method('requirePackage')->willReturn('Output text');
@@ -158,15 +147,6 @@ class ComposerControllerTest extends TestCase
 
     // ── remove_package ────────────────────────────────────────────────────────
 
-    public function test_remove_package_returns_403_when_locked(): void
-    {
-        $this->composerService->method('removePackage')
-            ->willThrowException(new ProductionLockException('Locked.'));
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg']);
-        $response = $this->controller->remove_package($request);
-        $this->assertSame(403, $response->status);
-    }
-
     public function test_remove_package_returns_200_on_success(): void
     {
         $this->composerService->method('removePackage')->willReturn('Removed.');
@@ -176,14 +156,6 @@ class ComposerControllerTest extends TestCase
     }
 
     // ── repair ────────────────────────────────────────────────────────────────
-
-    public function test_repair_returns_403_when_locked(): void
-    {
-        $this->composerService->method('repair')
-            ->willThrowException(new ProductionLockException('Locked.'));
-        $response = $this->controller->repair(new WP_REST_Request());
-        $this->assertSame(403, $response->status);
-    }
 
     public function test_repair_returns_200_on_success(): void
     {
@@ -222,14 +194,6 @@ class ComposerControllerTest extends TestCase
     }
 
     // ── fix_platform ──────────────────────────────────────────────────────────
-
-    public function test_fix_platform_returns_403_when_locked(): void
-    {
-        $this->composerService->method('fixPlatform')
-            ->willThrowException(new ProductionLockException('Locked.'));
-        $response = $this->controller->fix_platform(new WP_REST_Request());
-        $this->assertSame(403, $response->status);
-    }
 
     public function test_fix_platform_returns_200_on_success(): void
     {

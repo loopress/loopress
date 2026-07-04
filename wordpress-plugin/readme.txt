@@ -12,13 +12,12 @@ Manage and install Composer dependencies directly from the WordPress admin inter
 
 == Description ==
 
-Loopress lets you manage Composer packages without SSH access. Install, remove, and audit PHP dependencies from a clean admin UI, with production lock support to prevent accidental changes on live sites.
+Loopress lets you manage Composer packages without SSH access. Install, remove, and audit PHP dependencies from a clean admin UI.
 
 Features:
 
 * Install and remove Composer packages from the admin panel
 * Audit installed packages for known security advisories
-* Production lock via `wp-config.php` constant or admin toggle
 * PHP platform version diagnostics
 
 == Installation ==
@@ -32,10 +31,6 @@ Features:
 = Does this require SSH access? =
 
 No. Loopress runs Composer directly from the PHP process using the Composer API.
-
-= How do I prevent changes on a production site? =
-
-Define `LOOPRESS_PRODUCTION_LOCK` as `true` in your `wp-config.php`, or toggle the lock from the plugin settings page.
 
 = What happens when I delete the plugin? =
 

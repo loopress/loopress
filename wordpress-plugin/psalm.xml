@@ -26,12 +26,6 @@
         <!-- REST callback methods are invoked indirectly by WordPress via register_rest_route(),
              so Psalm can't trace calls to them, and their required WP_REST_Request $request
              is part of the callback contract even when a given endpoint doesn't read any params. -->
-        <PossiblyUnusedMethod>
-            <errorLevel type="suppress">
-                <directory name="src/RestApi" />
-                <referencedMethod name="Loopress\Service\SettingsService::updateLock" />
-            </errorLevel>
-        </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />

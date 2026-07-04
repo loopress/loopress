@@ -4,7 +4,7 @@ import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
 import type { Diagnostics } from '../types';
 
-export function DiagnosticsBanner({ isLocked }: { isLocked: boolean }) {
+export function DiagnosticsBanner() {
     const queryClient = useQueryClient();
 
     const { data: diagnostics } = useQuery<Diagnostics>({
@@ -36,7 +36,7 @@ export function DiagnosticsBanner({ isLocked }: { isLocked: boolean }) {
                         <Button
                             variant="secondary"
                             size="small"
-                            disabled={fixing || isLocked}
+                            disabled={fixing}
                             onClick={() => fixPlatform()}
                             style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
