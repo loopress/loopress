@@ -4,7 +4,14 @@ import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
+import {LoopressLocalConfig, readLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
+
+// WordPress.org slugs for the two snippet plugins the Loopress WordPress plugin supports
+// (see SnippetModule.php, which wires up both providers and auto-detects the active one).
+const SNIPPET_PROVIDERS = [
+  {name: 'Code Snippets', slug: 'code-snippets'},
+  {name: 'WPCode', slug: 'insert-headers-and-footers'},
+]
 
 export default class Init extends Command {
   static description = 'Initialize a loopress.json config file in the current directory'
@@ -71,6 +78,11 @@ export default class Init extends Command {
       message: 'Snippets directory (relative to root)',
     })
 
+    const providerChoice = await select({
+      choices: [...SNIPPET_PROVIDERS.map((p) => ({name: p.name, value: p.slug})), {name: 'None / already installed', value: '__none__'}],
+      message: 'Snippet provider',
+    })
+
     const config: LoopressLocalConfig = {
       projectId,
       rootDir,
@@ -79,8 +91,21 @@ export default class Init extends Command {
 
     await writeLocalConfig(config)
 
+    let providerVersion: string | undefined
+    if (providerChoice !== '__none__') {
+      try {
+        await this.config.runCommand('plugin:add', [providerChoice])
+        providerVersion = (await readLocalConfig()).plugins?.[providerChoice]
+      } catch (error) {
+        this.warn((error as Error).message)
+      }
+    }
+
     this.log(`\n✓ loopress.json created`)
     this.log(`  Project:  ${projectLabel}`)
     this.log(`  Snippets: ${join(rootDir, snippetsDir)}`)
+    if (providerChoice !== '__none__' && providerVersion) {
+      this.log(`  Plugin:   ${providerChoice}@${providerVersion}`)
+    }
   }
 }
