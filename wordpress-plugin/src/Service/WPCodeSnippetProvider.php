@@ -176,7 +176,8 @@ class WPCodeSnippetProvider implements SnippetProvider
         }
 
         if (isset($data['location'])) {
-            $type = $data['type'] ?? ($this->getSingleTerm($id, self::TYPE_TAXONOMY) ?: 'php');
+            $existingType = $this->getSingleTerm($id, self::TYPE_TAXONOMY);
+            $type = $data['type'] ?? ($existingType ? $existingType : 'php');
             $term = $this->locationTerm($type, $data['location']);
             wp_set_post_terms($id, [$term], self::LOCATION_TAXONOMY);
         }
