@@ -13,9 +13,12 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     }
     const { apiUrl, nonce } = window.loopressData;
 
+    const base = apiUrl.endsWith('/') ? apiUrl : `${apiUrl}/`;
+    const relativePath = path.replace(/^\/+/, '');
+
     let url: URL;
     try {
-        url = new URL(path, apiUrl);
+        url = new URL(relativePath, base);
     } catch {
         throw new ApiError('Invalid API path.');
     }
