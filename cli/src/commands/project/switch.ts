@@ -1,8 +1,10 @@
-import {select} from '@inquirer/prompts'
-import {Command} from '@oclif/core'
+import {select, Separator} from '@inquirer/prompts'
+import {Command, ux} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
 import {ProjectConfig} from '../../types/config.js'
+
+const c = ux.colorize
 
 export default class Switch extends Command {
   static description = 'Switch the active project and environment'
@@ -17,53 +19,49 @@ export default class Switch extends Command {
       this.error('No projects configured. Run `lps project config` first.')
     }
 
-    const {id: projectId, name: projectName} = await this.resolveProject(projects)
-    const envName = await this.resolveEnvironment(projectId, projectName)
+    const {envName, projectId, projectName} = await this.resolveSelection(projects)
 
     configManager.setCurrent(projectId, envName)
 
     this.log(`✓ Switched to "${projectName}/${envName}"`)
   }
 
-  private async resolveEnvironment(projectId: string, projectName: string): Promise<string> {
-    const envs = configManager.listEnvironments(projectId)
+  private async resolveSelection(
+    projects: Array<ProjectConfig & {id: string; isCurrent: boolean}>,
+  ): Promise<{envName: string; projectId: string; projectName: string}> {
+    const groups = projects
+      .map((project) => ({envs: configManager.listEnvironments(project.id), project}))
+      .filter(({envs}) => envs.length > 0)
 
-    if (envs.length === 0) {
-      this.error(`No environments configured for "${projectName}". Run \`lps project config\` first.`)
+    if (groups.length === 0) {
+      this.error('No environments configured. Run `lps project config` first.')
     }
 
-    if (envs.length === 1) return envs[0].name
+    const entries = groups.flatMap(({envs, project}) => envs.map((env) => ({env, project})))
+    if (entries.length === 1) {
+      const {env, project} = entries[0]
+      return {envName: env.name, projectId: project.id, projectName: project.name}
+    }
 
-    return select({
-      choices: envs.map((env) => ({
-        name: `${env.isCurrent ? '●' : '○'} ${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
-        value: env.name,
+    const choices = groups.flatMap(({envs, project}) => [
+      new Separator(project.isCurrent ? c('green', `─── ${project.name} ───`) : c('dim', `─── ${project.name} ───`)),
+      ...envs.map((env) => ({
+        name: `${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
+        value: `${project.id}::${env.name}`,
       })),
-      default: envs.find((env) => env.isCurrent)?.name,
-      message: `Select environment for "${projectName}"`,
-    })
-  }
+    ])
 
-  private async resolveProject(
-    projects: Array<ProjectConfig & {id: string; isCurrent: boolean}>,
-  ): Promise<{id: string; name: string}> {
-    if (projects.length === 1) return {id: projects[0].id, name: projects[0].name}
+    const current = entries.find(({env}) => env.isCurrent)
 
     const chosen = await select({
-      choices: projects.map((project) => {
-        const envCount = Object.keys(project.environments).length
-        const envLabel = `${envCount} env${envCount > 1 ? 's' : ''}`
-        const currentMarker = project.isCurrent ? ' [current]' : ''
-        return {
-          name: `${project.isCurrent ? '●' : '○'} ${project.name.padEnd(20)} (${envLabel})${currentMarker}`,
-          value: project.id,
-        }
-      }),
-      default: projects.find((project) => project.isCurrent)?.id,
-      message: 'Select active project',
+      choices,
+      default: current && `${current.project.id}::${current.env.name}`,
+      message: 'Select project / environment',
     })
 
-    const project = projects.find((p) => p.id === chosen)!
-    return {id: project.id, name: project.name}
+    const [projectId, envName] = chosen.split('::')
+    const {project} = groups.find((group) => group.project.id === projectId)!
+
+    return {envName, projectId, projectName: project.name}
   }
 }
