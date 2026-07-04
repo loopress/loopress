@@ -51,6 +51,7 @@ lps snippet pull ./wp-snippets --dryRun
 Upload `.php` files from a local directory to WordPress.
 
 - If the sidecar `.json` contains an `id`, that snippet is updated by ID.
+- If that id doesn't exist on the target site (e.g. a fresh WordPress install), a new snippet is created instead and the local sidecar is updated with the assigned id.
 - Otherwise, a new snippet is created.
 
 ```bash
