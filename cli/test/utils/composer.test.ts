@@ -1,7 +1,7 @@
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {getComposerManagedSlugs, readComposerJson} from '../../src/utils/composer.js'
 
@@ -30,16 +30,14 @@ describe('composer utils', () => {
 
   describe('readComposerJson', () => {
     let dir: string
-    let previousCwd: string
 
     beforeEach(() => {
       dir = mkdtempSync(join(tmpdir(), 'lps-composer-test-'))
-      previousCwd = process.cwd()
-      process.chdir(dir)
+      vi.spyOn(process, 'cwd').mockReturnValue(dir)
     })
 
     afterEach(() => {
-      process.chdir(previousCwd)
+      vi.restoreAllMocks()
       rmSync(dir, {force: true, recursive: true})
     })
 
