@@ -253,7 +253,7 @@ describe('project sync', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(createProjectId).toHaveBeenCalled()
+    expect(createProjectId).toHaveBeenCalledWith('beta')
     expect(setProject).toHaveBeenCalledWith('new-id', {
       addedAt: '2026-01-01T00:00:00.000Z',
       apiProjectId: 'api-project-9',

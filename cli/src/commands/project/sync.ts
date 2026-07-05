@@ -276,7 +276,7 @@ export default class Sync extends Command {
       environments[env.name] = {addedAt: env.createdAt, apiEnvironmentId: env.id, name: env.name, url: env.url}
     }
 
-    configManager.setProject(configManager.createProjectId(), {
+    configManager.setProject(configManager.createProjectId(apiProject.name), {
       addedAt: apiProject.createdAt,
       apiProjectId: apiProject.id,
       environments,

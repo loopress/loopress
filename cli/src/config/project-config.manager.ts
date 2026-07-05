@@ -1,7 +1,7 @@
-import {randomUUID} from 'node:crypto'
 import {existsSync, mkdirSync} from 'node:fs'
 import {homedir} from 'node:os'
 import {join} from 'node:path'
+import slugify from 'slugify'
 
 import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig} from '../types/config.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
@@ -9,8 +9,18 @@ import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 export class ProjectConfigManager {
   constructor(private readonly homeDir: string = homedir()) {}
 
-  createProjectId(): string {
-    return randomUUID()
+  createProjectId(name: string): string {
+    const config = this.readConfig()
+    const base = slugify(name, {lower: true, strict: true}) || 'project'
+
+    let id = base
+    let suffix = 2
+    while (config.projects[id]) {
+      id = `${base}-${suffix}`
+      suffix++
+    }
+
+    return id
   }
 
   ensureConfigDir(): void {

@@ -30,7 +30,7 @@ describe('project config', () => {
 
   it('creates a brand new project when none exist yet', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
-    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    const createProjectId = vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
@@ -58,6 +58,7 @@ describe('project config', () => {
       },
       name: 'mon site',
     })
+    expect(createProjectId).toHaveBeenCalledWith('mon site')
     expect(log).toHaveBeenCalledWith('✓ "mon site/production" configured')
   })
 
