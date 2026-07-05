@@ -35,7 +35,6 @@ describe('composer pull', () => {
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
     rmSync(dir, {force: true, recursive: true})
   })
 

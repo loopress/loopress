@@ -40,7 +40,6 @@ describe('composer push', () => {
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
     rmSync(dir, {force: true, recursive: true})
   })
 

@@ -1,14 +1,10 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 
 import Logout from '../../src/commands/logout.js'
 import {authManager} from '../../src/config/auth.manager.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 
 describe('logout', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
-
   it('clears the stored auth and reports the email', async () => {
     vi.spyOn(authManager, 'getAuth').mockReturnValue({email: 'max@example.com', savedAt: '2024-01-01', token: 't'})
     const clearAuth = vi.spyOn(authManager, 'clearAuth').mockImplementation(() => {})

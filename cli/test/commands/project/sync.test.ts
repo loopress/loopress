@@ -45,10 +45,8 @@ function linkedProject(id: string, name: string, apiProjectId: string, isCurrent
 
 describe('project sync', () => {
   beforeEach(() => {
-    // restoreAllMocks (not clearAllMocks) so a configManager setter stubbed in one test can't
-    // silently leak its mockImplementation into the next test that forgets to stub it itself.
-    vi.restoreAllMocks()
     resetListrInstances()
+    vi.mocked(ApiClient).mockClear()
     get.mockReset().mockResolvedValue([])
     post.mockReset()
     put.mockReset()
