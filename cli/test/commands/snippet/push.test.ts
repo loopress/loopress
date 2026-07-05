@@ -29,6 +29,7 @@ describe('snippet push', () => {
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
+    vi.mocked(rename).mockClear()
   })
 
   afterEach(() => {

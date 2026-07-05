@@ -15,6 +15,10 @@ export interface FakeListrInstance {
   tasks: FakeListrTask[]
 }
 
+// Module-level and shared across every file that imports this helper. Any suite using
+// createListrMock() must call resetListrInstances() in its beforeEach, or instances pushed
+// by an earlier test (in this file or another) will shift the indices titlesOf()/outputsOf()
+// read from.
 export const listrInstances: FakeListrInstance[] = []
 
 export function resetListrInstances(): void {
