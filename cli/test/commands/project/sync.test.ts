@@ -226,4 +226,46 @@ describe('project sync', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not fetch existing projects'))
     expect(post).toHaveBeenCalledWith('projects', {name: 'acme'})
   })
+
+  it('pulls down a project that exists on the API but not locally', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      {...makeListedProject('id-acme', 'acme', {}, true), apiProjectId: 'api-project-1'},
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    get.mockResolvedValue([
+      {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
+      {
+        createdAt: '2026-01-01T00:00:00.000Z',
+        environments: [
+          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-9', name: 'production', url: 'https://beta.com'},
+        ],
+        id: 'api-project-9',
+        name: 'beta',
+        slug: 'beta',
+      },
+    ])
+    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+    const createProjectId = vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(createProjectId).toHaveBeenCalled()
+    expect(setProject).toHaveBeenCalledWith('new-id', {
+      addedAt: '2026-01-01T00:00:00.000Z',
+      apiProjectId: 'api-project-9',
+      environments: {
+        production: {
+          addedAt: '2026-01-01T00:00:00.000Z',
+          apiEnvironmentId: 'api-env-9',
+          name: 'production',
+          url: 'https://beta.com',
+        },
+      },
+      name: 'beta',
+    })
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Project "beta" pulled from the API with 1 environment'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 1 environment'))
+  })
 })

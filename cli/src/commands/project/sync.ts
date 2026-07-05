@@ -8,11 +8,14 @@ import {ApiClient} from '../../lib/api-client.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
 
 interface ApiEnvironment {
+  createdAt: string
   id: string
   name: string
+  url: string
 }
 
 interface ApiProject {
+  createdAt: string
   environments: ApiEnvironment[]
   id: string
   name: string
@@ -47,6 +50,7 @@ export default class Sync extends Command {
       try {
         const apiProjectId =
           project.apiProjectId ?? (await this.syncProject(api, project, apiProjects, claimedProjectIds))
+        claimedProjectIds.add(apiProjectId)
         const apiProject = apiProjects.find((candidate) => candidate.id === apiProjectId)
         const claimedEnvironmentIds = new Set<string>()
 
@@ -65,6 +69,12 @@ export default class Sync extends Command {
       }
     }
 
+    for (const apiProject of apiProjects.filter((candidate) => !claimedProjectIds.has(candidate.id))) {
+      this.pullProject(apiProject)
+      projectCount++
+      environmentCount += apiProject.environments.length
+    }
+
     this.log(
       `\n✓ Synced ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} with your Loopress account`,
     )
@@ -77,6 +87,24 @@ export default class Sync extends Command {
       this.warn(`Could not fetch existing projects from the API, will create everything as new: ${(error as Error).message}`)
       return []
     }
+  }
+
+  private pullProject(apiProject: ApiProject): void {
+    const environments: Record<string, EnvironmentConfig> = {}
+
+    for (const env of apiProject.environments) {
+      environments[env.name] = {addedAt: env.createdAt, apiEnvironmentId: env.id, name: env.name, url: env.url}
+    }
+
+    configManager.setProject(configManager.createProjectId(), {
+      addedAt: apiProject.createdAt,
+      apiProjectId: apiProject.id,
+      environments,
+      name: apiProject.name,
+    })
+
+    const envCount = apiProject.environments.length
+    this.log(`✓ Project "${apiProject.name}" pulled from the API with ${envCount} environment${envCount === 1 ? '' : 's'}`)
   }
 
   private async syncEnvironment(options: {
