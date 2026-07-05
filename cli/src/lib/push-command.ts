@@ -15,7 +15,7 @@ export abstract class PushCommand extends LoopressCommand {
   }
 
   protected async recordDeployment(status: 'failure' | 'success'): Promise<void> {
-    const token = process.env.LPS_TOKEN ?? authManager.getAuth()?.token ?? null
+    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
     if (!token) return
 
     try {

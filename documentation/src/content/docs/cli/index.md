@@ -27,6 +27,7 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project and environment |
 | | `lps project remove` | Remove one or more WordPress projects or environments |
+| | `lps project sync` | Sync locally configured projects and environments with your Loopress account |
 
 ## Quick start
 

@@ -44,6 +44,10 @@
           "type": "string",
           "description": "ISO timestamp of when the project was added."
         },
+        "apiProjectId": {
+          "type": "string",
+          "description": "Id of the matching project on the Loopress API, once synced via `lps project sync`."
+        },
         "environments": {
           "type": "object",
           "description": "Environments for this project, keyed by environment name.",
@@ -64,6 +68,10 @@
         "addedAt": {
           "type": "string",
           "description": "ISO timestamp of when the environment was added."
+        },
+        "apiEnvironmentId": {
+          "type": "string",
+          "description": "Id of the matching environment on the Loopress API, once synced via `lps project sync`."
         },
         "name": {
           "type": "string",
