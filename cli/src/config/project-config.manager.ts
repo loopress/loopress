@@ -126,6 +126,15 @@ export class ProjectConfigManager {
     this.writeConfig(config)
   }
 
+  setEnvironmentApiId(projectId: string, envName: string, apiEnvironmentId: string): void {
+    const config = this.readConfig()
+    const env = config.projects[projectId]?.environments[envName]
+    if (!env) return
+
+    env.apiEnvironmentId = apiEnvironmentId
+    this.writeConfig(config)
+  }
+
   setProject(id: string, project: ProjectConfig): void {
     const config = this.readConfig()
     config.projects[id] = project
@@ -135,6 +144,15 @@ export class ProjectConfigManager {
       if (firstEnv) config.currentProject = {env: firstEnv, id}
     }
 
+    this.writeConfig(config)
+  }
+
+  setProjectApiId(id: string, apiProjectId: string): void {
+    const config = this.readConfig()
+    const project = config.projects[id]
+    if (!project) return
+
+    project.apiProjectId = apiProjectId
     this.writeConfig(config)
   }
 

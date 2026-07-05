@@ -59,6 +59,7 @@ report.
 * [`lps project list`](#lps-project-list)
 * [`lps project remove`](#lps-project-remove)
 * [`lps project switch`](#lps-project-switch)
+* [`lps project sync`](#lps-project-sync)
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
@@ -318,6 +319,23 @@ EXAMPLES
 ```
 
 _See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/switch.ts)_
+
+## `lps project sync`
+
+Sync locally configured projects and environments with your Loopress account
+
+```
+USAGE
+  $ lps project sync
+
+DESCRIPTION
+  Sync locally configured projects and environments with your Loopress account
+
+EXAMPLES
+  $ lps project sync
+```
+
+_See code: [src/commands/project/sync.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/sync.ts)_
 
 ## `lps snippet list`
 
