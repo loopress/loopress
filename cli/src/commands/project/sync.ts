@@ -1,5 +1,6 @@
 import {confirm} from '@inquirer/prompts'
 import {Command} from '@oclif/core'
+import {Listr} from 'listr2'
 import slugify from 'slugify'
 
 import {authManager} from '../../config/auth.manager.js'
@@ -20,6 +21,23 @@ interface ApiProject {
   id: string
   name: string
   slug: string
+}
+
+// `action` records what confirm()-driven planning already decided, before any network call is
+// made: 'synced' means nothing to do, 'link' just needs a local config write, 'create' needs a
+// POST. Splitting planning (interactive) from execution (Listr) is what lets confirm() prompts
+// run to completion before the Listr renderer takes over the terminal.
+interface EnvPlan {
+  action: 'create' | 'link' | 'synced'
+  apiEnvironmentId?: string
+  env: EnvironmentConfig
+  projectId: string
+}
+
+interface ProjectPlan {
+  action: 'create' | 'link' | 'synced'
+  apiProjectId?: string
+  project: ProjectConfig & {id: string}
 }
 
 export default class Sync extends Command {
@@ -43,41 +61,145 @@ export default class Sync extends Command {
     const api = new ApiClient(token)
     const apiProjects = await this.fetchApiProjects(api)
     const claimedProjectIds = new Set<string>()
-    let projectCount = 0
-    let environmentCount = 0
+    const envPlansByProject = new Map<string, EnvPlan[]>()
 
+    const projectPlans: ProjectPlan[] = []
     for (const project of projects) {
-      try {
-        const apiProjectId =
-          project.apiProjectId ?? (await this.syncProject(api, project, apiProjects, claimedProjectIds))
-        claimedProjectIds.add(apiProjectId)
-        const apiProject = apiProjects.find((candidate) => candidate.id === apiProjectId)
-        const claimedEnvironmentIds = new Set<string>()
+      const plan = await this.planProject(project, apiProjects, claimedProjectIds)
+      projectPlans.push(plan)
 
-        for (const env of configManager.listEnvironments(project.id)) {
-          try {
-            await this.syncEnvironment({api, apiProject, apiProjectId, claimedEnvironmentIds, env, projectId: project.id})
+      const apiProject = plan.apiProjectId ? apiProjects.find((candidate) => candidate.id === plan.apiProjectId) : undefined
+      const claimedEnvironmentIds = new Set<string>()
+      const envPlans: EnvPlan[] = []
+
+      for (const env of configManager.listEnvironments(project.id)) {
+        envPlans.push(
+          plan.action === 'create'
+            ? {action: 'create', env, projectId: project.id}
+            : await this.planEnvironment(env, project.id, apiProject, claimedEnvironmentIds),
+        )
+      }
+
+      envPlansByProject.set(project.id, envPlans)
+    }
+
+    let projectCount = projectPlans.filter((plan) => plan.action === 'synced').length
+    let environmentCount = [...envPlansByProject.values()].flat().filter((plan) => plan.action === 'synced').length
+
+    const projectsNeedingWork = projectPlans.filter((plan) => plan.action !== 'synced')
+    if (projectsNeedingWork.length > 0) {
+      await new Listr(
+        projectsNeedingWork.map((plan) => ({
+          task: async (_ctx, task) => {
+            await this.applyProject(api, plan, task)
+            projectCount++
+          },
+          title:
+            plan.action === 'create'
+              ? `Create project "${plan.project.name}" on the API`
+              : `Link project "${plan.project.name}" to the API`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
+    }
+
+    const resolvedProjectIds = new Set(projectPlans.filter((plan) => plan.apiProjectId).map((plan) => plan.project.id))
+    const envsNeedingWork = projectPlans
+      .filter((plan) => resolvedProjectIds.has(plan.project.id))
+      .flatMap((plan) =>
+        (envPlansByProject.get(plan.project.id) ?? [])
+          .filter((envPlan) => envPlan.action !== 'synced')
+          .map((envPlan) => ({apiProjectId: plan.apiProjectId!, envPlan, projectName: plan.project.name})),
+      )
+
+    if (envsNeedingWork.length > 0) {
+      await new Listr(
+        envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
+          task: async (_ctx, task) => {
+            await this.applyEnvironment(api, apiProjectId, envPlan, task)
             environmentCount++
-          } catch (error) {
-            this.warn(`Failed to sync "${project.name}/${env.name}": ${(error as Error).message}`)
-          }
-        }
+          },
+          title:
+            envPlan.action === 'create'
+              ? `Create environment "${envPlan.env.name}" on "${projectName}"`
+              : `Link environment "${envPlan.env.name}" on "${projectName}"`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
+    }
 
-        projectCount++
-      } catch (error) {
-        this.warn(`Failed to sync project "${project.name}": ${(error as Error).message}`)
+    for (const plan of projectPlans) {
+      if (!plan.apiProjectId) continue
+
+      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
+        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
+
+        try {
+          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
+        } catch (error) {
+          this.warn(`Failed to sync "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
+        }
       }
     }
 
-    for (const apiProject of apiProjects.filter((candidate) => !claimedProjectIds.has(candidate.id))) {
-      this.pullProject(apiProject)
-      projectCount++
-      environmentCount += apiProject.environments.length
+    const newApiProjects = apiProjects.filter((candidate) => !claimedProjectIds.has(candidate.id))
+    if (newApiProjects.length > 0) {
+      await new Listr(
+        newApiProjects.map((apiProject) => ({
+          task: async (_ctx, task) => {
+            this.pullProject(apiProject, task)
+            projectCount++
+            environmentCount += apiProject.environments.length
+          },
+          title: `Pull project "${apiProject.name}" from the API`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
     }
 
     this.log(
       `\n✓ Synced ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} with your Loopress account`,
     )
+  }
+
+  private async applyEnvironment(
+    api: ApiClient,
+    apiProjectId: string,
+    envPlan: EnvPlan,
+    task?: {output: string},
+  ): Promise<void> {
+    try {
+      if (envPlan.action === 'create') {
+        const created = await api.post<ApiEnvironment>(`projects/${apiProjectId}/environments`, {
+          name: envPlan.env.name,
+          url: envPlan.env.url,
+        })
+        envPlan.apiEnvironmentId = created.id
+      }
+
+      configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId!)
+      if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
+    } catch (error) {
+      const message = `Failed to sync "${envPlan.env.name}": ${(error as Error).message}`
+      if (task) task.output = message
+      throw error
+    }
+  }
+
+  private async applyProject(api: ApiClient, plan: ProjectPlan, task?: {output: string}): Promise<void> {
+    try {
+      if (plan.action === 'create') {
+        const created = await api.post<ApiProject>('projects', {name: plan.project.name})
+        plan.apiProjectId = created.id
+      }
+
+      configManager.setProjectApiId(plan.project.id, plan.apiProjectId!)
+      if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
+    } catch (error) {
+      const message = `Failed to sync project "${plan.project.name}": ${(error as Error).message}`
+      if (task) task.output = message
+      throw error
+    }
   }
 
   private async fetchApiProjects(api: ApiClient): Promise<ApiProject[]> {
@@ -89,7 +211,65 @@ export default class Sync extends Command {
     }
   }
 
-  private pullProject(apiProject: ApiProject): void {
+  private async planEnvironment(
+    env: EnvironmentConfig,
+    projectId: string,
+    apiProject: ApiProject | undefined,
+    claimedEnvironmentIds: Set<string>,
+  ): Promise<EnvPlan> {
+    if (env.apiEnvironmentId) {
+      claimedEnvironmentIds.add(env.apiEnvironmentId)
+      return {action: 'synced', apiEnvironmentId: env.apiEnvironmentId, env, projectId}
+    }
+
+    const match = apiProject?.environments.find(
+      (candidate) => candidate.name === env.name && !claimedEnvironmentIds.has(candidate.id),
+    )
+
+    if (match) {
+      const link = await confirm({
+        default: true,
+        message: `Environment "${env.name}" already exists on "${apiProject?.name}". Link to it instead of creating a new one?`,
+      })
+
+      if (link) {
+        claimedEnvironmentIds.add(match.id)
+        return {action: 'link', apiEnvironmentId: match.id, env, projectId}
+      }
+    }
+
+    return {action: 'create', env, projectId}
+  }
+
+  private async planProject(
+    project: ProjectConfig & {id: string},
+    apiProjects: ApiProject[],
+    claimedProjectIds: Set<string>,
+  ): Promise<ProjectPlan> {
+    if (project.apiProjectId) {
+      claimedProjectIds.add(project.apiProjectId)
+      return {action: 'synced', apiProjectId: project.apiProjectId, project}
+    }
+
+    const slug = slugify(project.name, {lower: true, strict: true})
+    const match = apiProjects.find((candidate) => candidate.slug === slug && !claimedProjectIds.has(candidate.id))
+
+    if (match) {
+      const link = await confirm({
+        default: true,
+        message: `A project named "${project.name}" already exists on your account. Link to it instead of creating a new one?`,
+      })
+
+      if (link) {
+        claimedProjectIds.add(match.id)
+        return {action: 'link', apiProjectId: match.id, project}
+      }
+    }
+
+    return {action: 'create', project}
+  }
+
+  private pullProject(apiProject: ApiProject, task?: {output: string}): void {
     const environments: Record<string, EnvironmentConfig> = {}
 
     for (const env of apiProject.environments) {
@@ -104,86 +284,21 @@ export default class Sync extends Command {
     })
 
     const envCount = apiProject.environments.length
-    this.log(`✓ Project "${apiProject.name}" pulled from the API with ${envCount} environment${envCount === 1 ? '' : 's'}`)
+    if (task) task.output = `Pulled with ${envCount} environment${envCount === 1 ? '' : 's'}`
   }
 
-  private async syncEnvironment(options: {
-    api: ApiClient
-    apiProject: ApiProject | undefined
-    apiProjectId: string
-    claimedEnvironmentIds: Set<string>
-    env: EnvironmentConfig
-    projectId: string
-  }): Promise<void> {
-    const {api, apiProject, apiProjectId, claimedEnvironmentIds, env, projectId} = options
-    let {apiEnvironmentId} = env
-
-    if (!apiEnvironmentId) {
-      const match = apiProject?.environments.find(
-        (candidate) => candidate.name === env.name && !claimedEnvironmentIds.has(candidate.id),
-      )
-
-      if (match) {
-        const link = await confirm({
-          default: true,
-          message: `Environment "${env.name}" already exists on "${apiProject?.name}". Link to it instead of creating a new one?`,
-        })
-
-        if (link) {
-          apiEnvironmentId = match.id
-          claimedEnvironmentIds.add(match.id)
-          configManager.setEnvironmentApiId(projectId, env.name, apiEnvironmentId)
-          this.log(`  ✓ Environment "${env.name}" linked to the API`)
-        }
-      }
-
-      if (!apiEnvironmentId) {
-        const created = await api.post<ApiEnvironment>(`projects/${apiProjectId}/environments`, {
-          name: env.name,
-          url: env.url,
-        })
-        apiEnvironmentId = created.id
-        configManager.setEnvironmentApiId(projectId, env.name, apiEnvironmentId)
-        this.log(`  ✓ Environment "${env.name}" created on the API`)
-      }
-    }
-
-    if (env.token) {
-      const [username, ...rest] = env.token.split(':')
-      await api.put(`projects/${apiProjectId}/environments/${apiEnvironmentId}/credentials`, {
-        password: rest.join(':'),
-        username,
-      })
-    }
-  }
-
-  private async syncProject(
+  private async pushCredentials(
     api: ApiClient,
-    project: ProjectConfig & {id: string},
-    apiProjects: ApiProject[],
-    claimedProjectIds: Set<string>,
-  ): Promise<string> {
-    const slug = slugify(project.name, {lower: true, strict: true})
-    const match = apiProjects.find((candidate) => candidate.slug === slug && !claimedProjectIds.has(candidate.id))
+    apiProjectId: string,
+    apiEnvironmentId: string,
+    env: EnvironmentConfig,
+  ): Promise<void> {
+    if (!env.token) return
 
-    if (match) {
-      const link = await confirm({
-        default: true,
-        message: `A project named "${project.name}" already exists on your account. Link to it instead of creating a new one?`,
-      })
-
-      if (link) {
-        claimedProjectIds.add(match.id)
-        configManager.setProjectApiId(project.id, match.id)
-        this.log(`✓ Project "${project.name}" linked to the API`)
-        return match.id
-      }
-    }
-
-    const created = await api.post<ApiProject>('projects', {name: project.name})
-    claimedProjectIds.add(created.id)
-    configManager.setProjectApiId(project.id, created.id)
-    this.log(`✓ Project "${project.name}" created on the API`)
-    return created.id
+    const [username, ...rest] = env.token.split(':')
+    await api.put(`projects/${apiProjectId}/environments/${apiEnvironmentId}/credentials`, {
+      password: rest.join(':'),
+      username,
+    })
   }
 }

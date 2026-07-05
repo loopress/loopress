@@ -121,19 +121,21 @@ describe('project sync', () => {
     })
   })
 
-  it('warns and continues when one project fails to sync', async () => {
+  it('continues syncing other projects when one project fails to sync', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       makeListedProject('id-acme', 'acme', {}, true),
       makeListedProject('id-beta', 'beta', {}),
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
     post.mockRejectedValueOnce(new Error('Free plan is limited to 3 projects.')).mockResolvedValueOnce({id: 'api-project-2'})
+    const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
 
     const cmd = make()
-    const {log, warn} = silenceLogs(cmd)
+    const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Failed to sync project "acme"'))
+    expect(setProjectApiId).not.toHaveBeenCalledWith('id-acme', expect.anything())
+    expect(setProjectApiId).toHaveBeenCalledWith('id-beta', 'api-project-2')
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 0 environments'))
   })
 
@@ -168,7 +170,7 @@ describe('project sync', () => {
     )
     expect(post).not.toHaveBeenCalledWith('projects', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('linked to the API'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 0 environments'))
   })
 
   it('creates a new project when the user declines linking to an existing match', async () => {
@@ -265,7 +267,6 @@ describe('project sync', () => {
       },
       name: 'beta',
     })
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Project "beta" pulled from the API with 1 environment'))
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 1 environment'))
   })
 })
