@@ -1,5 +1,15 @@
 # @loopress/cli
 
+## 0.11.0
+
+### Minor Changes
+
+- 9754a14: Remove snippet provider and put it directl in plugins during init
+- 0ab8400: Improve remove UX and synchronization with backend
+- 616b2ab: Add `lps project sync` to push locally configured projects, environments and credentials to your Loopress account
+- 908875c: Add upsert mechanism on snippet push
+- 85b2fcf: Improve ux of project switch with separators
+
 ## 0.10.0
 
 ### Minor Changes
