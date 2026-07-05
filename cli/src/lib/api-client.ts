@@ -9,9 +9,11 @@ type HttpMethod = 'get' | 'post' | 'put'
  * Authenticated with the console token obtained via `lps login`.
  */
 export class ApiClient {
+  private readonly baseUrl: string
   private readonly client: Got
 
   constructor(token: string, baseUrl: string = API_URL) {
+    this.baseUrl = baseUrl
     this.client = got.extend({
       headers: {Authorization: `Bearer ${token}`},
       prefixUrl: baseUrl,
@@ -35,7 +37,7 @@ export class ApiClient {
       const response = await this.client(path, {json, method})
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
-      throw new Error(formatApiError(error, `${API_URL}/${path}`), {cause: error})
+      throw new Error(formatApiError(error, `${this.baseUrl}/${path}`), {cause: error})
     }
   }
 }
