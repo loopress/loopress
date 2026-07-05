@@ -6,7 +6,7 @@
   "vitest": {
     "configFile": "vitest.config.ts"
   },
-  "reporters": ["html", "clear-text", "progress"],
+  "reporters": ["html", "json", "clear-text", "progress"],
   "mutate": ["src/**/*.ts", "!src/**/*.generated.ts"],
   "coverageAnalysis": "perTest",
   "ignoreStatic": true

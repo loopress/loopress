@@ -1,0 +1,54 @@
+name: 🧬 Mutation report
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  mutation-report:
+    name: CLI mutation report
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/cli...
+
+      - name: Run mutation tests
+        working-directory: cli
+        run: pnpm test:mutation
+
+      - name: Prepare Pages content
+        run: cp cli/reports/mutation/mutation.html cli/reports/mutation/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload mutation report artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: cli/reports/mutation
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

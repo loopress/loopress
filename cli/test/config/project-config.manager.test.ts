@@ -58,6 +58,94 @@ describe('ProjectConfigManager', () => {
       expect(config.currentProject).toBeNull()
       expect(config.projects['id-acme']).toEqual(makeProject('acme'))
     })
+
+    it('drops a project entry missing the name field', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {acme: {environments: {}}}}),
+      )
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
+    it('drops a project entry whose environments field is not an object', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {acme: {environments: 'nope', name: 'acme'}}}),
+      )
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
+    it('drops a project entry whose environments field is null', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {acme: {environments: null, name: 'acme'}}}),
+      )
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
+    it('keeps a well-formed project entry', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {acme: {environments: {}, name: 'acme'}}}),
+      )
+      expect(manager.readConfig().projects).toEqual({acme: {environments: {}, name: 'acme'}})
+    })
+
+    it('treats a non-object projects field as no projects', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: 'nope'}))
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
+    it('treats a currentProject with a non-string id as null', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: {env: 'production', id: 42}, projects: {}}))
+      expect(manager.readConfig().currentProject).toBeNull()
+    })
+
+    it('treats a currentProject with a non-string env as null', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: {env: 42, id: 'id-acme'}, projects: {}}))
+      expect(manager.readConfig().currentProject).toBeNull()
+    })
+
+    it('treats a non-object config root as empty', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify(42))
+      const config = manager.readConfig()
+      expect(config.currentProject).toBeNull()
+      expect(config.projects).toEqual({})
+    })
+
+    it('drops a project entry that is not an object', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: {acme: 'nope'}}))
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
+    it('treats a null projects field as no projects', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: null}))
+      expect(manager.readConfig().projects).toEqual({})
+    })
+  })
+
+  describe('ensureConfigDir', () => {
+    it('creates a deeply nested config directory that does not exist yet', () => {
+      const nestedManager = new ProjectConfigManager(join(tmpDir, 'a', 'b'))
+      nestedManager.ensureConfigDir()
+      expect(existsSync(join(tmpDir, 'a', 'b', '.loopress'))).toBe(true)
+    })
+
+    it('is a no-op when the config directory already exists', () => {
+      manager.ensureConfigDir()
+      expect(() => manager.ensureConfigDir()).not.toThrow()
+      expect(existsSync(join(tmpDir, '.loopress'))).toBe(true)
+    })
   })
 
   describe('setProject / getProject', () => {
@@ -101,6 +189,16 @@ describe('ProjectConfigManager', () => {
       manager.setProject('id-acme', project)
       expect(manager.getCurrentProject()).toEqual({...project, id: 'id-acme'})
     })
+
+    it('returns null when currentProject points at a project that no longer exists', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.ensureConfigDir()
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      raw.currentProject = {env: 'production', id: 'ghost'}
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
+
+      expect(manager.getCurrentProject()).toBeNull()
+    })
   })
 
   describe('setCurrent', () => {
@@ -134,6 +232,22 @@ describe('ProjectConfigManager', () => {
       manager.removeProject('id-acme')
       expect(manager.readConfig().currentProject).toBeNull()
     })
+
+    it('leaves currentProject untouched when removing a project that is not current', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.setProject('id-beta', makeProject('beta'))
+      manager.removeProject('id-beta')
+      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+    })
+
+    it('sets currentProject to null when the fallback project has no environments', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.setProject('id-beta', {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'beta'})
+      manager.setCurrent('id-acme', 'production')
+      manager.removeProject('id-acme')
+      expect(manager.readConfig().currentProject).toBeNull()
+      expect(manager.getProject('id-beta')).not.toBeNull()
+    })
   })
 
   describe('listProjects', () => {
@@ -147,6 +261,13 @@ describe('ProjectConfigManager', () => {
       const list = manager.listProjects()
       expect(list.find((p) => p.name === 'acme')?.isCurrent).toBe(true)
       expect(list.find((p) => p.name === 'beta')?.isCurrent).toBe(false)
+    })
+
+    it('marks every project as not current when there is no current project', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.removeEnvironment('id-acme', 'production')
+      const list = manager.listProjects()
+      expect(list.find((p) => p.name === 'acme')?.isCurrent).toBe(false)
     })
   })
 
@@ -186,6 +307,33 @@ describe('ProjectConfigManager', () => {
       const env = manager.getCurrentEnv()
       expect(env?.name).toBe('production')
     })
+
+    it('returns null when currentProject points at a project that no longer exists', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.ensureConfigDir()
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      raw.currentProject = {env: 'production', id: 'ghost'}
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
+
+      expect(manager.getCurrentEnv()).toBeNull()
+    })
+
+    it('returns null when the current environment name is not on the project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setCurrent('id-acme', 'ghost-env')
+      expect(manager.getCurrentEnv()).toBeNull()
+    })
+  })
+
+  describe('getEnvironment', () => {
+    it('returns null for an unknown project', () => {
+      expect(manager.getEnvironment('ghost', 'production')).toBeNull()
+    })
+
+    it('returns null for an unknown environment on a known project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      expect(manager.getEnvironment('id-acme', 'ghost-env')).toBeNull()
+    })
   })
 
   describe('removeEnvironment', () => {
@@ -203,6 +351,24 @@ describe('ProjectConfigManager', () => {
       manager.removeEnvironment('id-acme', 'production')
       expect(manager.readConfig().currentProject).toBeNull()
     })
+
+    it('does nothing for an unknown project', () => {
+      expect(() => manager.removeEnvironment('ghost', 'production')).not.toThrow()
+    })
+
+    it('leaves currentProject untouched when removing an environment on a different project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setProject('id-beta', makeProject('beta', 'production'))
+      manager.removeEnvironment('id-beta', 'production')
+      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+    })
+
+    it('leaves currentProject untouched when removing a non-current environment on the current project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
+      manager.removeEnvironment('id-acme', 'staging')
+      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+    })
   })
 
   describe('listEnvironments', () => {
@@ -216,6 +382,24 @@ describe('ProjectConfigManager', () => {
       const list = manager.listEnvironments('id-acme')
       expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(true)
       expect(list.find((e) => e.name === 'staging')?.isCurrent).toBe(false)
+    })
+
+    it('marks every environment as not current for a project that is not the current one', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setProject('id-beta', makeProject('beta', 'production'))
+      const list = manager.listEnvironments('id-beta')
+      expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(false)
+    })
+
+    it('marks every environment as not current when there is no current project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.ensureConfigDir()
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      raw.currentProject = null
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
+
+      const list = manager.listEnvironments('id-acme')
+      expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(false)
     })
   })
 
