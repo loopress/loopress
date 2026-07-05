@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
+import { NoticeSkeleton } from './Skeleton';
 import type { Diagnostics } from '../types';
 
 export function DiagnosticsBanner() {
@@ -18,7 +19,17 @@ export function DiagnosticsBanner() {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['diagnostics'] }),
     });
 
-    if (!diagnostics?.issues?.length) return null;
+    if (!diagnostics) return <NoticeSkeleton />;
+
+    if (!diagnostics.issues.length) {
+        return (
+            <div style={{ maxWidth: 600, marginBottom: 20 }}>
+                <Notice status="success" isDismissible={false}>
+                    No platform issues detected. Running PHP {diagnostics.php_version}.
+                </Notice>
+            </div>
+        );
+    }
 
     return (
         <div style={{ maxWidth: 600, marginBottom: 20 }}>

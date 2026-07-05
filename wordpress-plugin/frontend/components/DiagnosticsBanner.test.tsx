@@ -12,18 +12,26 @@ function wrapperWithData(data: Diagnostics) {
     };
 }
 
+function loadingWrapper({ children }: { children: React.ReactNode }) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
 describe('DiagnosticsBanner', () => {
-    test('renders nothing when there are no issues', () => {
+    test('shows a skeleton while loading', () => {
+        render(<DiagnosticsBanner />, { wrapper: loadingWrapper });
+        expect(screen.getByTestId('skeleton')).toBeInTheDocument();
+    });
+
+    test('shows a success notice when there are no issues', () => {
         const data: Diagnostics = {
             php_version: '8.2.0',
             platform_php: '8.2.0',
             issues: [],
         };
-        const { container } = render(
-            <DiagnosticsBanner />,
-            { wrapper: wrapperWithData(data) },
-        );
-        expect(container.firstChild).toBeNull();
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
+        expect(screen.getByText(/No platform issues detected/i)).toBeInTheDocument();
+        expect(screen.getByText(/Running PHP 8\.2\.0/i)).toBeInTheDocument();
     });
 
     test('renders a warning for platform_php_mismatch', () => {

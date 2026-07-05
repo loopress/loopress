@@ -1,11 +1,16 @@
 import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import LogoBlack from '@loopress/assets/loopress-logo-black.svg';
-import { Notice, Spinner } from '@wordpress/components';
+import { Notice, Spinner, TabPanel } from '@wordpress/components';
 import { apiFetch } from './api';
 import { DiagnosticsBanner } from './components/DiagnosticsBanner';
 import { AuditBanner } from './components/AuditBanner';
 import { DependencyManagement } from './components/DependencyManagement';
+
+const TABS = [
+    { name: 'dependencies', title: 'Dependencies' },
+    { name: 'diagnostics', title: 'Diagnostics' },
+];
 
 const { autoloadError } = window.loopressData;
 
@@ -55,9 +60,18 @@ export default function App() {
                 </div>
             )}
 
-            <DiagnosticsBanner />
-            <AuditBanner />
-            <DependencyManagement />
+            <TabPanel tabs={TABS}>
+                {(tab) =>
+                    tab.name === 'dependencies' ? (
+                        <DependencyManagement />
+                    ) : (
+                        <>
+                            <DiagnosticsBanner />
+                            <AuditBanner />
+                        </>
+                    )
+                }
+            </TabPanel>
         </div>
     );
 }
