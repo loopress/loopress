@@ -102,6 +102,28 @@ describe('project remove', () => {
     expect(removeEnvironment).not.toHaveBeenCalled()
   })
 
+  it('builds checkbox choices with current markers, env counts, and index-based values', async () => {
+    setUpTwoProjects()
+    vi.spyOn(configManager, 'removeProject').mockImplementation(() => {})
+    vi.spyOn(configManager, 'removeEnvironment').mockImplementation(() => {})
+    vi.mocked(checkbox).mockResolvedValue([])
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(checkbox).toHaveBeenCalledWith({
+      choices: [
+        {name: '● acme                 (2 envs) [current]', value: '0'},
+        {name: '    ● production           https://acme.com [current]', value: '1'},
+        {name: '    ○ staging              https://staging.acme.com', value: '2'},
+        {name: '○ beta                 (1 env)', value: '3'},
+        {name: '    ○ production           https://beta.com', value: '4'},
+      ],
+      message: 'Select projects or environments to remove',
+    })
+  })
+
   it('handles a mixed selection of a whole project and an environment from another', async () => {
     setUpTwoProjects()
     const removeProject = vi.spyOn(configManager, 'removeProject').mockImplementation(() => {})
