@@ -1,24 +1,22 @@
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
 
 // readLocalConfig / writeLocalConfig resolve against process.cwd(), so we
-// temporarily switch the working directory for each test.
-const originalCwd = process.cwd()
-
+// mock it for each test instead of process.chdir(), which worker threads disallow.
 describe('loopress-config', () => {
   let tmpDir: string
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'lps-config-test-'))
-    process.chdir(tmpDir)
+    vi.spyOn(process, 'cwd').mockReturnValue(tmpDir)
   })
 
   afterEach(() => {
-    process.chdir(originalCwd)
+    vi.restoreAllMocks()
     rmSync(tmpDir, {force: true, recursive: true})
   })
 

@@ -2,6 +2,8 @@ tsconfig.tsbuildinfo
 src/types/*.generated.ts
 oclif.manifest.json
 coverage
+reports
+.stryker-tmp
 *.tgz
 npm-shrinkwrap.json
 package-lock.json

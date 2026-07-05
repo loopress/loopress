@@ -33,16 +33,14 @@ function make(dryRun: boolean) {
 
 describe('composer push', () => {
   let dir: string
-  let previousCwd: string
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-composer-push-test-'))
-    previousCwd = process.cwd()
-    process.chdir(dir)
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
   })
 
   afterEach(() => {
-    process.chdir(previousCwd)
+    vi.restoreAllMocks()
     rmSync(dir, {force: true, recursive: true})
   })
 

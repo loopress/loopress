@@ -28,16 +28,14 @@ function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {
 
 describe('composer pull', () => {
   let dir: string
-  let previousCwd: string
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-composer-pull-test-'))
-    previousCwd = process.cwd()
-    process.chdir(dir)
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
   })
 
   afterEach(() => {
-    process.chdir(previousCwd)
+    vi.restoreAllMocks()
     rmSync(dir, {force: true, recursive: true})
   })
 
