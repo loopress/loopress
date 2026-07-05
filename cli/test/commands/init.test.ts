@@ -6,7 +6,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import Init from '../../src/commands/init.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
-import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
+import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeListedProject} from '../helpers/project-fixtures.js'
 
 vi.mock('@inquirer/prompts', () => ({
@@ -31,6 +31,7 @@ function make(): Init {
 describe('init', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetFakeOclifConfig()
     vi.mocked(existsSync).mockReturnValue(false)
     vi.spyOn(configManager, 'listProjects').mockReturnValue([makeListedProject('id-acme', 'acme', {})])
   })

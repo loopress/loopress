@@ -16,7 +16,6 @@ describe('loopress-config', () => {
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
     rmSync(tmpDir, {force: true, recursive: true})
   })
 
