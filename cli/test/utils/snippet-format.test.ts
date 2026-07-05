@@ -63,6 +63,10 @@ describe('snippet-format', () => {
     it('leaves code without an opening tag unchanged', () => {
       expect(stripPhpOpeningTag('echo 1;')).toBe('echo 1;')
     })
+
+    it('only strips a <?php tag at the very start, not one appearing mid-string', () => {
+      expect(stripPhpOpeningTag('echo "<?php";')).toBe('echo "<?php";')
+    })
   })
 
   describe('normalizeSnippet', () => {
@@ -101,6 +105,7 @@ describe('snippet-format', () => {
 
       expect(result.active).toBe(false)
       expect(result.description).toBe('')
+      expect(result.name).toBe('')
       expect(result.insertMethod).toBe('auto')
       expect(result.type).toBe('php')
       expect(result.location).toBe('everywhere')
