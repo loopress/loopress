@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
 import { ComposerOutput } from './ComposerOutput';
-import type { Package, ComposerResult } from '../types';
+import type { Package, OutdatedPackage, ComposerResult } from '../types';
 
-interface RemoveState {
+interface ActionState {
+    action: 'removed' | 'updated';
     name: string;
     output?: string | null;
     error: string | null;
@@ -13,7 +14,7 @@ interface RemoveState {
 
 export function InstalledPackages() {
     const queryClient = useQueryClient();
-    const [removingOutput, setRemovingOutput] = useState<RemoveState | null>(null);
+    const [actionResult, setActionResult] = useState<ActionState | null>(null);
     const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
     const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -23,17 +24,39 @@ export function InstalledPackages() {
         staleTime: 30_000,
     });
 
+    const { data: outdated = [] } = useQuery<OutdatedPackage[]>({
+        queryKey: ['outdated-packages'],
+        queryFn: () => apiFetch<OutdatedPackage[]>('/composer/outdated'),
+        staleTime: 5 * 60_000,
+    });
+    const outdatedByName = new Map(outdated.map((pkg) => [pkg.name, pkg]));
+
     const { mutate: removePackage, isPending: removing, variables: removingPkg } = useMutation<ComposerResult, ApiError, string>({
         mutationFn: (packageName) => apiFetch<ComposerResult>('/composer/remove', {
             method: 'POST',
             body: JSON.stringify({ package: packageName }),
         }),
         onSuccess: (data, packageName) => {
-            setRemovingOutput({ name: packageName, output: data?.output, error: null });
+            setActionResult({ action: 'removed', name: packageName, output: data?.output, error: null });
             queryClient.invalidateQueries({ queryKey: ['installed-packages'] });
         },
         onError: (err, packageName) => {
-            setRemovingOutput({ name: packageName, output: err.output, error: err.message });
+            setActionResult({ action: 'removed', name: packageName, output: err.output, error: err.message });
+        },
+    });
+
+    const { mutate: updatePackage, isPending: updating, variables: updatingPkg } = useMutation<ComposerResult, ApiError, { name: string; version: string }>({
+        mutationFn: ({ name, version }) => apiFetch<ComposerResult>('/composer/require', {
+            method: 'POST',
+            body: JSON.stringify({ package: name, version }),
+        }),
+        onSuccess: (data, { name }) => {
+            setActionResult({ action: 'updated', name, output: data?.output, error: null });
+            queryClient.invalidateQueries({ queryKey: ['installed-packages'] });
+            queryClient.invalidateQueries({ queryKey: ['outdated-packages'] });
+        },
+        onError: (err, { name }) => {
+            setActionResult({ action: 'updated', name, output: err.output, error: err.message });
         },
     });
 
@@ -99,20 +122,41 @@ export function InstalledPackages() {
                         {packages.map((pkg) => {
                             const isConfirming = confirmingRemove === pkg.name;
                             const isRemoving = removing && removingPkg === pkg.name;
+                            const isUpdating = updating && updatingPkg?.name === pkg.name;
+                            const update = outdatedByName.get(pkg.name);
                             return (
                                 <tr key={pkg.name} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                     <td style={{ padding: '8px' }}>
                                         <strong>{pkg.name}</strong>
                                     </td>
-                                    <td style={{ padding: '8px', fontFamily: 'monospace', whiteSpace: 'nowrap', color: '#1d4ed8' }}>
-                                        {pkg.version}
+                                    <td style={{ padding: '8px', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                                        <span style={{ color: '#1d4ed8' }}>{pkg.version}</span>
+                                        {update && (
+                                            <span style={{
+                                                marginLeft: 8, fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
+                                                color: '#92400e', background: '#fef3c7', borderRadius: 12, padding: '2px 8px',
+                                            }}>
+                                                update: {update.latest}
+                                            </span>
+                                        )}
                                     </td>
-                                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                                    <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                        {update && (
+                                            <Button
+                                                variant="secondary"
+                                                size="small"
+                                                disabled={isUpdating || isRemoving}
+                                                onClick={() => updatePackage({ name: pkg.name, version: update.latest })}
+                                                style={{ marginRight: 8 }}
+                                            >
+                                                {isUpdating ? <Spinner /> : 'Update'}
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="tertiary"
                                             isDestructive={isConfirming || isRemoving}
                                             size="small"
-                                            disabled={isRemoving}
+                                            disabled={isRemoving || isUpdating}
                                             onClick={() => handleRemoveClick(pkg.name)}
                                         >
                                             {isRemoving ? <Spinner /> : isConfirming ? 'Sure?' : 'Remove'}
@@ -125,19 +169,19 @@ export function InstalledPackages() {
                 </table>
             )}
 
-            {removingOutput && (
+            {actionResult && (
                 <div style={{ marginTop: 12 }}>
                     <Notice
-                        status={removingOutput.error ? 'error' : 'success'}
+                        status={actionResult.error ? 'error' : 'success'}
                         isDismissible={true}
-                        onRemove={() => setRemovingOutput(null)}
+                        onRemove={() => setActionResult(null)}
                     >
-                        {removingOutput.error
-                            ? `Failed to remove ${removingOutput.name}: ${removingOutput.error}`
-                            : `${removingOutput.name} removed.`
+                        {actionResult.error
+                            ? `Failed to ${actionResult.action === 'removed' ? 'remove' : 'update'} ${actionResult.name}: ${actionResult.error}`
+                            : `${actionResult.name} ${actionResult.action}.`
                         }
                     </Notice>
-                    <ComposerOutput output={removingOutput.output} />
+                    <ComposerOutput output={actionResult.output} />
                 </div>
             )}
         </div>

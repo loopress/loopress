@@ -12,7 +12,7 @@ const TABS = [
     { name: 'diagnostics', title: 'Diagnostics' },
 ];
 
-const { autoloadError } = window.loopressData;
+const { autoloadError, pluginVersion } = window.loopressData;
 
 export default function App() {
     const queryClient = useQueryClient();
@@ -36,6 +36,18 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
                 <img src={LogoBlack} alt="Loopress" height={30} />
                 <h1 style={{ margin: 0 }}>Loopress</h1>
+                <span
+                    style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: '#50575e',
+                        background: '#f0f0f1',
+                        borderRadius: 12,
+                        padding: '2px 10px',
+                    }}
+                >
+                    v{pluginVersion}
+                </span>
             </div>
 
             {autoloadError && (

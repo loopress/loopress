@@ -31,6 +31,12 @@ export interface Settings {
     environment: string;
 }
 
+export interface OutdatedPackage {
+    name: string;
+    version: string;
+    latest: string;
+}
+
 export interface ComposerResult {
     message?: string;
     output?: string;
@@ -59,6 +65,7 @@ declare global {
             nonce: string;
             autoloadError: string | null;
             phpVersion: string;
+            pluginVersion: string;
         };
     }
 }

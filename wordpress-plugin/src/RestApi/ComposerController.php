@@ -60,6 +60,12 @@ class ComposerController
             'permission_callback' => fn() => current_user_can('manage_options'),
         ]);
 
+        register_rest_route('loopress/v1', '/composer/outdated', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_outdated'],
+            'permission_callback' => fn() => current_user_can('manage_options'),
+        ]);
+
         register_rest_route('loopress/v1', '/composer/audit', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_audit'],
@@ -159,6 +165,17 @@ class ComposerController
     public function get_diagnostics(WP_REST_Request $request): WP_REST_Response
     {
         return new WP_REST_Response($this->composerService->getDiagnostics(), 200);
+    }
+
+    public function get_outdated(WP_REST_Request $request): WP_REST_Response
+    {
+        try {
+            return new WP_REST_Response($this->composerService->getOutdated(), 200);
+        } catch (ConcurrentOperationException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function get_audit(WP_REST_Request $request): WP_REST_Response
