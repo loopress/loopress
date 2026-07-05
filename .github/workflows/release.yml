@@ -50,6 +50,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Rename CLI release
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[] | select(.name == "@loopress/cli") | .version')
+          if [ -n "$VERSION" ]; then
+            gh release edit "@loopress/cli@${VERSION}" --title "CLI ${VERSION}"
+          fi
+
   plugin-release:
     name: WordPress Plugin Release
     runs-on: ubuntu-latest
