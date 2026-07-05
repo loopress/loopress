@@ -172,10 +172,19 @@ describe('ProjectConfigManager', () => {
   })
 
   describe('createProjectId', () => {
-    it('returns a unique id each time', () => {
-      const a = manager.createProjectId()
-      const b = manager.createProjectId()
-      expect(a).not.toBe(b)
+    it('slugifies the given name', () => {
+      expect(manager.createProjectId('My Cool Project')).toBe('my-cool-project')
+    })
+
+    it('appends a numeric suffix when the slug is already taken', () => {
+      manager.setProject('acme', makeProject('Acme'))
+      expect(manager.createProjectId('Acme')).toBe('acme-2')
+    })
+
+    it('keeps incrementing the suffix past existing collisions', () => {
+      manager.setProject('acme', makeProject('Acme'))
+      manager.setProject('acme-2', makeProject('Acme'))
+      expect(manager.createProjectId('Acme')).toBe('acme-3')
     })
   })
 

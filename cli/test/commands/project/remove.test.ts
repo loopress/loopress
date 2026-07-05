@@ -114,11 +114,15 @@ describe('project remove', () => {
 
     expect(checkbox).toHaveBeenCalledWith({
       choices: [
-        {name: '● acme                 (2 envs) [current]', value: '0'},
-        {name: '    ● production           https://acme.com [current]', value: '1'},
-        {name: '    ○ staging              https://staging.acme.com', value: '2'},
-        {name: '○ beta                 (1 env)', value: '3'},
-        {name: '    ○ production           https://beta.com', value: '4'},
+        {
+          description: 'Also removes all its environments below.',
+          name: 'acme                 (2 envs) [current]',
+          value: '0',
+        },
+        {name: '    production           https://acme.com [current]', value: '1'},
+        {name: '    staging              https://staging.acme.com', value: '2'},
+        {description: 'Also removes all its environments below.', name: 'beta                 (1 env)', value: '3'},
+        {name: '    production           https://beta.com', value: '4'},
       ],
       message: 'Select projects or environments to remove',
     })

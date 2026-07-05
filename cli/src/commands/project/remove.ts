@@ -28,14 +28,15 @@ export default class Remove extends Command {
 
       targets.push({kind: 'project', projectId: project.id, projectName: project.name})
       const projectChoice = {
-        name: `${project.isCurrent ? '●' : '○'} ${project.name.padEnd(20)} (${envLabel})${currentMarker}`,
+        description: 'Also removes all its environments below.',
+        name: `${project.name.padEnd(20)} (${envLabel})${currentMarker}`,
         value: String(targets.length - 1),
       }
 
       const envChoices = configManager.listEnvironments(project.id).map((env) => {
         targets.push({env: env.name, kind: 'env', projectId: project.id, projectName: project.name})
         return {
-          name: `    ${env.isCurrent ? '●' : '○'} ${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
+          name: `    ${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
           value: String(targets.length - 1),
         }
       })

@@ -127,6 +127,6 @@ export default class Config extends Command {
       },
     })
 
-    return {projectId: configManager.createProjectId(), projectName: projectName.trim()}
+    return {projectId: configManager.createProjectId(projectName.trim()), projectName: projectName.trim()}
   }
 }
