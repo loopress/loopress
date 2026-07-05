@@ -103,13 +103,12 @@ export default class Sync extends Command {
       ).run()
     }
 
-    const resolvedProjectIds = new Set(projectPlans.filter((plan) => plan.apiProjectId).map((plan) => plan.project.id))
     const envsNeedingWork = projectPlans
-      .filter((plan) => resolvedProjectIds.has(plan.project.id))
+      .filter((plan): plan is ProjectPlan & {apiProjectId: string} => Boolean(plan.apiProjectId))
       .flatMap((plan) =>
         (envPlansByProject.get(plan.project.id) ?? [])
           .filter((envPlan) => envPlan.action !== 'synced')
-          .map((envPlan) => ({apiProjectId: plan.apiProjectId!, envPlan, projectName: plan.project.name})),
+          .map((envPlan) => ({apiProjectId: plan.apiProjectId, envPlan, projectName: plan.project.name})),
       )
 
     if (envsNeedingWork.length > 0) {
@@ -177,7 +176,11 @@ export default class Sync extends Command {
         envPlan.apiEnvironmentId = created.id
       }
 
-      configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId!)
+      if (!envPlan.apiEnvironmentId) {
+        throw new Error(`No API environment id resolved for "${envPlan.env.name}" (action: ${envPlan.action})`)
+      }
+
+      configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
       if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
       const message = `Failed to sync "${envPlan.env.name}": ${(error as Error).message}`
@@ -193,7 +196,11 @@ export default class Sync extends Command {
         plan.apiProjectId = created.id
       }
 
-      configManager.setProjectApiId(plan.project.id, plan.apiProjectId!)
+      if (!plan.apiProjectId) {
+        throw new Error(`No API project id resolved for "${plan.project.name}" (action: ${plan.action})`)
+      }
+
+      configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
       if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
       const message = `Failed to sync project "${plan.project.name}": ${(error as Error).message}`
