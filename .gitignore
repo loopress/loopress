@@ -7,4 +7,7 @@ node_modules
 dist
 tmp
 .vercel
+playwright-report
+blob-report
+test-results
 
