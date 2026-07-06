@@ -16,7 +16,7 @@ class SnippetService
 
     public function isActive(): bool
     {
-        return $this->activeProvider() !== null;
+        return $this->activeProviders() !== [];
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -43,19 +43,30 @@ class SnippetService
         return $this->requireActiveProvider()->updateSnippet($id, $data);
     }
 
-    private function activeProvider(): ?SnippetProvider
+    /** @return SnippetProvider[] */
+    private function activeProviders(): array
     {
-        foreach ($this->providers as $provider) {
-            if ($provider->isActive()) {
-                return $provider;
-            }
-        }
-
-        return null;
+        return array_values(array_filter(
+            $this->providers,
+            static fn(SnippetProvider $provider): bool => $provider->isActive(),
+        ));
     }
 
+    // Requires exactly one active snippet plugin. If two are active at once (e.g. right after
+    // installing one alongside another that was already there), we cannot silently pick one:
+    // that would sync snippets into whichever plugin happens to win, with no way for the user
+    // to know which storage is authoritative.
     private function requireActiveProvider(): SnippetProvider
     {
-        return $this->activeProvider() ?? throw new \RuntimeException('No supported snippet plugin is active.');
+        $active = $this->activeProviders();
+
+        if (count($active) > 1) {
+            throw new \RuntimeException(
+                'Multiple snippet plugins are active at once (Code Snippets and WPCode). Loopress cannot tell ' .
+                'which one is authoritative for your snippets. Deactivate all but one and try again.',
+            );
+        }
+
+        return $active[0] ?? throw new \RuntimeException('No supported snippet plugin is active.');
     }
 }

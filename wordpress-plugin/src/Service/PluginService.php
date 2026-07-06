@@ -15,7 +15,15 @@ class PluginService
         $result  = [];
 
         foreach ($plugins as $file => $data) {
-            $slug     = $this->slugFromFile($file);
+            $slug = $this->slugFromFile($file);
+
+            // Loopress must never manage itself: pulling it into loopress.json would make a
+            // later `plugin push` try to reinstall it from WordPress.org, where it doesn't
+            // exist, potentially clobbering the plugin's own directory in the process.
+            if (defined('LOOPRESS_PLUGIN_SLUG') && $slug === LOOPRESS_PLUGIN_SLUG) {
+                continue;
+            }
+
             $result[] = [
                 'slug'    => $slug,
                 'file'    => $file,

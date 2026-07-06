@@ -12,6 +12,7 @@
 
 define('LOOPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LOOPRESS_PLUGIN_PATH', plugin_dir_path(__FILE__));
+define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));
 
 require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
 

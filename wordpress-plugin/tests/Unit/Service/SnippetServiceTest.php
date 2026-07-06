@@ -52,6 +52,30 @@ class SnippetServiceTest extends TestCase
         $service->getSnippets();
     }
 
+    public function test_get_snippets_throws_when_more_than_one_provider_is_active(): void
+    {
+        $first = $this->provider(true);
+        $first->expects($this->never())->method('getSnippets');
+
+        $second = $this->provider(true);
+        $second->expects($this->never())->method('getSnippets');
+
+        $service = new SnippetService($first, $second);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Multiple snippet plugins are active');
+        $service->getSnippets();
+    }
+
+    public function test_is_active_true_when_more_than_one_provider_is_active(): void
+    {
+        // isActive() only answers "is there a usable provider", it must not throw on its own;
+        // the multi-provider conflict is only raised when a snippet operation is actually attempted.
+        $service = new SnippetService($this->provider(true), $this->provider(true));
+
+        $this->assertTrue($service->isActive());
+    }
+
     public function test_create_snippet_delegates_to_active_provider(): void
     {
         $active = $this->provider(true);

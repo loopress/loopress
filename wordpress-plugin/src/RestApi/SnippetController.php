@@ -78,7 +78,11 @@ class SnippetController
             return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
-        return new WP_REST_Response($this->snippetService->getSnippets(), 200);
+        try {
+            return new WP_REST_Response($this->snippetService->getSnippets(), 200);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function get_snippet(WP_REST_Request $request): WP_REST_Response

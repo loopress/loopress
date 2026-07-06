@@ -89,7 +89,9 @@ class ComposerController
                 ],
                 'composerLock' => [
                     'required' => false,
-                    'type'     => 'string',
+                    // Nullable: the CLI sends an explicit `null` (not an omitted key) when the
+                    // project has no composer.lock yet, so the server can resolve versions freely.
+                    'type'     => ['string', 'null'],
                 ],
             ],
         ]);
