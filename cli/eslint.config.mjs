@@ -20,17 +20,4 @@ export default [
       'perfectionist/sort-objects': 'off',
     },
   },
-  {
-    files: ['e2e/**'],
-    rules: {
-      // `test` is re-exported from `@playwright/test` via helpers/environment.js, not a
-      // global; the mocha plugin doesn't trace that re-export back to a known test framework.
-      'mocha/no-global-tests': 'off',
-      // Playwright fixture functions are `async ({depA, depB}, use) => ...`; a fixture with
-      // no dependencies is legitimately `async ({}, use) => ...`, which these two rules
-      // otherwise flag as a mistake.
-      'no-empty-pattern': 'off',
-      'object-shorthand': 'off',
-    },
-  },
 ]

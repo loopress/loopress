@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter @loopress/cli...
+        run: pnpm install --frozen-lockfile --filter @loopress/cli... --filter .
 
       - name: Build CLI
         working-directory: cli
@@ -111,11 +111,9 @@ jobs:
         run: pnpm test:e2e
 
       - name: Install Playwright browsers
-        working-directory: cli
         run: npx playwright install --with-deps chromium
 
       - name: Run CLI e2e tests
-        working-directory: cli
         env:
           WP_URL: http://localhost:8080
           WP_USERNAME: admin
