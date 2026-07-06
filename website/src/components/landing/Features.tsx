@@ -38,6 +38,14 @@ export function Features() {
           >
             <ComposerBlock />
           </FeatureCard>
+
+          <FeatureCard
+            tag="04"
+            title="Official CI configs"
+            body="Bootstrap a full WordPress environment in GitHub Actions or GitLab CI, and run lps against it in a single step."
+          >
+            <CIBlock />
+          </FeatureCard>
         </div>
       </div>
     </section>
@@ -135,6 +143,26 @@ function ComposerBlock() {
         <Line c="success">✓ Installing tecnickcom/tcpdf ^6.7</Line>
         <Line c="success">✓ Autoloader updated in wp-content/loopress/</Line>
       </pre>
+    </div>
+  );
+}
+
+function CIBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="flex items-center justify-between border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        <span>.github/workflows/loopress.yml</span>
+      </div>
+      <pre className="px-3 py-3">
+        {`steps:
+  - uses: actions/checkout@v4
+  - uses: loopress/setup-ci@main
+  - run: lps snippet push`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="success">✓ WordPress + MySQL started</Line>
+        <Line c="success">✓ Updated: 3 snippets synced</Line>
+      </div>
     </div>
   );
 }

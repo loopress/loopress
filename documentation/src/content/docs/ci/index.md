@@ -24,4 +24,3 @@ A token is required only when deploying to a real site. Get one at [console.loop
 
 - [GitHub Actions](/ci/github-actions/)
 - [GitLab CI](/ci/gitlab/)
-- [CircleCI](/ci/circleci/)
