@@ -59,6 +59,23 @@ class PluginServiceTest extends TestCase
         $this->assertSame('hello', $result[0]['slug']);
     }
 
+    public function test_getInstalled_excludes_the_loopress_plugin_itself(): void
+    {
+        if (!defined('LOOPRESS_PLUGIN_SLUG')) {
+            define('LOOPRESS_PLUGIN_SLUG', 'loopress');
+        }
+
+        $this->stubInstalledPlugins([
+            'loopress/loopress.php'       => ['Name' => 'Loopress', 'Version' => '2026.7.0'],
+            'woocommerce/woocommerce.php' => ['Name' => 'WooCommerce', 'Version' => '8.9.1'],
+        ]);
+
+        $result = $this->service->getInstalled();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('woocommerce', $result[0]['slug']);
+    }
+
     public function test_getInstalled_flags_active_plugins(): void
     {
         $this->stubInstalledPlugins(

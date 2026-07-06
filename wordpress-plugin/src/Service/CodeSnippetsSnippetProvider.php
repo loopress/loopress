@@ -197,7 +197,10 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     /** @param array<string, mixed> $body @return array<mixed> */
     private function dispatch(string $method, string $path, array $body = []): array
     {
-        $request = new WP_REST_Request($method, self::NAMESPACE . $path);
+        // Leading slash is required: WP_REST_Server::dispatch() matches routes with an
+        // anchored `^/...$` regex, so a route missing it never matches and rest_do_request()
+        // fails with "No route was found matching the URL and request method."
+        $request = new WP_REST_Request($method, '/' . self::NAMESPACE . $path);
 
         foreach ($body as $key => $value) {
             $request->set_param($key, $value);

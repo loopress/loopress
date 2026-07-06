@@ -36,7 +36,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     public function test_get_snippets_dispatches_a_get_request_and_normalizes_the_list(): void
     {
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
-            $this->assertSame('code-snippets/v1/snippets', $request->get_route());
+            $this->assertSame('/code-snippets/v1/snippets', $request->get_route());
 
             return new WP_REST_Response([
                 ['active' => true, 'code' => 'echo 1;', 'desc' => 'A snippet', 'id' => 1, 'name' => 'One', 'priority' => 5, 'scope' => 'global', 'tags' => ['php']],
@@ -60,7 +60,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     public function test_get_snippet_dispatches_a_get_request_for_the_given_id(): void
     {
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
-            $this->assertSame('code-snippets/v1/snippets/7', $request->get_route());
+            $this->assertSame('/code-snippets/v1/snippets/7', $request->get_route());
 
             return new WP_REST_Response(['active' => false, 'code' => '', 'id' => 7, 'name' => 'Seven', 'scope' => 'admin-css'], 200);
         });
@@ -84,7 +84,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     public function test_create_snippet_sends_the_translated_payload_and_normalizes_the_response(): void
     {
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
-            $this->assertSame('code-snippets/v1/snippets', $request->get_route());
+            $this->assertSame('/code-snippets/v1/snippets', $request->get_route());
             $this->assertSame('New', $request->get_param('name'));
             $this->assertSame('A description', $request->get_param('desc'));
             $this->assertSame('front-end', $request->get_param('scope'));
@@ -124,7 +124,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     public function test_update_snippet_dispatches_a_put_request(): void
     {
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
-            $this->assertSame('code-snippets/v1/snippets/3', $request->get_route());
+            $this->assertSame('/code-snippets/v1/snippets/3', $request->get_route());
             $this->assertSame('Updated', $request->get_param('name'));
 
             return new WP_REST_Response(['active' => true, 'code' => '', 'id' => 3, 'name' => 'Updated', 'scope' => 'global'], 200);
