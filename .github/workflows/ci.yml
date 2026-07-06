@@ -7,15 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  cli-tests:
-    name: CLI:integration tests
+  cli-unit:
+    name: CLI:Unit tests (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # None of these jobs push or commit back to the repo, so the checked-out
+          # GITHUB_TOKEN doesn't need to stick around in git config for later steps
+          # (e.g. `pnpm install` running third-party postinstall scripts) to read.
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: pnpm
@@ -28,8 +33,62 @@ jobs:
         working-directory: cli
         run: pnpm build
 
+      - name: Run CLI unit tests
+        working-directory: cli
+        run: pnpm test
+
+  cli-e2e:
+    name: CLI:E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # None of these jobs push or commit back to the repo, so the checked-out
+          # GITHUB_TOKEN doesn't need to stick around in git config for later steps
+          # (e.g. `pnpm install` running third-party postinstall scripts) to read.
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/cli... --filter @loopress/wordpress-plugin... --filter .
+
+      - name: Build CLI
+        working-directory: cli
+        run: pnpm build
+
+      # `loopress/setup-ci` installs the last *published* release of the plugin, since it's
+      # also used to smoke-test real releases. That means these e2e tests would otherwise
+      # exercise stale, already-released plugin code instead of this branch's changes, so
+      # any fix landing here and there at the same time couldn't be verified by its own PR.
+      - name: Build this branch's wordpress-plugin as an installable zip
+        working-directory: wordpress-plugin
+        run: pnpm run pack
+
       - name: Start WordPress
-        uses: loopress/setup-ci@main
+        uses: loopress/setup-ci@fabf44d597116f76abdbdb157bbd4de8d1e0a1c3 # main
+
+      - name: Install this branch's wordpress-plugin build over the released one
+        run: |
+          CONTAINER=$(docker ps --filter "ancestor=wordpress:latest" --format "{{.ID}}" | head -n1)
+          if [ -z "$CONTAINER" ]; then
+            echo "::error::Could not find the WordPress container started by loopress/setup-ci"
+            exit 1
+          fi
+          docker cp wordpress-plugin/loopress.zip "$CONTAINER":/tmp/loopress.zip
+          docker exec "$CONTAINER" wp plugin install /tmp/loopress.zip --force --activate --allow-root
 
       - name: Extract app password
         id: wp-creds
@@ -37,13 +96,19 @@ jobs:
           TOKEN=$(jq -r '.projects[.currentProject.id].environments[.currentProject.env].token' ~/.loopress/config.json)
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
-      - name: Run CLI tests
-        working-directory: cli
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run CLI e2e tests
         env:
           WP_URL: http://localhost:8080
           WP_USERNAME: admin
+          # Matches the account password `loopress/setup-ci` hardcodes when it runs
+          # `wp core install --admin_password="admin"` — needed for wp-admin UI login,
+          # distinct from the REST API application password above.
+          WP_ADMIN_PASSWORD: admin
           WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
-        run: pnpm test
+        run: pnpm test:e2e
 
   plugin-php:
     name: Plugin:PHPStan + PHPUnit
@@ -52,9 +117,14 @@ jobs:
       run:
         working-directory: wordpress-plugin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # None of these jobs push or commit back to the repo, so the checked-out
+          # GITHUB_TOKEN doesn't need to stick around in git config for later steps
+          # (e.g. `pnpm install` running third-party postinstall scripts) to read.
+          persist-credentials: false
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: "8.2"
           coverage: none
@@ -78,11 +148,16 @@ jobs:
     name: Plugin:Frontend (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # None of these jobs push or commit back to the repo, so the checked-out
+          # GITHUB_TOKEN doesn't need to stick around in git config for later steps
+          # (e.g. `pnpm install` running third-party postinstall scripts) to read.
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: pnpm
