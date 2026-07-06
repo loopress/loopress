@@ -175,6 +175,33 @@ class ComposerControllerTest extends TestCase
         $this->assertSame($data, $response->data);
     }
 
+    // ── get_outdated ──────────────────────────────────────────────────────────
+
+    public function test_get_outdated_returns_200_with_data(): void
+    {
+        $data = [['name' => 'vendor/pkg', 'version' => '1.0.0', 'latest' => '1.1.0']];
+        $this->composerService->method('getOutdated')->willReturn($data);
+        $response = $this->controller->get_outdated(new WP_REST_Request());
+        $this->assertSame(200, $response->status);
+        $this->assertSame($data, $response->data);
+    }
+
+    public function test_get_outdated_returns_500_on_failure(): void
+    {
+        $this->composerService->method('getOutdated')
+            ->willThrowException(new \RuntimeException('Outdated check failed.'));
+        $response = $this->controller->get_outdated(new WP_REST_Request());
+        $this->assertSame(500, $response->status);
+    }
+
+    public function test_get_outdated_returns_409_when_another_operation_is_running(): void
+    {
+        $this->composerService->method('getOutdated')
+            ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
+        $response = $this->controller->get_outdated(new WP_REST_Request());
+        $this->assertSame(409, $response->status);
+    }
+
     // ── get_audit ─────────────────────────────────────────────────────────────
 
     public function test_get_audit_returns_200_on_success(): void

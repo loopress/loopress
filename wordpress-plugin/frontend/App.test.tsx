@@ -20,6 +20,9 @@ function stubQuietEndpoints() {
         if (path === '/composer/installed') {
             return [];
         }
+        if (path === '/composer/outdated') {
+            return [];
+        }
         return {};
     });
 }
@@ -30,6 +33,7 @@ function renderApp(autoloadError: string | null) {
         nonce: 'test-nonce',
         autoloadError,
         phpVersion: '8.2.29',
+        pluginVersion: '2026.7.0',
     };
 
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -56,6 +60,7 @@ describe('App', () => {
         await renderApp(null);
 
         expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
+        expect(screen.getByText('v2026.7.0')).toBeInTheDocument();
         expect(screen.queryByText(/Repairing dependencies/i)).toBeNull();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());
     });

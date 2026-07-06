@@ -61,6 +61,27 @@ vi.mock('@wordpress/components', () => ({
             ))}
         </div>
     ),
+    TabPanel: ({ tabs, children }: any) => {
+        const [activeName, setActiveName] = React.useState(tabs[0]?.name);
+        const activeTab = tabs.find((tab: any) => tab.name === activeName) ?? tabs[0];
+        return (
+            <div>
+                <div role="tablist">
+                    {tabs.map((tab: any) => (
+                        <button
+                            key={tab.name}
+                            role="tab"
+                            aria-selected={tab.name === activeName}
+                            onClick={() => setActiveName(tab.name)}
+                        >
+                            {tab.title}
+                        </button>
+                    ))}
+                </div>
+                <div role="tabpanel">{activeTab && children(activeTab)}</div>
+            </div>
+        );
+    },
 }));
 
 vi.mock('@wordpress/element', () => ({

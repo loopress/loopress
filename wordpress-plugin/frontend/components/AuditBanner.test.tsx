@@ -18,10 +18,20 @@ function emptyWrapper({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+function loadingWrapper({ children }: { children: React.ReactNode }) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
 describe('AuditBanner', () => {
-    test('renders nothing when there are no advisories or abandoned packages', () => {
-        const { container } = render(<AuditBanner />, { wrapper: emptyWrapper });
-        expect(container.firstChild).toBeNull();
+    test('shows a skeleton while loading', () => {
+        render(<AuditBanner />, { wrapper: loadingWrapper });
+        expect(screen.getByTestId('skeleton')).toBeInTheDocument();
+    });
+
+    test('shows a success notice when there are no advisories or abandoned packages', () => {
+        render(<AuditBanner />, { wrapper: emptyWrapper });
+        expect(screen.getByText(/No security advisories or abandoned packages detected/i)).toBeInTheDocument();
     });
 
     test('renders security advisory notice', () => {

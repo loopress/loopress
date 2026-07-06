@@ -129,6 +129,38 @@ class ComposerService
         ];
     }
 
+    public function getOutdated(): array
+    {
+        $result = $this->composerRunner->run(['outdated'], ['--direct' => true, '--format' => 'json']);
+
+        if ($result['exit_code'] !== 0) {
+            throw new \RuntimeException($result['output']);
+        }
+
+        // Strip any non-JSON preamble Composer may emit before the object.
+        $raw   = $result['output'];
+        $start = strpos($raw, '{');
+        $json  = $start !== false ? substr($raw, $start) : '{}';
+        $data  = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \RuntimeException('Failed to parse composer outdated output: ' . json_last_error_msg());
+        }
+
+        $installed = $data['installed'] ?? [];
+
+        $outdated = array_filter(
+            $installed,
+            fn($package) => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
+        );
+
+        return array_values(array_map(fn($package) => [
+            'name'    => $package['name'],
+            'version' => $package['version'],
+            'latest'  => $package['latest'],
+        ], $outdated));
+    }
+
     public function audit(): array
     {
         $result = $this->composerRunner->run(['audit'], ['--format' => 'json']);

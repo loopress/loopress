@@ -237,6 +237,64 @@ class ComposerServiceTest extends TestCase
         $this->service->audit();
     }
 
+    // ── getOutdated ──────────────────────────────────────────────────────────
+
+    public function test_getOutdated_filters_packages_already_up_to_date(): void
+    {
+        $this->runner->method('run')
+            ->with(['outdated'], ['--direct' => true, '--format' => 'json'])
+            ->willReturn([
+                'exit_code' => 0,
+                'output'    => json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+                    'installed' => [
+                        ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.0', 'latest' => '7.9.0'],
+                        ['name' => 'monolog/monolog', 'version' => '3.0.0', 'latest' => '3.0.0'],
+                    ],
+                ]),
+            ]);
+
+        $result = $this->service->getOutdated();
+
+        $this->assertCount(1, $result);
+        $this->assertSame([
+            'name'    => 'guzzlehttp/guzzle',
+            'version' => '7.8.0',
+            'latest'  => '7.9.0',
+        ], $result[0]);
+    }
+
+    public function test_getOutdated_returns_empty_when_everything_is_current(): void
+    {
+        $this->runner->method('run')->willReturn([
+            'exit_code' => 0,
+            'output'    => '{"installed":[]}',
+        ]);
+
+        $this->assertSame([], $this->service->getOutdated());
+    }
+
+    public function test_getOutdated_handles_non_json_preamble(): void
+    {
+        $this->runner->method('run')->willReturn([
+            'exit_code' => 0,
+            'output'    => 'Some preamble text{"installed":[{"name":"a/b","version":"1.0.0","latest":"1.1.0"}]}',
+        ]);
+
+        $result = $this->service->getOutdated();
+        $this->assertCount(1, $result);
+    }
+
+    public function test_getOutdated_throws_on_nonzero_exit_code(): void
+    {
+        $this->runner->method('run')->willReturn([
+            'exit_code' => 1,
+            'output'    => 'Fatal error',
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->service->getOutdated();
+    }
+
     // ── sync ──────────────────────────────────────────────────────────────────
 
     public function test_sync_rejects_invalid_json(): void

@@ -54,11 +54,14 @@ class AdminPageModule implements Module
 
         wp_enqueue_style('wp-components');
 
+        $pluginData = get_file_data(LOOPRESS_PLUGIN_PATH . 'loopress.php', ['Version' => 'Version']);
+
         wp_localize_script('loopress-admin', 'loopressData', [
             'apiUrl'        => get_rest_url(null, 'loopress/v1'),
             'nonce'         => wp_create_nonce('wp_rest'),
             'autoloadError' => $this->autoloadError,
             'phpVersion'    => PHP_VERSION,
+            'pluginVersion' => $pluginData['Version'],
         ]);
     }
 
