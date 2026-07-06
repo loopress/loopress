@@ -7,3 +7,6 @@ reports
 *.tgz
 npm-shrinkwrap.json
 package-lock.json
+playwright-report
+blob-report
+test-results

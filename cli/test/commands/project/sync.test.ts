@@ -288,6 +288,55 @@ describe('project sync', () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 1 environment'))
   })
 
+  it('reuses a local project already linked to the same API project instead of creating a duplicate', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      linkedProject('id-acme', 'acme', 'api-project-1', true),
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    get.mockResolvedValue([
+      {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
+      {
+        createdAt: '2026-01-01T00:00:00.000Z',
+        environments: [
+          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-9', name: 'production', url: 'https://beta.com'},
+        ],
+        id: 'api-project-9',
+        name: 'beta',
+        slug: 'beta',
+      },
+    ])
+    // Simulates a local project whose link to api-project-9 was lost from `listProjects()`'s
+    // view (e.g. a partially corrupted config), but is still discoverable by api id.
+    vi.spyOn(configManager, 'findProjectByApiId').mockReturnValue({
+      addedAt: '2025-06-01T00:00:00.000Z',
+      apiProjectId: 'api-project-9',
+      environments: {},
+      id: 'id-beta-existing',
+      name: 'beta',
+    })
+    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+    const createProjectId = vi.spyOn(configManager, 'createProjectId')
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(createProjectId).not.toHaveBeenCalled()
+    expect(setProject).toHaveBeenCalledWith('id-beta-existing', {
+      addedAt: '2025-06-01T00:00:00.000Z',
+      apiProjectId: 'api-project-9',
+      environments: {
+        production: {
+          addedAt: '2026-01-01T00:00:00.000Z',
+          apiEnvironmentId: 'api-env-9',
+          name: 'production',
+          url: 'https://beta.com',
+        },
+      },
+      name: 'beta',
+    })
+  })
+
   it('titles and reports the project Listr task as "Create" when creating, and "Created on the API" once applied', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])

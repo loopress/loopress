@@ -110,6 +110,22 @@ jobs:
           WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
         run: pnpm test:e2e
 
+      - name: Install Playwright browsers
+        working-directory: cli
+        run: npx playwright install --with-deps chromium
+
+      - name: Run CLI e2e tests
+        working-directory: cli
+        env:
+          WP_URL: http://localhost:8080
+          WP_USERNAME: admin
+          # Matches the account password `loopress/setup-ci` hardcodes when it runs
+          # `wp core install --admin_password="admin"` — needed for wp-admin UI login,
+          # distinct from the REST API application password above.
+          WP_ADMIN_PASSWORD: admin
+          WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
+        run: pnpm test:e2e
+
   plugin-php:
     name: Plugin:PHPStan + PHPUnit
     runs-on: ubuntu-latest

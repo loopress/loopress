@@ -30,6 +30,19 @@ export class ProjectConfigManager {
     }
   }
 
+  // Looks up a local project already linked to a given API project, regardless of whether
+  // it was "claimed" in the current sync run. Used by `project sync` to avoid minting a new
+  // local project every time it pulls an API project whose local link was lost (e.g. after
+  // a reset or partial config corruption), which otherwise accumulates duplicate entries.
+  findProjectByApiId(apiProjectId: string): null | (ProjectConfig & {id: string}) {
+    const config = this.readConfig()
+    for (const [id, project] of Object.entries(config.projects)) {
+      if (project.apiProjectId === apiProjectId) return {...project, id}
+    }
+
+    return null
+  }
+
   getConfigFilePath(): string {
     return join(this.homeDir, '.loopress', 'config.json')
   }

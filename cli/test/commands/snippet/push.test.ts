@@ -199,6 +199,24 @@ describe('snippet push', () => {
     })
   })
 
+  describe('loadSnippets error isolation', () => {
+    it('skips a snippet with a malformed sidecar .json instead of aborting the whole push', async () => {
+      writeFileSync(join(dir, '1-broken.php'), '<?php echo 1;')
+      writeFileSync(join(dir, '1-broken.json'), '{ this is not valid json !!')
+      writeFileSync(join(dir, '2-fine.php'), '<?php echo 2;')
+      writeFileSync(join(dir, '2-fine.json'), JSON.stringify({id: 2, name: 'Fine'}))
+
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+
+      const snippets = await (cmd as unknown as PushWithLoadSnippets).loadSnippets(dir)
+
+      expect(snippets).toHaveLength(1)
+      expect(snippets[0].name).toBe('Fine')
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('1-broken.json'))
+    })
+  })
+
   describe('ensureCanonicalFilename', () => {
     it('renames a file with no id/slug in its name (e.g. a hand-created demo.php)', async () => {
       writeFileSync(join(dir, 'demo.php'), '<?php\n\necho "salut";')
@@ -341,6 +359,7 @@ function ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Pr
 }
 
 function loadSnippets(path: string): Promise<Snippet[]> {
-  const cmd = new Push([], fakeOclifConfig) as unknown as PushWithLoadSnippets
-  return cmd.loadSnippets(path)
+  const cmd = new Push([], fakeOclifConfig)
+  silenceLogs(cmd)
+  return (cmd as unknown as PushWithLoadSnippets).loadSnippets(path)
 }

@@ -96,6 +96,17 @@ describe('WpClient', () => {
 
     await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Request failed \(500\)/)
   })
+
+  it("surfaces the server's own error message alongside the status code", async () => {
+    const client = await serve((req, res) => {
+      res.writeHead(500, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify({error: 'Multiple snippet plugins are active at once.'}))
+    })
+
+    await expect(client.get('loopress/v1/snippets')).rejects.toThrow(
+      /Request failed \(500\).*Multiple snippet plugins are active at once\./,
+    )
+  })
 })
 
 // eslint-disable-next-line mocha/max-top-level-suites -- one suite per exported symbol of wp-client.ts
@@ -112,6 +123,29 @@ describe('formatWpError', () => {
 
   it('mentions the plugin on 404', () => {
     expect(formatWpError({response: {statusCode: 404}}, url)).toContain('Is the required plugin installed')
+  })
+
+  it("includes the server's own {error} message for other status codes", () => {
+    const body = JSON.stringify({error: 'Multiple snippet plugins are active at once.'})
+    const message = formatWpError({response: {body, statusCode: 500}}, url)
+    expect(message).toContain('Request failed (500)')
+    expect(message).toContain('Multiple snippet plugins are active at once.')
+  })
+
+  it("includes the server's own {message} field when there is no {error} field", () => {
+    const body = JSON.stringify({message: 'Something else went wrong.'})
+    const message = formatWpError({response: {body, statusCode: 500}}, url)
+    expect(message).toContain('Something else went wrong.')
+  })
+
+  it('falls back to the generic message when the body has neither field', () => {
+    const message = formatWpError({response: {body: '{}', statusCode: 500}}, url)
+    expect(message).toBe(`Request failed (500) on ${url}.`)
+  })
+
+  it('falls back to the generic message when the body is not valid JSON', () => {
+    const message = formatWpError({response: {body: 'not json', statusCode: 500}}, url)
+    expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 
   it('mentions the timeout duration on TimeoutError', () => {
