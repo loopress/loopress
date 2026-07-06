@@ -11,6 +11,31 @@ jobs:
     name: CLI:Unit tests (Vitest)
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/cli...
+
+      - name: Build CLI
+        working-directory: cli
+        run: pnpm build
+
+      - name: Run CLI unit tests
+        working-directory: cli
+        run: pnpm test
+
+  cli-e2e:
+    name: CLI:E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           # None of these jobs push or commit back to the repo, so the checked-out
@@ -95,20 +120,6 @@ jobs:
         run: |
           TOKEN=$(jq -r '.projects[.currentProject.id].environments[.currentProject.env].token' ~/.loopress/config.json)
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run CLI e2e tests
-        env:
-          WP_URL: http://localhost:8080
-          WP_USERNAME: admin
-          # Matches the account password `loopress/setup-ci` hardcodes when it runs
-          # `wp core install --admin_password="admin"` — needed for wp-admin UI login,
-          # distinct from the REST API application password above.
-          WP_ADMIN_PASSWORD: admin
-          WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
-        run: pnpm test:e2e
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
