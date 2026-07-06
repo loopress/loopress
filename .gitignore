@@ -6,3 +6,5 @@ node_modules
 **/.env
 dist
 tmp
+.vercel
+.env*
