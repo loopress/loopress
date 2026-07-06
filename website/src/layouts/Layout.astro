@@ -1,6 +1,5 @@
 ---
 import "../styles.css";
-import faviconUrl from "@loopress/assets/loopress-logo-black.svg?url";
 import Analytics from "@vercel/analytics/astro";
 
 interface Props {
@@ -66,7 +65,7 @@ const orgSchema = {
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
     />
-    <link rel="icon" type="image/svg+xml" href={faviconUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
     {
       structuredData && (

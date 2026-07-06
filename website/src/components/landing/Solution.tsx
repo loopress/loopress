@@ -1,18 +1,15 @@
 import { SectionLabel } from "./Problem";
 
-const PILLARS = [
-  { t: "Snippets in Git", d: "Pull snippets as .php files, edit them locally, commit, push back." },
-  {
-    t: "Plugin Lockfile",
-    d: "Declare plugin versions in loopress.json and sync any environment with one command.",
-  },
-  {
-    t: "Composer without SSH",
-    d: "Search and install Packagist packages from the WordPress admin panel.",
-  },
+const COMPAT = [
+  "Code Snippets",
+  "WPCode",
+  "WordPress.org",
+  "Git",
+  "Composer",
+  "Packagist",
+  "GitHub Actions",
+  "GitLab CI",
 ];
-
-const COMPAT = ["Code Snippets", "WPCode", "WordPress.org", "Git", "Composer", "Packagist"];
 
 export function Solution() {
   return (
@@ -23,25 +20,11 @@ export function Solution() {
           One CLI. One plugin. Every workflow.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          A CLI to version-control snippets and plugins. A WordPress plugin to manage
-          Composer dependencies without touching a terminal.
+          A CLI to version-control snippets and plugins. A WordPress plugin to manage Composer
+          dependencies without touching a terminal.
         </p>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border/80 bg-border/80 md:grid-cols-2">
-          {PILLARS.map((p, i) => (
-            <div
-              key={p.t}
-              className="group relative bg-card/60 p-6 transition-colors hover:bg-card"
-            >
-              <div className="font-mono text-[10px] text-muted-foreground">0{i + 1}</div>
-              <div className="mt-3 text-base font-medium text-foreground">{p.t}</div>
-              <div className="mt-1.5 text-sm text-muted-foreground">{p.d}</div>
-              <div className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-accent-cyan/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 flex flex-col items-start gap-4 md:flex-row md:items-center">
+        <div className="mt-14 flex flex-col items-start gap-4 md:flex-row md:items-center">
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
             Compatible with
           </span>

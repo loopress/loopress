@@ -93,7 +93,6 @@ export default defineConfig({
                         { label: 'Overview', slug: 'ci' },
                         { label: 'GitHub Actions', slug: 'ci/github-actions' },
                         { label: 'GitLab CI', slug: 'ci/gitlab' },
-                        { label: 'CircleCI', slug: 'ci/circleci' },
                     ],
                 },
             ],
