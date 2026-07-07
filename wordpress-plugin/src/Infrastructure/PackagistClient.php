@@ -17,7 +17,7 @@ class PackagistClient
     {
         // Wrapped in an array so a cached null ("package not found") is
         // distinguishable from a cache miss (get_transient returns false).
-        $cacheKey = 'loopress_pkg_versions_' . md5($package);
+        $cacheKey = 'loopress_pkg_versions_' . hash('sha256', $package);
         $cached   = get_transient($cacheKey);
         if (is_array($cached) && array_key_exists('versions', $cached)) {
             return $cached['versions'];
