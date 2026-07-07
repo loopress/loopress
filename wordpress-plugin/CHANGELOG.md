@@ -1,5 +1,13 @@
 # @loopress/wordpress-plugin
 
+## 2026.7.2
+
+### Patch Changes
+
+- 3f04ab4: Replace md5 hash function by native hash function with sha256
+- 13c5fb9: Add tab on the UI and diagnostics panel
+- 1dc1228: Unify snippet route
+
 ## 2026.7.1
 
 ### Patch Changes

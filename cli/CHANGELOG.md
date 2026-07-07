@@ -1,5 +1,11 @@
 # @loopress/cli
 
+## 0.12.0
+
+### Minor Changes
+
+- 8a3e52f: Sync projects and snippet files during push/pull
+
 ## 0.11.0
 
 ### Minor Changes
