@@ -297,6 +297,35 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    // ── deleteSnippet ─────────────────────────────────────────────────────────
+
+    public function test_delete_snippet_deletes_the_post_and_returns_true(): void
+    {
+        $this->stubExistingSnippet(6);
+
+        $deletedPost = new WP_Post();
+        $deletedPost->ID = 6;
+        Functions\expect('wp_delete_post')->once()->with(6, true)->andReturn($deletedPost);
+
+        $this->assertTrue($this->service->deleteSnippet(6));
+    }
+
+    public function test_delete_snippet_returns_false_when_the_post_does_not_exist(): void
+    {
+        Functions\when('get_post')->justReturn(null);
+        Functions\expect('wp_delete_post')->never();
+
+        $this->assertFalse($this->service->deleteSnippet(999));
+    }
+
+    public function test_delete_snippet_returns_false_when_wp_delete_post_fails(): void
+    {
+        $this->stubExistingSnippet(6);
+        Functions\when('wp_delete_post')->justReturn(false);
+
+        $this->assertFalse($this->service->deleteSnippet(6));
+    }
+
     /**
      * @param string[]             $typeTerms
      * @param string[]             $locationTerms

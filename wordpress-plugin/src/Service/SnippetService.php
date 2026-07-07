@@ -43,6 +43,11 @@ class SnippetService
         return $this->requireActiveProvider()->updateSnippet($id, $data);
     }
 
+    public function deleteSnippet(int $id): bool
+    {
+        return $this->requireActiveProvider()->deleteSnippet($id);
+    }
+
     /** @return SnippetProvider[] */
     private function activeProviders(): array
     {

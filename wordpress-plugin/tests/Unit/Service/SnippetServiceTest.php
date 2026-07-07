@@ -105,4 +105,22 @@ class SnippetServiceTest extends TestCase
 
         $this->assertSame(['id' => 2], $service->getSnippet(2));
     }
+
+    public function test_delete_snippet_delegates_to_active_provider(): void
+    {
+        $active = $this->provider(true);
+        $active->method('deleteSnippet')->with(2)->willReturn(true);
+
+        $service = new SnippetService($active);
+
+        $this->assertTrue($service->deleteSnippet(2));
+    }
+
+    public function test_delete_snippet_throws_when_no_provider_is_active(): void
+    {
+        $service = new SnippetService($this->provider(false));
+
+        $this->expectException(\RuntimeException::class);
+        $service->deleteSnippet(2);
+    }
 }
