@@ -24,7 +24,7 @@ export async function sendContactEmail(data: ContactData) {
       <p><strong>From:</strong> ${data.name} (${data.email})</p>
       <p><strong>Subject:</strong> ${data.subject}</p>
       <hr />
-      <p>${data.message.replace(/\n/g, "<br />")}</p>
+      <p>${data.message.replaceAll(/\n/g, "<br />")}</p>
     `,
   });
 }
