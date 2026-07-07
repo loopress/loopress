@@ -1,7 +1,7 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, writeFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {mkdir, readdir, rm, writeFile} from 'node:fs/promises'
+import {extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -60,16 +60,26 @@ export default class Pull extends LoopressCommand {
 
     const remoteList = await this.wp.get<Record<string, unknown>[]>(SNIPPETS_ENDPOINT)
     const snippets = remoteList.map((r) => normalizeSnippet(r))
+    const pullable = snippets.filter((snippet) => snippet.name.trim())
+    const skipped = snippets.length - pullable.length
+
+    // Files following the `<id>-<slug>` convention whose id is no longer in the current
+    // remote list belong to a snippet that was deleted on WordPress. Left on disk, they'd
+    // silently come back to life the next time `snippet push` runs.
+    const orphans = await this.findOrphanedFiles(path, new Set(pullable.map((snippet) => snippet.id)))
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to ${path}`)
+      if (orphans.length > 0) {
+        this.log(
+          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
+        )
+      }
+
       return
     }
 
     await mkdir(path, {recursive: true})
-
-    const pullable = snippets.filter((snippet) => snippet.name.trim())
-    const skipped = snippets.length - pullable.length
 
     await new Listr(
       pullable.map((snippet) => ({
@@ -85,9 +95,40 @@ export default class Pull extends LoopressCommand {
       })),
     ).run()
 
+    for (const file of orphans) await rm(join(path, file), {force: true})
+    if (orphans.length > 0) {
+      this.warn(
+        `Removed ${orphans.length} local file${orphans.length === 1 ? '' : 's'} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
+      )
+    }
+
     this.log(`Pulled ${pullable.length} snippet${pullable.length === 1 ? '' : 's'} to ${path}`)
     if (skipped > 0) {
       this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
+  }
+
+  // Only ever matches files already following the `<id>-<slug>` convention that `snippet
+  // pull`/`push` themselves produce, so a hand-created file without a numeric prefix is
+  // never at risk of being picked up here.
+  private async findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]> {
+    let files: string[]
+    try {
+      files = await readdir(path)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+
+      throw error
+    }
+
+    const knownExtensions = new Set(['json', ...Object.values(EXTENSIONS)])
+
+    return files.filter((file) => {
+      const ext = extname(file).slice(1)
+      if (!knownExtensions.has(ext)) return false
+
+      const match = /^(\d+)-/.exec(file)
+      return match !== null && !keepIds.has(Number(match[1]))
+    })
   }
 }

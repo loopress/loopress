@@ -111,14 +111,24 @@ export default class Push extends PushCommand {
   private async loadSnippets(path: string): Promise<Snippet[]> {
     const snippets: Snippet[] = []
 
+    let files: string[]
     try {
-      const files = await readdir(path)
-      for (const file of files) {
-        const ext = extname(file)
-        if (!(ext in TYPE_BY_EXTENSION)) continue
+      files = await readdir(path)
+    } catch (error) {
+      this.error(`Error loading snippets: ${(error as Error).message}`)
+    }
 
-        const filePath = join(path, file)
-        const metaPath = join(path, `${basename(file, ext)}.json`)
+    for (const file of files) {
+      const ext = extname(file)
+      if (!(ext in TYPE_BY_EXTENSION)) continue
+
+      const filePath = join(path, file)
+      const metaPath = join(path, `${basename(file, ext)}.json`)
+
+      // One snippet's files are read in isolation: a corrupted or hand-broken sidecar
+      // (bad JSON, unreadable file, ...) must only skip that snippet, not abort the entire
+      // push for every other snippet in the directory.
+      try {
         const content = await readFile(filePath, 'utf8')
 
         let id: number | undefined
@@ -161,9 +171,9 @@ export default class Push extends PushCommand {
           tags,
           type: resolvedType,
         })
+      } catch (error) {
+        this.warn(`Skipping "${metaPath}": ${(error as Error).message}`)
       }
-    } catch (error) {
-      this.error(`Error loading snippets: ${(error as Error).message}`)
     }
 
     return snippets

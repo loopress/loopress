@@ -1,7 +1,18 @@
-import {describe, expect, it} from 'vitest'
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
-import {buildMetaFile, buildSnippetFile} from '../../../src/commands/snippet/pull.js'
+import Pull, {buildMetaFile, buildSnippetFile} from '../../../src/commands/snippet/pull.js'
 import {NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-format.js'
+import {fakeOclifConfig} from '../../helpers/oclif.js'
+
+type PullWithFindOrphanedFiles = {findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]>}
+
+function findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]> {
+  const cmd = new Pull([], fakeOclifConfig) as unknown as PullWithFindOrphanedFiles
+  return cmd.findOrphanedFiles(path, keepIds)
+}
 
 const base: NormalizedSnippet = {
   active: false,
@@ -18,6 +29,59 @@ const base: NormalizedSnippet = {
 }
 
 describe('pull helpers', () => {
+  describe('findOrphanedFiles', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    it('finds the code file and sidecar of a snippet no longer present remotely', async () => {
+      writeFileSync(join(dir, '12-coucou.html'), 'hi')
+      writeFileSync(join(dir, '12-coucou.json'), JSON.stringify({id: 12, name: 'coucou'}))
+
+      const orphans = await findOrphanedFiles(dir, new Set())
+
+      expect(orphans.sort()).toEqual(['12-coucou.html', '12-coucou.json'])
+    })
+
+    it('keeps files whose id is still in the current remote list', async () => {
+      writeFileSync(join(dir, '10-just-demo.php'), '<?php echo 1;')
+      writeFileSync(join(dir, '10-just-demo.json'), JSON.stringify({id: 10, name: 'Just demo'}))
+
+      const orphans = await findOrphanedFiles(dir, new Set([10]))
+
+      expect(orphans).toEqual([])
+    })
+
+    it('never touches a hand-created file with no numeric id prefix', async () => {
+      writeFileSync(join(dir, 'demo.php'), '<?php echo 1;')
+
+      const orphans = await findOrphanedFiles(dir, new Set())
+
+      expect(orphans).toEqual([])
+    })
+
+    it('ignores unrelated files in the snippets directory', async () => {
+      writeFileSync(join(dir, 'README.md'), '# notes')
+      writeFileSync(join(dir, '.DS_Store'), '')
+
+      const orphans = await findOrphanedFiles(dir, new Set())
+
+      expect(orphans).toEqual([])
+    })
+
+    it('returns an empty list when the snippets directory does not exist yet', async () => {
+      const orphans = await findOrphanedFiles(join(dir, 'does-not-exist'), new Set())
+
+      expect(orphans).toEqual([])
+    })
+  })
+
   describe('buildSnippetFile', () => {
     it('prepends <?php when PHP code has no opening tag', () => {
       const snippet = {...base, code: "add_filter('x', 'y');"}

@@ -277,14 +277,24 @@ export default class Sync extends Command {
   }
 
   private pullProject(apiProject: ApiProject, task?: {output: string}): void {
-    const environments: Record<string, EnvironmentConfig> = {}
+    // Reuse a local project already linked to this API project instead of always minting a
+    // new one: otherwise every sync run that can't "claim" an existing link (e.g. after the
+    // local config was reset or desynced from the API) creates yet another duplicate entry.
+    const existing = configManager.findProjectByApiId(apiProject.id)
+    const environments: Record<string, EnvironmentConfig> = {...existing?.environments}
 
     for (const env of apiProject.environments) {
-      environments[env.name] = {addedAt: env.createdAt, apiEnvironmentId: env.id, name: env.name, url: env.url}
+      environments[env.name] = {
+        ...environments[env.name],
+        addedAt: environments[env.name]?.addedAt ?? env.createdAt,
+        apiEnvironmentId: env.id,
+        name: env.name,
+        url: env.url,
+      }
     }
 
-    configManager.setProject(configManager.createProjectId(apiProject.name), {
-      addedAt: apiProject.createdAt,
+    configManager.setProject(existing?.id ?? configManager.createProjectId(apiProject.name), {
+      addedAt: existing?.addedAt ?? apiProject.createdAt,
       apiProjectId: apiProject.id,
       environments,
       name: apiProject.name,

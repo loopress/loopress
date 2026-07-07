@@ -171,6 +171,30 @@ describe('ProjectConfigManager', () => {
     })
   })
 
+  describe('findProjectByApiId', () => {
+    it('finds the project whose apiProjectId matches', () => {
+      manager.setProject('id-acme', {...makeProject('acme'), apiProjectId: 'api-1'})
+      manager.setProject('id-beta', {...makeProject('beta'), apiProjectId: 'api-2'})
+
+      const found = manager.findProjectByApiId('api-2')
+
+      expect(found?.id).toBe('id-beta')
+      expect(found?.name).toBe('beta')
+    })
+
+    it('returns null when no project has that apiProjectId', () => {
+      manager.setProject('id-acme', {...makeProject('acme'), apiProjectId: 'api-1'})
+
+      expect(manager.findProjectByApiId('api-unknown')).toBeNull()
+    })
+
+    it('returns null when the project has no apiProjectId at all', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+
+      expect(manager.findProjectByApiId('api-1')).toBeNull()
+    })
+  })
+
   describe('createProjectId', () => {
     it('slugifies the given name', () => {
       expect(manager.createProjectId('My Cool Project')).toBe('my-cool-project')
