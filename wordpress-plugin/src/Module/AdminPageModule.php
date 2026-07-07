@@ -41,7 +41,7 @@ class AdminPageModule implements Module
 
         $assetFile = LOOPRESS_PLUGIN_PATH . 'build/index.tsx.asset.php';
         $asset     = file_exists($assetFile)
-            ? require $assetFile
+            ? require_once $assetFile
             : ['dependencies' => [], 'version' => '1.0.0'];
 
         wp_enqueue_script(
