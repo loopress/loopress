@@ -31,6 +31,13 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
         reason: `The application authorization page was not found on ${siteUrl}. This WordPress site may be older than 5.6, or the feature may be disabled by a plugin.`,
       }
     }
+
+    if (response.statusCode >= 400) {
+      return {
+        ok: false,
+        reason: `The application authorization page at ${siteUrl}/wp-admin/authorize-application.php returned an error (HTTP ${response.statusCode}).`,
+      }
+    }
   } catch (error) {
     return {
       ok: false,

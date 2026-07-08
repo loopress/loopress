@@ -1,3 +1,4 @@
+import {randomBytes} from 'node:crypto'
 import {createServer} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
@@ -14,10 +15,18 @@ export type AuthorizeResult = {password: string; userLogin: string}
  * generated Application Password once WordPress redirects back.
  */
 export function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
+  const state = randomBytes(32).toString('hex')
+
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
+
+        if (url.searchParams.get('state') !== state) {
+          res.writeHead(400, {'Content-Type': 'text/plain'})
+          res.end('Invalid or missing state')
+          return
+        }
 
         if (url.pathname === '/reject') {
           res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'})
@@ -62,8 +71,8 @@ export function authorizeWithBrowser(siteUrl: string, log: (message: string) => 
 
     server.listen(0, '127.0.0.1', () => {
       const {port} = server.address() as AddressInfo
-      const successUrl = `http://localhost:${port}/callback`
-      const rejectUrl = `http://localhost:${port}/reject`
+      const successUrl = `http://localhost:${port}/callback?state=${state}`
+      const rejectUrl = `http://localhost:${port}/reject?state=${state}`
       const authorizeUrl =
         `${siteUrl}/wp-admin/authorize-application.php?app_name=${encodeURIComponent(APP_NAME)}` +
         `&success_url=${encodeURIComponent(successUrl)}&reject_url=${encodeURIComponent(rejectUrl)}`

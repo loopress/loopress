@@ -19,6 +19,16 @@ function toLoopbackIp(url: string): string {
   return url.replace('localhost', '127.0.0.1')
 }
 
+// success_url/reject_url already carry a `state` query param; got's `searchParams`
+// option replaces the URL's query string rather than merging into it, so tests add
+// params directly to the URL to keep `state` intact.
+function withParams(url: string, params: Record<string, string>): string {
+  const result = new URL(url)
+  for (const [key, value] of Object.entries(params)) result.searchParams.set(key, value)
+
+  return result.toString()
+}
+
 describe('authorizeWithBrowser', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -30,12 +40,10 @@ describe('authorizeWithBrowser', () => {
 
     expect(authorizeUrl.origin + authorizeUrl.pathname).toBe('https://example.com/wp-admin/authorize-application.php')
     expect(authorizeUrl.searchParams.get('app_name')).toBe('Loopress')
-    expect(authorizeUrl.searchParams.get('success_url')).toMatch(/^http:\/\/localhost:\d+\/callback$/)
-    expect(authorizeUrl.searchParams.get('reject_url')).toMatch(/^http:\/\/localhost:\d+\/reject$/)
+    expect(authorizeUrl.searchParams.get('success_url')).toMatch(/^http:\/\/localhost:\d+\/callback\?state=\w+$/)
+    expect(authorizeUrl.searchParams.get('reject_url')).toMatch(/^http:\/\/localhost:\d+\/reject\?state=\w+$/)
 
-    await got(toLoopbackIp(authorizeUrl.searchParams.get('success_url')!), {
-      searchParams: {password: 'secret', 'user_login': 'admin'},
-    })
+    await got(withParams(toLoopbackIp(authorizeUrl.searchParams.get('success_url')!), {password: 'secret', 'user_login': 'admin'}))
     await resultPromise
   })
 
@@ -44,7 +52,7 @@ describe('authorizeWithBrowser', () => {
     const authorizeUrl = await waitForAuthorizeUrl()
     const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
 
-    await got(successUrl, {searchParams: {password: 'app pass 1234', 'user_login': 'admin'}})
+    await got(withParams(successUrl, {password: 'app pass 1234', 'user_login': 'admin'}))
 
     await expect(resultPromise).resolves.toEqual({password: 'app pass 1234', userLogin: 'admin'})
   })
@@ -54,7 +62,7 @@ describe('authorizeWithBrowser', () => {
     const authorizeUrl = await waitForAuthorizeUrl()
     const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
 
-    await got(successUrl, {searchParams: {password: 'secret', 'user_login': 'admin'}})
+    await got(withParams(successUrl, {password: 'secret', 'user_login': 'admin'}))
     await resultPromise
 
     await expect(got(successUrl)).rejects.toThrow()
@@ -80,7 +88,7 @@ describe('authorizeWithBrowser', () => {
     const authorizeUrl = await waitForAuthorizeUrl()
     const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
 
-    await got(successUrl, {searchParams: {password: 'super-secret-app-password', 'user_login': 'admin'}})
+    await got(withParams(successUrl, {password: 'super-secret-app-password', 'user_login': 'admin'}))
     await resultPromise
 
     expect(logs.join('\n')).not.toContain('super-secret-app-password')
