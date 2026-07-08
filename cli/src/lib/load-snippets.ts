@@ -44,52 +44,57 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
 
     // One snippet's files are read in isolation: a corrupted or hand-broken sidecar (bad JSON,
     // unreadable file, ...) must only skip that snippet, not abort loading every other one.
+    let content: string
     try {
-      const content = await readFile(filePath, 'utf8')
-
-      let id: number | undefined
-      let name: string | undefined
-      let type: SnippetType | undefined
-      let active = false
-      let tags: string[] = []
-      let location: null | SnippetLocation = null
-      let insertMethod: null | SnippetInsertMethod = null
-      let priority = 10
-      let shortcodeAttributes: string[] = []
-      try {
-        const metaContent = await readFile(metaPath, 'utf8')
-        const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
-        id = meta.id ? Number(meta.id) : undefined
-        name = meta.name ? String(meta.name) : undefined
-        type = parseType(meta.type) ?? undefined
-        active = Boolean(meta.active)
-        tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
-        location = parseLocation(meta.location)
-        insertMethod = parseInsertMethod(meta.insertMethod)
-        priority = meta.priority === undefined ? 10 : Number(meta.priority)
-        shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-      }
-
-      const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext as keyof typeof TYPE_BY_EXTENSION] : 'php')
-
-      snippets.push({
-        active,
-        code: content,
-        id,
-        insertMethod: insertMethod ?? 'auto',
-        location: location ?? defaultLocationForType(resolvedType),
-        name: name ?? basename(file, ext),
-        path: filePath,
-        priority,
-        shortcodeAttributes,
-        tags,
-        type: resolvedType,
-      })
+      content = await readFile(filePath, 'utf8')
     } catch (error) {
-      onSkip?.(`Skipping "${metaPath}": ${(error as Error).message}`)
+      onSkip?.(`Skipping "${filePath}": ${(error as Error).message}`)
+      continue
     }
+
+    let id: number | undefined
+    let name: string | undefined
+    let type: SnippetType | undefined
+    let active = false
+    let tags: string[] = []
+    let location: null | SnippetLocation = null
+    let insertMethod: null | SnippetInsertMethod = null
+    let priority = 10
+    let shortcodeAttributes: string[] = []
+    try {
+      const metaContent = await readFile(metaPath, 'utf8')
+      const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
+      id = meta.id === undefined ? undefined : Number(meta.id)
+      name = meta.name ? String(meta.name) : undefined
+      type = parseType(meta.type) ?? undefined
+      active = Boolean(meta.active)
+      tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
+      location = parseLocation(meta.location)
+      insertMethod = parseInsertMethod(meta.insertMethod)
+      priority = meta.priority === undefined ? 10 : Number(meta.priority)
+      shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        onSkip?.(`Skipping "${metaPath}": ${(error as Error).message}`)
+        continue
+      }
+    }
+
+    const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext as keyof typeof TYPE_BY_EXTENSION] : 'php')
+
+    snippets.push({
+      active,
+      code: content,
+      id,
+      insertMethod: insertMethod ?? 'auto',
+      location: location ?? defaultLocationForType(resolvedType),
+      name: name ?? basename(file, ext),
+      path: filePath,
+      priority,
+      shortcodeAttributes,
+      tags,
+      type: resolvedType,
+    })
   }
 
   return snippets

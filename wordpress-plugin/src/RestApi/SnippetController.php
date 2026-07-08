@@ -170,7 +170,11 @@ class SnippetController
             return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
         }
 
-        $deleted = $this->snippetService->deleteSnippet((int) $request->get_param('id'));
+        try {
+            $deleted = $this->snippetService->deleteSnippet((int) $request->get_param('id'));
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
 
         if (!$deleted) {
             return new WP_REST_Response(['error' => 'Snippet not found'], 404);

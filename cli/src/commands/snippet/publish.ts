@@ -56,9 +56,13 @@ export default class Publish extends Command {
     }
 
     const api = new ApiClient(token)
-    await api.post(`projects/${project.apiProjectId}/snippets/publish`, {
-      snippets: snippets.map((snippet) => this.toPayload(snippet)),
-    })
+    try {
+      await api.post(`projects/${project.apiProjectId}/snippets/publish`, {
+        snippets: snippets.map((snippet) => this.toPayload(snippet)),
+      })
+    } catch (error) {
+      this.error((error as Error).message)
+    }
 
     this.log(`Published ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to your Loopress account.`)
   }
