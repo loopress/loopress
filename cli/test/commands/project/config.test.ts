@@ -3,6 +3,8 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Config from '../../../src/commands/project/config.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
+import {authorizeWithBrowser} from '../../../src/lib/wp-authorize-flow.js'
+import {diagnoseWpSite} from '../../../src/lib/wp-site-diagnostic.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv, makeListedProject} from '../../helpers/project-fixtures.js'
 
@@ -12,6 +14,9 @@ vi.mock('@inquirer/prompts', () => ({
   password: vi.fn(),
   select: vi.fn(),
 }))
+
+vi.mock('../../../src/lib/wp-authorize-flow.js', () => ({authorizeWithBrowser: vi.fn()}))
+vi.mock('../../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
 
 function make(): Config {
   return new Config([], fakeOclifConfig)
@@ -39,7 +44,9 @@ describe('project config', () => {
       .mockResolvedValueOnce('  mon site  ') // project name (untrimmed)
       .mockResolvedValueOnce('https://example.com') // url
       .mockResolvedValueOnce('admin') // username
-    vi.mocked(select).mockResolvedValueOnce('production') // environment choice
+    vi.mocked(select)
+      .mockResolvedValueOnce('production') // environment choice
+      .mockResolvedValueOnce('manual') // auth mode choice
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
@@ -69,7 +76,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(existingProject)
     const setEnvironment = vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('staging')
+    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('staging').mockResolvedValueOnce('manual')
     vi.mocked(input).mockResolvedValueOnce('https://staging.acme.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
@@ -114,7 +121,10 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(existingProject)
     const setEnvironment = vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('production')
+    vi.mocked(select)
+      .mockResolvedValueOnce('id-acme')
+      .mockResolvedValueOnce('production')
+      .mockResolvedValueOnce('manual')
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(input).mockResolvedValueOnce('https://new-url.acme.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -137,7 +147,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('__custom__')
+    vi.mocked(select).mockResolvedValueOnce('__custom__').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('qa')
@@ -159,7 +169,10 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce(('__new__') as never).mockResolvedValueOnce('production')
+    vi.mocked(select)
+      .mockResolvedValueOnce(('__new__') as never)
+      .mockResolvedValueOnce('production')
+      .mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('beta')
       .mockResolvedValueOnce('https://example.com')
@@ -185,7 +198,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('production')
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('https://example.com')
@@ -214,7 +227,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('__custom__')
+    vi.mocked(select).mockResolvedValueOnce('__custom__').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('qa')
@@ -254,7 +267,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('production')
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('http://example.com')
@@ -276,7 +289,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('production')
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('https://example.com')
@@ -308,7 +321,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('production')
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('https://example.com')
@@ -330,7 +343,10 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(beta)
     const setEnvironment = vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('id-beta').mockResolvedValueOnce('production')
+    vi.mocked(select)
+      .mockResolvedValueOnce('id-beta')
+      .mockResolvedValueOnce('production')
+      .mockResolvedValueOnce('manual')
     vi.mocked(input).mockResolvedValueOnce('https://beta.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
@@ -357,7 +373,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('production')
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('https://example.com')
@@ -372,5 +388,122 @@ describe('project config', () => {
     expect(validate('not a url')).toBe('Invalid URL')
     expect(validate('ftp://example.com')).toBe('URL must start with http:// or https://')
     expect(validate('https://example.com')).toBe(true)
+  })
+
+  it('prompts for the authentication mode with the expected options', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+    vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+    vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
+    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('https://example.com').mockResolvedValueOnce('admin')
+    vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(select).toHaveBeenCalledWith({
+      choices: [
+        {name: 'Authorize in my browser (recommended)', value: 'browser'},
+        {name: 'Enter credentials manually', value: 'manual'},
+      ],
+      message: 'How do you want to authenticate?',
+    })
+  })
+
+  it('authorizes via the browser and stores the resulting credentials as user:appPassword', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+    vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
+    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('https://example.com')
+    vi.mocked(diagnoseWpSite).mockResolvedValueOnce({ok: true})
+    vi.mocked(authorizeWithBrowser).mockResolvedValueOnce({password: 'app-pass-1234', userLogin: 'admin'})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(diagnoseWpSite).toHaveBeenCalledWith('https://example.com')
+    expect(authorizeWithBrowser).toHaveBeenCalledWith('https://example.com', expect.any(Function))
+    expect(input).not.toHaveBeenCalledWith(expect.objectContaining({message: 'Username'}))
+    expect(passwordPrompt).not.toHaveBeenCalled()
+    expect(setProject).toHaveBeenCalledWith(
+      'new-id',
+      expect.objectContaining({
+        environments: {production: expect.objectContaining({token: 'admin:app-pass-1234'})},
+      }),
+    )
+  })
+
+  it('falls back to manual credential entry when the pre-flight diagnostic fails', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+    vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
+    vi.mocked(input)
+      .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('https://example.com')
+      .mockResolvedValueOnce('admin')
+    vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
+    vi.mocked(diagnoseWpSite).mockResolvedValueOnce({
+      ok: false,
+      reason: 'Could not reach the WordPress REST API.',
+    })
+
+    const cmd = make()
+    const {warn} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(authorizeWithBrowser).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not reach the WordPress REST API.'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Falling back to manual credential entry.'))
+    expect(setProject).toHaveBeenCalledWith(
+      'new-id',
+      expect.objectContaining({
+        environments: {production: expect.objectContaining({token: 'admin:secret'})},
+      }),
+    )
+  })
+
+  it('falls back to manual credential entry when the browser authorization flow fails', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+    vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+    vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
+    vi.mocked(input)
+      .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('https://example.com')
+      .mockResolvedValueOnce('admin')
+    vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
+    vi.mocked(diagnoseWpSite).mockResolvedValueOnce({ok: true})
+    vi.mocked(authorizeWithBrowser).mockRejectedValueOnce(
+      new Error('Authorization rejected in WordPress. You can enter credentials manually instead.'),
+    )
+
+    const cmd = make()
+    const {warn} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Authorization rejected in WordPress.'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Falling back to manual credential entry.'))
+    expect(setProject).toHaveBeenCalledWith(
+      'new-id',
+      expect.objectContaining({
+        environments: {production: expect.objectContaining({token: 'admin:secret'})},
+      }),
+    )
   })
 })

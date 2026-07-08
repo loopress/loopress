@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/usr/bin/find . -path ./node_modules -prune -o -iname \"*login*\" -print)"
+    ]
+  }
+}

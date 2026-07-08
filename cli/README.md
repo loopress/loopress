@@ -21,7 +21,7 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.10.0 darwin-arm64 node-v24.11.0
+@loopress/cli/0.12.0 darwin-arm64 node-v24.11.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
@@ -61,6 +61,7 @@ report.
 * [`lps project switch`](#lps-project-switch)
 * [`lps project sync`](#lps-project-sync)
 * [`lps snippet list`](#lps-snippet-list)
+* [`lps snippet publish [PATH]`](#lps-snippet-publish-path)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
 * [`lps status`](#lps-status)
@@ -85,7 +86,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -107,7 +108,7 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/composer/push.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -144,7 +145,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -161,7 +162,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -178,7 +179,7 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/logout.ts)_
 
 ## `lps plugin add SLUG [VERSION]`
 
@@ -206,7 +207,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/plugin/add.ts)_
 
 ## `lps plugin pull`
 
@@ -228,7 +229,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -250,24 +251,25 @@ EXAMPLES
   $ lps plugin push --dry-run
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/plugin/push.ts)_
 
 ## `lps project config`
 
-Add or update a WordPress project environment
+Add or update a WordPress project environment. By default, authorizes via WordPress in your browser; manual username/Application Password entry is available as a fallback.
 
 ```
 USAGE
   $ lps project config
 
 DESCRIPTION
-  Add or update a WordPress project environment
+  Add or update a WordPress project environment. By default, authorizes via WordPress in your browser; manual
+  username/Application Password entry is available as a fallback.
 
 EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -284,7 +286,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/project/list.ts)_
 
 ## `lps project remove`
 
@@ -301,7 +303,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/project/remove.ts)_
 
 ## `lps project switch`
 
@@ -318,7 +320,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/project/switch.ts)_
 
 ## `lps project sync`
 
@@ -335,7 +337,7 @@ EXAMPLES
   $ lps project sync
 ```
 
-_See code: [src/commands/project/sync.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/project/sync.ts)_
+_See code: [src/commands/project/sync.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/project/sync.ts)_
 
 ## `lps snippet list`
 
@@ -355,7 +357,30 @@ EXAMPLES
   $ lps snippet list
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/list.ts)_
+
+## `lps snippet publish [PATH]`
+
+Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.
+
+```
+USAGE
+  $ lps snippet publish [PATH]
+
+ARGUMENTS
+  [PATH]  Path to snippets directory (overrides project config)
+
+DESCRIPTION
+  Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress
+  site.
+
+EXAMPLES
+  $ lps snippet publish
+
+  $ lps snippet publish --path ./snippets
+```
+
+_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -380,7 +405,7 @@ EXAMPLES
   $ lps snippet pull --path ./snippets
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -406,7 +431,7 @@ EXAMPLES
   $ lps snippet push --path ./snippets
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/push.ts)_
 
 ## `lps status`
 
@@ -423,5 +448,5 @@ EXAMPLES
   $ lps status
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.10.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/status.ts)_
 <!-- commandsstop -->
