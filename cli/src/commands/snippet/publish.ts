@@ -11,8 +11,8 @@ import {readLocalConfig} from '../../utils/loopress-config.js'
 
 // Publishes to the Loopress api (not a WordPress site), so this does not extend
 // `LoopressCommand`/`PushCommand`: those force an environment to be resolved, but a project
-// publishing its snippets for sharing doesn't need one — a pure "library" project (see
-// `_docs/SNIPPET_COLLECTIONS.md`) may have zero environments configured at all.
+// publishing its snippets for sharing doesn't need one, a pure "library" project 
+// may have zero environments configured at all.
 export default class Publish extends Command {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
