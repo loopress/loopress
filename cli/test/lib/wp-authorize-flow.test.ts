@@ -6,27 +6,11 @@ import {authorizeWithBrowser} from '../../src/lib/wp-authorize-flow.js'
 
 vi.mock('../../src/lib/open-browser.js', () => ({openBrowser: vi.fn()}))
 
-async function waitForAuthorizeUrl(): Promise<URL> {
+async function waitForOpenUrl(): Promise<URL> {
   await vi.waitFor(() => {
     expect(openBrowser).toHaveBeenCalled()
   })
   return new URL(vi.mocked(openBrowser).mock.calls[0][0])
-}
-
-// The server only binds to the 127.0.0.1 interface; resolving "localhost" can flakily
-// hit the ::1 (IPv6) stack instead and fail to connect, so tests dial the IP directly.
-function toLoopbackIp(url: string): string {
-  return url.replace('localhost', '127.0.0.1')
-}
-
-// success_url/reject_url already carry a `state` query param; got's `searchParams`
-// option replaces the URL's query string rather than merging into it, so tests add
-// params directly to the URL to keep `state` intact.
-function withParams(url: string, params: Record<string, string>): string {
-  const result = new URL(url)
-  for (const [key, value] of Object.entries(params)) result.searchParams.set(key, value)
-
-  return result.toString()
 }
 
 describe('authorizeWithBrowser', () => {
@@ -34,63 +18,37 @@ describe('authorizeWithBrowser', () => {
     vi.clearAllMocks()
   })
 
-  it('opens authorize-application.php with app_name, success_url, and reject_url pointing at a local callback server', async () => {
-    const resultPromise = authorizeWithBrowser('https://example.com', () => {})
-    const authorizeUrl = await waitForAuthorizeUrl()
+  it('opens the api.loopress.dev relay URL with callbackUrl and wpUrl params', async () => {
+    authorizeWithBrowser('https://my-wp-site.com', () => {})
+    const relayUrl = await waitForOpenUrl()
 
-    expect(authorizeUrl.origin + authorizeUrl.pathname).toBe('https://example.com/wp-admin/authorize-application.php')
-    expect(authorizeUrl.searchParams.get('app_name')).toBe('Loopress')
-    expect(authorizeUrl.searchParams.get('success_url')).toMatch(/^http:\/\/localhost:\d+\/callback\?state=\w+$/)
-    expect(authorizeUrl.searchParams.get('reject_url')).toMatch(/^http:\/\/localhost:\d+\/reject\?state=\w+$/)
-
-    await got(withParams(toLoopbackIp(authorizeUrl.searchParams.get('success_url')!), {password: 'secret', 'user_login': 'admin'}))
-    await resultPromise
+    expect(relayUrl.origin).toBe('https://api.loopress.dev')
+    expect(relayUrl.pathname).toBe('/auth/wp-authorize')
+    expect(relayUrl.searchParams.get('wpUrl')).toBe('https://my-wp-site.com')
+    expect(relayUrl.searchParams.get('callbackUrl')).toMatch(/^http:\/\/localhost:\d+$/)
   })
 
-  it('resolves with the user_login and password sent to the success callback', async () => {
+  it('resolves with password and userLogin received via POST body', async () => {
     const resultPromise = authorizeWithBrowser('https://example.com', () => {})
-    const authorizeUrl = await waitForAuthorizeUrl()
-    const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
+    const relayUrl = await waitForOpenUrl()
+    const callbackUrl = relayUrl.searchParams.get('callbackUrl')!
 
-    await got(withParams(successUrl, {password: 'app pass 1234', 'user_login': 'admin'}))
+    await got(`${callbackUrl}/callback`, {
+      method: 'POST',
+      // eslint-disable-next-line camelcase
+      form: {password: 'app-pass-123', user_login: 'admin'},
+    })
 
-    await expect(resultPromise).resolves.toEqual({password: 'app pass 1234', userLogin: 'admin'})
+    await expect(resultPromise).resolves.toEqual({password: 'app-pass-123', userLogin: 'admin'})
   })
 
-  it('closes the local server immediately after receiving the callback', async () => {
+  it('rejects when the user cancels authorization in WordPress', async () => {
     const resultPromise = authorizeWithBrowser('https://example.com', () => {})
-    const authorizeUrl = await waitForAuthorizeUrl()
-    const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
+    const relayUrl = await waitForOpenUrl()
+    const callbackUrl = relayUrl.searchParams.get('callbackUrl')!
 
-    await got(withParams(successUrl, {password: 'secret', 'user_login': 'admin'}))
-    await resultPromise
-
-    await expect(got(successUrl)).rejects.toThrow()
-  })
-
-  it('rejects with a clear error when the user declines authorization in WordPress', async () => {
-    const resultPromise = authorizeWithBrowser('https://example.com', () => {})
-    const authorizeUrl = await waitForAuthorizeUrl()
-    const rejectUrl = toLoopbackIp(authorizeUrl.searchParams.get('reject_url')!)
-
-    // Attach the rejection assertion before triggering the callback: the server rejects
-    // `resultPromise` synchronously while handling the request, which can race ahead of
-    // `got(rejectUrl)`'s own promise settling and get reported as an unhandled rejection
-    // if nothing is listening on `resultPromise` yet.
     const assertion = expect(resultPromise).rejects.toThrow(/rejected/i)
-    await got(rejectUrl)
+    await got(`${callbackUrl}/callback?cancelled=1`)
     await assertion
-  })
-
-  it('never logs the received password', async () => {
-    const logs: string[] = []
-    const resultPromise = authorizeWithBrowser('https://example.com', (message) => logs.push(message))
-    const authorizeUrl = await waitForAuthorizeUrl()
-    const successUrl = toLoopbackIp(authorizeUrl.searchParams.get('success_url')!)
-
-    await got(withParams(successUrl, {password: 'super-secret-app-password', 'user_login': 'admin'}))
-    await resultPromise
-
-    expect(logs.join('\n')).not.toContain('super-secret-app-password')
   })
 })

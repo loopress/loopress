@@ -1,18 +1,36 @@
-import {createServer, type ServerResponse} from 'node:http'
+import {createServer, type IncomingMessage, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
 
+async function readBody(req: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) chunks.push(chunk as Buffer)
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+function parseFormData(body: string): Record<string, string> {
+  const params: Record<string, string> = {}
+
+  for (const part of body.split('&')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) continue
+    params[decodeURIComponent(part.slice(0, eq))] = decodeURIComponent(part.slice(eq + 1))
+  }
+
+  return params
+}
+
 export type CallbackHelpers<T> = {
+  body: Record<string, string>
   rejectWithPage: (page: string, error: Error) => void
   resolveWithPage: (page: string, value: T) => void
   respondBadRequest: (message: string) => void
 }
 
 /**
- * Both `login` and `authorizeWithBrowser` send the user to a URL in their browser and need to
- * catch the resulting redirect on a short-lived local server; this factors out the server setup,
- * timeout, and browser-opening boilerplate they'd otherwise duplicate.
+ * Sends the user to a URL in their browser and catches the resulting redirect on a short-lived
+ * local server; this factors out the server setup, timeout, and browser-opening boilerplate.
  */
 export function waitForLocalCallback<T>(options: {
   buildUrl: (callbackBaseUrl: string) => string
@@ -33,9 +51,11 @@ export function waitForLocalCallback<T>(options: {
       settle()
     }
 
-    const server = createServer((req, res) => {
+    const server = createServer(async (req, res) => {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
+        const body: Record<string, string> =
+          req.method === 'POST' ? parseFormData(await readBody(req)) : {}
 
         options.handleRequest(url, {
           rejectWithPage: (page, error) => finish(res, page, () => reject(error)),
@@ -44,6 +64,7 @@ export function waitForLocalCallback<T>(options: {
             res.writeHead(400, {'Content-Type': 'text/plain'})
             res.end(message)
           },
+          body,
         })
       } catch (error) {
         res.writeHead(500)
