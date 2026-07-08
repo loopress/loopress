@@ -61,6 +61,7 @@ report.
 * [`lps project switch`](#lps-project-switch)
 * [`lps project sync`](#lps-project-sync)
 * [`lps snippet list`](#lps-snippet-list)
+* [`lps snippet publish [PATH]`](#lps-snippet-publish-path)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
 * [`lps status`](#lps-status)
@@ -357,6 +358,29 @@ EXAMPLES
 ```
 
 _See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/list.ts)_
+
+## `lps snippet publish [PATH]`
+
+Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.
+
+```
+USAGE
+  $ lps snippet publish [PATH]
+
+ARGUMENTS
+  [PATH]  Path to snippets directory (overrides project config)
+
+DESCRIPTION
+  Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress
+  site.
+
+EXAMPLES
+  $ lps snippet publish
+
+  $ lps snippet publish --path ./snippets
+```
+
+_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.12.0/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 
