@@ -2,12 +2,17 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
+import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
+import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
 
 const NEW_PROJECT = '__new__'
+const AUTH_BROWSER = 'browser'
+const AUTH_MANUAL = 'manual'
 
 export default class Config extends Command {
-  static description = 'Add or update a WordPress project environment'
+  static description =
+    'Add or update a WordPress project environment. By default, authorizes via WordPress in your browser; manual username/Application Password entry is available as a fallback.'
   static examples = ['$ lps project config']
 
   async run(): Promise<void> {
@@ -46,7 +51,7 @@ export default class Config extends Command {
       }
     }
 
-    const url = await input({
+    const rawUrl = await input({
       message: 'WordPress URL',
       validate(value) {
         try {
@@ -61,17 +66,9 @@ export default class Config extends Command {
         }
       },
     })
+    const url = rawUrl.replace(/\/+$/, '')
 
-    const user = await input({
-      message: 'Username',
-      validate: (value) => (value.trim().length > 0 ? true : 'Username cannot be empty'),
-    })
-
-    const appPassword = await passwordPrompt({
-      mask: '*',
-      message: 'Application password',
-      validate: (value) => (value.trim().length > 0 ? true : 'Application password cannot be empty'),
-    })
+    const {appPassword, user} = await this.resolveCredentials(url)
 
     const token = `${user}:${appPassword}`
 
@@ -95,6 +92,49 @@ export default class Config extends Command {
 
     this.log(`✓ "${projectName}/${envName}" configured`)
     this.log('→ Run `lps project switch` to change the active project or environment')
+  }
+
+  private async promptManualCredentials(): Promise<{appPassword: string; user: string}> {
+    const user = await input({
+      message: 'Username',
+      validate: (value) => (value.trim().length > 0 ? true : 'Username cannot be empty'),
+    })
+
+    const appPassword = await passwordPrompt({
+      mask: '*',
+      message: 'Application password',
+      validate: (value) => (value.trim().length > 0 ? true : 'Application password cannot be empty'),
+    })
+
+    return {appPassword, user}
+  }
+
+  private async resolveCredentials(url: string): Promise<{appPassword: string; user: string}> {
+    const authMode = await select({
+      choices: [
+        {name: 'Authorize in my browser (recommended)', value: AUTH_BROWSER},
+        {name: 'Enter credentials manually', value: AUTH_MANUAL},
+      ],
+      message: 'How do you want to authenticate?',
+    })
+
+    if (authMode === AUTH_MANUAL) {
+      return this.promptManualCredentials()
+    }
+
+    const diagnostic = await diagnoseWpSite(url)
+    if (!diagnostic.ok) {
+      this.warn(`${diagnostic.reason}\nFalling back to manual credential entry.`)
+      return this.promptManualCredentials()
+    }
+
+    try {
+      const {password, userLogin} = await authorizeWithBrowser(url, (message) => this.log(message))
+      return {appPassword: password, user: userLogin}
+    } catch (error) {
+      this.warn(`${(error as Error).message}\nFalling back to manual credential entry.`)
+      return this.promptManualCredentials()
+    }
   }
 
   private async resolveProject(): Promise<{projectId: string; projectName: string}> {

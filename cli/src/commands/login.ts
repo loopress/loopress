@@ -1,9 +1,9 @@
 import {Command} from '@oclif/core'
-import {exec} from 'node:child_process'
 import {createServer} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
 import {authManager} from '../config/auth.manager.js'
+import {openBrowser} from '../lib/open-browser.js'
 
 const CONSOLE_URL = 'https://console.loopress.dev'
 const TIMEOUT_MS = 5 * 60 * 1000
@@ -18,17 +18,6 @@ export default class Login extends Command {
     authManager.setAuth({email, savedAt: new Date().toISOString(), token})
 
     this.log(`\nLogged in${email ? ` as ${email}` : ''}. You're all set!`)
-  }
-
-  private openBrowser(url: string): void {
-    const cmds: Record<string, string> = {
-      darwin: `open "${url}"`,
-      linux: `xdg-open "${url}"`,
-      win32: `start "" "${url}"`,
-    }
-
-    const cmd = cmds[process.platform]
-    if (cmd) exec(cmd)
   }
 
   private waitForCallback(): Promise<{email?: string; token: string}> {
@@ -76,7 +65,7 @@ export default class Login extends Command {
         this.log('Opening Loopress console in your browser...')
         this.log(`\nIf it doesn't open automatically, visit:\n${loginUrl}\n`)
 
-        this.openBrowser(loginUrl)
+        openBrowser(loginUrl)
       })
     })
   }
