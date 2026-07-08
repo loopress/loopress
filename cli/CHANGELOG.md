@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.13.0
+
+### Minor Changes
+
+- 6a18588: Add application password creation with open browser
+- 01b3005: Add snippet publish command
+
 ## 0.12.0
 
 ### Minor Changes
