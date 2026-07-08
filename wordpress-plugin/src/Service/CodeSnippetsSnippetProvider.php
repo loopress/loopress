@@ -76,6 +76,15 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
         return $this->fromRemote($response);
     }
 
+    public function deleteSnippet(int $id): bool
+    {
+        // Doesn't go through dispatch()/dispatchOne(): a DELETE response has no body to coerce
+        // into an array, only a success/error status to check.
+        $request = new WP_REST_Request('DELETE', self::NAMESPACE . self::ROUTE . "/{$id}");
+
+        return !rest_do_request($request)->is_error();
+    }
+
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function toPayload(array $data): array
     {

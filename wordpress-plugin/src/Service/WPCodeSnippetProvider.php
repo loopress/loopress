@@ -121,6 +121,16 @@ class WPCodeSnippetProvider implements SnippetProvider
         return $this->getSnippet($id);
     }
 
+    public function deleteSnippet(int $id): bool
+    {
+        $post = get_post($id);
+        if (!$post instanceof \WP_Post || $post->post_type !== self::POST_TYPE) {
+            return false;
+        }
+
+        return wp_delete_post($id, true) instanceof \WP_Post;
+    }
+
     /** @return array<string, mixed> */
     private function normalize(\WP_Post $post): array
     {

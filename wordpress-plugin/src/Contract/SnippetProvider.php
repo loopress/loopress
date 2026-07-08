@@ -17,4 +17,6 @@ interface SnippetProvider
 
     /** @param array<string, mixed> $data @return array<string, mixed>|null */
     public function updateSnippet(int $id, array $data): ?array;
+
+    public function deleteSnippet(int $id): bool;
 }

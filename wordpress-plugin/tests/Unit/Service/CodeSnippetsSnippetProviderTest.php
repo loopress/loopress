@@ -141,4 +141,25 @@ class CodeSnippetsSnippetProviderTest extends TestCase
 
         $this->assertNull($this->provider->updateSnippet(999, ['name' => 'x']));
     }
+
+    // ── deleteSnippet ─────────────────────────────────────────────────────────
+
+    public function test_delete_snippet_dispatches_a_delete_request(): void
+    {
+        Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
+            $this->assertSame('DELETE', $request->get_method());
+            $this->assertSame('code-snippets/v1/snippets/4', $request->get_route());
+
+            return new WP_REST_Response(null, 200);
+        });
+
+        $this->assertTrue($this->provider->deleteSnippet(4));
+    }
+
+    public function test_delete_snippet_returns_false_when_the_request_errors(): void
+    {
+        Functions\when('rest_do_request')->justReturn(new WP_REST_Response(new \WP_Error('not_found', 'Snippet not found.'), 404));
+
+        $this->assertFalse($this->provider->deleteSnippet(999));
+    }
 }

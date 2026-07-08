@@ -69,6 +69,12 @@ class SnippetController
                     'shortcodeAttributes'  => ['required' => false, 'type' => 'array', 'items' => ['type' => 'string']],
                 ]),
             ],
+            [
+                'methods'             => 'DELETE',
+                'callback'            => [$this, 'delete_snippet'],
+                'permission_callback' => fn() => current_user_can('manage_options'),
+                'args'                => $this->idArg(),
+            ],
         ]);
     }
 
@@ -156,6 +162,25 @@ class SnippetController
         }
 
         return new WP_REST_Response($snippet, 200);
+    }
+
+    public function delete_snippet(WP_REST_Request $request): WP_REST_Response
+    {
+        if (!$this->snippetService->isActive()) {
+            return new WP_REST_Response(['error' => 'No supported snippet plugin is active'], 400);
+        }
+
+        try {
+            $deleted = $this->snippetService->deleteSnippet((int) $request->get_param('id'));
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+
+        if (!$deleted) {
+            return new WP_REST_Response(['error' => 'Snippet not found'], 404);
+        }
+
+        return new WP_REST_Response(null, 204);
     }
 
     /** @return array<string, mixed> */

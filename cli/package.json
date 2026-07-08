@@ -105,6 +105,7 @@
     "prewatch": "pnpm run schema:types",
     "watch": "tsc -b --watch",
     "build": "shx rm -rf dist && pnpm run schema:types && tsc -b",
+    "prelint": "pnpm run schema:types",
     "lint": "eslint",
     "pretest": "pnpm run schema:types",
     "posttest": "pnpm run lint",
