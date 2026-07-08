@@ -1,7 +1,7 @@
 {
   "name": "@loopress/cli",
   "description": "CLI tool for syncing WordPress code snippets, plugins, and Composer dependencies via the REST API",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "author": "jean-smaug",
   "bin": {
     "loopress": "bin/run.js",
