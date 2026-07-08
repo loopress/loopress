@@ -65,9 +65,13 @@ describe('authorizeWithBrowser', () => {
     const authorizeUrl = await waitForAuthorizeUrl()
     const rejectUrl = toLoopbackIp(authorizeUrl.searchParams.get('reject_url')!)
 
+    // Attach the rejection assertion before triggering the callback: the server rejects
+    // `resultPromise` synchronously while handling the request, which can race ahead of
+    // `got(rejectUrl)`'s own promise settling and get reported as an unhandled rejection
+    // if nothing is listening on `resultPromise` yet.
+    const assertion = expect(resultPromise).rejects.toThrow(/rejected/i)
     await got(rejectUrl)
-
-    await expect(resultPromise).rejects.toThrow(/rejected/i)
+    await assertion
   })
 
   it('never logs the received password', async () => {
