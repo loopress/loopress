@@ -114,7 +114,7 @@
     "test": "vitest run",
     "pretest:mutation": "pnpm run schema:types",
     "test:mutation": "stryker run",
-    "version": "oclif readme && git add README.md",
+    "version": "oclif manifest && oclif readme && git add README.md oclif.manifest.json",
     "format": "prettier . --write"
   },
   "types": "dist/index.d.ts",
