@@ -38,6 +38,10 @@ Version compatibility indicators:
 
 In the **Installed Packages** card, click **Remove** next to the package you want to uninstall.
 
+## Updating a package
+
+The **Installed Packages** card checks each installed package against Packagist. If a newer version is available, an "update: x.y.z" badge appears next to the current version, and an **Update** button runs `composer require` to install the latest version in place.
+
 ## Repair
 
 The **Repair** action runs `composer update` against `wp-content/loopress/composer.json`. Use it when:
@@ -47,6 +51,20 @@ The **Repair** action runs `composer update` against `wp-content/loopress/compos
 - A previous install left the dependencies in an inconsistent state
 
 The autoload error banner at the top of the page appears automatically when Loopress detects a missing or broken autoloader and prompts you to run Repair.
+
+## REST API
+
+Outdated packages are exposed at `GET /wp-json/loopress/v1/composer/outdated`:
+
+```json
+[
+  {
+    "name": "some/package",
+    "version": "1.2.0",
+    "latest": "1.4.2"
+  }
+]
+```
 
 ## Notes
 

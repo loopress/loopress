@@ -42,6 +42,26 @@ steps:
   - run: lps snippet push
 ```
 
+## Restoring between groups of tests
+
+`loopress/setup-ci` takes a snapshot of the database as its last setup step. If your e2e suite runs several independent groups of tests and respawning the whole Docker stack between them is too slow, call `loopress/setup-ci/restore` to reset WordPress back to that clean snapshot instead. It's a separate action so it never re-triggers the boot/install steps, it's always something you call explicitly:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: loopress/setup-ci@main
+
+  - name: Happy path tests
+    run: npx playwright test tests/e2e/happy-path.spec.ts
+
+  - uses: loopress/setup-ci/restore@main
+
+  - name: Conflict tests
+    run: npx playwright test tests/e2e/conflicts.spec.ts
+```
+
+The snapshot path defaults to `/tmp/loopress-snapshot-clean.sql` and doesn't need configuring for most cases. To override it, set `LOOPRESS_SNAPSHOT_PATH` in the job or step `env:` around both the setup and restore steps.
+
 ## Test and deploy workflow
 
 A common pattern is to test on every branch push and deploy only from `main`:

@@ -18,6 +18,7 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | **Snippets** | `lps snippet pull` | Pull snippets from WordPress |
 | | `lps snippet push` | Push snippets to WordPress |
 | | `lps snippet list` | List all snippets on the site |
+| | `lps snippet publish` | Publish snippets to your Loopress account so they can be deployed to other projects |
 | **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
 | | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
 | | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |
@@ -28,6 +29,8 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | | `lps project switch` | Switch the active project and environment |
 | | `lps project remove` | Remove one or more WordPress projects or environments |
 | | `lps project sync` | Sync locally configured projects and environments with your Loopress account |
+| **Telemetry** | `lps telemetry enable` | Enable error reporting to Sentry |
+| | `lps telemetry disable` | Disable error reporting to Sentry |
 
 ## Quick start
 
@@ -50,6 +53,6 @@ lps snippet push
 
 ## Authentication
 
-All commands authenticate against WordPress using an [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/). These are generated in **Users → Profile → Application Passwords**.
+All commands authenticate against WordPress using an [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/). By default, `lps project config` creates one automatically by authorizing in your browser. Generating one manually under **Users → Profile → Application Passwords** is available as a fallback.
 
 The CLI supports managing multiple projects (`lps project config`) and switching between them (`lps project switch`).
