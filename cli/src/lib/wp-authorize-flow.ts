@@ -1,7 +1,4 @@
-import {waitForLocalCallback} from './local-callback-server.js'
-import {openBrowser} from './open-browser.js'
-
-const APP_NAME = 'Loopress'
+import {renderResultPage, waitForLocalCallback} from './local-callback-server.js'
 
 export type AuthorizeResult = {password: string; userLogin: string}
 
@@ -57,80 +54,18 @@ export function authorizeWithBrowser(siteUrl: string, log: (message: string) => 
   })
 }
 
-const SUCCESS_PAGE = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loopress: Authorized</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f0fdf4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100dvh;
-    }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 2.5rem 3rem;
-      text-align: center;
-      box-shadow: 0 4px 32px rgba(0, 0, 0, .08);
-      max-width: 420px;
-      width: 90%;
-    }
-    .icon { font-size: 3rem; margin-bottom: 1rem; }
-    h1 { color: #15803d; font-size: 1.5rem; margin-bottom: .5rem; }
-    p { color: #6b7280; font-size: .95rem; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">&#10003;</div>
-    <h1>Authorization successful!</h1>
-    <p>You can close this tab and return to your terminal.</p>
-  </div>
-</body>
-</html>`
+const SUCCESS_PAGE = renderResultPage({
+  background: '#f0fdf4',
+  heading: 'Authorization successful!',
+  headingColor: '#15803d',
+  icon: '&#10003;',
+  tabTitle: 'Authorized',
+})
 
-const REJECTED_PAGE = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loopress: Authorization rejected</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #fef2f2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100dvh;
-    }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 2.5rem 3rem;
-      text-align: center;
-      box-shadow: 0 4px 32px rgba(0, 0, 0, .08);
-      max-width: 420px;
-      width: 90%;
-    }
-    .icon { font-size: 3rem; margin-bottom: 1rem; }
-    h1 { color: #b91c1c; font-size: 1.5rem; margin-bottom: .5rem; }
-    p { color: #6b7280; font-size: .95rem; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">&#10007;</div>
-    <h1>Authorization rejected</h1>
-    <p>You can close this tab and return to your terminal.</p>
-  </div>
-</body>
-</html>`
+const REJECTED_PAGE = renderResultPage({
+  background: '#fef2f2',
+  heading: 'Authorization rejected',
+  headingColor: '#b91c1c',
+  icon: '&#10007;',
+  tabTitle: 'Authorization rejected',
+})

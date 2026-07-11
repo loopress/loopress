@@ -10,15 +10,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
 }
 
 function parseFormData(body: string): Record<string, string> {
-  const params: Record<string, string> = {}
-
-  for (const part of body.split('&')) {
-    const eq = part.indexOf('=')
-    if (eq === -1) continue
-    params[decodeURIComponent(part.slice(0, eq))] = decodeURIComponent(part.slice(eq + 1))
-  }
-
-  return params
+  return Object.fromEntries(new URLSearchParams(body))
 }
 
 export type CallbackHelpers<T> = {
