@@ -3,21 +3,22 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import Push from '../../../src/commands/plugin/push.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
-// installAndActivate() and activatePlugin() are private; the casts below are the
-// same escape hatch used throughout this suite to unit-test command internals.
+// installPlugin() and activatePlugin() are private; the casts below are the same escape hatch
+// used throughout this suite to unit-test command internals.
 interface PushInternals {
-  activatePlugin(slug: string): Promise<void>
+  activatePlugin(file: string, slug: string): Promise<void>
   failedCount: number
-  installAndActivate(slug: string, version: string): Promise<void>
-  wpClient: {post: ReturnType<typeof vi.fn>}
+  installPlugin(slug: string): Promise<void>
+  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 function make() {
   const cmd = new Push([], fakeOclifConfig)
   const logs = silenceLogs(cmd)
   const post = vi.fn()
-  ;(cmd as unknown as PushInternals).wpClient = {post}
-  return {cmd: cmd as unknown as PushInternals, logs, post}
+  const put = vi.fn()
+  ;(cmd as unknown as PushInternals).wpClient = {post, put}
+  return {cmd: cmd as unknown as PushInternals, logs, post, put}
 }
 
 describe('plugin push', () => {
@@ -25,35 +26,42 @@ describe('plugin push', () => {
     vi.clearAllMocks()
   })
 
-  describe('installAndActivate', () => {
-    it('installs then activates the plugin', async () => {
+  describe('installPlugin', () => {
+    it('installs and activates the plugin in a single native call', async () => {
       const {cmd, post} = make()
-      post.mockResolvedValueOnce({message: 'Installed akismet 5.3'}).mockResolvedValueOnce({message: 'Activated akismet'})
+      post.mockResolvedValueOnce({plugin: 'akismet/akismet', status: 'active'})
 
-      await cmd.installAndActivate('akismet', '5.3')
+      await cmd.installPlugin('akismet')
 
-      expect(post).toHaveBeenNthCalledWith(1, 'loopress/v1/plugins/install', {slug: 'akismet', version: '5.3'})
-      expect(post).toHaveBeenNthCalledWith(2, 'loopress/v1/plugins/activate', {slug: 'akismet'})
+      expect(post).toHaveBeenCalledWith('wp/v2/plugins', {slug: 'akismet', status: 'active'})
     })
 
-    it('warns, rethrows, and skips activation when the install fails', async () => {
+    it('warns and rethrows when the install fails', async () => {
       const {cmd, logs, post} = make()
       post.mockRejectedValueOnce(new Error('boom'))
 
-      await expect(cmd.installAndActivate('akismet', '5.3')).rejects.toThrow('boom')
+      await expect(cmd.installPlugin('akismet')).rejects.toThrow('boom')
 
-      expect(post).toHaveBeenCalledOnce()
       expect(logs.warn).toHaveBeenCalledWith('  Failed to install akismet: boom')
       expect(cmd.failedCount).toBe(1)
     })
   })
 
   describe('activatePlugin', () => {
-    it('warns and rethrows when the activation fails, so Listr marks the task as failed', async () => {
-      const {cmd, logs, post} = make()
-      post.mockRejectedValueOnce(new Error('nope'))
+    it('activates the plugin by its native file id', async () => {
+      const {cmd, put} = make()
+      put.mockResolvedValueOnce({plugin: 'akismet/akismet', status: 'active'})
 
-      await expect(cmd.activatePlugin('akismet')).rejects.toThrow('nope')
+      await cmd.activatePlugin('akismet/akismet', 'akismet')
+
+      expect(put).toHaveBeenCalledWith('wp/v2/plugins/akismet/akismet', {status: 'active'})
+    })
+
+    it('warns and rethrows when the activation fails, so Listr marks the task as failed', async () => {
+      const {cmd, logs, put} = make()
+      put.mockRejectedValueOnce(new Error('nope'))
+
+      await expect(cmd.activatePlugin('akismet/akismet', 'akismet')).rejects.toThrow('nope')
 
       expect(logs.warn).toHaveBeenCalledWith('  Failed to activate akismet: nope')
       expect(cmd.failedCount).toBe(1)

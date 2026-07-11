@@ -6,13 +6,12 @@ export interface InstalledPlugin {
   version: string
 }
 
-export interface InstallResult {
-  message: string
+// Shape of an item returned by WordPress core's native `wp/v2/plugins` REST endpoint.
+export interface WpNativePlugin {
+  name: string
+  plugin: string
+  status: 'active' | 'inactive' | 'network-active'
   version: string
-}
-
-export interface ActivateResult {
-  message: string
 }
 
 export type PluginManifest = Record<string, string>

@@ -1,8 +1,8 @@
 import {LoopressCommand} from '../../lib/base.js'
-import {InstalledPlugin} from '../../types/plugin.js'
+import {WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
-import {mergePluginManifest} from '../../utils/plugins.js'
+import {mergePluginManifest, parseInstalledPlugins} from '../../utils/plugins.js'
 
 export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.json'
@@ -16,13 +16,14 @@ export default class Pull extends LoopressCommand {
 
     this.log(`Pulling plugins from ${url}`)
 
-    const installed = await this.wp.get<InstalledPlugin[]>('loopress/v1/plugins')
+    const raw = await this.wp.get<WpNativePlugin[]>('wp/v2/plugins')
+    const installed = parseInstalledPlugins(raw)
 
     const composerJson = await readComposerJson()
     const composerSlugs = composerJson ? getComposerManagedSlugs(composerJson) : []
 
     const incoming: Record<string, string> = Object.fromEntries(
-      installed.filter((p) => !composerSlugs.includes(p.slug)).map((p) => [p.slug, p.version]),
+      installed.filter((p) => !composerSlugs.includes(p.slug)).map((p) => [p.slug, 'latest']),
     )
 
     if (composerSlugs.length > 0) {
@@ -49,9 +50,5 @@ export default class Pull extends LoopressCommand {
     this.log(`Wrote ${Object.keys(merged).length} plugins to loopress.json`)
     if (added.length > 0) this.log(`  + Added: ${added.join(', ')}`)
     for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
-
-    if (Object.keys(merged).length > 0) {
-      await this.wp.post('loopress/v1/plugins/auto-updates/disable', {slugs: Object.keys(merged)})
-    }
   }
 }
