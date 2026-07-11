@@ -5,7 +5,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Init from '../../src/commands/init.js'
 import {configManager} from '../../src/config/project-config.manager.js'
-import {readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
+import {writeLocalConfig} from '../../src/utils/loopress-config.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeListedProject} from '../helpers/project-fixtures.js'
 
@@ -20,7 +20,6 @@ vi.mock('node:fs', () => ({
 }))
 
 vi.mock('../../src/utils/loopress-config.js', () => ({
-  readLocalConfig: vi.fn(),
   writeLocalConfig: vi.fn(),
 }))
 
@@ -36,9 +35,8 @@ describe('init', () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([makeListedProject('id-acme', 'acme', {})])
   })
 
-  it('runs `plugin:add` for the chosen snippet provider and reports its resolved version', async () => {
+  it('runs `plugin:add` for the chosen snippet provider and reports it in the summary', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
-    vi.mocked(readLocalConfig).mockResolvedValueOnce({plugins: {'code-snippets': '3.6.6'}})
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('code-snippets')
     vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
@@ -48,7 +46,7 @@ describe('init', () => {
     await cmd.run()
 
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:add', ['code-snippets'])
-    expect(log).toHaveBeenCalledWith('  Plugin:   code-snippets@3.6.6')
+    expect(log).toHaveBeenCalledWith('  Plugin:   code-snippets')
   })
 
   it('does not run plugin:add when the user has no snippet provider to configure', async () => {
@@ -201,22 +199,6 @@ describe('init', () => {
       ],
       message: 'Snippet provider',
     })
-  })
-
-  it('does not log a Plugin line when plugin:add succeeds but reports no version', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
-    vi.mocked(readLocalConfig).mockResolvedValueOnce({})
-
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('code-snippets')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
-
-    const cmd = make()
-    const {log, warn} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(warn).not.toHaveBeenCalled()
-
-    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('Plugin:'))
   })
 
   it('prints the full success banner', async () => {
