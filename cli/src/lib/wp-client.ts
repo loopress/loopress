@@ -6,7 +6,7 @@ type HttpMethod = 'get' | 'post' | 'put'
 
 /**
  * HTTP client for a WordPress site's REST API.
- * Paths are relative to `<site>/wp-json/`, e.g. `loopress/v1/plugins`.
+ * Paths are relative to `<site>/wp-json/`, e.g. `loopress/v1/snippets` or `wp/v2/plugins`.
  */
 export class WpClient {
   private readonly client: Got

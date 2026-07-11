@@ -14,13 +14,13 @@ The Loopress WordPress Plugin adds a dedicated admin page to your WordPress inst
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
-- **REST API for the CLI**: powers `lps snippet pull/push/list` and `lps plugin pull/push/add`, no need to open the admin page for these to work
+- **REST API for the CLI**: powers `lps snippet pull/push/list` and `lps composer push/pull`, no need to open the admin page for these to work. `lps plugin pull/push/add` uses WordPress core's own `wp/v2/plugins` API instead.
 
 ## How it works
 
 The plugin registers a **Loopress** entry in the WordPress admin sidebar. It stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
 
-A REST API under `loopress/v1` powers the React admin UI. All endpoints require the `manage_options` capability (administrator role).
+A REST API under `loopress/v1` powers the React admin UI and the snippet/Composer CLI commands. All endpoints require the `manage_options` capability (administrator role).
 
 ## Requirements
 
