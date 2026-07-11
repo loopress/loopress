@@ -25,4 +25,11 @@ A token is required only when deploying to a real site. Get one at [console.loop
 
 - [GitHub Actions](/ci/github-actions/)
 - [GitLab CI](/ci/gitlab/)
-- [CircleCI](/ci/circleci/)
+
+## Beyond syncing files
+
+`loopress/setup-ci` boots a real WordPress instance, not a mock, so you can also drive it with a browser to test actual site behaviour. See [E2E Testing](/ci/e2e-testing/) for running Playwright against it with WordPress's own `@wordpress/e2e-test-utils-playwright` helpers.
+
+## Full example
+
+[github.com/loopress/demo](https://github.com/loopress/demo) is a small but complete reference project: `loopress.json`, versioned snippets, CI wired up on both GitHub Actions and GitLab CI, and a Playwright E2E suite.
