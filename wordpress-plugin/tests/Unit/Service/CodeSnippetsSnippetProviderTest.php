@@ -42,6 +42,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
                 ['active' => true, 'code' => 'echo 1;', 'desc' => 'A snippet', 'id' => 1, 'name' => 'One', 'priority' => 5, 'scope' => 'global', 'tags' => ['php']],
             ], 200);
         });
+        Functions\when('Code_Snippets\get_snippets')->justReturn([]);
 
         $result = $this->provider->getSnippets();
 
@@ -55,10 +56,32 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         $this->assertSame(['php'], $result[0]['tags']);
     }
 
+    public function test_get_snippets_excludes_trashed_snippets(): void
+    {
+        Functions\when('rest_do_request')->alias(fn() => new WP_REST_Response([
+            ['active' => false, 'code' => '', 'desc' => '', 'id' => 1, 'name' => 'Kept', 'scope' => 'global', 'tags' => []],
+            ['active' => false, 'code' => '', 'desc' => '', 'id' => 2, 'name' => 'Trashed', 'scope' => 'global', 'tags' => []],
+        ], 200));
+        Functions\when('Code_Snippets\get_snippets')->alias(function (array $ids) {
+            $this->assertSame([1, 2], $ids);
+
+            return [
+                $this->fakeSnippet(1, false),
+                $this->fakeSnippet(2, true),
+            ];
+        });
+
+        $result = $this->provider->getSnippets();
+
+        $this->assertCount(1, $result);
+        $this->assertSame(1, $result[0]['id']);
+    }
+
     // ── getSnippet ────────────────────────────────────────────────────────────
 
     public function test_get_snippet_dispatches_a_get_request_for_the_given_id(): void
     {
+        Functions\when('Code_Snippets\get_snippet')->justReturn($this->fakeSnippet(7, false));
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
             $this->assertSame('/code-snippets/v1/snippets/7', $request->get_route());
 
@@ -74,9 +97,33 @@ class CodeSnippetsSnippetProviderTest extends TestCase
 
     public function test_get_snippet_returns_null_when_the_request_errors(): void
     {
+        Functions\when('Code_Snippets\get_snippet')->justReturn($this->fakeSnippet(999, false));
         Functions\when('rest_do_request')->justReturn(new WP_REST_Response(new \WP_Error('not_found', 'Snippet not found.'), 404));
 
         $this->assertNull($this->provider->getSnippet(999));
+    }
+
+    public function test_get_snippet_returns_null_when_the_snippet_is_trashed(): void
+    {
+        Functions\when('Code_Snippets\get_snippet')->justReturn($this->fakeSnippet(999, true));
+        // If this reaches rest_do_request at all, the trash check didn't short-circuit.
+        Functions\when('rest_do_request')->alias(function () {
+            $this->fail('rest_do_request should not be called for a trashed snippet.');
+        });
+
+        $this->assertNull($this->provider->getSnippet(999));
+    }
+
+    private function fakeSnippet(int $id, bool $trashed): object
+    {
+        return new class($id, $trashed) {
+            public function __construct(public readonly int $id, private readonly bool $trashed) {}
+
+            public function is_trashed(): bool
+            {
+                return $this->trashed;
+            }
+        };
     }
 
     // ── createSnippet ─────────────────────────────────────────────────────────
@@ -148,7 +195,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     {
         Functions\when('rest_do_request')->alias(function (WP_REST_Request $request) {
             $this->assertSame('DELETE', $request->get_method());
-            $this->assertSame('code-snippets/v1/snippets/4', $request->get_route());
+            $this->assertSame('/code-snippets/v1/snippets/4', $request->get_route());
 
             return new WP_REST_Response(null, 200);
         });
