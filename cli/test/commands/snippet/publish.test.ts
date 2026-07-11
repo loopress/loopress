@@ -92,7 +92,8 @@ describe('snippet publish', () => {
 
     await cmd.run()
 
-    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish', expect.anything())
+    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish/upsert', expect.anything())
+    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish/prune', expect.anything())
   })
 
   it('errors when the configured project cannot be found', async () => {
@@ -132,7 +133,7 @@ describe('snippet publish', () => {
     await cmd.run()
 
     expect(loadSnippets).toHaveBeenCalledWith('my-snippets')
-    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish', {
+    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish/upsert', {
       snippets: [
         expect.objectContaining({
           active: true,
@@ -142,7 +143,34 @@ describe('snippet publish', () => {
         }),
       ],
     })
+    expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish/prune', {
+      slugs: ['cookie-banner'],
+    })
     expect(log).toHaveBeenCalledWith('Published 1 snippet to your Loopress account.')
+  })
+
+  it('splits a large collection into several upsert batches of 20, then prunes once with every slug', async () => {
+    vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
+    vi.spyOn(configManager, 'getProject').mockReturnValue({
+      addedAt: '2024-01-01',
+      apiProjectId: 'api-project-1',
+      environments: {},
+      name: 'Acme',
+    })
+    const many = Array.from({length: 45}, (_, i) => snippet({name: `Snippet ${i}`}))
+    loadSnippets.mockResolvedValue(many)
+    const cmd = make()
+    silenceLogs(cmd)
+
+    await cmd.run()
+
+    const upsertCalls = post.mock.calls.filter(([url]) => url === 'projects/api-project-1/snippets/publish/upsert')
+    expect(upsertCalls).toHaveLength(3)
+    expect((upsertCalls[0][1] as {snippets: unknown[]}).snippets).toHaveLength(20)
+    expect((upsertCalls[1][1] as {snippets: unknown[]}).snippets).toHaveLength(20)
+    expect((upsertCalls[2][1] as {snippets: unknown[]}).snippets).toHaveLength(5)
+    const [, prunePayload] = post.mock.calls.find(([url]) => url === 'projects/api-project-1/snippets/publish/prune')!
+    expect((prunePayload as {slugs: string[]}).slugs).toHaveLength(45)
   })
 
   it('reports a snippet-loading failure as a command error', async () => {
