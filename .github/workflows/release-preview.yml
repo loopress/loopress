@@ -96,3 +96,56 @@ jobs:
           git add cli/README.md cli/oclif.manifest.json
           git commit -m "docs(cli): regenerate manifest and README"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+  wordpress-plugin-version:
+    name: Sync WordPress plugin version header
+    runs-on: ubuntu-latest
+    # Same rationale as cli-docs above: `changeset version` bumps wordpress-plugin/package.json
+    # directly and never runs its npm "version" lifecycle script, so loopress.php's `Version:`
+    # header and readme.txt's `Stable tag:` would otherwise stay stuck at the previous release
+    # forever. This reacts to the Version Packages PR the same way cli-docs does.
+    if: github.event.pull_request.head.ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - name: Detect wordpress-plugin version bump
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            plugin:
+              - 'wordpress-plugin/package.json'
+
+      - name: Checkout PR branch
+        if: steps.filter.outputs.plugin == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup pnpm
+        if: steps.filter.outputs.plugin == 'true'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        if: steps.filter.outputs.plugin == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Sync version header
+        if: steps.filter.outputs.plugin == 'true'
+        working-directory: wordpress-plugin
+        run: pnpm run version
+
+      - name: Commit synced version
+        if: steps.filter.outputs.plugin == 'true'
+        run: |
+          if git diff --quiet -- wordpress-plugin/loopress.php wordpress-plugin/readme.txt; then
+            echo "Plugin version header already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add wordpress-plugin/loopress.php wordpress-plugin/readme.txt
+          git commit -m "docs(wordpress-plugin): sync version header"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}

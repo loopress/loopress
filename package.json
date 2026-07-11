@@ -8,7 +8,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "changeset publish",
-    "version": "changeset version && pnpm --dir wordpress-plugin run version",
     "pretest:e2e": "pnpm --filter @loopress/cli run build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
