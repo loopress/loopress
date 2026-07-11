@@ -35,8 +35,9 @@ Loopress sends crash reports to our Sentry project so we can find and fix bugs.
 
 To opt out, either:
 
-- set `LOOPRESS_TELEMETRY_DISABLED=1`, or
-- pass `--no-error-reporting` on the command.
+- run `lps telemetry disable` (persists across all future commands), or
+- set `LOOPRESS_TELEMETRY_DISABLED=1` (overrides the persisted preference for a single run,
+  useful in CI).
 
 A crash report includes the command name, its flags/args as typed, your Node.js
 version, and OS. WordPress credentials are configured via `lps project config`
