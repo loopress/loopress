@@ -91,16 +91,17 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
             name: 'e2e',
           },
         },
+        telemetry: {disabled: true},
       }),
     )
 
     await use(async (args: string[]) => {
       try {
-        const {stderr, stdout} = await execFileAsync(
-          process.execPath,
-          [CLI_ENTRY, ...args, '--no-error-reporting'],
-          {cwd: projectDir, env: {...process.env, HOME: homeDir}, timeout: 60_000},
-        )
+        const {stderr, stdout} = await execFileAsync(process.execPath, [CLI_ENTRY, ...args], {
+          cwd: projectDir,
+          env: {...process.env, HOME: homeDir},
+          timeout: 60_000,
+        })
         return {exitCode: 0, stderr, stdout}
       } catch (error) {
         const err = error as {code?: number; stderr?: string; stdout?: string}

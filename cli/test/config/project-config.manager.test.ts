@@ -436,6 +436,49 @@ describe('ProjectConfigManager', () => {
     })
   })
 
+  describe('isTelemetryDisabled / setTelemetryDisabled', () => {
+    it('is false by default', () => {
+      expect(manager.isTelemetryDisabled()).toBe(false)
+    })
+
+    it('persists the disabled preference', () => {
+      manager.setTelemetryDisabled(true)
+      expect(manager.isTelemetryDisabled()).toBe(true)
+    })
+
+    it('persists re-enabling after being disabled', () => {
+      manager.setTelemetryDisabled(true)
+      manager.setTelemetryDisabled(false)
+      expect(manager.isTelemetryDisabled()).toBe(false)
+    })
+  })
+
+  describe('readConfig telemetry sanitization', () => {
+    it('drops a telemetry field whose disabled property is not a boolean', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {}, telemetry: {disabled: 'nope'}}),
+      )
+      expect(manager.readConfig().telemetry).toBeUndefined()
+    })
+
+    it('drops a non-object telemetry field', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: {}, telemetry: 'nope'}))
+      expect(manager.readConfig().telemetry).toBeUndefined()
+    })
+
+    it('keeps a well-formed telemetry field', () => {
+      manager.ensureConfigDir()
+      writeFileSync(
+        manager.getConfigFilePath(),
+        JSON.stringify({currentProject: null, projects: {}, telemetry: {disabled: true}}),
+      )
+      expect(manager.readConfig().telemetry).toEqual({disabled: true})
+    })
+  })
+
   describe('writeConfig (atomic write)', () => {
     it('survives a second write without corrupting the file', () => {
       manager.setProject('id-acme', makeProject('acme'))

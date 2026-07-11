@@ -3,4 +3,5 @@ export type {
   EnvironmentConfig,
   LoopressGlobalConfiguration as LoopressConfig,
   ProjectConfig,
+  TelemetryConfig,
 } from './global-config.generated.js'

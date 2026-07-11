@@ -75,8 +75,7 @@
     "commands": "./dist/commands",
     "helpClass": "./dist/help.js",
     "hooks": {
-      "finally": "./dist/hooks/finally.js",
-      "init": "./dist/hooks/init.js"
+      "finally": "./dist/hooks/finally.js"
     },
     "plugins": [
       "@oclif/plugin-help"
@@ -94,6 +93,9 @@
       },
       "snippet": {
         "description": "Manage WordPress code snippets"
+      },
+      "telemetry": {
+        "description": "Manage error reporting preferences"
       }
     }
   },

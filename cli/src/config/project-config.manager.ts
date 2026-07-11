@@ -3,7 +3,7 @@ import {homedir} from 'node:os'
 import {join} from 'node:path'
 import slugify from 'slugify'
 
-import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig} from '../types/config.js'
+import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig, TelemetryConfig} from '../types/config.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
@@ -72,6 +72,10 @@ export class ProjectConfigManager {
   getProject(id: string): null | ProjectConfig {
     const config = this.readConfig()
     return config.projects[id] ?? null
+  }
+
+  isTelemetryDisabled(): boolean {
+    return this.readConfig().telemetry?.disabled ?? false
   }
 
   listEnvironments(projectId: string): Array<EnvironmentConfig & {isCurrent: boolean}> {
@@ -179,6 +183,12 @@ export class ProjectConfigManager {
     this.writeConfig(config)
   }
 
+  setTelemetryDisabled(disabled: boolean): void {
+    const config = this.readConfig()
+    config.telemetry = {disabled}
+    this.writeConfig(config)
+  }
+
   writeConfig(config: LoopressConfig): void {
     writeJsonFileAtomic(this.getConfigFilePath(), config)
   }
@@ -193,9 +203,11 @@ export class ProjectConfigManager {
     if (typeof value !== 'object' || value === null) return {currentProject: null, projects: {}}
 
     const candidate = value as Record<string, unknown>
+    const telemetry = this.sanitizeTelemetry(candidate.telemetry)
     return {
       currentProject: this.sanitizeCurrentProject(candidate.currentProject),
       projects: this.sanitizeProjects(candidate.projects),
+      ...(telemetry && {telemetry}),
     }
   }
 
@@ -214,6 +226,12 @@ export class ProjectConfigManager {
     }
 
     return projects
+  }
+
+  private sanitizeTelemetry(value: unknown): TelemetryConfig | undefined {
+    if (typeof value !== 'object' || value === null) return undefined
+    const candidate = value as Partial<TelemetryConfig>
+    return typeof candidate.disabled === 'boolean' ? {disabled: candidate.disabled} : undefined
   }
 }
 
