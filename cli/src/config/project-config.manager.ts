@@ -1,5 +1,4 @@
 import {existsSync, mkdirSync} from 'node:fs'
-import {homedir} from 'node:os'
 import {join} from 'node:path'
 import slugify from 'slugify'
 
@@ -7,7 +6,7 @@ import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig,
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
-  constructor(private configDir: string = join(homedir(), '.loopress')) {}
+  constructor(private configDir?: string) {}
 
   createProjectId(name: string): string {
     const config = this.readConfig()
@@ -24,8 +23,9 @@ export class ProjectConfigManager {
   }
 
   ensureConfigDir(): void {
-    if (!existsSync(this.configDir)) {
-      mkdirSync(this.configDir, {recursive: true})
+    const dir = this.requireConfigDir()
+    if (!existsSync(dir)) {
+      mkdirSync(dir, {recursive: true})
     }
   }
 
@@ -43,7 +43,7 @@ export class ProjectConfigManager {
   }
 
   getConfigFilePath(): string {
-    return join(this.configDir, 'config.json')
+    return join(this.requireConfigDir(), 'config.json')
   }
 
   getCurrentEnv(): EnvironmentConfig | null {
@@ -203,6 +203,14 @@ export class ProjectConfigManager {
     if (typeof value !== 'object' || value === null) return false
     const candidate = value as Record<string, unknown>
     return typeof candidate.name === 'string' && typeof candidate.environments === 'object' && candidate.environments !== null
+  }
+
+  // Real CLI runs get this from the `init` hook (src/hooks/init.ts) before any command runs.
+  // Throwing when it's unset (rather than falling back to a hardcoded path) surfaces tests that
+  // forgot to configure the manager instead of silently touching some default location.
+  private requireConfigDir(): string {
+    if (!this.configDir) throw new Error('ProjectConfigManager used before setConfigDir() was called')
+    return this.configDir
   }
 
   private sanitizeConfig(value: unknown): LoopressConfig {

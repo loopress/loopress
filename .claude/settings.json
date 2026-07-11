@@ -17,7 +17,10 @@
       "Bash(echo \"---exit $?---\")",
       "Bash(HOME=/tmp/lps-home-test node -e ' *)",
       "Bash(HOME=/tmp/lps-home-test node --input-type=module -e ' *)",
-      "Bash(HOME=/tmp/lps-home-test2 LOOPRESS_TELEMETRY_DISABLED=1 node bin/run.js status)"
+      "Bash(HOME=/tmp/lps-home-test2 LOOPRESS_TELEMETRY_DISABLED=1 node bin/run.js status)",
+      "Bash(/usr/bin/grep -rn \"homedir\" src test)",
+      "Bash(/usr/bin/grep -v node_modules)",
+      "Bash(HOME=/tmp/lps-home-test3 LOOPRESS_TELEMETRY_DISABLED=1 node bin/run.js status)"
     ]
   }
 }

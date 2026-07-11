@@ -1,5 +1,4 @@
 import {existsSync, unlinkSync} from 'node:fs'
-import {homedir} from 'node:os'
 import {join} from 'node:path'
 
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
@@ -11,7 +10,7 @@ export interface ConsoleAuth {
 }
 
 export class AuthManager {
-  constructor(private dataDir: string = join(homedir(), '.loopress')) {}
+  constructor(private dataDir?: string) {}
 
   clearAuth(): void {
     const filePath = this.getAuthFilePath()
@@ -23,18 +22,23 @@ export class AuthManager {
   }
 
   getAuthFilePath(): string {
-    return join(this.dataDir, 'auth.json')
+    return join(this.requireDataDir(), 'auth.json')
   }
 
   setAuth(auth: ConsoleAuth): void {
     writeJsonFileAtomic(this.getAuthFilePath(), auth)
   }
 
-  // Repointed by the `init` hook to oclif's native dataDir once the real CLI Config is
-  // available. The constructor default only serves contexts that bypass the oclif lifecycle
-  // (e.g. commands instantiated directly in unit tests).
+  // Real CLI runs get this from the `init` hook (src/hooks/init.ts) before any command runs.
+  // Throwing when it's unset (rather than falling back to a hardcoded path) surfaces tests that
+  // forgot to configure the manager instead of silently touching some default location.
   setDataDir(dataDir: string): void {
     this.dataDir = dataDir
+  }
+
+  private requireDataDir(): string {
+    if (!this.dataDir) throw new Error('AuthManager used before setDataDir() was called')
+    return this.dataDir
   }
 }
 
