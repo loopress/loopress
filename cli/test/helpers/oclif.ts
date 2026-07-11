@@ -3,6 +3,8 @@ import type {Config} from '@oclif/core'
 import {vi} from 'vitest'
 
 export const fakeOclifConfig = {
+  configDir: '/fake/config',
+  dataDir: '/fake/data',
   runCommand: vi.fn(),
   runHook: async () => ({failures: [], successes: []}),
 } as unknown as Config

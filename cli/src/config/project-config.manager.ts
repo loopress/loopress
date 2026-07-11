@@ -1,5 +1,4 @@
 import {existsSync, mkdirSync} from 'node:fs'
-import {homedir} from 'node:os'
 import {join} from 'node:path'
 import slugify from 'slugify'
 
@@ -7,7 +6,7 @@ import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig,
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
-  constructor(private readonly homeDir: string = homedir()) {}
+  constructor(private configDir?: string) {}
 
   createProjectId(name: string): string {
     const config = this.readConfig()
@@ -24,7 +23,7 @@ export class ProjectConfigManager {
   }
 
   ensureConfigDir(): void {
-    const dir = join(this.homeDir, '.loopress')
+    const dir = this.requireConfigDir()
     if (!existsSync(dir)) {
       mkdirSync(dir, {recursive: true})
     }
@@ -44,7 +43,7 @@ export class ProjectConfigManager {
   }
 
   getConfigFilePath(): string {
-    return join(this.homeDir, '.loopress', 'config.json')
+    return join(this.requireConfigDir(), 'config.json')
   }
 
   getCurrentEnv(): EnvironmentConfig | null {
@@ -135,6 +134,13 @@ export class ProjectConfigManager {
     this.writeConfig(config)
   }
 
+  // Repointed by the `init` hook to oclif's native configDir once the real CLI Config is
+  // available. The constructor default only serves contexts that bypass the oclif lifecycle
+  // (e.g. commands instantiated directly in unit tests).
+  setConfigDir(configDir: string): void {
+    this.configDir = configDir
+  }
+
   setCurrent(projectId: string, envName: string): void {
     const config = this.readConfig()
     if (!config.projects[projectId]) return
@@ -197,6 +203,14 @@ export class ProjectConfigManager {
     if (typeof value !== 'object' || value === null) return false
     const candidate = value as Record<string, unknown>
     return typeof candidate.name === 'string' && typeof candidate.environments === 'object' && candidate.environments !== null
+  }
+
+  // Real CLI runs get this from the `init` hook (src/hooks/init.ts) before any command runs.
+  // Throwing when it's unset (rather than falling back to a hardcoded path) surfaces tests that
+  // forgot to configure the manager instead of silently touching some default location.
+  private requireConfigDir(): string {
+    if (!this.configDir) throw new Error('ProjectConfigManager used before setConfigDir() was called')
+    return this.configDir
   }
 
   private sanitizeConfig(value: unknown): LoopressConfig {

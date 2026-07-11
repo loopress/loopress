@@ -31,14 +31,15 @@ LOOPRESS_COMPOSE_FILE=/tmp/loopress-setup-ci/docker/compose.yml bash /tmp/loopre
 LOOPRESS_COMPOSE_FILE=/tmp/loopress-setup-ci/docker/compose.yml bash /tmp/loopress-setup-ci/scripts/setup-wordpress.sh
 ```
 
-Then read the app password it generated from `~/.loopress/config.json` and export the four
-variables above (`WP_ADMIN_PASSWORD=admin`, matching what that script sets).
+Then read the app password it generated from `$XDG_CONFIG_HOME/loopress/config.json` (or
+`~/.config/loopress/config.json`) and export the four variables above (`WP_ADMIN_PASSWORD=admin`,
+matching what that script sets).
 
 ## Notes
 
 - Tests run with `workers: 1`: several of them flip global state (active plugins) on the
   shared WordPress instance, so they can't run concurrently.
 - Each test gets its own isolated `HOME` and project directory (see `helpers/environment.ts`)
-  so it never touches your real `~/.loopress/config.json`.
+  so it never touches your real `~/.config/loopress/config.json`.
 - There's no snippet delete endpoint, so test data accumulates on the target site across
   runs. That's expected, this is why it must be a disposable instance.

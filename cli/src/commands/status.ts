@@ -16,10 +16,13 @@ export default class Status extends Command {
 
     if (localConfig.projectId) {
       this.reportPinnedProject(localConfig.projectId)
-      return
+    } else {
+      this.reportActiveProject()
     }
 
-    this.reportActiveProject()
+    this.log('')
+    this.log(`Config dir: ${this.config.configDir}`)
+    this.log(`Data dir:   ${this.config.dataDir}`)
   }
 
   private reportActiveProject(): void {

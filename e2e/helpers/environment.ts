@@ -72,14 +72,17 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
 
   runCli: async ({homeDir, projectDir, wp}, use) => {
-    // Seeds an isolated `~/.loopress/config.json` under the fake home directory, so every
-    // CLI invocation in this test targets the e2e WordPress instance without ever touching
-    // a developer's real global Loopress config (mirrors the isolation `test/setup.ts` uses
-    // for the unit suite, but for a real child process rather than an in-process mock).
-    mkdirSync(join(homeDir, '.loopress'), {recursive: true})
+    // Seeds an isolated config.json under the fake home directory, at the same path oclif's
+    // `init` hook (src/hooks/init.ts) points the CLI at: $XDG_CONFIG_HOME/loopress, or
+    // <HOME>/.config/loopress when that's unset, so every CLI invocation in this test targets
+    // the e2e WordPress instance without ever touching a developer's real global Loopress
+    // config (mirrors the isolation `test/setup.ts` uses for the unit suite, but for a real
+    // child process rather than an in-process mock).
+    const configDir = join(homeDir, '.config', 'loopress')
+    mkdirSync(configDir, {recursive: true})
     const addedAt = new Date().toISOString()
     writeFileSync(
-      join(homeDir, '.loopress', 'config.json'),
+      join(configDir, 'config.json'),
       JSON.stringify({
         currentProject: {env: 'local', id: 'e2e'},
         projects: {
@@ -99,7 +102,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       try {
         const {stderr, stdout} = await execFileAsync(process.execPath, [CLI_ENTRY, ...args], {
           cwd: projectDir,
-          env: {...process.env, HOME: homeDir},
+          // Clearing XDG_CONFIG_HOME/XDG_DATA_HOME is required, not just belt-and-suspenders:
+          // oclif's dir resolution checks them before falling back to HOME, so on a machine
+          // that has either set, the CLI would silently miss the config.json seeded above and
+          // read/write the developer's real global Loopress config instead.
+          env: {...process.env, HOME: homeDir, XDG_CONFIG_HOME: undefined, XDG_DATA_HOME: undefined},
           timeout: 60_000,
         })
         return {exitCode: 0, stderr, stdout}

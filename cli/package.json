@@ -75,7 +75,8 @@
     "commands": "./dist/commands",
     "helpClass": "./dist/help.js",
     "hooks": {
-      "finally": "./dist/hooks/finally.js"
+      "finally": "./dist/hooks/finally.js",
+      "init": "./dist/hooks/init.js"
     },
     "plugins": [
       "@oclif/plugin-help"
