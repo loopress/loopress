@@ -1,23 +1,12 @@
 import type {Hook} from '@oclif/core'
 
-import * as Sentry from '@sentry/node'
+import {consumeErrorReportingFlag} from '../lib/sentry.js'
 
-import {consumeErrorReportingFlag, isTelemetryDisabled, resolveEnvironment, SENTRY_DSN} from '../lib/sentry.js'
-
+// Sentry itself is only imported and initialized lazily in the `finally` hook, when there's
+// actually an error to report. This keeps @sentry/node (and its @opentelemetry dependencies)
+// out of the module load path for the vast majority of commands, which succeed.
 const hook: Hook.Init = async function (options) {
   consumeErrorReportingFlag(options.argv)
-
-  if (isTelemetryDisabled()) return
-
-  try {
-    Sentry.init({
-      dsn: SENTRY_DSN,
-      environment: resolveEnvironment(),
-      release: this.config.version,
-    })
-  } catch (error) {
-    this.debug('Failed to initialize Sentry: %O', error)
-  }
 }
 
 export default hook
