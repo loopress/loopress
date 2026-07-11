@@ -1,30 +1,14 @@
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {consumeErrorReportingFlag, isTelemetryDisabled, resolveEnvironment} from '../../src/lib/sentry.js'
+import {configManager} from '../../src/config/project-config.manager.js'
+import {isTelemetryDisabled, resolveEnvironment} from '../../src/lib/sentry.js'
 
 describe('sentry', () => {
   afterEach(() => {
     delete process.env.LOOPRESS_TELEMETRY_DISABLED
     delete process.env.SENTRY_ENVIRONMENT
     delete process.env.NODE_ENV
-  })
-
-  describe('consumeErrorReportingFlag', () => {
-    it('removes --no-error-reporting from argv and disables telemetry', () => {
-      const argv = ['snippet', 'pull', '--no-error-reporting', '--dry-run']
-      consumeErrorReportingFlag(argv)
-
-      expect(argv).toEqual(['snippet', 'pull', '--dry-run'])
-      expect(process.env.LOOPRESS_TELEMETRY_DISABLED).toBe('1')
-    })
-
-    it('leaves argv and env untouched when the flag is absent', () => {
-      const argv = ['snippet', 'pull', '--dry-run']
-      consumeErrorReportingFlag(argv)
-
-      expect(argv).toEqual(['snippet', 'pull', '--dry-run'])
-      expect(process.env.LOOPRESS_TELEMETRY_DISABLED).toBeUndefined()
-    })
+    configManager.setTelemetryDisabled(false)
   })
 
   describe('isTelemetryDisabled', () => {
@@ -33,6 +17,17 @@ describe('sentry', () => {
     })
 
     it('is true when LOOPRESS_TELEMETRY_DISABLED=1', () => {
+      process.env.LOOPRESS_TELEMETRY_DISABLED = '1'
+      expect(isTelemetryDisabled()).toBe(true)
+    })
+
+    it('is true when disabled via the persisted global config', () => {
+      configManager.setTelemetryDisabled(true)
+      expect(isTelemetryDisabled()).toBe(true)
+    })
+
+    it('the env var overrides an enabled persisted config for a single run', () => {
+      configManager.setTelemetryDisabled(false)
       process.env.LOOPRESS_TELEMETRY_DISABLED = '1'
       expect(isTelemetryDisabled()).toBe(true)
     })
