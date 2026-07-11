@@ -31,3 +31,68 @@ jobs:
       - uses: changesets/action/pr-comment@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
         with:
           body: ${{ needs.pr-status.outputs.comment-body }}
+
+  cli-docs:
+    name: Sync CLI manifest and README
+    runs-on: ubuntu-latest
+    # Only run on the "Version Packages" PR that changesets/action (release.yml) opens
+    # from changeset-release/main: that's the PR that bumps cli/package.json's version,
+    # so it's the one point where the manifest/README can actually drift from the code.
+    # The branch check also keeps this off forks: `pull_request_target` runs with a
+    # write-scoped token, and changeset-release/main only ever exists on this repo.
+    if: github.event.pull_request.head.ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - name: Detect CLI changes
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            cli:
+              - 'cli/**'
+
+      - name: Checkout PR branch
+        if: steps.filter.outputs.cli == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup pnpm
+        if: steps.filter.outputs.cli == 'true'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        if: steps.filter.outputs.cli == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.filter.outputs.cli == 'true'
+        run: pnpm install --frozen-lockfile --filter @loopress/cli...
+
+      - name: Build CLI
+        if: steps.filter.outputs.cli == 'true'
+        working-directory: cli
+        run: pnpm build
+
+      - name: Regenerate manifest and README
+        if: steps.filter.outputs.cli == 'true'
+        working-directory: cli
+        run: pnpm run version
+
+      - name: Commit regenerated docs
+        if: steps.filter.outputs.cli == 'true'
+        run: |
+          if git diff --quiet -- cli/README.md cli/oclif.manifest.json; then
+            echo "CLI docs already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cli/README.md cli/oclif.manifest.json
+          git commit -m "docs(cli): regenerate manifest and README"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
