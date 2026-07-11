@@ -15,6 +15,10 @@
       "type": "object",
       "description": "Known projects, keyed by project id.",
       "additionalProperties": {"$ref": "#/definitions/ProjectConfig"}
+    },
+    "telemetry": {
+      "description": "User preferences for error reporting, set via `lps telemetry disable`/`lps telemetry enable`.",
+      "$ref": "#/definitions/TelemetryConfig"
     }
   },
   "definitions": {
@@ -56,6 +60,18 @@
         "name": {
           "type": "string",
           "description": "Human-readable project name."
+        }
+      }
+    },
+    "TelemetryConfig": {
+      "title": "TelemetryConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disabled"],
+      "properties": {
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether error reporting to Sentry is disabled."
         }
       }
     },
