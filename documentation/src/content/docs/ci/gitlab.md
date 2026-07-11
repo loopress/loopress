@@ -32,3 +32,16 @@ deploy:
 `.loopress-test` boots WordPress and runs `lps snippet push`. Triggers on branches and merge requests.
 
 `.loopress-deploy` deploys to a real site with `lps snippet push`. Requires a `LOOPRESS_TOKEN` variable set in your project CI settings.
+
+## Restoring between groups of tests
+
+A GitLab job is a single isolated container, so restoring between groups of tests happens as an extra step in the same job's `script:`, not a separate job. `.loopress-bootstrap` already downloads the restore script alongside the other setup scripts, call it directly between groups:
+
+```yaml
+test:
+  extends: .loopress-bootstrap
+  script:
+    - npx playwright test tests/e2e/happy-path.spec.ts
+    - /tmp/loopress-restore.sh
+    - npx playwright test tests/e2e/conflicts.spec.ts
+```

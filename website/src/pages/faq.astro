@@ -13,7 +13,7 @@ const FAQS = [
       },
       {
         q: "Is it free?",
-        a: "The CLI and the WordPress plugin are open source. A console with paid tiers is planned. Pricing will be announced separately.",
+        a: "The CLI and the WordPress plugin are open source and free. The Loopress console (console.loopress.dev) is free to use during the beta. Paid Pro and Agency tiers are coming, pricing will be announced separately.",
       },
       {
         q: "Who is Loopress for?",
@@ -30,7 +30,7 @@ const FAQS = [
       },
       {
         q: "How do I authenticate?",
-        a: "Loopress uses WordPress application passwords. No SSH access required. You configure a project once with lps project config and credentials are stored locally in ~/.loopress/config.json.",
+        a: "Loopress uses WordPress application passwords. No SSH access required. You configure a project once with lps project config, which by default opens your browser and creates the application password for you automatically (manual entry is available as a fallback). Credentials are stored locally on your machine, in your OS's standard config directory.",
       },
       {
         q: "Can I manage multiple projects or environments?",
@@ -56,6 +56,10 @@ const FAQS = [
       {
         q: "Can I create new snippets from the CLI?",
         a: "Yes. Any snippet file without an id in its .json sidecar will be created as a new snippet. The generated id is written back into the .json metadata file after creation.",
+      },
+      {
+        q: "Can I share the same snippet across multiple sites?",
+        a: "lps snippet publish uploads a project's snippets to your Loopress account, separately from any single WordPress site, so they can be deployed to other projects from the console. Requires being logged in (lps login) and the project synced (lps project sync).",
       },
     ],
   },

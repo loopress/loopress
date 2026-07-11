@@ -14,7 +14,6 @@ The plugin works standalone, straight from the WordPress admin, for Composer dep
 - A WordPress installation (6.0+) with administrator access
 - PHP 8.2+ on the server
 - Node.js 18+ on your machine, for the CLI
-- A WordPress [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) for the site you want to manage
 
 ## Quick start (about 3 minutes)
 
@@ -38,7 +37,7 @@ npm install -g @loopress/cli
 lps project config
 ```
 
-Enter your WordPress URL, username and application password when prompted. See the [Application Passwords guide](/cli/application-passwords/) if you can't find that section in your WordPress admin.
+Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically. If it can't complete (or you'd rather enter credentials yourself), fall back to manual entry, see the [Application Passwords guide](/cli/application-passwords/) if you can't find that section in your WordPress admin.
 
 ### 4. Sync your first snippets
 

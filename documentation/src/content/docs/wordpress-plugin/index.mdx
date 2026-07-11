@@ -11,7 +11,10 @@ The Loopress WordPress Plugin adds a dedicated admin page to your WordPress inst
 
 ## What it does
 
-- **Dependency management**: search, install and remove Composer packages from [Packagist](https://packagist.org/)
+- **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
+- **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
+- **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
+- **REST API for the CLI**: powers `lps snippet pull/push/list` and `lps plugin pull/push/add`, no need to open the admin page for these to work
 
 ## How it works
 
