@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://loopress.dev/schema/global-config.json",
   "title": "Loopress global configuration",
-  "description": "Global CLI state stored at ~/.loopress/config.json: known projects, their environments, and which one is currently active.",
+  "description": "Global CLI state stored at $XDG_CONFIG_HOME/loopress/config.json (or ~/.config/loopress/config.json): known projects, their environments, and which one is currently active.",
   "type": "object",
   "additionalProperties": false,
   "required": ["currentProject", "projects"],

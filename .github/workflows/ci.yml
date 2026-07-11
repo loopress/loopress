@@ -93,7 +93,7 @@ jobs:
       - name: Extract app password
         id: wp-creds
         run: |
-          TOKEN=$(jq -r '.projects[.currentProject.id].environments[.currentProject.env].token' ~/.loopress/config.json)
+          TOKEN=$(jq -r '.projects[.currentProject.id].environments[.currentProject.env].token' "${XDG_CONFIG_HOME:-$HOME/.config}/loopress/config.json")
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
       - name: Install Playwright browsers

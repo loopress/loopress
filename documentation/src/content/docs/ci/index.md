@@ -11,7 +11,7 @@ description: Bootstrap a full WordPress environment in CI with a single step and
 2. Waits for WordPress to respond (up to 90 seconds)
 3. Installs WP-CLI inside the WordPress container
 4. Runs `wp core install` and creates an application password
-5. Writes `~/.loopress/config.json` with the site credentials
+5. Writes `$XDG_CONFIG_HOME/loopress/config.json` (or `~/.config/loopress/config.json`) with the site credentials
 6. Installs `@loopress/cli`
 
 ## Token requirements

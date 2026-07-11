@@ -38,7 +38,7 @@ Authenticate with your Loopress account to unlock cloud features:
 lps login
 ```
 
-This opens `console.loopress.dev` in your browser. After you approve, the CLI stores a token in `~/.loopress/auth.json` and returns you to the terminal.
+This opens `console.loopress.dev` in your browser. After you approve, the CLI stores a token in `$XDG_DATA_HOME/loopress/auth.json`, or `~/.local/share/loopress/auth.json` if that variable is unset, and returns you to the terminal.
 
 ```bash
 lps logout   # Remove the stored token
@@ -64,7 +64,7 @@ You will be prompted for:
 
 ### Manage multiple projects and environments
 
-Loopress stores configurations in `~/.loopress/config.json` and tracks the currently active project and environment.
+Loopress stores configurations in `$XDG_CONFIG_HOME/loopress/config.json`, or `~/.config/loopress/config.json` if that variable is unset, and tracks the currently active project and environment.
 
 ```bash
 lps project config          # Add or update a project/environment
