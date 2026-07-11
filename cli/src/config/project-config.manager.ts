@@ -7,7 +7,7 @@ import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig,
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
-  constructor(private readonly homeDir: string = homedir()) {}
+  constructor(private configDir: string = join(homedir(), '.loopress')) {}
 
   createProjectId(name: string): string {
     const config = this.readConfig()
@@ -24,9 +24,8 @@ export class ProjectConfigManager {
   }
 
   ensureConfigDir(): void {
-    const dir = join(this.homeDir, '.loopress')
-    if (!existsSync(dir)) {
-      mkdirSync(dir, {recursive: true})
+    if (!existsSync(this.configDir)) {
+      mkdirSync(this.configDir, {recursive: true})
     }
   }
 
@@ -44,7 +43,7 @@ export class ProjectConfigManager {
   }
 
   getConfigFilePath(): string {
-    return join(this.homeDir, '.loopress', 'config.json')
+    return join(this.configDir, 'config.json')
   }
 
   getCurrentEnv(): EnvironmentConfig | null {
@@ -133,6 +132,13 @@ export class ProjectConfigManager {
     }
 
     this.writeConfig(config)
+  }
+
+  // Repointed by the `init` hook to oclif's native configDir once the real CLI Config is
+  // available. The constructor default only serves contexts that bypass the oclif lifecycle
+  // (e.g. commands instantiated directly in unit tests).
+  setConfigDir(configDir: string): void {
+    this.configDir = configDir
   }
 
   setCurrent(projectId: string, envName: string): void {

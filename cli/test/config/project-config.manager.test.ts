@@ -138,13 +138,13 @@ describe('ProjectConfigManager', () => {
     it('creates a deeply nested config directory that does not exist yet', () => {
       const nestedManager = new ProjectConfigManager(join(tmpDir, 'a', 'b'))
       nestedManager.ensureConfigDir()
-      expect(existsSync(join(tmpDir, 'a', 'b', '.loopress'))).toBe(true)
+      expect(existsSync(join(tmpDir, 'a', 'b'))).toBe(true)
     })
 
     it('is a no-op when the config directory already exists', () => {
       manager.ensureConfigDir()
       expect(() => manager.ensureConfigDir()).not.toThrow()
-      expect(existsSync(join(tmpDir, '.loopress'))).toBe(true)
+      expect(existsSync(tmpDir)).toBe(true)
     })
   })
 
@@ -491,7 +491,7 @@ describe('ProjectConfigManager', () => {
 
     it('persists config.json at the expected path', () => {
       manager.setProject('id-acme', makeProject('acme'))
-      expect(manager.getConfigFilePath()).toBe(join(tmpDir, '.loopress', 'config.json'))
+      expect(manager.getConfigFilePath()).toBe(join(tmpDir, 'config.json'))
       expect(existsSync(manager.getConfigFilePath())).toBe(true)
     })
   })

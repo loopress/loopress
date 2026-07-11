@@ -11,7 +11,7 @@ export interface ConsoleAuth {
 }
 
 export class AuthManager {
-  constructor(private readonly homeDir: string = homedir()) {}
+  constructor(private dataDir: string = join(homedir(), '.loopress')) {}
 
   clearAuth(): void {
     const filePath = this.getAuthFilePath()
@@ -23,11 +23,18 @@ export class AuthManager {
   }
 
   getAuthFilePath(): string {
-    return join(this.homeDir, '.loopress', 'auth.json')
+    return join(this.dataDir, 'auth.json')
   }
 
   setAuth(auth: ConsoleAuth): void {
     writeJsonFileAtomic(this.getAuthFilePath(), auth)
+  }
+
+  // Repointed by the `init` hook to oclif's native dataDir once the real CLI Config is
+  // available. The constructor default only serves contexts that bypass the oclif lifecycle
+  // (e.g. commands instantiated directly in unit tests).
+  setDataDir(dataDir: string): void {
+    this.dataDir = dataDir
   }
 }
 
