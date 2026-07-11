@@ -86,6 +86,8 @@ jobs:
 
       - name: Commit regenerated docs
         if: steps.filter.outputs.cli == 'true'
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           if git diff --quiet -- cli/README.md cli/oclif.manifest.json; then
             echo "CLI docs already up to date"
@@ -95,7 +97,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cli/README.md cli/oclif.manifest.json
           git commit -m "docs(cli): regenerate manifest and README"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:"$HEAD_REF"
 
   wordpress-plugin-version:
     name: Sync WordPress plugin version header
@@ -139,6 +141,8 @@ jobs:
 
       - name: Commit synced version
         if: steps.filter.outputs.plugin == 'true'
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           if git diff --quiet -- wordpress-plugin/loopress.php wordpress-plugin/readme.txt; then
             echo "Plugin version header already up to date"
@@ -148,4 +152,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add wordpress-plugin/loopress.php wordpress-plugin/readme.txt
           git commit -m "docs(wordpress-plugin): sync version header"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:"$HEAD_REF"
