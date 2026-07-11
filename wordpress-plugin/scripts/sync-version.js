@@ -11,13 +11,16 @@ const targets = [
 for (const { file, pattern, label } of targets) {
   const filePath = path.join(__dirname, '..', file)
   const content = fs.readFileSync(filePath, 'utf8')
-  const updated = content.replace(pattern, `$1${pkg.version}`)
 
-  if (updated === content) {
+  // Checked independently of the replacement result: comparing `updated === content` instead
+  // would misreport "not found" whenever the file already has the current version, since the
+  // replacement is then a no-op that also leaves the content unchanged.
+  if (!pattern.test(content)) {
     console.error(`${label} line not found in ${file}`)
     process.exit(1)
   }
 
+  const updated = content.replace(pattern, `$1${pkg.version}`)
   fs.writeFileSync(filePath, updated)
   console.log(`Synced version ${pkg.version} to ${file} (${label})`)
 }

@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Loopress
  * Description: Manage and install Composer dependencies from the WordPress admin.
- * Version: 2026.7.0
+ * Version: 2026.7.2
  * Author: jean-smaug
  * Text Domain: loopress
  * License: GPL-2.0-or-later

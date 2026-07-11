@@ -40,13 +40,23 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     public function getSnippets(): array
     {
         $response = $this->dispatchList('GET', self::ROUTE);
+        $snippets = array_map([$this, 'fromRemote'], $response);
 
-        return array_map([$this, 'fromRemote'], $response);
+        $trashedIds = $this->trashedIds(array_column($snippets, 'id'));
+
+        return array_values(array_filter(
+            $snippets,
+            static fn(array $snippet): bool => !in_array($snippet['id'], $trashedIds, true),
+        ));
     }
 
     /** @return array<string, mixed>|null */
     public function getSnippet(int $id): ?array
     {
+        if ($this->isTrashed($id)) {
+            return null;
+        }
+
         try {
             $response = $this->dispatchOne('GET', self::ROUTE . "/{$id}");
         } catch (\RuntimeException $e) {
@@ -79,8 +89,10 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     public function deleteSnippet(int $id): bool
     {
         // Doesn't go through dispatch()/dispatchOne(): a DELETE response has no body to coerce
-        // into an array, only a success/error status to check.
-        $request = new WP_REST_Request('DELETE', self::NAMESPACE . self::ROUTE . "/{$id}");
+        // into an array, only a success/error status to check. Still needs the same leading
+        // slash as dispatch() (see its comment): without it the route never matches and this
+        // silently reports every delete as "not found" instead of actually deleting anything.
+        $request = new WP_REST_Request('DELETE', '/' . self::NAMESPACE . self::ROUTE . "/{$id}");
 
         return !rest_do_request($request)->is_error();
     }
@@ -189,6 +201,39 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             'text' => throw new \RuntimeException('Code Snippets has no "text" snippet type.'),
             default => throw new \RuntimeException("Unknown snippet type \"{$type}\"."),
         };
+    }
+
+    // Code Snippets' own REST responses cannot tell a trashed snippet apart from a genuinely
+    // inactive one: Snippet::prepare_field() normalizes `active` to `false` for both a real
+    // `0` and the `-1` trash sentinel it stores in the database, and trash status isn't part
+    // of the REST schema at all. `is_trashed()` (backed by that same `-1` sentinel) is the only
+    // place that still knows the difference, so this reaches past the REST layer for this one
+    // check rather than trying to reconstruct trash detection from data that no longer carries it.
+    private function isTrashed(int $id): bool
+    {
+        return \Code_Snippets\get_snippet($id)->is_trashed();
+    }
+
+    /**
+     * @param int[] $ids
+     * @return int[]
+     */
+    private function trashedIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        // Untyped (rather than `Code_Snippets\Snippet`) on purpose: that class lives in a
+        // third-party plugin this codebase doesn't depend on at the autoload level, only at
+        // runtime when Code Snippets happens to be active (see isActive()).
+        return array_values(array_map(
+            static fn(object $snippet): int => $snippet->id,
+            array_filter(
+                \Code_Snippets\get_snippets($ids),
+                static fn(object $snippet): bool => $snippet->is_trashed(),
+            ),
+        ));
     }
 
     /** @param array<string, mixed> $body @return array<string, mixed> */
