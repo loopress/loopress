@@ -6,8 +6,8 @@ import {expect, test} from './helpers/environment.js'
 // risk clobbering it.
 //
 // The precondition (Loopress really is installed) is checked through WordPress core's own
-// `wp/v2/plugins` endpoint, not Loopress's `loopress/v1/plugins` (which is exactly the list
-// this fix filters loopress out of, and not the flaky-under-load wp-admin Plugins page).
+// `wp/v2/plugins` endpoint, unfiltered, since that's the same endpoint `plugin pull` itself
+// reads and filters client-side (not the flaky-under-load wp-admin Plugins page).
 test('plugin pull never lists the Loopress plugin itself', async ({request, runCli, wp}) => {
   const installedResponse = await request.get(`${wp.url}/wp-json/wp/v2/plugins`, {
     headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},

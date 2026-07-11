@@ -1,10 +1,9 @@
-import {confirm} from '@inquirer/prompts'
 import {Listr} from 'listr2'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {ActivateResult, InstalledPlugin, InstallResult} from '../../types/plugin.js'
+import {WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
-import {diffPlugins, PluginDiff} from '../../utils/plugins.js'
+import {diffPlugins, parseInstalledPlugins} from '../../utils/plugins.js'
 
 export default class Push extends PushCommand {
   static description = 'Push plugins to WordPress to match loopress.json'
@@ -38,18 +37,19 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing plugins to ${url}`)
 
-    const installed = await this.wp.get<InstalledPlugin[]>('loopress/v1/plugins')
+    const raw = await this.wp.get<WpNativePlugin[]>('wp/v2/plugins')
+    const installed = parseInstalledPlugins(raw)
 
-    const {drifted, toActivate, toInstall} = diffPlugins(filteredManifest, installed)
+    const {toActivate, toInstall} = diffPlugins(filteredManifest, installed)
 
-    if (toInstall.length === 0 && toActivate.length === 0 && drifted.length === 0) {
+    if (toInstall.length === 0 && toActivate.length === 0) {
       this.log('Everything is already in sync.')
       return
     }
 
     if (toInstall.length > 0) {
       this.log(`\nTo install (${toInstall.length}):`)
-      for (const a of toInstall) this.log(`  + ${a.slug} @ ${a.targetVersion}`)
+      for (const a of toInstall) this.log(`  + ${a.slug}`)
     }
 
     if (toActivate.length > 0) {
@@ -57,38 +57,29 @@ export default class Push extends PushCommand {
       for (const a of toActivate) this.log(`  ↑ ${a.slug}`)
     }
 
-    if (drifted.length > 0) {
-      this.log(`\nVersion mismatch (${drifted.length}):`)
-      for (const a of drifted) {
-        this.log(`  ~ ${a.slug}: site has ${a.currentVersion}, manifest wants ${a.targetVersion}`)
-      }
-    }
-
     if (this.dryRun) return
 
-    // Install missing plugins and activate them.
+    // Installing with `status: active` activates in the same call, so installs never need a
+    // separate activation step the way the old custom endpoint's two-step flow did.
     if (toInstall.length > 0) {
       await new Listr(
         toInstall.map((action) => ({
-          task: async (_ctx, task) => this.installAndActivate(action.slug, action.targetVersion, task),
-          title: `Install ${action.slug} @ ${action.targetVersion}`,
+          task: async (_ctx, task) => this.installPlugin(action.slug, task),
+          title: `Install ${action.slug}`,
         })),
         {concurrent: false, exitOnError: false},
       ).run()
     }
 
-    // Activate installed-but-inactive plugins without prompting.
     if (toActivate.length > 0) {
       await new Listr(
         toActivate.map((action) => ({
-          task: async (_ctx, task) => this.activatePlugin(action.slug, task),
+          task: async (_ctx, task) => this.activatePlugin(action.file, action.slug, task),
           title: `Activate ${action.slug}`,
         })),
         {concurrent: false, exitOnError: false},
       ).run()
     }
-
-    await this.syncDrifted(drifted)
 
     if (this.failedCount > 0) {
       this.error(`${this.failedCount} plugin${this.failedCount === 1 ? '' : 's'} failed to install or activate.`)
@@ -103,24 +94,23 @@ export default class Push extends PushCommand {
   // it falls back to plain logging. Rethrowing on failure (rather than swallowing) is what lets Listr
   // mark the task as failed (red cross) instead of completed, even though `exitOnError: false` stops
   // that failure from aborting sibling tasks in the same list.
-  private async activatePlugin(slug: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction<ActivateResult>('activate', {body: {slug}, endpoint: 'loopress/v1/plugins/activate', slug}, task)
+  private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {
+    await this.performPluginAction('activate', slug, () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
   }
 
-  private async installAndActivate(slug: string, version: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction<InstallResult>('install', {body: {slug, version}, endpoint: 'loopress/v1/plugins/install', slug}, task)
-    await this.activatePlugin(slug, task)
+  private async installPlugin(slug: string, task?: {output: string}): Promise<void> {
+    await this.performPluginAction('install', slug, () => this.wp.post('wp/v2/plugins', {slug, status: 'active'}), task)
   }
 
-  private async performPluginAction<T extends {message: string}>(
+  private async performPluginAction(
     verb: 'activate' | 'install',
-    request: {body: Record<string, unknown>; endpoint: string; slug: string},
+    slug: string,
+    request: () => Promise<unknown>,
     task?: {output: string},
   ): Promise<void> {
-    const {body, endpoint, slug} = request
     try {
-      const result = await this.wp.post<T>(endpoint, body)
-      const message = `✓ ${result.message}`
+      await request()
+      const message = `✓ ${slug} ${verb === 'install' ? 'installed and activated' : 'activated'}`
       if (task) task.output = message
       else this.log(`  ${message}`)
     } catch (error) {
@@ -130,33 +120,5 @@ export default class Push extends PushCommand {
       this.failedCount++
       throw error
     }
-  }
-
-  // Prompt per drifted plugin before syncing. Prompts run sequentially on plain stdout,
-  // before the Listr renderer takes over the terminal for the confirmed subset.
-  private async syncDrifted(drifted: PluginDiff['drifted']): Promise<void> {
-    const confirmedDrift: typeof drifted = []
-    for (const action of drifted) {
-      const proceed = await confirm({
-        default: false,
-        message: `${action.slug} is at ${action.currentVersion} on the site but manifest wants ${action.targetVersion}. Sync to ${action.targetVersion}?`,
-      })
-
-      if (proceed) {
-        confirmedDrift.push(action)
-      } else {
-        this.log(`  Skipped ${action.slug}`)
-      }
-    }
-
-    if (confirmedDrift.length === 0) return
-
-    await new Listr(
-      confirmedDrift.map((action) => ({
-        task: async (_ctx, task) => this.installAndActivate(action.slug, action.targetVersion, task),
-        title: `Sync ${action.slug} to ${action.targetVersion}`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
   }
 }

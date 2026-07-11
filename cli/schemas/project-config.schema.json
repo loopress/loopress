@@ -25,15 +25,14 @@
     },
     "plugins": {
       "type": "object",
-      "description": "Pinned plugin versions. Keys are WordPress.org plugin slugs, values are version constraints.",
+      "description": "WordPress.org plugins managed by Loopress. Keys are plugin slugs; values are written as \"latest\" since installs go through WordPress's native plugin API, which only installs the current version. Older files may still have a pinned version string here from before this was the case; it is read but no longer acted on.",
       "additionalProperties": {
         "type": "string",
-        "description": "Version to pin. Use an exact version (e.g. \"8.9.1\") or \"latest\".",
-        "examples": ["8.9.1", "latest"]
+        "examples": ["latest"]
       },
       "examples": [
         {
-          "woocommerce": "8.9.1",
+          "woocommerce": "latest",
           "contact-form-7": "latest"
         }
       ]

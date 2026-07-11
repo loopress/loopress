@@ -1,24 +1,26 @@
 ---
 title: Plugins
-description: Sync WordPress plugin versions across environments with a manifest in Git.
+description: Sync installed WordPress plugins across environments with a manifest in Git.
 ---
 
-The `plugins` command group lets you track installed WordPress plugins as a versioned manifest in `loopress.json`. Once committed, any environment can be brought to the exact same plugin state with a single command.
+The `plugins` command group lets you track installed WordPress plugins as a manifest in `loopress.json`. Once committed, any environment can be brought to the same set of installed, active plugins with a single command.
 
 ## How it works
 
-Loopress stores plugin versions under the `plugins` key in `loopress.json`:
+Loopress stores managed plugins under the `plugins` key in `loopress.json`:
 
 ```json
 {
   "plugins": {
-    "woocommerce": "9.0.2",
-    "contact-form-7": "5.9.8"
+    "woocommerce": "latest",
+    "contact-form-7": "latest"
   }
 }
 ```
 
-The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs; the values are pinned versions. When you run `lps plugin pull`, Loopress also disables auto-updates for every managed plugin so version drift cannot happen silently.
+The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Installs and activations go through WordPress's own `wp/v2/plugins` REST API, which only ever installs the current stable release, so there is no version to pin, the value is always `"latest"`.
+
+Need a specific, reproducible version instead? Manage that plugin through Composer and [wpackagist](https://wpackagist.org/) - see the [`composer` command group](/cli/composer/). Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
 
 ## Commands
 
@@ -27,23 +29,19 @@ The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs; the v
 Add a WordPress.org plugin to `loopress.json`.
 
 ```bash
-lps plugin add <slug> [version]
+lps plugin add <slug>
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `slug` | WordPress.org plugin slug (e.g. `woocommerce`) |
-| `version` | Version to pin. Omit to resolve the latest stable version automatically. |
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching `loopress.json` |
 
-Resolves the current stable version from the WordPress.org API and writes it to `loopress.json`:
-
 ```bash
-lps plugin add woocommerce          # pins latest stable version
-lps plugin add woocommerce 9.0.2   # pins a specific version
+lps plugin add woocommerce
 lps plugin add contact-form-7 --dry-run
 ```
 
@@ -63,7 +61,7 @@ lps plugin pull
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without making changes |
 
-Loopress merges the remote state into the existing manifest (new plugins are added, version changes are noted) and then disables auto-updates for every managed plugin on the site.
+Loopress merges the remote state into the existing manifest; new plugins are added.
 
 **Example output:**
 
@@ -71,7 +69,6 @@ Loopress merges the remote state into the existing manifest (new plugins are add
 Pulling plugins from https://example.com
 Wrote 4 plugins to loopress.json
   + Added: contact-form-7, yoast-seo
-  ~ Updated: woocommerce 9.0.1 → 9.0.2
 ```
 
 ---
@@ -92,9 +89,8 @@ Before making any change, the command prints a diff:
 
 - **To install** — plugins in the manifest that are not on the site
 - **To activate** — plugins installed but not yet active
-- **Version mismatch** — plugins where the site version differs from the manifest
 
-Missing plugins are installed and activated automatically. For each version mismatch, Loopress prompts you before syncing.
+Missing plugins are installed and activated automatically.
 
 **Example output:**
 
@@ -102,13 +98,10 @@ Missing plugins are installed and activated automatically. For each version mism
 Pushing plugins to https://example.com
 
 To install (1):
-  + contact-form-7 @ 5.9.8
+  + contact-form-7
 
-Version mismatch (1):
-  ~ woocommerce: site has 9.0.1, manifest wants 9.0.2
-
-Installing contact-form-7 @ 5.9.8...
-  ✓ Plugin installed and activated
+Installing contact-form-7...
+  ✓ contact-form-7 installed and activated
 ```
 
 ## Typical workflow
@@ -119,7 +112,7 @@ lps project switch   # select production
 lps plugin pull
 
 # 2. Commit the manifest
-git add loopress.json && git commit -m "chore: pin plugin versions"
+git add loopress.json && git commit -m "chore: track managed plugins"
 
 # 3. Apply to another environment
 lps project switch   # select staging

@@ -104,8 +104,8 @@ Run `lps init` in your project root to generate `loopress.json` interactively, o
   "rootDir": "./wp-content",
   "snippetsDir": "snippets",
   "plugins": {
-    "woocommerce": "9.0.2",
-    "contact-form-7": "5.9.8"
+    "woocommerce": "latest",
+    "contact-form-7": "latest"
   }
 }
 ```
@@ -115,7 +115,7 @@ Run `lps init` in your project root to generate `loopress.json` interactively, o
 | `projectId` | none | Name of the project to use, as configured via `lps project config`. Overrides the currently active project. |
 | `rootDir` | `.` | Base directory, all other paths are resolved relative to it |
 | `snippetsDir` | `snippets` | Directory for snippet files |
-| `plugins` | none | Pinned plugin versions (slug → version). Managed by `lps plugin pull/push/add`. |
+| `plugins` | none | WordPress.org plugins managed by Loopress (slugs). Managed by `lps plugin pull/push/add`. |
 
 The `plugins` field is populated automatically by `lps plugin pull` and `lps plugin add`. Commit `loopress.json` to Git so every environment can be synced with `lps plugin push`.
 
