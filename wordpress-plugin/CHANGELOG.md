@@ -1,5 +1,11 @@
 # @loopress/wordpress-plugin
 
+## 2026.8.0
+
+### Minor Changes
+
+- 9a8f6b5: Removed `PluginService`, `PluginController`, and the `loopress/v1/plugins*` REST routes. Plugin management now relies entirely on WordPress core's native `wp/v2/plugins` REST API, which the Loopress CLI calls directly.
+
 ## 2026.7.2
 
 ### Patch Changes

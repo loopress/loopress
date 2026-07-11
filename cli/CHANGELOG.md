@@ -1,5 +1,17 @@
 # @loopress/cli
 
+## 0.14.0
+
+### Minor Changes
+
+- 42c3956: Use oclif native config system
+- 9a8f6b5: `lps plugin` commands now use WordPress core's native `wp/v2/plugins` REST API instead of a custom Loopress endpoint. As a result, plugin version pinning is no longer supported: `lps plugin add` no longer accepts a `[version]` argument, and `loopress.json` always stores `"latest"` for managed plugins. Pin an exact version through the `composer` command group and wpackagist instead.
+- b27bd0c: Delay sentry load to improve performances
+
+### Patch Changes
+
+- 13e0495: Move WordPress app-password relay from website to API
+
 ## 0.13.0
 
 ### Minor Changes
