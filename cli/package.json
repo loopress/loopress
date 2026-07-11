@@ -19,6 +19,7 @@
     "glob": "13.0.6",
     "got": "^15.0.7",
     "listr2": "^10.2.2",
+    "lodash": "^4.18.1",
     "slugify": "^1.6.9",
     "write-file-atomic": "^5.0.1"
   },
@@ -28,6 +29,7 @@
     "@oclif/test": "^4.1.20",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/lodash": "^4.17.24",
     "@types/node": "26.0.1",
     "@types/write-file-atomic": "^4.0.3",
     "@vitest/coverage-v8": "4.1.9",

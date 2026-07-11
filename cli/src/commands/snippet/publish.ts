@@ -1,4 +1,5 @@
 import {Args, Command} from '@oclif/core'
+import {chunk} from 'lodash'
 import {join} from 'node:path'
 import slugify from 'slugify'
 
@@ -8,6 +9,11 @@ import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
 import {Snippet} from '../../types/snippet.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
+
+// Keeps each upload request small enough to stay under the api's JSON body size limit, so
+// publishing a large collection doesn't fail with "Request entity too large" the way sending
+// every snippet in one request used to.
+const BATCH_SIZE = 20
 
 // Publishes to the Loopress api (not a WordPress site), so this does not extend
 // `LoopressCommand`/`PushCommand`: those force an environment to be resolved, but a project
@@ -55,10 +61,24 @@ export default class Publish extends Command {
       this.error((error as Error).message)
     }
 
+    const payloads = snippets.map((snippet) => this.toPayload(snippet))
+    const batches = chunk(payloads, BATCH_SIZE)
+
     const api = new ApiClient(token)
     try {
-      await api.post(`projects/${project.apiProjectId}/snippets/publish`, {
-        snippets: snippets.map((snippet) => this.toPayload(snippet)),
+      for (const [index, batch] of batches.entries()) {
+        if (batches.length > 1) {
+          this.log(`Uploading batch ${index + 1}/${batches.length} (${batch.length} snippets)...`)
+        }
+
+        await api.post(`projects/${project.apiProjectId}/snippets/publish/upsert`, {snippets: batch})
+      }
+
+      // Sent as a separate, lightweight call (just slugs, no snippet content) so removing
+      // snippets no longer present locally doesn't require the full collection to fit in a
+      // single request: see `BATCH_SIZE` above for why the upload itself is chunked.
+      await api.post(`projects/${project.apiProjectId}/snippets/publish/prune`, {
+        slugs: payloads.map((payload) => payload.slug),
       })
     } catch (error) {
       this.error((error as Error).message)
