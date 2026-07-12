@@ -34,6 +34,10 @@ export function Features() {
             tag="03"
             title="Composer without SSH"
             body="Search and install any Packagist package from the WordPress admin panel, without opening a terminal."
+            bullets={[
+              "Security audit flags known CVEs in your Composer dependencies",
+              "Platform diagnostics catch PHP version mismatches before they break an install",
+            ]}
             cta={{ label: "Download the plugin", href: pluginDownloadUrl }}
           >
             <ComposerBlock />
@@ -43,6 +47,10 @@ export function Features() {
             tag="04"
             title="Official CI configs"
             body="Bootstrap a full WordPress environment in GitHub Actions or GitLab CI, and run lps against it in a single step."
+            bullets={[
+              "A real, disposable WordPress instance, not a mock, so you can run Playwright e2e tests against it",
+              "Snapshot and restore the database between test groups without respawning the stack",
+            ]}
           >
             <CIBlock />
           </FeatureCard>
@@ -56,12 +64,14 @@ function FeatureCard({
   tag,
   title,
   body,
+  bullets,
   cta,
   children,
 }: {
   tag: string;
   title: string;
   body: string;
+  bullets?: string[];
   cta?: { label: string; href: string };
   children: React.ReactNode;
 }) {
@@ -70,6 +80,16 @@ function FeatureCard({
       <div className="font-mono text-[10px] tracking-widest text-accent-cyan">F.{tag}</div>
       <h3 className="mt-2 text-xl font-medium text-foreground">{title}</h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">{body}</p>
+      {bullets && (
+        <ul className="mt-3 max-w-md space-y-1.5">
+          {bullets.map((b) => (
+            <li key={b} className="flex items-start gap-2 text-sm text-muted-foreground/90">
+              <span className="mt-0.5 font-mono text-xs text-success">✓</span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      )}
       {cta && (
         <a
           href={cta.href}
