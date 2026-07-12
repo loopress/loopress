@@ -18,12 +18,23 @@ import { contactSchema } from "@/lib/contact";
 
 type ContactFormValues = z.infer<typeof contactSchema>;
 
-export default function ContactForm() {
+export default function ContactForm({
+  defaultSubject,
+  defaultMessage,
+}: {
+  defaultSubject?: string;
+  defaultMessage?: string;
+}) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", email: "", subject: "", message: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      subject: defaultSubject ?? "",
+      message: defaultMessage ?? "",
+    },
   });
 
   async function onSubmit(values: ContactFormValues) {

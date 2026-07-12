@@ -55,12 +55,12 @@ export function FinalCTA() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@agency.dev"
               disabled={status === "loading"}
-              className="h-11 flex-1 rounded-md border border-border bg-card/60 px-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 disabled:opacity-50"
+              className="h-14 rounded-md border border-border bg-card/60 px-4 font-mono text-base text-foreground placeholder:text-muted-foreground focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 disabled:opacity-50 sm:flex-1 md:h-11 md:text-sm"
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="inline-flex h-14 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 md:h-11"
             >
               {status === "loading" ? "Sending…" : "Join the Beta →"}
             </button>

@@ -32,6 +32,9 @@ export default defineConfig({
   integrations: [loopressFavicon(), react(), sitemap()],
   adapter: vercel(),
   output: "server",
+  server: {
+    port: 5432,
+  },
   vite: {
     plugins: [tailwindcss(), tsConfigPaths({ projects: ["./tsconfig.json"] })],
     resolve: {

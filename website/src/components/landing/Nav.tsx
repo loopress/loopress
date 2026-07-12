@@ -17,6 +17,7 @@ export function Nav() {
             height="40"
             className="h-10 w-auto"
           />
+          <span className="text-base font-semibold tracking-tight text-foreground">Loopress</span>
           <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             Beta
           </span>
