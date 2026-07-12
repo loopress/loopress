@@ -42,7 +42,7 @@ const TIERS = [
     description: "For teams managing multiple WordPress projects.",
     featured: false,
     cta: "Contact us",
-    ctaHref: "/contact",
+    ctaHref: "/contact?topic=agency",
     features: ["Everything in Pro", "Team members", "Collaborative features"],
   },
 ];

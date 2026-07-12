@@ -3,6 +3,18 @@ import Layout from "@/layouts/Layout.astro";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 import ContactForm from "@/components/ContactForm";
+
+const topic = Astro.url.searchParams.get("topic");
+
+const templates: Record<string, { subject: string; message: string }> = {
+  agency: {
+    subject: "Agency pricing",
+    message:
+      "Hi, we manage multiple WordPress projects and would like to know more about Agency tier pricing.\n\nNumber of projects: \nTeam size: ",
+  },
+};
+
+const template = topic ? templates[topic] : undefined;
 ---
 
 <Layout
@@ -21,7 +33,11 @@ import ContactForm from "@/components/ContactForm";
         </p>
       </div>
       <h2 class="sr-only">Contact form</h2>
-      <ContactForm client:load />
+      <ContactForm
+        client:load
+        defaultSubject={template?.subject}
+        defaultMessage={template?.message}
+      />
       <p class="mt-8 text-center text-xs text-muted-foreground">
         For trademark or brand asset requests, see the{" "}
         <a href="/brand-assets" class="underline underline-offset-2 hover:text-foreground">
