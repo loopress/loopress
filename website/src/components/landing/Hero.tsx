@@ -19,7 +19,7 @@ export function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-cyan opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent-cyan" />
             </span>
-            Private beta - now accepting developers
+            Open beta - now accepting developers
             <span className="text-foreground/40">→</span>
           </a>
 
@@ -32,8 +32,8 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Version-control your snippets and plugins in Git. Install Composer
-            packages from the WordPress admin, no SSH needed.
+            Version-control your snippets and plugins in Git. Install Composer packages from the
+            WordPress admin, no SSH needed.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
