@@ -41,7 +41,7 @@ export default class Publish extends Command {
     }
 
     if (!project.apiProjectId) {
-      this.error(`Project "${project.name}" is not linked to your Loopress account yet. Run \`lps project sync\` first.`)
+      this.error(`Project "${project.name}" is not linked to your Loopress account yet. Run \`lps project push\` first.`)
     }
 
     const path = args.path ?? join(localConfig.rootDir ?? '.', localConfig.snippetsDir ?? 'snippets')

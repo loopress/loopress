@@ -28,7 +28,8 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project and environment |
 | | `lps project remove` | Remove one or more WordPress projects or environments |
-| | `lps project sync` | Sync locally configured projects and environments with your Loopress account |
+| | `lps project push` | Push locally configured projects, environments and credentials to your Loopress account |
+| | `lps project pull` | Pull projects and environments from your Loopress account that aren't configured locally yet |
 | **Telemetry** | `lps telemetry enable` | Enable error reporting to Sentry |
 | | `lps telemetry disable` | Disable error reporting to Sentry |
 

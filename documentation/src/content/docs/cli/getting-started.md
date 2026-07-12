@@ -85,14 +85,19 @@ lps project config          # Add or update a project/environment
 lps project list            # Show all configured projects and their environments
 lps project switch          # Interactively pick the active project and environment
 lps project remove          # Remove a saved project or environment
-lps project sync            # Push local projects, environments and credentials to your Loopress account
+lps project push            # Push local projects, environments and credentials to your Loopress account
+lps project pull            # Pull projects and environments from your Loopress account that aren't configured locally yet
 ```
 
 All commands operate against the **active project/environment**.
 
 ### Syncing with your Loopress account
 
-`lps project sync` requires being logged in (`lps login`). It creates a matching project and environment on your Loopress account for each one configured locally, then pushes the WordPress application password as credentials for that environment. Run it again after adding new projects or environments locally, it only creates what's missing and always refreshes credentials.
+Both commands require being logged in (`lps login`).
+
+`lps project push` creates a matching project and environment on your Loopress account for each one configured locally, then pushes the WordPress application password as credentials for that environment. Run it again after adding new projects or environments locally, it only creates what's missing and always refreshes credentials.
+
+`lps project pull` fetches projects and environments already on your Loopress account and adds any that aren't configured locally yet, useful when setting up a new machine.
 
 ## Project-level configuration
 

@@ -50,7 +50,7 @@
         },
         "apiProjectId": {
           "type": "string",
-          "description": "Id of the matching project on the Loopress API, once synced via `lps project sync`."
+          "description": "Id of the matching project on the Loopress API, once pushed via `lps project push`."
         },
         "environments": {
           "type": "object",
@@ -87,7 +87,7 @@
         },
         "apiEnvironmentId": {
           "type": "string",
-          "description": "Id of the matching environment on the Loopress API, once synced via `lps project sync`."
+          "description": "Id of the matching environment on the Loopress API, once pushed via `lps project push`."
         },
         "name": {
           "type": "string",

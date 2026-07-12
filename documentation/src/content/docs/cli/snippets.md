@@ -106,7 +106,7 @@ Found 3 snippets:
 
 Publish local snippet files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
 
-Requires `lps login` first, and the current project must be linked to your Loopress account (`lps project sync`).
+Requires `lps login` first, and the current project must be linked to your Loopress account (`lps project push`).
 
 ```bash
 lps snippet publish [path]

@@ -1,7 +1,7 @@
 import {confirm} from '@inquirer/prompts'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Sync from '../../../src/commands/project/sync.js'
+import Push from '../../../src/commands/project/push.js'
 import {authManager} from '../../../src/config/auth.manager.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {ApiClient} from '../../../src/lib/api-client.js'
@@ -28,11 +28,11 @@ vi.mock('listr2', async () => {
   return createListrMock()
 })
 
-function make(): Sync {
-  return new Sync([], fakeOclifConfig)
+function make(): Push {
+  return new Push([], fakeOclifConfig)
 }
 
-// sync.ts never reads `project.environments` directly, it calls the separately mocked
+// push.ts never reads `project.environments` directly, it calls the separately mocked
 // `configManager.listEnvironments(project.id)` instead, so these local wrappers hardcode
 // it to `{}` rather than making every call site pass an argument that has no effect.
 function project(id: string, name: string, isCurrent = false) {
@@ -43,7 +43,7 @@ function linkedProject(id: string, name: string, apiProjectId: string, isCurrent
   return {...project(id, name, isCurrent), apiProjectId}
 }
 
-describe('project sync', () => {
+describe('project push', () => {
   beforeEach(() => {
     resetListrInstances()
     vi.mocked(ApiClient).mockClear()
@@ -74,7 +74,7 @@ describe('project sync', () => {
     expect(ApiClient).not.toHaveBeenCalled()
   })
 
-  it('creates the project and environment on the API when not yet synced, and persists the returned ids', async () => {
+  it('creates the project and environment on the API when not yet pushed, and persists the returned ids', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
       {...makeListedEnv('production', 'https://acme.com'), token: 'admin:app-pass'},
@@ -99,10 +99,10 @@ describe('project sync', () => {
     })
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'production', 'api-env-1')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
   })
 
-  it('reuses existing api ids and only pushes credentials when already synced', async () => {
+  it('reuses existing api ids and only pushes credentials when already pushed', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
@@ -139,7 +139,7 @@ describe('project sync', () => {
     })
   })
 
-  it('continues syncing other projects when one project fails to sync', async () => {
+  it('continues pushing other projects when one project fails to push', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       project('id-acme', 'acme', true),
       project('id-beta', 'beta'),
@@ -154,7 +154,7 @@ describe('project sync', () => {
 
     expect(setProjectApiId).not.toHaveBeenCalledWith('id-acme', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-beta', 'api-project-2')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 0 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 0 environments'))
   })
 
   it('does not push credentials when the environment has no token', async () => {
@@ -188,7 +188,7 @@ describe('project sync', () => {
     )
     expect(post).not.toHaveBeenCalledWith('projects', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 0 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 0 environments'))
   })
 
   it('creates a new project when the user declines linking to an existing match', async () => {
@@ -245,96 +245,6 @@ describe('project sync', () => {
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not fetch existing projects'))
     expect(post).toHaveBeenCalledWith('projects', {name: 'acme'})
-  })
-
-  it('pulls down a project that exists on the API but not locally', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
-    get.mockResolvedValue([
-      {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
-      {
-        createdAt: '2026-01-01T00:00:00.000Z',
-        environments: [
-          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-9', name: 'production', url: 'https://beta.com'},
-        ],
-        id: 'api-project-9',
-        name: 'beta',
-        slug: 'beta',
-      },
-    ])
-    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
-    const createProjectId = vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
-
-    const cmd = make()
-    const {log} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(createProjectId).toHaveBeenCalledWith('beta')
-    expect(setProject).toHaveBeenCalledWith('new-id', {
-      addedAt: '2026-01-01T00:00:00.000Z',
-      apiProjectId: 'api-project-9',
-      environments: {
-        production: {
-          addedAt: '2026-01-01T00:00:00.000Z',
-          apiEnvironmentId: 'api-env-9',
-          name: 'production',
-          url: 'https://beta.com',
-        },
-      },
-      name: 'beta',
-    })
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 1 environment'))
-  })
-
-  it('reuses a local project already linked to the same API project instead of creating a duplicate', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
-    get.mockResolvedValue([
-      {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
-      {
-        createdAt: '2026-01-01T00:00:00.000Z',
-        environments: [
-          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-9', name: 'production', url: 'https://beta.com'},
-        ],
-        id: 'api-project-9',
-        name: 'beta',
-        slug: 'beta',
-      },
-    ])
-    // Simulates a local project whose link to api-project-9 was lost from `listProjects()`'s
-    // view (e.g. a partially corrupted config), but is still discoverable by api id.
-    vi.spyOn(configManager, 'findProjectByApiId').mockReturnValue({
-      addedAt: '2025-06-01T00:00:00.000Z',
-      apiProjectId: 'api-project-9',
-      environments: {},
-      id: 'id-beta-existing',
-      name: 'beta',
-    })
-    const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
-    const createProjectId = vi.spyOn(configManager, 'createProjectId')
-
-    const cmd = make()
-    silenceLogs(cmd)
-    await cmd.run()
-
-    expect(createProjectId).not.toHaveBeenCalled()
-    expect(setProject).toHaveBeenCalledWith('id-beta-existing', {
-      addedAt: '2025-06-01T00:00:00.000Z',
-      apiProjectId: 'api-project-9',
-      environments: {
-        production: {
-          addedAt: '2026-01-01T00:00:00.000Z',
-          apiEnvironmentId: 'api-env-9',
-          name: 'production',
-          url: 'https://beta.com',
-        },
-      },
-      name: 'beta',
-    })
   })
 
   it('titles and reports the project Listr task as "Create" when creating, and "Created on the API" once applied', async () => {
@@ -426,7 +336,7 @@ describe('project sync', () => {
     expect(outputsOf(0)).toEqual(['Linked to the API'])
   })
 
-  it('syncs multiple projects and environments needing work, pluralizing the summary correctly', async () => {
+  it('pushes multiple projects and environments needing work, pluralizing the summary correctly', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       project('id-acme', 'acme', true),
       project('id-beta', 'beta'),
@@ -448,10 +358,10 @@ describe('project sync', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 2 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 2 projects, 2 environments'))
   })
 
-  it('continues applying other environments when one environment fails to sync, and reports the failure output', async () => {
+  it('continues applying other environments when one environment fails to push, and reports the failure output', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
@@ -468,8 +378,8 @@ describe('project sync', () => {
 
     expect(setEnvironmentApiId).toHaveBeenCalledTimes(1)
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'staging', 'api-env-2')
-    expect(outputsOf(0)).toEqual(['Failed to sync "production": quota exceeded', 'Created on the API'])
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 1 environment'))
+    expect(outputsOf(0)).toEqual(['Failed to push "production": quota exceeded', 'Created on the API'])
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
   })
 
   it('warns with the project and environment name when pushing credentials fails', async () => {
@@ -485,40 +395,10 @@ describe('project sync', () => {
     const {warn} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(warn).toHaveBeenCalledWith('Failed to sync "acme/production": invalid credentials')
+    expect(warn).toHaveBeenCalledWith('Failed to push "acme/production": invalid credentials')
   })
 
-  it('titles the pull Listr task with the API project name and reports the pulled environment count', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
-    get.mockResolvedValue([
-      {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
-      {
-        createdAt: '2026-01-01T00:00:00.000Z',
-        environments: [
-          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-9', name: 'production', url: 'https://beta.com'},
-          {createdAt: '2026-01-01T00:00:00.000Z', id: 'api-env-10', name: 'staging', url: 'https://staging.beta.com'},
-        ],
-        id: 'api-project-9',
-        name: 'beta',
-        slug: 'beta',
-      },
-    ])
-    vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
-    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
-
-    const cmd = make()
-    const {log} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(titlesOf(0)).toEqual(['Pull project "beta" from the API'])
-    expect(outputsOf(0)).toEqual(['Pulled with 2 environments'])
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 2 projects, 2 environments'))
-  })
-
-  it('does not construct a project or environment Listr when everything is already synced', async () => {
+  it('does not construct a project or environment Listr when everything is already pushed', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
@@ -531,6 +411,6 @@ describe('project sync', () => {
     await cmd.run()
 
     expect(listrInstances).toHaveLength(0)
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Synced 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
   })
 })

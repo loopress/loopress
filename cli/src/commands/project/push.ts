@@ -40,12 +40,12 @@ interface ProjectPlan {
   project: ProjectConfig & {id: string}
 }
 
-export default class Sync extends Command {
-  static description = 'Sync locally configured projects and environments with your Loopress account'
-  static examples = ['$ lps project sync']
+export default class Push extends Command {
+  static description = 'Push locally configured projects, environments and credentials to your Loopress account'
+  static examples = ['$ lps project push']
 
   async run(): Promise<void> {
-    await this.parse(Sync)
+    await this.parse(Push)
 
     const token = authManager.getAuth()?.token
     if (!token) {
@@ -136,28 +136,13 @@ export default class Sync extends Command {
         try {
           await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
         } catch (error) {
-          this.warn(`Failed to sync "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
+          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
         }
       }
     }
 
-    const newApiProjects = apiProjects.filter((candidate) => !claimedProjectIds.has(candidate.id))
-    if (newApiProjects.length > 0) {
-      await new Listr(
-        newApiProjects.map((apiProject) => ({
-          task: async (_ctx, task) => {
-            this.pullProject(apiProject, task)
-            projectCount++
-            environmentCount += apiProject.environments.length
-          },
-          title: `Pull project "${apiProject.name}" from the API`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
-    }
-
     this.log(
-      `\n✓ Synced ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} with your Loopress account`,
+      `\n✓ Pushed ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} to your Loopress account`,
     )
   }
 
@@ -183,7 +168,7 @@ export default class Sync extends Command {
       configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
       if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to sync "${envPlan.env.name}": ${(error as Error).message}`
+      const message = `Failed to push "${envPlan.env.name}": ${(error as Error).message}`
       if (task) task.output = message
       throw error
     }
@@ -203,7 +188,7 @@ export default class Sync extends Command {
       configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
       if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to sync project "${plan.project.name}": ${(error as Error).message}`
+      const message = `Failed to push project "${plan.project.name}": ${(error as Error).message}`
       if (task) task.output = message
       throw error
     }
@@ -274,34 +259,6 @@ export default class Sync extends Command {
     }
 
     return {action: 'create', project}
-  }
-
-  private pullProject(apiProject: ApiProject, task?: {output: string}): void {
-    // Reuse a local project already linked to this API project instead of always minting a
-    // new one: otherwise every sync run that can't "claim" an existing link (e.g. after the
-    // local config was reset or desynced from the API) creates yet another duplicate entry.
-    const existing = configManager.findProjectByApiId(apiProject.id)
-    const environments: Record<string, EnvironmentConfig> = {...existing?.environments}
-
-    for (const env of apiProject.environments) {
-      environments[env.name] = {
-        ...environments[env.name],
-        addedAt: environments[env.name]?.addedAt ?? env.createdAt,
-        apiEnvironmentId: env.id,
-        name: env.name,
-        url: env.url,
-      }
-    }
-
-    configManager.setProject(existing?.id ?? configManager.createProjectId(apiProject.name), {
-      addedAt: existing?.addedAt ?? apiProject.createdAt,
-      apiProjectId: apiProject.id,
-      environments,
-      name: apiProject.name,
-    })
-
-    const envCount = apiProject.environments.length
-    if (task) task.output = `Pulled with ${envCount} environment${envCount === 1 ? '' : 's'}`
   }
 
   private async pushCredentials(
