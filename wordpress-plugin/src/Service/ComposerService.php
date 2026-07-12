@@ -73,7 +73,7 @@ class ComposerService
         $result = $this->composerRunner->run(['require', "{$package}:{$version}"]);
 
         if ($result['exit_code'] !== 0) {
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         return $result['output'];
@@ -84,7 +84,7 @@ class ComposerService
         $result = $this->composerRunner->run(['remove', $package]);
 
         if ($result['exit_code'] !== 0) {
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         return $result['output'];
@@ -95,7 +95,7 @@ class ComposerService
         $result = $this->composerRunner->run(['install']);
 
         if ($result['exit_code'] !== 0) {
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         return $result['output'];
@@ -134,7 +134,7 @@ class ComposerService
         $result = $this->composerRunner->run(['outdated'], ['--direct' => true, '--format' => 'json']);
 
         if ($result['exit_code'] !== 0) {
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         // Strip any non-JSON preamble Composer may emit before the object.
@@ -144,7 +144,7 @@ class ComposerService
         $data  = json_decode($json, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('Failed to parse composer outdated output: ' . json_last_error_msg());
+            throw new \RuntimeException('Failed to parse composer outdated output: ' . esc_html(json_last_error_msg()));
         }
 
         $installed = $data['installed'] ?? [];
@@ -167,7 +167,7 @@ class ComposerService
 
         // Exit code 1 means advisories found; not an error, just a non-empty report.
         if ($result['exit_code'] > 1) {
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         // Strip any non-JSON preamble Composer may emit before the object.
@@ -177,7 +177,7 @@ class ComposerService
         $data  = json_decode($json, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('Failed to parse composer audit output: ' . json_last_error_msg());
+            throw new \RuntimeException('Failed to parse composer audit output: ' . esc_html(json_last_error_msg()));
         }
 
         $data = $data ?? [];
@@ -204,7 +204,7 @@ class ComposerService
     {
         $decoded = json_decode($composerJson, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \InvalidArgumentException('Invalid composer.json: ' . json_last_error_msg());
+            throw new \InvalidArgumentException('Invalid composer.json: ' . esc_html(json_last_error_msg()));
         }
 
         $previousJson = $this->dxEnv->readComposerJson();
@@ -228,7 +228,7 @@ class ComposerService
                 $this->dxEnv->deleteComposerLock();
             }
 
-            throw new \RuntimeException($result['output']);
+            throw new \RuntimeException(esc_html($result['output']));
         }
 
         return $result['output'];
