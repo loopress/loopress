@@ -37,12 +37,12 @@ const TIERS = [
   },
   {
     name: "Agency",
-    price: "Coming soon",
+    price: "Custom",
     sub: null,
     description: "For teams managing multiple WordPress projects.",
     featured: false,
-    cta: "Join the Beta",
-    ctaHref: "https://console.loopress.dev",
+    cta: "Contact us",
+    ctaHref: "/contact",
     features: ["Everything in Pro", "Team members", "Collaborative features"],
   },
 ];
