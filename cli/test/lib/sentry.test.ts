@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it} from 'vitest'
 
 import {configManager} from '../../src/config/project-config.manager.js'
-import {isTelemetryDisabled, resolveEnvironment} from '../../src/lib/sentry.js'
+import {isTelemetryDisabled, redactArgv, resolveEnvironment} from '../../src/lib/sentry.js'
 
 describe('sentry', () => {
   afterEach(() => {
@@ -46,6 +46,36 @@ describe('sentry', () => {
 
     it('falls back to production otherwise', () => {
       expect(resolveEnvironment()).toBe('production')
+    })
+  })
+
+  describe('redactArgv', () => {
+    it('keeps flag names but drops their values', () => {
+      expect(redactArgv(['--url', 'https://example.com', '--password', 'hunter2'])).toEqual([
+        '--url',
+        '[REDACTED]',
+        '--password',
+        '[REDACTED]',
+      ])
+    })
+
+    it('keeps the flag name from --flag=value and drops the value', () => {
+      expect(redactArgv(['--token=abc123'])).toEqual(['--token'])
+    })
+
+    it('redacts positional arguments', () => {
+      expect(redactArgv(['https://example.com', 'jane@example.com'])).toEqual([
+        '[REDACTED]',
+        '[REDACTED]',
+      ])
+    })
+
+    it('redacts subcommand names too, since they cannot be told apart from values here', () => {
+      expect(redactArgv(['project', 'config', '--force'])).toEqual([
+        '[REDACTED]',
+        '[REDACTED]',
+        '--force',
+      ])
     })
   })
 })
