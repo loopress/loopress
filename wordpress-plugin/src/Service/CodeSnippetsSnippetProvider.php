@@ -178,28 +178,28 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             'css' => match ($location) {
                 'frontend' => 'site-css',
                 'admin'    => 'admin-css',
-                default    => throw new \RuntimeException("Code Snippets does not support the \"{$location}\" location for CSS snippets. Use one of: frontend, admin."),
+                default    => throw new \RuntimeException(esc_html("Code Snippets does not support the \"{$location}\" location for CSS snippets. Use one of: frontend, admin.")),
             },
             'html' => match ($location) {
                 'header'     => 'head-content',
                 'footer'     => 'footer-content',
                 'everywhere' => 'content',
-                default      => throw new \RuntimeException("Code Snippets does not support the \"{$location}\" location for HTML snippets. Use one of: header, footer, everywhere."),
+                default      => throw new \RuntimeException(esc_html("Code Snippets does not support the \"{$location}\" location for HTML snippets. Use one of: header, footer, everywhere.")),
             },
             'js' => match ($location) {
                 'header' => 'site-head-js',
                 'footer' => 'site-footer-js',
-                default  => throw new \RuntimeException("Code Snippets does not support the \"{$location}\" location for JS snippets. Use one of: header, footer."),
+                default  => throw new \RuntimeException(esc_html("Code Snippets does not support the \"{$location}\" location for JS snippets. Use one of: header, footer.")),
             },
             'php' => match ($location) {
                 'everywhere' => 'global',
                 'frontend'   => 'front-end',
                 'admin'      => 'admin',
                 'once'       => 'single-use',
-                default      => throw new \RuntimeException("Code Snippets does not support the \"{$location}\" location for PHP snippets. Use one of: everywhere, frontend, admin, once."),
+                default      => throw new \RuntimeException(esc_html("Code Snippets does not support the \"{$location}\" location for PHP snippets. Use one of: everywhere, frontend, admin, once.")),
             },
             'text' => throw new \RuntimeException('Code Snippets has no "text" snippet type.'),
-            default => throw new \RuntimeException("Unknown snippet type \"{$type}\"."),
+            default => throw new \RuntimeException(esc_html("Unknown snippet type \"{$type}\".")),
         };
     }
 
@@ -264,7 +264,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
 
         if ($response->is_error()) {
             $error = $response->as_error();
-            throw new \RuntimeException($error instanceof \WP_Error ? $error->get_error_message() : 'Code Snippets request failed.');
+            throw new \RuntimeException($error instanceof \WP_Error ? esc_html($error->get_error_message()) : 'Code Snippets request failed.');
         }
 
         return $response->get_data();

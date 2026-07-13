@@ -10,6 +10,10 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 define('LOOPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LOOPRESS_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));

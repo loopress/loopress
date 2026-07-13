@@ -44,7 +44,7 @@ class PackagistClient
         $body = json_decode(wp_remote_retrieve_body($response), true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('Invalid response from Packagist: ' . json_last_error_msg());
+            throw new \RuntimeException('Invalid response from Packagist: ' . esc_html(json_last_error_msg()));
         }
 
         if (empty($body['package']['versions'])) {

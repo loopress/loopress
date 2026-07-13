@@ -83,7 +83,7 @@ class WPCodeSnippetProvider implements SnippetProvider
         ], true);
 
         if (is_wp_error($id)) {
-            throw new \RuntimeException('Failed to create snippet: ' . $id->get_error_message());
+            throw new \RuntimeException('Failed to create snippet: ' . esc_html($id->get_error_message()));
         }
 
         $this->saveMeta($id, $data);
@@ -113,7 +113,7 @@ class WPCodeSnippetProvider implements SnippetProvider
 
         $result = wp_update_post($update, true);
         if (is_wp_error($result)) {
-            throw new \RuntimeException('Failed to update snippet: ' . $result->get_error_message());
+            throw new \RuntimeException('Failed to update snippet: ' . esc_html($result->get_error_message()));
         }
 
         $this->saveMeta($id, $data);
@@ -226,7 +226,7 @@ class WPCodeSnippetProvider implements SnippetProvider
             ? 'header, body, footer, everywhere, frontend, admin, once'
             : 'header, body, footer';
 
-        throw new \RuntimeException("WPCode does not support the \"{$location}\" location for {$type} snippets. Use one of: {$allowed}.");
+        throw new \RuntimeException(esc_html("WPCode does not support the \"{$location}\" location for {$type} snippets. Use one of: {$allowed}."));
     }
 
     private function defaultLocationForType(string $type): string
