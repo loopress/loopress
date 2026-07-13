@@ -1,5 +1,15 @@
 # @loopress/cli
 
+## 0.15.0
+
+### Minor Changes
+
+- 69b5050: Replaced `lps project sync` with `lps project push` and `lps project pull`, matching the `push`/`pull` naming used by `snippet`, `plugin` and `composer`. `lps project push` creates/links local projects and environments on your Loopress account and pushes credentials (what `sync` did for local-to-remote). `lps project pull` fetches projects and environments already on your account that aren't configured locally yet, now works even when no project is configured locally.
+
+### Patch Changes
+
+- 83a65be: Stopped sending personal data to Sentry when reporting a crash. Command-line argument values (WordPress URLs, application passwords, tokens, emails) are now redacted, only flag names are kept for debugging context. Also disabled `sendDefaultPii` explicitly and set a static `serverName` instead of the machine's real hostname.
+
 ## 0.14.0
 
 ### Minor Changes
