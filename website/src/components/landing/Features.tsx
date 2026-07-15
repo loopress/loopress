@@ -2,7 +2,7 @@ import pluginPkg from "../../../../wordpress-plugin/package.json";
 import { SectionLabel } from "./Problem";
 
 const pluginTag = `wordpress-plugin%40${pluginPkg.version}`;
-const pluginDownloadUrl = `https://github.com/loopress/loopress/releases/download/${pluginTag}/loopress.zip`;
+const pluginDownloadUrl = `https://github.com/loopress/loopress/releases/download/${pluginTag}/loopress-plus.zip`;
 
 export function Features() {
   return (
@@ -38,7 +38,7 @@ export function Features() {
               "Security audit flags known CVEs in your Composer dependencies",
               "Platform diagnostics catch PHP version mismatches before they break an install",
             ]}
-            cta={{ label: "Download the plugin", href: pluginDownloadUrl }}
+            cta={{ label: "Download Loopress Plus", href: pluginDownloadUrl }}
           >
             <ComposerBlock />
           </FeatureCard>
@@ -154,7 +154,7 @@ function ComposerBlock() {
   return (
     <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
       <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
-        WordPress Admin · Loopress · Dependency Management
+        WordPress Admin · Loopress · Dependencies
       </div>
       <pre className="px-3 py-3">
         <Line c="muted">Search: tcpdf</Line>

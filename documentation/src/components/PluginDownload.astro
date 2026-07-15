@@ -2,15 +2,26 @@
 import { LinkButton } from '@astrojs/starlight/components';
 import pkg from '../../../wordpress-plugin/package.json';
 
+interface Props {
+  edition?: 'free' | 'plus';
+}
+
+const { edition = 'free' } = Astro.props;
+
+const meta =
+  edition === 'plus'
+    ? { zip: 'loopress-plus.zip', label: 'Download loopress-plus.zip' }
+    : { zip: 'loopress.zip', label: 'Download loopress.zip' };
+
 const version = pkg.version;
 const encodedTag = `wordpress-plugin%40${version}`;
-const downloadUrl = `https://github.com/loopress/loopress/releases/download/${encodedTag}/loopress.zip`;
+const downloadUrl = `https://github.com/loopress/loopress/releases/download/${encodedTag}/${meta.zip}`;
 const releaseUrl = `https://github.com/loopress/loopress/releases/tag/${encodedTag}`;
 ---
 
 <div class="plugin-download">
   <LinkButton href={downloadUrl} icon="download" variant="primary">
-    Download loopress.zip
+    {meta.label}
   </LinkButton>
   <LinkButton href={releaseUrl} icon="github" variant="minimal">
     v{version} release notes

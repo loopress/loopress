@@ -1,6 +1,6 @@
 === Loopress ===
 Contributors: jean-smaug
-Tags: composer, dependency, package manager, developer tools
+Tags: code snippets, snippets, sync, git, developer tools
 Requires at least: 6.0
 Tested up to: 7.0
 Stable tag: 2026.7.2
@@ -8,43 +8,54 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Manage and install Composer dependencies directly from the WordPress admin interface.
+Sync your code snippets with the Loopress CLI: pull them as files, keep them in Git, push them back.
 
 == Description ==
 
-Loopress lets you manage Composer packages without SSH access. Install, remove, and audit PHP dependencies from a clean admin UI.
+Loopress connects the code snippets of your WordPress site to your development workflow. It integrates with the two most popular snippet plugins, Code Snippets and WPCode, and exposes them to the Loopress CLI (`lps`) so snippets can live in Git like any other code.
 
 Features:
 
-* Install and remove Composer packages from the admin panel
-* Audit installed packages for known security advisories
-* PHP platform version diagnostics
+* Works with Code Snippets and WPCode, no migration needed
+* Pull snippets from the site as files with `lps snippet pull`
+* Push local edits back with `lps snippet push`
+* Keep snippets in Git: history, diffs, code review, rollbacks
+* Move snippets between environments (local, staging, production)
+* REST API restricted to administrators, authenticated with WordPress application passwords
 
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the **Plugins** screen in WordPress.
-3. Navigate to the **Loopress** menu item in the admin sidebar.
+3. Install and activate Code Snippets or WPCode if you have not already.
+4. Open the **Loopress** menu item in the admin sidebar and follow the CLI pairing instructions.
 
 == Frequently Asked Questions ==
 
-= Does this require SSH access? =
+= Which snippet plugins are supported? =
 
-No. Loopress runs Composer directly from the PHP process using the Composer API.
+Code Snippets and WPCode. Loopress detects whichever is active, and you keep using its interface as usual.
 
-= What happens when I delete the plugin? =
+= Does the plugin execute code by itself? =
 
-Deleting the plugin removes the `wp-content/loopress/` directory, including `composer.json`, `composer.lock`, and all packages installed through Loopress. Back up these files first if you need to keep them.
+No. Snippets are stored and executed by your snippet plugin (Code Snippets or WPCode), exactly as when you edit them by hand in its interface. Loopress only reads and writes them through that plugin's own APIs.
+
+= Who can access the REST API? =
+
+Only authenticated users with the `manage_options` capability (administrators). The CLI authenticates with a WordPress application password that you can revoke at any time.
+
+= Do I need the CLI? =
+
+The plugin is the site-side companion of the Loopress CLI (`lps`, installable from npm). Without the CLI, it does nothing beyond showing its admin page.
 
 == Changelog ==
 
+= 2026.8.0 =
+* Package installation features moved to the separate Loopress Plus plugin, available from loopress.dev. This plugin now focuses on snippet synchronization.
+
 = 2026.7.0 =
-* Concurrent Composer operations are now serialized with a lock (second caller gets a clear "operation in progress" error).
-* Failed syncs restore the previous composer.json and composer.lock instead of leaving mismatched manifests.
-* Installed packages now show the exact locked version instead of the constraint.
-* Packagist version lookups are cached for five minutes.
+* Concurrent operations are now serialized with a lock (second caller gets a clear "operation in progress" error).
 * No more filesystem checks on regular front-end page loads.
-* Broken vendor directories are now caught reliably and trigger the auto-repair flow.
 
 = 2026.6.0 =
 * Initial public release.

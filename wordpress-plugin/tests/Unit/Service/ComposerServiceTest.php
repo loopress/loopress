@@ -4,10 +4,10 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Infrastructure\ComposerRunner;
-use Loopress\Infrastructure\LoopressEnvironment;
-use Loopress\Infrastructure\PackagistClient;
-use Loopress\Service\ComposerService;
+use Loopress\Plus\Infrastructure\ComposerRunner;
+use Loopress\Plus\Infrastructure\LoopressEnvironment;
+use Loopress\Plus\Infrastructure\PackagistClient;
+use Loopress\Plus\Service\ComposerService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

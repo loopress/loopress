@@ -1,10 +1,10 @@
 <?php
 
-namespace Loopress\Service;
+namespace Loopress\Plus\Service;
 
-use Loopress\Infrastructure\ComposerRunner;
-use Loopress\Infrastructure\LoopressEnvironment;
-use Loopress\Infrastructure\PackagistClient;
+use Loopress\Plus\Infrastructure\ComposerRunner;
+use Loopress\Plus\Infrastructure\LoopressEnvironment;
+use Loopress\Plus\Infrastructure\PackagistClient;
 
 class ComposerService
 {

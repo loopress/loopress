@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import LogoBlack from '@loopress/assets/loopress-logo-black.svg';
 import { Notice, Spinner, TabPanel } from '@wordpress/components';
 import { apiFetch } from './api';
-import { DiagnosticsBanner } from './components/DiagnosticsBanner';
-import { AuditBanner } from './components/AuditBanner';
-import { DependencyManagement } from './components/DependencyManagement';
+import { AppShell } from './AppShell';
+import { DiagnosticsBanner } from './plus/DiagnosticsBanner';
+import { AuditBanner } from './plus/AuditBanner';
+import { DependencyManagement } from './plus/DependencyManagement';
 
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
@@ -32,24 +32,7 @@ export default function App() {
     }, []);
 
     return (
-        <div className="wrap">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                <img src={LogoBlack} alt="Loopress" height={30} />
-                <h1 style={{ margin: 0 }}>Loopress</h1>
-                <span
-                    style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: '#50575e',
-                        background: '#f0f0f1',
-                        borderRadius: 12,
-                        padding: '2px 10px',
-                    }}
-                >
-                    v{pluginVersion}
-                </span>
-            </div>
-
+        <AppShell title="Loopress Plus">
             {autoloadError && (
                 <div style={{ maxWidth: 600, marginBottom: 20 }}>
                     <Notice
@@ -60,12 +43,12 @@ export default function App() {
                             {autoRepairing && <Spinner />}
                             <span>
                                 {autoRepairing
-                                    ? 'Repairing dependencies…'
+                                    ? 'Repairing dependencies...'
                                     : autoRepairDone
                                     ? 'Dependencies repaired successfully.'
                                     : autoRepairFailed
                                     ? `Auto-repair failed: ${autoloadError}`
-                                    : `${autoloadError} — repairing…`}
+                                    : `${autoloadError}, repairing...`}
                             </span>
                         </div>
                     </Notice>
@@ -84,6 +67,6 @@ export default function App() {
                     )
                 }
             </TabPanel>
-        </div>
+        </AppShell>
     );
 }

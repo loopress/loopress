@@ -1,6 +1,6 @@
 <?php
 
-namespace Loopress\Infrastructure;
+namespace Loopress\Plus\Infrastructure;
 
 use Composer\Semver\Semver;
 

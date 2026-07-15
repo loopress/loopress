@@ -116,15 +116,12 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
-      - name: Build and zip plugin
+      # Builds both editions: loopress.zip (free, wordpress.org) and loopress-plus.zip
+      # (plus, loopress.dev). Both ship in the same GitHub release.
+      - name: Build and zip both plugin editions
         if: steps.check.outputs.exists == 'false'
         working-directory: wordpress-plugin
         run: pnpm run pack
-
-      - name: Find zip file
-        if: steps.check.outputs.exists == 'false'
-        id: zip
-        run: echo "path=$(find wordpress-plugin -maxdepth 1 -name '*.zip')" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: steps.check.outputs.exists == 'false'
@@ -132,5 +129,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "wordpress-plugin@${{ steps.version.outputs.version }}" \
-            "${{ steps.zip.outputs.path }}" \
+            wordpress-plugin/loopress.zip \
+            wordpress-plugin/loopress-plus.zip \
             --title "WordPress Plugin v${{ steps.version.outputs.version }}"

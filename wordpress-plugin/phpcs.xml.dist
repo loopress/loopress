@@ -72,6 +72,7 @@
          applied to this directory in psalm.xml (PossiblyUnusedParam). -->
     <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
         <exclude-pattern>src/RestApi/*</exclude-pattern>
+        <exclude-pattern>src/Plus/RestApi/*</exclude-pattern>
     </rule>
 
     <!-- tests/Stubs intentionally bundles several lightweight WP class/interface stubs
