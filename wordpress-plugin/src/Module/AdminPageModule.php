@@ -6,8 +6,6 @@ use Loopress\Contract\Module;
 
 class AdminPageModule implements Module
 {
-    public function __construct(private ?string $autoloadError) {}
-
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
@@ -56,13 +54,16 @@ class AdminPageModule implements Module
 
         $pluginData = get_file_data(LOOPRESS_PLUGIN_PATH . 'loopress.php', ['Version' => 'Version']);
 
-        wp_localize_script('loopress-admin', 'loopressData', [
+        // Extended through this filter by optional feature modules, which report their
+        // own health data (the Plus edition's autoload status today) without this shared
+        // code ever referencing them directly.
+        wp_localize_script('loopress-admin', 'loopressData', apply_filters('loopress_admin_data', [
             'apiUrl'        => get_rest_url(null, 'loopress/v1'),
             'nonce'         => wp_create_nonce('wp_rest'),
-            'autoloadError' => $this->autoloadError,
             'phpVersion'    => PHP_VERSION,
             'pluginVersion' => $pluginData['Version'],
-        ]);
+            'autoloadError' => null,
+        ]));
     }
 
     public function renderPage(): void

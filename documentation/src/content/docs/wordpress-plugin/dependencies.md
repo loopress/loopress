@@ -3,6 +3,10 @@ title: Dependency Management
 description: Search, install and remove Composer packages from the WordPress admin panel.
 ---
 
+:::note
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
+:::
+
 The **Dependency Management** card lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
 
 ## Where packages are stored

@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# None of these jobs need to write to the repo or any GitHub API beyond reading it;
+# the default GITHUB_TOKEN permissions are broader than that.
+permissions:
+  contents: read
+
 jobs:
   cli-unit:
     name: CLI:Unit tests (Vitest)
@@ -73,14 +78,16 @@ jobs:
       # also used to smoke-test real releases. That means these e2e tests would otherwise
       # exercise stale, already-released plugin code instead of this branch's changes, so
       # any fix landing here and there at the same time couldn't be verified by its own PR.
-      - name: Build this branch's wordpress-plugin as an installable zip
+      # Loopress (the full edition) is installed, as a superset of Loopress Light: it covers
+      # both the snippet-sync and composer-sync specs without a second WordPress instance.
+      - name: Build this branch's plugin as installable zips (both editions)
         working-directory: wordpress-plugin
         run: pnpm run pack
 
       - name: Start WordPress
         uses: loopress/setup-ci@5609fea4b9f360f7b3739541c468798f9413c496 # main
 
-      - name: Install this branch's wordpress-plugin build over the released one
+      - name: Install this branch's Loopress build over the released one
         run: |
           CONTAINER=$(docker ps --filter "ancestor=wordpress:latest" --format "{{.ID}}" | head -n1)
           if [ -z "$CONTAINER" ]; then
@@ -173,3 +180,58 @@ jobs:
       - name: Run build
         working-directory: wordpress-plugin
         run: pnpm build
+
+  plugin-light-artifact-guard:
+    name: Plugin:Loopress Light artifact contains no Composer code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
+
+      - name: Build the Loopress Light edition zip
+        working-directory: wordpress-plugin
+        run: pnpm run pack:light
+
+      # wordpress.org guidelines forbid a plugin from shipping Composer/Packagist
+      # installer code even inactive (see obsidian/Product/WordPress.org Plugin
+      # Distribution.md §2-3). This asserts the Loopress Light artifact never regresses
+      # that, rather than trusting the build script's stripping logic to always be correct.
+      - name: Assert the Loopress Light zip contains no Composer/Packagist code
+        working-directory: wordpress-plugin
+        run: |
+          rm -rf /tmp/loopress-light-check
+          mkdir /tmp/loopress-light-check
+          unzip -q loopress-light.zip -d /tmp/loopress-light-check
+          if find /tmp/loopress-light-check/loopress-light/src -type d -name Dependencies | grep -q .; then
+            echo "::error::Loopress Light artifact contains src/Dependencies"
+            exit 1
+          fi
+          if [ -f /tmp/loopress-light-check/loopress-light/uninstall.php ]; then
+            echo "::error::Loopress Light artifact contains uninstall.php"
+            exit 1
+          fi
+          if grep -RiIl --include='*.php' -E 'composer|packagist' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
+            echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
+            exit 1
+          fi
+          if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
+            echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
+            exit 1
+          fi

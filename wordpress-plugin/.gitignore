@@ -5,3 +5,4 @@ build/
 .phpunit.result.cache
 assets/logo.svg
 .DS_Store
+.build-stage/

@@ -1,44 +1,79 @@
 ---
 title: WordPress Plugin
-description: Manage Composer dependencies from your WordPress admin panel.
+description: Sync code snippets with the CLI, and optionally manage Composer dependencies from your WordPress admin.
 ---
 
 import PluginDownload from '../../../components/PluginDownload.astro';
 
-<PluginDownload />
+Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
 
-The Loopress WordPress Plugin adds a dedicated admin page to your WordPress installation that lets you manage PHP packages through [Composer](https://getcomposer.org/), without needing SSH or command-line access to your server.
+- **Loopress Light** (WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/) and exposes the REST API that powers `lps snippet pull/push/list`.
+- **Loopress** (also free, loopress.dev only): everything in Loopress Light, plus Composer dependency management, search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
 
-## What it does
+Loopress costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory because directory guidelines do not allow a plugin whose purpose is installing executable PHP code from external registries such as Packagist, not because of pricing. Installing Loopress deactivates Loopress Light automatically, since Loopress is a full replacement, not an add-on; the two editions never run side by side.
+
+## Feature comparison
+
+| Feature | Loopress Light | Loopress |
+|---|:---:|:---:|
+| Distribution | WordPress.org | loopress.dev |
+| Snippet sync (Code Snippets / WPCode) | ✓ | ✓ |
+| `lps snippet pull` / `push` / `list` | ✓ | ✓ |
+| Composer dependency management (Packagist search, install, remove, update) | | ✓ |
+| Security audit (known CVEs, abandoned packages) | | ✓ |
+| Platform diagnostics (PHP version mismatches) | | ✓ |
+| `lps composer push` / `pull` | | ✓ |
+| Automatic updates via WordPress.org | ✓ | |
+| Requires manual updates from loopress.dev | | ✓ |
+
+## Loopress Light
+
+<PluginDownload edition="light" />
+
+- **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, and keep them in Git
+- **Works with Code Snippets and WPCode**: Loopress Light talks to whichever is active, no migration needed
+- **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role). `lps plugin pull/push/add` uses WordPress core's own `wp/v2/plugins` API instead.
+
+## Loopress
+
+<PluginDownload edition="full" />
+
+Everything above, plus:
 
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
-- **REST API for the CLI**: powers `lps snippet pull/push/list` and `lps composer push/pull`, no need to open the admin page for these to work. `lps plugin pull/push/add` uses WordPress core's own `wp/v2/plugins` API instead.
+- **CLI sync**: powers `lps composer push` and `lps composer pull`
 
-## How it works
+Loopress stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
 
-The plugin registers a **Loopress** entry in the WordPress admin sidebar. It stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
+## About WordPress.org-hosted plugins
 
-A REST API under `loopress/v1` powers the React admin UI and the snippet/Composer CLI commands. All endpoints require the `manage_options` capability (administrator role).
+Plugins listed on the [WordPress.org Plugin Directory](https://wordpress.org/plugins/) go through a review by the WordPress.org plugins team before their first release, and every update is scanned afterward. In exchange, a hosted plugin gets:
+
+- **Discoverability**: found by searching **Plugins → Add New** from inside any WordPress admin, no external download needed
+- **Automatic updates**: WordPress checks WordPress.org for new versions and can update the plugin in place, the same as any other installed plugin
+- **A trust signal**: install counts, ratings, and a public source history are visible to anyone considering the plugin
+
+The tradeoff is a strict set of guidelines. One of them, Rule 8 of the Plugin Directory guidelines, forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress's Composer dependency management does (searching Packagist and installing PHP packages), so it cannot be hosted on WordPress.org regardless of implementation quality. Loopress Light has no such capability, so it goes through the standard WordPress.org submission and update process.
+
+This is why the plugin ships as two separate downloads instead of one WordPress.org listing: Loopress Light follows the usual WordPress.org install and update flow, while Loopress is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress.zip` when one is released.
 
 ## Requirements
 
 - WordPress 6.0+
 - PHP 8.2+
-- Composer available on the server (bundled via the plugin's own `vendor/` directory)
 - `manage_options` capability (administrator role)
 
 ## Installation
 
-1. Download `loopress.zip` using the button above
+1. Download `loopress-light.zip` (WordPress.org edition) or `loopress.zip` (full edition) using the buttons above, depending on whether you need Composer dependency management
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**
-3. Upload and activate the plugin
-4. Navigate to **Loopress** in the sidebar
+3. Upload and activate the plugin, then find **Loopress** in the sidebar
 
 ## Pages
 
-- [Dependency Management](/wordpress-plugin/dependencies/)
-- [Using packages in code snippets](/wordpress-plugin/code-snippets/)
-- [Security Audit](/wordpress-plugin/audit/)
-- [Platform Diagnostics](/wordpress-plugin/diagnostics/)
+- [Dependency Management](/wordpress-plugin/dependencies/) (Loopress)
+- [Using packages in code snippets](/wordpress-plugin/code-snippets/) (Loopress)
+- [Security Audit](/wordpress-plugin/audit/) (Loopress)
+- [Platform Diagnostics](/wordpress-plugin/diagnostics/) (Loopress)

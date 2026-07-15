@@ -3,7 +3,11 @@ title: Using dependencies in code snippets
 description: How to use Composer packages installed via Loopress in WordPress code snippets.
 ---
 
-Once you have installed a package through the Loopress plugin, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
+:::note
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
+:::
+
+Once you have installed a package through Loopress, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
 
 ## Loading the autoloader
 
