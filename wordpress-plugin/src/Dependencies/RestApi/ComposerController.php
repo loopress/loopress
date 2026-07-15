@@ -1,10 +1,10 @@
 <?php
 
-namespace Loopress\Plus\RestApi;
+namespace Loopress\Dependencies\RestApi;
 
 use Composer\Semver\VersionParser;
-use Loopress\Plus\Exception\ConcurrentOperationException;
-use Loopress\Plus\Service\ComposerService;
+use Loopress\Dependencies\Exception\ConcurrentOperationException;
+use Loopress\Dependencies\Service\ComposerService;
 use WP_REST_Request;
 use WP_REST_Response;
 

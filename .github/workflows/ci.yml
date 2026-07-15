@@ -78,8 +78,8 @@ jobs:
       # also used to smoke-test real releases. That means these e2e tests would otherwise
       # exercise stale, already-released plugin code instead of this branch's changes, so
       # any fix landing here and there at the same time couldn't be verified by its own PR.
-      # The Plus edition is installed (superset of free): it covers both the snippet-sync
-      # and composer-sync specs without a second WordPress instance.
+      # Loopress (the full edition) is installed, as a superset of Loopress Light: it covers
+      # both the snippet-sync and composer-sync specs without a second WordPress instance.
       - name: Build this branch's plugin as installable zips (both editions)
         working-directory: wordpress-plugin
         run: pnpm run pack
@@ -87,15 +87,15 @@ jobs:
       - name: Start WordPress
         uses: loopress/setup-ci@5609fea4b9f360f7b3739541c468798f9413c496 # main
 
-      - name: Install this branch's Plus build over the released one
+      - name: Install this branch's Loopress build over the released one
         run: |
           CONTAINER=$(docker ps --filter "ancestor=wordpress:latest" --format "{{.ID}}" | head -n1)
           if [ -z "$CONTAINER" ]; then
             echo "::error::Could not find the WordPress container started by loopress/setup-ci"
             exit 1
           fi
-          docker cp wordpress-plugin/loopress-plus.zip "$CONTAINER":/tmp/loopress-plus.zip
-          docker exec "$CONTAINER" wp plugin install /tmp/loopress-plus.zip --force --activate --allow-root
+          docker cp wordpress-plugin/loopress.zip "$CONTAINER":/tmp/loopress.zip
+          docker exec "$CONTAINER" wp plugin install /tmp/loopress.zip --force --activate --allow-root
 
       - name: Extract app password
         id: wp-creds
@@ -181,8 +181,8 @@ jobs:
         working-directory: wordpress-plugin
         run: pnpm build
 
-  plugin-free-artifact-guard:
-    name: Plugin:Free artifact contains no Composer code
+  plugin-light-artifact-guard:
+    name: Plugin:Loopress Light artifact contains no Composer code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -205,33 +205,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
-      - name: Build the free edition zip
+      - name: Build the Loopress Light edition zip
         working-directory: wordpress-plugin
-        run: pnpm run pack:free
+        run: pnpm run pack:light
 
       # wordpress.org guidelines forbid a plugin from shipping Composer/Packagist
       # installer code even inactive (see obsidian/Product/WordPress.org Plugin
-      # Distribution.md §2-3). This asserts the free artifact never regresses that,
-      # rather than trusting the build script's stripping logic to always be correct.
-      - name: Assert the free zip contains no Composer/Packagist code
+      # Distribution.md §2-3). This asserts the Loopress Light artifact never regresses
+      # that, rather than trusting the build script's stripping logic to always be correct.
+      - name: Assert the Loopress Light zip contains no Composer/Packagist code
         working-directory: wordpress-plugin
         run: |
-          rm -rf /tmp/loopress-free-check
-          mkdir /tmp/loopress-free-check
-          unzip -q loopress.zip -d /tmp/loopress-free-check
-          if find /tmp/loopress-free-check/loopress/src -type d -name Plus | grep -q .; then
-            echo "::error::Free artifact contains src/Plus"
+          rm -rf /tmp/loopress-light-check
+          mkdir /tmp/loopress-light-check
+          unzip -q loopress-light.zip -d /tmp/loopress-light-check
+          if find /tmp/loopress-light-check/loopress-light/src -type d -name Dependencies | grep -q .; then
+            echo "::error::Loopress Light artifact contains src/Dependencies"
             exit 1
           fi
-          if [ -f /tmp/loopress-free-check/loopress/uninstall.php ]; then
-            echo "::error::Free artifact contains uninstall.php"
+          if [ -f /tmp/loopress-light-check/loopress-light/uninstall.php ]; then
+            echo "::error::Loopress Light artifact contains uninstall.php"
             exit 1
           fi
-          if grep -RiIl --include='*.php' -E 'composer|packagist' /tmp/loopress-free-check/loopress/src /tmp/loopress-free-check/loopress/loopress.php; then
-            echo "::error::Free artifact PHP source references Composer/Packagist"
+          if grep -RiIl --include='*.php' -E 'composer|packagist' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
+            echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
             exit 1
           fi
-          if grep -il -E 'packagist|dependency management' /tmp/loopress-free-check/loopress/build/index.tsx.js; then
-            echo "::error::Free artifact JS bundle references Composer/Packagist"
+          if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
+            echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
             exit 1
           fi

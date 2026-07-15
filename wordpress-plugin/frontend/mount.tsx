@@ -27,8 +27,8 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, ErrorBounda
     }
 }
 
-// Shared bootstrap for both edition entry points (index.tsx / index-free.tsx): the
-// build ships exactly one of them per artifact, see scripts/build-flavor.cjs.
+// Shared bootstrap for both edition entry points (full/index.tsx / light/index.tsx):
+// the build ships exactly one of them per artifact, see scripts/build-flavor.cjs.
 export function mount(app: React.ReactElement) {
     const queryClient = new QueryClient({
         defaultOptions: {

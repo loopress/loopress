@@ -3,9 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Notice, Spinner, TabPanel } from '@wordpress/components';
 import { apiFetch } from './api';
 import { AppShell } from './AppShell';
-import { DiagnosticsBanner } from './plus/DiagnosticsBanner';
-import { AuditBanner } from './plus/AuditBanner';
-import { DependencyManagement } from './plus/DependencyManagement';
+import { DiagnosticsBanner } from './dependencies/DiagnosticsBanner';
+import { AuditBanner } from './dependencies/AuditBanner';
+import { DependencyManagement } from './dependencies/DependencyManagement';
 
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
@@ -32,7 +32,7 @@ export default function App() {
     }, []);
 
     return (
-        <AppShell title="Loopress Plus">
+        <AppShell title="Loopress">
             {autoloadError && (
                 <div style={{ maxWidth: 600, marginBottom: 20 }}>
                     <Notice

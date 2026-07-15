@@ -4,7 +4,7 @@ description: Detect and fix PHP version mismatches before they cause Composer in
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
 :::
 
 The **Platform Diagnostics** banner appears automatically at the top of the **Loopress → Dependencies** page when an issue is detected. It helps you catch PHP version mismatches before they cause packages to be installed for the wrong runtime.

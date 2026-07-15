@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "prebuild": "mkdir -p assets && cp node_modules/@loopress/assets/loopress-logo-full-white.svg assets/logo.svg",
-    "build": "wp-scripts build frontend/index.tsx",
-    "dev": "wp-scripts start frontend/index.tsx",
+    "build": "wp-scripts build frontend/full/index.tsx",
+    "dev:light": "wp-scripts start frontend/light/index.tsx",
+    "dev:full": "wp-scripts start frontend/full/index.tsx",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "pack:free": "pnpm run prebuild && node scripts/build-flavor.cjs free",
-    "pack:plus": "pnpm run prebuild && node scripts/build-flavor.cjs plus",
-    "pack": "pnpm run pack:free && pnpm run pack:plus",
-    "version": "node scripts/sync-version.js && git add loopress.php readme.txt flavors/plus/readme.txt"
+    "pack:light": "pnpm run prebuild && node scripts/build-flavor.cjs light",
+    "pack:full": "pnpm run prebuild && node scripts/build-flavor.cjs full",
+    "pack": "pnpm run pack:light && pnpm run pack:full",
+    "version": "node scripts/sync-version.js && git add loopress.php readme.txt flavors/light/readme.txt"
   },
   "dependencies": {
     "@loopress/assets": "workspace:*",

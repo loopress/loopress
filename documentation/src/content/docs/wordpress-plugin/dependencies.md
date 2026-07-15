@@ -4,14 +4,14 @@ description: Search, install and remove Composer packages from the WordPress adm
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
 :::
 
 The **Dependency Management** card lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
 
 ## Where packages are stored
 
-Loopress Plus maintains its own `composer.json` under `wp-content/loopress/`. Installed packages land in `wp-content/loopress/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
+Loopress maintains its own `composer.json` under `wp-content/loopress/`. Installed packages land in `wp-content/loopress/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
 
 ```
 wp-content/

@@ -1,6 +1,6 @@
 <?php
 
-namespace Loopress\Plus\Infrastructure;
+namespace Loopress\Dependencies\Infrastructure;
 
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;

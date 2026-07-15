@@ -10,8 +10,8 @@ const { edition = 'free' } = Astro.props;
 
 const meta =
   edition === 'plus'
-    ? { zip: 'loopress-plus.zip', label: 'Download loopress-plus.zip' }
-    : { zip: 'loopress.zip', label: 'Download loopress.zip' };
+    ? { zip: 'loopress.zip', label: 'Download loopress.zip' }
+    : { zip: 'loopress-light.zip', label: 'Download loopress-light.zip' };
 
 const version = pkg.version;
 const encodedTag = `wordpress-plugin%40${version}`;

@@ -4,7 +4,7 @@ description: Surface known CVEs and abandoned packages in your installed Compose
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
 :::
 
 The **Security Audit** banner runs `composer audit` against your installed packages and surfaces the results in the **Loopress → Dependencies** page. It checks for known security advisories and packages that have been marked as abandoned by their authors.

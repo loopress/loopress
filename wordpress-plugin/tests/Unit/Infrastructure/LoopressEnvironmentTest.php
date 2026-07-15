@@ -3,7 +3,7 @@
 namespace Loopress\Tests\Unit\Infrastructure;
 
 use Brain\Monkey;
-use Loopress\Plus\Infrastructure\LoopressEnvironment;
+use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use PHPUnit\Framework\TestCase;
 
 class LoopressEnvironmentTest extends TestCase

@@ -10,20 +10,20 @@ function renderApp() {
         pluginVersion: '2026.7.0',
     };
 
-    // FreeApp reads window.loopressData at module scope, so it must be imported
+    // LightApp reads window.loopressData at module scope, so it must be imported
     // after loopressData is set; resetModules makes each render independent.
-    return import('./FreeApp').then(({ default: FreeApp }) => render(<FreeApp />));
+    return import('./LightApp').then(({ default: LightApp }) => render(<LightApp />));
 }
 
-describe('FreeApp', () => {
+describe('LightApp', () => {
     beforeEach(() => {
         vi.resetModules();
     });
 
-    test('renders the Loopress heading with the plugin version', async () => {
+    test('renders the Loopress Light heading with the plugin version', async () => {
         await renderApp();
 
-        expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Loopress Light' })).toBeInTheDocument();
         expect(screen.getByText('v2026.7.0')).toBeInTheDocument();
     });
 

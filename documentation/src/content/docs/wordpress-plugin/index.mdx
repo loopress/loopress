@@ -7,14 +7,14 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
 
-- **Loopress** (free, WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/) and exposes the REST API that powers `lps snippet pull/push/list`.
-- **Loopress Plus** (also free, loopress.dev only): everything in the free edition, plus Composer dependency management, search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
+- **Loopress Light** (WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/) and exposes the REST API that powers `lps snippet pull/push/list`.
+- **Loopress** (also free, loopress.dev only): everything in Loopress Light, plus Composer dependency management, search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
 
-Loopress Plus costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory because directory guidelines do not allow a plugin whose purpose is installing executable PHP code from external registries such as Packagist, not because of pricing. Installing Loopress Plus deactivates the free edition automatically, since Plus is a full replacement, not an add-on; the two editions never run side by side.
+Loopress costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory because directory guidelines do not allow a plugin whose purpose is installing executable PHP code from external registries such as Packagist, not because of pricing. Installing Loopress deactivates Loopress Light automatically, since Loopress is a full replacement, not an add-on; the two editions never run side by side.
 
 ## Feature comparison
 
-| Feature | Loopress (free) | Loopress Plus |
+| Feature | Loopress Light | Loopress |
 |---|:---:|:---:|
 | Distribution | WordPress.org | loopress.dev |
 | Snippet sync (Code Snippets / WPCode) | ✓ | ✓ |
@@ -26,15 +26,15 @@ Loopress Plus costs nothing, it is not a paid upgrade. It is not distributed thr
 | Automatic updates via WordPress.org | ✓ | |
 | Requires manual updates from loopress.dev | | ✓ |
 
-## Loopress
+## Loopress Light
 
 <PluginDownload edition="free" />
 
 - **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, and keep them in Git
-- **Works with Code Snippets and WPCode**: Loopress talks to whichever is active, no migration needed
+- **Works with Code Snippets and WPCode**: Loopress Light talks to whichever is active, no migration needed
 - **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role). `lps plugin pull/push/add` uses WordPress core's own `wp/v2/plugins` API instead.
 
-## Loopress Plus
+## Loopress
 
 <PluginDownload edition="plus" />
 
@@ -45,7 +45,7 @@ Everything above, plus:
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
 - **CLI sync**: powers `lps composer push` and `lps composer pull`
 
-Loopress Plus stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
+Loopress stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
 
 ## About WordPress.org-hosted plugins
 
@@ -55,9 +55,9 @@ Plugins listed on the [WordPress.org Plugin Directory](https://wordpress.org/plu
 - **Automatic updates**: WordPress checks WordPress.org for new versions and can update the plugin in place, the same as any other installed plugin
 - **A trust signal**: install counts, ratings, and a public source history are visible to anyone considering the plugin
 
-The tradeoff is a strict set of guidelines. One of them, Rule 8 of the Plugin Directory guidelines, forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Plus's Composer dependency management does (searching Packagist and installing PHP packages), so it cannot be hosted on WordPress.org regardless of implementation quality. The free Loopress edition has no such capability, so it goes through the standard WordPress.org submission and update process.
+The tradeoff is a strict set of guidelines. One of them, Rule 8 of the Plugin Directory guidelines, forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress's Composer dependency management does (searching Packagist and installing PHP packages), so it cannot be hosted on WordPress.org regardless of implementation quality. Loopress Light has no such capability, so it goes through the standard WordPress.org submission and update process.
 
-This is why Loopress ships as two separate downloads instead of one WordPress.org listing: the free edition follows the usual WordPress.org install and update flow, while Loopress Plus is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress-plus.zip` when one is released.
+This is why the plugin ships as two separate downloads instead of one WordPress.org listing: Loopress Light follows the usual WordPress.org install and update flow, while Loopress is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress.zip` when one is released.
 
 ## Requirements
 
@@ -67,13 +67,13 @@ This is why Loopress ships as two separate downloads instead of one WordPress.or
 
 ## Installation
 
-1. Download `loopress.zip` (free) or `loopress-plus.zip` using the buttons above, depending on whether you need Composer dependency management
+1. Download `loopress-light.zip` (WordPress.org edition) or `loopress.zip` (full edition) using the buttons above, depending on whether you need Composer dependency management
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**
 3. Upload and activate the plugin, then find **Loopress** in the sidebar
 
 ## Pages
 
-- [Dependency Management](/wordpress-plugin/dependencies/) (Plus)
-- [Using packages in code snippets](/wordpress-plugin/code-snippets/) (Plus)
-- [Security Audit](/wordpress-plugin/audit/) (Plus)
-- [Platform Diagnostics](/wordpress-plugin/diagnostics/) (Plus)
+- [Dependency Management](/wordpress-plugin/dependencies/) (Loopress)
+- [Using packages in code snippets](/wordpress-plugin/code-snippets/) (Loopress)
+- [Security Audit](/wordpress-plugin/audit/) (Loopress)
+- [Platform Diagnostics](/wordpress-plugin/diagnostics/) (Loopress)

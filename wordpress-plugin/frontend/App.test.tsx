@@ -56,10 +56,10 @@ describe('App', () => {
         stubQuietEndpoints();
     });
 
-    test('renders the Loopress Plus heading without a repair notice when the autoload is healthy', async () => {
+    test('renders the Loopress heading without a repair notice when the autoload is healthy', async () => {
         await renderApp(null);
 
-        expect(screen.getByRole('heading', { name: 'Loopress Plus' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
         expect(screen.getByText('v2026.7.0')).toBeInTheDocument();
         expect(screen.queryByText(/Repairing dependencies/i)).toBeNull();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());

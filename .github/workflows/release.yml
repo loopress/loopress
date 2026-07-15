@@ -116,8 +116,8 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
-      # Builds both editions: loopress.zip (free, wordpress.org) and loopress-plus.zip
-      # (plus, loopress.dev). Both ship in the same GitHub release.
+      # Builds both editions: loopress-light.zip (Loopress Light, wordpress.org) and
+      # loopress.zip (Loopress, loopress.dev). Both ship in the same GitHub release.
       - name: Build and zip both plugin editions
         if: steps.check.outputs.exists == 'false'
         working-directory: wordpress-plugin
@@ -130,6 +130,6 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "wordpress-plugin@${VERSION}" \
+            wordpress-plugin/loopress-light.zip \
             wordpress-plugin/loopress.zip \
-            wordpress-plugin/loopress-plus.zip \
             --title "WordPress Plugin v${VERSION}"

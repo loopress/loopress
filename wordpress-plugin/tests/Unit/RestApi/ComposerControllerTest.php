@@ -3,9 +3,9 @@
 namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
-use Loopress\Plus\Exception\ConcurrentOperationException;
-use Loopress\Plus\RestApi\ComposerController;
-use Loopress\Plus\Service\ComposerService;
+use Loopress\Dependencies\Exception\ConcurrentOperationException;
+use Loopress\Dependencies\RestApi\ComposerController;
+use Loopress\Dependencies\Service\ComposerService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;

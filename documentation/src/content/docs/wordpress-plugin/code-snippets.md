@@ -4,14 +4,14 @@ description: How to use Composer packages installed via Loopress in WordPress co
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
+This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
 :::
 
-Once you have installed a package through Loopress Plus, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
+Once you have installed a package through Loopress, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
 
 ## Loading the autoloader
 
-Loopress Plus stores its packages under `wp-content/loopress/vendor/`. You need to require the Composer autoloader once before using any installed package:
+Loopress stores its packages under `wp-content/loopress/vendor/`. You need to require the Composer autoloader once before using any installed package:
 
 ```php
 require_once WP_CONTENT_DIR . '/loopress/vendor/autoload.php';

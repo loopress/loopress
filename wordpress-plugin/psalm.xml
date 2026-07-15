@@ -30,13 +30,13 @@
         <PossiblyUnusedMethod>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
-                <directory name="src/Plus/RestApi" />
+                <directory name="src/Dependencies/RestApi" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
-                <directory name="src/Plus/RestApi" />
+                <directory name="src/Dependencies/RestApi" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -46,7 +46,7 @@
         <PossiblyNullArgument>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
-                <directory name="src/Plus/RestApi" />
+                <directory name="src/Dependencies/RestApi" />
             </errorLevel>
         </PossiblyNullArgument>
 

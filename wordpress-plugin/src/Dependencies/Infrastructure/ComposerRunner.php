@@ -1,9 +1,9 @@
 <?php
 
-namespace Loopress\Plus\Infrastructure;
+namespace Loopress\Dependencies\Infrastructure;
 
 use Composer\Console\Application;
-use Loopress\Plus\Exception\ConcurrentOperationException;
+use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 

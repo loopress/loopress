@@ -146,12 +146,12 @@ jobs:
         run: |
           # Diff against HEAD, not the index: the version script already ran `git add`,
           # so its changes are staged and a plain `git diff --quiet` would miss them.
-          if git diff --quiet HEAD -- wordpress-plugin/loopress.php wordpress-plugin/readme.txt wordpress-plugin/flavors/plus/readme.txt; then
+          if git diff --quiet HEAD -- wordpress-plugin/loopress.php wordpress-plugin/readme.txt wordpress-plugin/flavors/light/readme.txt; then
             echo "Plugin version header already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wordpress-plugin/loopress.php wordpress-plugin/readme.txt wordpress-plugin/flavors/plus/readme.txt
+          git add wordpress-plugin/loopress.php wordpress-plugin/readme.txt wordpress-plugin/flavors/light/readme.txt
           git commit -m "docs(wordpress-plugin): sync version header"
           git push origin HEAD:"$HEAD_REF"

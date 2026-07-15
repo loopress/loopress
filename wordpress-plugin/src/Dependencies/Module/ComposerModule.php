@@ -1,13 +1,13 @@
 <?php
 
-namespace Loopress\Plus\Module;
+namespace Loopress\Dependencies\Module;
 
 use Loopress\Contract\Module;
-use Loopress\Plus\Infrastructure\ComposerRunner;
-use Loopress\Plus\Infrastructure\LoopressEnvironment;
-use Loopress\Plus\Infrastructure\PackagistClient;
-use Loopress\Plus\RestApi\ComposerController;
-use Loopress\Plus\Service\ComposerService;
+use Loopress\Dependencies\Infrastructure\ComposerRunner;
+use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use Loopress\Dependencies\Infrastructure\PackagistClient;
+use Loopress\Dependencies\RestApi\ComposerController;
+use Loopress\Dependencies\Service\ComposerService;
 
 class ComposerModule implements Module
 {

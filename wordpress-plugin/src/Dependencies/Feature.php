@@ -1,17 +1,18 @@
 <?php
 
-namespace Loopress\Plus;
+namespace Loopress\Dependencies;
 
 use Loopress\Contract\Module;
-use Loopress\Plus\Infrastructure\LoopressEnvironment;
-use Loopress\Plus\Module\ComposerModule;
+use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use Loopress\Dependencies\Module\ComposerModule;
 
 /**
- * Entry point of the Plus feature set. Everything under src/Plus/ ships only in the
- * Plus edition (see scripts/build-flavor.cjs); the plugin entry file calls this inside
- * its build markers, so the free artifact never references this namespace.
+ * Entry point of the Composer dependency management feature. Everything under
+ * src/Dependencies/ ships only in the Loopress edition (see scripts/build-flavor.cjs);
+ * the plugin entry file calls this inside its build markers, so the Loopress Light
+ * artifact never references this namespace.
  */
-class Plus
+class Feature
 {
     /** @return Module[] */
     public static function bootstrap(): array

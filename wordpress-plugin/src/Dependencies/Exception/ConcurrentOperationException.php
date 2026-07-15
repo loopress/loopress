@@ -1,5 +1,5 @@
 <?php
 
-namespace Loopress\Plus\Exception;
+namespace Loopress\Dependencies\Exception;
 
 class ConcurrentOperationException extends \RuntimeException {}
