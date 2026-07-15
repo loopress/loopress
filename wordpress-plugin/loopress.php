@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Loopress Light
  * Description: Sync code snippets (Code Snippets, WPCode) with the Loopress CLI and keep them in Git.
- * Version: 2026.7.2
+ * Version: 2026.7.6
  * Author: jean-smaug
  * Text Domain: loopress
  * License: GPL-2.0-or-later
@@ -59,7 +59,7 @@ if (defined('LOOPRESS_VERSION')) {
 }
 
 // Kept in sync with the Version header by scripts/sync-version.js.
-define('LOOPRESS_VERSION', '2026.7.2');
+define('LOOPRESS_VERSION', '2026.7.6');
 define('LOOPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LOOPRESS_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));

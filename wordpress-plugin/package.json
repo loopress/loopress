@@ -1,6 +1,6 @@
 {
   "name": "@loopress/wordpress-plugin",
-  "version": "2026.8.2",
+  "version": "2026.7.6",
   "private": true,
   "scripts": {
     "prebuild": "mkdir -p assets && cp node_modules/@loopress/assets/loopress-logo-full-white.svg assets/logo.svg",
