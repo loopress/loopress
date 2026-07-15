@@ -16,6 +16,7 @@ const { execFileSync } = require('node:child_process')
 const FLAVORS = {
   light: {
     zipName: 'loopress-light',
+    textDomain: 'loopress-light',
     readmeSource: 'flavors/light/readme.txt',
     frontendEntry: 'frontend/light/index.tsx',
     stripPlusBlock: true,
@@ -25,6 +26,7 @@ const FLAVORS = {
   },
   full: {
     zipName: 'loopress-full',
+    textDomain: 'loopress-full',
     readmeSource: 'readme.txt',
     frontendEntry: 'frontend/full/index.tsx',
     stripPlusBlock: false,
@@ -94,6 +96,14 @@ if (flavor.stripPlusBlock) {
     ' * Update URI: https://loopress.dev\n * Description:',
   )
 }
+
+// The source carries 'loopress', a placeholder left over from before the light/full split.
+// Neither edition's real slug is 'loopress' anymore (see FLAVORS above), so every build must
+// rewrite it to its own text domain, in the header and in translation calls alike, or the
+// WordPress Plugin Check tool flags a text domain mismatch against the packaged zip.
+entry = entry.replace('Text Domain: loopress', `Text Domain: ${flavor.textDomain}`)
+entry = entry.replace("'loopress'", `'${flavor.textDomain}'`)
+
 fs.writeFileSync(path.join(stageDir, 'loopress.php'), entry)
 
 function escapeRegExp(s) {

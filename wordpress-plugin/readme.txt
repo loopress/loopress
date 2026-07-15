@@ -49,12 +49,25 @@ Deleting the plugin removes the `wp-content/loopress/` directory, including `com
 
 == Changelog ==
 
-= 2026.8.0 =
-* Renamed from "Loopress Plus" to "Loopress", then to "Loopress Full" (the full edition of the Loopress WordPress plugin, formerly available side by side with a "Loopress" free edition now called "Loopress Light"). No functional changes.
+= 2026.7.6 =
+* The plugin now builds two editions from the same codebase. Loopress Full (this download) keeps Composer dependency management; snippet synchronization moved to the separate Loopress Light plugin on wordpress.org. Installing Loopress Full deactivates Loopress Light automatically.
+
+= 2026.7.5 =
+* Fixed all issues reported by the WordPress Plugin Check tool: escaped dynamic exception messages, added the missing direct access guard, and bumped "Tested up to" to 7.0.
+
+= 2026.7.4 =
+* Fixed `lps snippet pull` failing to delete a locally removed snippet, and excluded trashed snippets from sync.
+
+= 2026.7.3 =
+* Plugin management now relies entirely on WordPress core's REST API instead of a custom endpoint.
+
+= 2026.7.2 =
+* Added a diagnostics tab to the admin UI.
+* Unified the snippet REST route.
+* Switched the integrity hash from md5 to sha256.
+
+= 2026.7.1 =
+* Improved compatibility of the WPCode sidecar file with the WPCode API.
 
 = 2026.7.0 =
-* Concurrent Composer operations are now serialized with a lock (second caller gets a clear "operation in progress" error).
-* No more filesystem checks on regular front-end page loads.
-
-= 2026.6.0 =
-* Initial public release.
+* Initial release: basic UI for Composer dependency installation, and REST endpoints for the Loopress CLI.
