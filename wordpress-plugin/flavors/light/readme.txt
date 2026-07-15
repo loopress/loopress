@@ -23,7 +23,7 @@ Features:
 * Move snippets between environments (local, staging, production)
 * REST API restricted to administrators, authenticated with WordPress application passwords
 
-Need Composer dependency management too? [Loopress](https://loopress.dev) is the full edition, distributed separately from loopress.dev (see FAQ for why).
+Need Composer dependency management too? [Loopress Full](https://loopress.dev) is the full edition, distributed separately from loopress.dev (see FAQ for why).
 
 == Installation ==
 
@@ -34,9 +34,9 @@ Need Composer dependency management too? [Loopress](https://loopress.dev) is the
 
 == Frequently Asked Questions ==
 
-= What is the difference between Loopress Light and Loopress? =
+= What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs code snippets only. Loopress, the full edition, adds Composer dependency management, a security audit, and platform diagnostics. Loopress is distributed separately from loopress.dev rather than wordpress.org, since directory guidelines do not allow that capability. Installing Loopress deactivates Loopress Light automatically: it is a full replacement, not an add-on.
+Loopress Light (this plugin) syncs code snippets only. Loopress Full adds Composer dependency management, a security audit, and platform diagnostics. Loopress Full is distributed separately from loopress.dev rather than wordpress.org, since directory guidelines do not allow that capability. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on.
 
 = Which snippet plugins are supported? =
 
@@ -57,7 +57,7 @@ The plugin is the site-side companion of the Loopress CLI (`lps`, installable fr
 == Changelog ==
 
 = 2026.8.0 =
-* Renamed from "Loopress" to "Loopress Light". Package installation features moved to the separate Loopress plugin (formerly "Loopress Plus"), available from loopress.dev. This plugin now focuses on snippet synchronization.
+* Renamed from "Loopress" to "Loopress Light". Package installation features moved to the separate Loopress Full plugin (formerly "Loopress Plus", then "Loopress"), available from loopress.dev. This plugin now focuses on snippet synchronization.
 
 = 2026.7.0 =
 * Concurrent operations are now serialized with a lock (second caller gets a clear "operation in progress" error).

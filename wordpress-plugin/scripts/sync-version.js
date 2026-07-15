@@ -6,7 +6,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'
 const targets = [
   { file: 'loopress.php', pattern: /(\* Version: )[\d.]+/, label: 'Version header' },
   { file: 'loopress.php', pattern: /(define\('LOOPRESS_VERSION', ')[\d.]+/, label: 'LOOPRESS_VERSION constant' },
-  { file: 'readme.txt', pattern: /(Stable tag: )[\d.]+/, label: 'Loopress (full edition) stable tag' },
+  { file: 'readme.txt', pattern: /(Stable tag: )[\d.]+/, label: 'Loopress Full stable tag' },
   { file: 'flavors/light/readme.txt', pattern: /(Stable tag: )[\d.]+/, label: 'Loopress Light stable tag' },
 ]
 

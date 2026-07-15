@@ -40,7 +40,7 @@ class LoopressEnvironment
         if (!file_exists($this->dxDir . 'composer.json')) {
             $this->writeComposerJson([
                 'name'        => 'loopress/site-dependencies',
-                'description' => 'Site-wide dependencies managed by Loopress',
+                'description' => 'Site-wide dependencies managed by Loopress Full',
                 'version' => '0.0.0',
                 'config'      => [
                     'vendor-dir' => 'vendor',

@@ -10,7 +10,7 @@ const { edition = 'light' } = Astro.props;
 
 const meta =
   edition === 'full'
-    ? { zip: 'loopress.zip', label: 'Download loopress.zip' }
+    ? { zip: 'loopress-full.zip', label: 'Download loopress-full.zip' }
     : { zip: 'loopress-light.zip', label: 'Download loopress-light.zip' };
 
 const version = pkg.version;

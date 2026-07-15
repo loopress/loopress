@@ -17,13 +17,13 @@ if (!defined('ABSPATH')) {
 // Registered unconditionally, ahead of the coexistence guard below: WordPress only ever
 // invokes this callback when THIS file's own plugin is the one being activated, so it must
 // not depend on the guard's early return. If it were registered after the guard, activating
-// Loopress while Loopress Light is already active would hit the guard first (Loopress
+// Loopress Full while Loopress Light is already active would hit the guard first (Loopress
 // Light's file loads first alphabetically and already defined LOOPRESS_VERSION) and this
 // hook would never be registered, silently breaking the automatic Loopress Light deactivation.
 register_activation_hook(__FILE__, function () {
     /* LOOPRESS_PLUS_START */
-    // Loopress replaces Loopress Light: deactivate the Light edition on activation so the
-    // coexistence guard below never fires during a normal upgrade.
+    // Loopress Full replaces Loopress Light: deactivate the Light edition on activation so
+    // the coexistence guard below never fires during a normal upgrade.
     if (function_exists('deactivate_plugins')) {
         deactivate_plugins('loopress-light/loopress.php');
     }
@@ -43,14 +43,14 @@ if (defined('LOOPRESS_PLUGIN_URL')) {
     return;
 }
 
-// Both editions of the plugin (Loopress Light and Loopress, see scripts/build-flavor.cjs)
+// Both editions of the plugin (Loopress Light and Loopress Full, see scripts/build-flavor.cjs)
 // define this constant: if it is already defined, another edition is active and this one
 // stands down entirely, otherwise both would register the same REST routes and admin menu.
 if (defined('LOOPRESS_VERSION')) {
     add_action('admin_notices', function () {
         echo '<div class="notice notice-error"><p>';
         echo esc_html__(
-            'Two editions of Loopress are active at the same time. Deactivate one of them: Loopress fully replaces Loopress Light.',
+            'Two editions of Loopress are active at the same time. Deactivate one of them: Loopress Full fully replaces Loopress Light.',
             'loopress'
         );
         echo '</p></div>';

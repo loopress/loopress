@@ -14,8 +14,10 @@ export interface MergeResult {
 
 // Loopress must never manage itself: pulling it into loopress.json would make a later
 // `plugin push` try to reinstall it from WordPress.org, where it doesn't exist, potentially
-// clobbering the plugin's own directory in the process.
-const LOOPRESS_PLUGIN_SLUG = 'loopress'
+// clobbering the plugin's own directory in the process. Checked against every slug this
+// plugin has ever shipped under (pre-rename "loopress", and the current "loopress-full" /
+// "loopress-light" editions), since a given site could be running any of them.
+const LOOPRESS_PLUGIN_SLUGS = new Set(['loopress', 'loopress-full', 'loopress-light'])
 
 export function mergePluginManifest(existing: PluginManifest, incoming: PluginManifest): MergeResult {
   const merged = {...existing, ...incoming}
@@ -44,7 +46,7 @@ export function parseInstalledPlugins(raw: WpNativePlugin[]): InstalledPlugin[] 
       slug: slugFromPluginFile(item.plugin),
       version: item.version,
     }))
-    .filter((plugin) => plugin.slug !== LOOPRESS_PLUGIN_SLUG)
+    .filter((plugin) => !LOOPRESS_PLUGIN_SLUGS.has(plugin.slug))
 }
 
 export function diffPlugins(manifest: PluginManifest, installed: InstalledPlugin[]): PluginDiff {

@@ -4,10 +4,10 @@ description: Sync composer.json and composer.lock between your local machine and
 ---
 
 :::note
-The `composer` command group talks to REST endpoints provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
+The `composer` command group talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
 :::
 
-The `composer` command group lets you synchronize your Composer setup with a WordPress server. This is useful when you manage PHP dependencies locally (or with Loopress) and need to keep remote environments in sync.
+The `composer` command group lets you synchronize your Composer setup with a WordPress server. This is useful when you manage PHP dependencies locally (or with Loopress Full) and need to keep remote environments in sync.
 
 ## Commands
 
@@ -66,4 +66,4 @@ lps composer pull
 
 ## Relation to the WordPress plugin
 
-The `lps composer push` command uses the same REST endpoint (`/wp-json/loopress/v1/composer/sync`) as Loopress's **Dependencies** panel. Both tools write to `wp-content/loopress/`. You can use either depending on your workflow: the admin panel for interactive installs, the CLI for scripted or CI deployments.
+The `lps composer push` command uses the same REST endpoint (`/wp-json/loopress/v1/composer/sync`) as Loopress Full's **Dependencies** panel. Both tools write to `wp-content/loopress/`. You can use either depending on your workflow: the admin panel for interactive installs, the CLI for scripted or CI deployments.

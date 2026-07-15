@@ -14,7 +14,7 @@ test('plugin pull never lists the Loopress plugin itself', async ({request, runC
   })
   expect(installedResponse.ok()).toBe(true)
   const installed = (await installedResponse.json()) as Array<{plugin: string}>
-  expect(installed.map((plugin) => plugin.plugin)).toContain('loopress/loopress')
+  expect(installed.map((plugin) => plugin.plugin)).toContain('loopress-full/loopress')
 
   const result = await runCli(['plugin', 'pull', '--dry-run'])
 
@@ -28,5 +28,5 @@ test('plugin pull never lists the Loopress plugin itself', async ({request, runC
     .replace('+', '')
     .split(',')
     .map((slug) => slug.trim())
-  expect(slugs).not.toContain('loopress')
+  expect(slugs).not.toContain('loopress-full')
 })

@@ -2,7 +2,7 @@ import pluginPkg from "../../../../wordpress-plugin/package.json";
 import { SectionLabel } from "./Problem";
 
 const pluginTag = `wordpress-plugin%40${pluginPkg.version}`;
-const pluginDownloadUrl = `https://github.com/loopress/loopress/releases/download/${pluginTag}/loopress.zip`;
+const pluginDownloadUrl = `https://github.com/loopress/loopress/releases/download/${pluginTag}/loopress-full.zip`;
 
 export function Features() {
   return (
@@ -38,7 +38,7 @@ export function Features() {
               "Security audit flags known CVEs in your Composer dependencies",
               "Platform diagnostics catch PHP version mismatches before they break an install",
             ]}
-            cta={{ label: "Download Loopress", href: pluginDownloadUrl }}
+            cta={{ label: "Download Loopress Full", href: pluginDownloadUrl }}
           >
             <ComposerBlock />
           </FeatureCard>

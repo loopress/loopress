@@ -3,20 +3,20 @@ title: Dependency Management
 description: Search, install and remove Composer packages from the WordPress admin panel.
 ---
 
-:::note
-This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
-:::
+import FullEditionNote from '../../../components/FullEditionNote.astro';
+
+<FullEditionNote />
 
 The **Dependency Management** card lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
 
 ## Where packages are stored
 
-Loopress maintains its own `composer.json` under `wp-content/loopress/`. Installed packages land in `wp-content/loopress/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
+Loopress Full maintains its own `composer.json` under `wp-content/loopress/`. Installed packages land in `wp-content/loopress/vendor/`. This location is separate from the plugin itself so packages survive plugin updates and can be used anywhere on the site via the Composer autoloader.
 
 ```
 wp-content/
   loopress/
-    composer.json        ← managed by Loopress
+    composer.json        ← managed by Loopress Full
     vendor/
       autoload.php       ← require this in your snippets
       guzzlehttp/guzzle/
@@ -54,7 +54,7 @@ The **Repair** action runs `composer update` against `wp-content/loopress/compos
 - The lockfile has drifted from `composer.json`
 - A previous install left the dependencies in an inconsistent state
 
-The autoload error banner at the top of the page appears automatically when Loopress detects a missing or broken autoloader and prompts you to run Repair.
+The autoload error banner at the top of the page appears automatically when Loopress Full detects a missing or broken autoloader and prompts you to run Repair.
 
 ## REST API
 
