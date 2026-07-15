@@ -23,7 +23,7 @@ Features:
 * Move snippets between environments (local, staging, production)
 * REST API restricted to administrators, authenticated with WordPress application passwords
 
-Need Composer dependency management too? [Loopress Full](https://loopress.dev) is the full edition, distributed separately from loopress.dev (see FAQ for why).
+Need Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
 
 == Installation ==
 
@@ -36,7 +36,7 @@ Need Composer dependency management too? [Loopress Full](https://loopress.dev) i
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs code snippets only. Loopress Full adds Composer dependency management, a security audit, and platform diagnostics. Loopress Full is distributed separately from loopress.dev rather than wordpress.org, since directory guidelines do not allow that capability. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on.
+Loopress Light (this plugin) syncs code snippets only. Loopress Full adds Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org, because directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
 = Which snippet plugins are supported? =
 
