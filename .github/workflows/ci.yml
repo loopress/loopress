@@ -94,8 +94,18 @@ jobs:
             echo "::error::Could not find the WordPress container started by loopress/setup-ci"
             exit 1
           fi
+          # `wp plugin install --force` only replaces a plugin already installed under the
+          # SAME folder/slug as the zip being installed. `loopress/setup-ci` pre-installs the
+          # last *published* release, which may still be under the pre-rename "loopress" slug
+          # (this build's zip now unpacks to "loopress-full"), so `--force` alone would silently
+          # leave that stale build active side by side with this one instead of replacing it,
+          # and this repo's own coexistence guard would then make the stale build win. Clearing
+          # every slug this plugin has ever shipped under first makes the install deterministic
+          # regardless of which one the baseline happens to be on.
+          docker exec "$CONTAINER" wp plugin deactivate loopress loopress-full loopress-light --allow-root || true
+          docker exec "$CONTAINER" wp plugin delete loopress loopress-full loopress-light --allow-root || true
           docker cp wordpress-plugin/loopress-full.zip "$CONTAINER":/tmp/loopress-full.zip
-          docker exec "$CONTAINER" wp plugin install /tmp/loopress-full.zip --force --activate --allow-root
+          docker exec "$CONTAINER" wp plugin install /tmp/loopress-full.zip --activate --allow-root
 
       - name: Extract app password
         id: wp-creds
