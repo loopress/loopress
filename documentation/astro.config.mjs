@@ -70,8 +70,8 @@ export default defineConfig({
 					slug: "getting-started"
 				},
 				{
-							label: "Application Passwords",
-							slug: "application-passwords",
+					label: "Application Passwords",
+					slug: "application-passwords",
 				},
 				{
 					label: "CLI",
