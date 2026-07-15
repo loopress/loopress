@@ -3,7 +3,7 @@ Contributors: jean-smaug
 Tags: code snippets, snippets, sync, git, developer tools
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 2026.8.3
+Stable tag: 2026.7.6
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
