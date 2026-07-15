@@ -3,13 +3,13 @@ import { LinkButton } from '@astrojs/starlight/components';
 import pkg from '../../../wordpress-plugin/package.json';
 
 interface Props {
-  edition?: 'free' | 'plus';
+  edition?: 'light' | 'full';
 }
 
-const { edition = 'free' } = Astro.props;
+const { edition = 'light' } = Astro.props;
 
 const meta =
-  edition === 'plus'
+  edition === 'full'
     ? { zip: 'loopress.zip', label: 'Download loopress.zip' }
     : { zip: 'loopress-light.zip', label: 'Download loopress-light.zip' };
 
