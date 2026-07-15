@@ -5,9 +5,9 @@
 // (loopress.zip).
 //
 // Usage: node scripts/build-flavor.cjs <light|full>
-const fs = require('fs')
-const path = require('path')
-const { execFileSync } = require('child_process')
+const fs = require('node:fs')
+const path = require('node:path')
+const { execFileSync } = require('node:child_process')
 
 // Every path used below is built from `root` plus a literal string segment taken from
 // this object, never from the CLI argument itself: the argument only ever selects which
