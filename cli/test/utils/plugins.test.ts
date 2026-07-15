@@ -84,8 +84,13 @@ describe('plugins', () => {
       expect(networkActive.active).toBe(true)
     })
 
-    it('filters out the Loopress plugin itself', () => {
-      const result = parseInstalledPlugins([makeNative('loopress/loopress'), makeNative('woocommerce/woocommerce')])
+    it('filters out the Loopress plugin itself, under any slug it has ever shipped under', () => {
+      const result = parseInstalledPlugins([
+        makeNative('loopress/loopress'),
+        makeNative('loopress-full/loopress'),
+        makeNative('loopress-light/loopress'),
+        makeNative('woocommerce/woocommerce'),
+      ])
       expect(result.map((p) => p.slug)).toEqual(['woocommerce'])
     })
   })
