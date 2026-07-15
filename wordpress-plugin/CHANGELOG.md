@@ -1,6 +1,6 @@
 # @loopress/wordpress-plugin
 
-## 2026.8.3
+## 2026.7.6
 
 ### Patch Changes
 
