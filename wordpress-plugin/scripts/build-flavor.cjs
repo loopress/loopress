@@ -45,7 +45,19 @@ if (typeof flavorArg !== 'string' || !/^(light|full)$/.test(flavorArg)) {
 const flavor = FLAVORS[flavorArg]
 
 const root = path.resolve(__dirname, '..')
-const stageDir = path.join(root, '.build-stage', flavorArg)
+
+// Resolve and bound-check stageDir against its parent directory, rather than trusting the
+// join above: this is the pattern static analysis actually recognizes as clearing the
+// taint on `flavorArg`, since a regex check on the source value alone isn't enough once
+// it flows into a joined path (see the many `fs.*` calls below that read/write under
+// stageDir).
+const buildStageRoot = path.resolve(root, '.build-stage')
+const stageDir = path.resolve(buildStageRoot, flavorArg)
+if (stageDir !== buildStageRoot && !stageDir.startsWith(buildStageRoot + path.sep)) {
+  console.error('Refusing to build outside the .build-stage directory')
+  process.exit(1)
+}
+
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 
 function run(cmd, args, cwd) {
