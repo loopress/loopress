@@ -32,7 +32,7 @@ export default function App() {
     }, []);
 
     return (
-        <AppShell title="Loopress">
+        <AppShell title="Loopress Full">
             {autoloadError && (
                 <div style={{ maxWidth: 600, marginBottom: 20 }}>
                     <Notice

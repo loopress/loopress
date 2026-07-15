@@ -31,7 +31,7 @@ function loopressFavicon() {
 export default defineConfig({
 	site: "https://docs.loopress.dev",
 	redirects: {
-		"/": "/guides/getting-started",
+		"/": "/getting-started",
 	},
 	integrations: [
 		loopressFavicon(),
@@ -66,8 +66,12 @@ export default defineConfig({
 			],
 			sidebar: [
 				{
-					label: "Guides",
-					items: [{ label: "Getting Started", slug: "guides/getting-started" }],
+					label: "Getting Started",
+					slug: "getting-started"
+				},
+				{
+							label: "Application Passwords",
+							slug: "application-passwords",
 				},
 				{
 					label: "CLI",
@@ -78,10 +82,6 @@ export default defineConfig({
 						{ label: "Snippets", slug: "cli/snippets" },
 						{ label: "Plugins", slug: "cli/plugins" },
 						{ label: "Composer", slug: "cli/composer" },
-						{
-							label: "Application Passwords",
-							slug: "cli/application-passwords",
-						},
 					],
 				},
 				{

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Assembles one edition of the plugin into a staging directory and zips it. Both editions
 // are built from the same source tree; see README.md for the split. Flavor argument to
-// product name: 'light' -> Loopress Light (loopress-light.zip), 'full' -> Loopress
-// (loopress.zip).
+// product name: 'light' -> Loopress Light (loopress-light.zip), 'full' -> Loopress Full
+// (loopress-full.zip).
 //
 // Usage: node scripts/build-flavor.cjs <light|full>
 const fs = require('node:fs')
@@ -11,8 +11,8 @@ const { execFileSync } = require('node:child_process')
 
 // Every path used below is built from `root` plus a literal string segment taken from
 // this object, never from the CLI argument itself: the argument only ever selects which
-// one of these two fixed configs to use (via the Object.hasOwn lookup below), so there is
-// no way for a "faulty" argument to make the script read or write outside these paths.
+// one of these two fixed configs to use (via the regex-validated lookup below), so there
+// is no way for a "faulty" argument to make the script read or write outside these paths.
 const FLAVORS = {
   light: {
     zipName: 'loopress-light',
@@ -24,7 +24,7 @@ const FLAVORS = {
     emptyComposerRequire: true,
   },
   full: {
-    zipName: 'loopress',
+    zipName: 'loopress-full',
     readmeSource: 'readme.txt',
     frontendEntry: 'frontend/full/index.tsx',
     stripPlusBlock: false,
@@ -88,7 +88,7 @@ if (flavor.stripPlusBlock) {
   // Keep the code between the markers, drop only the marker comment lines themselves.
   entry = entry.replace(new RegExp(`[ \\t]*${escapeRegExp(START)}\\n`, 'g'), '')
   entry = entry.replace(new RegExp(`[ \\t]*${escapeRegExp(END)}\\n`, 'g'), '')
-  entry = entry.replace('Plugin Name: Loopress Light', 'Plugin Name: Loopress')
+  entry = entry.replace('Plugin Name: Loopress Light', 'Plugin Name: Loopress Full')
   entry = entry.replace(
     ' * Description:',
     ' * Update URI: https://loopress.dev\n * Description:',

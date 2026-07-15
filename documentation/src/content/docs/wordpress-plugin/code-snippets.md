@@ -4,14 +4,14 @@ description: How to use Composer packages installed via Loopress in WordPress co
 ---
 
 :::note
-This feature is provided by [Loopress](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
+This feature is provided by [Loopress Full](/wordpress-plugin/), the full edition of the plugin, not by Loopress Light (the edition distributed on WordPress.org).
 :::
 
-Once you have installed a package through Loopress, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
+Once you have installed a package through Loopress Full, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).
 
 ## Loading the autoloader
 
-Loopress stores its packages under `wp-content/loopress/vendor/`. You need to require the Composer autoloader once before using any installed package:
+Loopress Full stores its packages under `wp-content/loopress/vendor/`. You need to require the Composer autoloader once before using any installed package:
 
 ```php
 require_once WP_CONTENT_DIR . '/loopress/vendor/autoload.php';
@@ -25,7 +25,7 @@ This example installs [Guzzle](https://packagist.org/packages/guzzlehttp/guzzle)
 
 **1. Install the package**
 
-In the Loopress admin page, search for `guzzlehttp/guzzle` and install it.
+In the Loopress Full admin page, search for `guzzlehttp/guzzle` and install it.
 
 **2. Use it in a snippet**
 
@@ -59,5 +59,5 @@ add_action('wp_footer', function () {
 ## Tips
 
 - The autoloader path (`WP_CONTENT_DIR . '/loopress/vendor/autoload.php'`) is the same regardless of which package you install.
-- If the autoloader is missing (e.g. after a fresh WordPress install), run **Repair** from the Loopress admin page to regenerate it.
+- If the autoloader is missing (e.g. after a fresh WordPress install), run **Repair** from the Loopress Full admin page to regenerate it.
 - Always escape output with `esc_html()` or `esc_url()` before echoing data from external sources.

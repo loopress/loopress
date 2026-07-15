@@ -8,7 +8,7 @@ use Loopress\Dependencies\Module\ComposerModule;
 
 /**
  * Entry point of the Composer dependency management feature. Everything under
- * src/Dependencies/ ships only in the Loopress edition (see scripts/build-flavor.cjs);
+ * src/Dependencies/ ships only in the Loopress Full edition (see scripts/build-flavor.cjs);
  * the plugin entry file calls this inside its build markers, so the Loopress Light
  * artifact never references this namespace.
  */

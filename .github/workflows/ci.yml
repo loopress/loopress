@@ -78,8 +78,8 @@ jobs:
       # also used to smoke-test real releases. That means these e2e tests would otherwise
       # exercise stale, already-released plugin code instead of this branch's changes, so
       # any fix landing here and there at the same time couldn't be verified by its own PR.
-      # Loopress (the full edition) is installed, as a superset of Loopress Light: it covers
-      # both the snippet-sync and composer-sync specs without a second WordPress instance.
+      # Loopress Full is installed, as a superset of Loopress Light: it covers both the
+      # snippet-sync and composer-sync specs without a second WordPress instance.
       - name: Build this branch's plugin as installable zips (both editions)
         working-directory: wordpress-plugin
         run: pnpm run pack
@@ -87,15 +87,15 @@ jobs:
       - name: Start WordPress
         uses: loopress/setup-ci@5609fea4b9f360f7b3739541c468798f9413c496 # main
 
-      - name: Install this branch's Loopress build over the released one
+      - name: Install this branch's Loopress Full build over the released one
         run: |
           CONTAINER=$(docker ps --filter "ancestor=wordpress:latest" --format "{{.ID}}" | head -n1)
           if [ -z "$CONTAINER" ]; then
             echo "::error::Could not find the WordPress container started by loopress/setup-ci"
             exit 1
           fi
-          docker cp wordpress-plugin/loopress.zip "$CONTAINER":/tmp/loopress.zip
-          docker exec "$CONTAINER" wp plugin install /tmp/loopress.zip --force --activate --allow-root
+          docker cp wordpress-plugin/loopress-full.zip "$CONTAINER":/tmp/loopress-full.zip
+          docker exec "$CONTAINER" wp plugin install /tmp/loopress-full.zip --force --activate --allow-root
 
       - name: Extract app password
         id: wp-creds
