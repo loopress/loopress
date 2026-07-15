@@ -50,7 +50,7 @@ git add snippets/ && git commit -m "update snippet"
 lps snippet push
 ```
 
-→ [Full 3-minute setup guide](/guides/getting-started/)
+→ [Full 3-minute setup guide](/getting-started/)
 
 ## Authentication
 
