@@ -4,7 +4,7 @@ description: How to use Composer packages installed via Loopress in WordPress co
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on wordpress.org.
+This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
 :::
 
 Once you have installed a package through Loopress Plus, it is available anywhere on your WordPress site, including in code snippets managed by plugins like [Code Snippets](https://wordpress.org/plugins/code-snippets/).

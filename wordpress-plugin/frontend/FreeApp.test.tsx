@@ -2,7 +2,7 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 function renderApp() {
-    (window as any).loopressData = {
+    window.loopressData = {
         apiUrl: 'http://localhost/wp-json/loopress/v1',
         nonce: 'test-nonce',
         autoloadError: null,

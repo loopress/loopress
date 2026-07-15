@@ -78,6 +78,15 @@ const stageComposerJson =
 delete stageComposerJson['require-dev']
 delete stageComposerJson.scripts
 fs.writeFileSync(path.join(stageDir, 'composer.json'), JSON.stringify(stageComposerJson, null, 4))
+
+// The plus flavor ships the same composer.json as the repo root, so the root lock file
+// is still valid for it: reusing it makes `composer install` reproducible (exact versions
+// already tested by CI) instead of re-resolving from scratch on every build. The free
+// flavor's require is forced to {}, which the root lock doesn't match, so it always
+// resolves fresh (trivially, since there's nothing to resolve).
+if (flavor === 'plus' && fs.existsSync(path.join(root, 'composer.lock'))) {
+  fs.copyFileSync(path.join(root, 'composer.lock'), path.join(stageDir, 'composer.lock'))
+}
 run('composer', ['install', '--no-dev', '--no-interaction', '--prefer-dist', '--optimize-autoloader'], stageDir)
 
 // 6. Frontend: built in the real project (real node_modules), then copied into the

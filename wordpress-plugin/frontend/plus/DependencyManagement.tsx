@@ -12,7 +12,7 @@ export function DependencyManagement() {
     const [installedName, setInstalledName] = useState('');
 
     const {
-        mutateAsync: installPackage,
+        mutate: installPackage,
         isPending: installing,
         isSuccess: installSuccess,
         isError: installError,
@@ -39,7 +39,10 @@ export function DependencyManagement() {
                         <PackageSearch
                             onInstall={async (packageName, version) => {
                                 resetInstall();
-                                await installPackage({ packageName, version });
+                                // `mutate`, not `mutateAsync`: errors are reported through the
+                                // mutation's own isError/error state below, so nothing here
+                                // needs to await or catch a rejection.
+                                installPackage({ packageName, version });
                             }}
                             disabled={installing}
                         />

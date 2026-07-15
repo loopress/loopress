@@ -4,7 +4,7 @@ description: Search, install and remove Composer packages from the WordPress adm
 ---
 
 :::note
-This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on wordpress.org.
+This feature is provided by the [Loopress Plus edition](/wordpress-plugin/) of the plugin, not the free edition distributed on WordPress.org.
 :::
 
 The **Dependency Management** card lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.

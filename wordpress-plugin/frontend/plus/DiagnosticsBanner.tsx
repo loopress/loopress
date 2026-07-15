@@ -8,7 +8,7 @@ import type { Diagnostics } from '../types';
 export function DiagnosticsBanner() {
     const queryClient = useQueryClient();
 
-    const { data: diagnostics } = useQuery<Diagnostics>({
+    const { data: diagnostics, isError } = useQuery<Diagnostics>({
         queryKey: ['diagnostics'],
         queryFn: () => apiFetch<Diagnostics>('/composer/diagnostics'),
         staleTime: 60_000,
@@ -19,6 +19,7 @@ export function DiagnosticsBanner() {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['diagnostics'] }),
     });
 
+    if (isError) return null;
     if (!diagnostics) return <NoticeSkeleton />;
 
     if (!diagnostics.issues.length) {

@@ -127,8 +127,9 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create "wordpress-plugin@${{ steps.version.outputs.version }}" \
+          gh release create "wordpress-plugin@${VERSION}" \
             wordpress-plugin/loopress.zip \
             wordpress-plugin/loopress-plus.zip \
-            --title "WordPress Plugin v${{ steps.version.outputs.version }}"
+            --title "WordPress Plugin v${VERSION}"

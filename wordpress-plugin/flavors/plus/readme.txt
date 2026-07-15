@@ -23,7 +23,7 @@ Features:
 * PHP platform version diagnostics
 * Sync composer.json and composer.lock with the Loopress CLI (`lps composer push` / `lps composer pull`)
 
-Loopress Plus is distributed exclusively from loopress.dev, not from the wordpress.org plugin directory. If you already have the free Loopress plugin installed, activating Loopress Plus deactivates it: Loopress Plus is a full replacement, not an add-on.
+Loopress Plus is distributed exclusively from loopress.dev, not from the WordPress.org plugin directory. If you already have the free Loopress plugin installed, activating Loopress Plus deactivates it: Loopress Plus is a full replacement, not an add-on.
 
 **Important**: PHP packages installed through Loopress Plus are regular code living in `wp-content/loopress/`. Once your own snippets or code load them, they run wherever that code runs, on the front end as well as in the admin. Only install packages you trust, and keep them updated with the built-in security audit.
 
@@ -39,7 +39,7 @@ Loopress Plus is distributed exclusively from loopress.dev, not from the wordpre
 
 No. Loopress Plus runs Composer directly from the PHP process using the Composer API.
 
-= Why is this plugin not on wordpress.org? =
+= Why is this plugin not on WordPress.org? =
 
 The plugin directory guidelines do not allow plugins whose purpose is installing executable PHP code from external registries such as Packagist. That capability is exactly what Loopress Plus exists for, so it is distributed separately from loopress.dev.
 

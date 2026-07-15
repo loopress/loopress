@@ -14,6 +14,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Registered unconditionally, ahead of the coexistence guard below: WordPress only ever
+// invokes this callback when THIS file's own plugin is the one being activated, so it must
+// not depend on the guard's early return. If it were registered after the guard, activating
+// Loopress Plus while the free edition is already active would hit the guard first (the free
+// edition's file loads first alphabetically and already defined LOOPRESS_VERSION) and this
+// hook would never be registered, silently breaking the automatic free-edition deactivation.
+register_activation_hook(__FILE__, function () {
+    /* LOOPRESS_PLUS_START */
+    // The Plus edition replaces the free plugin: deactivate the free one on activation
+    // so the coexistence guard below never fires during a normal upgrade.
+    if (function_exists('deactivate_plugins')) {
+        deactivate_plugins('loopress/loopress.php');
+    }
+    /* LOOPRESS_PLUS_END */
+    do_action('litespeed_purge_all');
+});
+
 // Both editions of the plugin (free and Plus, see scripts/build-flavor.cjs) define this
 // constant: if it is already defined, another edition is active and this one stands down
 // entirely, otherwise both would register the same REST routes and admin menu.
@@ -38,17 +55,6 @@ define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));
 require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
 
 use Loopress\Plugin;
-
-register_activation_hook(__FILE__, function () {
-    /* LOOPRESS_PLUS_START */
-    // The Plus edition replaces the free plugin: deactivate the free one on activation
-    // so the coexistence guard above never fires during a normal upgrade.
-    if (function_exists('deactivate_plugins')) {
-        deactivate_plugins('loopress/loopress.php');
-    }
-    /* LOOPRESS_PLUS_END */
-    do_action('litespeed_purge_all');
-});
 
 /* LOOPRESS_PLUS_START */
 // Stripped from the free wordpress.org build by scripts/build-flavor.cjs, together with

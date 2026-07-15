@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# None of these jobs need to write to the repo or any GitHub API beyond reading it;
+# the default GITHUB_TOKEN permissions are broader than that.
+permissions:
+  contents: read
+
 jobs:
   cli-unit:
     name: CLI:Unit tests (Vitest)

@@ -1,8 +1,8 @@
 import LogoBlack from '@loopress/assets/loopress-logo-black.svg';
 
-const { pluginVersion } = window.loopressData;
+const pluginVersion = window.loopressData?.pluginVersion ?? '';
 
-export function AppShell({ title, children }: { title: string; children: React.ReactNode }) {
+export function AppShell({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
     return (
         <div className="wrap">
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>

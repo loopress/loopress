@@ -28,7 +28,7 @@ function stubQuietEndpoints() {
 }
 
 function renderApp(autoloadError: string | null) {
-    (window as any).loopressData = {
+    window.loopressData = {
         apiUrl: 'http://localhost/wp-json/loopress/v1',
         nonce: 'test-nonce',
         autoloadError,

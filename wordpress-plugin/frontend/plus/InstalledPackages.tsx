@@ -18,7 +18,7 @@ export function InstalledPackages() {
     const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
     const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { data: packages = [], isFetching, isError } = useQuery<Package[]>({
+    const { data: packages = [], isPending, isFetching, isError } = useQuery<Package[]>({
         queryKey: ['installed-packages'],
         queryFn: () => apiFetch<Package[]>('/composer/installed'),
         staleTime: 30_000,
@@ -72,7 +72,7 @@ export function InstalledPackages() {
         }
     };
 
-    const isInitialLoad = packages.length === 0 && isFetching;
+    const isInitialLoad = isPending;
 
     return (
         <div>
@@ -145,7 +145,7 @@ export function InstalledPackages() {
                                             <Button
                                                 variant="secondary"
                                                 size="small"
-                                                disabled={isUpdating || isRemoving}
+                                                disabled={updating || removing}
                                                 onClick={() => updatePackage({ name: pkg.name, version: update.latest })}
                                                 style={{ marginRight: 8 }}
                                             >
@@ -156,7 +156,7 @@ export function InstalledPackages() {
                                             variant="tertiary"
                                             isDestructive={isConfirming || isRemoving}
                                             size="small"
-                                            disabled={isRemoving || isUpdating}
+                                            disabled={updating || removing}
                                             onClick={() => handleRemoveClick(pkg.name)}
                                         >
                                             {isRemoving ? <Spinner /> : isConfirming ? 'Sure?' : 'Remove'}
