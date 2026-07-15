@@ -34,9 +34,12 @@ const FLAVORS = {
   },
 }
 
+// Validated against a literal allowlist pattern (not just an object-key lookup) so that
+// static analysis can see, right here, that flavorArg can only ever be "light" or "full"
+// before it is used to build any path below.
 const flavorArg = process.argv[2]
-if (!Object.hasOwn(FLAVORS, flavorArg)) {
-  console.error(`Usage: node scripts/build-flavor.cjs <${Object.keys(FLAVORS).join('|')}>`)
+if (typeof flavorArg !== 'string' || !/^(light|full)$/.test(flavorArg)) {
+  console.error('Usage: node scripts/build-flavor.cjs <light|full>')
   process.exit(1)
 }
 const flavor = FLAVORS[flavorArg]
