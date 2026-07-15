@@ -31,6 +31,18 @@ register_activation_hook(__FILE__, function () {
     do_action('litespeed_purge_all');
 });
 
+// Guards against this file's remaining side effects (constants, the autoloader require,
+// the plugins_loaded registration) running twice in the same PHP process. This happens in
+// practice with `wp plugin install --force --activate` over an already-active install:
+// WordPress's normal bootstrap already loaded the previously-active build once, and
+// activate_plugin()'s include_once of the just-replaced file can execute a second time
+// (deleting and recreating a file at the same path mid-process can bypass include_once's
+// deduplication). Guards on LOOPRESS_PLUGIN_URL rather than LOOPRESS_VERSION below: an
+// older already-active build may predate LOOPRESS_VERSION, but has always defined this one.
+if (defined('LOOPRESS_PLUGIN_URL')) {
+    return;
+}
+
 // Both editions of the plugin (free and Plus, see scripts/build-flavor.cjs) define this
 // constant: if it is already defined, another edition is active and this one stands down
 // entirely, otherwise both would register the same REST routes and admin menu.
