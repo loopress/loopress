@@ -114,6 +114,19 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
+      # Re-derives loopress.php's Version header and both readme.txt's Stable tag from
+      # package.json right before packaging, instead of trusting they're already in sync.
+      # `changeset version` bumps package.json directly and never runs its "version" script;
+      # the only thing that normally does is the separate wordpress-plugin-version job in
+      # release-preview.yml, which reacts asynchronously to the Version Packages PR. If that
+      # PR gets merged before that job's follow-up commit lands, main carries a bumped
+      # package.json with stale version headers, and the zip would silently ship the old
+      # version inside a release tagged with the new one.
+      - name: Sync plugin version header
+        if: steps.check.outputs.exists == 'false'
+        working-directory: wordpress-plugin
+        run: pnpm run version
+
       # Builds both editions: loopress-light.zip (Loopress Light, wordpress.org) and
       # loopress-full.zip (Loopress Full, loopress.dev). Both ship in the same GitHub release.
       - name: Build and zip both plugin editions
