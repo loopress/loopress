@@ -3,6 +3,11 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 export interface ComposerJson {
+  extra?: {
+    'installer-paths'?: Record<string, string[]>
+  }
+  name?: string
+  repositories?: Array<{type: string; url: string}>
   require?: Record<string, string>
   'require-dev'?: Record<string, string>
 }
