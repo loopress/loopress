@@ -9,6 +9,8 @@ import { copyFileSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
 import { fileURLToPath } from "url";
 
+import indexnow from "astro-indexnow";
+
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const zodRoot = resolve(require.resolve("zod/package.json"), "..");
@@ -29,7 +31,15 @@ function loopressFavicon() {
 
 export default defineConfig({
   site: "https://loopress.dev",
-  integrations: [loopressFavicon(), react(), sitemap()],
+  integrations: [
+    loopressFavicon(),
+    react(),
+    sitemap(),
+    indexnow({
+      key: "3fae972a4f0945b29ae38c454a9f4e81",
+      enabled: true,
+    }),
+  ],
   adapter: vercel(),
   output: "server",
   server: {
