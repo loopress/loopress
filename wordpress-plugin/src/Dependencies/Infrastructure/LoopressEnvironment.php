@@ -106,6 +106,18 @@ class LoopressEnvironment
         }
     }
 
+    public function readComposerJsonRaw(): ?string
+    {
+        $path = $this->dxDir . 'composer.json';
+        if (!file_exists($path)) {
+            return null;
+        }
+
+        // Local file under our own working directory, not a remote URL: wp_remote_get() doesn't apply here.
+        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        return $contents !== false ? $contents : null;
+    }
+
     public function readComposerLock(): ?string
     {
         $path = $this->dxDir . 'composer.lock';

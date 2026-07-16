@@ -195,6 +195,12 @@ class ComposerService
         $this->dxEnv->writeComposerJson($json);
     }
 
+    public function getJson(): ?string
+    {
+        $this->dxEnv->ensureInitialized();
+        return $this->dxEnv->readComposerJsonRaw();
+    }
+
     public function getLock(): ?string
     {
         return $this->dxEnv->readComposerLock();

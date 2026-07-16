@@ -78,6 +78,12 @@ class ComposerController
             'permission_callback' => fn() => current_user_can('manage_options'),
         ]);
 
+        register_rest_route('loopress/v1', '/composer/json', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_json'],
+            'permission_callback' => fn() => current_user_can('manage_options'),
+        ]);
+
         register_rest_route('loopress/v1', '/composer/lock', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_lock'],
@@ -203,6 +209,17 @@ class ComposerController
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function get_json(WP_REST_Request $request): WP_REST_Response
+    {
+        $json = $this->composerService->getJson();
+
+        if ($json === null) {
+            return new WP_REST_Response(['error' => 'composer.json not found'], 404);
+        }
+
+        return new WP_REST_Response(['composerJson' => $json], 200);
     }
 
     public function get_lock(WP_REST_Request $request): WP_REST_Response

@@ -21,7 +21,11 @@ function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {
   const cmd = new TestComposerPull([], fakeOclifConfig)
   cmd.setup({dryRun, localConfig, siteConfig: makeEnv('production', 'https://acme.com')})
   silenceLogs(cmd)
-  const get = vi.fn().mockResolvedValue({composerLock: '{"packages": []}'})
+  const get = vi.fn((path: string) =>
+    path === 'loopress/v1/composer/json'
+      ? Promise.resolve({composerJson: '{"name": "demo/site"}'})
+      : Promise.resolve({composerLock: '{"packages": []}'}),
+  )
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
   return {cmd, get}
 }
@@ -38,12 +42,14 @@ describe('composer pull', () => {
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('writes composer.lock from the API response', async () => {
+  it('writes composer.json and composer.lock from the API response', async () => {
     const {cmd, get} = make(false)
 
     await cmd.run()
 
+    expect(get).toHaveBeenCalledWith('loopress/v1/composer/json')
     expect(get).toHaveBeenCalledWith('loopress/v1/composer/lock')
+    expect(readFileSync(join(dir, 'composer.json'), 'utf8')).toBe('{"name": "demo/site"}')
     expect(readFileSync(join(dir, 'composer.lock'), 'utf8')).toBe('{"packages": []}')
   })
 
@@ -52,6 +58,7 @@ describe('composer pull', () => {
 
     await cmd.run()
 
+    expect(existsSync(join(dir, 'composer.json'))).toBe(true)
     expect(existsSync(join(dir, 'composer.lock'))).toBe(true)
   })
 
@@ -60,7 +67,8 @@ describe('composer pull', () => {
 
     await cmd.run()
 
-    expect(get).toHaveBeenCalledOnce()
+    expect(get).toHaveBeenCalledTimes(2)
+    expect(existsSync(join(dir, 'composer.json'))).toBe(false)
     expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
   })
 })

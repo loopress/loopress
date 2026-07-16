@@ -95,7 +95,7 @@ _See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/
 
 ## `lps composer pull`
 
-Pull composer.lock from WordPress
+Pull composer.json and composer.lock from WordPress
 
 ```
 USAGE
@@ -105,7 +105,7 @@ FLAGS
   -d, --dry-run  Show what would change without making changes
 
 DESCRIPTION
-  Pull composer.lock from WordPress
+  Pull composer.json and composer.lock from WordPress
 
 EXAMPLES
   $ lps composer pull
