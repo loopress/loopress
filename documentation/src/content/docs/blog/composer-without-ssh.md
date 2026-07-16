@@ -40,7 +40,9 @@ Neither option is good.
 
 ## What Loopress does differently
 
-The Loopress plugin adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access.
+**Loopress Full** adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access.
+
+This is Loopress Full specifically, not Loopress Light (the free edition on wordpress.org). wordpress.org's plugin guidelines don't allow a plugin to install executable code from a third-party registry like Packagist, so this feature ships separately, from [loopress.dev](https://loopress.dev), rather than the official directory. [Here's why](/blog/wordpress-org-composer-rejection/), if you're curious.
 
 ### Installing a package
 
@@ -84,4 +86,4 @@ If you're building on [Roots/Bedrock](https://roots.io/bedrock/), you already ha
 
 ---
 
-The Loopress plugin is available on [GitHub](https://github.com/loopress). Installation is a standard WordPress plugin install, no server configuration required.
+Loopress Full is a free download from [loopress.dev](https://loopress.dev), installed like any other plugin zip (**Plugins → Add New → Upload Plugin**), no server configuration required. If you only need snippet sync, Loopress Light is the free edition submitted to the wordpress.org directory instead.
