@@ -145,6 +145,23 @@ class ComposerControllerTest extends TestCase
         $this->assertSame(409, $response->status);
     }
 
+    // ── get_json ─────────────────────────────────────────────────────────────
+
+    public function test_get_json_returns_404_when_missing(): void
+    {
+        $this->composerService->method('getJson')->willReturn(null);
+        $response = $this->controller->get_json(new WP_REST_Request());
+        $this->assertSame(404, $response->status);
+    }
+
+    public function test_get_json_returns_200_with_composer_json(): void
+    {
+        $this->composerService->method('getJson')->willReturn('{"name":"demo/site"}');
+        $response = $this->controller->get_json(new WP_REST_Request());
+        $this->assertSame(200, $response->status);
+        $this->assertSame('{"name":"demo/site"}', $response->data['composerJson']);
+    }
+
     // ── remove_package ────────────────────────────────────────────────────────
 
     public function test_remove_package_returns_200_on_success(): void

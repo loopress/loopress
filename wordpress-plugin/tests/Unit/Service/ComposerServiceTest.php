@@ -86,6 +86,20 @@ class ComposerServiceTest extends TestCase
         $this->assertSame('^7.0', $result[0]['constraint']);
     }
 
+    // ── getJson ──────────────────────────────────────────────────────────────
+
+    public function test_getJson_returns_raw_composer_json(): void
+    {
+        $this->dxEnv->method('readComposerJsonRaw')->willReturn('{"name":"demo/site"}');
+        $this->assertSame('{"name":"demo/site"}', $this->service->getJson());
+    }
+
+    public function test_getJson_returns_null_when_missing(): void
+    {
+        $this->dxEnv->method('readComposerJsonRaw')->willReturn(null);
+        $this->assertNull($this->service->getJson());
+    }
+
     // ── getVersions ──────────────────────────────────────────────────────────
 
     public function test_getVersions_delegates_to_packagist(): void

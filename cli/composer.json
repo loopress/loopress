@@ -1,0 +1,22 @@
+{
+  "extra": {
+    "installer-paths": {
+      "../plugins/{$name}/": [
+        "type:wordpress-plugin"
+      ],
+      "../themes/{$name}/": [
+        "type:wordpress-theme"
+      ]
+    }
+  },
+  "name": "loopress/site-dependencies",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://wpackagist.org"
+    }
+  ],
+  "require": {
+    "composer/installers": "^2.0"
+  }
+}

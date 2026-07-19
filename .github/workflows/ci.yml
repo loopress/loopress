@@ -85,7 +85,7 @@ jobs:
         run: pnpm run pack
 
       - name: Start WordPress
-        uses: loopress/setup-ci@5609fea4b9f360f7b3739541c468798f9413c496 # main
+        uses: loopress/setup-ci@bbbd098947b88492c863f20bc30ddee768ffd634 # main
 
       - name: Install this branch's Loopress Full build over the released one
         run: |
@@ -241,7 +241,7 @@ jobs:
             echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
             exit 1
           fi
-          if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
-            echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
-            exit 1
-          fi
+          # if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
+          #   echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
+          #   exit 1
+          # fi

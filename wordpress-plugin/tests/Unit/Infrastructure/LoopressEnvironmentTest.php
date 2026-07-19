@@ -181,6 +181,25 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame('^1.0', $read['require']['vendor/pkg']);
     }
 
+    // ── readComposerJsonRaw ───────────────────────────────────────────────────
+
+    public function test_readComposerJsonRaw_returns_null_when_file_missing(): void
+    {
+        $env = new LoopressEnvironment();
+        $this->assertNull($env->readComposerJsonRaw());
+    }
+
+    public function test_readComposerJsonRaw_returns_file_contents(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $env->writeComposerJson(['name' => 'test/package']);
+
+        $raw = $env->readComposerJsonRaw();
+        $this->assertIsString($raw);
+        $this->assertSame('test/package', json_decode($raw, true)['name']); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode
+    }
+
     // ── getAutoloadPath ───────────────────────────────────────────────────────
 
     public function test_getAutoloadPath_returns_null_when_file_missing(): void
