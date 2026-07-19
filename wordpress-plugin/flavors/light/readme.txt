@@ -17,6 +17,7 @@ Loopress Light connects the code snippets of your WordPress site to your develop
 Features:
 
 * Works with Code Snippets and WPCode, no migration needed
+* Migrate snippets between WPCode and Code Snippets, one click at a time
 * Pull snippets from the site as files with `lps snippet pull`
 * Push local edits back with `lps snippet push`
 * Keep snippets in Git: history, diffs, code review, rollbacks

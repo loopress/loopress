@@ -6,16 +6,21 @@ import { AppShell } from './AppShell';
 import { DiagnosticsBanner } from './dependencies/DiagnosticsBanner';
 import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
+import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
+import { useHashTab } from './useHashTab';
 
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
+    { name: 'snippets', title: 'Snippets' },
     { name: 'diagnostics', title: 'Diagnostics' },
 ];
+const TAB_NAMES = TABS.map((tab) => tab.name);
 
 const { autoloadError, pluginVersion } = window.loopressData;
 
 export default function App() {
     const queryClient = useQueryClient();
+    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'dependencies');
 
     const {
         mutate: autoRepair,
@@ -55,17 +60,21 @@ export default function App() {
                 </div>
             )}
 
-            <TabPanel tabs={TABS}>
-                {(tab) =>
-                    tab.name === 'dependencies' ? (
-                        <DependencyManagement />
-                    ) : (
-                        <>
-                            <DiagnosticsBanner />
-                            <AuditBanner />
-                        </>
-                    )
-                }
+            <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
+                {(tab) => (
+                    <div style={{ marginTop: 16 }}>
+                        {tab.name === 'dependencies' ? (
+                            <DependencyManagement />
+                        ) : tab.name === 'snippets' ? (
+                            <SnippetMigrationPanel />
+                        ) : (
+                            <>
+                                <DiagnosticsBanner />
+                                <AuditBanner />
+                            </>
+                        )}
+                    </div>
+                )}
             </TabPanel>
         </AppShell>
     );
