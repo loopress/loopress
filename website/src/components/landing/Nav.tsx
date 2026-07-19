@@ -19,7 +19,7 @@ export function Nav() {
           />
           <span className="text-base font-semibold tracking-tight text-foreground">Loopress</span>
           <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            Beta
+            Alpha
           </span>
         </a>
         <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
@@ -57,7 +57,7 @@ export function Nav() {
             href="https://console.loopress.dev"
             className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Join the Beta
+            Join the Alpha
           </a>
         </div>
       </div>

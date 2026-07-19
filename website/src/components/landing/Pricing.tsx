@@ -23,7 +23,7 @@ const TIERS = [
     sub: null,
     description: "For freelancers and small teams shipping to real sites in CI.",
     featured: true,
-    cta: "Join the Beta",
+    cta: "Join the Alpha",
     ctaHref: "https://console.loopress.dev",
     features: [
       "Everything in Free",

@@ -23,7 +23,7 @@ export function FinalCTA() {
   };
 
   return (
-    <section id="beta" className="relative overflow-hidden border-b border-border/60">
+    <section id="alpha" className="relative overflow-hidden border-b border-border/60">
       <div className="absolute inset-0 grid-bg radial-fade opacity-50" aria-hidden />
       <div
         className="absolute left-1/2 top-1/2 z-0 h-[400px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.65_0.2_280/0.18),transparent)]"
@@ -62,7 +62,7 @@ export function FinalCTA() {
               disabled={status === "loading"}
               className="inline-flex h-14 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 md:h-11"
             >
-              {status === "loading" ? "Sending…" : "Join the Beta →"}
+              {status === "loading" ? "Sending…" : "Join the Alpha →"}
             </button>
           </form>
         )}

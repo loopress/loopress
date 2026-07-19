@@ -12,14 +12,14 @@ export function Hero() {
       <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
         <div className="mx-auto max-w-3xl text-center">
           <a
-            href="#beta"
+            href="#alpha"
             className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/50 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-cyan opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent-cyan" />
             </span>
-            Open beta - now accepting developers
+            Open alpha - now accepting developers
             <span className="text-foreground/40">→</span>
           </a>
 
@@ -41,7 +41,7 @@ export function Hero() {
               href="https://console.loopress.dev"
               className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Join the Beta
+              Join the Alpha
               <span className="ml-2 text-base">→</span>
             </a>
             <a
