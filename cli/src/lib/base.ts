@@ -50,6 +50,11 @@ export abstract class LoopressCommand extends Command {
     this.siteConfig = this.resolveEnvironment()
   }
 
+  protected resolveAcfPath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.acfDir ?? 'acf')
+  }
+
   protected resolveSnippetsPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
