@@ -42,6 +42,7 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `projectId` | — | Name of the project configured via `lps project config`. Overrides the globally active project for all commands run in this directory. |
 | `rootDir` | `.` | Base directory. All relative paths in `loopress.json` are resolved from here. |
 | `snippetsDir` | `snippets` | Directory for snippet files, relative to `rootDir`. |
+| `acfDir` | `acf` | Directory for ACF field groups, post types, taxonomies and options pages, relative to `rootDir`. Used by `lps acf pull/push`. |
 | `plugins` | — | WordPress.org plugins managed by Loopress (slugs). Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
 
 ## If loopress.json already exists

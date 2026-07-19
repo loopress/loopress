@@ -19,6 +19,9 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | | `lps snippet push` | Push snippets to WordPress |
 | | `lps snippet list` | List all snippets on the site |
 | | `lps snippet publish` | Publish snippets to your Loopress account so they can be deployed to other projects |
+| **ACF** | `lps acf pull` | Pull ACF field groups, post types, taxonomies and options pages from WordPress |
+| | `lps acf push` | Push ACF configuration to WordPress |
+| | `lps acf list` | List ACF objects on the site |
 | **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
 | | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
 | | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |
