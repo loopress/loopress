@@ -58,6 +58,38 @@ export interface AuditResult {
     abandoned: Record<string, string | null>;
 }
 
+export type SnippetType = 'php' | 'js' | 'css' | 'html' | 'text';
+export type SnippetLocation = 'admin' | 'body' | 'everywhere' | 'footer' | 'frontend' | 'header' | 'once';
+
+export interface Snippet {
+    id: number;
+    name: string;
+    code: string;
+    type: SnippetType;
+    active: boolean;
+    description: string;
+    location: SnippetLocation;
+    insertMethod: 'auto' | 'shortcode';
+    priority: number;
+    shortcodeAttributes: string[];
+    tags: string[];
+}
+
+export type SnippetMigrationDirection = 'wpcode-to-code-snippets' | 'code-snippets-to-wpcode';
+
+export interface SnippetMigrationStatus {
+    sourceActive: boolean;
+    destinationActive: boolean;
+    snippets: Snippet[];
+}
+
+export interface SnippetMigrationResult {
+    id: number;
+    status: 'migrated' | 'error';
+    error?: string;
+    warning?: string;
+}
+
 declare global {
     interface Window {
         loopressData: {

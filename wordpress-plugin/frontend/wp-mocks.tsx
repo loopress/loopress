@@ -5,8 +5,8 @@ import { vi } from 'vitest';
 import React from 'react';
 
 vi.mock('@wordpress/components', () => ({
-    Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style }: any) => (
-        <button onClick={onClick} disabled={disabled} type={type ?? 'button'} style={style}>
+    Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style, ...rest }: any) => (
+        <button onClick={onClick} disabled={disabled} type={type ?? 'button'} style={style} {...rest}>
             {children}
         </button>
     ),
@@ -32,6 +32,17 @@ vi.mock('@wordpress/components', () => ({
             />
             {label}
             {help && <span>{help}</span>}
+        </label>
+    ),
+    CheckboxControl: ({ checked, onChange, label, disabled }: any) => (
+        <label>
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
+                disabled={disabled}
+            />
+            {label}
         </label>
     ),
     SelectControl: ({ label, value, options, onChange }: any) => (
@@ -61,9 +72,13 @@ vi.mock('@wordpress/components', () => ({
             ))}
         </div>
     ),
-    TabPanel: ({ tabs, children }: any) => {
-        const [activeName, setActiveName] = React.useState(tabs[0]?.name);
+    TabPanel: ({ tabs, children, initialTabName, onSelect }: any) => {
+        const [activeName, setActiveName] = React.useState(initialTabName ?? tabs[0]?.name);
         const activeTab = tabs.find((tab: any) => tab.name === activeName) ?? tabs[0];
+        const selectTab = (name: string) => {
+            setActiveName(name);
+            onSelect?.(name);
+        };
         return (
             <div>
                 <div role="tablist">
@@ -72,7 +87,7 @@ vi.mock('@wordpress/components', () => ({
                             key={tab.name}
                             role="tab"
                             aria-selected={tab.name === activeName}
-                            onClick={() => setActiveName(tab.name)}
+                            onClick={() => selectTab(tab.name)}
                         >
                             {tab.title}
                         </button>

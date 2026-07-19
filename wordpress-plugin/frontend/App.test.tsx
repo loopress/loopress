@@ -1,5 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
@@ -22,6 +23,9 @@ function stubQuietEndpoints() {
         }
         if (path === '/composer/outdated') {
             return [];
+        }
+        if (path.startsWith('/snippets/migration/')) {
+            return { sourceActive: false, destinationActive: false, snippets: [] };
         }
         return {};
     });
@@ -54,6 +58,7 @@ describe('App', () => {
         vi.resetModules();
         apiFetchMock.mockReset();
         stubQuietEndpoints();
+        window.location.hash = '';
     });
 
     test('renders the Loopress Full heading without a repair notice when the autoload is healthy', async () => {
@@ -88,6 +93,9 @@ describe('App', () => {
             if (path === '/composer/audit') {
                 return { advisories: {}, abandoned: {} };
             }
+            if (path.startsWith('/snippets/migration/')) {
+                return { sourceActive: false, destinationActive: false, snippets: [] };
+            }
             return [];
         });
 
@@ -96,5 +104,34 @@ describe('App', () => {
         await waitFor(() => {
             expect(screen.getByText(/Auto-repair failed: vendor\/autoload.php is corrupted/i)).toBeInTheDocument();
         });
+    });
+
+    test('renders a Snippets tab that shows the migration screen', async () => {
+        await renderApp(null);
+
+        await screen.findByRole('heading', { name: 'Loopress Full' });
+
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('tab', { name: 'Snippets' }));
+
+        expect(await screen.findByText('Migrate WPCode → Code Snippets')).toBeInTheDocument();
+    });
+
+    test('reflects the active outer tab in the URL hash', async () => {
+        await renderApp(null);
+        await screen.findByRole('heading', { name: 'Loopress Full' });
+
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('tab', { name: 'Diagnostics' }));
+
+        expect(window.location.hash).toBe('#diagnostics');
+    });
+
+    test('opens directly on the tab named in the URL hash', async () => {
+        window.location.hash = '#snippets';
+
+        await renderApp(null);
+
+        expect(await screen.findByText('Migrate WPCode → Code Snippets')).toBeInTheDocument();
     });
 });
