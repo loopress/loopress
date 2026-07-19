@@ -18,6 +18,9 @@ export function Features() {
             tag="01"
             title="Snippets in Git"
             body="Pull snippets as .php files, edit them locally, and push back when you're done. Git history, diffs, and rollbacks included."
+            bullets={[
+              "Migrate snippets between WPCode and Code Snippets from the WordPress admin, one click at a time",
+            ]}
           >
             <SnippetsBlock />
           </FeatureCard>

@@ -80,6 +80,7 @@ export default defineConfig({
 						{ label: "Getting Started", slug: "cli/getting-started" },
 						{ label: "Init", slug: "cli/init" },
 						{ label: "Snippets", slug: "cli/snippets" },
+						{ label: "ACF", slug: "cli/acf" },
 						{ label: "Plugins", slug: "cli/plugins" },
 						{ label: "Composer", slug: "cli/composer" },
 					],

@@ -7,7 +7,7 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
 
-- **Loopress Light** (WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/) and exposes the REST API that powers `lps snippet pull/push/list`.
+- **Loopress Light** (WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), exposes the REST API that powers `lps snippet pull/push/list` and `lps acf pull/push/list`, and lets you migrate snippets between the two providers from the admin.
 - **Loopress Full** (also free, loopress.dev only): everything in Loopress Light, plus Composer dependency management, search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
 
 Loopress Full costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory because directory guidelines do not allow a plugin whose purpose is installing executable PHP code from external registries such as Packagist, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically, since Loopress Full is a full replacement, not an add-on; the two editions never run side by side.
@@ -19,6 +19,9 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 | Distribution | WordPress.org | loopress.dev |
 | Snippet sync (Code Snippets / WPCode) | ✓ | ✓ |
 | `lps snippet pull` / `push` / `list` | ✓ | ✓ |
+| Migrate snippets between Code Snippets and WPCode | ✓ | ✓ |
+| ACF sync (field groups, post types, taxonomies, options pages) | ✓ | ✓ |
+| `lps acf pull` / `push` / `list` | ✓ | ✓ |
 | Composer dependency management (Packagist search, install, remove, update) | | ✓ |
 | Security audit (known CVEs, abandoned packages) | | ✓ |
 | Platform diagnostics (PHP version mismatches) | | ✓ |
@@ -31,7 +34,9 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 <PluginDownload edition="light" />
 
 - **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, and keep them in Git
-- **Works with Code Snippets and WPCode**: Loopress Light talks to whichever is active, no migration needed
+- **Works with Code Snippets and WPCode**: Loopress Light talks to whichever is active
+- **Snippet provider migration**: switch providers without losing anything. The **Snippets** admin tab copies snippets from WPCode to Code Snippets (or the other way around) one click at a time; the original is deactivated, not deleted, so you can roll back
+- **ACF sync**: pull and push field groups, post types, taxonomies, and options pages as JSON with `lps acf pull/push`, the same workflow as snippets. Requires ACF active on the site, options pages require ACF PRO
 - **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role). `lps plugin pull/push/add` uses WordPress core's own `wp/v2/plugins` API instead.
 
 ## Loopress Full
