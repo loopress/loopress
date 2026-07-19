@@ -19,6 +19,11 @@
       "description": "Directory where code snippets are read from and written to, relative to rootDir.",
       "default": "snippets"
     },
+    "acfDir": {
+      "type": "string",
+      "description": "Directory where ACF field groups, post types, taxonomies and options pages are read from and written to, relative to rootDir.",
+      "default": "acf"
+    },
     "projectId": {
       "type": "string",
       "description": "Project identifier from the global Loopress config. When set, takes precedence over the currently active project in the global config."

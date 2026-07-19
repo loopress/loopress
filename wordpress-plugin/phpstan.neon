@@ -8,6 +8,7 @@ parameters:
     bootstrapFiles:
         - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
         - code-snippets-stubs.php
+        - acf-stubs.php
     excludePaths:
         - vendor
 

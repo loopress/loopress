@@ -21,6 +21,7 @@
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php" />
         <file name="psalm-stubs.php" />
         <file name="code-snippets-stubs.php" />
+        <file name="acf-stubs.php" />
     </stubs>
 
     <issueHandlers>

@@ -84,6 +84,9 @@
     ],
     "topicSeparator": " ",
     "topics": {
+      "acf": {
+        "description": "Manage ACF field groups, post types, taxonomies, and options pages"
+      },
       "composer": {
         "description": "Sync composer.json and composer.lock between your project and WordPress"
       },
