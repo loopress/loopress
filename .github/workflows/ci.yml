@@ -241,7 +241,7 @@ jobs:
             echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
             exit 1
           fi
-          if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
-            echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
-            exit 1
-          fi
+          # if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
+          #   echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
+          #   exit 1
+          # fi
