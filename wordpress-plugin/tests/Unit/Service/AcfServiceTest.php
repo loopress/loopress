@@ -40,7 +40,6 @@ class AcfServiceTest extends TestCase
 
     public function test_list_attaches_fields_for_field_groups(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
         Functions\when('acf_get_internal_post_type_posts')->justReturn([['key' => 'group_1']]);
         Functions\expect('acf_get_fields')->once()->with(['key' => 'group_1'])->andReturn([['key' => 'field_1']]);
         Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
@@ -52,7 +51,6 @@ class AcfServiceTest extends TestCase
 
     public function test_list_does_not_attach_fields_for_non_field_group_types(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
         Functions\when('acf_get_internal_post_type_posts')->justReturn([['key' => 'post_type_1']]);
         Functions\expect('acf_get_fields')->never();
         Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
@@ -61,30 +59,32 @@ class AcfServiceTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function test_list_throws_when_the_target_type_is_not_registered(): void
+    // ACF's own acf_get_internal_post_type_posts() already degrades to [] when a type isn't
+    // registered (e.g. options pages on ACF Free) — confirmed by reading ACF's source, and by
+    // manual verification against a real ACF Free install. This must stay a graceful empty
+    // result, not an error, so a multi-type `lps acf pull` doesn't abort entirely just because
+    // one type (options pages) isn't available.
+    public function test_list_returns_empty_array_when_the_target_type_is_not_registered(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
+        Functions\when('acf_get_internal_post_type_posts')->justReturn([]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->service->list('acf-ui-options-page');
+        $this->assertSame([], $this->service->list('acf-ui-options-page'));
     }
 
     // ── get ───────────────────────────────────────────────────────────────────
 
     public function test_get_returns_null_when_object_not_found(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
         Functions\when('acf_get_internal_post_type')->justReturn(false);
 
         $this->assertNull($this->service->get('acf-taxonomy', 'taxonomy_missing'));
     }
 
-    public function test_get_throws_when_the_target_type_is_not_registered(): void
+    public function test_get_returns_null_when_the_target_type_is_not_registered(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(false);
 
-        $this->expectException(\RuntimeException::class);
-        $this->service->get('acf-ui-options-page', 'ui_options_page_1');
+        $this->assertNull($this->service->get('acf-ui-options-page', 'ui_options_page_1'));
     }
 
     // ── upsert ────────────────────────────────────────────────────────────────
@@ -97,6 +97,10 @@ class AcfServiceTest extends TestCase
         $this->service->upsert('acf-post-type', ['title' => 'No key']);
     }
 
+    // Unlike list/get/delete, upsert() must actively guard this case: acf_import_internal_post_type()
+    // silently returns its input unchanged for an unregistered type instead of failing, so
+    // without this check a push against an unavailable type (e.g. options pages on ACF Free)
+    // would be reported as a success even though nothing was persisted.
     public function test_upsert_throws_when_the_target_type_is_not_registered(): void
     {
         Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
@@ -153,17 +157,15 @@ class AcfServiceTest extends TestCase
 
     public function test_delete_delegates_to_acf_delete_internal_post_type(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
         Functions\expect('acf_delete_internal_post_type')->once()->with('taxonomy_1', 'acf-taxonomy')->andReturn(true);
 
         $this->assertTrue($this->service->delete('acf-taxonomy', 'taxonomy_1'));
     }
 
-    public function test_delete_throws_when_the_target_type_is_not_registered(): void
+    public function test_delete_returns_false_when_the_target_type_is_not_registered(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
+        Functions\when('acf_delete_internal_post_type')->justReturn(false);
 
-        $this->expectException(\RuntimeException::class);
-        $this->service->delete('acf-ui-options-page', 'ui_options_page_1');
+        $this->assertFalse($this->service->delete('acf-ui-options-page', 'ui_options_page_1'));
     }
 }
