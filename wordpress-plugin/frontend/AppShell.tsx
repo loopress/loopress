@@ -1,13 +1,14 @@
+import { Page } from '@wordpress/admin-ui';
 import LogoBlack from '@loopress/assets/loopress-logo-black.svg';
 
 const pluginVersion = window.loopressData?.pluginVersion ?? '';
 
 export function AppShell({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
     return (
-        <div className="wrap">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                <img src={LogoBlack} alt={title} height={30} />
-                <h1 style={{ margin: 0 }}>{title}</h1>
+        <Page
+            title={title}
+            visual={<img src={LogoBlack} alt="" height={30} />}
+            badges={
                 <span
                     style={{
                         fontSize: 11,
@@ -20,8 +21,11 @@ export function AppShell({ title, children }: Readonly<{ title: string; children
                 >
                     v{pluginVersion}
                 </span>
-            </div>
-            {children}
-        </div>
+            }
+            showSidebarToggle={false}
+            hasPadding
+        >
+            <div style={{ minHeight: "calc(100vh - 200px)" }}>{children}</div>
+        </Page>
     );
 }

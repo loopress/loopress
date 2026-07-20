@@ -7,6 +7,7 @@ import { DiagnosticsBanner } from './dependencies/DiagnosticsBanner';
 import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
+import { UpdateNotice } from './update/UpdateNotice';
 import { useHashTab } from './useHashTab';
 
 const TABS = [
@@ -38,6 +39,8 @@ export default function App() {
 
     return (
         <AppShell title="Loopress Full">
+            <UpdateNotice />
+
             {autoloadError && (
                 <div style={{ maxWidth: 600, marginBottom: 20 }}>
                     <Notice

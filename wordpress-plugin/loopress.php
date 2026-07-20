@@ -73,6 +73,11 @@ use Loopress\Plugin;
 // with src/Dependencies/ and uninstall.php: the Light artifact must not contain any reference
 // to the dependency management feature, even an inactive one.
 add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Dependencies\Feature::bootstrap()));
+
+// Same build-time stripping applies to src/Update/: Loopress Light relies exclusively on
+// WordPress.org's own update mechanism and must never carry an update-checking mechanism
+// of its own, even inactive.
+add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Update\Feature::bootstrap()));
 /* LOOPRESS_PLUS_END */
 
 // Booting on plugins_loaded rather than at file inclusion; priority 1 because snippet
