@@ -85,7 +85,7 @@ jobs:
         run: pnpm run pack
 
       - name: Start WordPress
-        uses: loopress/setup-ci@bbbd098947b88492c863f20bc30ddee768ffd634 # main
+        uses: loopress/setup-ci@cbc20a05bcb97601e7ba15833ebbc51d7408fb18 # main
 
       - name: Install this branch's Loopress Full build over the released one
         run: |
