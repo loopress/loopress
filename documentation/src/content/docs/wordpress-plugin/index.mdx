@@ -7,7 +7,7 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
 
-- **Loopress Light** (WordPress.org): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), exposes the REST API that powers `lps snippet pull/push/list` and `lps acf pull/push/list`, and lets you migrate snippets between the two providers from the admin.
+- **Loopress Light** (hopefully WordPress.org: the listing is pending review, not live yet, so it is downloaded from loopress.dev in the meantime): connects your site to the Loopress CLI. It integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), exposes the REST API that powers `lps snippet pull/push/list` and `lps acf pull/push/list`, and lets you migrate snippets between the two providers from the admin.
 - **Loopress Full** (also free, loopress.dev only): everything in Loopress Light, plus Composer dependency management, search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
 
 Loopress Full costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory because directory guidelines do not allow a plugin whose purpose is installing executable PHP code from external registries such as Packagist, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically, since Loopress Full is a full replacement, not an add-on; the two editions never run side by side.
@@ -16,7 +16,7 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 
 | Feature | Loopress Light | Loopress Full |
 |---|:---:|:---:|
-| Distribution | WordPress.org | loopress.dev |
+| Distribution | WordPress.org (hopefully)* | loopress.dev |
 | Snippet sync (Code Snippets / WPCode) | ✓ | ✓ |
 | `lps snippet pull` / `push` / `list` | ✓ | ✓ |
 | Migrate snippets between Code Snippets and WPCode | ✓ | ✓ |
@@ -26,8 +26,10 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 | Security audit (known CVEs, abandoned packages) | | ✓ |
 | Platform diagnostics (PHP version mismatches) | | ✓ |
 | `lps composer push` / `pull` | | ✓ |
-| Automatic updates via WordPress.org | ✓ | |
-| Requires manual updates from loopress.dev | | ✓ |
+| Automatic updates via WordPress.org | (hopefully)* | |
+| Requires manual updates from loopress.dev | ✓ | ✓ |
+
+\* Pending WordPress.org's review of the Loopress Light submission, not live yet. Until then Loopress Light is also downloaded directly from loopress.dev and updated manually, same as Loopress Full.
 
 ## Loopress Light
 
@@ -60,9 +62,9 @@ Plugins listed on the [WordPress.org Plugin Directory](https://wordpress.org/plu
 - **Automatic updates**: WordPress checks WordPress.org for new versions and can update the plugin in place, the same as any other installed plugin
 - **A trust signal**: install counts, ratings, and a public source history are visible to anyone considering the plugin
 
-The tradeoff is a strict set of guidelines. One of them, Rule 8 of the Plugin Directory guidelines, forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Full's Composer dependency management does (searching Packagist and installing PHP packages), so it cannot be hosted on WordPress.org regardless of implementation quality. Loopress Light has no such capability, so it goes through the standard WordPress.org submission and update process.
+The tradeoff is a strict set of guidelines. One of them, Rule 8 of the Plugin Directory guidelines, forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Full's Composer dependency management does (searching Packagist and installing PHP packages), so it cannot be hosted on WordPress.org regardless of implementation quality. Loopress Light has no such capability, so it is intended to go through the standard WordPress.org submission and update process, hopefully: the submission is still pending review as of this writing, not approved yet.
 
-This is why the plugin ships as two separate downloads instead of one WordPress.org listing: Loopress Light follows the usual WordPress.org install and update flow, while Loopress Full is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress-full.zip` when one is released.
+This is why the plugin ships as two separate downloads instead of one WordPress.org listing: Loopress Light is meant to follow the usual WordPress.org install and update flow once approved, while Loopress Full is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress-full.zip` when one is released. Until Loopress Light's listing is approved, it is downloaded from loopress.dev too, updated the same manual way as Loopress Full.
 
 ## Requirements
 
@@ -72,7 +74,7 @@ This is why the plugin ships as two separate downloads instead of one WordPress.
 
 ## Installation
 
-1. Download `loopress-light.zip` (WordPress.org edition) or `loopress-full.zip` (Loopress Full) using the buttons above, depending on whether you need Composer dependency management
+1. Download `loopress-light.zip` (WordPress.org edition, hopefully: listing pending review, downloaded from loopress.dev for now) or `loopress-full.zip` (Loopress Full) using the buttons above, depending on whether you need Composer dependency management
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**
 3. Upload and activate the plugin, then find **Loopress** in the sidebar
 
