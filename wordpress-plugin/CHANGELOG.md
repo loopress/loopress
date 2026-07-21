@@ -1,5 +1,12 @@
 # @loopress/wordpress-plugin
 
+## 2026.7.10
+
+### Patch Changes
+
+- 512e72b: Loopress Full now checks GitHub for newer releases and shows an admin notice ("Loopress Full X is available, you are running Y") with a link to the release when one exists. Read-only for now: no download or install, you still update manually via loopress.dev, same as before. Backed by a new `GET loopress/v1/update` endpoint. Loopress Light doesn't have this: WordPress.org reserves update-checking for its own review-and-update flow, so it stays out of that edition.
+- 512e72b: Remove wp-admin's default left padding on the Loopress admin page only (scoped to that page, every other wp-admin screen is unaffected), so the plugin's own page layout controls its own spacing instead of being padded twice.
+
 ## 2026.7.9
 
 ### Patch Changes
