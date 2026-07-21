@@ -32,12 +32,14 @@
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
+                <directory name="src/Update/RestApi" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
+                <directory name="src/Update/RestApi" />
             </errorLevel>
         </PossiblyUnusedParam>
 

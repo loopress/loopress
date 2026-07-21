@@ -10,6 +10,9 @@ class AdminPageModule implements Module
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_head', [$this, 'addMenuIconStyle']);
+        // Page-specific hook (fires only on this admin page, unlike the admin_head above)
+        // so this override never reaches any other wp-admin screen.
+        add_action('admin_head-toplevel_page_loopress', [$this, 'removeContentPadding']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueScripts']);
     }
 
@@ -29,6 +32,13 @@ class AdminPageModule implements Module
     public function addMenuIconStyle(): void
     {
         echo '<style>#toplevel_page_loopress .wp-menu-image img { width: 26px; height: 100%; padding: 0; vertical-align: middle }</style>';
+    }
+
+    public function removeContentPadding(): void
+    {
+        // #wpcontent's left padding is wp-admin core chrome, not ours to edit directly;
+        // this page's own layout (Page component) already handles its own spacing.
+        echo '<style>#wpcontent { padding-left: 0; }</style>';
     }
 
     public function enqueueScripts(string $hook): void

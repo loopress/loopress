@@ -108,3 +108,23 @@ vi.mock('@wordpress/element', () => ({
         createRoot(container).render(element);
     },
 }));
+
+// Real @wordpress/admin-ui bundles its own separate copies of @wordpress/element and
+// @wordpress/components (confirmed via `pnpm why react`, not deduped by pnpm), unlike every
+// other @wordpress/* import in this file, which mocks the single top-level copy. Combined
+// with this suite's vi.resetModules() + dynamic import per test (see App.test.tsx), that
+// extra unmocked module graph produces flaky duplicate renders across otherwise-independent
+// tests. Stubbed here so tests exercise Loopress's own code, not admin-ui's internals;
+// AppShell.tsx itself is untouched and still renders the real Page component in production.
+vi.mock('@wordpress/admin-ui', () => ({
+    Page: ({ title, visual, badges, children }: any) => (
+        <div className="wrap">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {visual}
+                <h1>{title}</h1>
+                {badges}
+            </div>
+            {children}
+        </div>
+    ),
+}));

@@ -19,4 +19,5 @@ parameters:
         - '#has no value type specified in iterable type array#'
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
+        - '#Constant LOOPRESS_VERSION not found#'
 

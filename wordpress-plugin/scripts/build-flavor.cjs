@@ -20,7 +20,8 @@ const FLAVORS = {
     readmeSource: 'flavors/light/readme.txt',
     frontendEntry: 'frontend/light/index.tsx',
     stripPlusBlock: true,
-    includeDependenciesSrc: false,
+    // Full-only src/ subdirectories, absent from this edition's zip, not merely inactive.
+    fullOnlySrcDirs: ['Dependencies', 'Update'],
     includeUninstall: false,
     emptyComposerRequire: true,
   },
@@ -30,7 +31,7 @@ const FLAVORS = {
     readmeSource: 'readme.txt',
     frontendEntry: 'frontend/full/index.tsx',
     stripPlusBlock: false,
-    includeDependenciesSrc: true,
+    fullOnlySrcDirs: [],
     includeUninstall: true,
     emptyComposerRequire: false,
   },
@@ -69,13 +70,15 @@ function run(cmd, args, cwd) {
 fs.rmSync(stageDir, { recursive: true, force: true })
 fs.mkdirSync(stageDir, { recursive: true })
 
-// 1. PHP source: src/Dependencies/ only ships in the full edition. Even in the light
-// build, this directory must be absent from the artifact, not merely inactive
-// (wordpress.org guidelines, see obsidian/Product/WordPress.org Plugin Distribution.md §2-3).
-const dependenciesSrcDir = path.join(root, 'src', 'Dependencies')
+// 1. PHP source: src/Dependencies/ (Composer management) and src/Update/ (update check)
+// only ship in the full edition. Even in the light build, these directories must be
+// absent from the artifact, not merely inactive: wordpress.org guidelines forbid the
+// Composer feature outright, and reserve update-checking for their own SVN-based flow,
+// so Loopress Light must never carry either, even dormant code.
+const excludedSrcDirs = flavor.fullOnlySrcDirs.map((dir) => path.join(root, 'src', dir))
 fs.cpSync(path.join(root, 'src'), path.join(stageDir, 'src'), {
   recursive: true,
-  filter: (src) => flavor.includeDependenciesSrc || !src.startsWith(dependenciesSrcDir),
+  filter: (src) => !excludedSrcDirs.some((dir) => src === dir || src.startsWith(dir + path.sep)),
 })
 
 // 2. Entry file: strip or keep the marked Plus block, patch the header for the full edition.

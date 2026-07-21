@@ -31,6 +31,13 @@ export interface Settings {
     environment: string;
 }
 
+export interface UpdateStatus {
+    current_version: string;
+    latest_version: string | null;
+    update_available: boolean;
+    release_url: string | null;
+}
+
 export interface OutdatedPackage {
     name: string;
     version: string;

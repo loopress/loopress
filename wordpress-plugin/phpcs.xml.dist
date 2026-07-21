@@ -73,6 +73,7 @@
     <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
         <exclude-pattern>src/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
+        <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
     </rule>
 
     <!-- tests/Stubs intentionally bundles several lightweight WP class/interface stubs
