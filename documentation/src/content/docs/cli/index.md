@@ -22,6 +22,9 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | **ACF** | `lps acf pull` | Pull ACF field groups, post types, taxonomies and options pages from WordPress |
 | | `lps acf push` | Push ACF configuration to WordPress |
 | | `lps acf list` | List ACF objects on the site |
+| **SEO** | `lps seo pull` | Pull SEO settings, post meta, and redirects from WordPress (RankMath or Yoast) |
+| | `lps seo push` | Push SEO configuration to WordPress |
+| | `lps seo list` | Print posts with SEO meta, and redirects if supported |
 | **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
 | | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
 | | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |
