@@ -39,6 +39,8 @@ matching what that script sets).
 
 - Tests run with `workers: 1`: several of them flip global state (active plugins) on the
   shared WordPress instance, so they can't run concurrently.
+- `rankmath-sync.spec.ts` expects RankMath (`seo-by-rank-math`) to be pre-installed and active,
+  same as ACF and WPCode.
 - Each test gets its own isolated `HOME` and project directory (see `helpers/environment.ts`)
   so it never touches your real `~/.config/loopress/config.json`.
 - There's no snippet delete endpoint, so test data accumulates on the target site across

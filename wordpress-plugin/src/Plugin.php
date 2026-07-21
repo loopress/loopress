@@ -5,6 +5,7 @@ namespace Loopress;
 use Loopress\Contract\Module;
 use Loopress\Module\AcfModule;
 use Loopress\Module\AdminPageModule;
+use Loopress\Module\RankMathModule;
 use Loopress\Module\RestCacheModule;
 use Loopress\Module\SnippetModule;
 
@@ -17,6 +18,7 @@ class Plugin
             new AdminPageModule(),
             new SnippetModule(),
             new AcfModule(),
+            new RankMathModule(),
             new RestCacheModule(),
         ]);
 

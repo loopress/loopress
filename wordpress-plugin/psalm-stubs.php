@@ -7,6 +7,8 @@ define('ABSPATH', '/var/www/html/');
 define('WP_CONTENT_DIR', '/var/www/html/wp-content');
 define('MINUTE_IN_SECONDS', 60);
 define('HOUR_IN_SECONDS', 60 * 60);
+define('OBJECT', 'OBJECT');
+define('ARRAY_A', 'ARRAY_A');
 
 // Defined in loopress.php (the plugin bootstrap file, outside src/). Psalm scans that
 // file too (see psalm.xml <projectFiles>) for other purposes, but for some reason doesn't pick

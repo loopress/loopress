@@ -74,12 +74,22 @@
         <exclude-pattern>src/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
+        <!-- FakeWpdb's methods mirror wpdb's real signature (e.g. the trailing $output
+             format argument), even where a given method doesn't need every parameter. -->
+        <exclude-pattern>tests/Stubs/*</exclude-pattern>
     </rule>
 
     <!-- tests/Stubs intentionally bundles several lightweight WP class/interface stubs
          in one file rather than one-per-file; it isn't PSR-4 autoloaded. -->
     <rule ref="Generic.Files.OneObjectStructurePerFile">
         <exclude-pattern>tests/Stubs/*</exclude-pattern>
+    </rule>
+
+    <!-- Only RankMathServiceTest substitutes the global $wpdb with a FakeWpdb double, the
+         same swap-the-global approach WordPress core's own test suite uses, to unit-test
+         redirects SQL without a real database. -->
+    <rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
+        <exclude-pattern>tests/Unit/Service/RankMathServiceTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PHPCompatibilityWP"/>
