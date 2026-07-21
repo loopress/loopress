@@ -8,7 +8,11 @@ const AVAILABLE = [
     desc: "Install and version any plugin from the WordPress.org directory.",
   },
   { name: "Packagist", desc: "Install any public Composer package from the admin." },
-  { name: "ACF", desc: "Field groups, post types, taxonomies and options pages as JSON, synced via CLI." },
+  {
+    name: "ACF",
+    desc: "Field groups, post types, taxonomies and options pages as JSON, synced via CLI.",
+  },
+  { name: "Rank Math", desc: "Titles, schema defaults, post meta, and redirects synced via CLI." },
 ];
 
 const SOON = [

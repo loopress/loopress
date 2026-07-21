@@ -55,6 +55,11 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.acfDir ?? 'acf')
   }
 
+  protected resolveRankmathPath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.rankmathDir ?? 'rankmath')
+  }
+
   protected resolveSnippetsPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')

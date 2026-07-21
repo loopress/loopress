@@ -96,6 +96,9 @@
       "project": {
         "description": "Manage WordPress project and environment configurations"
       },
+      "rankmath": {
+        "description": "Manage RankMath settings, post meta, and redirects"
+      },
       "snippet": {
         "description": "Manage WordPress code snippets"
       },
