@@ -24,15 +24,10 @@
       "description": "Directory where ACF field groups, post types, taxonomies and options pages are read from and written to, relative to rootDir.",
       "default": "acf"
     },
-    "rankmathDir": {
+    "seoDir": {
       "type": "string",
-      "description": "Directory where RankMath settings, post meta, and redirects are read from and written to, relative to rootDir.",
-      "default": "rankmath"
-    },
-    "yoastDir": {
-      "type": "string",
-      "description": "Directory where Yoast SEO settings and post meta are read from and written to, relative to rootDir.",
-      "default": "yoast"
+      "description": "Directory where SEO settings, post meta, and redirects (RankMath and Yoast SEO, whichever is active) are read from and written to, relative to rootDir.",
+      "default": "seo"
     },
     "projectId": {
       "type": "string",

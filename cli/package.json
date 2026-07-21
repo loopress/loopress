@@ -96,17 +96,14 @@
       "project": {
         "description": "Manage WordPress project and environment configurations"
       },
-      "rankmath": {
-        "description": "Manage RankMath settings, post meta, and redirects"
+      "seo": {
+        "description": "Manage SEO settings, post meta, and redirects (RankMath or Yoast SEO, whichever is active)"
       },
       "snippet": {
         "description": "Manage WordPress code snippets"
       },
       "telemetry": {
         "description": "Manage error reporting preferences"
-      },
-      "yoast": {
-        "description": "Manage Yoast SEO settings and post meta"
       }
     }
   },

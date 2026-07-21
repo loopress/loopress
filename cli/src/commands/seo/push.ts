@@ -6,22 +6,22 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {
-  RANKMATH_REDIRECTS_ENDPOINT,
-  RANKMATH_SETTINGS_ENDPOINT,
-  RankMathPostMeta,
-  rankmathPostMetaEndpoint,
-  RankMathRedirect,
-  rankmathRedirectEndpoint,
-} from '../../utils/rankmath-format.js'
+  SEO_REDIRECTS_ENDPOINT,
+  SEO_SETTINGS_ENDPOINT,
+  SeoPostMeta,
+  seoPostMetaEndpoint,
+  SeoRedirect,
+  seoRedirectEndpoint,
+} from '../../utils/seo-format.js'
 import {redirectFileBase} from './pull.js'
 
 export default class Push extends PushCommand {
   static args = {
-    path: Args.string({description: 'Path to RankMath directory (overrides project config)'}),
+    path: Args.string({description: 'Path to SEO directory (overrides project config)'}),
   }
   static description =
-    'Push RankMath settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to the `<id>-<slug>` convention.'
-  static examples = ['$ lps rankmath push']
+    'Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to the `<id>-<slug>` convention. Fails clearly per file if the active SEO plugin does not support redirects.'
+  static examples = ['$ lps seo push']
   static flags = {
     ...PushCommand.dryRunFlag,
   }
@@ -30,23 +30,23 @@ export default class Push extends PushCommand {
   async run(): Promise<void> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
-    const path = this.resolveRankmathPath(args.path)
+    const path = this.resolveSeoPath(args.path)
 
-    this.log(`Pushing RankMath configuration to ${url}`)
-    this.log(`RankMath path: ${path}`)
+    this.log(`Pushing SEO configuration to ${url}`)
+    this.log(`SEO path: ${path}`)
 
     await this.pushSettings(path)
     await this.pushPostMeta(path)
     await this.pushRedirects(path)
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} RankMath item${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${this.failedCount} SEO item${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
     if (this.dryRun) return
 
     await this.recordSuccess()
-    this.log('All RankMath configuration pushed.')
+    this.log('All SEO configuration pushed.')
   }
 
   private async jsonFilesIn(dir: string): Promise<string[]> {
@@ -95,8 +95,8 @@ export default class Push extends PushCommand {
     }
 
     try {
-      const post = JSON.parse(await readFile(filePath, 'utf8')) as RankMathPostMeta
-      await this.wp.post(rankmathPostMetaEndpoint(postType), {meta: post.meta, slug: post.slug})
+      const post = JSON.parse(await readFile(filePath, 'utf8')) as SeoPostMeta
+      await this.wp.post(seoPostMetaEndpoint(postType), {meta: post.meta, slug: post.slug})
       if (task) task.output = `Pushed: ${post.slug}`
     } catch (error) {
       const message = `Failed to push ${filePath}: ${(error as Error).message}`
@@ -116,12 +116,12 @@ export default class Push extends PushCommand {
     }
 
     try {
-      const redirect = JSON.parse(await readFile(filePath, 'utf8')) as RankMathRedirect
+      const redirect = JSON.parse(await readFile(filePath, 'utf8')) as SeoRedirect
       const payload = {headerCode: redirect.headerCode, sources: redirect.sources, status: redirect.status, urlTo: redirect.urlTo}
 
       if (redirect.id) {
         try {
-          await this.wp.put(rankmathRedirectEndpoint(redirect.id), payload)
+          await this.wp.put(seoRedirectEndpoint(redirect.id), payload)
           if (task) task.output = `Pushed: redirect #${redirect.id}`
 
           return
@@ -132,7 +132,7 @@ export default class Push extends PushCommand {
         }
       }
 
-      const created = await this.wp.post<RankMathRedirect>(RANKMATH_REDIRECTS_ENDPOINT, payload)
+      const created = await this.wp.post<SeoRedirect>(SEO_REDIRECTS_ENDPOINT, payload)
       await this.renameToCanonical(filePath, created)
       if (task) task.output = `Pushed: redirect #${created.id}`
     } catch (error) {
@@ -178,7 +178,7 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.put(RANKMATH_SETTINGS_ENDPOINT, JSON.parse(raw) as Record<string, unknown>)
+      await this.wp.put(SEO_SETTINGS_ENDPOINT, JSON.parse(raw) as Record<string, unknown>)
       this.log(`Pushed: ${file}`)
     } catch (error) {
       this.failedCount++
@@ -186,7 +186,7 @@ export default class Push extends PushCommand {
     }
   }
 
-  private async renameToCanonical(filePath: string, redirect: RankMathRedirect): Promise<void> {
+  private async renameToCanonical(filePath: string, redirect: SeoRedirect): Promise<void> {
     const dir = dirname(filePath)
     const canonicalPath = join(dir, `${redirectFileBase(redirect)}.json`)
 

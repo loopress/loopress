@@ -55,19 +55,14 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.acfDir ?? 'acf')
   }
 
-  protected resolveRankmathPath(override?: string): string {
+  protected resolveSeoPath(override?: string): string {
     if (override) return override
-    return join(this.rootDir, this.localConfig.rankmathDir ?? 'rankmath')
+    return join(this.rootDir, this.localConfig.seoDir ?? 'seo')
   }
 
   protected resolveSnippetsPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
-  }
-
-  protected resolveYoastPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.yoastDir ?? 'yoast')
   }
 
   private resolveEnvironment(): EnvironmentConfig {
