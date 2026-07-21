@@ -2,17 +2,17 @@
 
 namespace Loopress\RestApi;
 
-use Loopress\Service\RankMathService;
+use Loopress\Service\SeoService;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class RankMathController
+class SeoController
 {
-    public function __construct(private RankMathService $rankMathService) {}
+    public function __construct(private SeoService $seoService) {}
 
     public function register_routes(): void
     {
-        register_rest_route('loopress/v1', '/rankmath/post-meta/(?P<type>[a-z0-9_-]+)', [
+        register_rest_route('loopress/v1', '/seo/post-meta/(?P<type>[a-z0-9_-]+)', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_post_meta'],
@@ -25,13 +25,13 @@ class RankMathController
             ],
         ]);
 
-        register_rest_route('loopress/v1', '/rankmath/post-meta/(?P<type>[a-z0-9_-]+)/(?P<slug>[^/]+)', [
+        register_rest_route('loopress/v1', '/seo/post-meta/(?P<type>[a-z0-9_-]+)/(?P<slug>[^/]+)', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_post_meta'],
             'permission_callback' => fn() => current_user_can('manage_options'),
         ]);
 
-        register_rest_route('loopress/v1', '/rankmath/settings', [
+        register_rest_route('loopress/v1', '/seo/settings', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_settings'],
@@ -44,7 +44,7 @@ class RankMathController
             ],
         ]);
 
-        register_rest_route('loopress/v1', '/rankmath/redirects', [
+        register_rest_route('loopress/v1', '/seo/redirects', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_redirects'],
@@ -57,7 +57,7 @@ class RankMathController
             ],
         ]);
 
-        register_rest_route('loopress/v1', '/rankmath/redirects/(?P<id>\d+)', [
+        register_rest_route('loopress/v1', '/seo/redirects/(?P<id>\d+)', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_redirect'],
@@ -75,12 +75,12 @@ class RankMathController
 
     public function list_post_meta(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
         try {
-            return new WP_REST_Response($this->rankMathService->listPostMeta((string) $request->get_param('type')), 200);
+            return new WP_REST_Response($this->seoService->listPostMeta((string) $request->get_param('type')), 200);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -88,11 +88,11 @@ class RankMathController
 
     public function get_post_meta(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
-        $post = $this->rankMathService->getPostMeta((string) $request->get_param('type'), (string) $request->get_param('slug'));
+        $post = $this->seoService->getPostMeta((string) $request->get_param('type'), (string) $request->get_param('slug'));
 
         return $post === null
             ? new WP_REST_Response(['error' => 'Post not found'], 404)
@@ -101,7 +101,7 @@ class RankMathController
 
     public function upsert_post_meta(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
@@ -114,7 +114,7 @@ class RankMathController
         }
 
         try {
-            $post = $this->rankMathService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta);
+            $post = $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -126,16 +126,16 @@ class RankMathController
 
     public function get_settings(): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
-        return new WP_REST_Response($this->rankMathService->getSettings(), 200);
+        return new WP_REST_Response($this->seoService->getSettings(), 200);
     }
 
     public function update_settings(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
@@ -144,19 +144,19 @@ class RankMathController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        return new WP_REST_Response($this->rankMathService->updateSettings($data), 200);
+        return new WP_REST_Response($this->seoService->updateSettings($data), 200);
     }
 
     // ── redirects ───────────────────────────────────────────────────────────
 
     public function list_redirects(): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
         try {
-            return new WP_REST_Response($this->rankMathService->listRedirections(), 200);
+            return new WP_REST_Response($this->seoService->listRedirections(), 200);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -164,12 +164,12 @@ class RankMathController
 
     public function get_redirect(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
         try {
-            $redirect = $this->rankMathService->getRedirection((int) $request->get_param('id'));
+            $redirect = $this->seoService->getRedirection((int) $request->get_param('id'));
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -181,7 +181,7 @@ class RankMathController
 
     public function create_redirect(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
@@ -191,7 +191,7 @@ class RankMathController
         }
 
         try {
-            $redirect = $this->rankMathService->createRedirection($data);
+            $redirect = $this->seoService->createRedirection($data);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -201,14 +201,14 @@ class RankMathController
 
     public function update_redirect(WP_REST_Request $request): WP_REST_Response
     {
-        if (!$this->rankMathService->isActive()) {
+        if (!$this->seoService->isActive()) {
             return $this->inactiveResponse();
         }
 
         $data = $request->get_json_params();
 
         try {
-            $redirect = $this->rankMathService->updateRedirection((int) $request->get_param('id'), $data);
+            $redirect = $this->seoService->updateRedirection((int) $request->get_param('id'), $data);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -220,6 +220,6 @@ class RankMathController
 
     private function inactiveResponse(): WP_REST_Response
     {
-        return new WP_REST_Response(['error' => 'RankMath is not active'], 400);
+        return new WP_REST_Response(['error' => 'No supported SEO plugin is active'], 400);
     }
 }

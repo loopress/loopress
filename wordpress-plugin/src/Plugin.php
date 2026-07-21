@@ -5,10 +5,9 @@ namespace Loopress;
 use Loopress\Contract\Module;
 use Loopress\Module\AcfModule;
 use Loopress\Module\AdminPageModule;
-use Loopress\Module\RankMathModule;
 use Loopress\Module\RestCacheModule;
+use Loopress\Module\SeoModule;
 use Loopress\Module\SnippetModule;
-use Loopress\Module\YoastModule;
 
 class Plugin
 {
@@ -19,8 +18,7 @@ class Plugin
             new AdminPageModule(),
             new SnippetModule(),
             new AcfModule(),
-            new RankMathModule(),
-            new YoastModule(),
+            new SeoModule(),
             new RestCacheModule(),
         ]);
 

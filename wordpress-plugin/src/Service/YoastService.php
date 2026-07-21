@@ -2,8 +2,13 @@
 
 namespace Loopress\Service;
 
-// Yoast SEO has exactly one backend (itself, or nothing), same shape as AcfService: no provider
-// interface needed here, this talks to Yoast's own storage directly.
+use Loopress\Contract\SeoProvider;
+
+// One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
+// this and RankMathService), the same shape as CodeSnippetsSnippetProvider/WPCodeSnippetProvider.
+// Doesn't implement SeoRedirectProvider: Yoast's redirect manager is a Premium-only feature with
+// a storage model this codebase hasn't verified against a real install (see RankMathService for
+// the equivalent RankMath feature, which is free and so is covered).
 //
 // Post-level SEO data (title, description, robots, canonical, social, and schema type
 // selection) is all stored as postmeta prefixed `_yoast_wpseo_` (the leading underscore marks
@@ -11,11 +16,7 @@ namespace Loopress\Service;
 // reads/writes through get_post_meta()/update_post_meta() exactly like any other meta). Rather
 // than hardcoding the list of known keys, this class syncs every `_yoast_wpseo_*` postmeta key
 // generically, whatever Yoast itself writes is what gets read and written back.
-//
-// Yoast's redirect manager is a Premium-only feature with a storage model this codebase hasn't
-// verified against a real install, it isn't covered here (see RankMathService for the
-// equivalent RankMath feature, which is free and so is covered).
-class YoastService
+class YoastService implements SeoProvider
 {
     private const META_PREFIX = '_yoast_wpseo_';
     private const OPTION_TITLES = 'wpseo_titles';
