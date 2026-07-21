@@ -104,6 +104,9 @@
       },
       "telemetry": {
         "description": "Manage error reporting preferences"
+      },
+      "yoast": {
+        "description": "Manage Yoast SEO settings and post meta"
       }
     }
   },

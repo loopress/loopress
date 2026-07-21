@@ -29,6 +29,11 @@
       "description": "Directory where RankMath settings, post meta, and redirects are read from and written to, relative to rootDir.",
       "default": "rankmath"
     },
+    "yoastDir": {
+      "type": "string",
+      "description": "Directory where Yoast SEO settings and post meta are read from and written to, relative to rootDir.",
+      "default": "yoast"
+    },
     "projectId": {
       "type": "string",
       "description": "Project identifier from the global Loopress config. When set, takes precedence over the currently active project in the global config."

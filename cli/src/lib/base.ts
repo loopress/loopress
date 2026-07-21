@@ -65,6 +65,11 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
   }
 
+  protected resolveYoastPath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.yoastDir ?? 'yoast')
+  }
+
   private resolveEnvironment(): EnvironmentConfig {
     if (this.localConfig.projectId) {
       const project = configManager.getProject(this.localConfig.projectId)

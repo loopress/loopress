@@ -8,6 +8,7 @@ use Loopress\Module\AdminPageModule;
 use Loopress\Module\RankMathModule;
 use Loopress\Module\RestCacheModule;
 use Loopress\Module\SnippetModule;
+use Loopress\Module\YoastModule;
 
 class Plugin
 {
@@ -19,6 +20,7 @@ class Plugin
             new SnippetModule(),
             new AcfModule(),
             new RankMathModule(),
+            new YoastModule(),
             new RestCacheModule(),
         ]);
 

@@ -13,6 +13,7 @@ const AVAILABLE = [
     desc: "Field groups, post types, taxonomies and options pages as JSON, synced via CLI.",
   },
   { name: "Rank Math", desc: "Titles, schema defaults, post meta, and redirects synced via CLI." },
+  { name: "Yoast SEO", desc: "Titles, meta, and post-level SEO fields synced via CLI." },
 ];
 
 const SOON = [

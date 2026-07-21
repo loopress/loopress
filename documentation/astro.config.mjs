@@ -82,6 +82,7 @@ export default defineConfig({
 						{ label: "Snippets", slug: "cli/snippets" },
 						{ label: "ACF", slug: "cli/acf" },
 						{ label: "RankMath", slug: "cli/rankmath" },
+						{ label: "Yoast SEO", slug: "cli/yoast" },
 						{ label: "Plugins", slug: "cli/plugins" },
 						{ label: "Composer", slug: "cli/composer" },
 					],
