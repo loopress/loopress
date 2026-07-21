@@ -1,6 +1,6 @@
 <?php
 
-namespace Loopress\Contract;
+namespace Loopress\Snippets\Contract;
 
 interface SnippetProvider
 {

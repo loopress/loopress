@@ -74,6 +74,7 @@
         <exclude-pattern>src/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
+        <exclude-pattern>src/Snippets/RestApi/*</exclude-pattern>
         <!-- FakeWpdb's methods mirror wpdb's real signature (e.g. the trailing $output
              format argument), even where a given method doesn't need every parameter. -->
         <exclude-pattern>tests/Stubs/*</exclude-pattern>

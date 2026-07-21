@@ -1,8 +1,8 @@
 <?php
 
-namespace Loopress\RestApi;
+namespace Loopress\Snippets\RestApi;
 
-use Loopress\Service\SnippetMigrationService;
+use Loopress\Snippets\Service\SnippetMigrationService;
 use WP_REST_Request;
 use WP_REST_Response;
 

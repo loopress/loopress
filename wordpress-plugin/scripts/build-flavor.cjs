@@ -21,7 +21,7 @@ const FLAVORS = {
     frontendEntry: 'frontend/light/index.tsx',
     stripPlusBlock: true,
     // Full-only src/ subdirectories, absent from this edition's zip, not merely inactive.
-    fullOnlySrcDirs: ['Dependencies', 'Update'],
+    fullOnlySrcDirs: ['Dependencies', 'Update', 'Snippets'],
     includeUninstall: false,
     emptyComposerRequire: true,
   },
@@ -70,11 +70,14 @@ function run(cmd, args, cwd) {
 fs.rmSync(stageDir, { recursive: true, force: true })
 fs.mkdirSync(stageDir, { recursive: true })
 
-// 1. PHP source: src/Dependencies/ (Composer management) and src/Update/ (update check)
-// only ship in the full edition. Even in the light build, these directories must be
-// absent from the artifact, not merely inactive: wordpress.org guidelines forbid the
-// Composer feature outright, and reserve update-checking for their own SVN-based flow,
-// so Loopress Light must never carry either, even dormant code.
+// 1. PHP source: src/Dependencies/ (Composer management), src/Update/ (update check), and
+// src/Snippets/ (Code Snippets / WPCode sync) only ship in the full edition. Even in the
+// light build, these directories must be absent from the artifact, not merely inactive:
+// wordpress.org guidelines forbid the Composer feature outright, reserve update-checking
+// for their own SVN-based flow, and rejected the snippet sync REST endpoints themselves as
+// a remote arbitrary-code-deployment mechanism (see obsidian/Product/WordPress.org Plugin
+// Distribution.md §2b in the monorepo), so Loopress Light must never carry any of the three,
+// even dormant code.
 const excludedSrcDirs = flavor.fullOnlySrcDirs.map((dir) => path.join(root, 'src', dir))
 fs.cpSync(path.join(root, 'src'), path.join(stageDir, 'src'), {
   recursive: true,

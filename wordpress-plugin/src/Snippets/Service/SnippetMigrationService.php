@@ -1,8 +1,8 @@
 <?php
 
-namespace Loopress\Service;
+namespace Loopress\Snippets\Service;
 
-use Loopress\Contract\SnippetProvider;
+use Loopress\Snippets\Contract\SnippetProvider;
 
 // Deliberately not built on top of SnippetService: that class requires exactly one
 // provider to be active (see requireActiveProvider()), which is the right invariant for

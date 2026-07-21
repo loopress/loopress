@@ -192,7 +192,7 @@ jobs:
         run: pnpm build
 
   plugin-light-artifact-guard:
-    name: Plugin:Loopress Light artifact contains no Composer code
+    name: Plugin:Loopress Light artifact contains no Composer or Snippets code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -221,9 +221,11 @@ jobs:
 
       # wordpress.org guidelines forbid a plugin from shipping Composer/Packagist
       # installer code even inactive (see obsidian/Product/WordPress.org Plugin
-      # Distribution.md §2-3). This asserts the Loopress Light artifact never regresses
-      # that, rather than trusting the build script's stripping logic to always be correct.
-      - name: Assert the Loopress Light zip contains no Composer/Packagist code
+      # Distribution.md §2-3), and separately rejected the snippet sync feature itself as a
+      # remote arbitrary-code-deployment mechanism (§2b). This asserts the Loopress Light
+      # artifact never regresses either, rather than trusting the build script's stripping
+      # logic to always be correct.
+      - name: Assert the Loopress Light zip contains no Composer/Packagist or Snippets code
         working-directory: wordpress-plugin
         run: |
           rm -rf /tmp/loopress-light-check
@@ -233,12 +235,25 @@ jobs:
             echo "::error::Loopress Light artifact contains src/Dependencies"
             exit 1
           fi
+          if find /tmp/loopress-light-check/loopress-light/src -type d -name Snippets | grep -q .; then
+            echo "::error::Loopress Light artifact contains src/Snippets"
+            exit 1
+          fi
           if [ -f /tmp/loopress-light-check/loopress-light/uninstall.php ]; then
             echo "::error::Loopress Light artifact contains uninstall.php"
             exit 1
           fi
           if grep -RiIl --include='*.php' -E 'composer|packagist' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
             echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
+            exit 1
+          fi
+          # Matches the actual namespace/route, not bare class names: SeoService.php and
+          # AcfService.php legitimately mention "SnippetService"/"CodeSnippetsSnippetProvider"
+          # by name in explanatory comments (contrasting their own single-provider/no-provider
+          # shape with the snippets feature's multi-provider one), which a bare class-name grep
+          # would false-positive on.
+          if grep -RiIl --include='*.php' -E 'Loopress\\Snippets|loopress/v1/snippets' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
+            echo "::error::Loopress Light artifact PHP source references the Snippets feature"
             exit 1
           fi
           # if grep -il -E 'packagist|dependency management' /tmp/loopress-light-check/loopress-light/build/index.tsx.js; then
