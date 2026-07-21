@@ -3,8 +3,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Push from '../../../src/commands/rankmath/push.js'
-import {RankMathRedirect} from '../../../src/utils/rankmath-format.js'
+import Push from '../../../src/commands/seo/push.js'
+import {SeoRedirect} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 type PushInternals = {
@@ -27,11 +27,11 @@ function notFoundError(): Error {
   return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
 }
 
-describe('rankmath push', () => {
+describe('seo push', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'lps-rankmath-push-test-'))
+    dir = mkdtempSync(join(tmpdir(), 'lps-seo-push-test-'))
   })
 
   afterEach(() => {
@@ -44,12 +44,12 @@ describe('rankmath push', () => {
       const post = vi.fn().mockResolvedValueOnce({})
       cmd.wpClient = {post, put: vi.fn()}
       const file = join(dir, 'about.json')
-      writeFileSync(file, JSON.stringify({meta: {'rank_math_title': 'About'}, slug: 'about', title: 'About'}))
+      writeFileSync(file, JSON.stringify({meta: {'seo_title': 'About'}, slug: 'about', title: 'About'}))
       const task = {output: ''}
 
       await cmd.pushPostMetaFile('page', file, task)
 
-      expect(post).toHaveBeenCalledWith('loopress/v1/rankmath/post-meta/page', {meta: {'rank_math_title': 'About'}, slug: 'about'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {'seo_title': 'About'}, slug: 'about'})
       expect(task.output).toBe('Pushed: about')
     })
 
@@ -81,10 +81,27 @@ describe('rankmath push', () => {
       expect(task.output).toContain('Failed to push')
       expect(cmd.failedCount).toBe(1)
     })
+
+    // The active SEO plugin not supporting redirects surfaces the same way any other REST
+    // failure does; post meta itself is unaffected, so this is really about push not silently
+    // swallowing the "not supported" message.
+    it('surfaces "not supported" errors the same way as any other failure', async () => {
+      const {cmd} = makeCmd()
+      const post = vi.fn().mockRejectedValueOnce(new Error('Redirects are not supported by the active SEO plugin.'))
+      cmd.wpClient = {post, put: vi.fn()}
+      const file = join(dir, 'about.json')
+      writeFileSync(file, JSON.stringify({meta: {}, slug: 'about', title: 'About'}))
+      const task = {output: ''}
+
+      await expect(cmd.pushPostMetaFile('page', file, task)).rejects.toThrow('not supported')
+
+      expect(task.output).toContain('not supported')
+      expect(cmd.failedCount).toBe(1)
+    })
   })
 
   describe('pushRedirectFile', () => {
-    const baseRedirect: RankMathRedirect = {
+    const baseRedirect: SeoRedirect = {
       createdAt: null,
       headerCode: 301,
       hits: 0,
@@ -106,7 +123,7 @@ describe('rankmath push', () => {
 
       await cmd.pushRedirectFile(file, task)
 
-      expect(put).toHaveBeenCalledWith('loopress/v1/rankmath/redirects/4', {
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/redirects/4', {
         headerCode: 301,
         sources: baseRedirect.sources,
         status: 'active',
@@ -128,7 +145,7 @@ describe('rankmath push', () => {
 
       await cmd.pushRedirectFile(file, task)
 
-      expect(post).toHaveBeenCalledWith('loopress/v1/rankmath/redirects', {
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/redirects', {
         headerCode: 301,
         sources: baseRedirect.sources,
         status: 'active',
@@ -154,6 +171,20 @@ describe('rankmath push', () => {
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toBe('Pushed: redirect #12')
       expect(existsSync(join(dir, '12-new.json'))).toBe(true)
+    })
+
+    it('fails clearly (not silently) when the active plugin does not support redirects', async () => {
+      const {cmd} = makeCmd()
+      const post = vi.fn().mockRejectedValueOnce(new Error('Redirects are not supported by the active SEO plugin.'))
+      cmd.wpClient = {post, put: vi.fn()}
+      const file = join(dir, 'draft.json')
+      writeFileSync(file, JSON.stringify({...baseRedirect, id: undefined}))
+      const task = {output: ''}
+
+      await expect(cmd.pushRedirectFile(file, task)).rejects.toThrow('not supported')
+
+      expect(task.output).toContain('not supported')
+      expect(cmd.failedCount).toBe(1)
     })
 
     it('does nothing in dry-run mode', async () => {
@@ -193,7 +224,7 @@ describe('rankmath push', () => {
 
       await cmd.pushSettings(dir)
 
-      expect(put).toHaveBeenCalledWith('loopress/v1/rankmath/settings', {titleSeparator: '-'})
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {titleSeparator: '-'})
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Pushed:'))
     })
 

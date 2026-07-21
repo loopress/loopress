@@ -3,24 +3,24 @@
 namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
-use Loopress\RestApi\RankMathController;
-use Loopress\Service\RankMathService;
+use Loopress\RestApi\SeoController;
+use Loopress\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
-class RankMathControllerTest extends TestCase
+class SeoControllerTest extends TestCase
 {
-    private RankMathService&MockObject $rankMathService;
-    private RankMathController $controller;
+    private SeoController $controller;
+    private SeoService&MockObject $seoService;
 
     protected function setUp(): void
     {
         parent::setUp();
         Monkey\setUp();
 
-        $this->rankMathService = $this->createMock(RankMathService::class);
-        $this->controller = new RankMathController($this->rankMathService);
+        $this->seoService = $this->createMock(SeoService::class);
+        $this->controller = new SeoController($this->seoService);
     }
 
     protected function tearDown(): void
@@ -31,10 +31,10 @@ class RankMathControllerTest extends TestCase
 
     // ── post-meta ───────────────────────────────────────────────────────────
 
-    public function test_list_post_meta_returns_400_when_rank_math_is_not_active(): void
+    public function test_list_post_meta_returns_400_when_no_seo_plugin_is_active(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(false);
-        $this->rankMathService->expects($this->never())->method('listPostMeta');
+        $this->seoService->method('isActive')->willReturn(false);
+        $this->seoService->expects($this->never())->method('listPostMeta');
 
         $response = $this->controller->list_post_meta(new WP_REST_Request(['type' => 'post']));
 
@@ -43,8 +43,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_list_post_meta_returns_the_service_result(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('listPostMeta')->with('post')->willReturn([['slug' => 'hello']]);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('listPostMeta')->with('post')->willReturn([['slug' => 'hello']]);
 
         $response = $this->controller->list_post_meta(new WP_REST_Request(['type' => 'post']));
 
@@ -54,8 +54,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_list_post_meta_returns_500_on_runtime_exception(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('listPostMeta')->willThrowException(new \RuntimeException('boom'));
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('listPostMeta')->willThrowException(new \RuntimeException('boom'));
 
         $response = $this->controller->list_post_meta(new WP_REST_Request(['type' => 'post']));
 
@@ -64,8 +64,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_get_post_meta_returns_404_when_not_found(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('getPostMeta')->willReturn(null);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getPostMeta')->willReturn(null);
 
         $response = $this->controller->get_post_meta(new WP_REST_Request(['slug' => 'missing', 'type' => 'post']));
 
@@ -74,8 +74,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_get_post_meta_returns_200_with_the_post(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('getPostMeta')->with('post', 'hello')->willReturn(['slug' => 'hello']);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getPostMeta')->with('post', 'hello')->willReturn(['slug' => 'hello']);
 
         $response = $this->controller->get_post_meta(new WP_REST_Request(['slug' => 'hello', 'type' => 'post']));
 
@@ -83,10 +83,10 @@ class RankMathControllerTest extends TestCase
         $this->assertSame(['slug' => 'hello'], $response->data);
     }
 
-    public function test_upsert_post_meta_returns_400_when_rank_math_is_not_active(): void
+    public function test_upsert_post_meta_returns_400_when_no_seo_plugin_is_active(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(false);
-        $this->rankMathService->expects($this->never())->method('upsertPostMeta');
+        $this->seoService->method('isActive')->willReturn(false);
+        $this->seoService->expects($this->never())->method('upsertPostMeta');
 
         $response = $this->controller->upsert_post_meta(new WP_REST_Request(['type' => 'post']));
 
@@ -95,8 +95,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_upsert_post_meta_returns_400_when_slug_or_meta_is_missing(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->expects($this->never())->method('upsertPostMeta');
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('upsertPostMeta');
 
         $response = $this->controller->upsert_post_meta(new WP_REST_Request(['type' => 'post']));
 
@@ -105,11 +105,11 @@ class RankMathControllerTest extends TestCase
 
     public function test_upsert_post_meta_returns_500_on_runtime_exception(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('upsertPostMeta')->willThrowException(new \RuntimeException('boom'));
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('upsertPostMeta')->willThrowException(new \RuntimeException('boom'));
 
         $response = $this->controller->upsert_post_meta(new WP_REST_Request([
-            'meta' => ['rank_math_title' => 'x'],
+            'meta' => ['title' => 'x'],
             'slug' => 'hello',
             'type' => 'post',
         ]));
@@ -119,14 +119,14 @@ class RankMathControllerTest extends TestCase
 
     public function test_upsert_post_meta_returns_200_with_the_upserted_post(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->expects($this->once())
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->once())
             ->method('upsertPostMeta')
-            ->with('post', 'hello', ['rank_math_title' => 'New'])
+            ->with('post', 'hello', ['title' => 'New'])
             ->willReturn(['slug' => 'hello']);
 
         $response = $this->controller->upsert_post_meta(new WP_REST_Request([
-            'meta' => ['rank_math_title' => 'New'],
+            'meta' => ['title' => 'New'],
             'slug' => 'hello',
             'type' => 'post',
         ]));
@@ -137,9 +137,9 @@ class RankMathControllerTest extends TestCase
 
     // ── settings ────────────────────────────────────────────────────────────
 
-    public function test_get_settings_returns_400_when_rank_math_is_not_active(): void
+    public function test_get_settings_returns_400_when_no_seo_plugin_is_active(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(false);
+        $this->seoService->method('isActive')->willReturn(false);
 
         $response = $this->controller->get_settings();
 
@@ -148,8 +148,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_get_settings_returns_the_service_result(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('getSettings')->willReturn(['titleSeparator' => '-']);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getSettings')->willReturn(['titleSeparator' => '-']);
 
         $response = $this->controller->get_settings();
 
@@ -159,8 +159,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_update_settings_returns_400_when_the_body_is_empty(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->expects($this->never())->method('updateSettings');
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('updateSettings');
 
         $response = $this->controller->update_settings(new WP_REST_Request([]));
 
@@ -169,8 +169,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_update_settings_returns_200_with_the_updated_settings(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('updateSettings')->willReturn(['titleSeparator' => '|']);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('updateSettings')->willReturn(['titleSeparator' => '|']);
 
         $response = $this->controller->update_settings(new WP_REST_Request(['titleSeparator' => '|']));
 
@@ -180,9 +180,9 @@ class RankMathControllerTest extends TestCase
 
     // ── redirects ───────────────────────────────────────────────────────────
 
-    public function test_list_redirects_returns_400_when_rank_math_is_not_active(): void
+    public function test_list_redirects_returns_400_when_no_seo_plugin_is_active(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(false);
+        $this->seoService->method('isActive')->willReturn(false);
 
         $response = $this->controller->list_redirects();
 
@@ -191,8 +191,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_list_redirects_returns_the_service_result(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('listRedirections')->willReturn([['id' => 1]]);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('listRedirections')->willReturn([['id' => 1]]);
 
         $response = $this->controller->list_redirects();
 
@@ -200,10 +200,25 @@ class RankMathControllerTest extends TestCase
         $this->assertSame([['id' => 1]], $response->data);
     }
 
+    // The active provider not supporting redirects (e.g. Yoast) surfaces as a RuntimeException
+    // from the service, same as "no provider active" or "multiple active" — this just confirms
+    // the controller maps it to a 500 like any other service-level failure, not a special code.
+    public function test_list_redirects_returns_500_when_the_active_provider_does_not_support_redirects(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('listRedirections')->willThrowException(
+            new \RuntimeException('Redirects are not supported by the active SEO plugin.'),
+        );
+
+        $response = $this->controller->list_redirects();
+
+        $this->assertSame(500, $response->status);
+    }
+
     public function test_get_redirect_returns_404_when_not_found(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('getRedirection')->willReturn(null);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getRedirection')->willReturn(null);
 
         $response = $this->controller->get_redirect(new WP_REST_Request(['id' => '999']));
 
@@ -212,8 +227,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_get_redirect_returns_200_with_the_redirect(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('getRedirection')->with(7)->willReturn(['id' => 7]);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getRedirection')->with(7)->willReturn(['id' => 7]);
 
         $response = $this->controller->get_redirect(new WP_REST_Request(['id' => '7']));
 
@@ -223,8 +238,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_create_redirect_returns_400_when_the_body_is_empty(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->expects($this->never())->method('createRedirection');
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('createRedirection');
 
         $response = $this->controller->create_redirect(new WP_REST_Request([]));
 
@@ -233,8 +248,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_create_redirect_returns_201_with_the_created_redirect(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('createRedirection')->willReturn(['id' => 1, 'urlTo' => '/new']);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('createRedirection')->willReturn(['id' => 1, 'urlTo' => '/new']);
 
         $response = $this->controller->create_redirect(new WP_REST_Request(['urlTo' => '/new']));
 
@@ -244,8 +259,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_update_redirect_returns_404_when_not_found(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('updateRedirection')->willReturn(null);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('updateRedirection')->willReturn(null);
 
         $response = $this->controller->update_redirect(new WP_REST_Request(['id' => '999', 'status' => 'inactive']));
 
@@ -254,8 +269,8 @@ class RankMathControllerTest extends TestCase
 
     public function test_update_redirect_returns_200_with_the_updated_redirect(): void
     {
-        $this->rankMathService->method('isActive')->willReturn(true);
-        $this->rankMathService->method('updateRedirection')->with(1, $this->isType('array'))->willReturn(['id' => 1, 'status' => 'inactive']);
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('updateRedirection')->with(1, $this->isType('array'))->willReturn(['id' => 1, 'status' => 'inactive']);
 
         $response = $this->controller->update_redirect(new WP_REST_Request(['id' => '1', 'status' => 'inactive']));
 

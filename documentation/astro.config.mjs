@@ -81,7 +81,7 @@ export default defineConfig({
 						{ label: "Init", slug: "cli/init" },
 						{ label: "Snippets", slug: "cli/snippets" },
 						{ label: "ACF", slug: "cli/acf" },
-						{ label: "RankMath", slug: "cli/rankmath" },
+						{ label: "SEO", slug: "cli/seo" },
 						{ label: "Plugins", slug: "cli/plugins" },
 						{ label: "Composer", slug: "cli/composer" },
 					],

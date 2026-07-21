@@ -2,15 +2,19 @@
 
 namespace Loopress\Service;
 
-// RankMath has exactly one backend (itself, or nothing), same shape as AcfService: no provider
-// interface needed here, this talks to RankMath's own storage directly.
+use Loopress\Contract\SeoRedirectProvider;
+
+// One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
+// this and YoastService), the same shape as CodeSnippetsSnippetProvider/WPCodeSnippetProvider.
+// RankMath is also the only one of the two implementing SeoRedirectProvider: Yoast's equivalent
+// is Premium-only.
 //
 // Post-level SEO data (title, description, robots, canonical, social, and per-post schema
 // blocks) is all stored as postmeta prefixed `rank_math_`. Rather than hardcoding the list of
 // known keys (long, and grows whenever RankMath ships a new field or schema type), this class
 // syncs every `rank_math_*` postmeta key generically: whatever RankMath itself writes is what
 // gets read and written back, with no allowlist to keep in sync with RankMath's own releases.
-class RankMathService
+class RankMathService implements SeoRedirectProvider
 {
     private const META_PREFIX = 'rank_math_';
     private const OPTION_TITLES = 'rank-math-options-titles';
