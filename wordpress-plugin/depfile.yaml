@@ -1,0 +1,45 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    # The one interface both Light and Plus legitimately depend on. Matched by exact
+    # FQCN, not the whole Contract namespace: Contract\SeoProvider and
+    # Contract\SeoRedirectProvider are Light-only and must stay out of Shared.
+    - name: Shared
+      collectors:
+        - type: classNameRegex
+          value: '#^Loopress\\Contract\\Module$#'
+
+    - name: Light
+      collectors:
+        - type: classNameRegex
+          value: '#^Loopress\\Module\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\RestApi\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Service\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Contract\\SeoProvider$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Contract\\SeoRedirectProvider$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Plugin$#'
+
+    - name: Plus
+      collectors:
+        - type: classNameRegex
+          value: '#^Loopress\\Dependencies\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Update\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Snippets\\.+$#'
+
+  ruleset:
+    # Light (Loopress Light edition) may use the shared Module contract but must never
+    # import Plus-only code (Dependencies/Update/Snippets), which is stripped out of the
+    # Light build by scripts/build-flavor.cjs.
+    Light:
+      - Shared
+    # Same guarantee in the other direction: Plus code must not reach into Light internals.
+    Plus:
+      - Shared

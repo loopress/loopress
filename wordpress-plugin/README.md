@@ -23,3 +23,26 @@ pnpm pack           # builds both editions: loopress-light.zip and loopress-full
 pnpm pack:light     # loopress-light.zip only
 pnpm pack:full      # loopress-full.zip only
 ```
+
+### Light / Plus dependency boundary (Deptrac)
+
+The Light edition must never depend on Plus-only code (`src/Dependencies/`, `src/Update/`,
+`src/Snippets/`), and Plus must not reach back into Light internals either. This is enforced
+statically, at the source level, by [Deptrac](https://github.com/qossmic/deptrac) using the
+layers described in `depfile.yaml`, in addition to the CI job that inspects the built Light
+zip. Run it locally with:
+
+```bash
+composer run deptrac
+```
+
+### Before pushing
+
+Run the full quality suite in one command, it stops at the first failure:
+
+```bash
+composer run check   # test, analyse, psalm, cs, rector:check, deptrac
+```
+
+`mutation` (Infection) is intentionally excluded: it is slow and report-only in CI,
+not meant for a fast pre-push check.
