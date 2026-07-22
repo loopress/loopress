@@ -41,7 +41,7 @@ composer run deptrac
 Run the full quality suite in one command, it stops at the first failure:
 
 ```bash
-composer run check   # test, analyse, psalm, cs, deptrac
+composer run check   # test, analyse, psalm, cs, rector:check, deptrac
 ```
 
 `mutation` (Infection) is intentionally excluded: it is slow and report-only in CI,
