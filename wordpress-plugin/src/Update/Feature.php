@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Update;
 
+use Loopress\Contract\FeatureProvider;
 use Loopress\Contract\Module;
-use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use Loopress\Update\Module\UpdateCheckModule;
 
 /**
@@ -15,11 +15,20 @@ use Loopress\Update\Module\UpdateCheckModule;
  * namespace. Loopress Light must never carry an update-checking mechanism of its own, even
  * inactive: wordpress.org guidelines reserve that role for their own SVN-based update flow.
  */
-class Feature
+class Feature implements FeatureProvider
 {
-    /** @return Module[] */
-    public static function bootstrap(): array
+    /** @return array<string, mixed> */
+    public static function definitions(): array
     {
-        return [new UpdateCheckModule(new GithubReleaseChecker())];
+        // UpdateCheckModule and its GithubReleaseChecker dependency are both fully
+        // autowirable (no ambiguous or scalar constructor parameters), so no explicit
+        // wiring is needed here.
+        return [];
+    }
+
+    /** @return array<int, class-string<Module>> */
+    public static function moduleClasses(): array
+    {
+        return [UpdateCheckModule::class];
     }
 }

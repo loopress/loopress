@@ -13,6 +13,13 @@ deptrac:
         # check every REST controller uses (US-7), not the whole Loopress\RestApi namespace.
         - type: classNameRegex
           value: '#^Loopress\\RestApi\\RequiresManageOptionsCapability$#'
+        # The DI composition root (Plugin.php builds a container from it) and the Feature
+        # contract Plus features implement: both are legitimately depended on from Light
+        # (Plugin.php) and Plus (each Feature.php) alike.
+        - type: classNameRegex
+          value: '#^Loopress\\ContainerFactory$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Contract\\FeatureProvider$#'
 
     - name: Light
       collectors:

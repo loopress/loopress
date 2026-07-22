@@ -7,26 +7,16 @@ namespace Loopress\Snippets\Module;
 use Loopress\Contract\Module;
 use Loopress\Snippets\RestApi\SnippetController;
 use Loopress\Snippets\RestApi\SnippetMigrationController;
-use Loopress\Snippets\Service\CodeSnippetsSnippetProvider;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use Loopress\Snippets\Service\SnippetService;
-use Loopress\Snippets\Service\WPCodeSnippetProvider;
 
 class SnippetModule implements Module
 {
-    private SnippetService $service;
-    private SnippetMigrationService $wpCodeToCodeSnippets;
-    private SnippetMigrationService $codeSnippetsToWpCode;
-
-    public function __construct()
-    {
-        $wpCode       = new WPCodeSnippetProvider();
-        $codeSnippets = new CodeSnippetsSnippetProvider();
-
-        $this->service              = new SnippetService($wpCode, $codeSnippets);
-        $this->wpCodeToCodeSnippets = new SnippetMigrationService($wpCode, $codeSnippets);
-        $this->codeSnippetsToWpCode = new SnippetMigrationService($codeSnippets, $wpCode);
-    }
+    public function __construct(
+        private SnippetService $service,
+        private SnippetMigrationService $wpCodeToCodeSnippets,
+        private SnippetMigrationService $codeSnippetsToWpCode,
+    ) {}
 
     public function boot(): void
     {
