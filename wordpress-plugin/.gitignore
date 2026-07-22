@@ -3,6 +3,9 @@ node_modules/
 build/
 *.zip
 .phpunit.result.cache
+infection.log
+infection-summary.log
+infection.html
 assets/logo.svg
 .DS_Store
 .build-stage/

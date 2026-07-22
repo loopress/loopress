@@ -1,0 +1,21 @@
+{
+    // Baseline established 2026-07-22 (`composer run mutation`, ~913 mutants generated
+    // over src/): Covered Code MSI ~14-16% (varies slightly per run: test order and
+    // thread count affect which mutants escape). Not a gate yet, the CI job only
+    // publishes the report (see US-2 in the wordpress-plugin refactor backlog); raising
+    // this score is future work, not part of this story.
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "logs": {
+        "text": "infection.log",
+        "summary": "infection-summary.log",
+        "html": "infection.html"
+    },
+    "mutators": {
+        "@default": true
+    }
+}
