@@ -15,7 +15,7 @@ excerpt: We built a Composer UI for the WordPress admin, then asked wordpress.or
 
 WordPress doesn't have a package manager. If you want a PHP library in your project, be it Guzzle for HTTP calls or a PDF generation library in a snippet, you're either vendoring the code by hand or running Composer somewhere the WordPress admin can't see.
 
-We built a feature to fix that: a Composer UI inside the WordPress admin. Search Packagist, install a package, audit it for known vulnerabilities, all without SSH access ([full walkthrough here](/blog/composer-without-ssh/)). Before shipping it, we asked the wordpress.org plugin review team whether it would be acceptable in the official directory.
+We built a feature to fix that: a Composer UI inside the WordPress admin. Search Packagist, install a package, audit it for known vulnerabilities, all without SSH access ([full walkthrough here](/blog/wordpress-composer-without-ssh/)). Before shipping it, we asked the wordpress.org plugin review team whether it would be acceptable in the official directory.
 
 The answer was no.
 
@@ -64,7 +64,7 @@ This is the same model ACF and Elementor use for their free/pro split: one codeb
 
 ## The honest tradeoff
 
-If you only need snippet sync, Loopress Light is a free wordpress.org install, same as any other plugin in the directory. If you want Composer packages managed from WordPress without SSH, that's Loopress Full ([see how it works](/blog/composer-without-ssh/)), a separate download from our site, precisely because wordpress.org's own rules don't allow that capability to live there. We'd rather tell you that upfront than have you discover it after installing the wrong one.
+If you only need snippet sync, Loopress Light is a free wordpress.org install, same as any other plugin in the directory. If you want Composer packages managed from WordPress without SSH, that's Loopress Full ([see how it works](/blog/wordpress-composer-without-ssh/)), a separate download from our site, precisely because wordpress.org's own rules don't allow that capability to live there. We'd rather tell you that upfront than have you discover it after installing the wrong one.
 
 ## Thanks
 
