@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Tests\Stubs;
 
 // Minimal in-memory stand-in for WordPress's $wpdb, used only by RankMathService's redirects

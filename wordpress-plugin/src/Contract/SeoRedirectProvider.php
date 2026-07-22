@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Contract;
 
 // Redirects aren't part of the base SeoProvider contract: unlike post meta and settings, not

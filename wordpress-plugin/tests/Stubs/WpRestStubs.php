@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Lightweight WordPress REST API stubs for use in unit tests.
 // Defined in the global namespace so they match the `use WP_REST_*` imports in controllers.
 

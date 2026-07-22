@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Update\Module;
 
 use Loopress\Contract\Module;

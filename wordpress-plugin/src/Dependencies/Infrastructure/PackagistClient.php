@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Dependencies\Infrastructure;
 
 use Composer\Semver\Semver;

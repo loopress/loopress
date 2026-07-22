@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Update\RestApi;
 
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
