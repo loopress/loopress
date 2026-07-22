@@ -192,7 +192,9 @@ jobs:
   plugin-mutation:
     name: Plugin:Mutation testing (Infection)
     runs-on: ubuntu-latest
-    # Report-only for now: establishing a baseline (see infection.json5), not a merge gate yet.
+    # main only: mutation testing re-runs the full suite per mutant, too slow to pay for
+    # on every PR push. Report-only for now anyway, not a merge gate (see infection.json5).
+    if: github.event_name == 'push'
     continue-on-error: true
     defaults:
       run:
