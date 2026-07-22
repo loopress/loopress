@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Loopress;
 
+use Loopress\Acf\Module\AcfModule;
+use Loopress\AdminPage\Module\AdminPageModule;
 use Loopress\Contract\Module;
-use Loopress\Module\AcfModule;
-use Loopress\Module\AdminPageModule;
-use Loopress\Module\RestCacheModule;
-use Loopress\Module\SeoModule;
+use Loopress\RestCache\Module\RestCacheModule;
+use Loopress\Seo\Module\SeoModule;
 
 class Plugin
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\Service;
+namespace Loopress\Tests\Unit\Acf\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Service\AcfService;
+use Loopress\Acf\Service\AcfService;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use WP_Post;

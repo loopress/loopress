@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Loopress\RestApi;
+namespace Loopress\Seo\RestApi;
 
-use Loopress\Service\SeoService;
+use Loopress\RestApi\RequiresManageOptionsCapability;
+use Loopress\Seo\Service\SeoService;
 use WP_REST_Request;
 use WP_REST_Response;
 

@@ -6,7 +6,7 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Snippets\Service\CodeSnippetsSnippetProvider;
+use Loopress\Snippets\Infrastructure\CodeSnippetsSnippetProvider;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 use WP_REST_Response;

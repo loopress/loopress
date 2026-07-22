@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Module;
+namespace Loopress\RestCache\Module;
 
 use Loopress\Contract\Module;
 

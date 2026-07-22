@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\RestApi;
+namespace Loopress\Tests\Unit\Acf\RestApi;
 
 use Brain\Monkey;
-use Loopress\RestApi\AcfController;
-use Loopress\Service\AcfService;
+use Loopress\Acf\RestApi\AcfController;
+use Loopress\Acf\Service\AcfService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;

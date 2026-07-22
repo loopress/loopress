@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\Service;
+namespace Loopress\Tests\Unit\Seo\Service;
 
-use Loopress\Contract\SeoProvider;
-use Loopress\Contract\SeoRedirectProvider;
-use Loopress\Service\SeoService;
+use Loopress\Seo\Contract\SeoProvider;
+use Loopress\Seo\Contract\SeoRedirectProvider;
+use Loopress\Seo\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

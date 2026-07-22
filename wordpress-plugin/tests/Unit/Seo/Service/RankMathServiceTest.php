@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\Service;
+namespace Loopress\Tests\Unit\Seo\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Service\RankMathService;
+use Loopress\Seo\Service\RankMathService;
 use Loopress\Tests\Stubs\FakeWpdb;
 use PHPUnit\Framework\TestCase;
 use WP_Post;

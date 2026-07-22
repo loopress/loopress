@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Service;
+namespace Loopress\Seo\Service;
 
-use Loopress\Contract\SeoProvider;
-use Loopress\Contract\SeoRedirectProvider;
+use Loopress\Seo\Contract\SeoProvider;
+use Loopress\Seo\Contract\SeoRedirectProvider;
 
 class SeoService
 {

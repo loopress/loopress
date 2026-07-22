@@ -3,8 +3,8 @@ deptrac:
     - ./src
   layers:
     # The one interface both Light and Plus legitimately depend on. Matched by exact
-    # FQCN, not the whole Contract namespace: Contract\SeoProvider and
-    # Contract\SeoRedirectProvider are Light-only and must stay out of Shared.
+    # FQCN, not the whole Contract namespace: Seo's own Contract\{SeoProvider,
+    # SeoRedirectProvider} live under Loopress\Seo\Contract\ (Light-only) instead.
     - name: Shared
       collectors:
         - type: classNameRegex
@@ -24,16 +24,13 @@ deptrac:
     - name: Light
       collectors:
         - type: classNameRegex
-          value: '#^Loopress\\Module\\.+$#'
-        # Excludes RequiresManageOptionsCapability, which is Shared (see above), not Light-only.
+          value: '#^Loopress\\Acf\\.+$#'
         - type: classNameRegex
-          value: '#^Loopress\\RestApi\\(?!RequiresManageOptionsCapability$).+$#'
+          value: '#^Loopress\\Seo\\.+$#'
         - type: classNameRegex
-          value: '#^Loopress\\Service\\.+$#'
+          value: '#^Loopress\\AdminPage\\.+$#'
         - type: classNameRegex
-          value: '#^Loopress\\Contract\\SeoProvider$#'
-        - type: classNameRegex
-          value: '#^Loopress\\Contract\\SeoRedirectProvider$#'
+          value: '#^Loopress\\RestCache\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\Plugin$#'
 

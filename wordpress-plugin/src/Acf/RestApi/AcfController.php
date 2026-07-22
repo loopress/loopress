@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Loopress\RestApi;
+namespace Loopress\Acf\RestApi;
 
-use Loopress\Service\AcfService;
+use Loopress\Acf\Service\AcfService;
+use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 

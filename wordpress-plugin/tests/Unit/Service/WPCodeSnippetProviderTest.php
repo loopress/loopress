@@ -6,7 +6,7 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\Snippets\Service\WPCodeSnippetProvider;
+use Loopress\Snippets\Infrastructure\WPCodeSnippetProvider;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
 

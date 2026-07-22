@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\RestApi;
+namespace Loopress\Tests\Unit\Seo\RestApi;
 
 use Brain\Monkey;
-use Loopress\RestApi\SeoController;
-use Loopress\Service\SeoService;
+use Loopress\Seo\RestApi\SeoController;
+use Loopress\Seo\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;

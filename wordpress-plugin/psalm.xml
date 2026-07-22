@@ -30,7 +30,8 @@
              is part of the callback contract even when a given endpoint doesn't read any params. -->
         <PossiblyUnusedMethod>
             <errorLevel type="suppress">
-                <directory name="src/RestApi" />
+                <directory name="src/Acf/RestApi" />
+                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
@@ -40,8 +41,8 @@
                      to any literal `new`. -->
                 <referencedMethod name="Loopress\Contract\FeatureProvider::definitions" />
                 <referencedMethod name="Loopress\Contract\FeatureProvider::moduleClasses" />
-                <referencedMethod name="Loopress\Module\AcfModule::__construct" />
-                <referencedMethod name="Loopress\Module\SeoModule::__construct" />
+                <referencedMethod name="Loopress\Acf\Module\AcfModule::__construct" />
+                <referencedMethod name="Loopress\Seo\Module\SeoModule::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />
@@ -53,7 +54,8 @@
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
-                <directory name="src/RestApi" />
+                <directory name="src/Acf/RestApi" />
+                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
@@ -65,7 +67,8 @@
              before the callback runs if they're missing. -->
         <PossiblyNullArgument>
             <errorLevel type="suppress">
-                <directory name="src/RestApi" />
+                <directory name="src/Acf/RestApi" />
+                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Snippets/RestApi" />
             </errorLevel>
@@ -75,7 +78,7 @@
              WordPress's filter chain, not by any caller Psalm can see. -->
         <PossiblyUnusedReturnValue>
             <errorLevel type="suppress">
-                <file name="src/Module/RestCacheModule.php" />
+                <file name="src/RestCache/Module/RestCacheModule.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 
