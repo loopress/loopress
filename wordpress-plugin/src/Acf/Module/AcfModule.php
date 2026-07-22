@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Module;
+namespace Loopress\Acf\Module;
 
+use Loopress\Acf\RestApi\AcfController;
+use Loopress\Acf\Service\AcfService;
 use Loopress\Contract\Module;
-use Loopress\RestApi\AcfController;
-use Loopress\Service\AcfService;
 
 class AcfModule implements Module
 {

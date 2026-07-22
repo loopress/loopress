@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Contract;
+namespace Loopress\Seo\Contract;
 
 // Redirects aren't part of the base SeoProvider contract: unlike post meta and settings, not
 // every supported SEO plugin has an equivalent (Yoast's redirect manager is Premium-only).

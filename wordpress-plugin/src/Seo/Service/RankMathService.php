@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Service;
+namespace Loopress\Seo\Service;
 
-use Loopress\Contract\SeoRedirectProvider;
+use Loopress\Seo\Contract\SeoRedirectProvider;
 
 // One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
 // this and YoastService), the same shape as CodeSnippetsSnippetProvider/WPCodeSnippetProvider.

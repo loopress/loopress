@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Service;
+namespace Loopress\Seo\Service;
 
-use Loopress\Contract\SeoProvider;
+use Loopress\Seo\Contract\SeoProvider;
 
 // One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
 // this and RankMathService), the same shape as CodeSnippetsSnippetProvider/WPCodeSnippetProvider.

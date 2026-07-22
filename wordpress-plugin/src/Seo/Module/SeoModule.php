@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Module;
+namespace Loopress\Seo\Module;
 
 use Loopress\Contract\Module;
-use Loopress\RestApi\SeoController;
-use Loopress\Service\RankMathService;
-use Loopress\Service\SeoService;
-use Loopress\Service\YoastService;
+use Loopress\Seo\RestApi\SeoController;
+use Loopress\Seo\Service\RankMathService;
+use Loopress\Seo\Service\SeoService;
+use Loopress\Seo\Service\YoastService;
 
 class SeoModule implements Module
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Service;
+namespace Loopress\Acf\Service;
 
 // ACF has exactly one backend (itself, or nothing), unlike snippets where two interchangeable
 // plugins must be arbitrated (see SnippetProvider/SnippetService). No provider interface needed

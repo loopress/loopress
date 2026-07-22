@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Contract;
+namespace Loopress\Seo\Contract;
 
 interface SeoProvider
 {
