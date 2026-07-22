@@ -6,11 +6,11 @@ namespace Loopress\Snippets;
 
 use Loopress\Contract\FeatureProvider;
 use Loopress\Contract\Module;
+use Loopress\Snippets\Infrastructure\CodeSnippetsSnippetProvider;
+use Loopress\Snippets\Infrastructure\WPCodeSnippetProvider;
 use Loopress\Snippets\Module\SnippetModule;
-use Loopress\Snippets\Service\CodeSnippetsSnippetProvider;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use Loopress\Snippets\Service\SnippetService;
-use Loopress\Snippets\Service\WPCodeSnippetProvider;
 use Psr\Container\ContainerInterface;
 
 use function DI\autowire;

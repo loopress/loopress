@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Snippets\Service;
+namespace Loopress\Snippets\Infrastructure;
 
 use Loopress\Snippets\Contract\SnippetProvider;
 
