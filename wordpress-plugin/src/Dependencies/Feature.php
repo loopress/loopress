@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Loopress\Dependencies;
 
-use DI\Container;
 use Loopress\Contract\FeatureProvider;
 use Loopress\Contract\Module;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Module\ComposerModule;
+use Psr\Container\ContainerInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -29,7 +29,7 @@ class Feature implements FeatureProvider
     {
         return [
             self::AUTOLOAD_ERROR => factory(
-                static fn(Container $container): ?string => self::requireVendorAutoload(
+                static fn(ContainerInterface $container): ?string => self::requireVendorAutoload(
                     $container->get(LoopressEnvironment::class),
                 ),
             ),

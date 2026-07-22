@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets;
 
-use DI\Container;
 use Loopress\Contract\FeatureProvider;
 use Loopress\Contract\Module;
 use Loopress\Snippets\Module\SnippetModule;
@@ -12,6 +11,7 @@ use Loopress\Snippets\Service\CodeSnippetsSnippetProvider;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use Loopress\Snippets\Service\SnippetService;
 use Loopress\Snippets\Service\WPCodeSnippetProvider;
+use Psr\Container\ContainerInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -36,28 +36,22 @@ class Feature implements FeatureProvider
         return [
             // SnippetService takes a variadic list of providers: autowiring can't guess how
             // many to pass, so the two supported providers are wired explicitly here.
-            SnippetService::class => factory(static fn(Container $c): SnippetService => new SnippetService(
+            SnippetService::class => factory(static fn(ContainerInterface $c): SnippetService => new SnippetService(
                 $c->get(WPCodeSnippetProvider::class),
                 $c->get(CodeSnippetsSnippetProvider::class),
             )),
 
             // Both migration directions need the same two concrete provider types in a
             // different source/destination order: autowiring SnippetMigrationService by type
-            // alone is ambiguous, so each direction is its own named, explicitly-wired entry
-            // via $container->make() rather than plain autowiring.
-            self::MIGRATION_WPCODE_TO_CODE_SNIPPETS => factory(static fn(Container $c): SnippetMigrationService => $c->make(
-                SnippetMigrationService::class,
-                [
-                    'source'      => $c->get(WPCodeSnippetProvider::class),
-                    'destination' => $c->get(CodeSnippetsSnippetProvider::class),
-                ],
+            // alone is ambiguous, so each direction is its own named, explicitly-wired entry,
+            // built directly rather than autowired.
+            self::MIGRATION_WPCODE_TO_CODE_SNIPPETS => factory(static fn(ContainerInterface $c): SnippetMigrationService => new SnippetMigrationService(
+                $c->get(WPCodeSnippetProvider::class),
+                $c->get(CodeSnippetsSnippetProvider::class),
             )),
-            self::MIGRATION_CODE_SNIPPETS_TO_WPCODE => factory(static fn(Container $c): SnippetMigrationService => $c->make(
-                SnippetMigrationService::class,
-                [
-                    'source'      => $c->get(CodeSnippetsSnippetProvider::class),
-                    'destination' => $c->get(WPCodeSnippetProvider::class),
-                ],
+            self::MIGRATION_CODE_SNIPPETS_TO_WPCODE => factory(static fn(ContainerInterface $c): SnippetMigrationService => new SnippetMigrationService(
+                $c->get(CodeSnippetsSnippetProvider::class),
+                $c->get(WPCodeSnippetProvider::class),
             )),
 
             SnippetModule::class => autowire()
