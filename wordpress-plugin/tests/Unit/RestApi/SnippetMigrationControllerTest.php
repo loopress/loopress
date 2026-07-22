@@ -3,8 +3,8 @@
 namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
-use Loopress\RestApi\SnippetMigrationController;
-use Loopress\Service\SnippetMigrationService;
+use Loopress\Snippets\RestApi\SnippetMigrationController;
+use Loopress\Snippets\Service\SnippetMigrationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;

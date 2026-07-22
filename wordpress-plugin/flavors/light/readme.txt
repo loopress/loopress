@@ -1,6 +1,6 @@
 === Loopress Light ===
 Contributors: jean-smaug
-Tags: code snippets, snippets, sync, git, developer tools
+Tags: acf, seo, advanced custom fields, sync, git
 Requires at least: 6.0
 Tested up to: 7.0
 Stable tag: 2026.7.6
@@ -8,44 +8,42 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync your code snippets with the Loopress CLI: pull them as files, keep them in Git, push them back.
+Sync your ACF field groups and SEO settings with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
 
 == Description ==
 
-Loopress Light connects the code snippets of your WordPress site to your development workflow. It integrates with the two most popular snippet plugins, Code Snippets and WPCode, and exposes them to the Loopress CLI (`lps`) so snippets can live in Git like any other code.
+Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, and SEO settings and redirects (Yoast, RankMath), exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
 
 Features:
 
-* Works with Code Snippets and WPCode, no migration needed
-* Migrate snippets between WPCode and Code Snippets, one click at a time
-* Pull snippets from the site as files with `lps snippet pull`
-* Push local edits back with `lps snippet push`
-* Keep snippets in Git: history, diffs, code review, rollbacks
-* Move snippets between environments (local, staging, production)
+* Sync ACF field groups, post types, taxonomies, and options pages: `lps acf pull` / `lps acf push` / `lps acf list`
+* Sync SEO settings and redirects (Yoast, RankMath): `lps seo pull` / `lps seo push`
+* Keep configuration in Git: history, diffs, code review, rollbacks
+* Move configuration between environments (local, staging, production)
 * REST API restricted to administrators, authenticated with WordPress application passwords
 
-Need Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
+Need code snippet sync (Code Snippets, WPCode) or Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
 
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the **Plugins** screen in WordPress.
-3. Install and activate Code Snippets or WPCode if you have not already.
+3. Install and activate ACF, and/or Yoast SEO or RankMath, if you have not already.
 4. Open the **Loopress** menu item in the admin sidebar and follow the CLI pairing instructions.
 
 == Frequently Asked Questions ==
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs code snippets only. Loopress Full adds Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org, because directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
+Loopress Light (this plugin) syncs ACF field groups and SEO settings only. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
-= Which snippet plugins are supported? =
+= Which ACF and SEO plugins are supported? =
 
-Code Snippets and WPCode. Loopress Light detects whichever is active, and you keep using its interface as usual.
+Advanced Custom Fields (options pages require ACF PRO), and either Yoast SEO or RankMath for SEO settings and redirects. Loopress Light detects whichever is active, and you keep using its interface as usual.
 
 = Does the plugin execute code by itself? =
 
-No. Snippets are stored and executed by your snippet plugin (Code Snippets or WPCode), exactly as when you edit them by hand in its interface. Loopress Light only reads and writes them through that plugin's own APIs.
+No. Loopress Light only reads and writes ACF field group definitions and SEO metadata through those plugins' own APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code.
 
 = Who can access the REST API? =
 

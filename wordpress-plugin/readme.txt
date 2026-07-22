@@ -8,14 +8,16 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync code snippets with the Loopress CLI, and install, audit, and sync Composer dependencies from the WordPress admin.
+Sync ACF field groups, SEO settings, and code snippets with the Loopress CLI, and install, audit, and sync Composer dependencies from the WordPress admin.
 
 == Description ==
 
-Loopress Full is the full edition of the Loopress WordPress plugin. It connects the code snippets of your WordPress site to your development workflow (integrating with Code Snippets and WPCode, exposing them to the Loopress CLI), and adds Composer dependency management on top: search Packagist, install and remove PHP packages, audit them for known security advisories, and sync your dependency manifest with the Loopress CLI, all without SSH access.
+Loopress Full is the full edition of the Loopress WordPress plugin. It connects your WordPress site to your development workflow: ACF field groups, SEO settings (Yoast, RankMath), and code snippets (integrating with Code Snippets and WPCode) all sync with the Loopress CLI, and Composer dependency management sits on top: search Packagist, install and remove PHP packages, audit them for known security advisories, and sync your dependency manifest with the Loopress CLI, all without SSH access.
 
 Features:
 
+* Sync ACF field groups, post types, taxonomies, and options pages with `lps acf pull` / `lps acf push`
+* Sync SEO settings and redirects (Yoast, RankMath) with `lps seo pull` / `lps seo push`
 * Works with Code Snippets and WPCode, no migration needed
 * Migrate snippets between WPCode and Code Snippets, one click at a time
 * Pull snippets from the site as files with `lps snippet pull`, push edits back with `lps snippet push`
@@ -42,7 +44,7 @@ No. Loopress Full runs Composer directly from the PHP process using the Composer
 
 = Why is this plugin not on WordPress.org? =
 
-The plugin directory guidelines do not allow plugins whose purpose is installing executable PHP code from external registries such as Packagist. That capability is exactly what Loopress Full exists for, so it is distributed separately from loopress.dev. Loopress Light, the snippet-sync-only edition, is on wordpress.org instead.
+The plugin directory guidelines do not allow plugins whose purpose is installing executable PHP code from external registries such as Packagist. That capability is exactly what Loopress Full exists for. Separately, the review team also rejected code snippet sync itself, deploying arbitrary PHP/JS/CSS into Code Snippets or WPCode is treated as a remote code deployment mechanism regardless of the authentication in front of it. Both Composer management and snippet sync are therefore distributed only from loopress.dev, in Loopress Full. Loopress Light, the ACF- and SEO-sync-only edition, is on wordpress.org instead.
 
 = What happens when I delete the plugin? =
 

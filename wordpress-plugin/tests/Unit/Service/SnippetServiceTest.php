@@ -2,8 +2,8 @@
 
 namespace Loopress\Tests\Unit\Service;
 
-use Loopress\Contract\SnippetProvider;
-use Loopress\Service\SnippetService;
+use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Service\SnippetService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

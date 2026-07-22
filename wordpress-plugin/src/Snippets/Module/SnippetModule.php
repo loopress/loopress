@@ -1,14 +1,14 @@
 <?php
 
-namespace Loopress\Module;
+namespace Loopress\Snippets\Module;
 
 use Loopress\Contract\Module;
-use Loopress\RestApi\SnippetController;
-use Loopress\RestApi\SnippetMigrationController;
-use Loopress\Service\CodeSnippetsSnippetProvider;
-use Loopress\Service\SnippetMigrationService;
-use Loopress\Service\SnippetService;
-use Loopress\Service\WPCodeSnippetProvider;
+use Loopress\Snippets\RestApi\SnippetController;
+use Loopress\Snippets\RestApi\SnippetMigrationController;
+use Loopress\Snippets\Service\CodeSnippetsSnippetProvider;
+use Loopress\Snippets\Service\SnippetMigrationService;
+use Loopress\Snippets\Service\SnippetService;
+use Loopress\Snippets\Service\WPCodeSnippetProvider;
 
 class SnippetModule implements Module
 {

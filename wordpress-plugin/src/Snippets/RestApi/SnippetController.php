@@ -1,8 +1,8 @@
 <?php
 
-namespace Loopress\RestApi;
+namespace Loopress\Snippets\RestApi;
 
-use Loopress\Service\SnippetService;
+use Loopress\Snippets\Service\SnippetService;
 use WP_REST_Request;
 use WP_REST_Response;
 

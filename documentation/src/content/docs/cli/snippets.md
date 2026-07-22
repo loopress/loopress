@@ -3,6 +3,10 @@ title: Snippets
 description: Push, pull and list WordPress code snippets from the command line.
 ---
 
+:::note
+`pull`, `push`, and `list` below talk to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using those commands. `publish` is the exception: it uploads to your Loopress account, not to WordPress, so it doesn't depend on which plugin edition is installed.
+:::
+
 The `snippet` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a code file alongside a `.json` sidecar in a local directory that you commit like any other code.
 
 Works with either [WPCode](https://wpcode.com/) or the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin. The Loopress WordPress plugin detects whichever one is active on the site, so the CLI commands are the same either way.

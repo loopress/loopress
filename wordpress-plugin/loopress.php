@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Loopress Light
- * Description: Sync code snippets (Code Snippets, WPCode) with the Loopress CLI and keep them in Git.
+ * Description: Sync ACF field groups and SEO settings (Yoast, RankMath) with the Loopress CLI and keep them in Git.
  * Version: 2026.7.6
  * Author: jean-smaug
  * Text Domain: loopress
@@ -78,6 +78,13 @@ add_filter('loopress_modules', fn(array $modules): array => array_merge($modules
 // WordPress.org's own update mechanism and must never carry an update-checking mechanism
 // of its own, even inactive.
 add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Update\Feature::bootstrap()));
+
+// Same build-time stripping applies to src/Snippets/: wordpress.org rejected Loopress Light
+// over this exact capability (REST endpoints that remotely deploy arbitrary PHP/JS/CSS into
+// Code Snippets or WPCode), regardless of the auth/capability checks in front of it. Loopress
+// Light must never carry snippet sync again, even inactive; see
+// obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection.
+add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Snippets\Feature::bootstrap()));
 /* LOOPRESS_PLUS_END */
 
 // Booting on plugins_loaded rather than at file inclusion; priority 1 because snippet

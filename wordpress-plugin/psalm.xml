@@ -33,6 +33,7 @@
                 <directory name="src/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
+                <directory name="src/Snippets/RestApi" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
@@ -40,6 +41,7 @@
                 <directory name="src/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
+                <directory name="src/Snippets/RestApi" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -50,6 +52,7 @@
             <errorLevel type="suppress">
                 <directory name="src/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
+                <directory name="src/Snippets/RestApi" />
             </errorLevel>
         </PossiblyNullArgument>
 
