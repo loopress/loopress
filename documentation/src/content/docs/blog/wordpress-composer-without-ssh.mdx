@@ -2,7 +2,7 @@
 title: Installing Composer Packages in WordPress Without SSH
 description: The standard workflow for adding a PHP dependency to WordPress involves SSH, a terminal on the server, and a lot of hope. There's a better way.
 date: 2026-06-09
-draft: true
+draft: false
 authors:
   - maxime
 tags:
@@ -12,6 +12,9 @@ tags:
   - dependencies
 excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The Loopress plugin does this from the admin panel.
 ---
+
+import composerInstallVideo from '../../../assets/composer-install-admin-ui.webm';
+import PluginDownload from '../../../components/PluginDownload.astro';
 
 You need to add a PHP dependency to a WordPress site. Maybe a PDF generation library, a CSV parser, an image manipulation package. Something available on Packagist.
 
@@ -44,20 +47,35 @@ Neither option is good.
 
 This is Loopress Full specifically, not Loopress Light (the free edition on wordpress.org). wordpress.org's plugin guidelines don't allow a plugin to install executable code from a third-party registry like Packagist, so this feature ships separately, from [loopress.dev](https://loopress.dev), rather than the official directory. [Here's why](/blog/wordpress-org-composer-rejection/), if you're curious.
 
+Here's the whole flow, in under a minute:
+
+<video controls width="100%" src={composerInstallVideo}>
+  <p>Your browser doesn't support HTML5 video. <a href={composerInstallVideo}>Download the video</a> instead.</p>
+</video>
+
 ### Installing a package
 
-Navigate to **WordPress Admin → Loopress → Dependencies**.
-
-Search for a package by name (`tecnickcom/tcpdf`, `league/csv`, whatever you need). Loopress queries Packagist directly and shows you available versions.
-
-Select the version, click **Install**. Loopress runs `composer require` on the server and installs the package into a managed `vendor/` directory inside the plugin's scope.
-
-The installed packages are then available to your code snippets via autoloading:
+1. Navigate to **WordPress Admin → Loopress → Dependencies**.
+2. Search for a package by name (`guzzlehttp/guzzle`, or whatever you need). Loopress queries Packagist directly and shows you available versions.
+3. Select the version, click **Install**. Loopress runs `composer require` on the server and installs the package into a managed `vendor/` directory inside the plugin's scope.
+4. Require the autoloader once, then use the package in a code snippet:
 
 ```php
-use TCPDF;
+require_once WP_CONTENT_DIR . '/loopress/vendor/autoload.php';
 
-$pdf = new TCPDF();
+use GuzzleHttp\Client;
+
+add_action('wp_footer', function () {
+    $client = new Client();
+    $response = $client->get('https://jsonplaceholder.typicode.com/posts', ['query' => ['_limit' => 5]]);
+    $posts = json_decode($response->getBody()->getContents(), true);
+
+    echo '<ul>';
+    foreach ($posts as $post) {
+        echo '<li>' . esc_html($post['title']) . '</li>';
+    }
+    echo '</ul>';
+});
 ```
 
 ### Why this matters for agencies
@@ -86,4 +104,6 @@ If you're building on [Roots/Bedrock](https://roots.io/bedrock/), you already ha
 
 ---
 
-Loopress Full is a free download from [loopress.dev](https://loopress.dev), installed like any other plugin zip (**Plugins → Add New → Upload Plugin**), no server configuration required. If you only need snippet sync, Loopress Light is the free edition submitted to the wordpress.org directory instead.
+Loopress Full is a free download, installed like any other plugin zip (**Plugins → Add New → Upload Plugin**), no server configuration required. If you only need snippet sync, Loopress Light is the free edition submitted to the wordpress.org directory instead.
+
+<PluginDownload edition="full" />
