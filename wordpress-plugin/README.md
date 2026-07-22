@@ -35,3 +35,14 @@ zip. Run it locally with:
 ```bash
 composer run deptrac
 ```
+
+### Before pushing
+
+Run the full quality suite in one command, it stops at the first failure:
+
+```bash
+composer run check   # test, analyse, psalm, cs, deptrac
+```
+
+`mutation` (Infection) is intentionally excluded: it is slow and report-only in CI,
+not meant for a fast pre-push check.

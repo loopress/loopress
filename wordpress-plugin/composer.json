@@ -50,6 +50,13 @@
         "cs:fix": "phpcbf",
         "rector:check": "rector process --dry-run",
         "mutation": "infection",
-        "deptrac": "deptrac analyse -c depfile.yaml --no-interaction"
+        "deptrac": "deptrac analyse -c depfile.yaml --no-interaction",
+        "check": [
+            "@test",
+            "@analyse",
+            "@psalm",
+            "@cs",
+            "@deptrac"
+        ]
     }
 }
