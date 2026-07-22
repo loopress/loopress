@@ -14,15 +14,21 @@ class Plugin
 {
     public function __construct()
     {
-        /** @var Module[] $modules */
-        $modules = apply_filters('loopress_modules', [
-            new AdminPageModule(),
-            new AcfModule(),
-            new SeoModule(),
-            new RestCacheModule(),
+        /** @var array<string, mixed> $definitions */
+        $definitions = apply_filters('loopress_feature_definitions', []);
+        $container   = ContainerFactory::create($definitions);
+
+        /** @var array<int, class-string<Module>> $moduleClasses */
+        $moduleClasses = apply_filters('loopress_module_classes', [
+            AdminPageModule::class,
+            AcfModule::class,
+            SeoModule::class,
+            RestCacheModule::class,
         ]);
 
-        foreach ($modules as $module) {
+        foreach ($moduleClasses as $moduleClass) {
+            /** @var Module $module */
+            $module = $container->get($moduleClass);
             $module->boot();
         }
     }

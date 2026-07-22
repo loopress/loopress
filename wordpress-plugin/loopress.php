@@ -78,7 +78,8 @@ use Loopress\Plugin;
 // obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection.
 foreach (['Dependencies', 'Update', 'Snippets'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
-    add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, $loopressPlusFeatureClass::bootstrap()));
+    add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
+    add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
 }
 /* LOOPRESS_PLUS_END */
 

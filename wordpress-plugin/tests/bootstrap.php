@@ -29,3 +29,9 @@ if (!defined('ARRAY_A')) {
 if (!defined('OBJECT')) {
     define('OBJECT', 'OBJECT');
 }
+
+// ContainerFactory only compiles the PHP-DI container to disk outside WP_DEBUG; forcing
+// it on here keeps test runs from writing a compiled container to container-cache/.
+if (!defined('WP_DEBUG')) {
+    define('WP_DEBUG', true);
+}
