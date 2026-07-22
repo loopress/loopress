@@ -39,7 +39,8 @@
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
         "rector/rector": "^2.5",
-        "infection/infection": "^0.32.6"
+        "infection/infection": "^0.32.6",
+        "deptrac/deptrac": "^4.7"
     },
     "scripts": {
         "test": "phpunit",
@@ -48,6 +49,7 @@
         "cs": "phpcs",
         "cs:fix": "phpcbf",
         "rector:check": "rector process --dry-run",
-        "mutation": "infection"
+        "mutation": "infection",
+        "deptrac": "deptrac analyse -c depfile.yaml --no-interaction"
     }
 }
