@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Dependencies\Service;
 
 use Loopress\Dependencies\Infrastructure\ComposerRunner;

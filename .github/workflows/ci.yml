@@ -149,6 +149,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Rector check (strict_types, style rules)
+        run: composer run rector:check
+
       - name: PHPStan analysis
         run: composer run analyse
 

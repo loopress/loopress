@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Tests\Unit\Service;
 
 use Loopress\Contract\SeoProvider;

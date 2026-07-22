@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Service;
 
 // ACF has exactly one backend (itself, or nothing), unlike snippets where two interchangeable

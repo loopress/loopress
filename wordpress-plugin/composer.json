@@ -36,13 +36,15 @@
         "squizlabs/php_codesniffer": "^3.11",
         "wp-coding-standards/wpcs": "^3.1",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-        "phpcompatibility/phpcompatibility-wp": "^2.1"
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "rector/rector": "^2.5"
     },
     "scripts": {
         "test": "phpunit",
         "analyse": "phpstan analyse",
         "psalm": "./vendor/bin/psalm --no-cache",
         "cs": "phpcs",
-        "cs:fix": "phpcbf"
+        "cs:fix": "phpcbf",
+        "rector:check": "rector process --dry-run"
     }
 }

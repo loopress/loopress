@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Loopress\Tests\Unit\Infrastructure;
 
 use Brain\Monkey;
