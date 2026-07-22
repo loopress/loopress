@@ -13,7 +13,8 @@ tags:
 excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The Loopress plugin does this from the admin panel.
 ---
 
-import composerInstallVideo from '../../../assets/composer-install-admin-ui.webm';
+import composerInstallVideo from '../../videos/composer-install-admin-ui.webm';
+import snippetUsingComposerVideo from '../../videos/snippet-using-composer.webm';
 import PluginDownload from '../../../components/PluginDownload.astro';
 
 You need to add a PHP dependency to a WordPress site. Maybe a PDF generation library, a CSV parser, an image manipulation package. Something available on Packagist.
@@ -47,34 +48,49 @@ Neither option is good.
 
 This is Loopress Full specifically, not Loopress Light (the free edition on wordpress.org). wordpress.org's plugin guidelines don't allow a plugin to install executable code from a third-party registry like Packagist, so this feature ships separately, from [loopress.dev](https://loopress.dev), rather than the official directory. [Here's why](/blog/wordpress-org-composer-rejection/), if you're curious.
 
-Here's the whole flow, in under a minute:
+<PluginDownload edition="full" />
+
+### Installing a package
+
+Here's what that looks like from the admin, in under a minute:
 
 <video controls width="100%" src={composerInstallVideo}>
   <p>Your browser doesn't support HTML5 video. <a href={composerInstallVideo}>Download the video</a> instead.</p>
 </video>
 
-### Installing a package
-
 1. Navigate to **WordPress Admin → Loopress → Dependencies**.
 2. Search for a package by name (`guzzlehttp/guzzle`, or whatever you need). Loopress queries Packagist directly and shows you available versions.
 3. Select the version, click **Install**. Loopress runs `composer require` on the server and installs the package into a managed `vendor/` directory inside the plugin's scope.
-4. Require the autoloader once, then use the package in a code snippet:
+
+### Using it in a snippet
+
+Require the autoloader once, then use the package like any other Composer dependency. Here it is fetching and displaying data from an API in a code snippet:
+
+<video controls width="100%" src={snippetUsingComposerVideo}>
+  <p>Your browser doesn't support HTML5 video. <a href={snippetUsingComposerVideo}>Download the video</a> instead.</p>
+</video>
 
 ```php
 require_once WP_CONTENT_DIR . '/loopress/vendor/autoload.php';
 
 use GuzzleHttp\Client;
 
-add_action('wp_footer', function () {
+add_filter('the_content', function ($content) {
+    if (!in_the_loop() || !is_main_query()) {
+        return $content;
+    }
+
     $client = new Client();
     $response = $client->get('https://jsonplaceholder.typicode.com/posts', ['query' => ['_limit' => 5]]);
     $posts = json_decode($response->getBody()->getContents(), true);
 
-    echo '<ul>';
+    $list = '<ul>';
     foreach ($posts as $post) {
-        echo '<li>' . esc_html($post['title']) . '</li>';
+        $list .= '<li style="color: red">' . esc_html($post['title']) . '</li>';
     }
-    echo '</ul>';
+    $list .= '</ul>';
+
+    return $content . $list;
 });
 ```
 
@@ -105,5 +121,3 @@ If you're building on [Roots/Bedrock](https://roots.io/bedrock/), you already ha
 ---
 
 Loopress Full is a free download, installed like any other plugin zip (**Plugins → Add New → Upload Plugin**), no server configuration required. If you only need snippet sync, Loopress Light is the free edition submitted to the wordpress.org directory instead.
-
-<PluginDownload edition="full" />
