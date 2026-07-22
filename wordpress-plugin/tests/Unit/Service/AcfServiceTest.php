@@ -7,6 +7,7 @@ namespace Loopress\Tests\Unit\Service;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Service\AcfService;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
 
@@ -29,12 +30,16 @@ class AcfServiceTest extends TestCase
 
     // ── isActive ─────────────────────────────────────────────────────────────
 
+    #[RunInSeparateProcess]
     public function test_is_not_active_when_acf_functions_are_missing(): void
     {
         // acf_get_internal_post_type_posts() genuinely doesn't exist in the test
         // environment (ACF isn't loaded), so this exercises the real function_exists()
         // check rather than a stub, same convention as CodeSnippetsSnippetProviderTest's
-        // isActive() coverage.
+        // isActive() coverage. Runs in its own process: Brain\Monkey's function stubbing
+        // is permanent process-wide once used, so another test stubbing this same
+        // function first (order is randomized, e.g. by Infection) would otherwise make
+        // function_exists() return true here regardless of declaration order.
         $this->assertFalse($this->service->isActive());
     }
 

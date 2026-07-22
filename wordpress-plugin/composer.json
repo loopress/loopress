@@ -23,7 +23,8 @@
             "php": "8.2.29"
         },
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "infection/extension-installer": true
         }
     },
     "require-dev": {
@@ -37,7 +38,8 @@
         "wp-coding-standards/wpcs": "^3.1",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
-        "rector/rector": "^2.5"
+        "rector/rector": "^2.5",
+        "infection/infection": "^0.32.6"
     },
     "scripts": {
         "test": "phpunit",
@@ -45,6 +47,7 @@
         "psalm": "./vendor/bin/psalm --no-cache",
         "cs": "phpcs",
         "cs:fix": "phpcbf",
-        "rector:check": "rector process --dry-run"
+        "rector:check": "rector process --dry-run",
+        "mutation": "infection"
     }
 }
