@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\RestApi;
 
+use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Snippets\Service\SnippetService;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class SnippetController
 {
+    use RequiresManageOptionsCapability;
+
     /**
      * Canonical snippet locations, shared across every supported snippet plugin.
      * Each SnippetProvider translates these to/from its own backend's vocabulary.
@@ -26,12 +29,12 @@ class SnippetController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_snippets'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
             [
                 'methods'             => 'POST',
                 'callback'            => [$this, 'create_snippet'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => [
                     'name'                 => ['required' => true,  'type' => 'string'],
                     'code'                 => ['required' => true,  'type' => 'string'],
@@ -51,13 +54,13 @@ class SnippetController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_snippet'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => $this->idArg(),
             ],
             [
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'update_snippet'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => array_merge($this->idArg(), [
                     'name'                 => ['required' => false, 'type' => 'string'],
                     'code'                 => ['required' => false, 'type' => 'string'],
@@ -74,7 +77,7 @@ class SnippetController
             [
                 'methods'             => 'DELETE',
                 'callback'            => [$this, 'delete_snippet'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => $this->idArg(),
             ],
         ]);

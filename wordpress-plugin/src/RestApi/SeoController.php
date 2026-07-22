@@ -10,6 +10,8 @@ use WP_REST_Response;
 
 class SeoController
 {
+    use RequiresManageOptionsCapability;
+
     public function __construct(private SeoService $seoService) {}
 
     public function register_routes(): void
@@ -18,31 +20,31 @@ class SeoController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_post_meta'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
             [
                 'methods'             => 'POST',
                 'callback'            => [$this, 'upsert_post_meta'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
         ]);
 
         register_rest_route('loopress/v1', '/seo/post-meta/(?P<type>[a-z0-9_-]+)/(?P<slug>[^/]+)', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_post_meta'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/seo/settings', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_settings'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
             [
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'update_settings'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
         ]);
 
@@ -50,12 +52,12 @@ class SeoController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_redirects'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
             [
                 'methods'             => 'POST',
                 'callback'            => [$this, 'create_redirect'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
         ]);
 
@@ -63,12 +65,12 @@ class SeoController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_redirect'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
             [
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'update_redirect'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
             ],
         ]);
     }

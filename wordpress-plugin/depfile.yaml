@@ -9,13 +9,18 @@ deptrac:
       collectors:
         - type: classNameRegex
           value: '#^Loopress\\Contract\\Module$#'
+        # Same exact-FQCN carve-out as Contract\Module above: the manage_options permission
+        # check every REST controller uses (US-7), not the whole Loopress\RestApi namespace.
+        - type: classNameRegex
+          value: '#^Loopress\\RestApi\\RequiresManageOptionsCapability$#'
 
     - name: Light
       collectors:
         - type: classNameRegex
           value: '#^Loopress\\Module\\.+$#'
+        # Excludes RequiresManageOptionsCapability, which is Shared (see above), not Light-only.
         - type: classNameRegex
-          value: '#^Loopress\\RestApi\\.+$#'
+          value: '#^Loopress\\RestApi\\(?!RequiresManageOptionsCapability$).+$#'
         - type: classNameRegex
           value: '#^Loopress\\Service\\.+$#'
         - type: classNameRegex

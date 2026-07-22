@@ -10,6 +10,8 @@ use WP_REST_Response;
 
 class AcfController
 {
+    use RequiresManageOptionsCapability;
+
     /** URL-friendly slug (used in the route) => ACF's own internal post type constant. */
     private const TYPE_SLUGS = [
         'field-groups'  => 'acf-field-group',
@@ -26,13 +28,13 @@ class AcfController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_objects'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => $this->typeArg(),
             ],
             [
                 'methods'             => 'POST',
                 'callback'            => [$this, 'upsert_object'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => $this->typeArg(),
             ],
         ]);
@@ -41,13 +43,13 @@ class AcfController
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'get_object'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => array_merge($this->typeArg(), $this->keyArg()),
             ],
             [
                 'methods'             => 'DELETE',
                 'callback'            => [$this, 'delete_object'],
-                'permission_callback' => fn() => current_user_can('manage_options'),
+                'permission_callback' => $this->permissionCallback(),
                 'args'                => array_merge($this->typeArg(), $this->keyArg()),
             ],
         ]);

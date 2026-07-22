@@ -7,11 +7,14 @@ namespace Loopress\Dependencies\RestApi;
 use Composer\Semver\VersionParser;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Loopress\Dependencies\Service\ComposerService;
+use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class ComposerController
 {
+    use RequiresManageOptionsCapability;
+
     public function __construct(private ComposerService $composerService) {}
 
     public function register_routes(): void
@@ -19,7 +22,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/require', [
             'methods'             => 'POST',
             'callback'            => [$this, 'require_package'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
                 'version' => $this->versionArg(required: false, defaultVersion: '*'),
@@ -29,7 +32,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/remove', [
             'methods'             => 'POST',
             'callback'            => [$this, 'remove_package'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
             ],
@@ -38,7 +41,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/versions', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_versions'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
             ],
@@ -47,55 +50,55 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/installed', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_installed'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/repair', [
             'methods'             => 'POST',
             'callback'            => [$this, 'repair'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/diagnostics', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_diagnostics'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/outdated', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_outdated'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/audit', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_audit'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/fix-platform', [
             'methods'             => 'POST',
             'callback'            => [$this, 'fix_platform'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/json', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_json'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/lock', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_lock'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/sync', [
             'methods'             => 'POST',
             'callback'            => [$this, 'sync'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
             'args'                => [
                 'composerJson' => [
                     'required' => true,

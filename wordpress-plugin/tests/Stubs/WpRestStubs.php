@@ -10,13 +10,12 @@ if (!class_exists('WP_REST_Request')) {
     {
         private array $params = [];
         private string $method = '';
-        private string $route = '';
 
         /**
          * Accepts either the real WordPress signature (string $method, string $route) or, for
          * tests that just want to stub params directly, an array of params as the first argument.
          */
-        public function __construct(array|string $methodOrParams = [], string $route = '')
+        public function __construct(array|string $methodOrParams = [], private string $route = '')
         {
             if (is_array($methodOrParams)) {
                 $this->params = $methodOrParams;
@@ -24,7 +23,6 @@ if (!class_exists('WP_REST_Request')) {
             }
 
             $this->method = $methodOrParams;
-            $this->route  = $route;
         }
 
         public function get_param(string $key): mixed
