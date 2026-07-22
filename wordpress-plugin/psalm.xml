@@ -34,6 +34,21 @@
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
+                <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
+                     by Plugin.php and each Feature::definitions()): autowiring and
+                     $container->make() call these reflectively, which Psalm can't trace back
+                     to any literal `new`. -->
+                <referencedMethod name="Loopress\Contract\FeatureProvider::definitions" />
+                <referencedMethod name="Loopress\Contract\FeatureProvider::moduleClasses" />
+                <referencedMethod name="Loopress\Module\AcfModule::__construct" />
+                <referencedMethod name="Loopress\Module\SeoModule::__construct" />
+                <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
+                <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
+                <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />
+                <referencedMethod name="Loopress\Dependencies\Module\ComposerModule::__construct" />
+                <referencedMethod name="Loopress\Update\Module\UpdateCheckModule::__construct" />
+                <referencedMethod name="Loopress\Snippets\Module\SnippetModule::__construct" />
+                <referencedMethod name="Loopress\Snippets\Service\SnippetMigrationService::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
