@@ -70,21 +70,16 @@ use Loopress\Plugin;
 
 /* LOOPRESS_PLUS_START */
 // Stripped from the Loopress Light wordpress.org build by scripts/build-flavor.cjs, together
-// with src/Dependencies/ and uninstall.php: the Light artifact must not contain any reference
-// to the dependency management feature, even an inactive one.
-add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Dependencies\Feature::bootstrap()));
-
-// Same build-time stripping applies to src/Update/: Loopress Light relies exclusively on
-// WordPress.org's own update mechanism and must never carry an update-checking mechanism
-// of its own, even inactive.
-add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Update\Feature::bootstrap()));
-
-// Same build-time stripping applies to src/Snippets/: wordpress.org rejected Loopress Light
-// over this exact capability (REST endpoints that remotely deploy arbitrary PHP/JS/CSS into
-// Code Snippets or WPCode), regardless of the auth/capability checks in front of it. Loopress
-// Light must never carry snippet sync again, even inactive; see
+// with src/Dependencies/, src/Update/, src/Snippets/ and uninstall.php: the Light artifact
+// must not contain any reference to these Plus features, even inactive ones. Snippets in
+// particular: wordpress.org rejected Loopress Light over this exact capability (REST
+// endpoints that remotely deploy arbitrary PHP/JS/CSS into Code Snippets or WPCode),
+// regardless of the auth/capability checks in front of it; see
 // obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection.
-add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, \Loopress\Snippets\Feature::bootstrap()));
+foreach (['Dependencies', 'Update', 'Snippets'] as $loopressPlusFeature) {
+    $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
+    add_filter('loopress_modules', fn(array $modules): array => array_merge($modules, $loopressPlusFeatureClass::bootstrap()));
+}
 /* LOOPRESS_PLUS_END */
 
 // Booting on plugins_loaded rather than at file inclusion; priority 1 because snippet

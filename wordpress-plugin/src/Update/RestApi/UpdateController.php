@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Loopress\Update\RestApi;
 
+use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class UpdateController
 {
+    use RequiresManageOptionsCapability;
+
     public function __construct(private GithubReleaseChecker $checker) {}
 
     public function register_routes(): void
@@ -17,7 +20,7 @@ class UpdateController
         register_rest_route('loopress/v1', '/update', [
             'methods'             => 'GET',
             'callback'            => [$this, 'get_status'],
-            'permission_callback' => fn() => current_user_can('manage_options'),
+            'permission_callback' => $this->permissionCallback(),
         ]);
     }
 

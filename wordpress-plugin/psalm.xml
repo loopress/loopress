@@ -71,5 +71,15 @@
         <!-- require_once ABSPATH . 'wp-admin/includes/...' paths only resolve inside a real
              WordPress install, which isn't present in this analysis environment. -->
         <MissingFile errorLevel="suppress" />
+
+        <!-- Invoked via a dynamic class-string ("\Loopress\{$feature}\Feature"::bootstrap())
+             in loopress.php's Plus-feature loop, which Psalm can't trace back to this call site. -->
+        <UnusedClass>
+            <errorLevel type="suppress">
+                <file name="src/Dependencies/Feature.php" />
+                <file name="src/Update/Feature.php" />
+                <file name="src/Snippets/Feature.php" />
+            </errorLevel>
+        </UnusedClass>
     </issueHandlers>
 </psalm>
