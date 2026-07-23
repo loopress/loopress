@@ -50,6 +50,8 @@
                 <referencedMethod name="Loopress\Update\Module\UpdateCheckModule::__construct" />
                 <referencedMethod name="Loopress\Snippets\Module\SnippetModule::__construct" />
                 <referencedMethod name="Loopress\Snippets\Service\SnippetMigrationService::__construct" />
+                <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
+                <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>

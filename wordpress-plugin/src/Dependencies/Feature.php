@@ -7,8 +7,11 @@ namespace Loopress\Dependencies;
 use Loopress\Contract\FeatureProvider;
 use Loopress\Contract\Module;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Dependencies\Module\ComposerModule;
+use Loopress\Infrastructure\WpHttpClient;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -23,6 +26,7 @@ use function DI\get;
 class Feature implements FeatureProvider
 {
     private const AUTOLOAD_ERROR = 'loopress.dependencies.autoload_error';
+    private const HTTP_CLIENT    = 'loopress.dependencies.http_client';
 
     /** @return array<string, mixed> */
     public static function definitions(): array
@@ -34,6 +38,15 @@ class Feature implements FeatureProvider
                 ),
             ),
             ComposerModule::class => autowire()->constructorParameter('autoloadError', get(self::AUTOLOAD_ERROR)),
+
+            // PackagistClient takes a bare ClientInterface, which PHP-DI can't autowire on its
+            // own (it's an interface); this gives it a WpHttpClient configured with the same
+            // 10s timeout the direct wp_remote_get() call used before US-18.
+            self::HTTP_CLIENT => factory(static fn(ContainerInterface $c): WpHttpClient => new WpHttpClient(
+                $c->get(ResponseFactoryInterface::class),
+                10,
+            )),
+            PackagistClient::class => autowire()->constructorParameter('httpClient', get(self::HTTP_CLIENT)),
         ];
     }
 
