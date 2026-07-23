@@ -29,6 +29,11 @@
       "description": "Directory where SEO settings, post meta, and redirects (RankMath and Yoast SEO, whichever is active) are read from and written to, relative to rootDir.",
       "default": "seo"
     },
+    "formDir": {
+      "type": "string",
+      "description": "Directory where WPForms forms are read from and written to, relative to rootDir.",
+      "default": "forms"
+    },
     "projectId": {
       "type": "string",
       "description": "Project identifier from the global Loopress config. When set, takes precedence over the currently active project in the global config."

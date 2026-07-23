@@ -22,6 +22,7 @@
         <file name="psalm-stubs.php" />
         <file name="code-snippets-stubs.php" />
         <file name="acf-stubs.php" />
+        <file name="wpforms-stubs.php" />
     </stubs>
 
     <issueHandlers>
@@ -35,6 +36,7 @@
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
+                <directory name="src/WpForms/RestApi" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -52,6 +54,7 @@
                 <referencedMethod name="Loopress\Snippets\Service\SnippetMigrationService::__construct" />
                 <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
+                <referencedMethod name="Loopress\WpForms\Module\WpFormsModule::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
@@ -61,6 +64,7 @@
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
+                <directory name="src/WpForms/RestApi" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -73,6 +77,7 @@
                 <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Snippets/RestApi" />
+                <directory name="src/WpForms/RestApi" />
             </errorLevel>
         </PossiblyNullArgument>
 
@@ -99,6 +104,7 @@
                 <file name="src/Dependencies/Feature.php" />
                 <file name="src/Update/Feature.php" />
                 <file name="src/Snippets/Feature.php" />
+                <file name="src/WpForms/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>
