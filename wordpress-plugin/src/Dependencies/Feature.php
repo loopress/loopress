@@ -11,7 +11,6 @@ use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Dependencies\Module\ComposerModule;
 use Loopress\Infrastructure\WpHttpClient;
 use Psr\Container\ContainerInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -42,10 +41,7 @@ class Feature implements FeatureProvider
             // PackagistClient takes a bare ClientInterface, which PHP-DI can't autowire on its
             // own (it's an interface); this gives it a WpHttpClient configured with the same
             // 10s timeout the direct wp_remote_get() call used before US-18.
-            self::HTTP_CLIENT => factory(static fn(ContainerInterface $c): WpHttpClient => new WpHttpClient(
-                $c->get(ResponseFactoryInterface::class),
-                10,
-            )),
+            self::HTTP_CLIENT => factory(static fn(): WpHttpClient => new WpHttpClient(10)),
             PackagistClient::class => autowire()->constructorParameter('httpClient', get(self::HTTP_CLIENT)),
         ];
     }

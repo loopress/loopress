@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace Loopress\Dependencies\Infrastructure;
 
 use Composer\Semver\Semver;
+use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
 
 class PackagistClient
 {
     private const CACHE_TTL = 5 * MINUTE_IN_SECONDS;
 
-    public function __construct(
-        private ClientInterface $httpClient,
-        private RequestFactoryInterface $requestFactory,
-    ) {
+    public function __construct(private ClientInterface $httpClient)
+    {
     }
 
     /**
@@ -44,9 +42,7 @@ class PackagistClient
     private function fetchVersions(string $package): ?array
     {
         try {
-            $response = $this->httpClient->sendRequest(
-                $this->requestFactory->createRequest('GET', "https://packagist.org/packages/{$package}.json"),
-            );
+            $response = $this->httpClient->sendRequest(new Request('GET', "https://packagist.org/packages/{$package}.json"));
         } catch (ClientExceptionInterface $e) {
             throw new \RuntimeException(esc_html($e->getMessage()));
         }

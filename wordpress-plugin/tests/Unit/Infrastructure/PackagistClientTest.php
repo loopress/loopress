@@ -9,7 +9,6 @@ use Brain\Monkey\Functions;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Tests\Stubs\FakeClientException;
 use Loopress\Tests\Stubs\FakeHttpClient;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +22,7 @@ class PackagistClientTest extends TestCase
         parent::setUp();
         Monkey\setUp();
         $this->httpClient = new FakeHttpClient();
-        $this->client      = new PackagistClient($this->httpClient, new Psr17Factory());
+        $this->client      = new PackagistClient($this->httpClient);
     }
 
     protected function tearDown(): void

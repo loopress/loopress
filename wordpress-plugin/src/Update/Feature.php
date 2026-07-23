@@ -9,8 +9,6 @@ use Loopress\Contract\Module;
 use Loopress\Infrastructure\WpHttpClient;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use Loopress\Update\Module\UpdateCheckModule;
-use Psr\Container\ContainerInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -34,10 +32,7 @@ class Feature implements FeatureProvider
             // GithubReleaseChecker takes a bare ClientInterface, which PHP-DI can't autowire
             // on its own (it's an interface); this gives it a WpHttpClient configured with the
             // same 5s timeout the direct wp_remote_get() call used before US-18.
-            self::HTTP_CLIENT => factory(static fn(ContainerInterface $c): WpHttpClient => new WpHttpClient(
-                $c->get(ResponseFactoryInterface::class),
-                5,
-            )),
+            self::HTTP_CLIENT => factory(static fn(): WpHttpClient => new WpHttpClient(5)),
             GithubReleaseChecker::class => autowire()->constructorParameter('httpClient', get(self::HTTP_CLIENT)),
         ];
     }

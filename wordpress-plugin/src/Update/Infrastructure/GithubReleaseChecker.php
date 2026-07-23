@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Update\Infrastructure;
 
+use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
 
 class GithubReleaseChecker
 {
@@ -16,10 +16,8 @@ class GithubReleaseChecker
     // The repo also publishes @loopress/cli releases; only the wordpress-plugin@ tag is ours.
     private const TAG_PREFIX = 'wordpress-plugin@';
 
-    public function __construct(
-        private ClientInterface $httpClient,
-        private RequestFactoryInterface $requestFactory,
-    ) {
+    public function __construct(private ClientInterface $httpClient)
+    {
     }
 
     /**
@@ -47,9 +45,7 @@ class GithubReleaseChecker
     private function fetchLatestVersion(): ?string
     {
         try {
-            $response = $this->httpClient->sendRequest(
-                $this->requestFactory->createRequest('GET', self::RELEASES_URL),
-            );
+            $response = $this->httpClient->sendRequest(new Request('GET', self::RELEASES_URL));
         } catch (ClientExceptionInterface) {
             return null;
         }

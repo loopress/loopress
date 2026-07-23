@@ -6,12 +6,6 @@ namespace Loopress;
 
 use DI\Container;
 use DI\ContainerBuilder;
-use Nyholm\Psr7\Factory\Psr17Factory;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
-
-use function DI\autowire;
-use function DI\get;
 
 /**
  * Single composition root for the plugin's PHP-DI container. Compilation skips PHP-DI's
@@ -24,8 +18,6 @@ class ContainerFactory
     /** @param array<string, mixed> $definitions */
     public static function create(array $definitions): Container
     {
-        $definitions = array_merge(self::baseDefinitions(), $definitions);
-
         if (!(defined('WP_DEBUG') && WP_DEBUG)) {
             // Compilation writes to disk on first boot; some hosts won't let the webserver
             // user write there (e.g. plugin files installed as a different user), which
@@ -48,23 +40,6 @@ class ContainerFactory
         $builder->addDefinitions($definitions);
 
         return $builder->build();
-    }
-
-    /**
-     * Bindings every feature can rely on regardless of which Plus features are active:
-     * currently just the PSR-17 factory backing WpHttpClient (US-18), shared as a single
-     * instance under both interfaces it implements rather than autowired separately per
-     * interface, which would otherwise construct two redundant (if harmless) instances.
-     *
-     * @return array<string, mixed>
-     */
-    private static function baseDefinitions(): array
-    {
-        return [
-            Psr17Factory::class             => autowire(),
-            RequestFactoryInterface::class  => get(Psr17Factory::class),
-            ResponseFactoryInterface::class => get(Psr17Factory::class),
-        ];
     }
 
     private static function cacheDir(): string

@@ -9,7 +9,6 @@ use Brain\Monkey\Functions;
 use Loopress\Tests\Stubs\FakeClientException;
 use Loopress\Tests\Stubs\FakeHttpClient;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +22,7 @@ class GithubReleaseCheckerTest extends TestCase
         parent::setUp();
         Monkey\setUp();
         $this->httpClient = new FakeHttpClient();
-        $this->checker    = new GithubReleaseChecker($this->httpClient, new Psr17Factory());
+        $this->checker    = new GithubReleaseChecker($this->httpClient);
     }
 
     protected function tearDown(): void
