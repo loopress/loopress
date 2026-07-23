@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\Infrastructure;
+namespace Loopress\Tests\Unit\Dependencies\Infrastructure;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
