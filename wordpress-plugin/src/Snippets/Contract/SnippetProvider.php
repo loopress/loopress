@@ -8,17 +8,14 @@ interface SnippetProvider
 {
     public function isActive(): bool;
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return array<int, SnippetData> */
     public function getSnippets(): array;
 
-    /** @return array<string, mixed>|null */
-    public function getSnippet(int $id): ?array;
+    public function getSnippet(int $id): ?SnippetData;
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function createSnippet(array $data): array;
+    public function createSnippet(SnippetData $data): SnippetData;
 
-    /** @param array<string, mixed> $data @return array<string, mixed>|null */
-    public function updateSnippet(int $id, array $data): ?array;
+    public function updateSnippet(int $id, SnippetData $data): ?SnippetData;
 
     public function deleteSnippet(int $id): bool;
 }
