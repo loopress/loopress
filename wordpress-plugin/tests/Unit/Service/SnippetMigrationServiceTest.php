@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Service;
 
+use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -46,12 +48,13 @@ class SnippetMigrationServiceTest extends TestCase
 
     public function test_get_migratable_snippets_returns_source_snippets_when_source_active(): void
     {
-        $source = $this->provider(true);
-        $source->method('getSnippets')->willReturn([['id' => 1]]);
+        $source   = $this->provider(true);
+        $snippets = [new SnippetData(id: 1)];
+        $source->method('getSnippets')->willReturn($snippets);
 
         $service = new SnippetMigrationService($source, $this->provider(false));
 
-        $this->assertSame([['id' => 1]], $service->getMigratableSnippets());
+        $this->assertSame($snippets, $service->getMigratableSnippets());
     }
 
     public function test_get_migratable_snippets_returns_empty_array_when_source_inactive(): void
@@ -70,7 +73,7 @@ class SnippetMigrationServiceTest extends TestCase
     {
         $service = new SnippetMigrationService($this->provider(false), $this->provider(true));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $service->migrate([1]);
     }
 
@@ -78,7 +81,7 @@ class SnippetMigrationServiceTest extends TestCase
     {
         $service = new SnippetMigrationService($this->provider(true), $this->provider(false));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $service->migrate([1]);
     }
 
@@ -86,7 +89,7 @@ class SnippetMigrationServiceTest extends TestCase
     {
         $service = new SnippetMigrationService($this->provider(false), $this->provider(false));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $service->migrate([1]);
     }
 
@@ -94,14 +97,14 @@ class SnippetMigrationServiceTest extends TestCase
 
     public function test_migrate_happy_path_creates_in_destination_then_deactivates_source(): void
     {
-        $snippet = ['id' => 1, 'name' => 'Tracking script', 'code' => '<script></script>'];
+        $snippet = new SnippetData(id: 1, name: 'Tracking script', code: '<script></script>');
 
         $source = $this->provider(true);
         $source->method('getSnippet')->with(1)->willReturn($snippet);
-        $source->expects($this->once())->method('updateSnippet')->with(1, ['active' => false]);
+        $source->expects($this->once())->method('updateSnippet')->with(1, new SnippetData(active: false));
 
         $destination = $this->provider(true);
-        $destination->expects($this->once())->method('createSnippet')->with($snippet);
+        $destination->expects($this->once())->method('createSnippet')->with($snippet)->willReturn($snippet);
 
         $service = new SnippetMigrationService($source, $destination);
 
@@ -126,7 +129,7 @@ class SnippetMigrationServiceTest extends TestCase
 
     public function test_migrate_reports_error_and_does_not_deactivate_source_when_destination_create_throws(): void
     {
-        $snippet = ['id' => 1, 'name' => 'Body snippet', 'location' => 'body'];
+        $snippet = new SnippetData(id: 1, name: 'Body snippet', location: 'body');
 
         $source = $this->provider(true);
         $source->method('getSnippet')->with(1)->willReturn($snippet);
@@ -147,7 +150,7 @@ class SnippetMigrationServiceTest extends TestCase
 
     public function test_migrate_reports_migrated_with_warning_when_deactivation_fails_after_successful_create(): void
     {
-        $snippet = ['id' => 1, 'name' => 'Tracking script'];
+        $snippet = new SnippetData(id: 1, name: 'Tracking script');
 
         $source = $this->provider(true);
         $source->method('getSnippet')->with(1)->willReturn($snippet);
@@ -169,14 +172,14 @@ class SnippetMigrationServiceTest extends TestCase
     {
         $source = $this->provider(true);
         $source->method('getSnippet')->willReturnMap([
-            [1, ['id' => 1, 'name' => 'OK']],
+            [1, new SnippetData(id: 1, name: 'OK')],
             [2, null],
-            [3, ['id' => 3, 'name' => 'Bad location']],
+            [3, new SnippetData(id: 3, name: 'Bad location')],
         ]);
 
         $destination = $this->provider(true);
-        $destination->method('createSnippet')->willReturnCallback(function (array $snippet) {
-            if ($snippet['id'] === 3) {
+        $destination->method('createSnippet')->willReturnCallback(function (SnippetData $snippet) {
+            if ($snippet->id === 3) {
                 throw new \RuntimeException('Unsupported location.');
             }
             return $snippet;
@@ -201,7 +204,7 @@ class SnippetMigrationServiceTest extends TestCase
     public function test_migrate_deduplicates_ids(): void
     {
         $source = $this->provider(true);
-        $source->method('getSnippet')->with(1)->willReturn(['id' => 1]);
+        $source->method('getSnippet')->with(1)->willReturn(new SnippetData(id: 1));
 
         $destination = $this->provider(true);
         $destination->expects($this->once())->method('createSnippet');

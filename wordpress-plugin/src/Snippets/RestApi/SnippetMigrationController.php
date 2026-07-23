@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Snippets\RestApi;
 
 use Loopress\RestApi\RequiresManageOptionsCapability;
+use Loopress\Snippets\Contract\SnippetData;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -48,7 +50,7 @@ class SnippetMigrationController
         return new WP_REST_Response([
             'sourceActive'      => $service->sourceActive(),
             'destinationActive' => $service->destinationActive(),
-            'snippets'          => $service->getMigratableSnippets(),
+            'snippets'          => array_map(static fn(SnippetData $s): array => $s->toArray(), $service->getMigratableSnippets()),
         ], 200);
     }
 
@@ -59,13 +61,15 @@ class SnippetMigrationController
         if (!$service->isReady()) {
             return new WP_REST_Response(
                 ['error' => 'Both a source and destination snippet plugin must be active to migrate.'],
-                400,
+                409,
             );
         }
 
         try {
             $ids     = array_map('intval', (array) $request->get_param('ids'));
             $results = $service->migrate($ids);
+        } catch (NoActiveSnippetPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }

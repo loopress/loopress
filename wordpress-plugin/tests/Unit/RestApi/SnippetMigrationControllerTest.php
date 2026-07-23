@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
+use Loopress\Snippets\Contract\SnippetData;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\RestApi\SnippetMigrationController;
 use Loopress\Snippets\Service\SnippetMigrationService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -100,7 +102,7 @@ class SnippetMigrationControllerTest extends TestCase
     {
         $this->wpCodeToCodeSnippets->method('sourceActive')->willReturn(true);
         $this->wpCodeToCodeSnippets->method('destinationActive')->willReturn(true);
-        $this->wpCodeToCodeSnippets->method('getMigratableSnippets')->willReturn([['id' => 1]]);
+        $this->wpCodeToCodeSnippets->method('getMigratableSnippets')->willReturn([new SnippetData(id: 1)]);
 
         $request  = new WP_REST_Request(['direction' => 'wpcode-to-code-snippets']);
         $response = $this->controller->get_migration_status($request);
@@ -130,7 +132,7 @@ class SnippetMigrationControllerTest extends TestCase
 
     // ── migrate ───────────────────────────────────────────────────────────────
 
-    public function test_migrate_returns_400_when_not_ready(): void
+    public function test_migrate_returns_409_when_not_ready(): void
     {
         $this->wpCodeToCodeSnippets->method('isReady')->willReturn(false);
         $this->wpCodeToCodeSnippets->expects($this->never())->method('migrate');
@@ -138,7 +140,20 @@ class SnippetMigrationControllerTest extends TestCase
         $request  = new WP_REST_Request(['direction' => 'wpcode-to-code-snippets', 'ids' => [1]]);
         $response = $this->controller->migrate($request);
 
-        $this->assertSame(400, $response->status);
+        $this->assertSame(409, $response->status);
+    }
+
+    public function test_migrate_returns_409_when_service_throws_no_active_snippet_plugin(): void
+    {
+        $this->wpCodeToCodeSnippets->method('isReady')->willReturn(true);
+        $this->wpCodeToCodeSnippets->method('migrate')->willThrowException(
+            new NoActiveSnippetPluginException('Both a source and destination snippet plugin must be active to migrate.'),
+        );
+
+        $request  = new WP_REST_Request(['direction' => 'wpcode-to-code-snippets', 'ids' => [1]]);
+        $response = $this->controller->migrate($request);
+
+        $this->assertSame(409, $response->status);
     }
 
     public function test_migrate_returns_200_with_per_item_results_on_success(): void

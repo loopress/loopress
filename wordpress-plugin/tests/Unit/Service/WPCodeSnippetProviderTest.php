@@ -6,6 +6,10 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Snippets\Contract\SnippetData;
+use Loopress\Snippets\Contract\SnippetType;
+use Loopress\Snippets\Exception\SnippetProviderRequestException;
+use Loopress\Snippets\Exception\UnsupportedLocationException;
 use Loopress\Snippets\Infrastructure\WPCodeSnippetProvider;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
@@ -44,7 +48,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         Functions\expect('wp_set_post_terms')->never();
 
-        $this->service->updateSnippet(6, ['name' => 'New title']);
+        $this->service->updateSnippet(6, new SnippetData(name: 'New title'));
         $this->addToAssertionCount(1);
     }
 
@@ -56,7 +60,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, ['text'], 'wpcode_type');
 
-        $this->service->updateSnippet(6, ['type' => 'text']);
+        $this->service->updateSnippet(6, new SnippetData(type: SnippetType::Text));
         $this->addToAssertionCount(1);
     }
 
@@ -68,7 +72,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, ['site_wide_footer'], 'wpcode_location');
 
-        $this->service->updateSnippet(6, ['location' => 'footer']);
+        $this->service->updateSnippet(6, new SnippetData(location: 'footer'));
         $this->addToAssertionCount(1);
     }
 
@@ -76,9 +80,9 @@ class WPCodeSnippetProviderTest extends TestCase
     {
         $this->stubExistingSnippet(6, typeTerms: ['css']);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(UnsupportedLocationException::class);
 
-        $this->service->updateSnippet(6, ['location' => 'admin']);
+        $this->service->updateSnippet(6, new SnippetData(location: 'admin'));
     }
 
     public function test_update_snippet_accepts_universal_location_for_any_type(): void
@@ -89,7 +93,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, ['site_wide_header'], 'wpcode_location');
 
-        $this->service->updateSnippet(6, ['location' => 'header']);
+        $this->service->updateSnippet(6, new SnippetData(location: 'header'));
         $this->addToAssertionCount(1);
     }
 
@@ -99,7 +103,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         Functions\expect('update_post_meta')->never();
 
-        $this->service->updateSnippet(6, ['name' => 'New title']);
+        $this->service->updateSnippet(6, new SnippetData(name: 'New title'));
         $this->addToAssertionCount(1);
     }
 
@@ -111,7 +115,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, '_wpcode_auto_insert', 0);
 
-        $this->service->updateSnippet(6, ['insertMethod' => 'shortcode']);
+        $this->service->updateSnippet(6, new SnippetData(insertMethod: 'shortcode'));
         $this->addToAssertionCount(1);
     }
 
@@ -123,7 +127,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, '_wpcode_auto_insert', 1);
 
-        $this->service->updateSnippet(6, ['insertMethod' => 'auto']);
+        $this->service->updateSnippet(6, new SnippetData(insertMethod: 'auto'));
         $this->addToAssertionCount(1);
     }
 
@@ -135,7 +139,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, '_wpcode_priority', 20);
 
-        $this->service->updateSnippet(6, ['priority' => 20]);
+        $this->service->updateSnippet(6, new SnippetData(priority: 20));
         $this->addToAssertionCount(1);
     }
 
@@ -147,7 +151,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, '_wpcode_shortcode_attributes', ['color', 'size']);
 
-        $this->service->updateSnippet(6, ['shortcodeAttributes' => ['color', 'size']]);
+        $this->service->updateSnippet(6, new SnippetData(shortcodeAttributes: ['color', 'size']));
         $this->addToAssertionCount(1);
     }
 
@@ -159,7 +163,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('text', $result['type']);
+        $this->assertSame(SnippetType::Text, $result->type);
     }
 
     public function test_get_snippet_falls_back_to_php_only_when_no_type_term_is_set(): void
@@ -168,7 +172,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('php', $result['type']);
+        $this->assertSame(SnippetType::Php, $result->type);
     }
 
     public function test_get_snippet_reports_the_stored_location_as_canonical_value(): void
@@ -177,7 +181,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('header', $result['location']);
+        $this->assertSame('header', $result->location);
     }
 
     public function test_get_snippet_falls_back_to_default_location_for_type_when_no_location_term_is_set(): void
@@ -186,7 +190,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('header', $result['location']);
+        $this->assertSame('header', $result->location);
     }
 
     public function test_get_snippet_defaults_priority_to_10_when_meta_is_empty(): void
@@ -195,7 +199,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame(10, $result['priority']);
+        $this->assertSame(10, $result->priority);
     }
 
     public function test_get_snippet_reports_the_stored_priority(): void
@@ -204,7 +208,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame(5, $result['priority']);
+        $this->assertSame(5, $result->priority);
     }
 
     public function test_get_snippet_defaults_insert_method_to_auto_when_meta_is_empty(): void
@@ -213,7 +217,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('auto', $result['insertMethod']);
+        $this->assertSame('auto', $result->insertMethod);
     }
 
     public function test_get_snippet_reports_insert_method_shortcode_when_auto_insert_is_disabled(): void
@@ -222,7 +226,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame('shortcode', $result['insertMethod']);
+        $this->assertSame('shortcode', $result->insertMethod);
     }
 
     public function test_get_snippet_reports_shortcode_attributes(): void
@@ -231,7 +235,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame(['color', 'size'], $result['shortcodeAttributes']);
+        $this->assertSame(['color', 'size'], $result->shortcodeAttributes);
     }
 
     public function test_get_snippet_defaults_shortcode_attributes_to_empty_array(): void
@@ -240,7 +244,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $result = $this->service->getSnippet(6);
 
-        $this->assertSame([], $result['shortcodeAttributes']);
+        $this->assertSame([], $result->shortcodeAttributes);
     }
 
     // ── createSnippet error handling ─────────────────────────────────────────
@@ -255,10 +259,10 @@ class WPCodeSnippetProviderTest extends TestCase
         Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
         Functions\expect('update_post_meta')->never();
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(SnippetProviderRequestException::class);
         $this->expectExceptionMessage('Could not insert post.');
 
-        $this->service->createSnippet(['name' => 'Broken', 'code' => 'echo 1;']);
+        $this->service->createSnippet(new SnippetData(name: 'Broken', code: 'echo 1;'));
     }
 
     public function test_update_snippet_throws_when_wp_update_post_fails(): void
@@ -267,10 +271,10 @@ class WPCodeSnippetProviderTest extends TestCase
         Functions\when('wp_update_post')->justReturn(new \WP_Error('db_update_error', 'Could not update post.'));
         Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(SnippetProviderRequestException::class);
         $this->expectExceptionMessage('Could not update post.');
 
-        $this->service->updateSnippet(6, ['name' => 'New title']);
+        $this->service->updateSnippet(6, new SnippetData(name: 'New title'));
     }
 
     // ── setTags (via updateSnippet) ──────────────────────────────────────────
@@ -285,7 +289,7 @@ class WPCodeSnippetProviderTest extends TestCase
             ->once()
             ->with(6, ['php', 'utility'], 'wpcode_tags');
 
-        $this->service->updateSnippet(6, ['tags' => ['php', 'utility']]);
+        $this->service->updateSnippet(6, new SnippetData(tags: ['php', 'utility']));
         $this->addToAssertionCount(1);
     }
 
@@ -295,7 +299,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         Functions\expect('wp_set_post_terms')->never();
 
-        $this->service->updateSnippet(6, ['name' => 'New title']);
+        $this->service->updateSnippet(6, new SnippetData(name: 'New title'));
         $this->addToAssertionCount(1);
     }
 

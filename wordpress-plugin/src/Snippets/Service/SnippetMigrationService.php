@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Service;
 
+use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 
 // Deliberately not built on top of SnippetService: that class requires exactly one
 // provider to be active (see requireActiveProvider()), which is the right invariant for
@@ -33,7 +35,7 @@ class SnippetMigrationService
         return $this->sourceActive() && $this->destinationActive();
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return array<int, SnippetData> */
     public function getMigratableSnippets(): array
     {
         return $this->sourceActive() ? $this->source->getSnippets() : [];
@@ -46,7 +48,7 @@ class SnippetMigrationService
     public function migrate(array $ids): array
     {
         if (!$this->isReady()) {
-            throw new \RuntimeException('Both a source and destination snippet plugin must be active to migrate.');
+            throw new NoActiveSnippetPluginException('Both a source and destination snippet plugin must be active to migrate.');
         }
 
         return array_map(fn(int $id): array => $this->migrateOne($id), array_values(array_unique($ids)));
@@ -67,7 +69,7 @@ class SnippetMigrationService
         }
 
         try {
-            $this->source->updateSnippet($id, ['active' => false]);
+            $this->source->updateSnippet($id, new SnippetData(active: false));
         } catch (\RuntimeException $e) {
             // The copy already exists at the destination at this point: reporting 'error'
             // here would invite a retry that duplicates it. Surface a warning instead so

@@ -6,6 +6,10 @@ namespace Loopress\Tests\Unit\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Snippets\Contract\SnippetData;
+use Loopress\Snippets\Contract\SnippetType;
+use Loopress\Snippets\Exception\SnippetProviderRequestException;
+use Loopress\Snippets\Exception\UnsupportedLocationException;
 use Loopress\Snippets\Infrastructure\CodeSnippetsSnippetProvider;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
@@ -49,13 +53,13 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         $result = $this->provider->getSnippets();
 
         $this->assertCount(1, $result);
-        $this->assertSame(1, $result[0]['id']);
-        $this->assertSame('One', $result[0]['name']);
-        $this->assertSame('A snippet', $result[0]['description']);
-        $this->assertSame('php', $result[0]['type']);
-        $this->assertSame('everywhere', $result[0]['location']);
-        $this->assertSame(5, $result[0]['priority']);
-        $this->assertSame(['php'], $result[0]['tags']);
+        $this->assertSame(1, $result[0]->id);
+        $this->assertSame('One', $result[0]->name);
+        $this->assertSame('A snippet', $result[0]->description);
+        $this->assertSame(SnippetType::Php, $result[0]->type);
+        $this->assertSame('everywhere', $result[0]->location);
+        $this->assertSame(5, $result[0]->priority);
+        $this->assertSame(['php'], $result[0]->tags);
     }
 
     public function test_get_snippets_excludes_trashed_snippets(): void
@@ -76,7 +80,19 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         $result = $this->provider->getSnippets();
 
         $this->assertCount(1, $result);
-        $this->assertSame(1, $result[0]['id']);
+        $this->assertSame(1, $result[0]->id);
+    }
+
+    public function test_get_snippets_throws_a_provider_request_exception_when_the_dispatch_fails(): void
+    {
+        Functions\when('rest_do_request')->alias(fn() => new WP_REST_Response(
+            new \WP_Error('rest_no_route', 'No route was found matching the URL and request method.'),
+            404,
+        ));
+
+        $this->expectException(SnippetProviderRequestException::class);
+
+        $this->provider->getSnippets();
     }
 
     // ── getSnippet ────────────────────────────────────────────────────────────
@@ -92,9 +108,9 @@ class CodeSnippetsSnippetProviderTest extends TestCase
 
         $result = $this->provider->getSnippet(7);
 
-        $this->assertSame(7, $result['id']);
-        $this->assertSame('css', $result['type']);
-        $this->assertSame('admin', $result['location']);
+        $this->assertSame(7, $result->id);
+        $this->assertSame(SnippetType::Css, $result->type);
+        $this->assertSame('admin', $result->location);
     }
 
     public function test_get_snippet_returns_null_when_the_request_errors(): void
@@ -141,31 +157,31 @@ class CodeSnippetsSnippetProviderTest extends TestCase
             return new WP_REST_Response(['active' => true, 'code' => 'echo 1;', 'desc' => 'A description', 'id' => 10, 'name' => 'New', 'scope' => 'front-end'], 201);
         });
 
-        $result = $this->provider->createSnippet([
-            'active'      => true,
-            'code'        => 'echo 1;',
-            'description' => 'A description',
-            'location'    => 'frontend',
-            'name'        => 'New',
-            'type'        => 'php',
-        ]);
+        $result = $this->provider->createSnippet(new SnippetData(
+            active: true,
+            code: 'echo 1;',
+            description: 'A description',
+            location: 'frontend',
+            name: 'New',
+            type: SnippetType::Php,
+        ));
 
-        $this->assertSame(10, $result['id']);
-        $this->assertSame('frontend', $result['location']);
+        $this->assertSame(10, $result->id);
+        $this->assertSame('frontend', $result->location);
     }
 
     public function test_create_snippet_throws_for_unsupported_type_location_combination(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(UnsupportedLocationException::class);
 
-        $this->provider->createSnippet(['location' => 'body', 'name' => 'x', 'type' => 'css']);
+        $this->provider->createSnippet(new SnippetData(location: 'body', name: 'x', type: SnippetType::Css));
     }
 
     public function test_create_snippet_throws_for_text_type(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(UnsupportedLocationException::class);
 
-        $this->provider->createSnippet(['location' => 'everywhere', 'name' => 'x', 'type' => 'text']);
+        $this->provider->createSnippet(new SnippetData(location: 'everywhere', name: 'x', type: SnippetType::Text));
     }
 
     // ── updateSnippet ─────────────────────────────────────────────────────────
@@ -179,16 +195,16 @@ class CodeSnippetsSnippetProviderTest extends TestCase
             return new WP_REST_Response(['active' => true, 'code' => '', 'id' => 3, 'name' => 'Updated', 'scope' => 'global'], 200);
         });
 
-        $result = $this->provider->updateSnippet(3, ['name' => 'Updated']);
+        $result = $this->provider->updateSnippet(3, new SnippetData(name: 'Updated'));
 
-        $this->assertSame('Updated', $result['name']);
+        $this->assertSame('Updated', $result->name);
     }
 
     public function test_update_snippet_returns_null_when_the_request_errors(): void
     {
         Functions\when('rest_do_request')->justReturn(new WP_REST_Response(new \WP_Error('not_found', 'Snippet not found.'), 404));
 
-        $this->assertNull($this->provider->updateSnippet(999, ['name' => 'x']));
+        $this->assertNull($this->provider->updateSnippet(999, new SnippetData(name: 'x')));
     }
 
     // ── deleteSnippet ─────────────────────────────────────────────────────────

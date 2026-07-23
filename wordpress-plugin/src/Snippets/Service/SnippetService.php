@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Service;
 
+use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 
 class SnippetService
 {
@@ -21,26 +23,23 @@ class SnippetService
         return $this->activeProviders() !== [];
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return array<int, SnippetData> */
     public function getSnippets(): array
     {
         return $this->requireActiveProvider()->getSnippets();
     }
 
-    /** @return array<string, mixed>|null */
-    public function getSnippet(int $id): ?array
+    public function getSnippet(int $id): ?SnippetData
     {
         return $this->requireActiveProvider()->getSnippet($id);
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function createSnippet(array $data): array
+    public function createSnippet(SnippetData $data): SnippetData
     {
         return $this->requireActiveProvider()->createSnippet($data);
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed>|null */
-    public function updateSnippet(int $id, array $data): ?array
+    public function updateSnippet(int $id, SnippetData $data): ?SnippetData
     {
         return $this->requireActiveProvider()->updateSnippet($id, $data);
     }
@@ -68,12 +67,12 @@ class SnippetService
         $active = $this->activeProviders();
 
         if (count($active) > 1) {
-            throw new \RuntimeException(
+            throw new NoActiveSnippetPluginException(
                 'Multiple snippet plugins are active at once (Code Snippets and WPCode). Loopress cannot tell ' .
                 'which one is authoritative for your snippets. Deactivate all but one and try again.',
             );
         }
 
-        return $active[0] ?? throw new \RuntimeException('No supported snippet plugin is active.');
+        return $active[0] ?? throw new NoActiveSnippetPluginException('No supported snippet plugin is active.');
     }
 }

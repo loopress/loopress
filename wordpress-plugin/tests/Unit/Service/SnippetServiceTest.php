@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Service;
 
+use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\Service\SnippetService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -39,18 +41,19 @@ class SnippetServiceTest extends TestCase
         $inactive->expects($this->never())->method('getSnippets');
 
         $active = $this->provider(true);
-        $active->method('getSnippets')->willReturn([['id' => 1]]);
+        $snippets = [new SnippetData(id: 1)];
+        $active->method('getSnippets')->willReturn($snippets);
 
         $service = new SnippetService($inactive, $active);
 
-        $this->assertSame([['id' => 1]], $service->getSnippets());
+        $this->assertSame($snippets, $service->getSnippets());
     }
 
     public function test_get_snippets_throws_when_no_provider_is_active(): void
     {
         $service = new SnippetService($this->provider(false));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $service->getSnippets();
     }
 
@@ -64,7 +67,7 @@ class SnippetServiceTest extends TestCase
 
         $service = new SnippetService($first, $second);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $this->expectExceptionMessage('Multiple snippet plugins are active');
         $service->getSnippets();
     }
@@ -80,32 +83,40 @@ class SnippetServiceTest extends TestCase
 
     public function test_create_snippet_delegates_to_active_provider(): void
     {
+        $input  = new SnippetData(name: 'New');
+        $result = new SnippetData(id: 2, name: 'New');
+
         $active = $this->provider(true);
-        $active->method('createSnippet')->with(['title' => 'New'])->willReturn(['id' => 2]);
+        $active->method('createSnippet')->with($input)->willReturn($result);
 
         $service = new SnippetService($active);
 
-        $this->assertSame(['id' => 2], $service->createSnippet(['title' => 'New']));
+        $this->assertSame($result, $service->createSnippet($input));
     }
 
     public function test_update_snippet_delegates_to_active_provider(): void
     {
+        $input  = new SnippetData(name: 'Updated');
+        $result = new SnippetData(id: 2, name: 'Updated');
+
         $active = $this->provider(true);
-        $active->method('updateSnippet')->with(2, ['title' => 'Updated'])->willReturn(['id' => 2]);
+        $active->method('updateSnippet')->with(2, $input)->willReturn($result);
 
         $service = new SnippetService($active);
 
-        $this->assertSame(['id' => 2], $service->updateSnippet(2, ['title' => 'Updated']));
+        $this->assertSame($result, $service->updateSnippet(2, $input));
     }
 
     public function test_get_snippet_delegates_to_active_provider(): void
     {
+        $result = new SnippetData(id: 2);
+
         $active = $this->provider(true);
-        $active->method('getSnippet')->with(2)->willReturn(['id' => 2]);
+        $active->method('getSnippet')->with(2)->willReturn($result);
 
         $service = new SnippetService($active);
 
-        $this->assertSame(['id' => 2], $service->getSnippet(2));
+        $this->assertSame($result, $service->getSnippet(2));
     }
 
     public function test_delete_snippet_delegates_to_active_provider(): void
@@ -122,7 +133,7 @@ class SnippetServiceTest extends TestCase
     {
         $service = new SnippetService($this->provider(false));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSnippetPluginException::class);
         $service->deleteSnippet(2);
     }
 }

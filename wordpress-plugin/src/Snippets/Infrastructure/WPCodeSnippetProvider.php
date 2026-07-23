@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Infrastructure;
 
+use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
+use Loopress\Snippets\Contract\SnippetType;
+use Loopress\Snippets\Exception\SnippetProviderRequestException;
+use Loopress\Snippets\Exception\UnsupportedLocationException;
 
 class WPCodeSnippetProvider implements SnippetProvider
 {
@@ -51,7 +55,7 @@ class WPCodeSnippetProvider implements SnippetProvider
         return post_type_exists(self::POST_TYPE);
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return array<int, SnippetData> */
     public function getSnippets(): array
     {
         $posts = get_posts([
@@ -63,8 +67,7 @@ class WPCodeSnippetProvider implements SnippetProvider
         return array_map([$this, 'normalize'], $posts);
     }
 
-    /** @return array<string, mixed>|null */
-    public function getSnippet(int $id): ?array
+    public function getSnippet(int $id): ?SnippetData
     {
         $post = get_post($id);
         if (!$post instanceof \WP_Post || $post->post_type !== self::POST_TYPE) {
@@ -74,27 +77,25 @@ class WPCodeSnippetProvider implements SnippetProvider
         return $this->normalize($post);
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function createSnippet(array $data): array
+    public function createSnippet(SnippetData $data): SnippetData
     {
         $id = wp_insert_post([
             'post_type'    => self::POST_TYPE,
-            'post_title'   => sanitize_text_field($data['name'] ?? ''),
-            'post_content' => wp_unslash($data['code'] ?? ''),
-            'post_status'  => !empty($data['active']) ? 'publish' : 'draft',
+            'post_title'   => sanitize_text_field($data->name ?? ''),
+            'post_content' => wp_unslash($data->code ?? ''),
+            'post_status'  => !empty($data->active) ? 'publish' : 'draft',
         ], true);
 
         if (is_wp_error($id)) {
-            throw new \RuntimeException('Failed to create snippet: ' . esc_html($id->get_error_message()));
+            throw new SnippetProviderRequestException('Failed to create snippet: ' . esc_html($id->get_error_message()));
         }
 
         $this->saveMeta($id, $data);
 
-        return $this->getSnippet($id) ?? [];
+        return $this->getSnippet($id) ?? new SnippetData();
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed>|null */
-    public function updateSnippet(int $id, array $data): ?array
+    public function updateSnippet(int $id, SnippetData $data): ?SnippetData
     {
         $post = get_post($id);
         if (!$post instanceof \WP_Post || $post->post_type !== self::POST_TYPE) {
@@ -103,19 +104,19 @@ class WPCodeSnippetProvider implements SnippetProvider
 
         $update = ['ID' => $id];
 
-        if (isset($data['name'])) {
-            $update['post_title'] = sanitize_text_field($data['name']);
+        if ($data->name !== null) {
+            $update['post_title'] = sanitize_text_field($data->name);
         }
-        if (isset($data['code'])) {
-            $update['post_content'] = wp_unslash($data['code']);
+        if ($data->code !== null) {
+            $update['post_content'] = wp_unslash($data->code);
         }
-        if (isset($data['active'])) {
-            $update['post_status'] = $data['active'] ? 'publish' : 'draft';
+        if ($data->active !== null) {
+            $update['post_status'] = $data->active ? 'publish' : 'draft';
         }
 
         $result = wp_update_post($update, true);
         if (is_wp_error($result)) {
-            throw new \RuntimeException('Failed to update snippet: ' . esc_html($result->get_error_message()));
+            throw new SnippetProviderRequestException('Failed to update snippet: ' . esc_html($result->get_error_message()));
         }
 
         $this->saveMeta($id, $data);
@@ -133,8 +134,7 @@ class WPCodeSnippetProvider implements SnippetProvider
         return wp_delete_post($id, true) instanceof \WP_Post;
     }
 
-    /** @return array<string, mixed> */
-    private function normalize(\WP_Post $post): array
+    private function normalize(\WP_Post $post): SnippetData
     {
         $terms               = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'names']);
         $typeTerm            = $this->getSingleTerm($post->ID, self::TYPE_TAXONOMY);
@@ -143,21 +143,21 @@ class WPCodeSnippetProvider implements SnippetProvider
         $priority            = get_post_meta($post->ID, self::META_PRIORITY, true);
         $shortcodeAttributes = get_post_meta($post->ID, self::META_SHORTCODE_ATTRIBUTES, true);
         $note                = get_post_meta($post->ID, self::META_NOTE, true);
-        $type                = $typeTerm !== '' ? $typeTerm : 'php';
+        $type                = SnippetType::tryFrom($typeTerm) ?? SnippetType::Php;
 
-        return [
-            'active'              => $post->post_status === 'publish',
-            'code'                => $post->post_content,
-            'id'                  => $post->ID,
-            'insertMethod'        => '0' === $autoInsert ? 'shortcode' : 'auto',
-            'location'            => self::LOCATION_TO_CANONICAL[$locationTerm] ?? $this->defaultLocationForType($type),
-            'description'         => $note ? $note : '',
-            'priority'            => '' === $priority ? 10 : (int) $priority,
-            'shortcodeAttributes' => is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
-            'tags'                => is_wp_error($terms) ? [] : $terms,
-            'name'                => $post->post_title,
-            'type'                => $type,
-        ];
+        return new SnippetData(
+            id: $post->ID,
+            name: $post->post_title,
+            code: $post->post_content,
+            type: $type,
+            active: $post->post_status === 'publish',
+            description: $note ? $note : '',
+            tags: is_wp_error($terms) ? [] : $terms,
+            location: self::LOCATION_TO_CANONICAL[$locationTerm] ?? $this->defaultLocationForType($type),
+            insertMethod: '0' === $autoInsert ? 'shortcode' : 'auto',
+            priority: '' === $priority ? 10 : (int) $priority,
+            shortcodeAttributes: is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
+        );
     }
 
     /** WPCode stores the code type and location as single terms of their own taxonomies, not as post meta. */
@@ -168,38 +168,37 @@ class WPCodeSnippetProvider implements SnippetProvider
         return is_wp_error($terms) || empty($terms) ? '' : (string) $terms[0];
     }
 
-    /** @param array<string, mixed> $data */
-    private function saveMeta(int $id, array $data): void
+    private function saveMeta(int $id, SnippetData $data): void
     {
-        if (isset($data['description'])) {
-            update_post_meta($id, self::META_NOTE, sanitize_text_field($data['description']));
+        if ($data->description !== null) {
+            update_post_meta($id, self::META_NOTE, sanitize_text_field($data->description));
         }
 
-        if (isset($data['type'])) {
-            wp_set_post_terms($id, [sanitize_text_field($data['type'])], self::TYPE_TAXONOMY);
+        if ($data->type !== null) {
+            wp_set_post_terms($id, [$data->type->value], self::TYPE_TAXONOMY);
         }
 
-        if (isset($data['tags']) && is_array($data['tags'])) {
-            $this->setTags($id, $data['tags']);
+        if ($data->tags !== null) {
+            $this->setTags($id, $data->tags);
         }
 
-        if (isset($data['insertMethod'])) {
-            update_post_meta($id, self::META_AUTO_INSERT, 'shortcode' === $data['insertMethod'] ? 0 : 1);
+        if ($data->insertMethod !== null) {
+            update_post_meta($id, self::META_AUTO_INSERT, 'shortcode' === $data->insertMethod ? 0 : 1);
         }
 
-        if (isset($data['location'])) {
-            $existingType = $this->getSingleTerm($id, self::TYPE_TAXONOMY);
-            $type = $data['type'] ?? ($existingType ? $existingType : 'php');
-            $term = $this->locationTerm($type, $data['location']);
+        if ($data->location !== null) {
+            $existingTypeTerm = $this->getSingleTerm($id, self::TYPE_TAXONOMY);
+            $type             = $data->type ?? (SnippetType::tryFrom($existingTypeTerm) ?? SnippetType::Php);
+            $term             = $this->locationTerm($type, $data->location);
             wp_set_post_terms($id, [$term], self::LOCATION_TAXONOMY);
         }
 
-        if (isset($data['priority'])) {
-            update_post_meta($id, self::META_PRIORITY, (int) $data['priority']);
+        if ($data->priority !== null) {
+            update_post_meta($id, self::META_PRIORITY, $data->priority);
         }
 
-        if (isset($data['shortcodeAttributes']) && is_array($data['shortcodeAttributes'])) {
-            update_post_meta($id, self::META_SHORTCODE_ATTRIBUTES, array_map('sanitize_key', $data['shortcodeAttributes']));
+        if ($data->shortcodeAttributes !== null) {
+            update_post_meta($id, self::META_SHORTCODE_ATTRIBUTES, array_map('sanitize_key', $data->shortcodeAttributes));
         }
     }
 
@@ -214,29 +213,29 @@ class WPCodeSnippetProvider implements SnippetProvider
         wp_set_post_terms($id, $tags, self::TAXONOMY);
     }
 
-    private function locationTerm(string $type, string $location): string
+    private function locationTerm(SnippetType $type, string $location): string
     {
         if (isset(self::UNIVERSAL_LOCATIONS[$location])) {
             return self::UNIVERSAL_LOCATIONS[$location];
         }
 
-        if ($type === 'php' && isset(self::PHP_ONLY_LOCATIONS[$location])) {
+        if ($type === SnippetType::Php && isset(self::PHP_ONLY_LOCATIONS[$location])) {
             return self::PHP_ONLY_LOCATIONS[$location];
         }
 
-        $allowed = $type === 'php'
+        $allowed = $type === SnippetType::Php
             ? 'header, body, footer, everywhere, frontend, admin, once'
             : 'header, body, footer';
 
-        throw new \RuntimeException(esc_html("WPCode does not support the \"{$location}\" location for {$type} snippets. Use one of: {$allowed}."));
+        throw new UnsupportedLocationException(esc_html("WPCode does not support the \"{$location}\" location for {$type->value} snippets. Use one of: {$allowed}."));
     }
 
-    private function defaultLocationForType(string $type): string
+    private function defaultLocationForType(SnippetType $type): string
     {
         return match ($type) {
-            'css' => 'header',
-            'html', 'js', 'text' => 'footer',
-            default => 'everywhere',
+            SnippetType::Css                              => 'header',
+            SnippetType::Html, SnippetType::Js, SnippetType::Text => 'footer',
+            SnippetType::Php                              => 'everywhere',
         };
     }
 }
