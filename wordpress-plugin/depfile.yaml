@@ -20,6 +20,11 @@ deptrac:
           value: '#^Loopress\\ContainerFactory$#'
         - type: classNameRegex
           value: '#^Loopress\\Contract\\FeatureProvider$#'
+        # The PSR-18 HTTP client adapter (US-18): currently only Plus (Dependencies, Update)
+        # calls it, but it carries nothing feature-specific, so a future Light feature
+        # needing HTTP could depend on it too.
+        - type: classNameRegex
+          value: '#^Loopress\\Infrastructure\\.+$#'
 
     - name: Light
       collectors:

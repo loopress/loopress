@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Loopress\Update\Infrastructure;
 
+use Nyholm\Psr7\Request;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
+
 class GithubReleaseChecker
 {
     private const CACHE_TTL = 12 * HOUR_IN_SECONDS;
@@ -11,6 +15,10 @@ class GithubReleaseChecker
     private const RELEASES_URL = 'https://api.github.com/repos/loopress/loopress/releases?per_page=10';
     // The repo also publishes @loopress/cli releases; only the wordpress-plugin@ tag is ours.
     private const TAG_PREFIX = 'wordpress-plugin@';
+
+    public function __construct(private ClientInterface $httpClient)
+    {
+    }
 
     /**
      * Latest published Loopress Full version, or null if it could not be determined
@@ -36,13 +44,13 @@ class GithubReleaseChecker
 
     private function fetchLatestVersion(): ?string
     {
-        $response = wp_remote_get(self::RELEASES_URL, ['timeout' => 5]);
-
-        if (is_wp_error($response)) {
+        try {
+            $response = $this->httpClient->sendRequest(new Request('GET', self::RELEASES_URL));
+        } catch (ClientExceptionInterface) {
             return null;
         }
 
-        $releases = json_decode(wp_remote_retrieve_body($response), true);
+        $releases = json_decode((string) $response->getBody(), true);
         if (!is_array($releases)) {
             return null;
         }

@@ -6,18 +6,23 @@ namespace Loopress\Tests\Unit\Infrastructure;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Tests\Stubs\FakeClientException;
+use Loopress\Tests\Stubs\FakeHttpClient;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
+use Nyholm\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
 class GithubReleaseCheckerTest extends TestCase
 {
+    private FakeHttpClient $httpClient;
     private GithubReleaseChecker $checker;
 
     protected function setUp(): void
     {
         parent::setUp();
         Monkey\setUp();
-        $this->checker = new GithubReleaseChecker();
+        $this->httpClient = new FakeHttpClient();
+        $this->checker    = new GithubReleaseChecker($this->httpClient);
     }
 
     protected function tearDown(): void
@@ -26,27 +31,27 @@ class GithubReleaseCheckerTest extends TestCase
         parent::tearDown();
     }
 
+    /** @param array<int, array<string, string>> $releases */
     private function stubReleasesResponse(array $releases): void
     {
-        Functions\when('wp_remote_get')->justReturn(['body' => json_encode($releases)]); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_body')->alias(fn(array $response) => $response['body']);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+        $this->httpClient->willReturn(new Response(200, [], json_encode($releases)));
     }
 
     public function test_returns_cached_value_without_calling_github(): void
     {
         Functions\when('get_transient')->justReturn('2026.8.1');
-        Functions\expect('wp_remote_get')->never();
 
         $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->assertNull($this->httpClient->lastRequest);
     }
 
     public function test_returns_null_when_cache_holds_the_empty_string_sentinel(): void
     {
         Functions\when('get_transient')->justReturn('');
-        Functions\expect('wp_remote_get')->never();
 
         $this->assertNull($this->checker->getLatestVersion());
+        $this->assertNull($this->httpClient->lastRequest);
     }
 
     public function test_extracts_version_from_the_wordpress_plugin_release_tag(): void
@@ -59,6 +64,10 @@ class GithubReleaseCheckerTest extends TestCase
         ]);
 
         $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->assertSame(
+            'https://api.github.com/repos/loopress/loopress/releases?per_page=10',
+            (string) $this->httpClient->lastRequest->getUri(),
+        );
     }
 
     public function test_caches_null_as_the_empty_string_sentinel_when_no_plugin_release_is_found(): void
@@ -72,12 +81,11 @@ class GithubReleaseCheckerTest extends TestCase
         $this->assertNull($this->checker->getLatestVersion());
     }
 
-    public function test_returns_null_on_wp_error_without_throwing(): void
+    public function test_returns_null_on_network_error_without_throwing(): void
     {
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
-        Functions\when('wp_remote_get')->justReturn(new \WP_Error('http_request_failed', 'Could not resolve host'));
-        Functions\when('is_wp_error')->justReturn(true);
+        $this->httpClient->willThrow(new FakeClientException('Could not resolve host'));
 
         $this->assertNull($this->checker->getLatestVersion());
     }
@@ -86,9 +94,7 @@ class GithubReleaseCheckerTest extends TestCase
     {
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
-        Functions\when('wp_remote_get')->justReturn(['body' => 'not json']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_body')->justReturn('not json');
+        $this->httpClient->willReturn(new Response(200, [], 'not json'));
 
         $this->assertNull($this->checker->getLatestVersion());
     }

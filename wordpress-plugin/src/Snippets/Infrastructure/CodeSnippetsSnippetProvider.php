@@ -232,13 +232,17 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             return [];
         }
 
-        // Untyped (rather than `Code_Snippets\Snippet`) on purpose: that class lives in a
-        // third-party plugin this codebase doesn't depend on at the autoload level, only at
-        // runtime when Code Snippets happens to be active (see isActive()).
+        // Runtime parameter type stays the bare `object`: `Code_Snippets\Snippet` only exists
+        // as code-snippets-stubs.php's static-analysis stub (that class lives in a third-party
+        // plugin this codebase doesn't depend on at the autoload level, only at runtime when
+        // Code Snippets happens to be active, see isActive()), and PHP enforces parameter
+        // types at runtime, unlike PHPDoc. The @param below narrows it for PHPStan/Psalm only.
         return array_values(array_map(
+            /** @param \Code_Snippets\Snippet $snippet */
             static fn(object $snippet): int => $snippet->id,
             array_filter(
                 \Code_Snippets\get_snippets($ids),
+                /** @param \Code_Snippets\Snippet $snippet */
                 static fn(object $snippet): bool => $snippet->is_trashed(),
             ),
         ));

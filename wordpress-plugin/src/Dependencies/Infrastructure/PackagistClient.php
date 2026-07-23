@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace Loopress\Dependencies\Infrastructure;
 
 use Composer\Semver\Semver;
+use Nyholm\Psr7\Request;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
 
 class PackagistClient
 {
     private const CACHE_TTL = 5 * MINUTE_IN_SECONDS;
+
+    public function __construct(private ClientInterface $httpClient)
+    {
+    }
 
     /**
      * Returns sorted stable versions with PHP compatibility info, null if the package does not exist.
@@ -34,16 +41,13 @@ class PackagistClient
     /** @return array<int, array<string, mixed>>|null */
     private function fetchVersions(string $package): ?array
     {
-        $response = wp_remote_get(
-            "https://packagist.org/packages/{$package}.json",
-            ['timeout' => 10]
-        );
-
-        if (is_wp_error($response)) {
-            throw new \RuntimeException(esc_html($response->get_error_message()));
+        try {
+            $response = $this->httpClient->sendRequest(new Request('GET', "https://packagist.org/packages/{$package}.json"));
+        } catch (ClientExceptionInterface $e) {
+            throw new \RuntimeException(esc_html($e->getMessage()));
         }
 
-        $body = json_decode(wp_remote_retrieve_body($response), true);
+        $body = json_decode((string) $response->getBody(), true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \RuntimeException('Invalid response from Packagist: ' . esc_html(json_last_error_msg()));
