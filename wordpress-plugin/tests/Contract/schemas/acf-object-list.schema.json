@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress ACF object list (REST)",
+  "description": "GET /loopress/v1/acf/{type} response shape.",
+  "type": "array",
+  "items": { "$ref": "acf-object.schema.json" }
+}

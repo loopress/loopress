@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress SEO post meta list (REST)",
+  "description": "GET /loopress/v1/seo/post-meta/{type} response shape.",
+  "type": "array",
+  "items": { "$ref": "seo-post-meta.schema.json" }
+}

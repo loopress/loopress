@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress snippet (REST)",
+  "description": "GET/POST/PUT /loopress/v1/snippets response shape. Mirrors cli/schemas/snippet.schema.json (SnippetData, see Snippets/Contract/SnippetData.php); unlike that CLI-local sidecar file, id is always present here since a REST response always describes an already-created snippet.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "code", "type", "active", "description", "tags", "location", "insertMethod", "priority", "shortcodeAttributes"],
+  "properties": {
+    "id": { "type": "integer" },
+    "name": { "type": "string" },
+    "code": { "type": "string" },
+    "type": { "type": "string", "enum": ["css", "html", "js", "php", "text"] },
+    "active": { "type": "boolean" },
+    "description": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "location": { "type": "string", "enum": ["admin", "body", "everywhere", "footer", "frontend", "header", "once"] },
+    "insertMethod": { "type": "string", "enum": ["auto", "shortcode"] },
+    "priority": { "type": "integer" },
+    "shortcodeAttributes": { "type": "array", "items": { "type": "string" } }
+  }
+}

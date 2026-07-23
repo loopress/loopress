@@ -43,7 +43,8 @@
         "phpcompatibility/phpcompatibility-wp": "^2.1",
         "rector/rector": "^2.5",
         "infection/infection": "^0.32.6",
-        "deptrac/deptrac": "^4.7"
+        "deptrac/deptrac": "^4.7",
+        "justinrainbow/json-schema": "^6.10"
     },
     "scripts": {
         "test": "phpunit",

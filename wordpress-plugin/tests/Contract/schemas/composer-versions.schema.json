@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress composer package versions (REST)",
+  "description": "GET /loopress/v1/composer/versions response shape (ComposerService::getVersions()/PackagistClient).",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["version", "php_compatible", "php_constraint"],
+    "properties": {
+      "version": { "type": "string" },
+      "php_compatible": { "type": ["boolean", "null"] },
+      "php_constraint": { "type": ["string", "null"] }
+    }
+  }
+}

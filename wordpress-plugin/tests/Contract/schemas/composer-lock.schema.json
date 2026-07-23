@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress composer.lock passthrough (REST)",
+  "description": "GET /loopress/v1/composer/lock response shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["composerLock"],
+  "properties": {
+    "composerLock": { "type": "string" }
+  }
+}

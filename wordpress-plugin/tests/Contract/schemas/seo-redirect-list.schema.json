@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress SEO redirect list (REST)",
+  "description": "GET /loopress/v1/seo/redirects response shape.",
+  "type": "array",
+  "items": { "$ref": "seo-redirect.schema.json" }
+}

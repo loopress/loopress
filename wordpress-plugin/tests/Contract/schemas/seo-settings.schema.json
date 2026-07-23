@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress SEO settings (REST)",
+  "description": "GET/PUT /loopress/v1/seo/settings response shape: whatever the active SEO plugin's own titles/meta option holds, no fields of our own guaranteed beyond \"it's a JSON object\" (empty options serialize as [], not {}, same PHP json_encode([]) ambiguity as elsewhere in this schema set).",
+  "type": ["object", "array"]
+}

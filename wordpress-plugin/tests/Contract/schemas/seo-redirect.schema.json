@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loopress SEO redirect (REST)",
+  "description": "GET/POST/PUT /loopress/v1/seo/redirects[/{id}] response shape (RankMathService::exportRedirection(); Yoast doesn't implement SeoRedirectProvider).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "urlTo", "headerCode", "status", "hits", "sources", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "integer" },
+    "urlTo": { "type": "string" },
+    "headerCode": { "type": "integer" },
+    "status": { "type": "string" },
+    "hits": { "type": "integer" },
+    "sources": { "type": ["array", "object"] },
+    "createdAt": { "type": ["string", "null"] },
+    "updatedAt": { "type": ["string", "null"] }
+  }
+}

@@ -13,6 +13,11 @@ if (!defined('HOUR_IN_SECONDS')) {
     define('HOUR_IN_SECONDS', 60 * 60);
 }
 
+// Same reasoning as HOUR_IN_SECONDS above; PackagistClient's CACHE_TTL references it.
+if (!defined('MINUTE_IN_SECONDS')) {
+    define('MINUTE_IN_SECONDS', 60);
+}
+
 // Normally defined in loopress.php (outside src/, not autoloaded); UpdateController compares
 // against it at real test runtime too, same reasoning as HOUR_IN_SECONDS above.
 if (!defined('LOOPRESS_VERSION')) {
