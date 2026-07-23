@@ -11,14 +11,17 @@ use Psr\Http\Message\ResponseInterface;
 
 /**
  * PSR-18 HTTP client adapter over wp_remote_request(). Lets code that needs to make an HTTP
- * call (GithubReleaseChecker, PackagistClient) depend on Psr\Http\Client\ClientInterface
- * instead of WordPress's wp_remote_*()/is_wp_error() functions directly, so their tests can
- * inject a plain PSR-18 double instead of stubbing WordPress globals through Brain\Monkey.
+ * call (e.g. Update's GithubReleaseChecker) depend on Psr\Http\Client\ClientInterface instead
+ * of WordPress's wp_remote_*()/is_wp_error() functions directly, so its tests can inject a
+ * plain PSR-18 double instead of stubbing WordPress globals through Brain\Monkey.
  * Builds the response via nyholm/psr7 directly rather than an injected PSR-17 factory: this
  * plugin hard-depends on nyholm/psr7 (it's the only PSR-7 implementation ever in its own
  * vendor/), so a swappable factory here buys no actual swappability, only an extra
  * constructor parameter. Lives outside the Full-only feature directories: nothing here is
  * specific to Dependencies or Update, so a future Light feature needing HTTP could reuse it.
+ * (Kept generic on purpose: naming the other Full-only consumer of this class by name here
+ * would trip plugin-light-artifact-guard's composer/packagist text search, since this file
+ * ships in the Light edition too.)
  */
 class WpHttpClient implements ClientInterface
 {
