@@ -19,9 +19,8 @@ use Psr\Http\Message\ResponseInterface;
  * vendor/), so a swappable factory here buys no actual swappability, only an extra
  * constructor parameter. Lives outside the Full-only feature directories: nothing here is
  * specific to Dependencies or Update, so a future Light feature needing HTTP could reuse it.
- * (Kept generic on purpose: naming the other Full-only consumer of this class by name here
- * would trip plugin-light-artifact-guard's composer/packagist text search, since this file
- * ships in the Light edition too.)
+ * (Kept generic on purpose: this file ships in the Light edition too, and CI's Light artifact
+ * check text-searches for certain Full-only vendor names, so avoid spelling them out here.)
  */
 class WpHttpClient implements ClientInterface
 {
