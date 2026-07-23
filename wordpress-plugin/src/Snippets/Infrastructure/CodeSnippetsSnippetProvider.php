@@ -232,14 +232,15 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             return [];
         }
 
-        // Untyped (rather than `Code_Snippets\Snippet`) on purpose: that class lives in a
-        // third-party plugin this codebase doesn't depend on at the autoload level, only at
-        // runtime when Code Snippets happens to be active (see isActive()).
+        // Typed against code-snippets-stubs.php's minimal Snippet stub, not the real class:
+        // that class lives in a third-party plugin this codebase doesn't depend on at the
+        // autoload level, only at runtime when Code Snippets happens to be active (see
+        // isActive()).
         return array_values(array_map(
-            static fn(object $snippet): int => $snippet->id,
+            static fn(\Code_Snippets\Snippet $snippet): int => $snippet->id,
             array_filter(
                 \Code_Snippets\get_snippets($ids),
-                static fn(object $snippet): bool => $snippet->is_trashed(),
+                static fn(\Code_Snippets\Snippet $snippet): bool => $snippet->is_trashed(),
             ),
         ));
     }

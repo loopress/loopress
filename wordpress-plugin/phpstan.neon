@@ -2,7 +2,8 @@ includes:
     - vendor/szepeviktor/phpstan-wordpress/extension.neon
 
 parameters:
-    level: 6
+    level: 9
+    checkExplicitMixed: false
     paths:
         - src
     bootstrapFiles:
@@ -12,11 +13,17 @@ parameters:
     excludePaths:
         - vendor
 
-    # The return types in service methods use plain `array` : enforce more specific
-    # types incrementally rather than blocking the first run.
     ignoreErrors:
-        # Suppress untyped array return types : add specific types incrementally
-        - '#has no value type specified in iterable type array#'
+        # Acf/, Seo/, Dependencies/ (array<string, mixed> for post-meta/settings/redirect/
+        # composer payloads) and CodeSnippetsSnippetProvider's raw REST dispatch helpers
+        # aren't typed as precisely as Snippets/ (see SnippetData, US-15) yet; narrowing them
+        # the same way is future work, not part of this PHPStan-level story.
+        - message: '#has no value type specified in iterable type array#'
+          paths:
+              - src/Acf/*
+              - src/Seo/*
+              - src/Dependencies/*
+              - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
         - '#Constant LOOPRESS_VERSION not found#'
