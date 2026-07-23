@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\RestApi;
+namespace Loopress\Tests\Unit\Snippets\RestApi;
 
 use Brain\Monkey;
 use Loopress\Snippets\Contract\SnippetData;

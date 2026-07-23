@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\RestApi;
+namespace Loopress\Tests\Unit\Dependencies\RestApi;
 
 use Brain\Monkey;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
