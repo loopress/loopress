@@ -105,6 +105,7 @@
                 <file name="src/Update/Feature.php" />
                 <file name="src/Snippets/Feature.php" />
                 <file name="src/Form/Feature.php" />
+                <file name="src/Sentry/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>

@@ -76,7 +76,7 @@ use Loopress\Plugin;
 // endpoints that remotely deploy arbitrary PHP/JS/CSS into Code Snippets or WPCode),
 // regardless of the auth/capability checks in front of it; see
 // obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection.
-foreach (['Dependencies', 'Update', 'Snippets', 'Form'] as $loopressPlusFeature) {
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Form'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
