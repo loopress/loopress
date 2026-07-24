@@ -49,7 +49,9 @@ class WPFormsProvider implements FormProvider
         }
 
         $data['id'] = $formId;
-        wpforms()->form->update($formId, $data);
+        if (wpforms()->form->update($formId, $data) === false) {
+            throw new \RuntimeException('Failed to save the new WPForms form\'s content.');
+        }
 
         return $this->get($formId) ?? array_merge($data, ['id' => $formId]);
     }
@@ -75,7 +77,11 @@ class WPFormsProvider implements FormProvider
             return false;
         }
 
-        return wpforms()->form->delete([$id]);
+        if (wpforms()->form->delete([$id]) === false) {
+            throw new \RuntimeException('Failed to delete the WPForms form.');
+        }
+
+        return true;
     }
 
     // wpforms()->form->get()'s own content_only decode filters to published forms only by

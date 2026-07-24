@@ -134,6 +134,17 @@ class WPFormsProviderTest extends TestCase
         $this->assertSame(7, $result['id']);
     }
 
+    // The follow-up update() after add() can fail independently of add() itself (e.g. a
+    // database error): without this check, create() would report success while the pushed
+    // field/settings payload was silently dropped, leaving only the empty add() scaffold.
+    public function test_create_throws_when_the_follow_up_update_fails(): void
+    {
+        $this->stubWpForms($this->fakeFormHandler(['add' => 7, 'update' => false]));
+
+        $this->expectException(\RuntimeException::class);
+        $this->provider->create(['settings' => ['form_title' => 'New form']]);
+    }
+
     // ── update ────────────────────────────────────────────────────────────────
 
     public function test_update_returns_null_when_the_form_does_not_exist(): void
@@ -165,6 +176,24 @@ class WPFormsProviderTest extends TestCase
         Functions\when('get_post')->justReturn(null);
 
         $this->assertFalse($this->provider->delete(999));
+    }
+
+    // Distinct from "not found": the form exists (confirmed by get() above) but
+    // wpforms()->form->delete() itself failed (e.g. a database error), which must not be
+    // reported the same way as "not found" or the controller would return a misleading 404.
+    public function test_delete_throws_when_wpforms_delete_fails(): void
+    {
+        $post                = new WP_Post();
+        $post->ID            = 12;
+        $post->post_type     = 'wpforms';
+        $post->post_content  = '{}';
+
+        Functions\when('get_post')->justReturn($post);
+        Functions\when('wpforms_decode')->justReturn(['id' => 12]);
+        $this->stubWpForms($this->fakeFormHandler(['delete' => false]));
+
+        $this->expectException(\RuntimeException::class);
+        $this->provider->delete(12);
     }
 
     public function test_delete_delegates_to_wpforms_form_delete(): void

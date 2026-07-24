@@ -96,7 +96,7 @@ class FormController
         }
 
         $data = $request->get_json_params();
-        if ($data === []) {
+        if (!is_array($data) || $data === []) {
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
@@ -118,7 +118,7 @@ class FormController
         }
 
         $data = $request->get_json_params();
-        if ($data === []) {
+        if (!is_array($data) || $data === []) {
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
