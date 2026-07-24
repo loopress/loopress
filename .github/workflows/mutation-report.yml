@@ -1,4 +1,4 @@
-name: 🧬 Mutation report
+name: 🧬 Mutation reports
 
 on:
   push:
@@ -14,12 +14,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  mutation-report:
+  cli-mutation:
     name: CLI mutation report
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -40,16 +37,80 @@ jobs:
         working-directory: cli
         run: pnpm test:mutation
 
-      - name: Prepare Pages content
-        run: cp cli/reports/mutation/mutation.html cli/reports/mutation/index.html
+      - name: Upload mutation report artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-mutation-report
+          path: cli/reports/mutation
+
+  plugin-mutation:
+    name: Plugin mutation report (Infection)
+    runs-on: ubuntu-latest
+    # Report-only for now, not a merge gate (see wordpress-plugin/infection.json5).
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: wordpress-plugin
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: "8.2"
+          coverage: pcov
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run mutation testing
+        run: composer run mutation
+
+      - name: Upload mutation report artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: plugin-mutation-report
+          path: |
+            wordpress-plugin/infection.html
+            wordpress-plugin/infection-summary.log
+
+  deploy:
+    name: Publish reports to GitHub Pages
+    needs: [cli-mutation, plugin-mutation]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download CLI mutation report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cli-mutation-report
+          path: site
+
+      - name: Download plugin mutation report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plugin-mutation-report
+          path: site/plugin
+
+      # CLI report is served at the site root, plugin report is nested under /plugin/,
+      # since GitHub Pages deploys a single artifact and both reports share this site.
+      - name: Arrange Pages content
+        run: |
+          mv site/mutation.html site/index.html
+          mv site/plugin/infection.html site/plugin/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
-      - name: Upload mutation report artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: cli/reports/mutation
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
