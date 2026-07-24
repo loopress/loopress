@@ -1,5 +1,14 @@
 # @loopress/wordpress-plugin
 
+## 2026.7.11
+
+### Patch Changes
+
+- 063616e: Loopress Full's Sentry error reporting is now opt-in. Until an admin decides either way, a banner ("Send crash reports to Loopress?") shows on every tab of the admin page with Allow/Deny buttons; once decided, a switch in the new Settings tab reflects and lets you change the choice. The Sentry PHP SDK's global handlers don't install at all until consent is given. Backed by `GET`/`PUT loopress/v1/sentry/consent`, storing the choice in a WordPress option. A new "Reset all settings to default" button (`DELETE loopress/v1/settings`, global to all Loopress settings, not just Sentry) clears it and brings the banner back. Existing installs upgrading into this send nothing until an admin opts in.
+- 063616e: Loopress Full now initializes the Sentry PHP SDK on boot, reporting PHP errors and exceptions from the plugin's own code so they can be triaged across every install. Filtered via a `before_send` callback that only keeps events whose stack trace passes through this plugin's own files, so a site's Sentry project never fills up with errors from its theme or other plugins. Loopress Light doesn't have this: `src/Sentry/` is stripped at build time like the other Full-only features. Currently a scaffold pending the real Sentry project DSN, an unset DSN is a documented no-op for the SDK, so this ships inert until then.
+- f542f91: Code snippet sync (Code Snippets, WPCode) moved from Loopress Light to Loopress Full, alongside Composer dependency management. wordpress.org's final decision on the appeal rejected Loopress Light's snippet sync REST endpoints as a remote arbitrary-code-deployment mechanism, regardless of the authentication and capability checks in front of them. Loopress Light now syncs only ACF field groups and SEO settings (Yoast, RankMath); `lps snippet pull`/`push` and the snippet migration UI require Loopress Full. REST routes are unchanged (`loopress/v1/snippets*`), so existing CLI versions keep working against Loopress Full.
+- 9383f6e: Adds a WordPress form-sync feature: `lps form list/pull/push` on the CLI, backed by new REST routes under `loopress/v1/forms` on Loopress Full (Light stays ACF+SEO only). The plugin side introduces a generic `FormProvider` abstraction, mirroring the existing snippet sync (Code Snippets/WPCode), with WPForms as the first supported plugin; more WordPress form plugins can be added as additional providers later. Forms are addressed by numeric id (no ACF-style stable key), pulled/pushed as one `<id>-<slug>.json` file per form, with orphan cleanup on pull and the same PUT-then-404-fallback-to-create dance as `lps snippet push`.
+
 ## 2026.7.10
 
 ### Patch Changes
