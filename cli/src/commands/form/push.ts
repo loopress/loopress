@@ -5,15 +5,15 @@ import {dirname, extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
-import {getWpFormsId, getWpFormsTitle, WPFORMS_ENDPOINT} from '../../utils/wpforms-format.js'
+import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 import {slug} from './pull.js'
 
 export default class Push extends PushCommand {
   static args = {
-    path: Args.string({description: 'Path to WPForms directory (overrides project config)'}),
+    path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
   static description =
-    'Push WPForms forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
+    'Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
   static examples = ['$ lps form push']
   static flags = {
     ...PushCommand.dryRunFlag,
@@ -25,8 +25,8 @@ export default class Push extends PushCommand {
     const {url} = this.siteConfig
     const path = this.resolveFormPath(args.path)
 
-    this.log(`Pushing WPForms forms to ${url}`)
-    this.log(`WPForms path: ${path}`)
+    this.log(`Pushing forms to ${url}`)
+    this.log(`Forms path: ${path}`)
 
     const files = await this.loadFiles(path)
     this.log(`Found ${files.length} form${files.length === 1 ? '' : 's'} to push`)
@@ -34,7 +34,7 @@ export default class Push extends PushCommand {
     await new Listr(
       files.map(({data, filePath}) => ({
         task: async (_ctx, task) => this.pushForm(filePath, data, task),
-        title: `Push ${getWpFormsTitle(data)}`,
+        title: `Push ${getFormTitle(data)}`,
       })),
       {concurrent: false, exitOnError: false},
     ).run()
@@ -100,7 +100,7 @@ export default class Push extends PushCommand {
   // sibling forms push regardless. PUT-then-404-fallback-POST is the same dance as
   // commands/snippet/push.ts, forms are id-based like snippets, not key-based like ACF.
   private async pushForm(filePath: string, data: Record<string, unknown>, task?: {output: string}): Promise<void> {
-    const title = getWpFormsTitle(data)
+    const title = getFormTitle(data)
 
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${title}`
@@ -108,23 +108,23 @@ export default class Push extends PushCommand {
     }
 
     try {
-      const id = getWpFormsId(data)
+      const id = getFormId(data)
 
       if (id === null) {
-        const created = await this.wp.post<Record<string, unknown>>(WPFORMS_ENDPOINT, data)
-        const newId = getWpFormsId(created)
+        const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
+        const newId = getFormId(created)
         if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
       } else {
         try {
-          await this.wp.put(`${WPFORMS_ENDPOINT}/${id}`, data)
+          await this.wp.put(`${FORM_ENDPOINT}/${id}`, data)
           await this.ensureCanonicalFilename(filePath, id, title)
         } catch (error) {
           // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
           // it instead of failing, and adopt whatever id the site assigns.
           if (!isNotFoundError(error)) throw error
 
-          const created = await this.wp.post<Record<string, unknown>>(WPFORMS_ENDPOINT, data)
-          const newId = getWpFormsId(created)
+          const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
+          const newId = getFormId(created)
           if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
         }
       }

@@ -5,13 +5,13 @@ import {extname, join} from 'node:path'
 import slugify from 'slugify'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {getWpFormsId, getWpFormsTitle, WPFORMS_ENDPOINT} from '../../utils/wpforms-format.js'
+import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
-    path: Args.string({description: 'Path to WPForms directory (overrides project config)'}),
+    path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
-  static description = 'Pull WPForms forms from WordPress'
+  static description = 'Pull forms from WordPress'
   static examples = ['$ lps form pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -22,14 +22,14 @@ export default class Pull extends LoopressCommand {
     const {url} = this.siteConfig
     const path = this.resolveFormPath(args.path)
 
-    this.log(`Pulling WPForms forms from ${url}`)
-    this.log(`WPForms path: ${path}`)
+    this.log(`Pulling forms from ${url}`)
+    this.log(`Forms path: ${path}`)
 
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(WPFORMS_ENDPOINT)
-    const withId = remoteList.filter((form) => getWpFormsId(form) !== null)
+    const remoteList = await this.wp.get<Record<string, unknown>[]>(FORM_ENDPOINT)
+    const withId = remoteList.filter((form) => getFormId(form) !== null)
     const skipped = remoteList.length - withId.length
 
-    const orphans = await this.findOrphanedFiles(path, new Set(withId.map((form) => getWpFormsId(form) as number)))
+    const orphans = await this.findOrphanedFiles(path, new Set(withId.map((form) => getFormId(form) as number)))
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${withId.length} form${withId.length === 1 ? '' : 's'} to ${path}`)
@@ -46,8 +46,8 @@ export default class Pull extends LoopressCommand {
 
     await new Listr(
       withId.map((form) => {
-        const id = getWpFormsId(form) as number
-        const title = getWpFormsTitle(form)
+        const id = getFormId(form) as number
+        const title = getFormTitle(form)
         return {
           async task(_ctx, task) {
             await writeFile(join(path, `${id}-${slug(title)}.json`), JSON.stringify(form, null, 2) + '\n')

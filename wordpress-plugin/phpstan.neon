@@ -25,7 +25,7 @@ parameters:
               - src/Seo/*
               - src/Dependencies/*
               - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
-              - src/WpForms/*
+              - src/Form/*
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
         - '#Constant LOOPRESS_VERSION not found#'

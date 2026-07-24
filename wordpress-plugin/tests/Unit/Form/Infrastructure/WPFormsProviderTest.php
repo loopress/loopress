@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\WpForms\Service;
+namespace Loopress\Tests\Unit\Form\Infrastructure;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\WpForms\Service\WpFormsService;
+use Loopress\Form\Infrastructure\WPFormsProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
 
-class WpFormsServiceTest extends TestCase
+class WPFormsProviderTest extends TestCase
 {
-    private WpFormsService $service;
+    private WPFormsProvider $provider;
 
     protected function setUp(): void
     {
         parent::setUp();
         Monkey\setUp();
-        $this->service = new WpFormsService();
+        $this->provider = new WPFormsProvider();
     }
 
     protected function tearDown(): void
@@ -38,7 +38,7 @@ class WpFormsServiceTest extends TestCase
         // convention as AcfServiceTest's isActive() coverage. Runs in its own process for
         // the same reason: Brain\Monkey's function stubbing is permanent process-wide once
         // used, and every other test here stubs wpforms().
-        $this->assertFalse($this->service->isActive());
+        $this->assertFalse($this->provider->isActive());
     }
 
     // ── list ──────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ class WpFormsServiceTest extends TestCase
         $this->stubWpForms($this->fakeFormHandler(['get' => [$post]]));
         Functions\when('wpforms_decode')->justReturn(['settings' => ['form_title' => 'Contact']]);
 
-        $result = $this->service->list();
+        $result = $this->provider->list();
 
         $this->assertSame([['settings' => ['form_title' => 'Contact'], 'id' => 12]], $result);
     }
@@ -61,7 +61,7 @@ class WpFormsServiceTest extends TestCase
     {
         $this->stubWpForms($this->fakeFormHandler(['get' => false]));
 
-        $this->assertSame([], $this->service->list());
+        $this->assertSame([], $this->provider->list());
     }
 
     // ── get ───────────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ class WpFormsServiceTest extends TestCase
     {
         Functions\when('get_post')->justReturn(null);
 
-        $this->assertNull($this->service->get(999));
+        $this->assertNull($this->provider->get(999));
     }
 
     public function test_get_returns_null_for_a_non_wpforms_post_type(): void
@@ -80,7 +80,7 @@ class WpFormsServiceTest extends TestCase
         $post->post_type = 'post';
         Functions\when('get_post')->justReturn($post);
 
-        $this->assertNull($this->service->get(5));
+        $this->assertNull($this->provider->get(5));
     }
 
     public function test_get_returns_decoded_content_merged_with_the_post_id(): void
@@ -93,7 +93,7 @@ class WpFormsServiceTest extends TestCase
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['settings' => ['form_title' => 'Contact']]);
 
-        $this->assertSame(['settings' => ['form_title' => 'Contact'], 'id' => 12], $this->service->get(12));
+        $this->assertSame(['settings' => ['form_title' => 'Contact'], 'id' => 12], $this->provider->get(12));
     }
 
     // ── create ────────────────────────────────────────────────────────────────
@@ -103,11 +103,11 @@ class WpFormsServiceTest extends TestCase
         $this->stubWpForms($this->fakeFormHandler(['add' => false]));
 
         $this->expectException(\RuntimeException::class);
-        $this->service->create(['settings' => ['form_title' => 'New form']]);
+        $this->provider->create(['settings' => ['form_title' => 'New form']]);
     }
 
     // wpforms()->form->add() only ever writes a default title/description scaffold (see
-    // WpFormsService::create()'s comment), the pushed field/settings payload only reaches
+    // WPFormsProvider::create()'s comment), the pushed field/settings payload only reaches
     // WordPress through the follow-up update() call, so create() must issue both, in order.
     public function test_create_adds_then_updates_with_the_full_payload(): void
     {
@@ -128,7 +128,7 @@ class WpFormsServiceTest extends TestCase
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['id' => 7, 'settings' => ['form_title' => 'New form']]);
 
-        $result = $this->service->create(['settings' => ['form_title' => 'New form']]);
+        $result = $this->provider->create(['settings' => ['form_title' => 'New form']]);
 
         $this->assertSame([7, ['settings' => ['form_title' => 'New form'], 'id' => 7]], $capturedUpdate);
         $this->assertSame(7, $result['id']);
@@ -140,7 +140,7 @@ class WpFormsServiceTest extends TestCase
     {
         Functions\when('get_post')->justReturn(null);
 
-        $this->assertNull($this->service->update(999, ['settings' => ['form_title' => 'X']]));
+        $this->assertNull($this->provider->update(999, ['settings' => ['form_title' => 'X']]));
     }
 
     public function test_update_throws_when_wpforms_update_fails(): void
@@ -155,7 +155,7 @@ class WpFormsServiceTest extends TestCase
         $this->stubWpForms($this->fakeFormHandler(['update' => false]));
 
         $this->expectException(\RuntimeException::class);
-        $this->service->update(12, ['settings' => ['form_title' => 'Updated']]);
+        $this->provider->update(12, ['settings' => ['form_title' => 'Updated']]);
     }
 
     // ── delete ────────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ class WpFormsServiceTest extends TestCase
     {
         Functions\when('get_post')->justReturn(null);
 
-        $this->assertFalse($this->service->delete(999));
+        $this->assertFalse($this->provider->delete(999));
     }
 
     public function test_delete_delegates_to_wpforms_form_delete(): void
@@ -178,7 +178,7 @@ class WpFormsServiceTest extends TestCase
         Functions\when('wpforms_decode')->justReturn(['id' => 12]);
         $this->stubWpForms($this->fakeFormHandler(['delete' => true]));
 
-        $this->assertTrue($this->service->delete(12));
+        $this->assertTrue($this->provider->delete(12));
     }
 
     /** @param array<string, mixed> $behavior */

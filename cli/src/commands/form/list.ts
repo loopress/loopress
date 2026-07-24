@@ -1,10 +1,10 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {getWpFormsId, getWpFormsTitle, WPFORMS_ENDPOINT} from '../../utils/wpforms-format.js'
+import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List WPForms forms from WordPress'
+  static description = 'List forms from WordPress'
   static examples = ['$ lps form list']
   static flags = {
     json: Flags.boolean({char: 'j', description: 'Output in JSON format'}),
@@ -12,7 +12,7 @@ export default class List extends LoopressCommand {
 
   async run(): Promise<void> {
     const {flags} = await this.parse(List)
-    const forms = await this.wp.get<Record<string, unknown>[]>(WPFORMS_ENDPOINT)
+    const forms = await this.wp.get<Record<string, unknown>[]>(FORM_ENDPOINT)
 
     if (flags.json) {
       this.log(JSON.stringify(forms, null, 2))
@@ -26,7 +26,7 @@ export default class List extends LoopressCommand {
     }
 
     for (const form of forms) {
-      this.log(`  ${getWpFormsId(form) ?? '(no id)'}. ${getWpFormsTitle(form)}`)
+      this.log(`  ${getFormId(form) ?? '(no id)'}. ${getFormTitle(form)}`)
     }
   }
 }

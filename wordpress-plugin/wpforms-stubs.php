@@ -3,7 +3,7 @@
 // Function/class signatures for WPForms (https://wordpress.org/plugins/wpforms-lite/), purely
 // for static analysis. WPForms isn't a Composer dependency of this plugin (it's an optional
 // runtime dependency, only present when the user has it installed and active, see
-// WpFormsService::isActive()), so neither PHPStan nor Psalm can otherwise see these. Signatures
+// WPFormsProvider::isActive()), so neither PHPStan nor Psalm can otherwise see these. Signatures
 // verified directly against WPForms Lite's own source (src/WPForms.php, includes/class-form.php,
 // includes/functions/forms.php), not guessed from public docs. Mirrors the bracketed
 // multi-namespace layout of the real src/WPForms.php: wpforms()'s own return type

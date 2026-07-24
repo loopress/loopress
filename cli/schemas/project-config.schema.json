@@ -31,7 +31,7 @@
     },
     "formDir": {
       "type": "string",
-      "description": "Directory where WPForms forms are read from and written to, relative to rootDir.",
+      "description": "Directory where forms (WPForms today) are read from and written to, relative to rootDir.",
       "default": "forms"
     },
     "projectId": {

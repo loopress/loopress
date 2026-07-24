@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Loopress\WpForms\Service;
+namespace Loopress\Form\Infrastructure;
 
-// WPForms has exactly one backend (itself, or nothing), the same shape as AcfService: no
-// provider abstraction needed, unlike Snippets which arbitrates between two interchangeable
-// plugins. Forms are identified by their numeric WP post ID (no ACF-style stable "key"), so
-// identity here follows the Snippets create/update/delete shape instead of ACF's upsert.
-class WpFormsService
+use Loopress\Form\Contract\FormProvider;
+
+// Function/class signatures for wpforms()/WPForms_Form_Handler are stubbed for static analysis
+// in wpforms-stubs.php, verified directly against WPForms Lite's own source (see that file's
+// header comment). Forms are identified by their numeric WP post ID (no ACF-style stable key).
+class WPFormsProvider implements FormProvider
 {
     public function isActive(): bool
     {
