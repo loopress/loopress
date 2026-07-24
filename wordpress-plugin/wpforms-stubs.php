@@ -27,6 +27,7 @@ namespace {
 
     function wpforms(): \WPForms\WPForms
     {
+        return new \WPForms\WPForms();
     }
 
     /**
@@ -34,6 +35,7 @@ namespace {
      */
     function wpforms_decode(string $data)
     {
+        return null;
     }
 
     /**
@@ -49,6 +51,7 @@ namespace {
          */
         public function get($id = '', array $args = [])
         {
+            return false;
         }
 
         /**
@@ -58,6 +61,7 @@ namespace {
          */
         public function add(string $title = '', array $args = [], array $data = [])
         {
+            return false;
         }
 
         /**
@@ -68,6 +72,7 @@ namespace {
          */
         public function update($form_id = '', array $data = [], array $args = [])
         {
+            return false;
         }
 
         /**
@@ -75,6 +80,7 @@ namespace {
          */
         public function delete($ids = []): bool
         {
+            return false;
         }
     }
 }
