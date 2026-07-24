@@ -10,6 +10,7 @@ parameters:
         - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
         - code-snippets-stubs.php
         - acf-stubs.php
+        - wpforms-stubs.php
     excludePaths:
         - vendor
 
@@ -24,7 +25,18 @@ parameters:
               - src/Seo/*
               - src/Dependencies/*
               - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
+              - src/Form/*
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
         - '#Constant LOOPRESS_VERSION not found#'
+
+        # WP_REST_Request::get_json_params()'s bundled stub says `@return array` (no `|null`),
+        # but the real core implementation (wp-includes/rest-api/class-wp-rest-request.php)
+        # leaves $this->params['JSON'] at null for an empty body, a non-JSON content type, or
+        # malformed JSON, get_json_params() ignores parse_json_params()'s WP_Error return in
+        # that last case and just returns whatever was left. The is_array() guard here is real
+        # defensive code against that gap between the stub and WordPress's actual behavior, not
+        # dead code, verified by reading WP core directly, not just the stub.
+        - message: '#Call to function is_array\(\) with array will always evaluate to true#'
+          path: src/Form/RestApi/FormController.php
 
