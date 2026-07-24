@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Sentry\Module;
 
 use Loopress\Contract\Module;
+use Loopress\Sentry\Consent;
+use Loopress\Sentry\RestApi\SentryConsentController;
 use Sentry\Event;
 
 /**
@@ -17,6 +19,11 @@ use Sentry\Event;
  * wrapping call sites one by one would miss some. before_send drops any event whose exception
  * didn't pass through this plugin's own files, so a site's Sentry project never fills up with
  * errors from its theme or other plugins just because Loopress happened to be active too.
+ *
+ * Gated on Consent::isEnabled() (opt-in, see Consent): the SDK's global handlers must not
+ * install at all unless the admin has switched it on in the Settings tab, not just have
+ * before_send drop events afterward, otherwise the SDK would still be reaching out to Sentry
+ * before any consent was given.
  */
 class SentryModule implements Module
 {
@@ -24,6 +31,12 @@ class SentryModule implements Module
 
     public function boot(): void
     {
+        add_action('rest_api_init', fn() => (new SentryConsentController())->register_routes());
+
+        if (!Consent::isEnabled()) {
+            return;
+        }
+
         \Sentry\init([
             'dsn'         => self::DSN,
             'environment' => (defined('WP_DEBUG') && WP_DEBUG) ? 'development' : 'production',

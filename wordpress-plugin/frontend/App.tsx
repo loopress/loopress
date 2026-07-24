@@ -8,12 +8,15 @@ import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
 import { UpdateNotice } from './update/UpdateNotice';
+import { SettingsPanel } from './settings/SettingsPanel';
+import { SentryConsentAlert } from './settings/SentryConsentAlert';
 import { useHashTab } from './useHashTab';
 
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
     { name: 'snippets', title: 'Snippets' },
     { name: 'diagnostics', title: 'Diagnostics' },
+    { name: 'settings', title: 'Settings' },
 ];
 const TAB_NAMES = TABS.map((tab) => tab.name);
 
@@ -40,6 +43,7 @@ export default function App() {
     return (
         <AppShell title="Loopress Full">
             <UpdateNotice />
+            <SentryConsentAlert />
 
             {autoloadError && (
                 <div style={{ maxWidth: 600, marginBottom: 20 }}>
@@ -70,6 +74,8 @@ export default function App() {
                             <DependencyManagement />
                         ) : tab.name === 'snippets' ? (
                             <SnippetMigrationPanel />
+                        ) : tab.name === 'settings' ? (
+                            <SettingsPanel />
                         ) : (
                             <>
                                 <DiagnosticsBanner />
