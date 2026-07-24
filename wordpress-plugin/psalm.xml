@@ -37,6 +37,8 @@
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
                 <directory name="src/Form/RestApi" />
+                <directory name="src/Sentry/RestApi" />
+                <directory name="src/Settings/RestApi" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -105,6 +107,8 @@
                 <file name="src/Update/Feature.php" />
                 <file name="src/Snippets/Feature.php" />
                 <file name="src/Form/Feature.php" />
+                <file name="src/Sentry/Feature.php" />
+                <file name="src/Settings/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>

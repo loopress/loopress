@@ -19,7 +19,8 @@
         "composer/composer": "^2.10",
         "php-di/php-di": "^7.0",
         "psr/http-client": "^1.0",
-        "nyholm/psr7": "^1.8"
+        "nyholm/psr7": "^1.8",
+        "sentry/sentry": "^4.29"
     },
     "config": {
         "platform": {

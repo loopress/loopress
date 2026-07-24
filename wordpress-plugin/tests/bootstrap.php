@@ -40,3 +40,10 @@ if (!defined('OBJECT')) {
 if (!defined('WP_DEBUG')) {
     define('WP_DEBUG', true);
 }
+
+// Normally defined in loopress.php (outside src/, not autoloaded); SentryModule::isOwnEvent()
+// compares stack frame paths against it at real test runtime, same reasoning as LOOPRESS_VERSION
+// above. Matches the value already used for static analysis in psalm-stubs.php.
+if (!defined('LOOPRESS_PLUGIN_PATH')) {
+    define('LOOPRESS_PLUGIN_PATH', '/var/www/html/wp-content/plugins/loopress/');
+}

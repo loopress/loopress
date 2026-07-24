@@ -49,6 +49,10 @@ deptrac:
           value: '#^Loopress\\Snippets\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\Form\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Sentry\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Settings\\.+$#'
 
   ruleset:
     # Light (Loopress Light edition) may use the shared Module contract but must never

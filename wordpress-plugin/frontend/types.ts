@@ -31,6 +31,12 @@ export interface Settings {
     environment: string;
 }
 
+export interface SentryConsent {
+    // null: the admin has never decided (including right after a reset), distinct from an
+    // explicit opt-out (false).
+    enabled: boolean | null;
+}
+
 export interface UpdateStatus {
     current_version: string;
     latest_version: string | null;
