@@ -1,0 +1,36 @@
+---
+title: Custom API Routes
+description: See which custom REST API routes are currently deployed on the site.
+---
+
+import FullEditionNote from '../../../components/FullEditionNote.astro';
+
+<FullEditionNote />
+
+The **API** tab on the **Loopress** admin page lists every custom REST API route currently deployed on the site, whichever file was last pushed with [`lps api push`](/cli/api/).
+
+## What it shows
+
+For each uploaded route file:
+
+| Column | Description |
+|--------|-------------|
+| File | The filename on disk, `{slug}.php` |
+| Route | The live endpoint path under the `loopress-api/v1` namespace |
+
+The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [API Routes](/cli/api/) for the file format and command reference.
+
+## REST API
+
+The tab reads from `GET /wp-json/loopress/v1/api-files`, the same management endpoint `lps api pull/push/list` use:
+
+```json
+[
+  {
+    "filename": "hello-world",
+    "content": "<?php\n\ndeclare(strict_types=1);\n\nclass HelloWorld\n{\n    public function get(): array\n    {\n        return ['message' => 'Hello, world!'];\n    }\n}\n"
+  }
+]
+```
+
+This is distinct from the routes a deployed file itself exposes, which are registered under `loopress-api/v1` instead, to avoid a namespace collision with this management endpoint.
