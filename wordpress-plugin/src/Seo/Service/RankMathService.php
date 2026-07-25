@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Seo\Service;
 
 use Loopress\Seo\Contract\SeoRedirectProvider;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 
 // One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
 // this and YoastService), the same shape as CodeSnippetsSnippetProvider/WPCodeSnippetProvider.
@@ -237,7 +238,7 @@ class RankMathService implements SeoRedirectProvider
     {
         $modules = get_option('rank_math_modules', []);
         if (!is_array($modules) || !in_array('redirections', $modules, true)) {
-            throw new \RuntimeException('The RankMath Redirections module is not enabled. Enable it under RankMath > Dashboard > Modules.');
+            throw new RedirectsUnavailableException('The RankMath Redirections module is not enabled. Enable it under RankMath > Dashboard > Modules.');
         }
     }
 

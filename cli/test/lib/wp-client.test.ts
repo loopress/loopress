@@ -132,6 +132,25 @@ describe('formatWpError', () => {
     expect(message).toContain('Multiple snippet plugins are active at once.')
   })
 
+  // Regression coverage: ComposerController::sync() (and others) pair a short, generic
+  // {error} ("Sync failed.") with the real Composer trace in a separate {output} field.
+  // Reading only {error} hid the one piece of text that actually explains the failure.
+  it("includes the server's {output} field alongside a generic {error} summary", () => {
+    const body = JSON.stringify({
+      error: 'Sync failed.',
+      output: 'In PluginManager.php line 821:\n  composer/installers contains a Composer plugin which is blocked...',
+    })
+    const message = formatWpError({response: {body, statusCode: 500}}, url)
+    expect(message).toContain('Sync failed.')
+    expect(message).toContain('PluginManager.php line 821')
+  })
+
+  it('falls back to the {output} field alone when there is no {error} field', () => {
+    const body = JSON.stringify({output: 'Some raw tool output with no summary.'})
+    const message = formatWpError({response: {body, statusCode: 500}}, url)
+    expect(message).toContain('Some raw tool output with no summary.')
+  })
+
   it("includes the server's own {message} field when there is no {error} field", () => {
     const body = JSON.stringify({message: 'Something else went wrong.'})
     const message = formatWpError({response: {body, statusCode: 500}}, url)

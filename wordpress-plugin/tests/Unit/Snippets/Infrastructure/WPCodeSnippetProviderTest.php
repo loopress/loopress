@@ -277,6 +277,38 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->service->updateSnippet(6, new SnippetData(name: 'New title'));
     }
 
+    // Regression coverage for the bug where a rejected location was still created/updated on
+    // WordPress with the location term silently left unset (read back as the type's default
+    // location), because the location was only validated deep inside saveMeta(), after
+    // wp_insert_post()/wp_update_post() had already run. A retried push (the natural reaction
+    // to the reported failure) would then create an unbounded number of duplicates, since the
+    // local CLI never learns the id of the row that got created despite the error. The fix
+    // validates location before any write; these tests assert no write happens at all.
+
+    public function test_create_snippet_throws_before_any_write_when_location_is_invalid(): void
+    {
+        Functions\expect('wp_insert_post')->never();
+        Functions\expect('update_post_meta')->never();
+        Functions\expect('wp_set_post_terms')->never();
+
+        $this->expectException(UnsupportedLocationException::class);
+
+        $this->service->createSnippet(new SnippetData(type: SnippetType::Css, location: 'everywhere', code: 'body{}'));
+    }
+
+    public function test_update_snippet_throws_before_any_write_when_location_is_invalid(): void
+    {
+        $this->stubExistingSnippet(6, typeTerms: ['css']);
+
+        Functions\expect('wp_update_post')->never();
+        Functions\expect('update_post_meta')->never();
+        Functions\expect('wp_set_post_terms')->never();
+
+        $this->expectException(UnsupportedLocationException::class);
+
+        $this->service->updateSnippet(6, new SnippetData(location: 'admin'));
+    }
+
     // ── setTags (via updateSnippet) ──────────────────────────────────────────
     // setTags() now delegates entirely to wp_set_post_terms(), which creates any
     // term passed by name that doesn't already exist in the taxonomy.

@@ -79,6 +79,13 @@ class WPCodeSnippetProvider implements SnippetProvider
 
     public function createSnippet(SnippetData $data): SnippetData
     {
+        // Resolved purely for its validation side effect: an invalid location must reject
+        // the whole create, not leave a post behind with no location term set at all (which
+        // silently reads back as the type's default location on the next getSnippet() call).
+        if ($data->location !== null) {
+            $this->locationTerm($data->type ?? SnippetType::Php, $data->location);
+        }
+
         $id = wp_insert_post([
             'post_type'    => self::POST_TYPE,
             'post_title'   => sanitize_text_field($data->name ?? ''),
@@ -100,6 +107,14 @@ class WPCodeSnippetProvider implements SnippetProvider
         $post = get_post($id);
         if (!$post instanceof \WP_Post || $post->post_type !== self::POST_TYPE) {
             return null;
+        }
+
+        // Same reasoning as createSnippet(): resolved before any write so an invalid
+        // location rejects the whole update instead of partially applying it first.
+        if ($data->location !== null) {
+            $existingTypeTerm = $this->getSingleTerm($id, self::TYPE_TAXONOMY);
+            $type             = $data->type ?? (SnippetType::tryFrom($existingTypeTerm) ?? SnippetType::Php);
+            $this->locationTerm($type, $data->location);
         }
 
         $update = ['ID' => $id];

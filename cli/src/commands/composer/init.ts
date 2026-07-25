@@ -37,6 +37,11 @@ export default class ComposerInit extends LoopressCommand {
     }
 
     const composerJson: ComposerJson = {
+      // composer/installers is itself a Composer plugin, and Composer 2.2+ refuses to run any
+      // plugin that isn't explicitly trusted when running non-interactively (which every
+      // `composer push` on the server does). Without this, the very first real push against
+      // this scaffold 500s on Composer's own plugin-trust gate before ever touching a package.
+      config: {'allow-plugins': {[INSTALLERS_PACKAGE]: true}},
       extra: {'installer-paths': INSTALLER_PATHS},
       name: 'loopress/site-dependencies',
       repositories: [WPACKAGIST_REPOSITORY],

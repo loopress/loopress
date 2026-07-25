@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Seo\RestApi;
 
 use Loopress\RestApi\RequiresManageOptionsCapability;
+use Loopress\Seo\Exception\NoActiveSeoPluginException;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\Service\SeoService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -86,6 +88,8 @@ class SeoController
 
         try {
             return new WP_REST_Response($this->seoService->listPostMeta((string) $request->get_param('type')), 200);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -97,7 +101,13 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        $post = $this->seoService->getPostMeta((string) $request->get_param('type'), (string) $request->get_param('slug'));
+        try {
+            $post = $this->seoService->getPostMeta((string) $request->get_param('type'), (string) $request->get_param('slug'));
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
 
         return $post === null
             ? new WP_REST_Response(['error' => 'Post not found'], 404)
@@ -120,6 +130,8 @@ class SeoController
 
         try {
             $post = $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -135,7 +147,13 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        return new WP_REST_Response($this->seoService->getSettings(), 200);
+        try {
+            return new WP_REST_Response($this->seoService->getSettings(), 200);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function update_settings(WP_REST_Request $request): WP_REST_Response
@@ -149,7 +167,13 @@ class SeoController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        return new WP_REST_Response($this->seoService->updateSettings($data), 200);
+        try {
+            return new WP_REST_Response($this->seoService->updateSettings($data), 200);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     // ── redirects ───────────────────────────────────────────────────────────
@@ -162,6 +186,10 @@ class SeoController
 
         try {
             return new WP_REST_Response($this->seoService->listRedirections(), 200);
+        } catch (RedirectsUnavailableException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 400);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -175,6 +203,10 @@ class SeoController
 
         try {
             $redirect = $this->seoService->getRedirection((int) $request->get_param('id'));
+        } catch (RedirectsUnavailableException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 400);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -197,6 +229,10 @@ class SeoController
 
         try {
             $redirect = $this->seoService->createRedirection($data);
+        } catch (RedirectsUnavailableException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 400);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
@@ -214,6 +250,10 @@ class SeoController
 
         try {
             $redirect = $this->seoService->updateRedirection((int) $request->get_param('id'), $data);
+        } catch (RedirectsUnavailableException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 400);
+        } catch (NoActiveSeoPluginException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 409);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }

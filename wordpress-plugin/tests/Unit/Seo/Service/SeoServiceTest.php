@@ -6,6 +6,8 @@ namespace Loopress\Tests\Unit\Seo\Service;
 
 use Loopress\Seo\Contract\SeoProvider;
 use Loopress\Seo\Contract\SeoRedirectProvider;
+use Loopress\Seo\Exception\NoActiveSeoPluginException;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -72,7 +74,7 @@ class SeoServiceTest extends TestCase
 
         $service = new SeoService($first, $second);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(NoActiveSeoPluginException::class);
         $this->expectExceptionMessage('Multiple SEO plugins are active');
         $service->getSettings();
     }
@@ -141,7 +143,7 @@ class SeoServiceTest extends TestCase
     {
         $service = new SeoService($this->provider(true));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RedirectsUnavailableException::class);
         $this->expectExceptionMessage('Redirects are not supported by the active SEO plugin.');
         $service->listRedirections();
     }

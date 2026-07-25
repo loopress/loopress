@@ -6,6 +6,8 @@ namespace Loopress\Seo\Service;
 
 use Loopress\Seo\Contract\SeoProvider;
 use Loopress\Seo\Contract\SeoRedirectProvider;
+use Loopress\Seo\Exception\NoActiveSeoPluginException;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 
 class SeoService
 {
@@ -93,13 +95,13 @@ class SeoService
         $active = $this->activeProviders();
 
         if (count($active) > 1) {
-            throw new \RuntimeException(
+            throw new NoActiveSeoPluginException(
                 'Multiple SEO plugins are active at once (RankMath and Yoast SEO). Loopress cannot tell ' .
                 'which one is authoritative for your SEO data. Deactivate all but one and try again.',
             );
         }
 
-        return $active[0] ?? throw new \RuntimeException('No supported SEO plugin is active.');
+        return $active[0] ?? throw new NoActiveSeoPluginException('No supported SEO plugin is active.');
     }
 
     // Mirrors ACF options pages requiring ACF PRO: not every SeoProvider supports redirects
@@ -110,7 +112,7 @@ class SeoService
         $provider = $this->requireActiveProvider();
 
         if (!$provider instanceof SeoRedirectProvider) {
-            throw new \RuntimeException('Redirects are not supported by the active SEO plugin.');
+            throw new RedirectsUnavailableException('Redirects are not supported by the active SEO plugin.');
         }
 
         return $provider;

@@ -17,6 +17,7 @@ export default defineConfig({
   timeout: 60_000,
   use: {
     trace: 'retain-on-failure',
+    video: 'retain-on-failure',
   },
   // Tests mutate shared, global WordPress state (active plugins, snippet lists), so they
   // can't safely run concurrently against the same instance.

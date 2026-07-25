@@ -49,6 +49,9 @@ describe('composer init', () => {
 
     const written = JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))
     expect(written).toEqual({
+      config: {
+        'allow-plugins': {'composer/installers': true},
+      },
       extra: {
         'installer-paths': {
           '../plugins/{$name}/': ['type:wordpress-plugin'],
@@ -62,6 +65,20 @@ describe('composer init', () => {
       },
     })
     expect(logs.log).toHaveBeenCalledWith(`Wrote composer.json to ${join(dir, 'composer.json')}`)
+  })
+
+  // Regression test: composer/installers is itself a Composer plugin, and without this
+  // config key, Composer 2.2+ refuses to run it non-interactively (which every server-side
+  // `composer push` does), so the very first real push against this scaffold always 500d on
+  // Composer's own plugin-trust gate before ever touching a package (see e2e/composer-sync.spec.ts
+  // for the full round-trip against a real WordPress site).
+  it('allow-lists composer/installers so a real push does not hit Composer\'s plugin-trust gate', async () => {
+    const {cmd} = make(false)
+
+    await cmd.run()
+
+    const written = JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))
+    expect(written.config['allow-plugins']['composer/installers']).toBe(true)
   })
 
   it('does not write anything on dry-run', async () => {

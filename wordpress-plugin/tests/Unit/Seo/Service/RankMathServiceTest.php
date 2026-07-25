@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Seo\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\Service\RankMathService;
 use Loopress\Tests\Stubs\FakeWpdb;
 use PHPUnit\Framework\TestCase;
@@ -179,7 +180,7 @@ class RankMathServiceTest extends TestCase
         Functions\when('get_option')->justReturn(['sitemap']);
         $GLOBALS['wpdb'] = new FakeWpdb();
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RedirectsUnavailableException::class);
         $this->service->listRedirections();
     }
 
