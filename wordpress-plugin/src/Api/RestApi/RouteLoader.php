@@ -106,7 +106,16 @@ class RouteLoader
             return $served;
         }
 
-        $headers = call_user_func([$instance, 'headers']);
+        try {
+            $headers = call_user_func([$instance, 'headers']);
+        } catch (\Throwable $e) {
+            // WP doesn't wrap filter callbacks in exception handling: an uncaught throw here
+            // would break every request to this route, not just registration at boot like the
+            // equivalent guard around permission() in loadFile().
+            $this->log('headers() threw: ' . $e->getMessage());
+            return $served;
+        }
+
         if (!is_array($headers)) {
             return $served;
         }
@@ -135,19 +144,20 @@ class RouteLoader
 
         try {
             require_once $this->directory->filePath($slug);
-            $instance = new $className();
+            $instance  = new $className();
+            $endpoints = $this->endpointsFor($instance);
         } catch (\Throwable $e) {
             // Covers real parse errors too: since PHP 7, a compile error in a required file
             // throws \ParseError (a \Throwable), catchable here rather than fataling the
             // whole request the way an uncaught one would (see obsidian doc "Race condition
             // à l'écriture", same site-wide blast radius, different trigger). Also covers a
             // file that required cleanly but doesn't actually declare $className (e.g. a
-            // typo): `new $className()` throws \Error, also a \Throwable.
+            // typo, `new $className()` throws \Error), and a file whose permission() throws
+            // from inside endpointsFor(): none of these may ever fatal rest_api_init.
             $this->log("failed to load api/{$slug}.php: " . $e->getMessage());
             return;
         }
 
-        $endpoints = $this->endpointsFor($instance);
         if ($endpoints === []) {
             return;
         }

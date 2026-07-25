@@ -177,6 +177,22 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
+    public function test_loadAndRegister_skips_a_file_whose_permission_throws(): void
+    {
+        $this->directory->write(
+            'test-loader-throws-permission',
+            "<?php\nfinal class TestLoaderThrowsPermission\n{\n    public function get(): array { return []; }\n    public function permission(): callable { throw new \\RuntimeException('boom'); }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')->never();
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // reaching this line means the exception from permission() was caught
+    }
+
     public function test_loadAndRegister_skips_a_file_with_no_public_verb_method(): void
     {
         $this->directory->write('test-loader-no-verbs', "<?php\nfinal class TestLoaderNoVerbs\n{\n    public function notAVerb(): void {}\n}\n");
@@ -200,5 +216,25 @@ class RouteLoaderTest extends TestCase
         $served = $loader->applyHeaders(true, null, $request);
 
         $this->assertTrue($served);
+    }
+
+    public function test_applyHeaders_returns_served_unchanged_when_the_files_headers_method_throws(): void
+    {
+        $this->directory->write(
+            'test-loader-throws-headers',
+            "<?php\nfinal class TestLoaderThrowsHeaders\n{\n    public function get(): array { return []; }\n    public function headers(): array { throw new \\RuntimeException('boom'); }\n}\n",
+        );
+
+        Functions\when('register_rest_route')->justReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory);
+        $loader->loadAndRegister();
+
+        $request = new WP_REST_Request([], RouteLoader::NAMESPACE . '/test-loader-throws-headers');
+
+        $served = $loader->applyHeaders(true, null, $request);
+
+        $this->assertTrue($served); // reaching this line means the exception from headers() was caught
     }
 }
