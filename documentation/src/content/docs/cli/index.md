@@ -25,6 +25,9 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | **SEO** | `lps seo pull` | Pull SEO settings, post meta, and redirects from WordPress (RankMath or Yoast) |
 | | `lps seo push` | Push SEO configuration to WordPress |
 | | `lps seo list` | Print posts with SEO meta, and redirects if supported |
+| **Forms** | `lps form pull` | Pull forms from WordPress (WPForms) |
+| | `lps form push` | Push forms to WordPress |
+| | `lps form list` | List forms on the site |
 | **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
 | | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
 | | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |

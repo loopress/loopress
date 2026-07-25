@@ -82,6 +82,7 @@ export default defineConfig({
 						{ label: "Snippets", slug: "cli/snippets" },
 						{ label: "ACF", slug: "cli/acf" },
 						{ label: "SEO", slug: "cli/seo" },
+						{ label: "Forms", slug: "cli/forms" },
 						{ label: "Plugins", slug: "cli/plugins" },
 						{ label: "Composer", slug: "cli/composer" },
 					],
