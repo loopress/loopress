@@ -6,10 +6,9 @@ namespace Loopress\Api\Infrastructure;
 
 /**
  * Injects/removes the ABSPATH guard that protects a deployed api/ file from direct HTTP
- * access (wp-content/ is under the public webroot, see obsidian/Product/Custom API Routes.md
- * "Protection contre l'accès direct au fichier"). A regex locates the real declare() line as
- * written (tolerant to spacing), str_replace does the actual insertion/removal on that exact
- * text so the logic itself stays simple.
+ * access (wp-content/ is under the public webroot). A regex locates the real declare() line
+ * as written (tolerant to spacing), str_replace does the actual insertion/removal on that
+ * exact text so the logic itself stays simple.
  */
 class FileWriter
 {

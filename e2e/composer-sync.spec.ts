@@ -44,13 +44,12 @@ test('pushes composer.json with no lock file, and the package is actually instal
 // (deliberately requiring nothing beyond the scaffold's own default, `composer/installers` itself,
 // so this doesn't also depend on WordPress.org/wpackagist.org reachability, which turned out to be
 // unreliable from GitHub-hosted runners): on this shared e2e instance, where Yoast SEO is always
-// active, activating `composer/installers` after this fix hits a *separate*, unrelated failure —
-// a process-wide PHP class-autoloading collision between Loopress's in-process Composer run and
-// Yoast's own bundled (and stale) `composer/installers` classmap entry, tracked in
-// obsidian/Product/Composer In-Process Autoloader Collision.md. Reproduced locally by simply
-// activating wordpress-seo and re-running this exact push — confirmed unrelated to this bug or to
-// CI specifically. A real success assertion here would make this test fail on that separate,
-// already-tracked issue instead of the one it's actually meant to guard.
+// active, activating `composer/installers` after this fix hits a *separate*, unrelated, tracked
+// failure: a process-wide PHP class-autoloading collision between Loopress's in-process Composer
+// run and Yoast's own bundled (and stale) `composer/installers` classmap entry. Reproduced locally
+// by simply activating wordpress-seo and re-running this exact push, confirmed unrelated to this
+// bug or to CI specifically. A real success assertion here would make this test fail on that
+// separate, already-tracked issue instead of the one it's actually meant to guard.
 test('a fresh `composer init` scaffold does not hit the plugin-trust gate on a real push', async ({runCli}) => {
   const initResult = await runCli(['composer', 'init'])
   expect(initResult.exitCode, initResult.stderr).toBe(0)

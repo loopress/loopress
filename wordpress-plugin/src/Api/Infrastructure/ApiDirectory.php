@@ -28,9 +28,9 @@ class ApiDirectory
         return $this->path . $slug . '.php';
     }
 
-    // Directory listing is blocked by an empty index.php (defense in depth, see obsidian
-    // doc "Protection contre l'accès direct au fichier"); it doesn't protect a request for a
-    // specific named file, that's what FileWriter's injected ABSPATH guard is for.
+    // Directory listing is blocked by an empty index.php (defense in depth); it doesn't
+    // protect a request for a specific named file, that's what FileWriter's injected ABSPATH
+    // guard is for.
     public function ensureExists(): void
     {
         if (!is_dir($this->path)) {
@@ -80,7 +80,7 @@ class ApiDirectory
     }
 
     // dumpFile() writes to a temp file then renames, so a concurrent rest_api_init scan
-    // never reads a half-written file (see obsidian doc "Race condition à l'écriture").
+    // never reads a half-written file.
     public function write(string $slug, string $content): void
     {
         $this->ensureExists();

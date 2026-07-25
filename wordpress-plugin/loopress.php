@@ -74,10 +74,7 @@ use Loopress\Plugin;
 // artifact must not contain any reference to these Plus features, even inactive ones.
 // Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
 // capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
-// the auth/capability checks in front of it; see
-// obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection,
-// and obsidian/Product/Custom API Routes.md "Full uniquement, jamais Light" for why Api
-// follows the same rule.
+// the auth/capability checks in front of it; Api follows the same rule.
 foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Form', 'Settings'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));

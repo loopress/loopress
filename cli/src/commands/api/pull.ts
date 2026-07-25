@@ -32,8 +32,8 @@ export default class Pull extends LoopressCommand {
 
     // Files following the `<filename>.php` convention no longer present remotely belong to
     // a route deleted on WordPress. Left on disk, they'd silently come back to life the next
-    // time `api push` runs (see obsidian/Product/Push Deletion Rules.md: push itself stays
-    // additive-only, but pull already cleans up locally, same as `snippet pull`).
+    // time `api push` runs (push itself stays additive-only, but pull already cleans up
+    // locally, same as `snippet pull`).
     const orphans = await this.findOrphanedFiles(
       path,
       new Set(files.map((file) => file.filename)),

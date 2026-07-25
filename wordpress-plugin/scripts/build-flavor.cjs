@@ -100,9 +100,8 @@ if (require.main === module) {
   // light build, these directories must be absent from the artifact, not merely inactive:
   // wordpress.org guidelines forbid the Composer feature outright, reserve update-checking
   // for their own SVN-based flow, and rejected the snippet sync REST endpoints themselves as
-  // a remote arbitrary-code-deployment mechanism (see obsidian/Product/WordPress.org Plugin
-  // Distribution.md §2b in the monorepo), so Loopress Light must never carry any of the three,
-  // even dormant code.
+  // a remote arbitrary-code-deployment mechanism, so Loopress Light must never carry any of
+  // the three, even dormant code.
   const excludedSrcDirs = flavor.fullOnlySrcDirs.map((dir) => path.join(root, 'src', dir))
   fs.cpSync(path.join(root, 'src'), path.join(stageDir, 'src'), {
     recursive: true,

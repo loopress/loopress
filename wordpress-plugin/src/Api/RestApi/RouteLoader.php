@@ -12,7 +12,7 @@ use WP_REST_Request;
  * Scans wp-content/loopress/api/*.php on rest_api_init, requires each file by convention
  * (kebab-case filename -> PascalCase class), and registers one WP REST route per file under
  * loopress-api/v1 (not loopress/v1, to avoid colliding with ApiFilesController's own
- * management endpoint). See obsidian/Product/Custom API Routes.md "Convention de fichier".
+ * management endpoint).
  */
 class RouteLoader
 {
@@ -36,8 +36,7 @@ class RouteLoader
 
         // Single dispatch-level hook for every file's headers(), rather than one hook per
         // file: needed even for a plain response, but especially for the OPTIONS preflight
-        // WP core answers automatically without ever invoking the file's own verb method
-        // (see obsidian doc "CORS").
+        // WP core answers automatically without ever invoking the file's own verb method.
         add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
     }
 
@@ -84,7 +83,7 @@ class RouteLoader
 
     // method_exists() alone returns true for private/protected methods too; a call from
     // outside the class (what register_rest_route's callback dispatch does) would fatal on
-    // visibility, so both checks are required (see obsidian doc "Convention de fichier").
+    // visibility, so both checks are required.
     public function hasPublicMethod(object $instance, string $method): bool
     {
         return method_exists($instance, $method) && (new \ReflectionMethod($instance, $method))->isPublic();
@@ -136,7 +135,7 @@ class RouteLoader
         $className = self::classNameFor($slug);
 
         // A collision (WP core, another plugin, another api/ file) must never fatal the
-        // whole site's rest_api_init: see obsidian doc "Collision de nom de classe".
+        // whole site's rest_api_init.
         if (class_exists($className, false)) {
             $this->log("skipping api/{$slug}.php: class {$className} is already declared");
             return;
@@ -149,11 +148,11 @@ class RouteLoader
         } catch (\Throwable $e) {
             // Covers real parse errors too: since PHP 7, a compile error in a required file
             // throws \ParseError (a \Throwable), catchable here rather than fataling the
-            // whole request the way an uncaught one would (see obsidian doc "Race condition
-            // à l'écriture", same site-wide blast radius, different trigger). Also covers a
-            // file that required cleanly but doesn't actually declare $className (e.g. a
-            // typo, `new $className()` throws \Error), and a file whose permission() throws
-            // from inside endpointsFor(): none of these may ever fatal rest_api_init.
+            // whole request the way an uncaught one would (same site-wide blast radius as the
+            // write-time race condition in ApiDirectory::write(), different trigger). Also
+            // covers a file that required cleanly but doesn't actually declare $className
+            // (e.g. a typo, `new $className()` throws \Error), and a file whose permission()
+            // throws from inside endpointsFor(): none of these may ever fatal rest_api_init.
             $this->log("failed to load api/{$slug}.php: " . $e->getMessage());
             return;
         }

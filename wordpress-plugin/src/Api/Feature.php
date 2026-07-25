@@ -16,9 +16,8 @@ use function DI\autowire;
  * under loopress-api/v1. Everything under src/Api/ ships only in the Loopress Full edition
  * (see scripts/build-flavor.cjs); the plugin entry file calls this inside its build markers,
  * so the Loopress Light artifact never references this namespace. Same rejection precedent
- * as Snippets (see obsidian/Product/Custom API Routes.md "Full uniquement, jamais Light"):
- * wordpress.org rejects any mechanism that facilitates remote deployment of arbitrary
- * executable code, regardless of the manage_options gate in front of it.
+ * as Snippets: wordpress.org rejects any mechanism that facilitates remote deployment of
+ * arbitrary executable code, regardless of the manage_options gate in front of it.
  */
 class Feature implements FeatureProvider
 {

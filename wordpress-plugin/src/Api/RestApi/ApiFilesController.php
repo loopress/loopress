@@ -20,8 +20,7 @@ class ApiFilesController
     use RequiresManageOptionsCapability;
 
     // Matches FileWriter/RouteLoader's filename convention: lowercase kebab-case only, no
-    // path traversal, extension is never taken from the client (see obsidian doc "Sécurité
-    // de l'upload").
+    // path traversal, extension is never taken from the client.
     private const FILENAME_PATTERN = '/^[a-z0-9-]+$/';
 
     public function __construct(private ApiDirectory $directory) {}

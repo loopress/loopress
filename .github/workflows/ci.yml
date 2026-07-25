@@ -258,9 +258,8 @@ jobs:
         run: pnpm run pack:light
 
       # wordpress.org guidelines forbid a plugin from shipping Composer/Packagist
-      # installer code even inactive (see obsidian/Product/WordPress.org Plugin
-      # Distribution.md §2-3), and separately rejected the snippet sync feature itself as a
-      # remote arbitrary-code-deployment mechanism (§2b). This asserts the Loopress Light
+      # installer code even inactive, and separately rejected the snippet sync feature itself
+      # as a remote arbitrary-code-deployment mechanism. This asserts the Loopress Light
       # artifact never regresses either, rather than trusting the build script's stripping
       # logic to always be correct.
       - name: Assert the Loopress Light zip contains no Composer/Packagist or Snippets code

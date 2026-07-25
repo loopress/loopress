@@ -131,8 +131,8 @@ class RouteLoaderTest extends TestCase
     public function test_loadAndRegister_skips_a_class_name_collision_without_registering_anything(): void
     {
         // TestLoaderCollisionFixture is already declared at the top of this file, simulating
-        // a collision with WP core, another plugin, or another api/ file (see obsidian doc
-        // "Collision de nom de classe"). The written content is never actually required.
+        // a collision with WP core, another plugin, or another api/ file. The written content
+        // is never actually required.
         $this->directory->write('test-loader-collision-fixture', '<?php // never actually required');
 
         Functions\expect('register_rest_route')->never();

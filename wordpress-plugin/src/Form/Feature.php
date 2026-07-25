@@ -17,8 +17,7 @@ use function DI\factory;
  * Entry point of the generic form-sync feature. Ships only in the Loopress Full edition (see
  * scripts/build-flavor.cjs); the plugin entry file calls this inside its build markers, so
  * the Loopress Light artifact never references this namespace. Light is locked to ACF+SEO
- * only (see obsidian/Product/WordPress.org Plugin Distribution.md), so any new integration
- * added after that decision lands in Full by default.
+ * only, so any new integration added after that decision lands in Full by default.
  *
  * Only one FormProvider exists today (WPFormsProvider), but the concept is deliberately
  * generic from the start, same shape as Snippets (Code Snippets/WPCode): more WordPress form
