@@ -47,20 +47,28 @@ test('a fresh `composer init` scaffold can push a WordPress.org plugin without a
   wp,
 }) => {
   const initResult = await runCli(['composer', 'init'])
-  expect(initResult.exitCode).toBe(0)
+  expect(initResult.exitCode, initResult.stderr).toBe(0)
 
   const composerJsonPath = join(projectDir, 'composer.json')
   const composerJson = JSON.parse(readFileSync(composerJsonPath, 'utf8'))
-  composerJson.require['wpackagist-plugin/hello-dolly'] = '*'
+  // query-monitor, not hello-dolly: the official `wordpress:latest` image (used by CI's
+  // loopress/setup-ci) ships Hello Dolly bundled by default, unlike a from-scratch Local by
+  // Flywheel site — query-monitor is the plugin this project's own manual QA playbook already
+  // uses for this exact kind of test, precisely to avoid a real WordPress.org plugin that might
+  // already be present under a different path convention.
+  composerJson.require['wpackagist-plugin/query-monitor'] = '*'
   writeFileSync(composerJsonPath, JSON.stringify(composerJson))
 
   const pushResult = await runCli(['composer', 'push'])
-  expect(pushResult.exitCode).toBe(0)
+  // Surfaced as the assertion's failure message (Playwright's second `expect()` argument)
+  // rather than a separate log line, so a CI failure shows the actual Composer error instead
+  // of just "Expected: 0, Received: 1".
+  expect(pushResult.exitCode, pushResult.stderr || pushResult.stdout).toBe(0)
 
   const pluginsResponse = await request.get(`${wp.url}/wp-json/wp/v2/plugins`, {
     headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},
   })
   expect(pluginsResponse.ok()).toBe(true)
   const plugins = (await pluginsResponse.json()) as Array<{plugin: string}>
-  expect(plugins.some((plugin) => plugin.plugin.startsWith('hello-dolly/'))).toBe(true)
+  expect(plugins.some((plugin) => plugin.plugin.startsWith('query-monitor/'))).toBe(true)
 })
