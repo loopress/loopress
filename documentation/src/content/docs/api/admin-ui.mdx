@@ -1,13 +1,17 @@
 ---
-title: Custom API Routes
+title: Admin UI
 description: See which custom REST API routes are currently deployed on the site.
 ---
 
+import { Image } from 'astro:assets';
 import FullEditionNote from '../../../components/FullEditionNote.astro';
+import apiTabImg from '../../images/loopress-ui-api.png';
 
 <FullEditionNote />
 
-The **API** tab on the **Loopress** admin page lists every custom REST API route currently deployed on the site, whichever file was last pushed with [`lps api push`](/cli/api/).
+The **API** tab on the **Loopress** admin page lists every custom REST API route currently deployed on the site, whichever file was last pushed with [`lps api push`](/api/cli/).
+
+<Image src={apiTabImg} alt="The API tab in the Loopress admin page, listing uploaded route files and the endpoint each one publishes" />
 
 ## What it shows
 
@@ -18,7 +22,7 @@ For each uploaded route file:
 | File | The filename on disk, `{slug}.php` |
 | Route | The live endpoint path under the `loopress-api/v1` namespace |
 
-The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [API Routes](/cli/api/) for the file format and command reference.
+The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the file format and command reference.
 
 ## REST API
 

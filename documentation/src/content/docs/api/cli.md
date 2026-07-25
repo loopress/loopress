@@ -1,5 +1,5 @@
 ---
-title: API Routes
+title: CLI
 description: Deploy custom WordPress REST API endpoints from version-controlled PHP files.
 ---
 
@@ -8,6 +8,8 @@ description: Deploy custom WordPress REST API endpoints from version-controlled 
 :::
 
 The `api` command group lets you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required.
+
+Once deployed, every route file shows up in the **API** tab of the plugin's [admin UI](/api/admin-ui/).
 
 ## Typical workflow
 

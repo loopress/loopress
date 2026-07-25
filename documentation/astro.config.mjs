@@ -107,6 +107,14 @@ export default defineConfig({
 					],
 				},
 				{
+					label: "API Routes",
+					items: [
+						{ label: "Overview", slug: "api" },
+						{ label: "CLI", slug: "api/cli" },
+						{ label: "Admin UI", slug: "api/admin-ui" },
+					],
+				},
+				{
 					label: "CI/CD",
 					items: [
 						{ label: "Overview", slug: "ci" },
