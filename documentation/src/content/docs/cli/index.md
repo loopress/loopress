@@ -28,6 +28,9 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | **Forms** | `lps form pull` | Pull forms from WordPress (WPForms) |
 | | `lps form push` | Push forms to WordPress |
 | | `lps form list` | List forms on the site |
+| **API Routes** | `lps api pull` | Pull custom REST API route files from WordPress |
+| | `lps api push` | Push route files to WordPress |
+| | `lps api list` | List route files on the site |
 | **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
 | | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
 | | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |

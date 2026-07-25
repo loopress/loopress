@@ -8,7 +8,7 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
 
 - **Loopress Light** (WordPress.org, once resubmitted in its current form, see below; downloaded from loopress.dev in the meantime): connects your site to the Loopress CLI. Exposes the REST API that powers `lps acf pull/push/list` for [ACF](https://www.advancedcustomfields.com/) field groups and `lps seo pull/push/list` for SEO settings ([RankMath](https://rankmath.com/) or [Yoast SEO](https://yoast.com/wordpress/plugins/seo/)).
-- **Loopress Full** (also free, loopress.dev only): everything in Loopress Light, plus code snippet sync, integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), powers `lps snippet pull/push/list`, and lets you migrate snippets between the two providers from the admin, plus form sync with [WPForms](https://wpforms.com/) powering `lps form pull/push/list`, plus Composer dependency management: search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
+- **Loopress Full** (also free, loopress.dev only): everything in Loopress Light, plus code snippet sync, integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), powers `lps snippet pull/push/list`, and lets you migrate snippets between the two providers from the admin, plus form sync with [WPForms](https://wpforms.com/) powering `lps form pull/push/list`, plus custom REST API routes deployed from version-controlled PHP files with `lps api pull/push/list`, plus Composer dependency management: search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
 
 Loopress Full costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory for two separate reasons, not pricing: directory guidelines forbid a plugin from installing executable PHP code from external registries such as Packagist (Composer dependency management), and separately forbid a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode for later execution (snippet sync), regardless of the authentication in front of those endpoints. Installing Loopress Full deactivates Loopress Light automatically, since Loopress Full is a full replacement, not an add-on; the two editions never run side by side.
 
@@ -26,6 +26,8 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 | Migrate snippets between Code Snippets and WPCode | | ✓ |
 | Form sync (WPForms) | | ✓ |
 | `lps form pull` / `push` / `list` | | ✓ |
+| Custom API routes (deploy REST endpoints from PHP files) | | ✓ |
+| `lps api pull` / `push` / `list` | | ✓ |
 | Composer dependency management (Packagist search, install, remove, update) | | ✓ |
 | Security audit (known CVEs, abandoned packages) | | ✓ |
 | Platform diagnostics (PHP version mismatches) | | ✓ |
@@ -52,6 +54,7 @@ Everything above, plus:
 - **Works with Code Snippets and WPCode**: Loopress Full talks to whichever is active
 - **Snippet provider migration**: switch providers without losing anything. The **Snippets** admin tab copies snippets from WPCode to Code Snippets (or the other way around) one click at a time; the original is deactivated, not deleted, so you can roll back
 - **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push/list`
+- **Custom API routes**: version-control REST API endpoints as plain PHP files with `lps api pull/push/list`, each file becomes one route
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
