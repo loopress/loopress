@@ -77,13 +77,22 @@ export function formatWpError(error: unknown, url: string): string {
 // core response (e.g. an uncaught fatal formatted by WordPress itself) uses `{"message": "..."}`.
 // Surfacing this is what makes a deliberately clear server-side error (e.g. "Multiple snippet
 // plugins are active...") actually reach the user instead of a bare, unhelpful status code.
+//
+// Some controllers (ComposerController::sync(), notably) pair a short, generic `error` (e.g.
+// "Sync failed.") with the real detail in a separate `output` field (the raw Composer trace),
+// specifically so a caller that only reads `error` doesn't see it — which is exactly what this
+// function used to do, hiding the one piece of text that actually explains the failure.
 function extractServerErrorMessage(body: string | undefined): string | undefined {
   if (!body) return undefined
 
   try {
-    const parsed = JSON.parse(body) as {error?: unknown; message?: unknown}
+    const parsed = JSON.parse(body) as {error?: unknown; message?: unknown; output?: unknown}
     const reason = parsed.error ?? parsed.message
-    return typeof reason === 'string' && reason.trim() ? reason : undefined
+    const summary = typeof reason === 'string' && reason.trim() ? reason : undefined
+    const detail = typeof parsed.output === 'string' && parsed.output.trim() ? parsed.output.trim() : undefined
+
+    if (summary && detail) return `${summary}\n${detail}`
+    return summary ?? detail
   } catch {
     return undefined
   }
