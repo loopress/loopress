@@ -134,7 +134,7 @@ class RouteLoader
         }
 
         try {
-            require $this->directory->filePath($slug);
+            require_once $this->directory->filePath($slug);
             $instance = new $className();
         } catch (\Throwable $e) {
             // Covers real parse errors too: since PHP 7, a compile error in a required file
