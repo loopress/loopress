@@ -85,6 +85,25 @@ class ApiFilesControllerTest extends TestCase
         $this->assertSame(400, $response->status);
     }
 
+    // Regression coverage for the bug where a file with valid `declare(strict_types=1);` but
+    // otherwise broken PHP syntax was written anyway (push_file only checked for the declare
+    // line), and only failed later inside RouteLoader's own rest_api_init try/catch — silently,
+    // with `api push` reporting success and `api list` showing the file as present.
+    public function test_push_file_returns_400_when_content_has_invalid_php_syntax(): void
+    {
+        $request = new WP_REST_Request([
+            'filename' => 'broken',
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Broken {\n    public function get() {\n        return ['ok' => true]\n    }\n}\n",
+        ]);
+
+        $this->directory->expects($this->never())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('syntax', strtolower((string) $response->data['error']));
+    }
+
     public function test_push_file_returns_500_when_the_directory_write_fails(): void
     {
         $request = new WP_REST_Request([

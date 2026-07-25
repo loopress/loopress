@@ -81,6 +81,11 @@ class ApiFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
         }
 
+        $syntaxError = $this->checkSyntax($guarded);
+        if ($syntaxError !== null) {
+            return new WP_REST_Response(['error' => "File has invalid PHP syntax: {$syntaxError}"], 400);
+        }
+
         try {
             $this->directory->write($filename, $guarded);
         } catch (\RuntimeException $e) {
@@ -88,5 +93,44 @@ class ApiFilesController
         }
 
         return new WP_REST_Response(['filename' => $filename], 200);
+    }
+
+    // A file that fails to write was never going to work anyway, but one that writes fine
+    // and only fails later, inside RouteLoader's own rest_api_init try/catch, gives the user
+    // zero signal: `api push` reports success and `api list` shows the file as present (it
+    // only checks the file exists), while the route silently 404s. Catching real syntax
+    // errors here, at push time, is what lets the CLI actually tell the user something's
+    // wrong instead of only the PHP error log. `php -l` (via the running interpreter, so it
+    // matches the actual PHP version this site executes the file with) is the only reliable
+    // way to check this without either executing the file's own class body or requiring a
+    // full userland parser dependency; `exec()` is routinely disabled on managed hosts, so
+    // this degrades to "can't verify" rather than blocking a push that might be perfectly
+    // valid.
+    private function checkSyntax(string $code): ?string
+    {
+        if (!function_exists('exec') || str_contains((string) ini_get('disable_functions'), 'exec')) {
+            return null;
+        }
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'loopress-api-');
+        if ($tmpFile === false) {
+            return null;
+        }
+
+        file_put_contents($tmpFile, $code); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $output   = [];
+        $exitCode = 0;
+        exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($tmpFile) . ' 2>&1', $output, $exitCode); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
+
+        unlink($tmpFile); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink
+
+        if ($exitCode === 0) {
+            return null;
+        }
+
+        // First line is always "PHP Parse error: ..." or "PHP Fatal error: ...", the rest is
+        // an "Errors parsing ..." footer that repeats the filename back, not useful to the user.
+        return $output[0] ?? 'Unknown syntax error.';
     }
 }
