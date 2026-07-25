@@ -7,6 +7,7 @@ import { DiagnosticsBanner } from './dependencies/DiagnosticsBanner';
 import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
+import { ApiRoutes } from './api-routes/ApiRoutes';
 import { UpdateNotice } from './update/UpdateNotice';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
@@ -15,6 +16,7 @@ import { useHashTab } from './useHashTab';
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
     { name: 'snippets', title: 'Snippets' },
+    { name: 'api', title: 'API' },
     { name: 'diagnostics', title: 'Diagnostics' },
     { name: 'settings', title: 'Settings' },
 ];
@@ -74,6 +76,8 @@ export default function App() {
                             <DependencyManagement />
                         ) : tab.name === 'snippets' ? (
                             <SnippetMigrationPanel />
+                        ) : tab.name === 'api' ? (
+                            <ApiRoutes />
                         ) : tab.name === 'settings' ? (
                             <SettingsPanel />
                         ) : (
