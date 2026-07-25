@@ -23,11 +23,6 @@ class ApiDirectory
         $this->filesystem = new Filesystem();
     }
 
-    public function path(): string
-    {
-        return $this->path;
-    }
-
     public function filePath(string $slug): string
     {
         return $this->path . $slug . '.php';

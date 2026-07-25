@@ -48,15 +48,20 @@ class ApiDirectoryTest extends TestCase
         rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
     }
 
+    private function apiPath(): string
+    {
+        return WP_CONTENT_DIR . '/loopress/api/';
+    }
+
     // ── ensureExists ─────────────────────────────────────────────────────────
 
     public function test_ensureExists_creates_the_directory(): void
     {
         $dir = new ApiDirectory();
 
-        $this->assertDirectoryDoesNotExist($dir->path());
+        $this->assertDirectoryDoesNotExist($this->apiPath());
         $dir->ensureExists();
-        $this->assertDirectoryExists($dir->path());
+        $this->assertDirectoryExists($this->apiPath());
     }
 
     public function test_ensureExists_creates_an_empty_index_php(): void
@@ -64,18 +69,18 @@ class ApiDirectoryTest extends TestCase
         $dir = new ApiDirectory();
         $dir->ensureExists();
 
-        $this->assertFileExists($dir->path() . 'index.php');
+        $this->assertFileExists($this->apiPath() . 'index.php');
     }
 
     public function test_ensureExists_does_not_overwrite_an_existing_index_php(): void
     {
         $dir = new ApiDirectory();
         $dir->ensureExists();
-        file_put_contents($dir->path() . 'index.php', 'custom'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        file_put_contents($this->apiPath() . 'index.php', 'custom'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
         $dir->ensureExists();
 
-        $this->assertSame('custom', file_get_contents($dir->path() . 'index.php')); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $this->assertSame('custom', file_get_contents($this->apiPath() . 'index.php')); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
     }
 
     // ── write / read ─────────────────────────────────────────────────────────
