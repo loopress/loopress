@@ -127,6 +127,16 @@ jobs:
           WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
         run: pnpm test:e2e
 
+      # Videos and traces are only kept for failed tests (playwright.config.ts:
+      # video/trace: 'retain-on-failure'), so this is near-empty on a green run and the one
+      # thing worth downloading on a red one — no separate reporter surfaces these otherwise.
+      - name: Upload Playwright videos and traces
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1 v4
+        with:
+          name: playwright-videos-traces
+          path: test-results/
+
   plugin-php:
     name: Plugin:PHPStan + PHPUnit
     runs-on: ubuntu-latest
