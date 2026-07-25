@@ -16,16 +16,16 @@ jobs:
     name: CLI:Unit tests (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           # None of these jobs push or commit back to the repo, so the checked-out
           # GITHUB_TOKEN doesn't need to stick around in git config for later steps
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
         with:
           node-version: "24"
           cache: pnpm
@@ -47,16 +47,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           # None of these jobs push or commit back to the repo, so the checked-out
           # GITHUB_TOKEN doesn't need to stick around in git config for later steps
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
         with:
           node-version: "24"
           cache: pnpm
@@ -134,7 +134,7 @@ jobs:
       run:
         working-directory: wordpress-plugin
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           # None of these jobs push or commit back to the repo, so the checked-out
           # GITHUB_TOKEN doesn't need to stick around in git config for later steps
@@ -171,7 +171,7 @@ jobs:
       run:
         working-directory: wordpress-plugin
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           persist-credentials: false
 
@@ -193,16 +193,16 @@ jobs:
     name: Plugin:Frontend (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           # None of these jobs push or commit back to the repo, so the checked-out
           # GITHUB_TOKEN doesn't need to stick around in git config for later steps
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
         with:
           node-version: "24"
           cache: pnpm
@@ -223,13 +223,13 @@ jobs:
     name: Plugin:Loopress Light artifact contains no Composer or Snippets code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
         with:
           node-version: "24"
           cache: pnpm
