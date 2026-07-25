@@ -112,6 +112,36 @@ test("removes local files for a snippet deleted on WordPress, and does not resur
 	await expect(page.getByRole("link", { exact: true, name })).toHaveCount(0);
 });
 
+// Regression test: an invalid location used to still create the snippet on WordPress (with
+// the location silently coerced to a default), while reporting failure to the CLI. Since the
+// CLI never learned the id it never renamed the local file, so retrying the push (the natural
+// response to a reported failure) created another duplicate each time. This asserts nothing
+// is ever created at all, across two attempts.
+test("rejects an invalid location without creating a snippet, even after retrying the push", async ({
+	page,
+	projectDir,
+	runCli,
+	wp,
+}) => {
+	const name = `E2E bad location ${Date.now()}`;
+	const snippetsDir = join(projectDir, "snippets");
+	mkdirSync(snippetsDir, { recursive: true });
+	writeFileSync(join(snippetsDir, "bad-location.html"), "<p>bad location</p>");
+	writeFileSync(
+		join(snippetsDir, "bad-location.json"),
+		JSON.stringify({ location: "everywhere", name, type: "html" }),
+	);
+
+	const first = await runCli(["snippet", "push"]);
+	expect(first.exitCode).not.toBe(0);
+
+	const second = await runCli(["snippet", "push"]);
+	expect(second.exitCode).not.toBe(0);
+
+	await page.goto(`${wp.url}/wp-admin/admin.php?page=wpcode`);
+	await expect(page.getByRole("link", { exact: true, name })).toHaveCount(0);
+});
+
 test("never touches a hand-created file with no numeric id prefix while cleaning up orphans", async ({
 	projectDir,
 	runCli,

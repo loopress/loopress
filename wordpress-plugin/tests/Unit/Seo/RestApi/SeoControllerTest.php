@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Seo\RestApi;
 
 use Brain\Monkey;
+use Loopress\Seo\Exception\NoActiveSeoPluginException;
+use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\RestApi\SeoController;
 use Loopress\Seo\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -202,19 +204,49 @@ class SeoControllerTest extends TestCase
         $this->assertSame([['id' => 1]], $response->data);
     }
 
-    // The active provider not supporting redirects (e.g. Yoast) surfaces as a RuntimeException
-    // from the service, same as "no provider active" or "multiple active" — this just confirms
-    // the controller maps it to a 500 like any other service-level failure, not a special code.
-    public function test_list_redirects_returns_500_when_the_active_provider_does_not_support_redirects(): void
+    // Regression coverage: the active provider not supporting redirects (Yoast free, or
+    // RankMath with its Redirections module disabled) is a client-actionable condition, not a
+    // server malfunction, and must not be flattened into the same 500 a genuine failure gets.
+    public function test_list_redirects_returns_400_when_the_active_provider_does_not_support_redirects(): void
     {
         $this->seoService->method('isActive')->willReturn(true);
         $this->seoService->method('listRedirections')->willThrowException(
-            new \RuntimeException('Redirects are not supported by the active SEO plugin.'),
+            new RedirectsUnavailableException('Redirects are not supported by the active SEO plugin.'),
         );
 
         $response = $this->controller->list_redirects();
 
-        $this->assertSame(500, $response->status);
+        $this->assertSame(400, $response->status);
+    }
+
+    // Regression coverage: `isActive()` is true when *two* SEO plugins are active at once (it
+    // only means "at least one"), so the multi-provider conflict was never caught by the
+    // `isActive()` gate above and fell all the way through to the generic 500 handler instead
+    // of the 409 its sibling features (Snippets, Forms) use for the identical scenario.
+    public function test_list_post_meta_returns_409_when_multiple_seo_plugins_are_active(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('listPostMeta')->willThrowException(
+            new NoActiveSeoPluginException('Multiple SEO plugins are active at once (RankMath and Yoast SEO).'),
+        );
+
+        $response = $this->controller->list_post_meta(new WP_REST_Request(['type' => 'post']));
+
+        $this->assertSame(409, $response->status);
+    }
+
+    // Regression coverage: get_settings()/update_settings() had no try/catch at all before this
+    // fix, so the same multi-provider exception would have gone entirely uncaught.
+    public function test_get_settings_returns_409_when_multiple_seo_plugins_are_active(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('getSettings')->willThrowException(
+            new NoActiveSeoPluginException('Multiple SEO plugins are active at once (RankMath and Yoast SEO).'),
+        );
+
+        $response = $this->controller->get_settings();
+
+        $this->assertSame(409, $response->status);
     }
 
     public function test_get_redirect_returns_404_when_not_found(): void

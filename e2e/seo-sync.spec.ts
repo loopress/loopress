@@ -49,6 +49,17 @@ test.describe('both RankMath and Yoast active at once', () => {
     expect(result.exitCode).not.toBe(0)
     expect(unwrap(result.stderr)).toContain('Multiple SEO plugins are active')
   })
+
+  // Regression test: this conflict is a client-actionable 409 on Snippets and Forms for the
+  // identical scenario, but fell through SEO's generic \RuntimeException handler to a 500
+  // instead, since `isActive()` (only checked for the "zero active" case) is true here.
+  test('the underlying REST response is a 409, not a 500', async ({request, wp}) => {
+    const response = await request.get(`${wp.url}/wp-json/loopress/v1/seo/post-meta/post`, {
+      headers: {Authorization: authHeader(wp)},
+    })
+
+    expect(response.status()).toBe(409)
+  })
 })
 
 test.describe('neither RankMath nor Yoast active', () => {
@@ -278,5 +289,16 @@ test.describe('Yoast active alone', () => {
 
     expect(result.exitCode).not.toBe(0)
     expect(unwrap(result.stderr)).toContain('not supported')
+  })
+
+  // Regression test: "not supported by this provider" is a client-actionable 400 (retrying
+  // won't help, only switching SEO plugin would), not the 500 a transient server failure
+  // would warrant.
+  test('the underlying REST response for an unsupported redirect request is a 400, not a 500', async ({request, wp}) => {
+    const response = await request.get(`${wp.url}/wp-json/loopress/v1/seo/redirects`, {
+      headers: {Authorization: authHeader(wp)},
+    })
+
+    expect(response.status()).toBe(400)
   })
 })

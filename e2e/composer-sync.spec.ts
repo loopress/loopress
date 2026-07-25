@@ -1,4 +1,4 @@
-import {rmSync, writeFileSync} from 'node:fs'
+import {readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test} from './helpers/environment.js'
@@ -32,4 +32,35 @@ test('pushes composer.json with no lock file, and the package is actually instal
   expect(installedResponse.ok()).toBe(true)
   const installed = (await installedResponse.json()) as Array<{name: string}>
   expect(installed.map((pkg) => pkg.name)).toContain('psr/log')
+})
+
+// Regression coverage: `lps composer init`'s own generated scaffold (as opposed to a
+// hand-crafted composer.json, like the test above) requires `composer/installers` for
+// installer-paths to route wpackagist-plugin/* packages to the real wp-content/plugins/, but
+// didn't allow-list it. Composer 2.2+ refuses to run a non-allow-listed plugin non-interactively,
+// so every real push through this exact scaffold 500d before this fix, regardless of which
+// package was being installed.
+test('a fresh `composer init` scaffold can push a WordPress.org plugin without a manual workaround', async ({
+  projectDir,
+  request,
+  runCli,
+  wp,
+}) => {
+  const initResult = await runCli(['composer', 'init'])
+  expect(initResult.exitCode).toBe(0)
+
+  const composerJsonPath = join(projectDir, 'composer.json')
+  const composerJson = JSON.parse(readFileSync(composerJsonPath, 'utf8'))
+  composerJson.require['wpackagist-plugin/hello-dolly'] = '*'
+  writeFileSync(composerJsonPath, JSON.stringify(composerJson))
+
+  const pushResult = await runCli(['composer', 'push'])
+  expect(pushResult.exitCode).toBe(0)
+
+  const pluginsResponse = await request.get(`${wp.url}/wp-json/wp/v2/plugins`, {
+    headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},
+  })
+  expect(pluginsResponse.ok()).toBe(true)
+  const plugins = (await pluginsResponse.json()) as Array<{plugin: string}>
+  expect(plugins.some((plugin) => plugin.plugin.startsWith('hello-dolly/'))).toBe(true)
 })
