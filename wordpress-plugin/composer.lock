@@ -4360,16 +4360,16 @@
         },
         {
             "name": "deptrac/deptrac",
-            "version": "4.7.0",
+            "version": "4.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/deptrac/deptrac.git",
-                "reference": "ef6daf9cef2aae88366269f7d65d299ed5cb6ab7"
+                "reference": "de3303ae1e280b1e58552fef496074b4ee5b143b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/deptrac/deptrac/zipball/ef6daf9cef2aae88366269f7d65d299ed5cb6ab7",
-                "reference": "ef6daf9cef2aae88366269f7d65d299ed5cb6ab7",
+                "url": "https://api.github.com/repos/deptrac/deptrac/zipball/de3303ae1e280b1e58552fef496074b4ee5b143b",
+                "reference": "de3303ae1e280b1e58552fef496074b4ee5b143b",
                 "shasum": ""
             },
             "require": {
@@ -4439,9 +4439,9 @@
             ],
             "support": {
                 "issues": "https://github.com/deptrac/deptrac/issues",
-                "source": "https://github.com/deptrac/deptrac/tree/4.7.0"
+                "source": "https://github.com/deptrac/deptrac/tree/4.7.1"
             },
-            "time": "2026-07-21T06:03:25+00:00"
+            "time": "2026-07-23T20:41:37+00:00"
         },
         {
             "name": "dnoegel/php-xdg-base-dir",
