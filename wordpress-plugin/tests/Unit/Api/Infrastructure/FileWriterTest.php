@@ -29,7 +29,7 @@ class FileWriterTest extends TestCase
 
         $result = FileWriter::withGuard($code);
 
-        $this->assertStringContainsString("ABSPATH", $result);
+        $this->assertStringContainsString('ABSPATH', $result);
     }
 
     public function test_withGuard_rejects_a_file_without_declare_strict_types(): void

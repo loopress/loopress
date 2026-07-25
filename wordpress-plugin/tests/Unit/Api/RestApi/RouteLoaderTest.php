@@ -11,47 +11,10 @@ use Loopress\Api\RestApi\RouteLoader;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
-final class RouteLoaderTestFixtureGet
-{
-    public function get(): array
-    {
-        return ['ok' => true];
-    }
-
-    private function post(): array
-    {
-        return [];
-    }
-}
-
-final class RouteLoaderTestFixtureWithOverrides
-{
-    public function get(): array
-    {
-        return [];
-    }
-
-    public function permission(): callable
-    {
-        return fn(): bool => true;
-    }
-
-    public function headers(): array
-    {
-        return ['Access-Control-Allow-Origin' => 'https://example.com'];
-    }
-}
-
-final class RouteLoaderTestFixtureNoVerbs
-{
-    public function notAVerb(): void {}
-}
-
-// Declared here so it already exists by the time test_loadAndRegister_skips_a_class_name_collision_without_registering_anything
-// runs, simulating a real collision (WP core, another plugin, another api/ file) without needing eval().
-final class TestLoaderCollisionFixture
-{
-}
+// A global-namespace class (see TestLoaderCollisionFixtureClass.php), can't be PSR-4
+// autoloaded: required explicitly so it already exists by the time
+// test_loadAndRegister_skips_a_class_name_collision_without_registering_anything runs.
+require_once __DIR__ . '/TestLoaderCollisionFixtureClass.php';
 
 class RouteLoaderTest extends TestCase
 {
