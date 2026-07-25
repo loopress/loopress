@@ -20,7 +20,7 @@ Loopress stores managed plugins under the `plugins` key in `loopress.json`:
 
 The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Installs and activations go through WordPress's own `wp/v2/plugins` REST API, which only ever installs the current stable release, so there is no version to pin, the value is always `"latest"`.
 
-Need a specific, reproducible version instead? Manage that plugin through Composer and [wpackagist](https://wpackagist.org/) - see the [`composer` command group](/cli/composer/). Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
+Need a specific, reproducible version instead? Manage that plugin through Composer and [wpackagist](https://wpackagist.org/) - see the [`composer` command group](/composer/cli/). Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
 
 ## Commands
 
@@ -45,7 +45,7 @@ lps plugin add woocommerce
 lps plugin add contact-form-7 --dry-run
 ```
 
-Need to manage a Composer package instead? See the [`composer` command group](/cli/composer/) - Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
+Need to manage a Composer package instead? See the [`composer` command group](/composer/cli/) - Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
 
 ---
 

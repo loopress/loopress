@@ -9,33 +9,14 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 
 ## Command overview
 
+Commands for managing the tool itself, your projects, and your Loopress account:
+
 | Group | Command | Description |
 |-------|---------|-------------|
 | **Auth** | `lps login` | Log in to the Loopress console |
 | | `lps logout` | Log out from the Loopress console |
 | **Setup** | `lps init` | Create a `loopress.json` config file interactively |
 | | `lps status` | Show which project and environment commands will target |
-| **Snippets** | `lps snippet pull` | Pull snippets from WordPress |
-| | `lps snippet push` | Push snippets to WordPress |
-| | `lps snippet list` | List all snippets on the site |
-| | `lps snippet publish` | Publish snippets to your Loopress account so they can be deployed to other projects |
-| **ACF** | `lps acf pull` | Pull ACF field groups, post types, taxonomies and options pages from WordPress |
-| | `lps acf push` | Push ACF configuration to WordPress |
-| | `lps acf list` | List ACF objects on the site |
-| **SEO** | `lps seo pull` | Pull SEO settings, post meta, and redirects from WordPress (RankMath or Yoast) |
-| | `lps seo push` | Push SEO configuration to WordPress |
-| | `lps seo list` | Print posts with SEO meta, and redirects if supported |
-| **Forms** | `lps form pull` | Pull forms from WordPress (WPForms) |
-| | `lps form push` | Push forms to WordPress |
-| | `lps form list` | List forms on the site |
-| **API Routes** | `lps api pull` | Pull custom REST API route files from WordPress |
-| | `lps api push` | Push route files to WordPress |
-| | `lps api list` | List route files on the site |
-| **Plugins** | `lps plugin pull` | Pull installed plugins from WordPress into `loopress.json` |
-| | `lps plugin push` | Push plugins to WordPress to match `loopress.json` |
-| | `lps plugin add` | Add a WordPress.org plugin to `loopress.json` |
-| **Composer** | `lps composer pull` | Pull `composer.lock` from WordPress |
-| | `lps composer push` | Push `composer.json` and `composer.lock` to WordPress and run `composer install` |
 | **Project** | `lps project config` | Add or update a WordPress project environment |
 | | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project and environment |
@@ -44,6 +25,18 @@ The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active
 | | `lps project pull` | Pull projects and environments from your Loopress account that aren't configured locally yet |
 | **Telemetry** | `lps telemetry enable` | Enable error reporting to Sentry |
 | | `lps telemetry disable` | Disable error reporting to Sentry |
+
+## Features
+
+Each of these syncs one kind of WordPress data as files in Git. See its own page for commands, flags, and file format:
+
+- [Snippets](/snippets/): PHP/CSS/JS code snippets (Code Snippets or WPCode)
+- [ACF](/acf/): Advanced Custom Fields configuration
+- [SEO](/seo/): SEO settings, post meta, and redirects (RankMath or Yoast)
+- [Forms](/forms/): WPForms forms
+- [API Routes](/api/): custom REST API endpoints
+- [Plugins](/plugins/): installed WordPress.org plugins manifest
+- [Composer](/composer/): PHP dependencies, without SSH
 
 ## Quick start
 

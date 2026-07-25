@@ -1,5 +1,5 @@
 ---
-title: Composer
+title: CLI
 description: Sync composer.json and composer.lock between your local machine and WordPress without SSH.
 ---
 
@@ -66,4 +66,4 @@ lps composer pull
 
 ## Relation to the WordPress plugin
 
-The `lps composer push` command uses the same REST endpoint (`/wp-json/loopress/v1/composer/sync`) as Loopress Full's **Dependencies** panel. Both tools write to `wp-content/loopress/`. You can use either depending on your workflow: the admin panel for interactive installs, the CLI for scripted or CI deployments.
+The `lps composer push` command uses the same REST endpoint (`/wp-json/loopress/v1/composer/sync`) as Loopress Full's [Admin UI](/composer/admin-ui/) panel. Both tools write to `wp-content/loopress/`. You can use either depending on your workflow: the admin panel for interactive installs, the CLI for scripted or CI deployments.

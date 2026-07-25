@@ -74,7 +74,7 @@ You will be prompted for:
 | WordPress URL | Full URL including scheme (`https://example.com`) |
 | How to authenticate | **Authorize in my browser (recommended)** or **Enter credentials manually** |
 
-By default the CLI runs a quick diagnostic against your site, then opens your browser to log in to WordPress and creates an Application Password for you automatically, no copy-pasting required. If the diagnostic fails or the browser flow can't complete, it falls back to manual entry (WordPress username + an Application Password you generate yourself under **Users → Profile → Application Passwords**, see [troubleshooting](/cli/application-passwords/) if the section is missing). You can also choose manual entry upfront from the authentication prompt.
+By default the CLI runs a quick diagnostic against your site, then opens your browser to log in to WordPress and creates an Application Password for you automatically, no copy-pasting required. If the diagnostic fails or the browser flow can't complete, it falls back to manual entry (WordPress username + an Application Password you generate yourself under **Users → Profile → Application Passwords**, see [troubleshooting](/application-passwords/) if the section is missing). You can also choose manual entry upfront from the authentication prompt.
 
 ### Manage multiple projects and environments
 
