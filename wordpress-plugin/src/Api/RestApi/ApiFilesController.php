@@ -123,7 +123,7 @@ class ApiFilesController
         $exitCode = 0;
         exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($tmpFile) . ' 2>&1', $output, $exitCode); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
 
-        unlink($tmpFile); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink
+        unlink($tmpFile); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 
         if ($exitCode === 0) {
             return null;
