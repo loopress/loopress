@@ -4,6 +4,14 @@
          bootstrap="tests/bootstrap.php"
          colors="true"
          testdox="true">
+    <!-- error_log() defaults to stderr under the CLI SAPI. RouteLoader::log() (skip-on-collision,
+         skip-on-parse-error) calls it deliberately and those tests pass, but Infection's
+         InitialTestsRunner stops the whole run on the first byte of stderr it sees, killing
+         phpunit mid-suite (exit 143) whenever one of those tests lands early in PHPUnit's
+         randomized order. Routing error_log to a file keeps it off the process's stderr pipe. -->
+    <php>
+        <ini name="error_log" value="/dev/null"/>
+    </php>
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
