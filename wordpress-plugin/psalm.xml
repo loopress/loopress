@@ -39,6 +39,11 @@
                 <directory name="src/Form/RestApi" />
                 <directory name="src/Sentry/RestApi" />
                 <directory name="src/Settings/RestApi" />
+                <!-- ApiFilesController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above; RouteLoader::loadFile()/registerRoutesFor()
+                     don't call this directly, but RouteLoader::applyHeaders() is invoked by WP core
+                     via add_filter('rest_pre_serve_request', ...), same untraceable-by-Psalm shape. -->
+                <directory name="src/Api/RestApi" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -57,6 +62,8 @@
                 <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
+                <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
+                <referencedMethod name="Loopress\Api\Infrastructure\ApiDirectory::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
@@ -67,6 +74,10 @@
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
                 <directory name="src/Form/RestApi" />
+                <!-- $result in RouteLoader::applyHeaders() is part of the rest_pre_serve_request
+                     filter signature (served, result, request, server), unused here but required
+                     to keep positional args aligned with the ones actually needed. -->
+                <directory name="src/Api/RestApi" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -83,11 +94,12 @@
             </errorLevel>
         </PossiblyNullArgument>
 
-        <!-- Registered as a `rest_post_dispatch` filter; the return value is consumed by
-             WordPress's filter chain, not by any caller Psalm can see. -->
+        <!-- Registered as a `rest_post_dispatch`/`rest_pre_serve_request` filter; the return
+             value is consumed by WordPress's filter chain, not by any caller Psalm can see. -->
         <PossiblyUnusedReturnValue>
             <errorLevel type="suppress">
                 <file name="src/RestCache/Module/RestCacheModule.php" />
+                <file name="src/Api/RestApi/RouteLoader.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 
@@ -109,6 +121,7 @@
                 <file name="src/Form/Feature.php" />
                 <file name="src/Sentry/Feature.php" />
                 <file name="src/Settings/Feature.php" />
+                <file name="src/Api/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>

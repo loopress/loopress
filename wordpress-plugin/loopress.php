@@ -70,13 +70,15 @@ use Loopress\Plugin;
 
 /* LOOPRESS_PLUS_START */
 // Stripped from the Loopress Light wordpress.org build by scripts/build-flavor.cjs, together
-// with src/Dependencies/, src/Update/, src/Snippets/ and uninstall.php: the Light artifact
-// must not contain any reference to these Plus features, even inactive ones. Snippets in
-// particular: wordpress.org rejected Loopress Light over this exact capability (REST
-// endpoints that remotely deploy arbitrary PHP/JS/CSS into Code Snippets or WPCode),
-// regardless of the auth/capability checks in front of it; see
-// obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Form', 'Settings'] as $loopressPlusFeature) {
+// with src/Dependencies/, src/Update/, src/Snippets/, src/Api/ and uninstall.php: the Light
+// artifact must not contain any reference to these Plus features, even inactive ones.
+// Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
+// capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
+// the auth/capability checks in front of it; see
+// obsidian/Product/WordPress.org Plugin Distribution.md §2b in the monorepo for the rejection,
+// and obsidian/Product/Custom API Routes.md "Full uniquement, jamais Light" for why Api
+// follows the same rule.
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Form', 'Settings'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
