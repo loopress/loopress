@@ -32,6 +32,20 @@ export default defineConfig({
 	site: "https://docs.loopress.dev",
 	redirects: {
 		"/": "/getting-started",
+		// Functional re-cut of the docs: technical CLI/WordPress Plugin split replaced by
+		// one page/section per feature. Old URLs kept alive for bookmarks and backlinks.
+		"/cli/acf": "/acf",
+		"/cli/seo": "/seo",
+		"/cli/forms": "/forms",
+		"/cli/plugins": "/plugins",
+		"/cli/snippets": "/snippets",
+		"/cli/composer": "/composer/cli",
+		"/cli/api": "/api/cli",
+		"/wordpress-plugin/dependencies": "/composer/admin-ui",
+		"/wordpress-plugin/audit": "/composer/audit",
+		"/wordpress-plugin/diagnostics": "/composer/diagnostics",
+		"/wordpress-plugin/code-snippets": "/composer/using-in-snippets",
+		"/wordpress-plugin/api": "/api/admin-ui",
 	},
 	integrations: [
 		loopressFavicon(),
@@ -79,30 +93,41 @@ export default defineConfig({
 						{ label: "Overview", slug: "cli" },
 						{ label: "Getting Started", slug: "cli/getting-started" },
 						{ label: "Init", slug: "cli/init" },
-						{ label: "Snippets", slug: "cli/snippets" },
-						{ label: "ACF", slug: "cli/acf" },
-						{ label: "SEO", slug: "cli/seo" },
-						{ label: "Forms", slug: "cli/forms" },
-						{ label: "Plugins", slug: "cli/plugins" },
-						{ label: "Composer", slug: "cli/composer" },
 					],
 				},
 				{
 					label: "WordPress Plugin",
+					slug: "wordpress-plugin",
+				},
+				{
+					label: "Features",
 					items: [
-						{ label: "Overview", slug: "wordpress-plugin" },
+						{ label: "Snippets", slug: "snippets" },
+						{ label: "ACF", slug: "acf" },
+						{ label: "SEO", slug: "seo" },
+						{ label: "Forms", slug: "forms" },
+						{ label: "Plugins", slug: "plugins" },
 						{
-							label: "Dependency Management",
-							slug: "wordpress-plugin/dependencies",
+							label: "Composer",
+							items: [
+								{ label: "Overview", slug: "composer" },
+								{ label: "CLI", slug: "composer/cli" },
+								{ label: "Admin UI", slug: "composer/admin-ui" },
+								{ label: "Security Audit", slug: "composer/audit" },
+								{ label: "Platform Diagnostics", slug: "composer/diagnostics" },
+								{
+									label: "Using packages in snippets",
+									slug: "composer/using-in-snippets",
+								},
+							],
 						},
 						{
-							label: "Using packages in snippets",
-							slug: "wordpress-plugin/code-snippets",
-						},
-						{ label: "Security Audit", slug: "wordpress-plugin/audit" },
-						{
-							label: "Platform Diagnostics",
-							slug: "wordpress-plugin/diagnostics",
+							label: "API Routes",
+							items: [
+								{ label: "Overview", slug: "api" },
+								{ label: "CLI", slug: "api/cli" },
+								{ label: "Admin UI", slug: "api/admin-ui" },
+							],
 						},
 					],
 				},

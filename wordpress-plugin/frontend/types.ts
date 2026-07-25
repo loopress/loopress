@@ -71,6 +71,11 @@ export interface AuditResult {
     abandoned: Record<string, string | null>;
 }
 
+export interface ApiFile {
+    filename: string;
+    content: string;
+}
+
 export type SnippetType = 'php' | 'js' | 'css' | 'html' | 'text';
 export type SnippetLocation = 'admin' | 'body' | 'everywhere' | 'footer' | 'frontend' | 'header' | 'once';
 

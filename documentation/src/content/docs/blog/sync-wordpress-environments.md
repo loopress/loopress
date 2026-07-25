@@ -107,4 +107,4 @@ This is what WordPress configuration management looks like when it's treated as 
 
 ---
 
-The full CLI reference is in the [Loopress docs](/cli/menus/). If you're starting from scratch, [Getting Started](/cli/getting-started/) covers the authentication setup.
+The full CLI reference is in the [Loopress docs](/cli/). If you're starting from scratch, [Getting Started](/cli/getting-started/) covers the authentication setup.
