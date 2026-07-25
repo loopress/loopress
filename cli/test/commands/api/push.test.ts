@@ -72,7 +72,7 @@ describe('api push', () => {
     it('PUTs to loopress/v1/api-files/<filename> with the raw content', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce(undefined)
+      const put = vi.fn().mockResolvedValueOnce()
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
       await (cmd as unknown as PushWithPushFile).pushFile(file)
