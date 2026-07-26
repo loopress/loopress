@@ -1,5 +1,43 @@
 # @loopress/cli
 
+## 0.19.0
+
+### Minor Changes
+
+- 7fa0350: Explicit environment targeting and safer destructive operations (CLI backlog lot 3)
+
+  - New `--env <name>` flag on every project-aware command: targets an environment by name for a single run, taking priority over `lps project switch`, with an error listing the available environments when the name does not exist. `lps status --env <name>` previews what would be targeted.
+  - New `--yes` (`-y`) flag on commands that ask for confirmation.
+  - Production guard: push commands targeting an environment named `production` now ask for confirmation in a terminal, and require `--yes` in non-interactive runs.
+  - Pull commands now list local files that would be deleted (because they no longer exist on WordPress) and ask before removing them. `--yes` skips the question; without a TTY the previous behavior (remove and warn) is kept so existing scripts do not break.
+  - The CLI never hangs on a prompt in CI: confirmations take their default answer and log it, and commands that require interactive input (`lps init`, `lps project config`) fail immediately with instructions.
+
+- 01300ca: Diagnostics and onboarding (CLI backlog lot 4)
+
+  - New `lps doctor` command: checks that the site is reachable, the Loopress plugin installed, and the credentials valid, each with a corrective action, and shows the plugin version when exposed. Exits non-zero when a check fails, so it can guard a CI deploy.
+  - `lps init` now offers to run `lps project config` inline when no project is configured yet, proposes the other feature directories (ACF, SEO, Forms, custom API routes) via an optional multi-select, and ends with a summary of everything configured plus the next useful command.
+  - The CLI now warns when a newer version is available (background npm check, at most once a day, never blocking), pointing to the npm update command.
+
+### Patch Changes
+
+- 827af5b: `lps api push` now rejects a route file whose name contains characters outside `[a-z0-9-]` (e.g. uppercase letters, underscores) with a clear "Invalid filename" error before attempting the push. Previously the request reached WordPress, whose REST router matches the filename against the same allowlist and returned a generic 404 that the CLI reported as "Is the required plugin installed and up to date on the site?", a misleading message for what was actually an invalid filename.
+- d529f5e: Timeouts and dependency cleanup (CLI backlog lot 1)
+
+  - Calls to the Loopress cloud API now time out after 30s with an actionable error message instead of hanging indefinitely.
+  - `lps composer push` waits up to 10 minutes for the server-side `composer install` instead of failing after 30s, shows a wait message, and explains on a real timeout that the install may still be running on the server.
+  - Removed unused dependencies: `@oclif/plugin-plugins` and `@oclif/test`.
+
+- adc5b73: Internal refactoring, shared helpers (CLI backlog lot 2). No visible behavior change.
+
+  - One shared orphan-file detection used by the five pull commands (acf, api, form, seo, snippet).
+  - One shared directory loader (per-file parse and validation, corrupted files skipped with a warning, missing directory means empty) used by acf push and api push.
+  - PushCommand now carries failedCount and the Listr task failure reporting used by the six push commands.
+  - Single API_URL definition, shared toSlug() helper, snippet and seo file-format functions moved to utils/.
+
+- 5658d6c: Fix three bugs found during manual QA. Pushing a snippet with a location unsupported by the active provider (WPCode) used to create the snippet anyway with the location silently defaulted, while still reporting failure to the CLI; since the CLI never learned the resulting id, retrying the push (the natural reaction to a reported failure) created another duplicate snippet each time. `WPCodeSnippetProvider` now validates the location before any write, so an invalid location is rejected with nothing created. A pushed `api/` route file with a real PHP parse error was accepted and listed as present by `lps api push`/`list`, while the route silently 404d at request time; `ApiFilesController::push_file()` now runs a real PHP syntax check before writing, rejecting with a clear 400. SEO endpoints (`lps seo`) returned a generic 500 for client-actionable conditions (multiple SEO plugins active, redirects unsupported by the active plugin) instead of the 409/400 used by the equivalent snippets/forms guards; dedicated exceptions now map these correctly, and `get_settings()`/`update_settings()` (which had no error handling at all before this) are covered too.
+
+  Also fixes `lps composer init`'s generated scaffold, which required `composer/installers` without allow-listing it, so Composer 2.2+'s non-interactive plugin-trust gate blocked every real `composer push` through it. Error messages surfaced from a WordPress REST failure now include the server's full detail (e.g. the actual Composer trace) instead of just a generic summary, making failures like this one diagnosable from the CLI's own output.
+
 ## 0.18.0
 
 ### Minor Changes
