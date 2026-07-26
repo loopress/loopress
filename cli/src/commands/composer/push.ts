@@ -14,6 +14,7 @@ export default class ComposerPush extends PushCommand {
   static examples = ['$ lps composer push', '$ lps composer push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
+    ...PushCommand.yesFlag,
   }
 
   async run(): Promise<void> {

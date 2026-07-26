@@ -1,6 +1,6 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, rm, writeFile} from 'node:fs/promises'
+import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -24,6 +24,7 @@ export default class Pull extends LoopressCommand {
   static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets']
   static flags = {
     ...LoopressCommand.dryRunFlag,
+    ...LoopressCommand.yesFlag,
   }
 
   async run(): Promise<void> {
@@ -73,12 +74,7 @@ export default class Pull extends LoopressCommand {
       })),
     ).run()
 
-    for (const file of orphans) await rm(join(path, file), {force: true})
-    if (orphans.length > 0) {
-      this.warn(
-        `Removed ${orphans.length} local file${orphans.length === 1 ? '' : 's'} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
-      )
-    }
+    await this.removeOrphanedFiles(path, orphans, 'whose snippet no longer exists on WordPress')
 
     this.log(`Pulled ${pullable.length} snippet${pullable.length === 1 ? '' : 's'} to ${path}`)
     if (skipped > 0) {

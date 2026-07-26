@@ -10,6 +10,7 @@ export default class Push extends PushCommand {
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
+    ...PushCommand.yesFlag,
   }
 
   async run(): Promise<void> {

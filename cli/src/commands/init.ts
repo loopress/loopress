@@ -4,6 +4,7 @@ import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
+import {isInteractive} from '../lib/interactive.js'
 import {LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
 
 // WordPress.org slugs for the two snippet plugins the Loopress WordPress plugin supports
@@ -19,6 +20,12 @@ export default class Init extends Command {
 
   async run(): Promise<void> {
     await this.parse(Init)
+
+    if (!isInteractive()) {
+      this.error(
+        'lps init asks its questions interactively and needs a terminal. In CI or scripts, commit a loopress.json instead (see the Getting Started documentation for the file format).',
+      )
+    }
 
     const configPath = join(process.cwd(), 'loopress.json')
 

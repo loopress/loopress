@@ -1,6 +1,6 @@
 import {Args, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, rm, writeFile} from 'node:fs/promises'
+import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -23,6 +23,7 @@ export default class Pull extends LoopressCommand {
   static examples = ['$ lps seo pull', '$ lps seo pull --post-type post --post-type page']
   static flags = {
     ...LoopressCommand.dryRunFlag,
+    ...LoopressCommand.yesFlag,
     'post-type': Flags.string({description: 'Limit post meta to specific post types', multiple: true}),
   }
 
@@ -74,12 +75,7 @@ export default class Pull extends LoopressCommand {
       })),
     ).run()
 
-    for (const file of orphans) await rm(join(dir, file), {force: true})
-    if (orphans.length > 0) {
-      this.warn(
-        `Removed ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-      )
-    }
+    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
 
     this.log(`Pulled ${remote.length} ${postType} post-meta file(s) to ${dir}`)
   }
@@ -126,12 +122,7 @@ export default class Pull extends LoopressCommand {
       })),
     ).run()
 
-    for (const file of orphans) await rm(join(dir, file), {force: true})
-    if (orphans.length > 0) {
-      this.warn(
-        `Removed ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-      )
-    }
+    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
 
     this.log(`Pulled ${remote.length} redirect(s) to ${dir}`)
   }

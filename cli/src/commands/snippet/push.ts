@@ -20,6 +20,7 @@ export default class Push extends PushCommand {
   static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets']
   static flags = {
     ...PushCommand.dryRunFlag,
+    ...PushCommand.yesFlag,
   }
 
   async run(): Promise<void> {

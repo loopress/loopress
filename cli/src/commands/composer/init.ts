@@ -4,6 +4,7 @@ import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {isInteractive} from '../../lib/interactive.js'
 import {ComposerJson} from '../../utils/composer.js'
 
 const WPACKAGIST_REPOSITORY = {type: 'composer', url: 'https://wpackagist.org'}
@@ -29,6 +30,11 @@ export default class ComposerInit extends LoopressCommand {
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
 
     if (existsSync(composerJsonPath)) {
+      if (!isInteractive()) {
+        this.log('composer.json already exists, not overwriting (non-interactive terminal).')
+        return
+      }
+
       const overwrite = await confirm({default: false, message: 'composer.json already exists. Overwrite?'})
       if (!overwrite) {
         this.log('Aborted.')

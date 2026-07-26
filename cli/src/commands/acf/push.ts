@@ -14,6 +14,7 @@ export default class Push extends PushCommand {
   static examples = ['$ lps acf push', '$ lps acf push --type field-groups']
   static flags = {
     ...PushCommand.dryRunFlag,
+    ...PushCommand.yesFlag,
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
 

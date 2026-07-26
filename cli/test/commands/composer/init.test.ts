@@ -14,6 +14,13 @@ vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
 }))
 
+// Tests run without a TTY; default to interactive so the confirm-driven flows stay testable,
+// and flip to false in the tests that cover the non-interactive policy.
+const interactive = vi.hoisted(() => ({value: true}))
+vi.mock('../../../src/lib/interactive.js', () => ({
+  isInteractive: () => interactive.value,
+}))
+
 class TestComposerInit extends ComposerInit {
   setup(options: {dryRun: boolean; localConfig?: LoopressLocalConfig; siteConfig: EnvironmentConfig}) {
     this.dryRun = options.dryRun
@@ -34,8 +41,22 @@ describe('composer init', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    interactive.value = true
     dir = mkdtempSync(join(tmpdir(), 'lps-composer-init-test-'))
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
+  })
+
+  it('does not overwrite an existing composer.json in a non-interactive terminal', async () => {
+    interactive.value = false
+    const {writeFileSync} = await import('node:fs')
+    writeFileSync(join(dir, 'composer.json'), '{"kept": true}')
+    const {cmd, logs} = make(false)
+
+    await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('not overwriting'))
+    expect(JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))).toEqual({kept: true})
   })
 
   afterEach(() => {

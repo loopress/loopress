@@ -5,6 +5,8 @@ import {Listr} from 'listr2'
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
+import {LoopressCommand} from '../../lib/base.js'
+import {isInteractive} from '../../lib/interactive.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -43,9 +45,14 @@ interface ProjectPlan {
 export default class Push extends Command {
   static description = 'Push locally configured projects, environments and credentials to your Loopress account'
   static examples = ['$ lps project push']
+  static flags = {
+    ...LoopressCommand.yesFlag,
+  }
+  private yes = false
 
   async run(): Promise<void> {
-    await this.parse(Push)
+    const {flags} = await this.parse(Push)
+    this.yes = Boolean(flags.yes)
 
     const token = authManager.getAuth()?.token
     if (!token) {
@@ -219,10 +226,9 @@ export default class Push extends Command {
     )
 
     if (match) {
-      const link = await confirm({
-        default: true,
-        message: `Environment "${env.name}" already exists on "${apiProject?.name}". Link to it instead of creating a new one?`,
-      })
+      const link = await this.confirmLink(
+        `Environment "${env.name}" already exists on "${apiProject?.name}". Link to it instead of creating a new one?`,
+      )
 
       if (link) {
         claimedEnvironmentIds.add(match.id)
@@ -231,6 +237,17 @@ export default class Push extends Command {
     }
 
     return {action: 'create', env, projectId}
+  }
+
+  // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
+  // taken without prompting, and logged, so CI runs never mint duplicate projects.
+  private async confirmLink(message: string): Promise<boolean> {
+    if (this.yes || !isInteractive()) {
+      this.log(`${message} Assuming yes (link).`)
+      return true
+    }
+
+    return confirm({default: true, message})
   }
 
   private async planProject(
@@ -247,10 +264,9 @@ export default class Push extends Command {
     const match = apiProjects.find((candidate) => candidate.slug === slug && !claimedProjectIds.has(candidate.id))
 
     if (match) {
-      const link = await confirm({
-        default: true,
-        message: `A project named "${project.name}" already exists on your account. Link to it instead of creating a new one?`,
-      })
+      const link = await this.confirmLink(
+        `A project named "${project.name}" already exists on your account. Link to it instead of creating a new one?`,
+      )
 
       if (link) {
         claimedProjectIds.add(match.id)
