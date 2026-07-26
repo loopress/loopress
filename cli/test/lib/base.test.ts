@@ -152,7 +152,7 @@ function makeCmd(): {cmd: TestCommand; logs: ReturnType<typeof silenceLogs>} {
   return {cmd, logs}
 }
 
-// eslint-disable-next-line mocha/max-top-level-suites -- one suite per concern of base.ts
+
 describe('LoopressCommand.removeOrphanedFiles', () => {
   let dir: string
 

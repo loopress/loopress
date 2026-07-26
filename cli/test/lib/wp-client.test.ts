@@ -119,7 +119,7 @@ describe('WpClient', () => {
   })
 })
 
-// eslint-disable-next-line mocha/max-top-level-suites -- one suite per exported symbol of wp-client.ts
+
 describe('formatWpError', () => {
   const url = 'https://example.com/wp-json/loopress/v1/plugins'
 

@@ -8,8 +8,10 @@ const gitignorePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 
 export default [
   includeIgnoreFile(gitignorePath),
-  {ignores: ['dist/**', 'src/types/*.generated.ts']},
-  ...oclif,
+  {ignores: ['dist/**', 'tmp/**', 'src/types/*.generated.ts']},
+  // ponytail: eslint-plugin-mocha v10 (pinned by eslint-config-oclif) crashes on ESLint 10,
+  // drop this filter once eslint-config-oclif ships eslint-plugin-mocha v11
+  ...oclif.filter((config) => config.name !== 'mocha/recommended'),
   prettier,
   {
     rules: {
