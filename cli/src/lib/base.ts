@@ -86,7 +86,15 @@ export abstract class LoopressCommand extends Command {
     }
 
     for (const file of orphans) await rm(join(dir, file), {force: true})
-    this.warn(`Removed ${description}`)
+
+    // Non-interactive removals (no TTY, CI) keep the original warn so existing
+    // scripts that parse stderr or check exit status are not broken. Confirmed
+    // interactive removals are intentional, so log() is appropriate.
+    if (this.yes || isInteractive()) {
+      this.log(`Removed ${description}`)
+    } else {
+      this.warn(`Removed ${description}`)
+    }
   }
 
   protected resolveAcfPath(override?: string): string {

@@ -23,7 +23,7 @@ export abstract class PushCommand extends LoopressCommand {
   // Pushing to an environment named "production" needs explicit intent: a TTY confirmation
   // (Enter accepts), or --yes in scripts and CI. Dry runs are exempt, they change nothing.
   protected async guardProductionPush(): Promise<void> {
-    if (this.siteConfig.name !== 'production' || this.dryRun || this.yes) return
+    if (this.siteConfig.name.toLowerCase() !== 'production' || this.dryRun || this.yes) return
 
     if (!isInteractive()) {
       this.refusedByGuard = true

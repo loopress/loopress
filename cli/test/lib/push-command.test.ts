@@ -78,6 +78,12 @@ describe('PushCommand', () => {
       await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/)
     })
 
+    it('matches the environment name case-insensitively', async () => {
+      const cmd = make(false, {...PRODUCTION, name: 'Production'})
+
+      await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/)
+    })
+
     it('lets a production push through with --yes without prompting', async () => {
       const cmd = make(false, PRODUCTION)
       cmd.setYes(true)

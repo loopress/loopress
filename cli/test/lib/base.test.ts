@@ -200,7 +200,8 @@ describe('LoopressCommand.removeOrphanedFiles', () => {
       message: 'Remove 1 local file no longer present on WordPress: orphan.json?',
     })
     expect(existsSync(join(dir, 'orphan.json'))).toBe(false)
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local file'))
+    expect(logs.warn).not.toHaveBeenCalled()
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local file'))
   })
 
   it('keeps the files when the confirmation is declined', async () => {
@@ -224,6 +225,6 @@ describe('LoopressCommand.removeOrphanedFiles', () => {
 
     expect(confirm).not.toHaveBeenCalled()
     expect(existsSync(join(dir, 'orphan.json'))).toBe(false)
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local file'))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local file'))
   })
 })
