@@ -201,6 +201,17 @@ export default class Push extends Command {
     }
   }
 
+  // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
+  // taken without prompting, and logged, so CI runs never mint duplicate projects.
+  private async confirmLink(message: string): Promise<boolean> {
+    if (this.yes || !isInteractive()) {
+      this.log(`${message} Assuming yes (link).`)
+      return true
+    }
+
+    return confirm({default: true, message})
+  }
+
   private async fetchApiProjects(api: ApiClient): Promise<ApiProject[]> {
     try {
       return await api.get<ApiProject[]>('projects')
@@ -237,17 +248,6 @@ export default class Push extends Command {
     }
 
     return {action: 'create', env, projectId}
-  }
-
-  // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
-  // taken without prompting, and logged, so CI runs never mint duplicate projects.
-  private async confirmLink(message: string): Promise<boolean> {
-    if (this.yes || !isInteractive()) {
-      this.log(`${message} Assuming yes (link).`)
-      return true
-    }
-
-    return confirm({default: true, message})
   }
 
   private async planProject(

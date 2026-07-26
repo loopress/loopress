@@ -89,7 +89,14 @@ lps project push            # Push local projects, environments and credentials 
 lps project pull            # Pull projects and environments from your Loopress account that aren't configured locally yet
 ```
 
-All commands operate against the **active project/environment**.
+All commands operate against the **active project/environment**. To target another environment for a single command, pass `--env` instead of switching globally:
+
+```bash
+lps snippet push --env staging
+lps status --env staging     # preview what would be targeted
+```
+
+`--env` is available on every project-aware command, takes priority over the active environment, and errors with the list of available environments if the name does not exist. Because `lps project switch` mutates state shared by every terminal on the machine, `--env` is the safer choice in scripts.
 
 ### Syncing with your Loopress account
 
@@ -126,11 +133,23 @@ The `plugins` field is populated automatically by `lps plugin pull` and `lps plu
 
 ## Dry run
 
-Most commands accept a dry-run flag (`-d`) that shows what would happen without making any changes. Note that snippet commands use `--dryRun` (camelCase) while plugin and composer commands use `--dry-run`:
+Most commands accept `--dry-run` (`-d`), which shows what would happen without making any changes:
 
 ```bash
-lps snippet push --dryRun
-lps snippet pull --dryRun
-lps plugin push --dry-run
+lps snippet push --dry-run
 lps composer push --dry-run
 ```
+
+## CI and non-interactive use
+
+Without a TTY, or when the `CI` environment variable is set, the CLI never hangs waiting for a prompt:
+
+- Confirmations take their default answer and log it. Pass `--yes` (`-y`) to answer yes explicitly.
+- Commands that require interactive input (`lps init`, `lps project config`) fail immediately with instructions. Configure projects on your machine and commit `loopress.json`; in CI, target environments with `--env`.
+- Pushing to an environment named `production` asks for confirmation in a terminal, and requires `--yes` in CI:
+
+```bash
+lps snippet push --env production --yes
+```
+
+- Pull commands that would delete local files no longer present on WordPress list them and ask first in a terminal. `--yes` skips the question; without a TTY the files are removed and reported, so existing scripts keep working.

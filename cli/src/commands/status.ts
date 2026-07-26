@@ -30,6 +30,25 @@ export default class Status extends Command {
     this.log(`Data dir:   ${this.config.dataDir}`)
   }
 
+  private reportActiveProject(): void {
+    const env = configManager.getCurrentEnv()
+
+    if (!env) {
+      this.log('No project configured. Run `lps project config` first.')
+      return
+    }
+
+    const project = configManager.getCurrentProject()
+
+    if (!project) {
+      this.log('No project configured. Run `lps project config` first.')
+      return
+    }
+
+    this.log(`Project:  ${project.name} (${env.name})`)
+    this.log(`URL:      ${env.url}`)
+  }
+
   // Mirrors base.ts:resolveEnvironment with --env: the targeted project comes from
   // loopress.json when pinned, from the globally active project otherwise.
   private reportEnvOverride(pinnedProjectId: string | undefined, envName: string): void {
@@ -48,25 +67,6 @@ export default class Status extends Command {
     }
 
     this.log(`Project:  ${project.name} (${env.name}, via --env)`)
-    this.log(`URL:      ${env.url}`)
-  }
-
-  private reportActiveProject(): void {
-    const env = configManager.getCurrentEnv()
-
-    if (!env) {
-      this.log('No project configured. Run `lps project config` first.')
-      return
-    }
-
-    const project = configManager.getCurrentProject()
-
-    if (!project) {
-      this.log('No project configured. Run `lps project config` first.')
-      return
-    }
-
-    this.log(`Project:  ${project.name} (${env.name})`)
     this.log(`URL:      ${env.url}`)
   }
 

@@ -146,6 +146,13 @@ describe('LoopressCommand.init', () => {
   })
 })
 
+function makeCmd(): {cmd: TestCommand; logs: ReturnType<typeof silenceLogs>} {
+  const cmd = new TestCommand([], fakeOclifConfig)
+  const logs = silenceLogs(cmd)
+  return {cmd, logs}
+}
+
+// eslint-disable-next-line mocha/max-top-level-suites -- one suite per concern of base.ts
 describe('LoopressCommand.removeOrphanedFiles', () => {
   let dir: string
 
@@ -160,12 +167,6 @@ describe('LoopressCommand.removeOrphanedFiles', () => {
   afterEach(() => {
     rmSync(dir, {force: true, recursive: true})
   })
-
-  function makeCmd(): {cmd: TestCommand; logs: ReturnType<typeof silenceLogs>} {
-    const cmd = new TestCommand([], fakeOclifConfig)
-    const logs = silenceLogs(cmd)
-    return {cmd, logs}
-  }
 
   it('does nothing when there are no orphans', async () => {
     const {cmd, logs} = makeCmd()

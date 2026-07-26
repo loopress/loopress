@@ -15,7 +15,7 @@ describe('isInteractive', () => {
   it('is true with a TTY on both ends and no CI variable', () => {
     process.stdin.isTTY = true
     process.stdout.isTTY = true
-    vi.stubEnv('CI', undefined)
+    vi.stubEnv('CI', '')
 
     expect(isInteractive()).toBe(true)
   })
@@ -23,7 +23,7 @@ describe('isInteractive', () => {
   it('is false when stdin is not a TTY', () => {
     process.stdin.isTTY = false as never
     process.stdout.isTTY = true
-    vi.stubEnv('CI', undefined)
+    vi.stubEnv('CI', '')
 
     expect(isInteractive()).toBe(false)
   })

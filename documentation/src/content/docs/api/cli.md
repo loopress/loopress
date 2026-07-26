@@ -48,16 +48,16 @@ lps api pull [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local `.php` files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site. A warning lists every removed file, and `--dryRun` announces them ahead of time. Files without the `.php` extension are never touched.
+Local `.php` files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed with a warning. `--dry-run` announces them ahead of time. Files without the `.php` extension are never touched.
 
 The files you receive are exactly the source you (or a teammate) pushed: the [`ABSPATH` guard](/api/routes/#where-files-live-on-the-server) the plugin injects at deploy time is stripped before the file is sent back, so pulls never introduce noise in your Git diffs.
 
 **Example:**
 
 ```bash
-lps api pull --dryRun
+lps api pull --dry-run
 ```
 
 ---
@@ -76,7 +76,7 @@ lps api push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed without making any changes |
 
 What push does, and deliberately does not do:
 
