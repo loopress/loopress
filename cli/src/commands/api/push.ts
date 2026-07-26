@@ -10,6 +10,15 @@ interface ApiFile {
   filename: string
 }
 
+// Mirrors the server's own allowlist (wordpress-plugin ApiFilesController::FILENAME_PATTERN):
+// the filename becomes a URL path segment matched against this exact regex by the WP REST
+// route itself. A filename that doesn't match never reaches the controller, WordPress's
+// router returns a generic 404 before validate_callback runs, which the CLI's shared error
+// formatter reports as "is the plugin installed?", a confusing message for what is actually
+// an invalid filename. Checking client-side first turns that into an accurate error and
+// skips a network round-trip that could only ever fail.
+const FILENAME_PATTERN = /^[a-z0-9-]+$/
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
@@ -72,6 +81,15 @@ export default class Push extends PushCommand {
   }
 
   private async pushFile(file: ApiFile, task?: {output: string}): Promise<void> {
+    if (!FILENAME_PATTERN.test(file.filename)) {
+      const message = `Invalid filename "${file.filename}": only lowercase letters, digits, and hyphens are allowed (e.g. "hello-world.php")`
+      if (task) task.output = message
+      else this.warn(`  ${message}`)
+
+      this.failedCount++
+      throw new Error(message)
+    }
+
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${file.filename}`
 

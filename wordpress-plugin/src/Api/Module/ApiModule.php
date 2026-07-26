@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Api\Module;
 
 use Loopress\Api\RestApi\ApiFilesController;
+use Loopress\Api\RestApi\ApiNamespaceController;
 use Loopress\Api\RestApi\RouteLoader;
 use Loopress\Contract\Module;
 
@@ -12,6 +13,7 @@ class ApiModule implements Module
 {
     public function __construct(
         private ApiFilesController $controller,
+        private ApiNamespaceController $namespaceController,
         private RouteLoader $routeLoader,
     ) {}
 
@@ -19,6 +21,7 @@ class ApiModule implements Module
     {
         add_action('rest_api_init', function () {
             $this->controller->register_routes();
+            $this->namespaceController->register_routes();
             $this->routeLoader->loadAndRegister();
         });
     }

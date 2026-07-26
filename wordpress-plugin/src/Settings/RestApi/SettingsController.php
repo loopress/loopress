@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Settings\RestApi;
 
+use Loopress\Api\ApiNamespace;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Sentry\Consent;
 use WP_REST_Response;
@@ -19,6 +20,7 @@ class SettingsController
 
     private const RESETTABLE_OPTIONS = [
         Consent::OPTION,
+        ApiNamespace::OPTION,
     ];
 
     public function register_routes(): void

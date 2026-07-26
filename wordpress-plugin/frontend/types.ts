@@ -76,6 +76,10 @@ export interface ApiFile {
     content: string;
 }
 
+export interface ApiNamespace {
+    namespace: string;
+}
+
 export type SnippetType = 'php' | 'js' | 'css' | 'html' | 'text';
 export type SnippetLocation = 'admin' | 'body' | 'everywhere' | 'footer' | 'frontend' | 'header' | 'once';
 

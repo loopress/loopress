@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
-import type { ApiFile } from '../types';
+import type { ApiFile, ApiNamespace } from '../types';
+
+// Kept in sync with the plugin's own default (Loopress\Api\ApiNamespace::DEFAULT); only used
+// until the /api-namespace query below resolves, or if it errors.
+const DEFAULT_NAMESPACE = 'loopress-api/v1';
 
 export function ApiRoutes() {
     const { data: files = [], isPending, isFetching, isError } = useQuery<ApiFile[]>({
@@ -9,6 +13,12 @@ export function ApiRoutes() {
         queryFn: () => apiFetch<ApiFile[]>('/api-files'),
         staleTime: 30_000,
     });
+
+    const { data: namespaceData } = useQuery<ApiNamespace>({
+        queryKey: ['api-namespace'],
+        queryFn: () => apiFetch<ApiNamespace>('/api-namespace'),
+    });
+    const namespace = namespaceData?.namespace ?? DEFAULT_NAMESPACE;
 
     return (
         <div>
@@ -63,7 +73,7 @@ export function ApiRoutes() {
                                     <strong>{file.filename}.php</strong>
                                 </td>
                                 <td style={{ padding: '8px', fontFamily: 'monospace', color: '#1d4ed8' }}>
-                                    loopress-api/v1/{file.filename}
+                                    {namespace}/{file.filename}
                                 </td>
                             </tr>
                         ))}

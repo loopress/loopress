@@ -57,6 +57,18 @@ export function Features() {
           >
             <CIBlock />
           </FeatureCard>
+
+          <FeatureCard
+            tag="05"
+            title="Custom API Routes"
+            body="Version-control custom WordPress REST endpoints as plain PHP files. Push them from Git, no other plugin required."
+            bullets={[
+              "Every deployed route shows up in the plugin's API tab, right after lps api push",
+              "A broken route file is skipped and logged, it never takes down the rest of your REST API",
+            ]}
+          >
+            <ApiBlock />
+          </FeatureCard>
         </div>
       </div>
     </section>
@@ -185,6 +197,29 @@ function CIBlock() {
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
         <Line c="success">✓ WordPress + MySQL started</Line>
         <Line c="success">✓ Updated: 3 snippets synced</Line>
+      </div>
+    </div>
+  );
+}
+
+function ApiBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        api/webhook-handler.php
+      </div>
+      <pre className="px-3 py-3">
+        {`  class WebhookHandler
+  {
+      public function post(): array
+      {
+          return ['received' => true];
+      }
+  }`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps api push</Line>
+        <Line c="success">✓ Deployed: /loopress-api/v1/webhook-handler</Line>
       </div>
     </div>
   );

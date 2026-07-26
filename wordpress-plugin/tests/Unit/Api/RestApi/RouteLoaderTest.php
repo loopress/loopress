@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Api\RestApi;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Api\ApiNamespace;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\RestApi\RouteLoader;
 use PHPUnit\Framework\TestCase;
@@ -33,6 +34,7 @@ class RouteLoaderTest extends TestCase
         }
 
         $this->directory = new ApiDirectory();
+        Functions\when('get_option')->justReturn(ApiNamespace::DEFAULT);
     }
 
     protected function tearDown(): void
@@ -164,7 +166,7 @@ class RouteLoaderTest extends TestCase
         Functions\expect('register_rest_route')
             ->once()
             ->with(
-                RouteLoader::NAMESPACE,
+                ApiNamespace::DEFAULT,
                 '/test-loader-valid',
                 \Mockery::type('array'),
             )
@@ -231,7 +233,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory);
         $loader->loadAndRegister();
 
-        $request = new WP_REST_Request([], RouteLoader::NAMESPACE . '/test-loader-throws-headers');
+        $request = new WP_REST_Request([], ApiNamespace::DEFAULT . '/test-loader-throws-headers');
 
         $served = $loader->applyHeaders(true, null, $request);
 

@@ -92,5 +92,22 @@ describe('api push', () => {
       expect(task.output).toBe('Failed to push hello: boom')
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
     })
+
+    it('rejects a filename the server route would never match, without calling the API', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+      const invalidFile: ApiFile = {content: '<?php', filename: 'WITH_MAJ_ENDPOINT'}
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+        'Invalid filename "WITH_MAJ_ENDPOINT"',
+      )
+
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toContain('Invalid filename "WITH_MAJ_ENDPOINT"')
+      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
   })
 })
