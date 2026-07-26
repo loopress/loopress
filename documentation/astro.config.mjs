@@ -97,6 +97,7 @@ export default defineConfig({
 						{ label: "Overview", slug: "cli" },
 						{ label: "Getting Started", slug: "cli/getting-started" },
 						{ label: "Init", slug: "cli/init" },
+							{ label: "Doctor", slug: "cli/doctor" },
 					],
 				},
 				{
