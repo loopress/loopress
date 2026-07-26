@@ -1,5 +1,12 @@
 # @loopress/wordpress-plugin
 
+## 2026.7.15
+
+### Patch Changes
+
+- 6dac6c3: Fixed a fatal error on every Loopress Light install (`Class "DI\ContainerBuilder" not found`): the Light build shipped an empty Composer `require`, but shared code (`ContainerFactory`, `WpHttpClient`) depends on `php-di/php-di`, `nyholm/psr7`, and `psr/http-client`. The Light build now keeps those, and only excludes the genuinely Full-only packages (`composer/composer`, `sentry/sentry`).
+- 6dac6c3: `LOOPRESS_VERSION` is now read from the plugin's own `Version:` header via `get_file_data()` instead of a hardcoded literal, removing a second copy that `scripts/sync-version.js` had to keep in sync and could drift from the header.
+
 ## 2026.7.14
 
 ### Patch Changes
