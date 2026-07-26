@@ -23,6 +23,12 @@ Verify the installation:
 lps --version
 ```
 
+The CLI checks npm in the background (at most once a day, never blocking a command) and prints a notice when a newer version exists. The CLI and the WordPress plugin evolve together, so staying current avoids debugging already-fixed issues:
+
+```bash
+npm install -g @loopress/cli
+```
+
 ## Requirements
 
 - Node.js 18+
@@ -153,3 +159,7 @@ lps snippet push --env production --yes
 ```
 
 - Pull commands that would delete local files no longer present on WordPress list them and ask first in a terminal. `--yes` skips the question; without a TTY the files are removed and reported, so existing scripts keep working.
+
+## Troubleshooting
+
+When a command fails and the cause is unclear, run [`lps doctor`](/cli/doctor/): it checks that the site is reachable, the plugin installed, and the credentials valid, each with a corrective action.

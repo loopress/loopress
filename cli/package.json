@@ -14,6 +14,7 @@
     "@inquirer/prompts": "^8.5.2",
     "@oclif/core": "^4.13.0",
     "@oclif/plugin-help": "^6.2.53",
+    "@oclif/plugin-warn-if-update-available": "^3.1.68",
     "@sentry/node": "^10.67.0",
     "glob": "13.0.6",
     "got": "^15.1.0",
@@ -78,8 +79,15 @@
       "init": "./dist/hooks/init.js"
     },
     "plugins": [
-      "@oclif/plugin-help"
+      "@oclif/plugin-help",
+      "@oclif/plugin-warn-if-update-available"
     ],
+    "warn-if-update-available": {
+      "timeoutInDays": 1,
+      "frequency": 1,
+      "frequencyUnit": "days",
+      "message": "<%= config.name %> update available: <%= latest %> (you have <%= config.version %>). The CLI and the WordPress plugin evolve together, staying current avoids already-fixed bugs. Update with: npm install -g @loopress/cli"
+    },
     "topicSeparator": " ",
     "topics": {
       "acf": {

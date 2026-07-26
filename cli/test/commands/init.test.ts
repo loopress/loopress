@@ -1,4 +1,4 @@
-import {confirm, input, select} from '@inquirer/prompts'
+import {checkbox, confirm, input, select} from '@inquirer/prompts'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
@@ -10,6 +10,7 @@ import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/ocl
 import {makeListedProject} from '../helpers/project-fixtures.js'
 
 vi.mock('@inquirer/prompts', () => ({
+  checkbox: vi.fn(),
   confirm: vi.fn(),
   input: vi.fn(),
   select: vi.fn(),
@@ -40,6 +41,7 @@ describe('init', () => {
     resetFakeOclifConfig()
     interactive.value = true
     vi.mocked(existsSync).mockReturnValue(false)
+    vi.mocked(checkbox).mockResolvedValue([])
     vi.spyOn(configManager, 'listProjects').mockReturnValue([makeListedProject('id-acme', 'acme', {})])
   })
 
@@ -170,8 +172,28 @@ describe('init', () => {
     expect(projectIdCall.validate('manual-id')).toBe(true)
   })
 
-  it('goes straight to manual entry and logs a hint when no projects are configured', async () => {
+  it('offers to run `lps project config` inline when no projects are configured, and continues with the created project', async () => {
+    vi.spyOn(configManager, 'listProjects')
+      .mockReturnValueOnce([])
+      .mockReturnValue([makeListedProject('id-fresh', 'fresh', {})])
+    vi.mocked(confirm).mockResolvedValueOnce(true)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
+    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(select).mockResolvedValueOnce('__none__')
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('project:config')
+    expect(select).not.toHaveBeenCalledWith(expect.objectContaining({message: 'WordPress project'}))
+    expect(input).not.toHaveBeenCalledWith(expect.objectContaining({message: 'Project ID'}))
+    expect(log).toHaveBeenCalledWith('  Project:  fresh')
+  })
+
+  it('falls back to manual project ID entry when the inline project config is declined', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.mocked(confirm).mockResolvedValueOnce(false)
     vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
     vi.mocked(select).mockResolvedValueOnce('__none__')
 
@@ -179,14 +201,60 @@ describe('init', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(select).not.toHaveBeenCalledWith(expect.objectContaining({message: 'WordPress project'}))
-    expect(log).toHaveBeenCalledWith('No projects configured yet. Run `lps project config` to add one first.')
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('project:config')
     expect(log).toHaveBeenCalledWith('  Project:  manual-id')
 
     const projectIdCall = vi.mocked(input).mock.calls[0][0] as {validate: (value: string) => string | true}
     expect(projectIdCall.message).toBe('Project ID')
     expect(projectIdCall.validate('   ')).toBe('Project ID cannot be empty')
     expect(projectIdCall.validate('manual-id')).toBe(true)
+  })
+
+  it('falls back to manual entry when the inline project config ends with still no project', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.mocked(confirm).mockResolvedValueOnce(true)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
+    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(select).mockResolvedValueOnce('__none__')
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(log).toHaveBeenCalledWith('Still no project configured, falling back to manual entry.')
+    expect(log).toHaveBeenCalledWith('  Project:  manual-id')
+  })
+
+  it('writes only the chosen feature directories to loopress.json and lists them in the summary', async () => {
+    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(checkbox).mockResolvedValueOnce(['acfDir', 'apiDir'])
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(writeLocalConfig).toHaveBeenCalledWith({
+      acfDir: 'acf',
+      apiDir: 'api',
+      projectId: 'id-acme',
+      rootDir: '.',
+      snippetsDir: 'snippets',
+    })
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('ACF:'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Custom API routes:'))
+  })
+
+  it('suggests the next command in the summary', async () => {
+    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('lps snippet pull'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('lps doctor'))
   })
 
   it('prompts for root and snippets directories with their defaults, and reports the resolved snippets path', async () => {

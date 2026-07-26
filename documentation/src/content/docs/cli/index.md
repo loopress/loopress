@@ -17,6 +17,7 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | | `lps logout` | Log out from the Loopress console |
 | **Setup** | `lps init` | Create a `loopress.json` config file interactively |
 | | `lps status` | Show which project and environment commands will target |
+| | `lps doctor` | Diagnose connectivity, plugin and credential problems |
 | **Project** | `lps project config` | Add or update a WordPress project environment |
 | | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project and environment |

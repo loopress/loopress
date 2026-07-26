@@ -21,6 +21,21 @@ No token is needed to run `lps snippet push` or `lps plugin push` against a loca
 
 A token is required only when deploying to a real site. Get one at [console.loopress.dev/tokens](https://console.loopress.dev/tokens).
 
+## Deploying to a real environment
+
+The ephemeral instance above is for tests. To deploy to a real site (staging, production), provide the project configuration as a CI secret and pick the environment per command with `--env`, instead of fabricating the active-environment state in the config file:
+
+1. Configure the project once on your machine (`lps project config`).
+2. Store your `config.json` (see its path under "How it works") as a CI secret file, and set `LOOPRESS_TOKEN`.
+3. Target the environment explicitly in the pipeline:
+
+```bash
+lps doctor --env staging
+lps snippet push --env staging --yes
+```
+
+`--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment named `production` requires it in a non-interactive run.
+
 ## Supported platforms
 
 - [GitHub Actions](/ci/github-actions/)
