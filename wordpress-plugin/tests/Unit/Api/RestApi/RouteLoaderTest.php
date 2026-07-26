@@ -9,6 +9,8 @@ use Brain\Monkey\Functions;
 use Loopress\Api\ApiNamespace;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\RestApi\RouteLoader;
+use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
@@ -21,6 +23,7 @@ class RouteLoaderTest extends TestCase
 {
     private string $tmpDir;
     private ApiDirectory $directory;
+    private LoopressEnvironment&MockObject $environment;
 
     protected function setUp(): void
     {
@@ -34,6 +37,9 @@ class RouteLoaderTest extends TestCase
         }
 
         $this->directory = new ApiDirectory();
+        // No user vendor/ by default: only the autoload-specific tests below override this.
+        $this->environment = $this->createMock(LoopressEnvironment::class);
+        $this->environment->method('getAutoloadPath')->willReturn(null);
         Functions\when('get_option')->justReturn(ApiNamespace::DEFAULT);
     }
 
@@ -75,7 +81,7 @@ class RouteLoaderTest extends TestCase
 
     public function test_endpointsFor_only_includes_publicly_implemented_verbs(): void
     {
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
 
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureGet());
 
@@ -87,7 +93,7 @@ class RouteLoaderTest extends TestCase
     {
         // RouteLoaderTestFixtureGet declares a *private* post(): must not be registered,
         // method_exists() alone would incorrectly say yes.
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
 
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureGet());
 
@@ -97,14 +103,14 @@ class RouteLoaderTest extends TestCase
 
     public function test_endpointsFor_returns_empty_array_when_no_verb_is_implemented(): void
     {
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
 
         $this->assertSame([], $loader->endpointsFor(new RouteLoaderTestFixtureNoVerbs()));
     }
 
     public function test_endpointsFor_uses_the_files_permission_override_when_present(): void
     {
-        $loader   = new RouteLoader($this->directory);
+        $loader   = new RouteLoader($this->directory, $this->environment);
         $instance = new RouteLoaderTestFixtureWithOverrides();
 
         $endpoints = $loader->endpointsFor($instance);
@@ -116,14 +122,14 @@ class RouteLoaderTest extends TestCase
 
     public function test_hasPublicMethod_is_false_for_a_private_method(): void
     {
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
 
         $this->assertFalse($loader->hasPublicMethod(new RouteLoaderTestFixtureGet(), 'post'));
     }
 
     public function test_hasPublicMethod_is_true_for_a_public_method(): void
     {
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
 
         $this->assertTrue($loader->hasPublicMethod(new RouteLoaderTestFixtureGet(), 'get'));
     }
@@ -140,7 +146,7 @@ class RouteLoaderTest extends TestCase
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true); // reaching this line means it didn't fatal
@@ -153,7 +159,7 @@ class RouteLoaderTest extends TestCase
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true); // reaching this line means the ParseError was caught, not fatal
@@ -173,7 +179,7 @@ class RouteLoaderTest extends TestCase
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
@@ -189,7 +195,7 @@ class RouteLoaderTest extends TestCase
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true); // reaching this line means the exception from permission() was caught
@@ -202,17 +208,65 @@ class RouteLoaderTest extends TestCase
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true);
+    }
+
+    // ── loadAndRegister: user vendor autoload ────────────────────────────────
+
+    public function test_loadAndRegister_does_nothing_when_the_user_has_no_vendor_autoload(): void
+    {
+        // Default setUp() stub already returns null; this test documents that explicitly
+        // rather than relying on it silently.
+        $this->environment->method('getAutoloadPath')->willReturn(null);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // reaching this line means no attempt was made to require anything
+    }
+
+    public function test_loadAndRegister_requires_the_users_own_vendor_autoload_when_present(): void
+    {
+        $autoloadPath = $this->tmpDir . '/user-vendor-autoload.php';
+        file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            $autoloadPath,
+            "<?php\nfunction loopress_test_user_vendor_autoload_marker(): bool { return true; }\n",
+        );
+
+        $environment = $this->createMock(LoopressEnvironment::class);
+        $environment->method('getAutoloadPath')->willReturn($autoloadPath);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(function_exists('loopress_test_user_vendor_autoload_marker'));
+    }
+
+    public function test_loadAndRegister_survives_a_broken_user_vendor_autoload(): void
+    {
+        $autoloadPath = $this->tmpDir . '/broken-vendor-autoload.php';
+        file_put_contents($autoloadPath, "<?php\nfinal class LoopressTestBrokenVendorAutoload\n{\n    public function get( {\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- missing closing paren
+
+        $environment = $this->createMock(LoopressEnvironment::class);
+        $environment->method('getAutoloadPath')->willReturn($autoloadPath);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // reaching this line means the ParseError was caught, not fatal
     }
 
     // ── applyHeaders ─────────────────────────────────────────────────────────
 
     public function test_applyHeaders_ignores_requests_to_unrelated_routes(): void
     {
-        $loader  = new RouteLoader($this->directory);
+        $loader  = new RouteLoader($this->directory, $this->environment);
         $request = new WP_REST_Request([], '/wp/v2/posts');
 
         $served = $loader->applyHeaders(true, null, $request);
@@ -230,7 +284,7 @@ class RouteLoaderTest extends TestCase
         Functions\when('register_rest_route')->justReturn(true);
         Functions\when('add_filter')->justReturn(true);
 
-        $loader = new RouteLoader($this->directory);
+        $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $request = new WP_REST_Request([], ApiNamespace::DEFAULT . '/test-loader-throws-headers');

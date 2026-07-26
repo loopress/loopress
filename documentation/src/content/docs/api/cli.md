@@ -107,7 +107,7 @@ api/
   webhook-handler.php   # class WebhookHandler, route /webhook-handler
 ```
 
-Routes are registered under the `loopress-api/v1` namespace, separate from `loopress/v1` which the CLI itself uses. Each file must declare a class matching its filename (kebab-case to PascalCase) and contain `declare(strict_types=1);` exactly once. The class exposes one public method per HTTP verb it handles:
+Routes are registered under the `loopress-api/v1` namespace by default, separate from `loopress/v1` which the CLI itself uses. This namespace is configurable from the plugin's **Settings** tab, changing it changes every route's URL on the next request, with no redirect from the old one. Each file must declare a class matching its filename (kebab-case to PascalCase) and contain `declare(strict_types=1);` exactly once. The class exposes one public method per HTTP verb it handles:
 
 ```php
 <?php
@@ -141,3 +141,27 @@ Two more public methods are recognized if present:
 :::tip
 A route file that fails to load (parse error, missing class, thrown exception) is skipped and logged. It never breaks the rest of the site's REST API.
 :::
+
+## Using your own Composer dependencies
+
+If the site also uses [Composer](/composer/) to manage site-wide PHP dependencies, those packages are available to `use` in your route files directly, no manual `require` needed (unlike in [code snippets](/composer/using-in-snippets/), where you still load the autoloader yourself):
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+
+class Webhook
+{
+    public function post(): array
+    {
+        $client = new Client();
+        // ...
+        return ['ok' => true];
+    }
+}
+```
+
+A broken dependency (missing package, corrupted install) is logged and skipped the same way a broken route file is, it never breaks the rest of the site's REST API either.

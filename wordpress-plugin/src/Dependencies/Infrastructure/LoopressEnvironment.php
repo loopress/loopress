@@ -15,8 +15,8 @@ class LoopressEnvironment
 
     public function __construct()
     {
-        $this->loopressDir      = WP_CONTENT_DIR . '/loopress/';
-        $this->filesystem = new Filesystem();
+        $this->loopressDir = WP_CONTENT_DIR . '/loopress/';
+        $this->filesystem  = new Filesystem();
     }
 
     public function getLoopressDir(): string

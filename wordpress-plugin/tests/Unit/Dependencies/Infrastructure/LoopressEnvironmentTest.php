@@ -59,7 +59,7 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertStringEndsWith('/', $env->getLoopressDir());
     }
 
-    public function test_getLoopressDir_contains_dx_segment(): void
+    public function test_getLoopressDir_contains_loopress_segment(): void
     {
         $env = new LoopressEnvironment();
         $this->assertStringContainsString('/loopress/', $env->getLoopressDir());
