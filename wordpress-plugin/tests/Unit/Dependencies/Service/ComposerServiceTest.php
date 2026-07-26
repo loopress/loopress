@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 class ComposerServiceTest extends TestCase
 {
-    private LoopressEnvironment&MockObject $dxEnv;
+    private LoopressEnvironment&MockObject $environment;
     private ComposerRunner&MockObject $runner;
     private PackagistClient&MockObject $packagist;
     private ComposerService $service;
@@ -25,12 +25,12 @@ class ComposerServiceTest extends TestCase
         parent::setUp();
         Monkey\setUp();
 
-        $this->dxEnv    = $this->createMock(LoopressEnvironment::class);
+        $this->environment    = $this->createMock(LoopressEnvironment::class);
         $this->runner   = $this->createMock(ComposerRunner::class);
         $this->packagist = $this->createMock(PackagistClient::class);
 
         $this->service = new ComposerService(
-            $this->dxEnv,
+            $this->environment,
             $this->runner,
             $this->packagist,
         );
@@ -46,19 +46,19 @@ class ComposerServiceTest extends TestCase
 
     public function test_getInstalled_returns_empty_when_no_require(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([]);
+        $this->environment->method('readComposerJson')->willReturn([]);
         $this->assertSame([], $this->service->getInstalled());
     }
 
     public function test_getInstalled_falls_back_to_constraint_without_lock_file(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([
+        $this->environment->method('readComposerJson')->willReturn([
             'require' => [
                 'guzzlehttp/guzzle' => '^7.0',
                 'monolog/monolog'   => '^3.0',
             ],
         ]);
-        $this->dxEnv->method('readComposerLock')->willReturn(null);
+        $this->environment->method('readComposerLock')->willReturn(null);
 
         $result = $this->service->getInstalled();
 
@@ -71,12 +71,12 @@ class ComposerServiceTest extends TestCase
 
     public function test_getInstalled_reports_exact_locked_versions(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([
+        $this->environment->method('readComposerJson')->willReturn([
             'require' => ['guzzlehttp/guzzle' => '^7.0'],
         ]);
         // wp_json_encode() isn't available in this unit test (WordPress isn't loaded); this is
         // just building a fixture string, not runtime plugin code.
-        $this->dxEnv->method('readComposerLock')->willReturn(json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+        $this->environment->method('readComposerLock')->willReturn(json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
             'packages' => [
                 ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.1'],
             ],
@@ -92,13 +92,13 @@ class ComposerServiceTest extends TestCase
 
     public function test_getJson_returns_raw_composer_json(): void
     {
-        $this->dxEnv->method('readComposerJsonRaw')->willReturn('{"name":"demo/site"}');
+        $this->environment->method('readComposerJsonRaw')->willReturn('{"name":"demo/site"}');
         $this->assertSame('{"name":"demo/site"}', $this->service->getJson());
     }
 
     public function test_getJson_returns_null_when_missing(): void
     {
-        $this->dxEnv->method('readComposerJsonRaw')->willReturn(null);
+        $this->environment->method('readComposerJsonRaw')->willReturn(null);
         $this->assertNull($this->service->getJson());
     }
 
@@ -164,7 +164,7 @@ class ComposerServiceTest extends TestCase
 
     public function test_getDiagnostics_no_issues_when_platform_matches(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([
+        $this->environment->method('readComposerJson')->willReturn([
             'config' => ['platform' => ['php' => PHP_VERSION]],
         ]);
 
@@ -177,7 +177,7 @@ class ComposerServiceTest extends TestCase
 
     public function test_getDiagnostics_reports_mismatch(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([
+        $this->environment->method('readComposerJson')->willReturn([
             'config' => ['platform' => ['php' => '8.0.0']],
         ]);
 
@@ -189,7 +189,7 @@ class ComposerServiceTest extends TestCase
 
     public function test_getDiagnostics_reports_missing_platform(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([]);
+        $this->environment->method('readComposerJson')->willReturn([]);
 
         $result = $this->service->getDiagnostics();
 
@@ -202,11 +202,11 @@ class ComposerServiceTest extends TestCase
 
     public function test_fixPlatform_writes_current_php_version(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([
+        $this->environment->method('readComposerJson')->willReturn([
             'config' => ['platform' => ['php' => '8.0.0']],
         ]);
 
-        $this->dxEnv->expects($this->once())
+        $this->environment->expects($this->once())
             ->method('writeComposerJson')
             ->with($this->callback(function (array $json): bool {
                 return $json['config']['platform']['php'] === PHP_VERSION;
@@ -321,13 +321,13 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_writes_manifests_and_runs_install_when_lock_provided(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
-        $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
+        $this->environment->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
+        $this->environment->method('readComposerLock')->willReturn('{"old": "lock"}');
 
-        $this->dxEnv->expects($this->once())
+        $this->environment->expects($this->once())
             ->method('writeComposerJson')
             ->with(['name' => 'new/manifest']);
-        $this->dxEnv->expects($this->once())
+        $this->environment->expects($this->once())
             ->method('writeComposerLock')
             ->with('{"new": "lock"}');
 
@@ -341,8 +341,8 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_runs_update_when_no_lock_provided(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([]);
-        $this->dxEnv->method('readComposerLock')->willReturn(null);
+        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->environment->method('readComposerLock')->willReturn(null);
 
         $this->runner->method('run')
             ->with(['update'])
@@ -354,18 +354,18 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_restores_previous_manifests_on_failure(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
-        $this->dxEnv->method('readComposerLock')->willReturn('{"old": "lock"}');
+        $this->environment->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
+        $this->environment->method('readComposerLock')->willReturn('{"old": "lock"}');
 
         // First write: the incoming manifest. Second write: the rollback.
         $writtenJson = [];
-        $this->dxEnv->method('writeComposerJson')
+        $this->environment->method('writeComposerJson')
             ->willReturnCallback(function (array $json) use (&$writtenJson): void {
                 $writtenJson[] = $json;
             });
 
         $writtenLock = [];
-        $this->dxEnv->method('writeComposerLock')
+        $this->environment->method('writeComposerLock')
             ->willReturnCallback(function (string $lock) use (&$writtenLock): void {
                 $writtenLock[] = $lock;
             });
@@ -385,10 +385,10 @@ class ComposerServiceTest extends TestCase
 
     public function test_sync_deletes_written_lock_on_failure_when_none_existed_before(): void
     {
-        $this->dxEnv->method('readComposerJson')->willReturn([]);
-        $this->dxEnv->method('readComposerLock')->willReturn(null);
+        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->environment->method('readComposerLock')->willReturn(null);
 
-        $this->dxEnv->expects($this->once())->method('deleteComposerLock');
+        $this->environment->expects($this->once())->method('deleteComposerLock');
         $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
 
         $this->expectException(\RuntimeException::class);

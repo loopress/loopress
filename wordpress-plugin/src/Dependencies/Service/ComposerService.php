@@ -11,7 +11,7 @@ use Loopress\Dependencies\Infrastructure\PackagistClient;
 class ComposerService
 {
     public function __construct(
-        private LoopressEnvironment $dxEnv,
+        private LoopressEnvironment $environment,
         private ComposerRunner $composerRunner,
         private PackagistClient $packagistClient,
     ) {}
@@ -23,9 +23,9 @@ class ComposerService
 
     public function getInstalled(): array
     {
-        $this->dxEnv->ensureInitialized();
+        $this->environment->ensureInitialized();
 
-        $json    = $this->dxEnv->readComposerJson();
+        $json    = $this->environment->readComposerJson();
         $require = $json['require'] ?? [];
 
         if (!is_array($require) || $require === []) {
@@ -50,7 +50,7 @@ class ComposerService
     /** @return array<string, string> package name to exact locked version */
     private function getLockedVersions(): array
     {
-        $lock = $this->dxEnv->readComposerLock();
+        $lock = $this->environment->readComposerLock();
         if ($lock === null) {
             return [];
         }
@@ -105,10 +105,10 @@ class ComposerService
 
     public function getDiagnostics(): array
     {
-        $this->dxEnv->ensureInitialized();
+        $this->environment->ensureInitialized();
 
         $phpVersion  = PHP_VERSION;
-        $json        = $this->dxEnv->readComposerJson();
+        $json        = $this->environment->readComposerJson();
         $platformPhp = $json['config']['platform']['php'] ?? null;
         $issues      = [];
 
@@ -192,20 +192,20 @@ class ComposerService
 
     public function fixPlatform(): void
     {
-        $json = $this->dxEnv->readComposerJson();
+        $json = $this->environment->readComposerJson();
         $json['config']['platform']['php'] = PHP_VERSION;
-        $this->dxEnv->writeComposerJson($json);
+        $this->environment->writeComposerJson($json);
     }
 
     public function getJson(): ?string
     {
-        $this->dxEnv->ensureInitialized();
-        return $this->dxEnv->readComposerJsonRaw();
+        $this->environment->ensureInitialized();
+        return $this->environment->readComposerJsonRaw();
     }
 
     public function getLock(): ?string
     {
-        return $this->dxEnv->readComposerLock();
+        return $this->environment->readComposerLock();
     }
 
     public function sync(string $composerJson, ?string $composerLock): string
@@ -215,13 +215,13 @@ class ComposerService
             throw new \InvalidArgumentException('Invalid composer.json: ' . esc_html(json_last_error_msg()));
         }
 
-        $previousJson = $this->dxEnv->readComposerJson();
-        $previousLock = $this->dxEnv->readComposerLock();
+        $previousJson = $this->environment->readComposerJson();
+        $previousLock = $this->environment->readComposerLock();
 
-        $this->dxEnv->writeComposerJson($decoded);
+        $this->environment->writeComposerJson($decoded);
 
         if ($composerLock !== null) {
-            $this->dxEnv->writeComposerLock($composerLock);
+            $this->environment->writeComposerLock($composerLock);
         }
 
         $result = $this->composerRunner->run($composerLock !== null ? ['install'] : ['update']);
@@ -229,11 +229,11 @@ class ComposerService
         if ($result['exit_code'] !== 0) {
             // Restore the previous manifests so a failed sync doesn't leave the site
             // pointing at dependencies that were never actually installed.
-            $this->dxEnv->writeComposerJson($previousJson);
+            $this->environment->writeComposerJson($previousJson);
             if ($previousLock !== null) {
-                $this->dxEnv->writeComposerLock($previousLock);
+                $this->environment->writeComposerLock($previousLock);
             } elseif ($composerLock !== null) {
-                $this->dxEnv->deleteComposerLock();
+                $this->environment->deleteComposerLock();
             }
 
             throw new \RuntimeException(esc_html($result['output']));
