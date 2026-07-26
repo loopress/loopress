@@ -1,5 +1,11 @@
 # @loopress/wordpress-plugin
 
+## 2026.7.14
+
+### Patch Changes
+
+- dd36268: `LOOPRESS_VERSION` is now read from the plugin's own `Version:` header via `get_file_data()` instead of a hardcoded literal, removing a second copy that `scripts/sync-version.js` had to keep in sync and could drift from the header.
+
 ## 2026.7.13
 
 ### Patch Changes
