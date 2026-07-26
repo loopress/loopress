@@ -1,4 +1,4 @@
-import {Command, ux} from '@oclif/core'
+import {Command, Flags, ux} from '@oclif/core'
 
 import {configManager} from '../config/project-config.manager.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
@@ -7,14 +7,19 @@ const c = ux.colorize
 
 export default class Status extends Command {
   static description = 'Show which WordPress project and environment commands will target'
-  static examples = ['$ lps status']
+  static examples = ['$ lps status', '$ lps status --env staging']
+  static flags = {
+    env: Flags.string({description: 'Show what would be targeted with this environment, as other commands do with --env'}),
+  }
 
   async run(): Promise<void> {
-    await this.parse(Status)
+    const {flags} = await this.parse(Status)
 
     const localConfig = await readLocalConfig()
 
-    if (localConfig.projectId) {
+    if (flags.env) {
+      this.reportEnvOverride(localConfig.projectId, flags.env)
+    } else if (localConfig.projectId) {
       this.reportPinnedProject(localConfig.projectId)
     } else {
       this.reportActiveProject()
@@ -41,6 +46,27 @@ export default class Status extends Command {
     }
 
     this.log(`Project:  ${project.name} (${env.name})`)
+    this.log(`URL:      ${env.url}`)
+  }
+
+  // Mirrors base.ts:resolveEnvironment with --env: the targeted project comes from
+  // loopress.json when pinned, from the globally active project otherwise.
+  private reportEnvOverride(pinnedProjectId: string | undefined, envName: string): void {
+    const project = pinnedProjectId ? configManager.getProject(pinnedProjectId) : configManager.getCurrentProject()
+
+    if (!project) {
+      this.log('No project configured. Run `lps project config` first.')
+      return
+    }
+
+    const env = project.environments[envName]
+    if (!env) {
+      this.error(
+        `Environment "${envName}" not found in project "${project.name}". Available: ${Object.keys(project.environments).join(', ')}`,
+      )
+    }
+
+    this.log(`Project:  ${project.name} (${env.name}, via --env)`)
     this.log(`URL:      ${env.url}`)
   }
 

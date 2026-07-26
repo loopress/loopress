@@ -1,6 +1,6 @@
 import {Args, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, rm, writeFile} from 'node:fs/promises'
+import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -15,6 +15,7 @@ export default class Pull extends LoopressCommand {
   static examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
   static flags = {
     ...LoopressCommand.dryRunFlag,
+    ...LoopressCommand.yesFlag,
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
 
@@ -72,15 +73,7 @@ export default class Pull extends LoopressCommand {
       }),
     ).run()
 
-    for (const file of orphans) {
-      await rm(join(dir, file), {force: true})
-    }
-
-    if (orphans.length > 0) {
-      this.warn(
-        `Removed ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-      )
-    }
+    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
 
     this.log(`Pulled ${withKey.length} ${type} to ${dir}`)
     if (skipped > 0) {

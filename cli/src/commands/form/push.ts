@@ -17,6 +17,7 @@ export default class Push extends PushCommand {
   static examples = ['$ lps form push']
   static flags = {
     ...PushCommand.dryRunFlag,
+    ...PushCommand.yesFlag,
   }
 
   async run(): Promise<void> {

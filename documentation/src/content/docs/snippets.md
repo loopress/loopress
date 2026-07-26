@@ -40,12 +40,12 @@ lps snippet pull [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
 **Example:**
 
 ```bash
-lps snippet pull ./wp-snippets --dryRun
+lps snippet pull ./wp-snippets --dry-run
 ```
 
 ---
@@ -68,7 +68,7 @@ lps snippet push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed without making any changes |
 
 **Example:**
 

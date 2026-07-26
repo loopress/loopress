@@ -1,22 +1,38 @@
+import {confirm} from '@inquirer/prompts'
 import {Command, Flags} from '@oclif/core'
+import {rm} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {EnvironmentConfig} from '../types/config.js'
 import {LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
+import {isInteractive} from './interactive.js'
 import {WpClient} from './wp-client.js'
 
 interface ParsedBaseFlags {
   'dry-run'?: boolean
+  env?: string
+  yes?: boolean
 }
 
 export abstract class LoopressCommand extends Command {
+  // On every subclass without opt-in: targeting an environment explicitly beats depending on
+  // the machine-wide mutable state of `lps project switch`, which is shared across terminals.
+  static baseFlags = {
+    env: Flags.string({
+      description: 'Target environment by name, overriding the globally active one (lps project switch)',
+    }),
+  }
   static dryRunFlag = {
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
+  }
+  static yesFlag = {
+    yes: Flags.boolean({char: 'y', description: 'Answer yes to confirmation prompts'}),
   }
   protected dryRun = false
   protected localConfig: LoopressLocalConfig = {}
   protected siteConfig!: EnvironmentConfig
+  protected yes = false
   private wpClient?: WpClient
 
   protected get rootDir(): string {
@@ -41,13 +57,44 @@ export abstract class LoopressCommand extends Command {
 
     const {flags} = (await this.parse({
       args: this.ctor.args,
+      baseFlags: (this.ctor as typeof LoopressCommand).baseFlags,
       flags: this.ctor.flags,
       strict: this.ctor.strict,
     })) as unknown as {flags: ParsedBaseFlags}
 
     this.dryRun = Boolean(flags['dry-run'])
+    this.yes = Boolean(flags.yes)
     this.localConfig = await readLocalConfig()
-    this.siteConfig = this.resolveEnvironment()
+    this.siteConfig = this.resolveEnvironment(flags.env)
+  }
+
+  // Orphan cleanup shared by every pull command (see Push Deletion Rules in the product docs):
+  // in a TTY the list is shown and confirmed first (Enter accepts), --yes skips the prompt, and
+  // outside a TTY the files are removed with a warning, the behavior scripts relied on before
+  // the confirmation existed.
+  protected async removeOrphanedFiles(dir: string, orphans: string[], reason: string): Promise<void> {
+    if (orphans.length === 0) return
+
+    const description = `${orphans.length} local file${orphans.length === 1 ? '' : 's'} ${reason}: ${orphans.join(', ')}`
+
+    if (!this.yes && isInteractive()) {
+      const proceed = await confirm({default: true, message: `Remove ${description}?`})
+      if (!proceed) {
+        this.log(`Kept ${description}`)
+        return
+      }
+    }
+
+    for (const file of orphans) await rm(join(dir, file), {force: true})
+
+    // Non-interactive removals (no TTY, CI) keep the original warn so existing
+    // scripts that parse stderr or check exit status are not broken. Confirmed
+    // interactive removals are intentional, so log() is appropriate.
+    if (this.yes || isInteractive()) {
+      this.log(`Removed ${description}`)
+    } else {
+      this.warn(`Removed ${description}`)
+    }
   }
 
   protected resolveAcfPath(override?: string): string {
@@ -75,7 +122,18 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
   }
 
-  private resolveEnvironment(): EnvironmentConfig {
+  private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {
+    const env = project.environments[envName]
+    if (!env) {
+      this.error(
+        `Environment "${envName}" not found in project "${project.name}". Available: ${Object.keys(project.environments).join(', ')}`,
+      )
+    }
+
+    return env
+  }
+
+  private resolveEnvironment(envName?: string): EnvironmentConfig {
     if (this.localConfig.projectId) {
       const project = configManager.getProject(this.localConfig.projectId)
       if (!project) {
@@ -89,6 +147,8 @@ export abstract class LoopressCommand extends Command {
         this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
       }
 
+      if (envName) return this.pickEnvironment(project, envName)
+
       if (envNames.length === 1) {
         return project.environments[envNames[0]]
       }
@@ -100,6 +160,15 @@ export abstract class LoopressCommand extends Command {
       }
 
       return currentEnv
+    }
+
+    if (envName) {
+      const current = configManager.getCurrentProject()
+      if (!current) {
+        this.error('No project configured. Run `lps project config` first.')
+      }
+
+      return this.pickEnvironment(current, envName)
     }
 
     const env = configManager.getCurrentEnv()

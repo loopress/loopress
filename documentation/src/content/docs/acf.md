@@ -37,14 +37,14 @@ lps acf pull [path]
 | Flag | Description |
 |------|-------------|
 | `--type` | Limit to specific object types: `field-groups`, `post-types`, `taxonomies`, `options-pages`. Repeatable. |
-| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local files with a `key` no longer present on WordPress are removed on pull, so the directory always mirrors the site.
+Local files with a `key` no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported.
 
 **Example:**
 
 ```bash
-lps acf pull --type field-groups --dryRun
+lps acf pull --type field-groups --dry-run
 ```
 
 ---
@@ -64,7 +64,7 @@ lps acf push [path]
 | Flag | Description |
 |------|-------------|
 | `--type` | Limit to specific object types: `field-groups`, `post-types`, `taxonomies`, `options-pages`. Repeatable. |
-| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed without making any changes |
 
 **Example:**
 

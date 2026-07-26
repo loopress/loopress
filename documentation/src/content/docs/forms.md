@@ -40,14 +40,14 @@ lps form pull [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be written without touching the filesystem |
+| `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local files with an id no longer present on WordPress are removed on pull, so the directory always mirrors the site. Forms with no id are skipped with a warning.
+Local files with an id no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. Forms with no id are skipped with a warning.
 
 **Example:**
 
 ```bash
-lps form pull --dryRun
+lps form pull --dry-run
 ```
 
 ---
@@ -66,7 +66,7 @@ lps form push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dryRun` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed without making any changes |
 
 **Example:**
 

@@ -41,7 +41,7 @@ lps seo pull [path]
 | `--post-type` | Limit post meta to specific post types. Repeatable. Defaults to `post` and `page`. |
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local post-meta and redirect files no longer present on WordPress are removed on pull, so the directory always mirrors the site. `settings.json` is a single file, not a list, so it's always overwritten in place.
+Local post-meta and redirect files no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. `settings.json` is a single file, not a list, so it's always overwritten in place.
 
 **Example:**
 

@@ -10,8 +10,8 @@ vi.mock('../../src/utils/loopress-config.js', () => ({
   readLocalConfig: vi.fn(),
 }))
 
-function make(): Status {
-  return new Status([], fakeOclifConfig)
+function make(argv: string[] = []): Status {
+  return new Status(argv, fakeOclifConfig)
 }
 
 describe('status', () => {
@@ -144,6 +144,57 @@ describe('status', () => {
       await cmd.run()
 
       expect(log).not.toHaveBeenCalledWith(expect.stringContaining('Globally active project right now'))
+    })
+  })
+
+  describe('--env', () => {
+    it('shows the environment --env would target, beating the active one', async () => {
+      vi.mocked(readLocalConfig).mockResolvedValue({})
+      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
+        makeListedProject(
+          'id-acme',
+          'acme',
+          {
+            production: makeEnv('production', 'https://acme.com'),
+            staging: makeEnv('staging', 'https://staging.acme.com'),
+          },
+          true,
+        ),
+      )
+
+      const cmd = make(['--env', 'staging'])
+      const {log} = silenceLogs(cmd)
+      await cmd.run()
+
+      expect(log).toHaveBeenCalledWith('Project:  acme (staging, via --env)')
+      expect(log).toHaveBeenCalledWith('URL:      https://staging.acme.com')
+    })
+
+    it('resolves --env within the project pinned by loopress.json', async () => {
+      vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'id-acme'})
+      vi.spyOn(configManager, 'getProject').mockReturnValue({
+        addedAt: '2024-01-01',
+        environments: {staging: makeEnv('staging', 'https://staging.acme.com')},
+        name: 'acme',
+      })
+
+      const cmd = make(['--env', 'staging'])
+      const {log} = silenceLogs(cmd)
+      await cmd.run()
+
+      expect(log).toHaveBeenCalledWith('Project:  acme (staging, via --env)')
+    })
+
+    it('errors listing the available environments when --env names an unknown one', async () => {
+      vi.mocked(readLocalConfig).mockResolvedValue({})
+      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
+        makeListedProject('id-acme', 'acme', {production: makeEnv('production')}, true),
+      )
+
+      const cmd = make(['--env', 'nope'])
+      silenceLogs(cmd)
+
+      await expect(cmd.run()).rejects.toThrow(/Environment "nope" not found in project "acme"\. Available: production/)
     })
   })
 })

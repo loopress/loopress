@@ -15,6 +15,13 @@ vi.mock('@inquirer/prompts', () => ({
   select: vi.fn(),
 }))
 
+// Tests run without a TTY; default to interactive so the prompt-driven flows stay testable,
+// and flip to false in the tests that cover the non-interactive policy.
+const interactive = vi.hoisted(() => ({value: true}))
+vi.mock('../../src/lib/interactive.js', () => ({
+  isInteractive: () => interactive.value,
+}))
+
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => false),
 }))
@@ -31,8 +38,20 @@ describe('init', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetFakeOclifConfig()
+    interactive.value = true
     vi.mocked(existsSync).mockReturnValue(false)
     vi.spyOn(configManager, 'listProjects').mockReturnValue([makeListedProject('id-acme', 'acme', {})])
+  })
+
+  it('fails immediately with instructions in a non-interactive terminal', async () => {
+    interactive.value = false
+
+    const cmd = make()
+    silenceLogs(cmd)
+
+    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*commit a loopress\.json/)
+    expect(select).not.toHaveBeenCalled()
+    expect(writeLocalConfig).not.toHaveBeenCalled()
   })
 
   it('runs `plugin:add` for the chosen snippet provider and reports it in the summary', async () => {

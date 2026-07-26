@@ -23,6 +23,13 @@ vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
 }))
 
+// Tests run without a TTY; default to interactive so the confirm-driven flows stay testable,
+// and flip to false in the tests that cover the non-interactive policy.
+const interactive = vi.hoisted(() => ({value: true}))
+vi.mock('../../../src/lib/interactive.js', () => ({
+  isInteractive: () => interactive.value,
+}))
+
 vi.mock('listr2', async () => {
   const {createListrMock} = await import('../../helpers/listr.js')
   return createListrMock()
@@ -46,12 +53,43 @@ function linkedProject(id: string, name: string, apiProjectId: string, isCurrent
 describe('project push', () => {
   beforeEach(() => {
     resetListrInstances()
+    interactive.value = true
     vi.mocked(ApiClient).mockClear()
     get.mockReset().mockResolvedValue([])
     post.mockReset()
     put.mockReset()
     vi.mocked(confirm).mockReset()
     vi.spyOn(authManager, 'getAuth').mockReturnValue({email: 'a@b.com', savedAt: '2024-01-01', token: 'jwt-token'})
+  })
+
+  it('links to an existing match without prompting in a non-interactive terminal, and logs the decision', async () => {
+    interactive.value = false
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'Acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    get.mockResolvedValue([{environments: [], id: 'api-project-1', name: 'Acme', slug: 'acme'}])
+    const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Assuming yes (link)'))
+    expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
+  })
+
+  it('links to an existing match without prompting when --yes is passed', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'Acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    get.mockResolvedValue([{environments: [], id: 'api-project-1', name: 'Acme', slug: 'acme'}])
+    const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
+
+    const cmd = new Push(['--yes'], fakeOclifConfig)
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
   })
 
   it('errors when not logged in', async () => {

@@ -18,6 +18,13 @@ vi.mock('@inquirer/prompts', () => ({
 vi.mock('../../../src/lib/wp-authorize-flow.js', () => ({authorizeWithBrowser: vi.fn()}))
 vi.mock('../../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
 
+// Tests run without a TTY; default to interactive so the prompt-driven flows stay testable,
+// and flip to false in the tests that cover the non-interactive policy.
+const interactive = vi.hoisted(() => ({value: true}))
+vi.mock('../../../src/lib/interactive.js', () => ({
+  isInteractive: () => interactive.value,
+}))
+
 function make(): Config {
   return new Config([], fakeOclifConfig)
 }
@@ -31,6 +38,18 @@ function callByMessage(mockFn: {mock: {calls: unknown[][]}}, message: string): R
 describe('project config', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    interactive.value = true
+  })
+
+  it('fails immediately with instructions in a non-interactive terminal', async () => {
+    interactive.value = false
+
+    const cmd = make()
+    silenceLogs(cmd)
+
+    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*--env/)
+    expect(select).not.toHaveBeenCalled()
+    expect(input).not.toHaveBeenCalled()
   })
 
   it('creates a brand new project when none exist yet', async () => {

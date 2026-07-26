@@ -2,6 +2,7 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
+import {isInteractive} from '../../lib/interactive.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
@@ -17,6 +18,12 @@ export default class Config extends Command {
 
   async run(): Promise<void> {
     await this.parse(Config)
+
+    if (!isInteractive()) {
+      this.error(
+        'lps project config asks its questions interactively and needs a terminal. Configure the project on your machine, then target environments in CI with --env.',
+      )
+    }
 
     const {projectId, projectName} = await this.resolveProject()
 
