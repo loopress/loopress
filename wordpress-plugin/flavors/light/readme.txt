@@ -1,7 +1,7 @@
 === Loopress Light ===
 Contributors: jean-smaug
 Tags: acf, seo, advanced custom fields, sync, git
-Requires at least: 6.0
+Requires at least: 6.2
 Tested up to: 7.0
 Stable tag: 2026.7.11
 Requires PHP: 8.2
