@@ -7,7 +7,7 @@ description: Deploy custom WordPress REST API endpoints from version-controlled 
 `api` talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
 :::
 
-The `api` command group lets you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required.
+The `api` command group lets you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required. See [Writing Route Files](/api/routes/) for everything a route file can do: request handling, responses, authentication, CORS, and the security model.
 
 Once deployed, every route file shows up in the **API** tab of the plugin's [admin UI](/api/admin-ui/).
 
@@ -23,6 +23,14 @@ git add api/ && git commit -m "feat: add webhook endpoint"
 # 3. Deploy back to WordPress
 lps api push
 ```
+
+## The local directory
+
+All three commands operate on one local directory, resolved the same way:
+
+1. The `path` argument, if given
+2. The `apiDir` key in the project's `loopress.json`, if set
+3. `./api`, the default
 
 ## Commands
 
@@ -42,7 +50,9 @@ lps api pull [path]
 |------|-------------|
 | `--dryRun` / `-d` | Show what would be written without touching the filesystem |
 
-Local files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site.
+Local `.php` files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site. A warning lists every removed file, and `--dryRun` announces them ahead of time. Files without the `.php` extension are never touched.
+
+The files you receive are exactly the source you (or a teammate) pushed: the [`ABSPATH` guard](/api/routes/#where-files-live-on-the-server) the plugin injects at deploy time is stripped before the file is sent back, so pulls never introduce noise in your Git diffs.
 
 **Example:**
 
@@ -54,7 +64,7 @@ lps api pull --dryRun
 
 ### `lps api push`
 
-Upload `.php` files from a local directory to WordPress. Each file is matched by filename. Pushing never deletes a route on WordPress, even if the local file is gone, only `lps api pull` cleans up locally.
+Upload `.php` files from a local directory to WordPress. Each file is matched by filename: pushing `hello-world.php` creates or overwrites the route file of the same name on the site.
 
 ```bash
 lps api push [path]
@@ -67,6 +77,12 @@ lps api push [path]
 | Flag | Description |
 |------|-------------|
 | `--dryRun` / `-d` | Show what would be pushed without making any changes |
+
+What push does, and deliberately does not do:
+
+- **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with invalid PHP syntax (returning the parse error) or a malformed `declare(strict_types=1);` line. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
+- **One bad file doesn't block the rest.** Files are pushed one by one; a failure is reported per file and the remaining files still go through. The command exits with an error summarizing how many failed.
+- **Pushing never deletes a route on WordPress**, even if the local file is gone. Only `lps api pull` cleans up, and only locally.
 
 **Example:**
 
@@ -86,7 +102,7 @@ lps api list
 
 | Flag | Description |
 |------|-------------|
-| `--json` / `-j` | Output raw JSON instead of formatted text |
+| `--json` / `-j` | Output raw JSON (filename and full file content per route) instead of formatted text |
 
 **Example output:**
 
@@ -99,15 +115,7 @@ Found 2 route files:
 
 ## File format
 
-Each file is named `{slug}.php`, where `{slug}` is lowercase kebab-case (letters, digits, hyphens only). The filename maps to both a PHP class name and a REST route:
-
-```
-api/
-  hello-world.php       # class HelloWorld, route /hello-world
-  webhook-handler.php   # class WebhookHandler, route /webhook-handler
-```
-
-Routes are registered under the `loopress-api/v1` namespace by default, separate from `loopress/v1` which the CLI itself uses. This namespace is configurable from the plugin's **Settings** tab, changing it changes every route's URL on the next request, with no redirect from the old one. Each file must declare a class matching its filename (kebab-case to PascalCase) and contain `declare(strict_types=1);` exactly once. The class exposes one public method per HTTP verb it handles:
+Each file is named `{slug}.php` and declares a class matching the filename, with one public method per HTTP verb:
 
 ```php
 <?php
@@ -123,45 +131,6 @@ class HelloWorld
 }
 ```
 
-| Method | HTTP verb |
-|--------|-----------|
-| `get()` | GET |
-| `post()` | POST |
-| `put()` | PUT |
-| `patch()` | PATCH |
-| `delete()` | DELETE |
+Pushed, this answers at `/wp-json/loopress-api/v1/hello-world`.
 
-Only the verbs implemented as public methods are registered, every other verb is left off the route entirely.
-
-Two more public methods are recognized if present:
-
-- `permission(): callable` overrides the default `manage_options` capability check for this route
-- `headers(): array` sets response headers (e.g. CORS) on every request to this route, including the OPTIONS preflight
-
-:::tip
-A route file that fails to load (parse error, missing class, thrown exception) is skipped and logged. It never breaks the rest of the site's REST API.
-:::
-
-## Using your own Composer dependencies
-
-If the site also uses [Composer](/composer/) to manage site-wide PHP dependencies, those packages are available to `use` in your route files directly, no manual `require` needed (unlike in [code snippets](/composer/using-in-snippets/), where you still load the autoloader yourself):
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use GuzzleHttp\Client;
-
-class Webhook
-{
-    public function post(): array
-    {
-        $client = new Client();
-        // ...
-        return ['ok' => true];
-    }
-}
-```
-
-A broken dependency (missing package, corrupted install) is logged and skipped the same way a broken route file is, it never breaks the rest of the site's REST API either.
+That's the shape; the full reference lives in [Writing Route Files](/api/routes/): reading the request, response types and status codes, opening up a route with `permission()`, CORS via `headers()`, the configurable namespace, using Composer packages, and how broken files are isolated.

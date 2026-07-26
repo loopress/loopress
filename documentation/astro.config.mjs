@@ -88,6 +88,10 @@ export default defineConfig({
 					slug: "application-passwords",
 				},
 				{
+					label: "Editor Setup",
+					slug: "editor-setup",
+				},
+				{
 					label: "CLI",
 					items: [
 						{ label: "Overview", slug: "cli" },
@@ -126,6 +130,7 @@ export default defineConfig({
 							items: [
 								{ label: "Overview", slug: "api" },
 								{ label: "CLI", slug: "api/cli" },
+									{ label: "Writing Route Files", slug: "api/routes" },
 								{ label: "Admin UI", slug: "api/admin-ui" },
 							],
 						},

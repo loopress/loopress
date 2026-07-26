@@ -129,6 +129,10 @@ lps snippet publish ./wp-snippets
 
 ## File format
 
+:::tip
+PHP snippets call WordPress functions from a repo where WordPress isn't installed. Set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor.
+:::
+
 Each snippet is stored as two files in the snippets directory: a code file and a `.json` sidecar that holds the metadata. Files are named `{id}-{slug}.{ext}`, where `{slug}` is the snippet name lowercased and slugified.
 
 ```

@@ -22,7 +22,20 @@ For each uploaded route file:
 | File | The filename on disk, `{slug}.php` |
 | Route | The live endpoint path under the `loopress-api/v1` namespace |
 
-The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the file format and command reference.
+The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the command reference and [Writing Route Files](/api/routes/) for the file format.
+
+## Route namespace
+
+The **Settings** tab holds the namespace your routes register under, `loopress-api/v1` by default. It accepts lowercase letters, digits, and hyphens followed by a version segment (e.g. `acme/v1`); `loopress/v1` is rejected because it's reserved for Loopress's own management endpoints. Changing it changes every route's URL immediately, with no redirect from the old one, see [the namespace rules](/api/routes/#the-route-namespace).
+
+The field reads and writes `loopress/v1/api-namespace`:
+
+```http
+GET /wp-json/loopress/v1/api-namespace
+{ "namespace": "loopress-api/v1" }
+
+PUT /wp-json/loopress/v1/api-namespace
+{ "namespace": "acme/v1" }
 
 ## REST API
 

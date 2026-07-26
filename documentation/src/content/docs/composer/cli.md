@@ -25,11 +25,14 @@ lps composer push
 
 If a `composer.lock` is present, the server runs a reproducible install. If no lock file is found, the server resolves versions freely and a warning is shown.
 
+The command waits for the server-side `composer install` to finish, up to 10 minutes. A cold install with many packages can take a while: this is expected. If the call does time out, the install may still be running on the server, so check the site before retrying.
+
 **Example output:**
 
 ```console
 Pushing composer.json (3 packages) to https://example.com
   + composer.lock included (reproducible install)
+Running composer install on the server, this can take a few minutes...
 composer install completed on the server.
 ```
 
