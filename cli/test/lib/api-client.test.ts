@@ -12,13 +12,16 @@ describe('ApiClient', () => {
     server = undefined
   })
 
-  async function serve(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<ApiClient> {
+  async function serve(
+    handler: (req: IncomingMessage, res: ServerResponse) => void,
+    timeoutMs?: number,
+  ): Promise<ApiClient> {
     server = createServer(handler)
     await new Promise<void>((resolve) => {
       server!.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
-    return new ApiClient('secret-token', `http://127.0.0.1:${port}`)
+    return new ApiClient('secret-token', `http://127.0.0.1:${port}`, timeoutMs)
   }
 
   it('POSTs a JSON body with a Bearer token and parses the response', async () => {
@@ -73,5 +76,15 @@ describe('ApiClient', () => {
     })
 
     await expect(client.post('projects', {name: 'acme'})).rejects.toThrow('Free plan is limited to 3 projects.')
+  })
+
+  it('times out with an actionable message instead of hanging when the API does not respond', async () => {
+    const client = await serve(() => {
+      // accept the request, never respond
+    }, 100)
+
+    await expect(client.post('projects', {name: 'acme'})).rejects.toThrow(
+      /timed out after 0\.1s on http:\/\/127\.0\.0\.1:\d+\/projects.*network connection/,
+    )
   })
 })

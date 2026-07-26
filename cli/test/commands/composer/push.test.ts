@@ -67,10 +67,14 @@ describe('composer push', () => {
 
     await cmd.run()
 
-    expect(post).toHaveBeenCalledWith('loopress/v1/composer/sync', {
-      composerJson: JSON.stringify({require: {'wpackagist-plugin/akismet': '^5.3'}}),
-      composerLock: '{"packages": []}',
-    })
+    expect(post).toHaveBeenCalledWith(
+      'loopress/v1/composer/sync',
+      {
+        composerJson: JSON.stringify({require: {'wpackagist-plugin/akismet': '^5.3'}}),
+        composerLock: '{"packages": []}',
+      },
+      {timeoutMs: 600_000},
+    )
     expect(cmd.deployments).toEqual(['success'])
   })
 
@@ -81,6 +85,31 @@ describe('composer push', () => {
     await cmd.run()
 
     expect(logs.warn).toHaveBeenCalledWith('No composer.lock found. The server will resolve versions freely.')
-    expect(post).toHaveBeenCalledWith('loopress/v1/composer/sync', expect.objectContaining({composerLock: null}))
+    expect(post).toHaveBeenCalledWith(
+      'loopress/v1/composer/sync',
+      expect.objectContaining({composerLock: null}),
+      expect.anything(),
+    )
+  })
+
+  it('logs a wait message before calling the server', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    const {cmd, logs} = make(false)
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('Running composer install on the server, this can take a few minutes...')
+  })
+
+  it('explains that the install may still be running when the sync call times out', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    const {cmd, post} = make(false)
+    post.mockRejectedValue(
+      new Error('Request timed out after 600s on https://acme.com/wp-json/loopress/v1/composer/sync. Is the site reachable?', {
+        cause: {name: 'TimeoutError'},
+      }),
+    )
+
+    await expect(cmd.run()).rejects.toThrow(/may still be running on the server/)
   })
 })
