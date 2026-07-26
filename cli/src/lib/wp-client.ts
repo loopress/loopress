@@ -22,26 +22,36 @@ export class WpClient {
     })
   }
 
-  async get<T>(path: string): Promise<T> {
-    return this.request<T>('get', path)
+  async get<T>(path: string, options?: RequestOptions): Promise<T> {
+    return this.request<T>('get', path, undefined, options)
   }
 
-  async post<T = unknown>(path: string, json?: Record<string, unknown>): Promise<T> {
-    return this.request<T>('post', path, json)
+  async post<T = unknown>(path: string, json?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+    return this.request<T>('post', path, json, options)
   }
 
-  async put<T = unknown>(path: string, json?: Record<string, unknown>): Promise<T> {
-    return this.request<T>('put', path, json)
+  async put<T = unknown>(path: string, json?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+    return this.request<T>('put', path, json, options)
   }
 
-  private async request<T>(method: HttpMethod, path: string, json?: Record<string, unknown>): Promise<T> {
+  private async request<T>(
+    method: HttpMethod,
+    path: string,
+    json?: Record<string, unknown>,
+    options?: RequestOptions,
+  ): Promise<T> {
+    const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS
     try {
-      const response = await this.client(path, {json, method})
+      const response = await this.client(path, {json, method, timeout: {request: timeoutMs}})
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
-      throw new Error(formatWpError(error, `${this.siteUrl}/wp-json/${path}`), {cause: error})
+      throw new Error(formatWpError(error, `${this.siteUrl}/wp-json/${path}`, timeoutMs), {cause: error})
     }
   }
+}
+
+interface RequestOptions {
+  timeoutMs?: number
 }
 
 export function isNotFoundError(error: unknown): boolean {
@@ -49,7 +59,12 @@ export function isNotFoundError(error: unknown): boolean {
   return cause?.response?.statusCode === 404
 }
 
-export function formatWpError(error: unknown, url: string): string {
+export function isTimeoutError(error: unknown): boolean {
+  const cause = (error as {cause?: {name?: string}})?.cause
+  return cause?.name === 'TimeoutError'
+}
+
+export function formatWpError(error: unknown, url: string, timeoutMs: number = REQUEST_TIMEOUT_MS): string {
   const err = error as {message?: string; name?: string; response?: {body?: string; statusCode?: number}}
   const status = err.response?.statusCode
 
@@ -67,7 +82,7 @@ export function formatWpError(error: unknown, url: string): string {
   }
 
   if (err.name === 'TimeoutError') {
-    return `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s on ${url}. Is the site reachable?`
+    return `Request timed out after ${timeoutMs / 1000}s on ${url}. Is the site reachable?`
   }
 
   return `Request to ${url} failed: ${err.message ?? String(error)}`

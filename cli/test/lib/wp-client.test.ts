@@ -70,6 +70,16 @@ describe('WpClient', () => {
     await expect(client.post('loopress/v1/composer/sync', {})).resolves.toBeUndefined()
   })
 
+  it('applies a per-request timeout when one is passed', async () => {
+    const client = await serve(() => {
+      // accept the request, never respond
+    })
+
+    await expect(client.post('loopress/v1/composer/sync', {}, {timeoutMs: 100})).rejects.toThrow(
+      /timed out after 0\.1s/,
+    )
+  })
+
   it('maps a 401 to a friendly credentials error', async () => {
     const client = await serve((req, res) => {
       res.writeHead(401)
