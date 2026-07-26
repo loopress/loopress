@@ -140,7 +140,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          # Release notes = this version's section of the changesets-generated CHANGELOG,
+          # minus the "### Patch/Minor/Major Changes" headings (meaningless under CalVer).
+          awk -v ver="$VERSION" '
+            $0 == "## " ver {found=1; next}
+            found && /^## / {exit}
+            found && /^### (Patch|Minor|Major) Changes$/ {next}
+            found {print}
+          ' wordpress-plugin/CHANGELOG.md > /tmp/release-notes.md
           gh release create "wordpress-plugin@${VERSION}" \
             wordpress-plugin/loopress-light.zip \
             wordpress-plugin/loopress-full.zip \
-            --title "WordPress Plugin v${VERSION}"
+            --title "WordPress Plugin v${VERSION}" \
+            --notes-file /tmp/release-notes.md
