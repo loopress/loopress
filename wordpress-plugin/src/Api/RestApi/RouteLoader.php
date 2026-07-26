@@ -6,6 +6,7 @@ namespace Loopress\Api\RestApi;
 
 use Loopress\Api\ApiNamespace;
 use Loopress\Api\Infrastructure\ApiDirectory;
+use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 
@@ -25,10 +26,19 @@ class RouteLoader
     /** @var array<string, object> route ("namespace/slug", no leading slash) => file instance, read by applyHeaders() */
     private array $headerInstances = [];
 
-    public function __construct(private ApiDirectory $directory) {}
+    public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
     public function loadAndRegister(): void
     {
+        // Deliberate, not incidental: without this, a route file's `use` of the developer's
+        // own Composer packages (installed via the separate Composer feature, delivered to
+        // wp-content/loopress/vendor/) only happens to resolve today because the Dependencies
+        // feature's ComposerModule is booted earlier in the same request for an unrelated
+        // reason (its own diagnostics banner) and leaves the autoloader registered process-
+        // wide. That's implementation-detail coupling, not a guarantee: Api owns requiring
+        // its own dependency here instead of relying on another feature's side effect.
+        $this->requireUserAutoload();
+
         foreach ($this->directory->listSlugs() as $slug) {
             $this->loadFile($slug);
         }
@@ -127,6 +137,25 @@ class RouteLoader
         }
 
         return $served;
+    }
+
+    private function requireUserAutoload(): void
+    {
+        $autoload = $this->environment->getAutoloadPath();
+        if ($autoload === null) {
+            return;
+        }
+
+        // Runs before the per-file loop below: a broken user vendor/ (missing dependency,
+        // corrupted autoloader) must never fatal rest_api_init for the whole site, same
+        // blast-radius principle as loadFile()'s own try/catch, but wider here since an
+        // uncaught failure at this point would take down every route, not just this
+        // developer's own api/ files.
+        try {
+            require_once $autoload;
+        } catch (\Throwable $e) {
+            $this->log('failed to load the user vendor autoloader: ' . $e->getMessage());
+        }
     }
 
     private function loadFile(string $slug): void

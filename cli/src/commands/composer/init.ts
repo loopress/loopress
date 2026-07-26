@@ -11,7 +11,7 @@ const INSTALLERS_PACKAGE = 'composer/installers'
 const INSTALLERS_CONSTRAINT = '^2.0'
 
 // The server runs Composer with `--working-dir` set to wp-content/loopress/ (see
-// LoopressEnvironment::getDxDir), not the WordPress root, so installer-paths must climb out
+// LoopressEnvironment::getLoopressDir), not the WordPress root, so installer-paths must climb out
 // of that directory to land plugins/themes in their usual wp-content/ locations.
 const INSTALLER_PATHS = {
   '../plugins/{$name}/': ['type:wordpress-plugin'],

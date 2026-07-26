@@ -9,19 +9,19 @@ use Symfony\Component\Filesystem\Filesystem;
 
 class LoopressEnvironment
 {
-    private string $dxDir;
+    private string $loopressDir;
     private bool $initialized = false;
     private Filesystem $filesystem;
 
     public function __construct()
     {
-        $this->dxDir      = WP_CONTENT_DIR . '/loopress/';
-        $this->filesystem = new Filesystem();
+        $this->loopressDir = WP_CONTENT_DIR . '/loopress/';
+        $this->filesystem  = new Filesystem();
     }
 
-    public function getDxDir(): string
+    public function getLoopressDir(): string
     {
-        return $this->dxDir;
+        return $this->loopressDir;
     }
 
     // Idempotent per instance: runs its filesystem checks at most once per request,
@@ -35,11 +35,11 @@ class LoopressEnvironment
 
         $this->initialized = true;
 
-        if (!is_dir($this->dxDir)) {
-            wp_mkdir_p($this->dxDir);
+        if (!is_dir($this->loopressDir)) {
+            wp_mkdir_p($this->loopressDir);
         }
 
-        if (!file_exists($this->dxDir . 'composer.json')) {
+        if (!file_exists($this->loopressDir . 'composer.json')) {
             $this->writeComposerJson([
                 'name'        => 'loopress/site-dependencies',
                 'description' => 'Site-wide dependencies managed by Loopress Full',
@@ -63,14 +63,14 @@ class LoopressEnvironment
 
     public function getAutoloadPath(): ?string
     {
-        $path = $this->dxDir . 'vendor/autoload.php';
+        $path = $this->loopressDir . 'vendor/autoload.php';
         return file_exists($path) ? $path : null;
     }
 
     /** @return array<string, mixed> */
     public function readComposerJson(): array
     {
-        $path = $this->dxDir . 'composer.json';
+        $path = $this->loopressDir . 'composer.json';
         if (!file_exists($path)) {
             return [];
         }
@@ -102,15 +102,15 @@ class LoopressEnvironment
         // dumpFile() writes to a temp file then renames, so a reader (or a crash mid-write)
         // never sees a partially-written composer.json.
         try {
-            $this->filesystem->dumpFile($this->dxDir . 'composer.json', $encoded);
+            $this->filesystem->dumpFile($this->loopressDir . 'composer.json', $encoded);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->dxDir}: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->loopressDir}: " . $e->getMessage()));
         }
     }
 
     public function readComposerJsonRaw(): ?string
     {
-        $path = $this->dxDir . 'composer.json';
+        $path = $this->loopressDir . 'composer.json';
         if (!file_exists($path)) {
             return null;
         }
@@ -122,7 +122,7 @@ class LoopressEnvironment
 
     public function readComposerLock(): ?string
     {
-        $path = $this->dxDir . 'composer.lock';
+        $path = $this->loopressDir . 'composer.lock';
         if (!file_exists($path)) {
             return null;
         }
@@ -137,15 +137,15 @@ class LoopressEnvironment
         $this->ensureInitialized();
 
         try {
-            $this->filesystem->dumpFile($this->dxDir . 'composer.lock', $contents);
+            $this->filesystem->dumpFile($this->loopressDir . 'composer.lock', $contents);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->dxDir}: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->loopressDir}: " . $e->getMessage()));
         }
     }
 
     public function deleteComposerLock(): void
     {
-        $path = $this->dxDir . 'composer.lock';
+        $path = $this->loopressDir . 'composer.lock';
         if (file_exists($path)) {
             unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
         }

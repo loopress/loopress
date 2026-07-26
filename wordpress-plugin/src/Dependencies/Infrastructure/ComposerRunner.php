@@ -13,7 +13,7 @@ class ComposerRunner
 {
     private const LOCK_FILE = '.loopress.lock';
 
-    public function __construct(private LoopressEnvironment $dxEnv) {}
+    public function __construct(private LoopressEnvironment $environment) {}
 
     /**
      * @param string[] $args
@@ -22,7 +22,7 @@ class ComposerRunner
      */
     public function run(array $args, array $extraOptions = []): array
     {
-        $this->dxEnv->ensureInitialized();
+        $this->environment->ensureInitialized();
 
         // Serialize Composer runs: two concurrent install/require/update operations on the
         // same working directory corrupt vendor/ and composer.lock.
@@ -52,7 +52,7 @@ class ComposerRunner
                 $inputDef['packages'] = $args;
             }
 
-            $inputDef['--working-dir']    = $this->dxEnv->getDxDir();
+            $inputDef['--working-dir']    = $this->environment->getLoopressDir();
             $inputDef['--no-interaction'] = true;
             $inputDef['--no-ansi']        = true;
 
@@ -78,7 +78,7 @@ class ComposerRunner
     /** @return resource */
     private function acquireLock()
     {
-        $lockPath   = $this->dxEnv->getDxDir() . self::LOCK_FILE;
+        $lockPath   = $this->environment->getLoopressDir() . self::LOCK_FILE;
         $lockHandle = fopen($lockPath, 'c'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
         if ($lockHandle === false) {
