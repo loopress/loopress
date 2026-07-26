@@ -43,7 +43,11 @@ const FLAVORS = {
     // Full-only src/ subdirectories, absent from this edition's zip, not merely inactive.
     fullOnlySrcDirs: deriveFullOnlyFeatures(root),
     includeUninstall: false,
-    emptyComposerRequire: true,
+    // composer/composer backs the Dependencies feature, sentry/sentry backs the Sentry
+    // feature, both excluded above via fullOnlySrcDirs. Everything else composer.json
+    // requires (php-di, nyholm/psr7, psr/http-client) is a runtime dependency of shared
+    // code (ContainerFactory, WpHttpClient) and must ship in light's vendor/ too.
+    fullOnlyComposerPackages: ['composer/composer', 'sentry/sentry'],
   },
   full: {
     zipName: 'loopress-full',
@@ -53,7 +57,7 @@ const FLAVORS = {
     stripPlusBlock: false,
     fullOnlySrcDirs: [],
     includeUninstall: true,
-    emptyComposerRequire: false,
+    fullOnlyComposerPackages: [],
   },
 }
 
@@ -147,23 +151,28 @@ if (require.main === module) {
   // flavors/light/readme.txt holds the wordpress.org-only cut-down variant.
   fs.copyFileSync(path.join(root, flavor.readmeSource), path.join(stageDir, 'readme.txt'))
 
-  // 5. composer.json + vendor/: light ships an empty require (autoloader only), full
-  // ships the real composer/composer dependency staged and installed fresh.
+  // 5. composer.json + vendor/: full ships every require staged and installed fresh; light
+  // drops the Full-only packages (fullOnlyComposerPackages) and keeps the rest.
   const rootComposerJson = JSON.parse(fs.readFileSync(path.join(root, 'composer.json'), 'utf8'))
-  const stageComposerJson = flavor.emptyComposerRequire
-    ? { ...rootComposerJson, require: {} }
-    : rootComposerJson
+  const stageComposerJson = { ...rootComposerJson }
+  if (flavor.fullOnlyComposerPackages.length > 0) {
+    stageComposerJson.require = Object.fromEntries(
+      Object.entries(rootComposerJson.require).filter(
+        ([pkgName]) => !flavor.fullOnlyComposerPackages.includes(pkgName),
+      ),
+    )
+  }
   delete stageComposerJson['require-dev']
   delete stageComposerJson.scripts
   fs.writeFileSync(path.join(stageDir, 'composer.json'), JSON.stringify(stageComposerJson, null, 4))
 
   // The full flavor ships the same composer.json as the repo root, so the root lock file
   // is still valid for it: reusing it makes `composer install` reproducible (exact versions
-  // already tested by CI) instead of re-resolving from scratch on every build. The light
-  // flavor's require is forced to {}, which the root lock doesn't match, so it always
-  // resolves fresh (trivially, since there's nothing to resolve).
+  // already tested by CI) instead of re-resolving from scratch on every build. Light's
+  // require is a strict subset (see fullOnlyComposerPackages above), which the root lock
+  // doesn't match, so it always resolves fresh instead.
   const rootComposerLock = path.join(root, 'composer.lock')
-  if (!flavor.emptyComposerRequire && fs.existsSync(rootComposerLock)) {
+  if (flavor.fullOnlyComposerPackages.length === 0 && fs.existsSync(rootComposerLock)) {
     fs.copyFileSync(rootComposerLock, path.join(stageDir, 'composer.lock'))
   }
   run('composer', ['install', '--no-dev', '--no-interaction', '--prefer-dist', '--optimize-autoloader'], stageDir)
