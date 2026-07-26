@@ -1,8 +1,8 @@
 import {existsSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'
-import slugify from 'slugify'
 
 import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig, TelemetryConfig} from '../types/config.js'
+import {toSlug} from '../utils/to-slug.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
@@ -10,7 +10,7 @@ export class ProjectConfigManager {
 
   createProjectId(name: string): string {
     const config = this.readConfig()
-    const base = slugify(name, {lower: true, strict: true}) || 'project'
+    const base = toSlug(name, 'project')
 
     let id = base
     let suffix = 2

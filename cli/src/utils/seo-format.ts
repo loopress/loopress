@@ -1,3 +1,5 @@
+import {toSlug} from './to-slug.js'
+
 // Post types synced by `lps seo pull` when --post-type isn't given.
 export const DEFAULT_POST_TYPES = ['post', 'page'] as const
 
@@ -34,4 +36,9 @@ export interface SeoRedirect {
   status: string
   updatedAt: null | string
   urlTo: string
+}
+
+// The `<id>-<slug>.json` on-disk convention shared by `seo pull` and `seo push`.
+export function redirectFileBase(redirect: SeoRedirect): string {
+  return `${redirect.id}-${toSlug(redirect.urlTo, 'redirect')}`
 }

@@ -1,8 +1,8 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
-import {readdir, readFile} from 'node:fs/promises'
-import {extname, join} from 'node:path'
+import {basename} from 'node:path'
 
+import {loadFiles as loadDirectoryFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 
 interface ApiFile {
@@ -28,7 +28,6 @@ export default class Push extends PushCommand {
   static flags = {
     ...PushCommand.dryRunFlag,
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {args} = await this.parse(Push)
@@ -60,34 +59,17 @@ export default class Push extends PushCommand {
   }
 
   private async loadFiles(path: string): Promise<ApiFile[]> {
-    let entries: string[]
-    try {
-      entries = await readdir(path)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-
-    const files: ApiFile[] = []
-    for (const entry of entries) {
-      if (extname(entry) !== '.php') continue
-
-      const content = await readFile(join(path, entry), 'utf8')
-      files.push({content, filename: entry.slice(0, -4)})
-    }
-
-    return files
+    return loadDirectoryFiles<ApiFile>(path, {
+      extension: '.php',
+      onSkip: (message) => this.warn(message),
+      parse: (raw, filePath) => ({content: raw, filename: basename(filePath, '.php')}),
+    })
   }
 
   private async pushFile(file: ApiFile, task?: {output: string}): Promise<void> {
     if (!FILENAME_PATTERN.test(file.filename)) {
       const message = `Invalid filename "${file.filename}": only lowercase letters, digits, and hyphens are allowed (e.g. "hello-world.php")`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw new Error(message)
+      this.reportTaskFailure(message, new Error(message), task)
     }
 
     if (this.dryRun) {
@@ -100,12 +82,7 @@ export default class Push extends PushCommand {
       await this.wp.put(`loopress/v1/api-files/${file.filename}`, {content: file.content})
       if (task) task.output = `Pushed: ${file.filename}`
     } catch (error) {
-      const message = `Failed to push ${file.filename}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
     }
   }
 }

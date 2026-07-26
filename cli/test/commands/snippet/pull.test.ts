@@ -3,15 +3,16 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
-import Pull, {buildMetaFile, buildSnippetFile} from '../../../src/commands/snippet/pull.js'
-import {NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-format.js'
-import {fakeOclifConfig} from '../../helpers/oclif.js'
+import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../../../src/lib/find-orphaned-files.js'
+import {buildMetaFile, buildSnippetFile, NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-format.js'
 
-type PullWithFindOrphanedFiles = {findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]>}
-
+// The same matcher `snippet pull` wires in run(): code extensions plus the json sidecar,
+// identity taken from the `<id>-` prefix.
 function findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]> {
-  const cmd = new Pull([], fakeOclifConfig) as unknown as PullWithFindOrphanedFiles
-  return cmd.findOrphanedFiles(path, keepIds)
+  return findOrphanedFilesLib(path, new Set([...keepIds].map(String)), {
+    extensions: ['.json', '.css', '.html', '.js', '.php', '.txt'],
+    key: numericPrefixKey,
+  })
 }
 
 const base: NormalizedSnippet = {

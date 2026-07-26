@@ -11,7 +11,6 @@ export default class Push extends PushCommand {
   static flags = {
     ...PushCommand.dryRunFlag,
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {url} = this.siteConfig
@@ -88,12 +87,6 @@ export default class Push extends PushCommand {
     await this.recordSuccess()
   }
 
-  // `task` is only passed when called from within a running Listr task list (see `run()`); it lets
-  // status lines go through `task.output` instead of `this.log`/`this.warn`, which would otherwise
-  // race with the renderer repainting the terminal. Called without `task` (e.g. directly in tests),
-  // it falls back to plain logging. Rethrowing on failure (rather than swallowing) is what lets Listr
-  // mark the task as failed (red cross) instead of completed, even though `exitOnError: false` stops
-  // that failure from aborting sibling tasks in the same list.
   private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {
     await this.performPluginAction('activate', slug, () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
   }
@@ -114,11 +107,7 @@ export default class Push extends PushCommand {
       if (task) task.output = message
       else this.log(`  ${message}`)
     } catch (error) {
-      const message = `Failed to ${verb} ${slug}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to ${verb} ${slug}: ${(error as Error).message}`, error, task)
     }
   }
 }

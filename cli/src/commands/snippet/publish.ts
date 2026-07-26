@@ -1,6 +1,5 @@
 import {Args, Command} from '@oclif/core'
 import {join} from 'node:path'
-import slugify from 'slugify'
 
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
@@ -8,6 +7,7 @@ import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
 import {Snippet} from '../../types/snippet.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
+import {toSlug} from '../../utils/to-slug.js'
 
 // Publishes to the Loopress api (not a WordPress site), so this does not extend
 // `LoopressCommand`/`PushCommand`: those force an environment to be resolved, but a project
@@ -79,7 +79,7 @@ export default class Publish extends Command {
       // Derived from the snippet's name rather than its on-disk filename: the same
       // slugification `push`/`pull` already use for the canonical `<id>-<slug>` filename
       // convention, so it stays stable even for a not-yet-pushed file with an arbitrary name.
-      slug: slugify(snippet.name, {lower: true, strict: true}),
+      slug: toSlug(snippet.name),
       tags: snippet.tags,
       type: snippet.type,
     }

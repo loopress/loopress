@@ -6,7 +6,7 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
-import {slug} from './pull.js'
+import {toSlug} from '../../utils/to-slug.js'
 
 export default class Push extends PushCommand {
   static args = {
@@ -18,7 +18,6 @@ export default class Push extends PushCommand {
   static flags = {
     ...PushCommand.dryRunFlag,
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {args} = await this.parse(Push)
@@ -54,7 +53,7 @@ export default class Push extends PushCommand {
   // a title change in the WordPress admin), same principle as ensureCanonicalFilename in
   // commands/snippet/push.ts.
   private async ensureCanonicalFilename(filePath: string, id: number, title: string): Promise<void> {
-    const canonicalPath = join(dirname(filePath), `${id}-${slug(title)}.json`)
+    const canonicalPath = join(dirname(filePath), `${id}-${toSlug(title, 'untitled')}.json`)
     if (filePath !== canonicalPath) await rename(filePath, canonicalPath)
   }
 
@@ -95,10 +94,8 @@ export default class Push extends PushCommand {
     return forms
   }
 
-  // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
-  // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
-  // sibling forms push regardless. PUT-then-404-fallback-POST is the same dance as
-  // commands/snippet/push.ts, forms are id-based like snippets, not key-based like ACF.
+  // PUT-then-404-fallback-POST is the same dance as commands/snippet/push.ts, forms are
+  // id-based like snippets, not key-based like ACF.
   private async pushForm(filePath: string, data: Record<string, unknown>, task?: {output: string}): Promise<void> {
     const title = getFormTitle(data)
 
@@ -131,12 +128,7 @@ export default class Push extends PushCommand {
 
       if (task) task.output = `Pushed: ${title}`
     } catch (error) {
-      const message = `Failed to push ${title}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${title}: ${(error as Error).message}`, error, task)
     }
   }
 }

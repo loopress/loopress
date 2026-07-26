@@ -1,3 +1,5 @@
+import {LoopressSnippetMetadata} from '../types/snippet.generated.js'
+
 export const SNIPPETS_ENDPOINT = 'loopress/v1/snippets'
 
 export type SnippetType = 'css' | 'html' | 'js' | 'php' | 'text'
@@ -65,9 +67,33 @@ function resolvePriority(raw: unknown): number {
 
 // Snippet files on disk keep the <?php opening tag so they're valid, syntax-highlighted PHP files.
 // The WordPress plugin stores just the executable body, so it's stripped before push and restored
-// on pull (see buildSnippetFile in commands/snippet/pull.ts).
+// on pull (see buildSnippetFile below).
 export function stripPhpOpeningTag(code: string): string {
   return code.replace(/^<\?php\s*/i, '')
+}
+
+export function buildSnippetFile(snippet: NormalizedSnippet): string {
+  if (snippet.type === 'php' && !snippet.code.trimStart().startsWith('<?')) {
+    return `<?php\n\n${snippet.code}`
+  }
+
+  return snippet.code
+}
+
+export function buildMetaFile(snippet: NormalizedSnippet): string {
+  const meta: LoopressSnippetMetadata = {
+    id: snippet.id,
+    name: snippet.name,
+    type: snippet.type,
+    active: snippet.active,
+    location: snippet.location,
+  }
+  if (snippet.description) meta.description = snippet.description
+  if (snippet.tags.length > 0) meta.tags = snippet.tags
+  if (snippet.insertMethod === 'shortcode') meta.insertMethod = snippet.insertMethod
+  if (snippet.priority !== 10) meta.priority = snippet.priority
+  if (snippet.shortcodeAttributes.length > 0) meta.shortcodeAttributes = snippet.shortcodeAttributes
+  return JSON.stringify(meta, null, 2) + '\n'
 }
 
 // Defensive coercion for whatever JSON the `loopress/v1/snippets` endpoint returns, in case a

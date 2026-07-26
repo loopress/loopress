@@ -1,8 +1,8 @@
 import {Args, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {readdir, readFile} from 'node:fs/promises'
-import {extname, join} from 'node:path'
+import {join} from 'node:path'
 
+import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
@@ -16,7 +16,6 @@ export default class Push extends PushCommand {
     ...PushCommand.dryRunFlag,
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Push)
@@ -41,48 +40,24 @@ export default class Push extends PushCommand {
     this.log('All ACF objects pushed.')
   }
 
-  // One object's file is read in isolation: a corrupted or hand-broken JSON file (or one
-  // missing/emptying its "key") must only skip that object, not abort loading the rest of
-  // the type's directory — same principle as loadSnippets() for the snippet feature.
   private async loadObjects(dir: string): Promise<Record<string, unknown>[]> {
-    let files: string[]
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    return loadFiles<Record<string, unknown>>(dir, {
+      extension: '.json',
+      onSkip: (message) => this.warn(message),
+      parse(raw) {
+        const parsed = JSON.parse(raw) as unknown
+        if (typeof parsed !== 'object' || parsed === null || getAcfKey(parsed as Record<string, unknown>) === null) {
+          throw new Error('missing or invalid "key"')
+        }
 
-      throw error
-    }
-
-    const objects: Record<string, unknown>[] = []
-    for (const file of files) {
-      if (extname(file) !== '.json') continue
-
-      const filePath = join(dir, file)
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(await readFile(filePath, 'utf8'))
-      } catch (error) {
-        this.warn(`Skipping "${filePath}": ${(error as Error).message}`)
-        continue
-      }
-
-      if (typeof parsed !== 'object' || parsed === null || getAcfKey(parsed as Record<string, unknown>) === null) {
-        this.warn(`Skipping "${filePath}": missing or invalid "key"`)
-        continue
-      }
-
-      objects.push(parsed as Record<string, unknown>)
-    }
-
-    return objects
+        return parsed as Record<string, unknown>
+      },
+    })
   }
 
-  // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
-  // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
-  // sibling objects push regardless. POST alone covers create-or-update (the controller resolves
-  // that server-side via the object's `key`), unlike snippet push there's no numeric-id PUT/404
-  // fallback dance, and no rename-on-push step since `key` is permanently stable.
+  // POST alone covers create-or-update (the controller resolves that server-side via the
+  // object's `key`), unlike snippet push there's no numeric-id PUT/404 fallback dance, and no
+  // rename-on-push step since `key` is permanently stable.
   private async pushObject(type: AcfObjectType, object: Record<string, unknown>, task?: {output: string}): Promise<void> {
     const key = getAcfKey(object) ?? '(unknown)'
 
@@ -96,12 +71,7 @@ export default class Push extends PushCommand {
       await this.wp.post(acfEndpoint(type), object)
       if (task) task.output = `Pushed: ${key}`
     } catch (error) {
-      const message = `Failed to push ${key}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${key}: ${(error as Error).message}`, error, task)
     }
   }
 

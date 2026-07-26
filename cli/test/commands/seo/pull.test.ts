@@ -3,13 +3,23 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Pull, {redirectFileBase} from '../../../src/commands/seo/pull.js'
+import Pull from '../../../src/commands/seo/pull.js'
+import {basenameKey, findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../../../src/lib/find-orphaned-files.js'
+import {redirectFileBase} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 type PullInternals = {
-  findOrphanedFiles(dir: string, keepKeys: Set<string>, numericIdPrefix: boolean): Promise<string[]>
   pullRedirects(basePath: string): Promise<void>
   wpClient: {get: ReturnType<typeof vi.fn>}
+}
+
+// The same matchers `seo pull` wires: post-meta uses the whole `<slug>` basename as key,
+// redirects use the `<id>-` numeric prefix.
+function findOrphanedFiles(dir: string, keepKeys: Set<string>, numericIdPrefix: boolean): Promise<string[]> {
+  return findOrphanedFilesLib(dir, keepKeys, {
+    extensions: ['.json'],
+    key: numericIdPrefix ? numericPrefixKey : basenameKey,
+  })
 }
 
 function makeCmd(): {cmd: PullInternals; logs: ReturnType<typeof silenceLogs>} {
@@ -47,8 +57,7 @@ describe('seo pull helpers', () => {
     it('finds a slug-keyed file (post-meta) no longer present remotely', async () => {
       writeFileSync(join(dir, 'about.json'), '{}')
 
-      const {cmd} = makeCmd()
-      const orphans = await cmd.findOrphanedFiles(dir, new Set(), false)
+      const orphans = await findOrphanedFiles(dir, new Set(), false)
 
       expect(orphans).toEqual(['about.json'])
     })
@@ -56,8 +65,7 @@ describe('seo pull helpers', () => {
     it('keeps a slug-keyed file still present remotely', async () => {
       writeFileSync(join(dir, 'about.json'), '{}')
 
-      const {cmd} = makeCmd()
-      const orphans = await cmd.findOrphanedFiles(dir, new Set(['about']), false)
+      const orphans = await findOrphanedFiles(dir, new Set(['about']), false)
 
       expect(orphans).toEqual([])
     })
@@ -65,15 +73,13 @@ describe('seo pull helpers', () => {
     it('finds an id-prefixed file (redirects) whose id is no longer present remotely', async () => {
       writeFileSync(join(dir, '5-old-page.json'), '{}')
 
-      const {cmd} = makeCmd()
-      const orphans = await cmd.findOrphanedFiles(dir, new Set(), true)
+      const orphans = await findOrphanedFiles(dir, new Set(), true)
 
       expect(orphans).toEqual(['5-old-page.json'])
     })
 
     it('returns an empty list when the directory does not exist yet', async () => {
-      const {cmd} = makeCmd()
-      const orphans = await cmd.findOrphanedFiles(join(dir, 'does-not-exist'), new Set(), false)
+      const orphans = await findOrphanedFiles(join(dir, 'does-not-exist'), new Set(), false)
 
       expect(orphans).toEqual([])
     })

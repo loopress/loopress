@@ -1,12 +1,13 @@
 import {Args, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, readdir, rm, writeFile} from 'node:fs/promises'
-import {extname, join} from 'node:path'
-import slugify from 'slugify'
+import {mkdir, rm, writeFile} from 'node:fs/promises'
+import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {basenameKey, findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {
   DEFAULT_POST_TYPES,
+  redirectFileBase,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
   SeoPostMeta,
@@ -42,35 +43,13 @@ export default class Pull extends LoopressCommand {
     await this.pullRedirects(path)
   }
 
-  // Shared by post-meta (`<slug>.json`) and redirects (`<id>-<slug>.json`) directories: a local
-  // file whose identity is no longer in the current remote list belongs to something deleted on
-  // WordPress. Left on disk, it would silently come back to life on the next `seo push`.
-  private async findOrphanedFiles(dir: string, keepKeys: Set<string>, numericIdPrefix: boolean): Promise<string[]> {
-    let files: string[]
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-
-    return files.filter((file) => {
-      if (extname(file) !== '.json') return false
-
-      if (numericIdPrefix) {
-        const match = /^(\d+)-/.exec(file)
-        return match !== null && !keepKeys.has(match[1])
-      }
-
-      return !keepKeys.has(file.slice(0, -'.json'.length))
-    })
-  }
-
   private async pullPostMeta(postType: string, basePath: string): Promise<void> {
     const dir = join(basePath, 'post-meta', postType)
     const remote = await this.wp.get<SeoPostMeta[]>(seoPostMetaEndpoint(postType))
-    const orphans = await this.findOrphanedFiles(dir, new Set(remote.map((post) => post.slug)), false)
+    const orphans = await findOrphanedFiles(dir, new Set(remote.map((post) => post.slug)), {
+      extensions: ['.json'],
+      key: basenameKey,
+    })
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${remote.length} ${postType} post-meta file(s) to ${dir}`)
@@ -119,7 +98,10 @@ export default class Pull extends LoopressCommand {
       return
     }
 
-    const orphans = await this.findOrphanedFiles(dir, new Set(remote.map((redirect) => String(redirect.id))), true)
+    const orphans = await findOrphanedFiles(dir, new Set(remote.map((redirect) => String(redirect.id))), {
+      extensions: ['.json'],
+      key: numericPrefixKey,
+    })
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${remote.length} redirect(s) to ${dir}`)
@@ -167,9 +149,4 @@ export default class Pull extends LoopressCommand {
     await writeFile(file, JSON.stringify(settings, null, 2) + '\n')
     this.log(`Pulled settings to ${file}`)
   }
-}
-
-export function redirectFileBase(redirect: SeoRedirect): string {
-  const slug = slugify(redirect.urlTo || 'redirect', {lower: true, strict: true})
-  return `${redirect.id}-${slug || 'redirect'}`
 }
