@@ -1,9 +1,10 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, readdir, rm, writeFile} from 'node:fs/promises'
+import {mkdir, rm, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 
 interface ApiFile {
   content: string
@@ -30,14 +31,13 @@ export default class Pull extends LoopressCommand {
 
     const files = await this.wp.get<ApiFile[]>('loopress/v1/api-files')
 
-    // Files following the `<filename>.php` convention no longer present remotely belong to
-    // a route deleted on WordPress. Left on disk, they'd silently come back to life the next
-    // time `api push` runs (push itself stays additive-only, but pull already cleans up
-    // locally, same as `snippet pull`).
-    const orphans = await this.findOrphanedFiles(
-      path,
-      new Set(files.map((file) => file.filename)),
-    )
+    // A `<filename>.php` no longer present remotely belongs to a route deleted on WordPress
+    // (push itself stays additive-only, but pull already cleans up locally, same as
+    // `snippet pull`).
+    const orphans = await findOrphanedFiles(path, new Set(files.map((file) => file.filename)), {
+      extensions: ['.php'],
+      key: basenameKey,
+    })
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${files.length} route file${files.length === 1 ? '' : 's'} to ${path}`)
@@ -70,21 +70,5 @@ export default class Pull extends LoopressCommand {
     }
 
     this.log(`Pulled ${files.length} route file${files.length === 1 ? '' : 's'} to ${path}`)
-  }
-
-  // Only ever matches `.php` files already following the flat `<filename>.php` convention
-  // that `api pull`/`push` themselves produce, so a hand-created non-.php file is never at
-  // risk of being picked up here.
-  private async findOrphanedFiles(path: string, keepFilenames: Set<string>): Promise<string[]> {
-    let entries: string[]
-    try {
-      entries = await readdir(path)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-
-    return entries.filter((entry) => entry.endsWith('.php') && !keepFilenames.has(entry.slice(0, -4)))
   }
 }

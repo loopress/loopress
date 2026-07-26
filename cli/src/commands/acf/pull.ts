@@ -1,9 +1,10 @@
 import {Args, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {mkdir, readdir, rm, writeFile} from 'node:fs/promises'
-import {extname, join} from 'node:path'
+import {mkdir, rm, writeFile} from 'node:fs/promises'
+import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class Pull extends LoopressCommand {
@@ -31,30 +32,19 @@ export default class Pull extends LoopressCommand {
     }
   }
 
-  // Every file in a type's subdirectory is unambiguously `<key>.json` — unlike snippets, ACF
-  // objects have no numeric-id/slug filename convention. `key` is the stable identity ACF
-  // itself already uses for this (see its own Local JSON mechanism), so orphan detection is a
-  // plain set difference, no regex/extension juggling needed.
-  private async findOrphanedFiles(dir: string, keepKeys: Set<string>): Promise<string[]> {
-    let files: string[]
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-
-    return files.filter((file) => extname(file) === '.json' && !keepKeys.has(file.slice(0, -'.json'.length)))
-  }
-
   private async pullType(type: AcfObjectType, basePath: string): Promise<void> {
     const dir = join(basePath, type)
     const remoteList = await this.wp.get<Record<string, unknown>[]>(acfEndpoint(type))
     const withKey = remoteList.filter((object) => getAcfKey(object) !== null)
     const skipped = remoteList.length - withKey.length
 
-    const orphans = await this.findOrphanedFiles(dir, new Set(withKey.map((object) => getAcfKey(object) as string)))
+    // Every file in a type's subdirectory is unambiguously `<key>.json`: `key` is the stable
+    // identity ACF itself already uses (see its own Local JSON mechanism), no numeric-id/slug
+    // filename convention like snippets.
+    const orphans = await findOrphanedFiles(dir, new Set(withKey.map((object) => getAcfKey(object) as string)), {
+      extensions: ['.json'],
+      key: basenameKey,
+    })
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${withKey.length} ${type} to ${dir}`)

@@ -2,7 +2,6 @@ import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
 import {readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
-import slugify from 'slugify'
 
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {PushCommand} from '../../lib/push-command.js'
@@ -10,6 +9,7 @@ import {isNotFoundError} from '../../lib/wp-client.js'
 import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {Snippet} from '../../types/snippet.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../utils/snippet-format.js'
+import {toSlug} from '../../utils/to-slug.js'
 
 export default class Push extends PushCommand {
   static args = {
@@ -21,7 +21,6 @@ export default class Push extends PushCommand {
   static flags = {
     ...PushCommand.dryRunFlag,
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {args} = await this.parse(Push)
@@ -59,7 +58,7 @@ export default class Push extends PushCommand {
     const dir = dirname(snippet.path)
     const ext = extname(snippet.path)
     const currentBase = basename(snippet.path, ext)
-    const canonicalBase = `${id}-${slugify(name, {lower: true, strict: true})}`
+    const canonicalBase = `${id}-${toSlug(name)}`
 
     const oldMetaPath = join(dir, `${currentBase}.json`)
     let meta: LoopressSnippetMetadata = {}
@@ -98,9 +97,6 @@ export default class Push extends PushCommand {
     }
   }
 
-  // Throwing on failure (rather than returning a boolean) is what lets Listr mark the task as
-  // failed (red cross) instead of completed; `exitOnError: false` on the task list still lets
-  // sibling snippets push regardless.
   private async pushSnippet(snippet: Snippet, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${snippet.name}`
@@ -131,11 +127,7 @@ export default class Push extends PushCommand {
 
       if (task) task.output = `Pushed: ${snippet.name}`
     } catch (error) {
-      const message = `Failed to push ${snippet.name}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${snippet.name}: ${(error as Error).message}`, error, task)
     }
   }
 

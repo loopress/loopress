@@ -1,12 +1,12 @@
 import {confirm} from '@inquirer/prompts'
 import {Command} from '@oclif/core'
 import {Listr} from 'listr2'
-import slugify from 'slugify'
 
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
+import {toSlug} from '../../utils/to-slug.js'
 
 interface ApiEnvironment {
   createdAt: string
@@ -243,7 +243,7 @@ export default class Push extends Command {
       return {action: 'synced', apiProjectId: project.apiProjectId, project}
     }
 
-    const slug = slugify(project.name, {lower: true, strict: true})
+    const slug = toSlug(project.name)
     const match = apiProjects.find((candidate) => candidate.slug === slug && !claimedProjectIds.has(candidate.id))
 
     if (match) {

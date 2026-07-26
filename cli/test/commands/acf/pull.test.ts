@@ -3,14 +3,11 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
-import Pull from '../../../src/commands/acf/pull.js'
-import {fakeOclifConfig} from '../../helpers/oclif.js'
+import {basenameKey, findOrphanedFiles as findOrphanedFilesLib} from '../../../src/lib/find-orphaned-files.js'
 
-type PullWithFindOrphanedFiles = {findOrphanedFiles(dir: string, keepKeys: Set<string>): Promise<string[]>}
-
+// The same matcher `acf pull` wires in pullType(): `<key>.json`, the whole basename is the key.
 function findOrphanedFiles(dir: string, keepKeys: Set<string>): Promise<string[]> {
-  const cmd = new Pull([], fakeOclifConfig) as unknown as PullWithFindOrphanedFiles
-  return cmd.findOrphanedFiles(dir, keepKeys)
+  return findOrphanedFilesLib(dir, keepKeys, {extensions: ['.json'], key: basenameKey})
 }
 
 describe('acf pull helpers', () => {

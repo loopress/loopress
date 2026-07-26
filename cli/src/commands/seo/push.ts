@@ -6,6 +6,7 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {
+  redirectFileBase,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
   SeoPostMeta,
@@ -13,7 +14,6 @@ import {
   SeoRedirect,
   seoRedirectEndpoint,
 } from '../../utils/seo-format.js'
-import {redirectFileBase} from './pull.js'
 
 export default class Push extends PushCommand {
   static args = {
@@ -25,7 +25,6 @@ export default class Push extends PushCommand {
   static flags = {
     ...PushCommand.dryRunFlag,
   }
-  private failedCount = 0
 
   async run(): Promise<void> {
     const {args} = await this.parse(Push)
@@ -99,12 +98,7 @@ export default class Push extends PushCommand {
       await this.wp.post(seoPostMetaEndpoint(postType), {meta: post.meta, slug: post.slug})
       if (task) task.output = `Pushed: ${post.slug}`
     } catch (error) {
-      const message = `Failed to push ${filePath}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${filePath}: ${(error as Error).message}`, error, task)
     }
   }
 
@@ -136,12 +130,7 @@ export default class Push extends PushCommand {
       await this.renameToCanonical(filePath, created)
       if (task) task.output = `Pushed: redirect #${created.id}`
     } catch (error) {
-      const message = `Failed to push ${filePath}: ${(error as Error).message}`
-      if (task) task.output = message
-      else this.warn(`  ${message}`)
-
-      this.failedCount++
-      throw error
+      this.reportTaskFailure(`Failed to push ${filePath}: ${(error as Error).message}`, error, task)
     }
   }
 
