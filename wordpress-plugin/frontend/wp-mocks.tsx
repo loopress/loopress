@@ -34,6 +34,18 @@ vi.mock('@wordpress/components', () => ({
             {help && <span>{help}</span>}
         </label>
     ),
+    TextControl: ({ label, value, onChange, disabled, help }: any) => (
+        <label>
+            {label}
+            <input
+                type="text"
+                value={value}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+                disabled={disabled}
+            />
+            {help && <span>{help}</span>}
+        </label>
+    ),
     CheckboxControl: ({ checked, onChange, label, disabled }: any) => (
         <label>
             <input

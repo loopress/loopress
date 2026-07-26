@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Api\RestApi;
 
+use Loopress\Api\ApiNamespace;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -11,14 +12,12 @@ use WP_REST_Request;
 /**
  * Scans wp-content/loopress/api/*.php on rest_api_init, requires each file by convention
  * (kebab-case filename -> PascalCase class), and registers one WP REST route per file under
- * loopress-api/v1 (not loopress/v1, to avoid colliding with ApiFilesController's own
- * management endpoint).
+ * ApiNamespace::current() (loopress-api/v1 by default, not loopress/v1, to avoid colliding
+ * with ApiFilesController's own management endpoint).
  */
 class RouteLoader
 {
     use RequiresManageOptionsCapability;
-
-    public const NAMESPACE = 'loopress-api/v1';
 
     /** @var array<string, string> method name => HTTP method */
     private const VERBS = ['get' => 'GET', 'post' => 'POST', 'put' => 'PUT', 'patch' => 'PATCH', 'delete' => 'DELETE'];
@@ -161,11 +160,12 @@ class RouteLoader
             return;
         }
 
-        $route = '/' . $slug;
-        register_rest_route(self::NAMESPACE, $route, $endpoints);
+        $namespace = ApiNamespace::current();
+        $route     = '/' . $slug;
+        register_rest_route($namespace, $route, $endpoints);
 
         if ($this->hasPublicMethod($instance, 'headers')) {
-            $this->headerInstances[self::NAMESPACE . $route] = $instance;
+            $this->headerInstances[$namespace . $route] = $instance;
         }
     }
 

@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Settings\RestApi;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Api\ApiNamespace;
 use Loopress\Sentry\Consent;
 use Loopress\Settings\RestApi\SettingsController;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,7 @@ class SettingsControllerTest extends TestCase
     public function test_reset_deletes_every_known_loopress_option(): void
     {
         Functions\expect('delete_option')->once()->with(Consent::OPTION)->andReturn(true);
+        Functions\expect('delete_option')->once()->with(ApiNamespace::OPTION)->andReturn(true);
 
         $response = $this->controller->reset();
 
