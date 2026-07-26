@@ -58,8 +58,10 @@ if (defined('LOOPRESS_VERSION')) {
     return;
 }
 
-// Kept in sync with the Version header by scripts/sync-version.js.
-define('LOOPRESS_VERSION', '2026.7.11');
+// Read from the Version header above rather than duplicated as a literal: a hardcoded copy
+// only stays correct as long as scripts/sync-version.js runs on every bump, and drifting from
+// the header is exactly how this constant used to go stale.
+define('LOOPRESS_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Version']);
 define('LOOPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LOOPRESS_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));
