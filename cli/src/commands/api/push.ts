@@ -62,22 +62,6 @@ export default class Push extends PushCommand {
     this.log('All API routes pushed.')
   }
 
-  // Best-effort report of the current file list to the Loopress cloud, purely for console
-  // visibility (see obsidian/Product/API and Console Backlog.md, US-18): the routes are already
-  // live on WordPress by this point, this can never block or fail the push itself, same
-  // reasoning as `recordDeployment` in PushCommand.
-  private async syncApiRoutes(filenames: string[]): Promise<void> {
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
-    const environmentId = this.siteConfig.apiEnvironmentId
-    if (!token || !environmentId) return
-
-    try {
-      await new ApiClient(token).put('api-routes', {environmentId, filenames})
-    } catch {
-      // non-blocking: reporting the route list must never interrupt the push flow
-    }
-  }
-
   private async loadFiles(path: string): Promise<ApiFile[]> {
     return loadDirectoryFiles<ApiFile>(path, {
       extension: '.php',
@@ -103,6 +87,22 @@ export default class Push extends PushCommand {
       if (task) task.output = `Pushed: ${file.filename}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
+    }
+  }
+
+  // Best-effort report of the current file list to the Loopress cloud, purely for console
+  // visibility (see obsidian/Product/API and Console Backlog.md, US-18): the routes are already
+  // live on WordPress by this point, this can never block or fail the push itself, same
+  // reasoning as `recordDeployment` in PushCommand.
+  private async syncApiRoutes(filenames: string[]): Promise<void> {
+    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
+    const environmentId = this.siteConfig.apiEnvironmentId
+    if (!token || !environmentId) return
+
+    try {
+      await new ApiClient(token).put('api-routes', {environmentId, filenames})
+    } catch {
+      // non-blocking: reporting the route list must never interrupt the push flow
     }
   }
 }
