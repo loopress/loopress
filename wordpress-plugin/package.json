@@ -18,9 +18,9 @@
     "@loopress/assets": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "@wordpress/admin-ui": "^2.6.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-hook-form": "^7.78.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.83.0",
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {
