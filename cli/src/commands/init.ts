@@ -19,6 +19,7 @@ const FEATURES = [
   {dir: 'acf', key: 'acfDir', label: 'ACF'},
   {dir: 'seo', key: 'seoDir', label: 'SEO'},
   {dir: 'forms', key: 'formDir', label: 'Forms'},
+  {dir: 'pages', key: 'pageDir', label: 'Pages'},
   {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
 ] as const
 

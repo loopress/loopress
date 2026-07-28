@@ -1,0 +1,27 @@
+{
+  "id": 2,
+  "date": "2026-07-22T06:31:23",
+  "date_gmt": "2026-07-22T06:31:23",
+  "slug": "sample-page",
+  "status": "publish",
+  "password": "",
+  "parent": 0,
+  "title": {
+    "raw": "Sample Page",
+    "rendered": "Sample Page"
+  },
+  "author": 1,
+  "excerpt": {
+    "raw": "",
+    "rendered": "<p>This is an example page. It&#8217;s different from a blog post because it will stay in one place and will show up in your site navigation (in most themes). Most people start with an About page that introduces them to potential site visitors. It might say something like this: Hi there! I&#8217;m a bike messenger [&hellip;]</p>\n",
+    "protected": false
+  },
+  "featured_media": 0,
+  "comment_status": "closed",
+  "ping_status": "open",
+  "menu_order": 0,
+  "meta": {
+    "footnotes": ""
+  },
+  "template": ""
+}

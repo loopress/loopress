@@ -1,5 +1,5 @@
 {
-  "rootDir": ".",
+  "rootDir": "demo",
   "snippetsDir": "snippets",
   "plugins": {
     "code-snippets": "3.9.6"
