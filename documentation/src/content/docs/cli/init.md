@@ -18,7 +18,7 @@ The command is interactive: it prompts you for each field and writes the result 
 | WordPress project | Select a project you have already configured with `lps project config`, or enter a project ID manually. When no project exists yet, `lps init` offers to run `lps project config` right away and continues with the project you create. |
 | Root directory | Base directory for the project. All other paths are resolved relative to it. Defaults to `.`. |
 | Snippets directory | Directory where snippet files are written and read. Relative to root. Defaults to `snippets`. |
-| Other features | Optional multi-select for ACF, SEO, Forms and custom API routes. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `forms`, `api`). |
+| Other features | Optional multi-select for ACF, SEO, Forms, Pages and custom API routes. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `forms`, `pages`, `api`). |
 | Snippet provider | The WordPress plugin used to manage snippets: [Code Snippets](https://wordpress.org/plugins/code-snippets/), [WPCode](https://wpcode.com/), or none if it's already installed. When you pick one, it's added to `plugins`. |
 
 The final summary lists everything that was configured and the next useful command.
@@ -48,6 +48,7 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `acfDir` | `acf` | Directory for ACF field groups, post types, taxonomies and options pages, relative to `rootDir`. Used by `lps acf pull/push`. |
 | `seoDir` | `seo` | Directory for SEO settings, post meta and redirects, relative to `rootDir`. Used by `lps seo pull/push`. |
 | `formDir` | `forms` | Directory for form files, relative to `rootDir`. Used by `lps form pull/push`. |
+| `pageDir` | `pages` | Directory for page files, relative to `rootDir`. Used by `lps page pull/push`. |
 | `apiDir` | `api` | Directory for custom API route files, relative to `rootDir`. Used by `lps api pull/push`. |
 | `plugins` | none | WordPress.org plugins managed by Loopress (slugs). Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
 

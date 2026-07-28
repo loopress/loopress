@@ -111,6 +111,7 @@ export default defineConfig({
 						{ label: "ACF", slug: "acf" },
 						{ label: "SEO", slug: "seo" },
 						{ label: "Forms", slug: "forms" },
+						{ label: "Pages", slug: "pages" },
 						{ label: "Plugins", slug: "plugins" },
 						{
 							label: "Composer",

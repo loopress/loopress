@@ -112,6 +112,11 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.formDir ?? 'forms')
   }
 
+  protected resolvePagePath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.pageDir ?? 'pages')
+  }
+
   protected resolveSeoPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.seoDir ?? 'seo')

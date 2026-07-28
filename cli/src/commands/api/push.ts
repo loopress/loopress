@@ -2,6 +2,8 @@ import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
 import {basename} from 'node:path'
 
+import {authManager} from '../../config/auth.manager.js'
+import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles as loadDirectoryFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 
@@ -56,6 +58,7 @@ export default class Push extends PushCommand {
     if (this.dryRun) return
 
     await this.recordSuccess()
+    await this.syncApiRoutes(files.map((file) => file.filename))
     this.log('All API routes pushed.')
   }
 
@@ -84,6 +87,22 @@ export default class Push extends PushCommand {
       if (task) task.output = `Pushed: ${file.filename}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
+    }
+  }
+
+  // Best-effort report of the current file list to the Loopress cloud, purely for console
+  // visibility (see obsidian/Product/API and Console Backlog.md, US-18): the routes are already
+  // live on WordPress by this point, this can never block or fail the push itself, same
+  // reasoning as `recordDeployment` in PushCommand.
+  private async syncApiRoutes(filenames: string[]): Promise<void> {
+    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
+    const environmentId = this.siteConfig.apiEnvironmentId
+    if (!token || !environmentId) return
+
+    try {
+      await new ApiClient(token).put('api-routes', {environmentId, filenames})
+    } catch {
+      // non-blocking: reporting the route list must never interrupt the push flow
     }
   }
 }

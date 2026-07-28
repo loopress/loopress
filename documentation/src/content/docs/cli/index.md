@@ -35,6 +35,7 @@ Each of these syncs one kind of WordPress data as files in Git. See its own page
 - [ACF](/acf/): Advanced Custom Fields configuration
 - [SEO](/seo/): SEO settings, post meta, and redirects (RankMath or Yoast)
 - [Forms](/forms/): WPForms forms
+- [Pages](/pages/): WordPress pages
 - [API Routes](/api/): custom REST API endpoints
 - [Plugins](/plugins/): installed WordPress.org plugins manifest
 - [Composer](/composer/): PHP dependencies, without SSH

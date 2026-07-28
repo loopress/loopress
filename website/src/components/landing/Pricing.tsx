@@ -27,9 +27,8 @@ const TIERS = [
     ctaHref: "https://console.loopress.dev",
     features: [
       "Everything in Free",
-      "Up to 30 cloud projects (3 environments each)",
+      "Unlimited cloud projects (3 environments each)",
       "Unlimited shared snippet libraries",
-      "Premium integrations (ACF Pro, Gravity Forms...)",
       "Priority support",
     ],
   },
