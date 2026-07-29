@@ -26,6 +26,10 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
     installError = error
   }
 
+  if (!installError) {
+    log('Loopress Full installed and activated.')
+  }
+
   log('Removing the temporary admin account...')
   let cleanupError: unknown
   try {
@@ -48,8 +52,6 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
   if (installError) {
     throw new Error(`Could not install Loopress Full automatically. ${manualFallback}`, {cause: installError})
   }
-
-  log('Loopress Full installed and activated.')
 }
 
 async function runBrowserInstall(admin: TempAdmin, siteUrl: string, zipPath: string): Promise<void> {
@@ -61,8 +63,7 @@ async function runBrowserInstall(admin: TempAdmin, siteUrl: string, zipPath: str
     await page.goto(`${siteUrl}/wp-login.php`, {waitUntil: 'domcontentloaded'})
     await page.fill('#user_login', admin.username)
     await page.fill('#user_pass', admin.password)
-    await page.click('#wp-submit')
-    await page.waitForLoadState('domcontentloaded')
+    await Promise.all([page.waitForLoadState('domcontentloaded'), page.click('#wp-submit')])
 
     await page.goto(`${siteUrl}/wp-admin/plugin-install.php?tab=upload`, {waitUntil: 'domcontentloaded'})
     await page.setInputFiles('#pluginzip', zipPath)
