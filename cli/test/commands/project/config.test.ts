@@ -3,6 +3,8 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Config from '../../../src/commands/project/config.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
+import {bootstrapLoopressFull} from '../../../src/lib/bootstrap-full-install.js'
+import {isLoopressFullActive} from '../../../src/lib/plugin-detection.js'
 import {authorizeWithBrowser} from '../../../src/lib/wp-authorize-flow.js'
 import {diagnoseWpSite} from '../../../src/lib/wp-site-diagnostic.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -17,6 +19,8 @@ vi.mock('@inquirer/prompts', () => ({
 
 vi.mock('../../../src/lib/wp-authorize-flow.js', () => ({authorizeWithBrowser: vi.fn()}))
 vi.mock('../../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
+vi.mock('../../../src/lib/plugin-detection.js', () => ({isLoopressFullActive: vi.fn()}))
+vi.mock('../../../src/lib/bootstrap-full-install.js', () => ({bootstrapLoopressFull: vi.fn()}))
 
 // Tests run without a TTY; default to interactive so the prompt-driven flows stay testable,
 // and flip to false in the tests that cover the non-interactive policy.
@@ -29,6 +33,21 @@ function make(): Config {
   return new Config([], fakeOclifConfig)
 }
 
+function setUpNewProject(): void {
+  vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+  vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+  vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+  vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+  vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+  vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
+  vi.mocked(input)
+    .mockResolvedValueOnce('mon site')
+    .mockResolvedValueOnce('https://example.com')
+    .mockResolvedValueOnce('admin')
+  vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
+}
+
 function callByMessage(mockFn: {mock: {calls: unknown[][]}}, message: string): Record<string, unknown> {
   const call = mockFn.mock.calls.find((args) => (args[0] as {message?: string}).message === message)
   if (!call) throw new Error(`no call found with message "${message}"`)
@@ -39,6 +58,10 @@ describe('project config', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     interactive.value = true
+    // Default every pre-existing test to "already installed" so the bootstrap prompt/flow
+    // introduced below doesn't inject an unexpected confirm() call into flows that don't care
+    // about it; tests that do care override this per-case.
+    vi.mocked(isLoopressFullActive).mockResolvedValue(true)
   })
 
   it('fails immediately with instructions in a non-interactive terminal', async () => {
@@ -524,5 +547,71 @@ describe('project config', () => {
         environments: {production: expect.objectContaining({token: 'admin:secret'})},
       }),
     )
+  })
+
+  describe('Loopress Full bootstrap', () => {
+    it('prompts and installs when Loopress Full is not detected and the user confirms', async () => {
+      setUpNewProject()
+      vi.mocked(isLoopressFullActive).mockResolvedValue(false)
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(confirm).toHaveBeenCalledWith(
+        expect.objectContaining({message: expect.stringContaining('Loopress Full was not detected')}),
+      )
+      expect(bootstrapLoopressFull).toHaveBeenCalledWith(expect.anything(), 'https://example.com', expect.any(Function))
+    })
+
+    it('does not install when the user declines the prompt', async () => {
+      setUpNewProject()
+      vi.mocked(isLoopressFullActive).mockResolvedValue(false)
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(bootstrapLoopressFull).not.toHaveBeenCalled()
+    })
+
+    it('never prompts when Loopress Full is already active', async () => {
+      setUpNewProject()
+      vi.mocked(isLoopressFullActive).mockResolvedValue(true)
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(confirm).not.toHaveBeenCalled()
+      expect(bootstrapLoopressFull).not.toHaveBeenCalled()
+    })
+
+    it('treats a detection failure as already installed rather than prompting', async () => {
+      setUpNewProject()
+      vi.mocked(isLoopressFullActive).mockRejectedValue(new Error('network hiccup'))
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(confirm).not.toHaveBeenCalled()
+      expect(bootstrapLoopressFull).not.toHaveBeenCalled()
+    })
+
+    it('warns without failing the command when the automated install fails', async () => {
+      setUpNewProject()
+      vi.mocked(isLoopressFullActive).mockResolvedValue(false)
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      vi.mocked(bootstrapLoopressFull).mockRejectedValue(new Error('Could not install Loopress Full automatically.'))
+
+      const cmd = make()
+      const {warn} = silenceLogs(cmd)
+      await expect(cmd.run()).resolves.toBeUndefined()
+
+      expect(warn).toHaveBeenCalledWith('Could not install Loopress Full automatically.')
+    })
   })
 })

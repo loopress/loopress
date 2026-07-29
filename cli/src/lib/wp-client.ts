@@ -2,7 +2,7 @@ import got, {type Got} from 'got'
 
 export const REQUEST_TIMEOUT_MS = 30_000
 
-type HttpMethod = 'get' | 'post' | 'put'
+type HttpMethod = 'delete' | 'get' | 'post' | 'put'
 
 /**
  * HTTP client for a WordPress site's REST API.
@@ -20,6 +20,10 @@ export class WpClient {
       prefixUrl: `${siteUrl}/wp-json`,
       timeout: {request: REQUEST_TIMEOUT_MS},
     })
+  }
+
+  async delete<T = unknown>(path: string, options?: RequestOptions): Promise<T> {
+    return this.request<T>('delete', path, undefined, options)
   }
 
   async get<T>(path: string, options?: RequestOptions): Promise<T> {
