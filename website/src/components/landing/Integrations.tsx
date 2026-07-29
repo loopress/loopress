@@ -1,3 +1,5 @@
+import { SectionLabel } from "./Problem";
+
 const AVAILABLE = [
   { name: "Code Snippets", desc: "Pull, push, and list snippets via the CLI." },
   { name: "WPCode", desc: "Same CLI commands, targets WPCode instead." },
@@ -24,7 +26,8 @@ export function Integrations() {
   return (
     <section id="integrations" className="border-b border-border/60 bg-card/20">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <h2 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+        <SectionLabel>05 · Integrations</SectionLabel>
+        <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           Fits into the tools you already use.
         </h2>
 

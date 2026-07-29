@@ -9,8 +9,12 @@ modern-minimal
 
 ## Macrostructure family
 - Marketing pages (`index`): Workbench — terminal/diff/code content is the page's
-  real evidence, not decoration standing in for it. Hero is left-biased, not
-  centred-everything. No section eyebrows (none of the sections are ordinal).
+  real evidence, not decoration standing in for it. Hero is a left-biased split
+  diptych (7/5): pitch on the left, the terminal demo panel on the right, no
+  centred-everything axis. Each section carries a numbered eyebrow (`01 · The
+  Problem` … `07 · Pricing`) that mirrors the nav's anchor labels — kept
+  deliberately as a wayfinding device tying scroll position to the nav, not the
+  decorative default the anti-pattern usually describes.
 - Content pages (`faq`, `privacy`, `terms`, `brand-assets`, `contact`): Long
   Document — single column, restrained, no eyebrows except a page's own one-line
   kicker above its own `h1` (never repeated per-section).
@@ -69,7 +73,9 @@ Existing Tailwind v4 default scale, used via utility classes. No raw pixel value
 - The CTA voice (button shape, radius, padding rhythm).
 - Nav: N1b (wordmark left, centred link cluster, theme toggle + CTA right).
 - Footer: Ft2 (single inline line, no column grid).
-- No section eyebrows beyond a single page-level kicker.
+- On `index`, each section's eyebrow text matches its nav anchor label
+  (`Problem`, `Solution`, `Features`, …) — the pairing is the point, don't let
+  them drift apart if either is edited later.
 
 ## What pages MAY differ on
 - Macrostructure within the family (index's Workbench vs. the content pages'
@@ -82,10 +88,16 @@ Existing Tailwind v4 default scale, used via utility classes. No raw pixel value
 - `.text-gradient` (background-clip:text headline) removed — solid ink instead.
 - Fake terminal traffic-light dots removed from `TerminalOnboarding` and
   `WorkflowDiagram` — real content, no drawn chrome.
-- `SectionLabel` (the `01 · The Problem` eyebrow) removed from all seven
-  sections it appeared on.
-- Hero's badge/headline/lede/CTA row no longer share one centred axis.
+- `SectionLabel`'s own text colour (`text-accent-cyan`) failed the same
+  contrast check as above; fixed to `text-accent-cyan-ink`. The eyebrows
+  themselves were kept at the user's explicit request — they anchor each
+  section to its nav entry, which is a real wayfinding function, not decoration.
+- Hero's badge/headline/lede/CTA row no longer share one centred axis; the hero
+  is now a 7/5 split with the terminal demo as the right-hand panel.
 - A global `:focus-visible` rule now covers every interactive element.
+- Nav's link cluster overflowed horizontally at exactly 768px (pre-existing,
+  verified on the original code too). Moved the link row's breakpoint from
+  `md` to `lg`; below 1024px the nav shows wordmark + theme toggle + CTA only.
 
 ## Exports
 

@@ -8,7 +8,8 @@ export function Problem() {
   return (
     <section id="problem" className="border-b border-border/60">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <h2 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+        <SectionLabel>01 · The Problem</SectionLabel>
+        <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           WordPress wasn't built for modern development workflows.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -74,6 +75,15 @@ function ComparisonCard() {
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+export function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">
+      <span className="h-px w-6 bg-accent-cyan/50" />
+      {children}
     </div>
   );
 }

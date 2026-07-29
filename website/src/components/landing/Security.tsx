@@ -1,3 +1,5 @@
+import { SectionLabel } from "./Problem";
+
 function Code({ children }: { children: React.ReactNode }) {
   return (
     <code className="rounded bg-background/80 px-1 py-0.5 font-mono text-[0.85em] text-foreground">
@@ -31,7 +33,8 @@ export function Security() {
   return (
     <section id="security" className="border-b border-border/60">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <h2 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+        <SectionLabel>04 · Security</SectionLabel>
+        <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           Secure by default, not by configuration.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
