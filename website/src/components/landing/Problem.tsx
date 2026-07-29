@@ -8,8 +8,7 @@ export function Problem() {
   return (
     <section id="problem" className="border-b border-border/60">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <SectionLabel>01 · The Problem</SectionLabel>
-        <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+        <h2 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           WordPress wasn't built for modern development workflows.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -24,7 +23,7 @@ export function Problem() {
                 key={p.code}
                 className="group flex items-center gap-4 rounded-lg border border-border/60 bg-card/40 px-4 py-3.5 transition-colors hover:border-border hover:bg-card/70"
               >
-                <span className="rounded border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-destructive">
+                <span className="rounded border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-destructive-ink">
                   {p.code}
                 </span>
                 <span className="text-sm text-foreground/90">{p.text}</span>
@@ -56,7 +55,7 @@ function ComparisonCard() {
         <ul className="space-y-2.5">
           {modern.map((m) => (
             <li key={m} className="flex items-center gap-2 text-foreground">
-              <span className="text-success">✓</span>
+              <span className="text-success-ink">✓</span>
               {m}
             </li>
           ))}
@@ -69,21 +68,12 @@ function ComparisonCard() {
         <ul className="space-y-2.5">
           {wp.map((m) => (
             <li key={m} className="flex items-start gap-2 text-foreground/80">
-              <span className="mt-0.5 text-destructive">✗</span>
+              <span className="mt-0.5 text-destructive-ink">✗</span>
               {m}
             </li>
           ))}
         </ul>
       </div>
-    </div>
-  );
-}
-
-export function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent-cyan">
-      <span className="h-px w-6 bg-accent-cyan/50" />
-      {children}
     </div>
   );
 }

@@ -91,7 +91,7 @@ function FormLabel({
   return (
     <Label
       ref={ref}
-      className={cn(error && "text-destructive", className)}
+      className={cn(error && "text-destructive-ink", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -140,7 +140,7 @@ function FormMessage({ className, children, ref, ...props }: React.ComponentProp
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-[0.8rem] font-medium text-destructive", className)}
+      className={cn("text-[0.8rem] font-medium text-destructive-ink", className)}
       {...props}
     >
       {body}

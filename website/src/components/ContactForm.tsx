@@ -126,7 +126,7 @@ export default function ContactForm({
         />
 
         {status === "error" && (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-ink">
             Something went wrong. Please try again or reach out directly.
           </p>
         )}

@@ -1,5 +1,3 @@
-import { SectionLabel } from "./Problem";
-
 const TIERS = [
   {
     name: "Free",
@@ -48,8 +46,7 @@ export function Pricing() {
   return (
     <section id="pricing" className="border-b border-border/60 bg-card/20">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <SectionLabel>06 · Pricing</SectionLabel>
-        <h2 className="mt-4 max-w-2xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+        <h2 className="max-w-2xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           Free to start. Built to scale.
         </h2>
         <p className="mt-4 max-w-xl text-muted-foreground">
@@ -77,7 +74,7 @@ export function Pricing() {
                 </div>
                 <div className="mt-3 flex items-baseline gap-2">
                   <span
-                    className={`text-3xl font-semibold tracking-tight ${tier.featured ? "text-accent-cyan" : "text-foreground"}`}
+                    className={`text-3xl font-semibold tracking-tight ${tier.featured ? "text-accent-cyan-ink" : "text-foreground"}`}
                   >
                     {tier.price}
                   </span>
@@ -91,7 +88,7 @@ export function Pricing() {
               <ul className="mt-6 flex-1 space-y-2.5">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm">
-                    <span className="mt-0.5 font-mono text-success">✓</span>
+                    <span className="mt-0.5 font-mono text-success-ink">✓</span>
                     <span
                       className={
                         f.startsWith("Everything") ? "text-muted-foreground" : "text-foreground/90"

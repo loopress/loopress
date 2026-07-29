@@ -1,3 +1,4 @@
+import { TerminalOnboarding } from "./TerminalOnboarding";
 import { WorkflowDiagram } from "./WorkflowDiagram";
 
 export function Hero() {
@@ -10,7 +11,7 @@ export function Hero() {
       />
 
       <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="max-w-3xl">
           <a
             href="#alpha"
             className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/50 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
@@ -23,20 +24,17 @@ export function Hero() {
             <span className="text-foreground/40">→</span>
           </a>
 
-          <h1 className="mt-7 text-balance text-5xl font-semibold tracking-tight md:text-7xl">
-            <span className="text-gradient">
-              WordPress development,
-              <br />
-              without the friction.
-            </span>
+          <h1 className="mt-7 text-balance text-5xl font-semibold tracking-tight text-foreground md:text-7xl">
+            The unified DX ecosystem for managed WordPress.
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Version-control your snippets and plugins in Git. Install Composer packages from the
-            WordPress admin, no SSH needed.
+          <p className="mt-6 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
+            Git versioning, Composer lockfiles, and convention-based APIs in one lightweight
+            workflow, on the native WordPress architecture your host already runs. Zero SSH in
+            production.
           </p>
 
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center gap-3">
             <a
               href="https://console.loopress.dev"
               className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
@@ -51,9 +49,13 @@ export function Hero() {
               View Documentation
             </a>
           </div>
+
+          <div className="mt-10 max-w-md">
+            <TerminalOnboarding />
+          </div>
         </div>
 
-        <div className="relative mx-auto mt-20 max-w-5xl">
+        <div className="relative mt-16">
           <WorkflowDiagram />
         </div>
       </div>
