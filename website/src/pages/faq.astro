@@ -22,6 +22,19 @@ const FAQS = [
     ],
   },
   {
+    section: "Comparisons",
+    items: [
+      {
+        q: "How is Loopress different from Roots Bedrock?",
+        a: "Bedrock restructures your project (code into web/app, WordPress core into web/wp) and its recommended deploy path, Trellis, needs SSH. It's a solid choice for teams that can commit to that structure upfront. Loopress takes a different trade: no restructuring, works on the stock wp-content layout your host already runs, no SSH required.",
+      },
+      {
+        q: "How is Loopress different from staging/DB-sync plugins like WP Staging or Duplicator?",
+        a: "Those tools move a site as a point-in-time snapshot: you pick what to include by hand and push it as one operation, with no diff against the last sync. Loopress tracks changes continuously and pushes only what changed, the same way Git does for code.",
+      },
+    ],
+  },
+  {
     section: "CLI",
     items: [
       {

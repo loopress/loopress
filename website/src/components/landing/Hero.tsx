@@ -6,7 +6,7 @@ export function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div className="absolute inset-0 grid-bg radial-fade opacity-70" aria-hidden />
       <div
-        className="absolute left-1/2 top-0 -z-0 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.78_0.13_200/0.15),transparent)]"
+        className="absolute left-1/4 top-0 -z-0 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.78_0.13_200/0.15),transparent)]"
         aria-hidden
       />
 

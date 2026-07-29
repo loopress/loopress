@@ -17,80 +17,74 @@ export function Features() {
           <FeatureCard
             tag="01"
             title="Snippets in Git"
-            pain="Snippets edited live in the admin panel. No history, no rollback, no idea who changed what."
-            solution="Pull snippets as .php files, edit them locally, and push back when you're done."
-            impact="Every change is a commit: reviewable, diffable, revertable."
-            bullets={[
-              "Migrate snippets between WPCode and Code Snippets from the WordPress admin, one click at a time",
-            ]}
+            description={
+              <>
+                Pull snippets as <Code>.php</Code> files, edit them locally, and push back when
+                you're done: every change becomes a commit, reviewable, diffable, revertable.
+              </>
+            }
           >
             <SnippetsBlock />
           </FeatureCard>
 
           <FeatureCard
             tag="02"
+            title="Pages in Git"
+            description={
+              <>
+                Pull a page's content as a real, editable <Code>.html</Code> file via WordPress's
+                own REST API, no plugin required. Edit it, commit it, push it back: the same Git
+                loop as any other code change, no database dump.
+              </>
+            }
+          >
+            <PageBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="03"
+            title="Custom API Routes"
+            description="Ship a REST API for your headless frontend as version-controlled PHP files, one class, one method per HTTP verb. A broken route is skipped and logged instead of taking down the rest of your API."
+          >
+            <ApiBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="04"
             title="Plugin Lockfile"
-            pain="A client installs a plugin straight into production, or two developers deploy different plugin sets to the same site. Now nobody's sure what's actually running where."
-            solution="Declare plugin versions in loopress.json like a package.json. Push to any environment for an exact, reproducible install."
-            impact="lps plugin pull merges what's actually on the site into your manifest instead of overwriting it, so drift never turns into a fight."
+            description={
+              <>
+                Declare plugin versions in <Code>loopress.json</Code>, like a{" "}
+                <Code>package.json</Code> for WordPress. <Code>lps plugin pull</Code> merges what's
+                actually live into your manifest instead of overwriting it, so drift never turns
+                into a fight.
+              </>
+            }
           >
             <PluginsBlock />
           </FeatureCard>
 
           <FeatureCard
-            tag="03"
+            tag="05"
             title="Composer without SSH"
-            pain="Installing a PHP dependency means SSH, a terminal on the server, and hoping composer install doesn't break the site."
-            solution="Search and install any Packagist package from the WordPress admin panel, no terminal."
-            impact="Every install is checked before it ships."
-            bullets={[
-              "Security audit flags known CVEs in your Composer dependencies",
-              "Platform diagnostics catch PHP version mismatches before they break an install",
-            ]}
+            description="Search and install any Packagist package from the WordPress admin, no terminal, no SSH. Every install is checked: known CVEs flagged, PHP version mismatches caught before they break anything."
             cta={{ label: "Download Loopress Full", href: pluginDownloadUrl }}
           >
             <ComposerBlock />
           </FeatureCard>
 
           <FeatureCard
-            tag="04"
+            tag="06"
             title="Official CI configs"
-            pain="Standing up a real WordPress instance in CI usually means hand-rolling Docker, MySQL, and a WP-CLI bootstrap script, for every project."
-            solution="Bootstrap a full WordPress environment in GitHub Actions or GitLab CI, and run lps against it in a single step."
-            impact="A real, disposable WordPress instance, not a mock, ready for actual Playwright e2e tests."
-            bullets={[
-              "Snapshot and restore the database between test groups without respawning the stack",
-            ]}
+            description={
+              <>
+                Bootstrap a full, disposable WordPress instance in GitHub Actions or GitLab CI and
+                run <Code>lps</Code> against it in one step: not a mock, ready for real Playwright
+                e2e tests, with database snapshots between test groups.
+              </>
+            }
           >
             <CIBlock />
-          </FeatureCard>
-
-          <FeatureCard
-            tag="05"
-            title="Custom API Routes"
-            pain="Every project eventually needs a REST endpoint, a webhook receiver, a headless data feed. Building one usually means a mini-plugin nobody wants to maintain."
-            solution="Ship a REST API for your headless frontend (Next.js, Astro, anything) as version-controlled PHP files. One class, one method per HTTP verb."
-            impact="A package installed via lps composer require is usable inside a route file immediately: the autoloader is already there, no require_once."
-            bullets={[
-              "Every deployed route shows up in the plugin's API tab, right after lps api push",
-              "A broken route file is skipped and logged, it never takes down the rest of your REST API",
-            ]}
-          >
-            <ApiBlock />
-          </FeatureCard>
-
-          <FeatureCard
-            tag="06"
-            title="Pages in Git"
-            pain="Reproducing a page's content across environments usually means a database dump or a migration script."
-            solution="Pull a WordPress page's content as a real, editable .html file. Edit it, commit it, push it back to redeploy."
-            impact="No database dump, no migration, the same Git loop as any other code change."
-            bullets={[
-              "Talks to WordPress's own REST API directly, no Loopress plugin required",
-              "Metadata (status, parent, template) kept in a separate JSON sidecar, never mixed into the content you edit",
-            ]}
-          >
-            <PageBlock />
           </FeatureCard>
         </div>
       </div>
@@ -101,19 +95,13 @@ export function Features() {
 function FeatureCard({
   tag,
   title,
-  pain,
-  solution,
-  impact,
-  bullets,
+  description,
   cta,
   children,
 }: {
   tag: string;
   title: string;
-  pain: string;
-  solution: string;
-  impact: string;
-  bullets?: string[];
+  description: React.ReactNode;
   cta?: { label: string; href: string };
   children: React.ReactNode;
 }) {
@@ -121,19 +109,7 @@ function FeatureCard({
     <div className="group relative overflow-hidden rounded-xl border border-border/80 bg-card/40 p-6 transition-colors hover:border-border">
       <div className="font-mono text-[10px] tracking-widest text-accent-cyan-ink">F.{tag}</div>
       <h3 className="mt-2 text-xl font-medium text-foreground">{title}</h3>
-      <p className="mt-3 max-w-md text-sm text-destructive-ink">{pain}</p>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">{solution}</p>
-      <p className="mt-2 max-w-md text-sm font-medium text-accent-cyan-ink">→ {impact}</p>
-      {bullets && (
-        <ul className="mt-3 max-w-md space-y-1.5">
-          {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-2 text-sm text-muted-foreground/90">
-              <span className="mt-0.5 font-mono text-xs text-success-ink">✓</span>
-              {b}
-            </li>
-          ))}
-        </ul>
-      )}
+      <p className="mt-3 max-w-md text-sm text-muted-foreground">{description}</p>
       {cta && (
         <a
           href={cta.href}
@@ -147,6 +123,14 @@ function FeatureCard({
       )}
       <div className="mt-6">{children}</div>
     </div>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded bg-background/80 px-1 py-0.5 font-mono text-[0.85em] text-foreground">
+      {children}
+    </code>
   );
 }
 

@@ -27,6 +27,17 @@ const POINTS: { title: string; body: React.ReactNode }[] = [
     title: "Reviewed before it runs",
     body: "Every custom route and every Composer dependency is a file in your Git repository before it's ever live on WordPress: no plugin you didn't read, no code that skipped a pull request.",
   },
+  {
+    title: "Snippets run through providers that know the risk",
+    body: (
+      <>
+        Loopress doesn't execute PHP itself: it pushes to <Code>Code Snippets</Code> or{" "}
+        <Code>WPCode</Code>, established plugins with years of production use around exactly this
+        problem, running PHP from the WordPress admin. You inherit their hardening and their track
+        record, not a new attack surface.
+      </>
+    ),
+  },
 ];
 
 export function Security() {
@@ -43,7 +54,7 @@ export function Security() {
           enforced.
         </p>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-14 grid gap-6 md:grid-cols-2">
           {POINTS.map((p) => (
             <div
               key={p.title}

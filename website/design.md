@@ -98,6 +98,18 @@ Existing Tailwind v4 default scale, used via utility classes. No raw pixel value
 - Nav's link cluster overflowed horizontally at exactly 768px (pre-existing,
   verified on the original code too). Moved the link row's breakpoint from
   `md` to `lg`; below 1024px the nav shows wordmark + theme toggle + CTA only.
+- Features cards collapsed pain/solution/impact/bullets (3-4 stacked text
+  blocks) into one description sentence each, since the page already has a
+  dedicated Problem section, restating pain per-card was redundant at the
+  page level, not just dense within the card. Reordered into logical groups:
+  things you write as code (Snippets, Pages, API Routes) → things you depend
+  on (Plugin Lockfile, Composer) → verify (CI).
+- Solution mixed two unrelated ideas under one heading: a "Compatible with"
+  tag list and a competitor comparison table. Dropped the tag list, it
+  duplicated content already covered by Integrations (Code Snippets, WPCode,
+  Packagist) and by copy elsewhere on the page (Git/Composer in the hero,
+  GitHub Actions/GitLab CI on the Features CI card). Solution now does one
+  job: positioning against alternatives.
 
 ## Exports
 
