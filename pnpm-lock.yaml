@@ -85,6 +85,9 @@ importers:
       open:
         specifier: ^11.0.0
         version: 11.0.0
+      playwright-core:
+        specifier: ^1.56.0
+        version: 1.62.0
       slugify:
         specifier: ^1.6.9
         version: 1.6.9
