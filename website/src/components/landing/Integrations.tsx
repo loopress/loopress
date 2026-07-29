@@ -26,7 +26,7 @@ export function Integrations() {
   return (
     <section id="integrations" className="border-b border-border/60 bg-card/20">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <SectionLabel>04 · Integrations</SectionLabel>
+        <SectionLabel>05 · Integrations</SectionLabel>
         <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           Fits into the tools you already use.
         </h2>
@@ -57,8 +57,8 @@ export function Integrations() {
 function Header({ status, children }: { status: "available" | "soon"; children: React.ReactNode }) {
   const color =
     status === "available"
-      ? "text-success bg-success/10 border-success/30"
-      : "text-warning bg-warning/10 border-warning/30";
+      ? "text-success-ink bg-success/10 border-success/30"
+      : "text-warning-ink bg-warning/10 border-warning/30";
   return (
     <div className="flex items-center gap-2">
       <span

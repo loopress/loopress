@@ -31,8 +31,8 @@ export function FinalCTA() {
       />
 
       <div className="relative mx-auto max-w-3xl px-6 py-28 text-center md:py-36">
-        <h2 className="text-balance text-4xl font-semibold tracking-tight md:text-6xl">
-          <span className="text-gradient">Built in the open. Shaped by the community.</span>
+        <h2 className="text-balance text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
+          Built in the open. Shaped by the community.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
           The CLI and the plugin are open source. Leave your email to follow along and get notified
@@ -40,7 +40,7 @@ export function FinalCTA() {
         </p>
 
         {status === "success" ? (
-          <p className="mt-9 font-mono text-sm text-success">
+          <p className="mt-9 font-mono text-sm text-success-ink">
             ✓ You're on the list. We'll reach out as cohorts open up.
           </p>
         ) : (
@@ -55,7 +55,7 @@ export function FinalCTA() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@agency.dev"
               disabled={status === "loading"}
-              className="h-14 rounded-md border border-border bg-card/60 px-4 font-mono text-base text-foreground placeholder:text-muted-foreground focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/30 disabled:opacity-50 sm:flex-1 md:h-11 md:text-sm"
+              className="h-14 rounded-md border border-border bg-card/60 px-4 font-mono text-base text-foreground placeholder:text-muted-foreground disabled:opacity-50 sm:flex-1 md:h-11 md:text-sm"
             />
             <button
               type="submit"
@@ -68,7 +68,7 @@ export function FinalCTA() {
         )}
 
         {status === "error" && (
-          <p className="mt-3 font-mono text-xs text-destructive">
+          <p className="mt-3 font-mono text-xs text-destructive-ink">
             Something went wrong. Please try again.
           </p>
         )}

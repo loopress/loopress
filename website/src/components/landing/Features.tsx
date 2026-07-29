@@ -17,57 +17,74 @@ export function Features() {
           <FeatureCard
             tag="01"
             title="Snippets in Git"
-            body="Pull snippets as .php files, edit them locally, and push back when you're done. Git history, diffs, and rollbacks included."
-            bullets={[
-              "Migrate snippets between WPCode and Code Snippets from the WordPress admin, one click at a time",
-            ]}
+            description={
+              <>
+                Pull snippets as <Code>.php</Code> files, edit them locally, and push back when
+                you're done: every change becomes a commit, reviewable, diffable, revertable.
+              </>
+            }
           >
             <SnippetsBlock />
           </FeatureCard>
 
           <FeatureCard
             tag="02"
+            title="Pages in Git"
+            description={
+              <>
+                Pull a page's content as a real, editable <Code>.html</Code> file via WordPress's
+                own REST API, no plugin required. Edit it, commit it, push it back: the same Git
+                loop as any other code change, no database dump.
+              </>
+            }
+          >
+            <PageBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="03"
+            title="Custom API Routes"
+            description="Ship a REST API for your headless frontend as version-controlled PHP files, one class, one method per HTTP verb. A broken route is skipped and logged instead of taking down the rest of your API."
+          >
+            <ApiBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="04"
             title="Plugin Lockfile"
-            body="Declare plugin versions in loopress.json like a package.json. Push to any environment and get an exact, reproducible install."
+            description={
+              <>
+                Declare plugin versions in <Code>loopress.json</Code>, like a{" "}
+                <Code>package.json</Code> for WordPress. <Code>lps plugin pull</Code> merges what's
+                actually live into your manifest instead of overwriting it, so drift never turns
+                into a fight.
+              </>
+            }
           >
             <PluginsBlock />
           </FeatureCard>
 
           <FeatureCard
-            tag="03"
+            tag="05"
             title="Composer without SSH"
-            body="Search and install any Packagist package from the WordPress admin panel, without opening a terminal."
-            bullets={[
-              "Security audit flags known CVEs in your Composer dependencies",
-              "Platform diagnostics catch PHP version mismatches before they break an install",
-            ]}
+            description="Search and install any Packagist package from the WordPress admin, no terminal, no SSH. Every install is checked: known CVEs flagged, PHP version mismatches caught before they break anything."
             cta={{ label: "Download Loopress Full", href: pluginDownloadUrl }}
           >
             <ComposerBlock />
           </FeatureCard>
 
           <FeatureCard
-            tag="04"
+            tag="06"
             title="Official CI configs"
-            body="Bootstrap a full WordPress environment in GitHub Actions or GitLab CI, and run lps against it in a single step."
-            bullets={[
-              "A real, disposable WordPress instance, not a mock, so you can run Playwright e2e tests against it",
-              "Snapshot and restore the database between test groups without respawning the stack",
-            ]}
+            description={
+              <>
+                Bootstrap a full, disposable WordPress instance in GitHub Actions or GitLab CI and
+                run <Code>lps</Code> against it in one step: not a mock, ready for real Playwright
+                e2e tests, with database snapshots between test groups.
+              </>
+            }
           >
             <CIBlock />
-          </FeatureCard>
-
-          <FeatureCard
-            tag="05"
-            title="Custom API Routes"
-            body="Version-control custom WordPress REST endpoints as plain PHP files. Push them from Git, no other plugin required."
-            bullets={[
-              "Every deployed route shows up in the plugin's API tab, right after lps api push",
-              "A broken route file is skipped and logged, it never takes down the rest of your REST API",
-            ]}
-          >
-            <ApiBlock />
           </FeatureCard>
         </div>
       </div>
@@ -78,39 +95,27 @@ export function Features() {
 function FeatureCard({
   tag,
   title,
-  body,
-  bullets,
+  description,
   cta,
   children,
 }: {
   tag: string;
   title: string;
-  body: string;
-  bullets?: string[];
+  description: React.ReactNode;
   cta?: { label: string; href: string };
   children: React.ReactNode;
 }) {
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border/80 bg-card/40 p-6 transition-colors hover:border-border">
-      <div className="font-mono text-[10px] tracking-widest text-accent-cyan">F.{tag}</div>
+      <div className="font-mono text-[10px] tracking-widest text-accent-cyan-ink">F.{tag}</div>
       <h3 className="mt-2 text-xl font-medium text-foreground">{title}</h3>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">{body}</p>
-      {bullets && (
-        <ul className="mt-3 max-w-md space-y-1.5">
-          {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-2 text-sm text-muted-foreground/90">
-              <span className="mt-0.5 font-mono text-xs text-success">✓</span>
-              {b}
-            </li>
-          ))}
-        </ul>
-      )}
+      <p className="mt-3 max-w-md text-sm text-muted-foreground">{description}</p>
       {cta && (
         <a
           href={cta.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent-cyan transition-opacity hover:opacity-80"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent-cyan-ink transition-opacity hover:opacity-80"
         >
           {cta.label}
           <span>↓</span>
@@ -118,6 +123,14 @@ function FeatureCard({
       )}
       <div className="mt-6">{children}</div>
     </div>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded bg-background/80 px-1 py-0.5 font-mono text-[0.85em] text-foreground">
+      {children}
+    </code>
   );
 }
 
@@ -225,8 +238,28 @@ function ApiBlock() {
   );
 }
 
+function PageBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="flex items-center justify-between border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        <span>pages/9-about.html</span>
+      </div>
+      <pre className="px-3 py-3">
+        {`  <!-- wp:paragraph -->
+  <p>We build tools for developers
+  who ship WordPress.</p>
+  <!-- /wp:paragraph -->`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps page push</Line>
+        <Line c="success">✓ Pushed: About</Line>
+      </div>
+    </div>
+  );
+}
+
 function Line({ c, children }: { c: "muted" | "success"; children: React.ReactNode }) {
   return (
-    <div className={c === "success" ? "text-success" : "text-muted-foreground"}>{children}</div>
+    <div className={c === "success" ? "text-success-ink" : "text-muted-foreground"}>{children}</div>
   );
 }

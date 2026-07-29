@@ -6,7 +6,7 @@ export function Vision() {
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <SectionLabel>05 · Vision</SectionLabel>
+            <SectionLabel>06 · Vision</SectionLabel>
             <h2 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-5xl">
               The future of WordPress development.
             </h2>

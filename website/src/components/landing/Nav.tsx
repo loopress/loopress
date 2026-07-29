@@ -22,7 +22,7 @@ export function Nav() {
             Alpha
           </span>
         </a>
-        <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
           <a href="/#problem" className="transition-colors hover:text-foreground">
             Problem
           </a>
@@ -31,6 +31,9 @@ export function Nav() {
           </a>
           <a href="/#features" className="transition-colors hover:text-foreground">
             Features
+          </a>
+          <a href="/#security" className="transition-colors hover:text-foreground">
+            Security
           </a>
           <a href="/#integrations" className="transition-colors hover:text-foreground">
             Integrations

@@ -1,3 +1,8 @@
+/* Hallmark · macrostructure: Workbench (marketing) / Long Document (content) · genre: modern-minimal
+ * theme: kept existing OKLCH system, added contrast-safe -ink text variants
+ * design-system: design.md · designed-as-app · nav: N1b · footer: Ft2
+ * contrast: pass (40-41) · chrome: pass (47) · mobile: unchanged from pre-redesign
+ */
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @source "../src";
@@ -46,9 +51,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-accent-cyan: var(--accent-cyan);
+  --color-accent-cyan-ink: var(--accent-cyan-ink);
   --color-accent-violet: var(--accent-violet);
   --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-destructive-ink: var(--destructive-ink);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -74,7 +83,7 @@
   --destructive-foreground: oklch(0.984 0.003 248);
   --border: oklch(0.87 0.014 256);
   --input: oklch(0.87 0.014 256);
-  --ring: oklch(0.55 0.1 200);
+  --ring: oklch(0.5 0.13 200);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -89,13 +98,15 @@
   --sidebar-border: oklch(0.87 0.014 256);
   --sidebar-ring: oklch(0.55 0.1 200);
   --accent-cyan: oklch(0.78 0.13 200);
+  --accent-cyan-ink: oklch(0.52 0.13 200);
   --accent-violet: oklch(0.65 0.2 280);
   --success: oklch(0.72 0.17 150);
+  --success-ink: oklch(0.53 0.17 150);
   --warning: oklch(0.78 0.16 70);
+  --warning-ink: oklch(0.56 0.16 70);
+  --destructive-ink: oklch(0.58 0.245 27.325);
   /* theme-aware utility vars */
   --grid-line: oklch(0 0 0 / 0.07);
-  --gradient-text-from: oklch(0.12 0.04 265);
-  --gradient-text-to: oklch(0.42 0.04 258);
 }
 
 .dark {
@@ -133,13 +144,15 @@
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.78 0.13 200);
   --accent-cyan: oklch(0.78 0.13 200);
+  --accent-cyan-ink: oklch(0.78 0.13 200);
   --accent-violet: oklch(0.65 0.2 280);
   --success: oklch(0.72 0.17 150);
+  --success-ink: oklch(0.72 0.17 150);
   --warning: oklch(0.78 0.16 70);
+  --warning-ink: oklch(0.78 0.16 70);
+  --destructive-ink: oklch(0.65 0.22 25);
   /* theme-aware utility vars */
   --grid-line: oklch(1 0 0 / 0.04);
-  --gradient-text-from: oklch(0.99 0 0);
-  --gradient-text-to: oklch(0.65 0.012 260);
 }
 
 @layer base {
@@ -158,6 +171,23 @@
   html {
     scroll-behavior: smooth;
   }
+
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    outline: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
 }
 
 @utility font-mono {
@@ -173,17 +203,6 @@
 
 @utility radial-fade {
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-}
-
-@utility text-gradient {
-  background-image: linear-gradient(
-    180deg,
-    var(--gradient-text-from) 0%,
-    var(--gradient-text-to) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 @utility glow-cyan {

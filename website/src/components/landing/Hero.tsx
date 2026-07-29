@@ -1,3 +1,4 @@
+import { TerminalOnboarding } from "./TerminalOnboarding";
 import { WorkflowDiagram } from "./WorkflowDiagram";
 
 export function Hero() {
@@ -5,55 +6,58 @@ export function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div className="absolute inset-0 grid-bg radial-fade opacity-70" aria-hidden />
       <div
-        className="absolute left-1/2 top-0 -z-0 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.78_0.13_200/0.15),transparent)]"
+        className="absolute left-1/4 top-0 -z-0 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.78_0.13_200/0.15),transparent)]"
         aria-hidden
       />
 
       <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <a
-            href="#alpha"
-            className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/50 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-cyan opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent-cyan" />
-            </span>
-            Open alpha - now accepting developers
-            <span className="text-foreground/40">→</span>
-          </a>
-
-          <h1 className="mt-7 text-balance text-5xl font-semibold tracking-tight md:text-7xl">
-            <span className="text-gradient">
-              WordPress development,
-              <br />
-              without the friction.
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Version-control your snippets and plugins in Git. Install Composer packages from the
-            WordPress admin, no SSH needed.
-          </p>
-
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <div className="grid gap-10 lg:grid-cols-[7fr_5fr] lg:items-center lg:gap-16">
+          <div>
             <a
-              href="https://console.loopress.dev"
-              className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              href="#alpha"
+              className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/50 px-3 py-1 font-mono text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
             >
-              Join the Alpha
-              <span className="ml-2 text-base">→</span>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-cyan opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent-cyan" />
+              </span>
+              Open alpha - now accepting developers
+              <span className="text-foreground/40">→</span>
             </a>
-            <a
-              href="https://docs.loopress.dev"
-              className="inline-flex h-10 items-center rounded-md border border-border bg-card/40 px-5 text-sm font-medium text-foreground transition-colors hover:bg-card"
-            >
-              View Documentation
-            </a>
+
+            <h1 className="mt-7 text-balance text-5xl font-semibold tracking-tight text-foreground md:text-6xl">
+              The unified DX ecosystem for managed WordPress.
+            </h1>
+
+            <p className="mt-6 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground md:text-xl">
+              Git versioning, Composer lockfiles, and convention-based APIs in one lightweight
+              workflow, on the native WordPress architecture your host already runs. Zero SSH in
+              production.
+            </p>
+
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <a
+                href="https://console.loopress.dev"
+                className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Join the Alpha
+                <span className="ml-2 text-base">→</span>
+              </a>
+              <a
+                href="https://docs.loopress.dev"
+                className="inline-flex h-10 items-center rounded-md border border-border bg-card/40 px-5 text-sm font-medium text-foreground transition-colors hover:bg-card"
+              >
+                View Documentation
+              </a>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <TerminalOnboarding />
           </div>
         </div>
 
-        <div className="relative mx-auto mt-20 max-w-5xl">
+        <div className="relative mt-24">
           <WorkflowDiagram />
         </div>
       </div>

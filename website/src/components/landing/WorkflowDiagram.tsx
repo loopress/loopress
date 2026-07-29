@@ -18,13 +18,8 @@ export function WorkflowDiagram() {
   return (
     <div className="relative rounded-xl border border-border/80 bg-card/40 p-5 backdrop-blur md:p-8">
       <div className="mb-5 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          {/* <span className="ml-3">lps · workflow</span> */}
-        </div>
-        {/* <span className="hidden sm:inline">reproducible.diff</span> */}
+        <span>lps · workflow</span>
+        <span className="hidden sm:inline">reproducible.diff</span>
       </div>
 
       <div className="relative grid grid-cols-2 gap-y-6 sm:grid-cols-5 sm:gap-y-0">
@@ -34,7 +29,7 @@ export function WorkflowDiagram() {
               {n.logo ? (
                 <img src={n.logo} alt={n.label} className="h-7 w-7 object-contain" />
               ) : (
-                <span className={n.mono ? "font-mono text-accent-cyan" : ""}>{n.icon}</span>
+                <span className={n.mono ? "font-mono text-accent-cyan-ink" : ""}>{n.icon}</span>
               )}
             </div>
             <div className="mt-3 text-xs font-medium text-foreground">{n.label}</div>
@@ -66,13 +61,13 @@ export function WorkflowDiagram() {
         <div>
           <div className="text-muted-foreground">$ lps snippet pull</div>
           <div className="text-foreground">
-            <span className="text-success">+</span> snippets/disable-emojis.php
+            <span className="text-success-ink">+</span> snippets/disable-emojis.php
           </div>
           <div className="text-foreground">
-            <span className="text-success">+</span> snippets/custom-login.php
+            <span className="text-success-ink">+</span> snippets/custom-login.php
           </div>
           <div className="text-foreground">
-            <span className="text-warning">~</span> snippets/redirect-404.php
+            <span className="text-warning-ink">~</span> snippets/redirect-404.php
           </div>
         </div>
         <div>
@@ -81,7 +76,7 @@ export function WorkflowDiagram() {
             3 files changed, 18 insertions(+), 4 deletions(-)
           </div>
           <div className="mt-1 text-muted-foreground">$ lps snippet push</div>
-          <div className="text-success">✓ Updated · 3 snippets synced</div>
+          <div className="text-success-ink">✓ Updated · 3 snippets synced</div>
         </div>
       </div>
     </div>
