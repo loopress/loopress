@@ -1,8 +1,8 @@
 ---
 title: Version Control Your WordPress Code Snippets
 description: Code Snippets are code. They deserve Git history, diffs, and rollbacks, not a copy-paste from the admin panel.
-date: 2026-06-09
-draft: true
+date: 2026-07-29
+draft: false
 authors:
   - maxime
 tags:
@@ -13,7 +13,7 @@ tags:
 excerpt: Most WordPress developers manage their code snippets by editing them directly in the admin panel. Here's a better way, one that gives you full Git history and lets you deploy changes like any other codebase.
 ---
 
-If you use the [Code Snippets plugin](https://wordpress.org/plugins/code-snippets/), you're probably editing your PHP functions directly in the admin panel. Click the snippet, make the change, save. Done.
+If you use [Code Snippets](https://wordpress.org/plugins/code-snippets/) or [WPCode](https://wpcode.com/), you're probably editing your PHP functions directly in the admin panel. Click the snippet, make the change, save. Done.
 
 It works. Until it doesn't.
 
@@ -50,8 +50,9 @@ Configure your project:
 
 ```bash
 lps project config
-# Enter your WordPress URL, username, and application password
 ```
+
+It asks for a project name, an environment (production, staging, local, or a custom name), and your WordPress URL. By default it then opens your browser to authorize and creates an Application Password for you automatically, no copy-pasting a generated password. If that flow can't complete, it falls back to asking for a WordPress username and an Application Password you generate yourself.
 
 ### Pull your snippets
 
@@ -78,7 +79,7 @@ Each `.php` file contains the raw snippet code. The `.json` sidecar stores the m
 Open any file in your editor. Make changes. The feedback loop is your local environment, not the WordPress admin panel.
 
 ```bash
-git add snippets/woocommerce-checkout-tweak.php
+git add snippets/2-woocommerce-checkout-tweak.php
 git commit -m "fix: apply discount code before tax calculation"
 ```
 
@@ -100,20 +101,22 @@ lps snippet push --dry-run
 
 ## Working across environments
 
-The real value shows up when you're working with local, staging, and production environments. With Loopress:
+The real value shows up when you're working with local, staging, and production environments. Register each one once with `lps project config`, then target any of them with `--env` on a single command:
 
 ```bash
 # Pull from production
-lps snippet pull --url https://production.example.com
+lps snippet pull --env production
 
 # Test locally, commit changes
 
 # Push to staging first
-lps snippet push --url https://staging.example.com
+lps snippet push --env staging
 
 # When ready, push to production
-lps snippet push --url https://production.example.com
+lps snippet push --env production --yes
 ```
+
+That trailing `--yes` isn't optional flair: pushing to an environment literally named `production` asks for confirmation in a terminal, and requires `--yes` to skip that prompt outside one (CI, scripts). `--env` also takes priority over whatever `lps project switch` last left active globally, which matters the moment more than one person runs commands against the same project.
 
 Your snippets flow between environments the same way your code does. No database exports, no manual copy-paste.
 
@@ -123,4 +126,4 @@ Loopress syncs snippets by ID (stored in the `.json` sidecar). If you pull first
 
 ---
 
-If this resonates, the next step is setting up your application password in WordPress and adding `snippets/` to your project's Git repository. From there, every snippet change is a commit.
+If this resonates, the next step is `lps project config` and adding `snippets/` to your project's Git repository. From there, every snippet change is a commit.
