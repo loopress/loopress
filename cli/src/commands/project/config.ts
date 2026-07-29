@@ -2,8 +2,11 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 import {Command} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
+import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
+import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
+import {WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
 
@@ -98,7 +101,36 @@ export default class Config extends Command {
     }
 
     this.log(`✓ "${projectName}/${envName}" configured`)
+
+    await this.maybeBootstrapLoopressFull(env)
+
     this.log('→ Run `lps project switch` to change the active project or environment')
+  }
+
+  private async maybeBootstrapLoopressFull(env: EnvironmentConfig): Promise<void> {
+    const {token, url} = env
+    if (!token) return // env was just built with one a few lines up; guard only narrows the type
+
+    const wp = new WpClient(url, token)
+
+    // A detection failure (network hiccup, plugins REST disabled) is treated as "assume it's
+    // there" rather than surprising the user with an account-creating prompt they didn't ask
+    // for; `lps project config` can simply be re-run if it genuinely isn't installed.
+    const alreadyActive = await isLoopressFullActive(wp).catch(() => true)
+    if (alreadyActive) return
+
+    const proceed = await confirm({
+      default: true,
+      message:
+        'Loopress Full was not detected on this site. Install it now? (creates a temporary admin account, removed automatically afterward)',
+    })
+    if (!proceed) return
+
+    try {
+      await bootstrapLoopressFull(wp, url, (message) => this.log(message))
+    } catch (error) {
+      this.warn((error as Error).message)
+    }
   }
 
   private async promptManualCredentials(): Promise<{appPassword: string; user: string}> {

@@ -61,6 +61,23 @@ describe('WpClient', () => {
     expect(JSON.parse(seenBody)).toEqual({slug: 'akismet'})
   })
 
+  it('DELETEs a path', async () => {
+    let seenMethod = ''
+    let seenUrl = ''
+    const client = await serve((req, res) => {
+      seenMethod = req.method ?? ''
+      seenUrl = req.url ?? ''
+      res.writeHead(200, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify({deleted: true}))
+    })
+
+    const result = await client.delete<{deleted: boolean}>('wp/v2/users/5?reassign=1&force=true')
+
+    expect(result).toEqual({deleted: true})
+    expect(seenMethod).toBe('DELETE')
+    expect(seenUrl).toBe('/wp-json/wp/v2/users/5?reassign=1&force=true')
+  })
+
   it('tolerates an empty response body', async () => {
     const client = await serve((req, res) => {
       res.writeHead(200)
