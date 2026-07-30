@@ -7,6 +7,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {EnvironmentConfig} from '../types/config.js'
 import {LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {isInteractive} from './interactive.js'
+import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {WpClient} from './wp-client.js'
 
 interface ParsedBaseFlags {
@@ -31,6 +32,7 @@ export abstract class LoopressCommand extends Command {
   }
   protected dryRun = false
   protected localConfig: LoopressLocalConfig = {}
+  protected projectId!: string
   protected siteConfig!: EnvironmentConfig
   protected yes = false
   private wpClient?: WpClient
@@ -65,7 +67,32 @@ export abstract class LoopressCommand extends Command {
     this.dryRun = Boolean(flags['dry-run'])
     this.yes = Boolean(flags.yes)
     this.localConfig = await readLocalConfig()
-    this.siteConfig = this.resolveEnvironment(flags.env)
+
+    const resolved = this.resolveEnvironment(flags.env)
+    this.siteConfig = resolved.env
+    this.projectId = resolved.projectId
+
+    await this.maybeAutoRotate()
+  }
+
+  // Silent, best-effort: a stale app password still works, so a failed rotation attempt
+  // (offline, site down) just tries again on the next command instead of blocking this one.
+  // `dryRun` is excluded since rotating writes a new credential, a real side effect a
+  // --dry-run run promises not to cause. `Rotate` overrides this to a no-op: its own `run()`
+  // already rotates unconditionally, so the background check would only redo the same work.
+  protected async maybeAutoRotate(): Promise<void> {
+    if (this.dryRun) return
+
+    const {token} = this.siteConfig
+    if (!token || !isAppPasswordStale(this.siteConfig.addedAt)) return
+
+    try {
+      const rotated = await rotateAppPassword({...this.siteConfig, token})
+      this.siteConfig = rotated
+      configManager.setEnvironment(this.projectId, rotated.name, rotated)
+    } catch {
+      // swallowed: see comment above
+    }
   }
 
   // Orphan cleanup shared by every pull command (see Push Deletion Rules in the product docs):
@@ -138,13 +165,12 @@ export abstract class LoopressCommand extends Command {
     return env
   }
 
-  private resolveEnvironment(envName?: string): EnvironmentConfig {
+  private resolveEnvironment(envName?: string): {env: EnvironmentConfig; projectId: string} {
     if (this.localConfig.projectId) {
-      const project = configManager.getProject(this.localConfig.projectId)
+      const {projectId} = this.localConfig
+      const project = configManager.getProject(projectId)
       if (!project) {
-        this.error(
-          `Project "${this.localConfig.projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`,
-        )
+        this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
       }
 
       const envNames = Object.keys(project.environments)
@@ -152,19 +178,19 @@ export abstract class LoopressCommand extends Command {
         this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
       }
 
-      if (envName) return this.pickEnvironment(project, envName)
+      if (envName) return {env: this.pickEnvironment(project, envName), projectId}
 
       if (envNames.length === 1) {
-        return project.environments[envNames[0]]
+        return {env: project.environments[envNames[0]], projectId}
       }
 
       const current = configManager.getCurrentProject()
-      const currentEnv = current?.id === this.localConfig.projectId ? configManager.getCurrentEnv() : null
+      const currentEnv = current?.id === projectId ? configManager.getCurrentEnv() : null
       if (!currentEnv) {
         this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
       }
 
-      return currentEnv
+      return {env: currentEnv, projectId}
     }
 
     if (envName) {
@@ -173,11 +199,12 @@ export abstract class LoopressCommand extends Command {
         this.error('No project configured. Run `lps project config` first.')
       }
 
-      return this.pickEnvironment(current, envName)
+      return {env: this.pickEnvironment(current, envName), projectId: current.id}
     }
 
     const env = configManager.getCurrentEnv()
-    if (env) return env
+    const current = configManager.getCurrentProject()
+    if (env && current) return {env, projectId: current.id}
 
     this.error('No environment configured. Run `lps project config` first.')
   }
