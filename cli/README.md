@@ -21,7 +21,7 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.17.0 darwin-arm64 node-v24.11.0
+@loopress/cli/0.19.0 darwin-arm64 node-v24.11.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
@@ -51,11 +51,13 @@ report.
 * [`lps acf pull [PATH]`](#lps-acf-pull-path)
 * [`lps acf push [PATH]`](#lps-acf-push-path)
 * [`lps api list`](#lps-api-list)
+* [`lps api publish [PATH]`](#lps-api-publish-path)
 * [`lps api pull [PATH]`](#lps-api-pull-path)
 * [`lps api push [PATH]`](#lps-api-push-path)
 * [`lps composer init`](#lps-composer-init)
 * [`lps composer pull`](#lps-composer-pull)
 * [`lps composer push`](#lps-composer-push)
+* [`lps doctor`](#lps-doctor)
 * [`lps form list`](#lps-form-list)
 * [`lps form pull [PATH]`](#lps-form-pull-path)
 * [`lps form push [PATH]`](#lps-form-push-path)
@@ -63,6 +65,9 @@ report.
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
+* [`lps page list`](#lps-page-list)
+* [`lps page pull [PATH]`](#lps-page-pull-path)
+* [`lps page push [PATH]`](#lps-page-push-path)
 * [`lps plugin add SLUG`](#lps-plugin-add-slug)
 * [`lps plugin pull`](#lps-plugin-pull)
 * [`lps plugin push`](#lps-plugin-push)
@@ -89,10 +94,11 @@ List ACF field groups, post types, taxonomies, and options pages from WordPress
 
 ```
 USAGE
-  $ lps acf list [-j] [--type field-groups|post-types|taxonomies|options-pages...]
+  $ lps acf list [--env <value>] [-j] [--type field-groups|post-types|taxonomies|options-pages...]
 
 FLAGS
   -j, --json              Output in JSON format
+      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
       --type=<option>...  Limit to specific ACF object types
                           <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -105,7 +111,7 @@ EXAMPLES
   $ lps acf list --type field-groups
 ```
 
-_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/acf/list.ts)_
+_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/acf/list.ts)_
 
 ## `lps acf pull [PATH]`
 
@@ -113,13 +119,15 @@ Pull ACF field groups, post types, taxonomies, and options pages from WordPress
 
 ```
 USAGE
-  $ lps acf pull [PATH] [-d] [--type field-groups|post-types|taxonomies|options-pages...]
+  $ lps acf pull [PATH] [--env <value>] [-d] [-y] [--type field-groups|post-types|taxonomies|options-pages...]
 
 ARGUMENTS
   [PATH]  Path to ACF directory (overrides project config)
 
 FLAGS
   -d, --dry-run           Show what would change without making changes
+  -y, --yes               Answer yes to confirmation prompts
+      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
       --type=<option>...  Limit to specific ACF object types
                           <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -132,7 +140,7 @@ EXAMPLES
   $ lps acf pull --type field-groups
 ```
 
-_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/acf/pull.ts)_
+_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/acf/pull.ts)_
 
 ## `lps acf push [PATH]`
 
@@ -140,13 +148,15 @@ Push ACF field groups, post types, taxonomies, and options pages to WordPress
 
 ```
 USAGE
-  $ lps acf push [PATH] [-d] [--type field-groups|post-types|taxonomies|options-pages...]
+  $ lps acf push [PATH] [--env <value>] [-d] [-y] [--type field-groups|post-types|taxonomies|options-pages...]
 
 ARGUMENTS
   [PATH]  Path to ACF directory (overrides project config)
 
 FLAGS
   -d, --dry-run           Show what would change without making changes
+  -y, --yes               Answer yes to confirmation prompts
+      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
       --type=<option>...  Limit to specific ACF object types
                           <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -159,7 +169,7 @@ EXAMPLES
   $ lps acf push --type field-groups
 ```
 
-_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/acf/push.ts)_
+_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/acf/push.ts)_
 
 ## `lps api list`
 
@@ -167,10 +177,11 @@ List custom API route files from WordPress
 
 ```
 USAGE
-  $ lps api list [-j]
+  $ lps api list [--env <value>] [-j]
 
 FLAGS
-  -j, --json  Output in JSON format
+  -j, --json         Output in JSON format
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   List custom API route files from WordPress
@@ -179,7 +190,30 @@ EXAMPLES
   $ lps api list
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/api/list.ts)_
+
+## `lps api publish [PATH]`
+
+Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.
+
+```
+USAGE
+  $ lps api publish [PATH]
+
+ARGUMENTS
+  [PATH]  Path to api directory (overrides project config)
+
+DESCRIPTION
+  Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any
+  WordPress site.
+
+EXAMPLES
+  $ lps api publish
+
+  $ lps api publish --path ./api
+```
+
+_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/api/publish.ts)_
 
 ## `lps api pull [PATH]`
 
@@ -187,13 +221,15 @@ Pull custom API route files from WordPress
 
 ```
 USAGE
-  $ lps api pull [PATH] [-d]
+  $ lps api pull [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to api directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Pull custom API route files from WordPress
@@ -204,7 +240,7 @@ EXAMPLES
   $ lps api pull --path ./api
 ```
 
-_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/api/pull.ts)_
+_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/api/pull.ts)_
 
 ## `lps api push [PATH]`
 
@@ -212,13 +248,15 @@ Push custom API route files to WordPress
 
 ```
 USAGE
-  $ lps api push [PATH] [-d]
+  $ lps api push [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to api directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push custom API route files to WordPress
@@ -229,7 +267,7 @@ EXAMPLES
   $ lps api push --path ./api
 ```
 
-_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/api/push.ts)_
+_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/api/push.ts)_
 
 ## `lps composer init`
 
@@ -237,10 +275,11 @@ Create a composer.json wired to WPackagist for installing WordPress.org plugins 
 
 ```
 USAGE
-  $ lps composer init [-d]
+  $ lps composer init [--env <value>] [-d]
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Create a composer.json wired to WPackagist for installing WordPress.org plugins and themes
@@ -251,7 +290,7 @@ EXAMPLES
   $ lps composer init --dry-run
 ```
 
-_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/composer/init.ts)_
+_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/composer/init.ts)_
 
 ## `lps composer pull`
 
@@ -259,10 +298,11 @@ Pull composer.json and composer.lock from WordPress
 
 ```
 USAGE
-  $ lps composer pull [-d]
+  $ lps composer pull [--env <value>] [-d]
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Pull composer.json and composer.lock from WordPress
@@ -273,7 +313,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -281,10 +321,12 @@ Push composer.json and composer.lock to WordPress and run composer install
 
 ```
 USAGE
-  $ lps composer push [-d]
+  $ lps composer push [--env <value>] [-d] [-y]
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push composer.json and composer.lock to WordPress and run composer install
@@ -295,7 +337,29 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/composer/push.ts)_
+
+## `lps doctor`
+
+Diagnose connectivity, plugin and credential problems for the targeted environment
+
+```
+USAGE
+  $ lps doctor [--env <value>]
+
+FLAGS
+  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Diagnose connectivity, plugin and credential problems for the targeted environment
+
+EXAMPLES
+  $ lps doctor
+
+  $ lps doctor --env production
+```
+
+_See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/doctor.ts)_
 
 ## `lps form list`
 
@@ -303,10 +367,11 @@ List forms from WordPress
 
 ```
 USAGE
-  $ lps form list [-j]
+  $ lps form list [--env <value>] [-j]
 
 FLAGS
-  -j, --json  Output in JSON format
+  -j, --json         Output in JSON format
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   List forms from WordPress
@@ -315,7 +380,7 @@ EXAMPLES
   $ lps form list
 ```
 
-_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/form/list.ts)_
+_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/form/list.ts)_
 
 ## `lps form pull [PATH]`
 
@@ -323,13 +388,15 @@ Pull forms from WordPress
 
 ```
 USAGE
-  $ lps form pull [PATH] [-d]
+  $ lps form pull [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to forms directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Pull forms from WordPress
@@ -338,7 +405,7 @@ EXAMPLES
   $ lps form pull
 ```
 
-_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/form/pull.ts)_
+_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/form/pull.ts)_
 
 ## `lps form push [PATH]`
 
@@ -346,13 +413,15 @@ Push forms to WordPress. Local files created or updated remotely are renamed on 
 
 ```
 USAGE
-  $ lps form push [PATH] [-d]
+  $ lps form push [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to forms directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json`
@@ -362,7 +431,7 @@ EXAMPLES
   $ lps form push
 ```
 
-_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/form/push.ts)_
+_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/form/push.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -382,7 +451,7 @@ DESCRIPTION
   Display help for lps.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.53/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.55/src/commands/help.ts)_
 
 ## `lps init`
 
@@ -399,7 +468,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -416,7 +485,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -433,7 +502,78 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/logout.ts)_
+
+## `lps page list`
+
+List pages from WordPress
+
+```
+USAGE
+  $ lps page list [--env <value>] [-j]
+
+FLAGS
+  -j, --json         Output in JSON format
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  List pages from WordPress
+
+EXAMPLES
+  $ lps page list
+```
+
+_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/page/list.ts)_
+
+## `lps page pull [PATH]`
+
+Pull pages from WordPress
+
+```
+USAGE
+  $ lps page pull [PATH] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to pages directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Pull pages from WordPress
+
+EXAMPLES
+  $ lps page pull
+```
+
+_See code: [src/commands/page/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/page/pull.ts)_
+
+## `lps page push [PATH]`
+
+Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.
+
+```
+USAGE
+  $ lps page push [PATH] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to pages directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.
+
+EXAMPLES
+  $ lps page push
+```
+
+_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/page/push.ts)_
 
 ## `lps plugin add SLUG`
 
@@ -441,13 +581,14 @@ Add a WordPress.org plugin to loopress.json
 
 ```
 USAGE
-  $ lps plugin add SLUG [-d]
+  $ lps plugin add SLUG [--env <value>] [-d]
 
 ARGUMENTS
   SLUG  Plugin slug on WordPress.org
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Add a WordPress.org plugin to loopress.json
@@ -458,7 +599,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/plugin/add.ts)_
 
 ## `lps plugin pull`
 
@@ -466,10 +607,11 @@ Pull installed plugins from WordPress into loopress.json
 
 ```
 USAGE
-  $ lps plugin pull [-d]
+  $ lps plugin pull [--env <value>] [-d]
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Pull installed plugins from WordPress into loopress.json
@@ -480,7 +622,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -488,10 +630,12 @@ Push plugins to WordPress to match loopress.json
 
 ```
 USAGE
-  $ lps plugin push [-d]
+  $ lps plugin push [--env <value>] [-d] [-y]
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push plugins to WordPress to match loopress.json
@@ -502,7 +646,7 @@ EXAMPLES
   $ lps plugin push --dry-run
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/plugin/push.ts)_
 
 ## `lps project config`
 
@@ -520,7 +664,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -537,7 +681,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/list.ts)_
 
 ## `lps project pull`
 
@@ -554,7 +698,7 @@ EXAMPLES
   $ lps project pull
 ```
 
-_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/pull.ts)_
+_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/pull.ts)_
 
 ## `lps project push`
 
@@ -562,7 +706,10 @@ Push locally configured projects, environments and credentials to your Loopress 
 
 ```
 USAGE
-  $ lps project push
+  $ lps project push [-y]
+
+FLAGS
+  -y, --yes  Answer yes to confirmation prompts
 
 DESCRIPTION
   Push locally configured projects, environments and credentials to your Loopress account
@@ -571,7 +718,7 @@ EXAMPLES
   $ lps project push
 ```
 
-_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/push.ts)_
+_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/push.ts)_
 
 ## `lps project remove`
 
@@ -588,7 +735,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/remove.ts)_
 
 ## `lps project switch`
 
@@ -605,7 +752,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/project/switch.ts)_
 
 ## `lps seo list`
 
@@ -613,10 +760,11 @@ List posts with SEO meta, and redirects if supported by the active SEO plugin, o
 
 ```
 USAGE
-  $ lps seo list [-j] [--post-type <value>...]
+  $ lps seo list [--env <value>] [-j] [--post-type <value>...]
 
 FLAGS
   -j, --json                  Output in JSON format
+      --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
       --post-type=<value>...  Limit to specific post types
 
 DESCRIPTION
@@ -628,7 +776,7 @@ EXAMPLES
   $ lps seo list --post-type post
 ```
 
-_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/seo/list.ts)_
+_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/seo/list.ts)_
 
 ## `lps seo pull [PATH]`
 
@@ -636,13 +784,15 @@ Pull SEO settings, post meta, and (if supported) redirects from WordPress
 
 ```
 USAGE
-  $ lps seo pull [PATH] [-d] [--post-type <value>...]
+  $ lps seo pull [PATH] [--env <value>] [-d] [-y] [--post-type <value>...]
 
 ARGUMENTS
   [PATH]  Path to SEO directory (overrides project config)
 
 FLAGS
   -d, --dry-run               Show what would change without making changes
+  -y, --yes                   Answer yes to confirmation prompts
+      --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
       --post-type=<value>...  Limit post meta to specific post types
 
 DESCRIPTION
@@ -654,7 +804,7 @@ EXAMPLES
   $ lps seo pull --post-type post --post-type page
 ```
 
-_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/seo/pull.ts)_
+_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/seo/pull.ts)_
 
 ## `lps seo push [PATH]`
 
@@ -662,13 +812,15 @@ Push SEO settings, post meta, and redirects to WordPress. Local redirect files c
 
 ```
 USAGE
-  $ lps seo push [PATH] [-d]
+  $ lps seo push [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to SEO directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to
@@ -678,7 +830,7 @@ EXAMPLES
   $ lps seo push
 ```
 
-_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/seo/push.ts)_
+_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/seo/push.ts)_
 
 ## `lps snippet list`
 
@@ -686,10 +838,11 @@ List snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet list [-j]
+  $ lps snippet list [--env <value>] [-j]
 
 FLAGS
-  -j, --json  Output in JSON format
+  -j, --json         Output in JSON format
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   List snippets from WordPress
@@ -698,7 +851,7 @@ EXAMPLES
   $ lps snippet list
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/snippet/list.ts)_
 
 ## `lps snippet publish [PATH]`
 
@@ -721,7 +874,7 @@ EXAMPLES
   $ lps snippet publish --path ./snippets
 ```
 
-_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/snippet/publish.ts)_
+_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -729,13 +882,15 @@ Pull snippets from WordPress
 
 ```
 USAGE
-  $ lps snippet pull [PATH] [-d]
+  $ lps snippet pull [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Pull snippets from WordPress
@@ -746,7 +901,7 @@ EXAMPLES
   $ lps snippet pull --path ./snippets
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -754,13 +909,15 @@ Push snippets to WordPress. Local snippet files created or updated remotely are 
 
 ```
 USAGE
-  $ lps snippet push [PATH] [-d]
+  $ lps snippet push [PATH] [--env <value>] [-d] [-y]
 
 ARGUMENTS
   [PATH]  Path to snippets directory (overrides project config)
 
 FLAGS
-  -d, --dry-run  Show what would change without making changes
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
   Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>`
@@ -772,7 +929,7 @@ EXAMPLES
   $ lps snippet push --path ./snippets
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/snippet/push.ts)_
 
 ## `lps status`
 
@@ -780,16 +937,21 @@ Show which WordPress project and environment commands will target
 
 ```
 USAGE
-  $ lps status
+  $ lps status [--env <value>]
+
+FLAGS
+  --env=<value>  Show what would be targeted with this environment, as other commands do with --env
 
 DESCRIPTION
   Show which WordPress project and environment commands will target
 
 EXAMPLES
   $ lps status
+
+  $ lps status --env staging
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/status.ts)_
 
 ## `lps telemetry disable`
 
@@ -806,7 +968,7 @@ EXAMPLES
   $ lps telemetry disable
 ```
 
-_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/telemetry/disable.ts)_
+_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/telemetry/disable.ts)_
 
 ## `lps telemetry enable`
 
@@ -823,5 +985,5 @@ EXAMPLES
   $ lps telemetry enable
 ```
 
-_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.17.0/src/commands/telemetry/enable.ts)_
+_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.19.0/src/commands/telemetry/enable.ts)_
 <!-- commandsstop -->

@@ -3,7 +3,7 @@ export function TerminalOnboarding() {
     <div className="overflow-hidden rounded-lg border border-border/80 bg-card/40 font-mono text-[13px] leading-relaxed backdrop-blur">
       <div className="flex items-center justify-between border-b border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
         <span>Terminal</span>
-        <span>30 seconds, start to finish</span>
+        <span>Under a minute, start to finish</span>
       </div>
       <div className="space-y-2 px-4 py-4 text-left">
         <div>
