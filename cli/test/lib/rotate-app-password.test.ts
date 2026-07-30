@@ -25,6 +25,7 @@ describe('rotateAppPassword', () => {
   let server: Server | undefined
   let requests: Array<{auth: string; method: string; url: string}>
   let verifyShouldFail: boolean
+  let createOmitsPassword: boolean
 
   afterEach(() => {
     server?.close()
@@ -34,6 +35,7 @@ describe('rotateAppPassword', () => {
   async function serve(): Promise<{env: EnvironmentConfig & {token: string}; url: string}> {
     requests = []
     verifyShouldFail = false
+    createOmitsPassword = false
 
     server = createServer((req: IncomingMessage, res: ServerResponse) => {
       requests.push({auth: req.headers.authorization ?? '', method: req.method ?? '', url: req.url ?? ''})
@@ -45,7 +47,7 @@ describe('rotateAppPassword', () => {
       if (req.method === 'GET' && req.url?.endsWith('/introspect')) {
         res.end(JSON.stringify({uuid: isNewToken ? NEW_UUID : OLD_UUID}))
       } else if (req.method === 'POST') {
-        res.end(JSON.stringify({password: NEW_TOKEN_PASSWORD, uuid: NEW_UUID}))
+        res.end(JSON.stringify(createOmitsPassword ? {uuid: NEW_UUID} : {password: NEW_TOKEN_PASSWORD, uuid: NEW_UUID}))
       } else if (req.method === 'DELETE') {
         res.end(JSON.stringify({deleted: true}))
       } else {
@@ -84,12 +86,29 @@ describe('rotateAppPassword', () => {
     expect(requests[3].auth).toBe(`Basic ${Buffer.from(`user:${NEW_TOKEN_PASSWORD}`).toString('base64')}`)
   })
 
-  it('never revokes the old credential when the new one fails to verify', async () => {
+  it('never revokes the old credential when the new one fails to verify, and cleans up the orphan instead', async () => {
     const {env} = await serve()
     verifyShouldFail = true
 
     await expect(rotateAppPassword(env)).rejects.toThrow()
 
-    expect(requests.some((r) => r.method === 'DELETE')).toBe(false)
+    const deletes = requests.filter((r) => r.method === 'DELETE')
+    expect(deletes).toHaveLength(1)
+    expect(deletes[0].url).toBe(`/wp-json/wp/v2/users/me/application-passwords/${NEW_UUID}`)
+    // cleaned up with the still-valid OLD credentials, since the new ones just failed to verify
+    expect(deletes[0].auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
+  })
+
+  it('throws a clear error, without ever calling the new credential, when creation omits a password', async () => {
+    const {env} = await serve()
+    createOmitsPassword = true
+
+    await expect(rotateAppPassword(env)).rejects.toThrow('did not return a password')
+
+    const methods = requests.map((r) => `${r.method} ${r.url}`)
+    expect(methods).toEqual([
+      'GET /wp-json/wp/v2/users/me/application-passwords/introspect',
+      'POST /wp-json/wp/v2/users/me/application-passwords',
+    ])
   })
 })
