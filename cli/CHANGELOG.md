@@ -1,5 +1,13 @@
 # @loopress/cli
 
+## 0.20.0
+
+### Minor Changes
+
+- 886fa43: Add `lps page pull`, `lps page push`, and `lps page list` to sync WordPress pages as files in Git. Talks directly to WordPress core's own REST API (`wp/v2/pages`), no Loopress plugin required. Each page is a pair of files: `<id>-<slug>.html` for the raw Gutenberg block content, a real file you can open and edit directly, and `<id>-<slug>.json` for everything else (title, slug, status, parent, menu_order, template, meta, excerpt...), filtered down to only the fields WordPress actually accepts back on write so readonly/computed noise that changes on every edit regardless of actual content (`_links`, `guid`, `modified`) doesn't produce a diff on every pull. `parent` round-trips as the source site's raw page id and isn't remapped across environments.
+- 9bbd03f: `lps project config` now detects when Loopress Full isn't installed on the target site and offers to install it automatically. Since Loopress Full is never distributed on wordpress.org and normally requires a manual zip upload in wp-admin, this closes that gap: after confirming, the CLI downloads the latest release, creates a temporary administrator account (the only way to get plugin-install rights from an application password), drives the wp-admin upload flow headlessly to install and activate the plugin, then removes the temporary account. If the automated install fails for any reason, the temporary account is still cleaned up and the CLI falls back to printing the downloaded zip's local path plus the direct upload URL so the install can be finished by hand.
+- 9a0bb9d: Add `lps project rotate` to replace the WordPress application password for the current (or `--env`) environment: it creates a new one, verifies it authenticates on its own, then revokes the old one, never the other way around, so a bad new credential can't lock you out. Every other command now also does this silently in the background once the stored credential is older than 90 days: best-effort, skipped during `--dry-run`, and a failed attempt (site unreachable) just retries on the next run instead of blocking the current command.
+
 ## 0.19.0
 
 ### Minor Changes
