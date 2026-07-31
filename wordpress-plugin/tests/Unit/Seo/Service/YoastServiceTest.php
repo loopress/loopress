@@ -123,6 +123,28 @@ class YoastServiceTest extends TestCase
         $this->assertSame(['_yoast_wpseo_old_field'], $deleted);
     }
 
+    // Regression coverage: the write loop used to accept any key in the request body,
+    // so a key belonging to another plugin (ACF, FluentCRM, etc.) on the same post could be
+    // silently overwritten. It must now be bounded to this provider's own prefix, same as reads.
+    public function test_upsert_post_meta_silently_ignores_a_key_outside_the_yoast_prefix(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
+        Functions\when('get_post_meta')->justReturn(['_yoast_wpseo_title' => ['Old title']]);
+
+        $updated = [];
+        Functions\when('update_post_meta')->alias(function (int $postId, string $key, mixed $value) use (&$updated): void {
+            $updated[$key] = $value;
+        });
+        Functions\when('delete_post_meta')->justReturn(true);
+
+        $this->service->upsertPostMeta('post', 'hello', [
+            '_yoast_wpseo_title' => 'New title',
+            'some_other_plugin_field' => 'should not be written',
+        ]);
+
+        $this->assertSame(['_yoast_wpseo_title' => 'New title'], $updated);
+    }
+
     // ── settings ─────────────────────────────────────────────────────────────
 
     public function test_get_settings_returns_the_stored_option(): void
