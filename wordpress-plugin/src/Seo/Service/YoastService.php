@@ -65,7 +65,13 @@ class YoastService implements SeoProvider
         }
 
         $existingKeys = array_keys($this->yoastMeta($post->ID));
-        $incomingKeys = array_keys($meta);
+        // Bounded to this provider's own prefix, symmetrically with the deletion loop below:
+        // without this, any key in the request body would be written as post meta, including
+        // one belonging to another plugin (ACF, FluentCRM, etc.) on the same post.
+        $incomingKeys = array_values(array_filter(
+            array_keys($meta),
+            fn(string $key): bool => str_starts_with($key, self::META_PREFIX)
+        ));
 
         foreach ($incomingKeys as $key) {
             update_post_meta($post->ID, $key, $meta[$key]);
