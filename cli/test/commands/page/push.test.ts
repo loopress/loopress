@@ -42,6 +42,11 @@ function loadFiles(path: string): Promise<LocalPage[]> {
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
 }
 
+// Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
+function notFoundError(): Error {
+  return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+}
+
 describe('page push', () => {
   let dir: string
 
@@ -248,11 +253,6 @@ describe('page push', () => {
 
       expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'New'})
     })
-
-    // Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
-    function notFoundError(): Error {
-      return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
-    }
 
     it('recreates a page whose local id no longer exists on the site, without the stale id in the create payload', async () => {
       writeFileSync(join(dir, '8-demo.html'), '<p>Hi</p>')
