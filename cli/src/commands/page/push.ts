@@ -152,10 +152,15 @@ export default class Push extends PushCommand {
           await this.ensureCanonicalFilename(page, id, title)
         } catch (error) {
           // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
-          // it instead of failing, and adopt whatever id the site assigns.
+          // it instead of failing, and adopt whatever id the site assigns. WordPress core
+          // rejects any POST that still carries a (now stale) `id` field with a 400 "Cannot
+          // create existing post", regardless of whether that id actually exists, so it must
+          // be stripped before falling back to create.
           if (!isNotFoundError(error)) throw error
 
-          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, payload)
+          const createPayload: Record<string, unknown> = {...payload}
+          delete createPayload.id
+          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, createPayload)
           const newId = getPageId(created)
           if (newId !== null) await this.ensureCanonicalFilename(page, newId, title)
         }
