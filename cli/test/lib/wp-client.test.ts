@@ -106,13 +106,22 @@ describe('WpClient', () => {
     await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Authentication failed \(401\).*lps project config/)
   })
 
-  it('maps a 404 to a friendly missing-plugin error', async () => {
+  it('maps a 404 with no error body to a friendly missing-plugin error', async () => {
     const client = await serve((req, res) => {
       res.writeHead(404)
       res.end('{}')
     })
 
     await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Endpoint not found \(404\)/)
+  })
+
+  it("surfaces the server's own error message on a 404 instead of the generic missing-plugin one", async () => {
+    const client = await serve((req, res) => {
+      res.writeHead(404, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify({error: 'composer.lock not found'}))
+    })
+
+    await expect(client.get('loopress/v1/composer/lock')).rejects.toThrow(/composer\.lock not found/)
   })
 
   it('maps other HTTP errors to a generic message with the status code', async () => {
@@ -148,8 +157,18 @@ describe('formatWpError', () => {
     }
   })
 
-  it('mentions the plugin on 404', () => {
-    expect(formatWpError({response: {statusCode: 404}}, url)).toContain('Is the required plugin installed')
+  it('mentions the plugin on a 404 with no error body', () => {
+    expect(formatWpError({response: {body: '{}', statusCode: 404}}, url)).toContain('Is the required plugin installed')
+  })
+
+  // Regression coverage: a Loopress controller can legitimately return 404 with its own
+  // {error} body for an applicative "not found" (e.g. composer/lock on a site that never
+  // had dependencies pushed). That message must win over the generic missing-plugin one.
+  it("prefers the server's own {error} message over the generic missing-plugin one on a 404", () => {
+    const body = JSON.stringify({error: 'composer.lock not found'})
+    const message = formatWpError({response: {body, statusCode: 404}}, url)
+    expect(message).toContain('composer.lock not found')
+    expect(message).not.toContain('Is the required plugin installed')
   })
 
   it("includes the server's own {error} message for other status codes", () => {
