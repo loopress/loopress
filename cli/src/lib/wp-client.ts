@@ -77,7 +77,10 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
   }
 
   if (status === 404) {
-    return `Endpoint not found (404) on ${url}. Is the required plugin installed and up to date on the site?`
+    const reason = extractServerErrorMessage(err.response?.body)
+    return reason
+      ? `Request failed (404) on ${url}: ${reason}`
+      : `Endpoint not found (404) on ${url}. Is the required plugin installed and up to date on the site?`
   }
 
   if (status !== undefined) {

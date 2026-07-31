@@ -42,6 +42,11 @@ function loadFiles(path: string): Promise<LocalPage[]> {
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
 }
 
+// Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
+function notFoundError(): Error {
+  return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+}
+
 describe('page push', () => {
   let dir: string
 
@@ -247,6 +252,29 @@ describe('page push', () => {
       })
 
       expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'New'})
+    })
+
+    it('recreates a page whose local id no longer exists on the site, without the stale id in the create payload', async () => {
+      writeFileSync(join(dir, '8-demo.html'), '<p>Hi</p>')
+      writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, title: 'Demo'}))
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockRejectedValueOnce(notFoundError())
+      const post = vi.fn().mockResolvedValueOnce({id: 99})
+      ;(cmd as unknown as PushWithPushPage).wpClient = {post, put}
+
+      await (cmd as unknown as PushWithPushPage).pushPage({
+        content: '<p>Hi</p>',
+        contentPath: join(dir, '8-demo.html'),
+        meta: {id: 8, title: 'Demo'},
+        metaPath: join(dir, '8-demo.json'),
+      })
+
+      expect(put).toHaveBeenCalledWith('wp/v2/pages/8', {content: '<p>Hi</p>', id: 8, title: 'Demo'})
+      // No `id` in the create payload: WordPress core rejects a POST that carries one with a
+      // 400 "Cannot create existing post", even when that id no longer exists on the site.
+      expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'Demo'})
+      expect(readdirSync(dir).sort()).toEqual(['99-demo.html', '99-demo.json'])
     })
   })
 })

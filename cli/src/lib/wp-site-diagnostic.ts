@@ -4,14 +4,24 @@ export const REQUEST_TIMEOUT_MS = 10_000
 
 export type DiagnosticResult = {ok: false; reason: string} | {ok: true}
 
+type WpIndexResponse = null | {authentication?: Record<string, unknown>}
+
 /**
  * Pre-flight checks run before starting the browser authorization flow, so failures
- * (unreachable site, blocked REST API, WordPress too old) surface as an actionable
- * message instead of a confusing timeout once the browser is already open.
+ * (unreachable site, blocked REST API, Application Passwords disabled) surface as an
+ * actionable message instead of a confusing timeout once the browser is already open.
+ *
+ * Whether Application Passwords are enabled can only be read from the `wp-json/` index:
+ * WordPress adds `authentication['application-passwords']` there when the feature is on
+ * (WP core, rest_add_application_passwords_to_index). The authorize-application.php page
+ * can't be probed for this instead, it sits behind the admin login wall, so an unauthenticated
+ * request just gets redirected to wp-login.php and never reaches the check that would say
+ * whether the feature is disabled.
  */
 export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult> {
+  let index: WpIndexResponse
   try {
-    await got.get(`${siteUrl}/wp-json/`, {timeout: {request: REQUEST_TIMEOUT_MS}})
+    index = await got.get(`${siteUrl}/wp-json/`, {timeout: {request: REQUEST_TIMEOUT_MS}}).json<WpIndexResponse>()
   } catch (error) {
     return {
       ok: false,
@@ -19,29 +29,10 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
     }
   }
 
-  try {
-    const response = await got.head(`${siteUrl}/wp-admin/authorize-application.php`, {
-      throwHttpErrors: false,
-      timeout: {request: REQUEST_TIMEOUT_MS},
-    })
-
-    if (response.statusCode === 404) {
-      return {
-        ok: false,
-        reason: `The application authorization page was not found on ${siteUrl}. This WordPress site may be older than 5.6, or the feature may be disabled by a plugin.`,
-      }
-    }
-
-    if (response.statusCode >= 400) {
-      return {
-        ok: false,
-        reason: `The application authorization page at ${siteUrl}/wp-admin/authorize-application.php returned an error (HTTP ${response.statusCode}).`,
-      }
-    }
-  } catch (error) {
+  if (!index?.authentication?.['application-passwords']) {
     return {
       ok: false,
-      reason: `Could not reach ${siteUrl}/wp-admin/authorize-application.php. (${describe(error)})`,
+      reason: `Application Passwords are not available on ${siteUrl}. The site may be older than WordPress 5.6, require HTTPS, or have the feature disabled by a plugin or filter.`,
     }
   }
 
