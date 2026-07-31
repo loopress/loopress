@@ -76,9 +76,11 @@ describe('composer pull', () => {
     const cmd = new TestComposerPull([], fakeOclifConfig)
     cmd.setup({dryRun: false, localConfig: {}, siteConfig: makeEnv('production', 'https://acme.com')})
     const logs = silenceLogs(cmd)
-    const notFound = Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+    const missingLock = Object.assign(new Error('not found'), {
+      cause: {response: {body: JSON.stringify({error: 'composer.lock not found'}), statusCode: 404}},
+    })
     const get = vi.fn((path: string) =>
-      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(notFound),
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(missingLock),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
 
@@ -87,6 +89,38 @@ describe('composer pull', () => {
     expect(readFileSync(join(dir, 'composer.json'), 'utf8')).toBe('{"name": "demo/site"}')
     expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('no composer.lock on this site yet'))
+  })
+
+  // Regression coverage: a bare 404 also covers the route being absent (plugin not installed,
+  // or an edition/version predating Composer support), which used to be silently read as "no
+  // lock yet" too, hiding the real problem behind a false success.
+  it('rethrows a 404 whose body is not the controller\'s missing-lock response (e.g. plugin not installed or outdated)', async () => {
+    const {cmd} = make(false)
+    const routeAbsent = Object.assign(new Error('Endpoint not found (404) on https://acme.com/wp-json/loopress/v1/composer/lock. Is the required plugin installed and up to date on the site?'), {
+      cause: {
+        response: {
+          body: JSON.stringify({code: 'rest_no_route', data: {status: 404}, message: 'No route was found matching the URL and request method.'}),
+          statusCode: 404,
+        },
+      },
+    })
+    const get = vi.fn((path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(routeAbsent),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await expect(cmd.run()).rejects.toThrow('Is the required plugin installed')
+  })
+
+  it('rethrows a 404 with no response body instead of treating it as "no lock yet"', async () => {
+    const {cmd} = make(false)
+    const notFound = Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+    const get = vi.fn((path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(notFound),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await expect(cmd.run()).rejects.toThrow('not found')
   })
 
   it('rethrows a non-404 failure from composer/lock instead of treating it as "no lock yet"', async () => {

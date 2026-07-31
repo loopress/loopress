@@ -53,6 +53,17 @@ describe('diagnoseWpSite', () => {
     expect(result).toEqual({ok: false, reason: expect.stringContaining('Application Passwords')})
   })
 
+  // Regression coverage: got's .json<T>() cast is unchecked, a server that literally returns
+  // the JSON document `null` (a misbehaving proxy or security plugin) used to crash with a
+  // TypeError instead of reaching this diagnostic.
+  it('reports Application Passwords as unavailable instead of throwing when the index body is null', async () => {
+    mockIndex(null)
+
+    const result = await diagnoseWpSite('https://example.com')
+
+    expect(result).toEqual({ok: false, reason: expect.stringContaining('Application Passwords')})
+  })
+
   it('passes when the index advertises application-passwords authentication', async () => {
     mockIndex({authentication: {'application-passwords': {endpoints: {authorization: 'https://example.com/wp-admin/authorize-application.php'}}}})
 

@@ -12,6 +12,23 @@ interface ComposerLockResponse {
   composerLock: string
 }
 
+// Narrower than isNotFoundError(): a bare 404 also covers the route being absent (plugin not
+// installed, or an edition/version predating Composer support), which must still surface the
+// normal "is the plugin installed?" guidance rather than being read as "no lock yet".
+function isMissingComposerLock(error: unknown): boolean {
+  if (!isNotFoundError(error)) return false
+
+  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
+  if (!body) return false
+
+  try {
+    const parsed = JSON.parse(body) as {error?: unknown}
+    return parsed.error === 'composer.lock not found'
+  } catch {
+    return false
+  }
+}
+
 export default class ComposerPull extends LoopressCommand {
   static description = 'Pull composer.json and composer.lock from WordPress'
   static examples = ['$ lps composer pull', '$ lps composer pull --dry-run']
@@ -27,12 +44,15 @@ export default class ComposerPull extends LoopressCommand {
     const {composerJson} = await this.wp.get<ComposerJsonResponse>('loopress/v1/composer/json')
 
     // A site that never had Composer dependencies pushed has no composer.lock yet: that's a
-    // legitimate applicative 404 from the Loopress controller, not a sign anything is broken.
+    // legitimate applicative 404 from the Loopress controller (ComposerController::get_lock(),
+    // body `{"error": "composer.lock not found"}`), not a sign anything is broken. Any other
+    // 404 (route absent because the plugin isn't installed or predates Composer support) must
+    // still surface the normal "is the plugin installed?" guidance instead of being swallowed.
     let composerLock: string | undefined
     try {
       ;({composerLock} = await this.wp.get<ComposerLockResponse>('loopress/v1/composer/lock'))
     } catch (error) {
-      if (!isNotFoundError(error)) throw error
+      if (!isMissingComposerLock(error)) throw error
     }
 
     if (this.dryRun) {

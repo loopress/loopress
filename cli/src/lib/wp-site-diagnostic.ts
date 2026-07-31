@@ -4,7 +4,7 @@ export const REQUEST_TIMEOUT_MS = 10_000
 
 export type DiagnosticResult = {ok: false; reason: string} | {ok: true}
 
-type WpIndexResponse = {authentication?: Record<string, unknown>}
+type WpIndexResponse = null | {authentication?: Record<string, unknown>}
 
 /**
  * Pre-flight checks run before starting the browser authorization flow, so failures
@@ -29,7 +29,7 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
     }
   }
 
-  if (!index.authentication?.['application-passwords']) {
+  if (!index?.authentication?.['application-passwords']) {
     return {
       ok: false,
       reason: `Application Passwords are not available on ${siteUrl}. The site may be older than WordPress 5.6, require HTTPS, or have the feature disabled by a plugin or filter.`,
