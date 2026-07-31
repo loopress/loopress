@@ -71,4 +71,32 @@ describe('composer pull', () => {
     expect(existsSync(join(dir, 'composer.json'))).toBe(false)
     expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
   })
+
+  it('writes composer.json alone when the site has no composer.lock yet, instead of failing', async () => {
+    const cmd = new TestComposerPull([], fakeOclifConfig)
+    cmd.setup({dryRun: false, localConfig: {}, siteConfig: makeEnv('production', 'https://acme.com')})
+    const logs = silenceLogs(cmd)
+    const notFound = Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+    const get = vi.fn((path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(notFound),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await cmd.run()
+
+    expect(readFileSync(join(dir, 'composer.json'), 'utf8')).toBe('{"name": "demo/site"}')
+    expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('no composer.lock on this site yet'))
+  })
+
+  it('rethrows a non-404 failure from composer/lock instead of treating it as "no lock yet"', async () => {
+    const {cmd} = make(false)
+    const serverError = Object.assign(new Error('server error'), {cause: {response: {statusCode: 500}}})
+    const get = vi.fn((path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(serverError),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await expect(cmd.run()).rejects.toThrow('server error')
+  })
 })
