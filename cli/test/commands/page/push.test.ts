@@ -115,6 +115,49 @@ describe('page push', () => {
 
       expect(pages).toEqual([])
     })
+
+    it('rethrows a readdir failure that is not ENOENT instead of silently returning no pages', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const eacces = Object.assign(new Error('EACCES'), {code: 'EACCES'})
+      const readdirMock = vi.spyOn(await import('node:fs/promises'), 'readdir').mockRejectedValueOnce(eacces)
+
+      await expect((cmd as unknown as PushWithLoadFiles).loadFiles(dir)).rejects.toThrow('EACCES')
+
+      readdirMock.mockRestore()
+    })
+
+    it('skips a sidecar that parses to valid JSON but not an object (e.g. a bare number)', async () => {
+      writeFileSync(join(dir, '1-not-an-object.html'), '<p>Not an object</p>')
+      writeFileSync(join(dir, '1-not-an-object.json'), '42')
+      writeFileSync(join(dir, '2-fine.html'), '<p>Fine</p>')
+      writeFileSync(join(dir, '2-fine.json'), JSON.stringify({id: 2}))
+
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+
+      const pages = await (cmd as unknown as PushWithLoadFiles).loadFiles(dir)
+
+      expect(pages).toHaveLength(1)
+      expect(pages[0].meta).toEqual({id: 2})
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('not a JSON object'))
+    })
+
+    // typeof null === 'object' in JS, so a literal JSON `null` sidecar only trips the explicit
+    // `=== null` half of the guard, not the `typeof !== 'object'` half covered by the number
+    // case above; both halves need their own case to be sure neither one is a no-op.
+    it('skips a sidecar that parses to a literal JSON null', async () => {
+      writeFileSync(join(dir, '1-null.html'), '<p>Null sidecar</p>')
+      writeFileSync(join(dir, '1-null.json'), 'null')
+
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+
+      const pages = await (cmd as unknown as PushWithLoadFiles).loadFiles(dir)
+
+      expect(pages).toHaveLength(0)
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('not a JSON object'))
+    })
   })
 
   describe('ensureCanonicalFilename', () => {
@@ -143,7 +186,7 @@ describe('page push', () => {
       expect(readdirSync(dir).sort()).toEqual(['5-foo.html', '5-foo.json'])
     })
 
-    it('leaves an already-canonical pair in place', async () => {
+    it('leaves an already-canonical pair in place, without calling rename at all', async () => {
       writeFileSync(join(dir, '6-hello.html'), '<p>Hi</p>')
       writeFileSync(join(dir, '6-hello.json'), JSON.stringify({id: 6}))
 
@@ -154,6 +197,9 @@ describe('page push', () => {
       )
 
       expect(readdirSync(dir).sort()).toEqual(['6-hello.html', '6-hello.json'])
+      // Same end state would also result from renaming a file to its own name, so the file
+      // listing alone doesn't prove the early-return branch actually ran.
+      expect(rename).not.toHaveBeenCalled()
     })
 
     it('slugifies a title with spaces and punctuation for the new filename', async () => {
@@ -219,25 +265,30 @@ describe('page push', () => {
 
     // A success reaches ensureCanonicalFilename, which renames real files on disk, so these two
     // need an actual pair in the temp dir first.
-    it('PUTs to wp/v2/pages/<id> with content merged into the metadata payload', async () => {
+    it('PUTs to wp/v2/pages/<id> with content merged into the metadata payload, and reports success on the task', async () => {
       writeFileSync(join(dir, 'demo.html'), '<p>Hi</p>')
       writeFileSync(join(dir, 'demo.json'), JSON.stringify({id: 8, title: 'Demo'}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
       const put = vi.fn().mockResolvedValueOnce({})
       ;(cmd as unknown as PushWithPushPage).wpClient = {post: vi.fn(), put}
+      const task = {output: ''}
 
-      await (cmd as unknown as PushWithPushPage).pushPage({
-        content: '<p>Hi</p>',
-        contentPath: join(dir, 'demo.html'),
-        meta: {id: 8, title: 'Demo'},
-        metaPath: join(dir, 'demo.json'),
-      })
+      await (cmd as unknown as PushWithPushPage).pushPage(
+        {
+          content: '<p>Hi</p>',
+          contentPath: join(dir, 'demo.html'),
+          meta: {id: 8, title: 'Demo'},
+          metaPath: join(dir, 'demo.json'),
+        },
+        task,
+      )
 
       expect(put).toHaveBeenCalledWith('wp/v2/pages/8', {content: '<p>Hi</p>', id: 8, title: 'Demo'})
+      expect(task.output).toBe('Pushed: Demo')
     })
 
-    it('POSTs a new page when there is no local id', async () => {
+    it('POSTs a new page when there is no local id, and renames the local file to the id WordPress assigned', async () => {
       writeFileSync(join(dir, 'new.html'), '<p>Hi</p>')
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
@@ -252,6 +303,28 @@ describe('page push', () => {
       })
 
       expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'New'})
+      // Regression coverage: nothing else in this test observes whether ensureCanonicalFilename
+      // actually ran after a successful create, only that `post` was called correctly.
+      expect(readdirSync(dir).sort()).toEqual(['42-new.html', '42-new.json'])
+    })
+
+    it('skips the network entirely on a dry run, and reports what would happen on the task', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      const post = vi.fn()
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushPage).wpClient = {post, put}
+      const task = {output: ''}
+
+      await (cmd as unknown as PushWithPushPage).pushPage(
+        {content: '<p>Hi</p>', contentPath: join(dir, 'new.html'), meta: {title: 'New'}, metaPath: join(dir, 'new.json')},
+        task,
+      )
+
+      expect(post).not.toHaveBeenCalled()
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toBe('[dry-run] Would push: New')
     })
 
     it('recreates a page whose local id no longer exists on the site, without the stale id in the create payload', async () => {

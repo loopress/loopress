@@ -116,6 +116,22 @@ class AcfServiceTest extends TestCase
         $this->service->upsert('acf-ui-options-page', ['key' => 'ui_options_page_1']);
     }
 
+    // Regression coverage: the message used to claim "ACF PRO may be required for options
+    // pages", confirmed wrong during the 5th/6th QA passes (options pages work without PRO on
+    // Secure Custom Fields). Pins the corrected wording so it can't silently drift back.
+    public function test_upsert_error_message_points_at_acf_add_options_page_not_acf_pro(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
+
+        try {
+            $this->service->upsert('acf-ui-options-page', ['key' => 'ui_options_page_1']);
+            $this->fail('Expected a RuntimeException.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('acf_add_options_page()', $e->getMessage());
+            $this->assertStringNotContainsString('PRO', $e->getMessage());
+        }
+    }
+
     public function test_upsert_creates_when_no_existing_post_is_found_by_key(): void
     {
         $capturedData = null;

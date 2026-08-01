@@ -24,9 +24,11 @@ describe('WpClient', () => {
   it('GETs a wp-json path with basic auth and parses the JSON response', async () => {
     let seenUrl = ''
     let seenAuth = ''
+    let seenMethod = ''
     const client = await serve((req, res) => {
       seenUrl = req.url ?? ''
       seenAuth = req.headers.authorization ?? ''
+      seenMethod = req.method ?? ''
       res.writeHead(200, {'Content-Type': 'application/json'})
       res.end(JSON.stringify([{slug: 'akismet'}]))
     })
@@ -36,6 +38,7 @@ describe('WpClient', () => {
     expect(result).toEqual([{slug: 'akismet'}])
     expect(seenUrl).toBe('/wp-json/loopress/v1/plugins')
     expect(seenAuth).toBe(`Basic ${Buffer.from('user:pass').toString('base64')}`)
+    expect(seenMethod).toBe('GET')
   })
 
   it('POSTs a JSON body', async () => {
@@ -219,5 +222,28 @@ describe('formatWpError', () => {
 
   it('falls back to the original message for network errors', () => {
     expect(formatWpError(new Error('ECONNREFUSED'), url)).toContain('ECONNREFUSED')
+  })
+
+  // Regression coverage: `err.message ?? String(error)` only distinguishes itself from
+  // `err.message && String(error)` when message is actually absent, an Error's message is
+  // always truthy in the test above so both operators produce a message containing the same
+  // text. A thrown value with no `.message` at all is the case that tells them apart.
+  it('falls back to String(error) when the thrown value has no message property at all', () => {
+    expect(formatWpError('a plain string error', url)).toBe('Request to https://example.com/wp-json/loopress/v1/plugins failed: a plain string error')
+  })
+
+  it('treats a whitespace-only {error} field the same as an absent one', () => {
+    const message = formatWpError({response: {body: JSON.stringify({error: '   '}), statusCode: 500}}, url)
+    expect(message).toBe(`Request failed (500) on ${url}.`)
+  })
+
+  it('treats a whitespace-only {output} field the same as an absent one', () => {
+    const message = formatWpError({response: {body: JSON.stringify({output: '   '}), statusCode: 500}}, url)
+    expect(message).toBe(`Request failed (500) on ${url}.`)
+  })
+
+  it('falls back to the generic message when the response has no body at all (not even an empty one)', () => {
+    const message = formatWpError({response: {statusCode: 500}}, url)
+    expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 })

@@ -91,6 +91,31 @@ describe('composer pull', () => {
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('no composer.lock on this site yet'))
   })
 
+  // Regression coverage: the dry-run message only distinguished "would write both files" from
+  // "would write composer.json alone" once composer.lock's presence was actually checked; a
+  // false-positive here (still claiming "and composer.lock") would mislead a dry run into
+  // promising a file that never gets written on the real run.
+  it('reports only composer.json in the dry-run message when the site has no composer.lock yet', async () => {
+    const cmd = new TestComposerPull([], fakeOclifConfig)
+    cmd.setup({dryRun: true, localConfig: {}, siteConfig: makeEnv('production', 'https://acme.com')})
+    const logs = silenceLogs(cmd)
+    const missingLock = Object.assign(new Error('not found'), {
+      cause: {response: {body: JSON.stringify({error: 'composer.lock not found'}), statusCode: 404}},
+    })
+    const get = vi.fn((path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(missingLock),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await cmd.run()
+
+    // Exact match, not a substring check: the fixed "Pulling composer.json and composer.lock
+    // from..." banner logged unconditionally above also contains "and composer.lock", so only
+    // an exact match on this specific line proves the dry-run message itself doesn't.
+    expect(logs.log).toHaveBeenCalledWith('[dry-run] Would write composer.json')
+    expect(existsSync(join(dir, 'composer.json'))).toBe(false)
+  })
+
   // Regression coverage: a bare 404 also covers the route being absent (plugin not installed,
   // or an edition/version predating Composer support), which used to be silently read as "no
   // lock yet" too, hiding the real problem behind a false success.

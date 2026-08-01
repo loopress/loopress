@@ -1,7 +1,22 @@
-import {rmSync, writeFileSync} from 'node:fs'
+import {existsSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test} from './helpers/environment.js'
+
+// Regression coverage: `composer pull` used to treat the plugin's own `{"error": "composer.lock
+// not found"}` response (a legitimate "nothing pushed yet" 404) the same as a route genuinely
+// missing (plugin absent/outdated), always failing with "Is the required plugin installed?"
+// instead of writing composer.json alone. Must run before any other test in this file pushes a
+// package: `composer push` has the server resolve and write a real composer.lock, which would
+// make this fresh-site precondition false on a second run within the same suite.
+test('pulls composer.json alone from a site that has never received a composer push', async ({projectDir, runCli}) => {
+  const result = await runCli(['composer', 'pull'])
+
+  expect(result.exitCode, result.stderr).toBe(0)
+  expect(result.stdout).toContain('no composer.lock on this site yet')
+  expect(existsSync(join(projectDir, 'composer.json'))).toBe(true)
+  expect(existsSync(join(projectDir, 'composer.lock'))).toBe(false)
+})
 
 // Regression coverage: the REST schema for composerLock used to reject the explicit `null`
 // the CLI sends when there is no composer.lock yet, so this exact scenario always failed.
