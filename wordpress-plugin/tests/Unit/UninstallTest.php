@@ -38,7 +38,7 @@ class UninstallTest extends TestCase
     {
         $dir = $this->makeTempPluginCopy(withVendor: true);
         $contentDir = $dir . '/wp-content';
-        mkdir($contentDir . '/loopress', 0777, true);
+        mkdir($contentDir . '/loopress', 0777, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
 
         define('WP_CONTENT_DIR', $contentDir);
         define('WP_UNINSTALL_PLUGIN', true);
@@ -53,7 +53,7 @@ class UninstallTest extends TestCase
     private function makeTempPluginCopy(bool $withVendor): string
     {
         $dir = sys_get_temp_dir() . '/loopress-uninstall-test-' . uniqid();
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0777, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
         copy(dirname(__DIR__, 2) . '/uninstall.php', $dir . '/uninstall.php');
 
         if ($withVendor) {
@@ -61,8 +61,8 @@ class UninstallTest extends TestCase
             // uninstall.php's real `use`/`new Filesystem()` code path without pulling in the
             // real composer vendor tree, and records calls instead of touching the real
             // filesystem beyond this temp dir.
-            mkdir($dir . '/vendor', 0777, true);
-            file_put_contents(
+            mkdir($dir . '/vendor', 0777, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+            file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
                 $dir . '/vendor/autoload.php',
                 "<?php\n" .
                 "namespace Symfony\\Component\\Filesystem;\n" .
@@ -83,9 +83,9 @@ class UninstallTest extends TestCase
         }
 
         foreach (new FilesystemIterator($dir) as $item) {
-            $item->isDir() ? $this->removeDirRecursive($item->getPathname()) : unlink($item->getPathname());
+            $item->isDir() ? $this->removeDirRecursive($item->getPathname()) : unlink($item->getPathname()); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
         }
 
-        rmdir($dir);
+        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
     }
 }

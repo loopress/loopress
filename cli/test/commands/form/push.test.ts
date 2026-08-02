@@ -54,10 +54,12 @@ describe('form push', () => {
 
   describe('loadFiles', () => {
     it('reads a well-formed .json file', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, '9-contact.json'), JSON.stringify({id: 9, settings: {form_title: 'Contact'}}))
 
       const forms = await loadFiles(dir)
 
+      // eslint-disable-next-line camelcase
       expect(forms).toEqual([{data: {id: 9, settings: {form_title: 'Contact'}}, filePath: join(dir, '9-contact.json')}])
     })
 
@@ -142,6 +144,7 @@ describe('form push', () => {
     })
 
     it('leaves an already-canonical file in place, without calling rename at all', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, '6-hello.json'), JSON.stringify({id: 6, settings: {form_title: 'hello'}}))
 
       await ensureCanonicalFilename(join(dir, '6-hello.json'), 6, 'hello')
@@ -176,6 +179,7 @@ describe('form push', () => {
       const task = {output: ''}
 
       await expect(
+        // eslint-disable-next-line camelcase
         (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task),
       ).rejects.toThrow('boom')
 
@@ -190,6 +194,7 @@ describe('form push', () => {
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
       ;(cmd as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
 
+      // eslint-disable-next-line camelcase
       await expect((cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}})).rejects.toThrow(
         'boom',
       )
@@ -199,6 +204,7 @@ describe('form push', () => {
     })
 
     it('PUTs to loopress/v1/forms/<id> and renames the file to the canonical name', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, 'demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
@@ -206,22 +212,28 @@ describe('form push', () => {
       ;(cmd as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
       const task = {output: ''}
 
+      // eslint-disable-next-line camelcase
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task)
 
+      // eslint-disable-next-line camelcase
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
       expect(task.output).toBe('Pushed: Demo')
       expect(readdirSync(dir).sort()).toEqual(['8-demo.json'])
     })
 
     it('POSTs a new form when there is no local id, and renames the local file to the id WordPress assigned', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, 'new.json'), JSON.stringify({settings: {form_title: 'New'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      // eslint-disable-next-line camelcase
       const post = vi.fn().mockResolvedValueOnce({id: 42, settings: {form_title: 'New'}})
       ;(cmd as unknown as PushWithPushForm).wpClient = {post, put: vi.fn()}
 
+      // eslint-disable-next-line camelcase
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'new.json'), {settings: {form_title: 'New'}})
 
+      // eslint-disable-next-line camelcase
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {settings: {form_title: 'New'}})
       expect(readdirSync(dir).sort()).toEqual(['42-new.json'])
     })
@@ -235,6 +247,7 @@ describe('form push', () => {
       ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
       const task = {output: ''}
 
+      // eslint-disable-next-line camelcase
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'new.json'), {settings: {form_title: 'New'}}, task)
 
       expect(post).not.toHaveBeenCalled()
@@ -243,21 +256,27 @@ describe('form push', () => {
     })
 
     it('recreates a form whose local id no longer exists on the site', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
       const put = vi.fn().mockRejectedValueOnce(notFoundError())
+      // eslint-disable-next-line camelcase
       const post = vi.fn().mockResolvedValueOnce({id: 99, settings: {form_title: 'Demo'}})
       ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
 
+      // eslint-disable-next-line camelcase
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}})
 
+      // eslint-disable-next-line camelcase
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
+      // eslint-disable-next-line camelcase
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {id: 8, settings: {form_title: 'Demo'}})
       expect(readdirSync(dir).sort()).toEqual(['99-demo.json'])
     })
 
     it('rethrows a PUT failure that is not a 404 instead of falling back to create', async () => {
+      // eslint-disable-next-line camelcase
       writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
@@ -266,6 +285,7 @@ describe('form push', () => {
       ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
 
       await expect(
+        // eslint-disable-next-line camelcase
         (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}}),
       ).rejects.toThrow('server error')
 

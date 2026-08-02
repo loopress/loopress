@@ -14,6 +14,7 @@ function makeCmd(argv: string[]) {
 describe('form list', () => {
   it('fetches the forms endpoint and lists id + title in the default (human-readable) output', async () => {
     const {cmd, logs} = makeCmd([])
+    // eslint-disable-next-line camelcase
     const get = vi.fn().mockResolvedValueOnce([{id: 3, settings: {form_title: 'Contact'}}])
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
@@ -26,6 +27,7 @@ describe('form list', () => {
 
   it('shows "(no id)" for a form with no usable id', async () => {
     const {cmd, logs} = makeCmd([])
+    // eslint-disable-next-line camelcase
     const get = vi.fn().mockResolvedValueOnce([{settings: {form_title: 'No Id'}}])
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
@@ -47,6 +49,7 @@ describe('form list', () => {
 
   it('outputs valid JSON of the raw forms array when --json is passed', async () => {
     const {cmd, logs} = makeCmd(['--json'])
+    // eslint-disable-next-line camelcase
     const forms = [{id: 3, settings: {form_title: 'Contact'}}]
     const get = vi.fn().mockResolvedValueOnce(forms)
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
