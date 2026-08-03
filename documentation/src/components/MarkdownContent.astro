@@ -1,0 +1,52 @@
+---
+import Default from "@astrojs/starlight/components/MarkdownContent.astro";
+import StarlightBlogMarkdownContent from "starlight-blog/components/MarkdownContent.astro";
+
+const { entry } = Astro.locals.starlightRoute;
+const isBlogPost = entry.id.startsWith("blog/");
+const { cliVersion, wordpressPluginVersion } = entry.data;
+---
+
+{
+	isBlogPost && (cliVersion || wordpressPluginVersion) && (
+		<p class="published-with not-content">
+			Published with
+			{wordpressPluginVersion && (
+				<>
+					{" "}
+					Loopress WordPress plugin <code>{wordpressPluginVersion}</code>
+				</>
+			)}
+			{wordpressPluginVersion && cliVersion && " and"}
+			{cliVersion && (
+				<>
+					{" "}
+					Loopress CLI <code>{cliVersion}</code>
+				</>
+			)}
+			.
+		</p>
+	)
+}
+{
+	isBlogPost ? (
+		<StarlightBlogMarkdownContent>
+			<slot />
+		</StarlightBlogMarkdownContent>
+	) : (
+		<Default>
+			<slot />
+		</Default>
+	)
+}
+
+<style>
+	.published-with {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+		margin-block-end: 1rem;
+	}
+	.published-with code {
+		font-size: inherit;
+	}
+</style>

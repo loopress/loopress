@@ -32,7 +32,7 @@ npm install -g @loopress/cli
 ## Requirements
 
 - Node.js 18+
-- The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage
+- The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage. `lps project config` installs it for you automatically if it's missing, see below.
 - A WordPress installation with either [WPCode](https://wpcode.com/) or [Code Snippets](https://wordpress.org/plugins/code-snippets/) active (for snippet commands; the Loopress WordPress plugin detects whichever one is installed)
 - A WordPress administrator account. `lps project config` creates the [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) used for authentication automatically, no manual setup needed
 
@@ -81,6 +81,8 @@ You will be prompted for:
 | How to authenticate | **Authorize in my browser (recommended)** or **Enter credentials manually** |
 
 By default the CLI runs a quick diagnostic against your site, then opens your browser to log in to WordPress and creates an Application Password for you automatically, no copy-pasting required. If the diagnostic fails or the browser flow can't complete, it falls back to manual entry (WordPress username + an Application Password you generate yourself under **Users → Profile → Application Passwords**, see [troubleshooting](/application-passwords/) if the section is missing). You can also choose manual entry upfront from the authentication prompt.
+
+If Loopress Full isn't active on the site yet, `project config` then offers to install it for you, after a confirmation prompt: it downloads the latest release, creates a temporary administrator account, uploads and activates the plugin through a headless local browser, then deletes the temporary account. This step is independent of which authentication mode you chose above. If the automatic install can't complete (some managed hosts block file uploads via `DISALLOW_FILE_MODS`), the command falls back to instructions for a manual upload, see [Installation](/wordpress-plugin/#installation).
 
 ### Manage multiple projects and environments
 

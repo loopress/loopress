@@ -5,7 +5,7 @@ description: Push, pull and list Advanced Custom Fields configuration from the c
 
 The `acf` command group lets you version-control [Advanced Custom Fields](https://www.advancedcustomfields.com/) configuration as plain JSON files in Git: field groups, post types, taxonomies, and options pages.
 
-Requires ACF to be installed and active on the WordPress site. Options pages additionally require ACF PRO.
+Requires ACF to be installed and active on the WordPress site, either ACF PRO or the free [Secure Custom Fields](https://wordpress.org/plugins/secure-custom-fields/) fork. Options pages must be registered with `acf_add_options_page()` for pull/push to see them.
 
 ## Typical workflow
 

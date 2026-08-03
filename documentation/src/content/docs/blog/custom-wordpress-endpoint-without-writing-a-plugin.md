@@ -3,6 +3,8 @@ title: Ship a Custom WordPress Endpoint Without Writing a Plugin
 description: Custom API Routes turn a version-controlled PHP file into a live WordPress REST endpoint. Write a class, push it, call it. No plugin boilerplate.
 date: 2026-07-26
 draft: false
+cliVersion: 0.19.0
+wordpressPluginVersion: 2026.7.15
 authors:
   - maxime
 tags:
