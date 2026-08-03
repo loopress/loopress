@@ -144,7 +144,7 @@ test('push fails clearly for an options page on ACF Free instead of silently no-
   const result = await runCli(['acf', 'push', '--type', 'options-pages'])
 
   expect(result.exitCode).not.toBe(0)
-  expect(unwrap(result.stderr)).toContain('ACF PRO may be required for options pages')
+  expect(unwrap(result.stderr)).toContain('make sure it was added with acf_add_options_page()')
 })
 
 test.describe('ACF plugin inactive', () => {
