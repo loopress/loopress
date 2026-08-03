@@ -1,6 +1,6 @@
 ---
-title: Use a Composer Package Inside a Custom API Route, No Autoloader Required
-description: Custom API Routes and Composer dependency management both ship with Loopress Full. Combined, a route file can `use` any installed package directly, no autoloader require, no plugin to write.
+title: Enrich WordPress Data With a Live External API, Using Composer in a Route
+description: WP_Query already covers anything your site holds locally. A Custom API Route pulling in a Composer package is how you reach past that, a currency rate, a shipping quote, any data your site doesn't have.
 date: 2026-08-03
 draft: false
 cliVersion: 0.20.1
@@ -12,12 +12,16 @@ tags:
   - rest api
   - wordpress
   - php
-excerpt: You've installed a Composer package on WordPress through Loopress, and you've deployed a Custom API Route. Put them in the same file and one line most Composer-in-WordPress code needs disappears entirely.
+excerpt: A Custom API Route can hold real WordPress data and live data from somewhere else in the same response. Here's what that looks like, and the one line of Composer-in-WordPress boilerplate it skips along the way.
 ---
 
-Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint. Used together, one of them gets noticeably simpler.
+Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint. Combined, a route can hand back WordPress data blended with data WordPress never had in the first place.
 
-## The line you'd expect to write
+## Why reach for a package at all
+
+`WP_Query` (or `get_posts()`) already covers anything the site itself holds: posts, pages, meta, taxonomies. A Composer package earns its place in a route the moment the data has to come from outside the site: a currency rate, a shipping quote, a weather advisory, an address geocoded before it's saved. An HTTP client is the obvious example, but it's not the only one, a PDF generator, a CSV parser, a validation library, anything on Packagist works the same way once it's inside a route file.
+
+## The line you don't have to write
 
 Using a Composer package anywhere else in WordPress, a snippet, `functions.php`, means loading the autoloader yourself first:
 
@@ -127,11 +131,11 @@ lps api push
 curl "https://your-site.com/wp-json/loopress-api/v1/prices-in-currency?currency=EUR"
 ```
 
-```json
-[{"title":"Weekender Backpack","link":"https://your-site.com/weekender-backpack/","priceUsd":89,"converted":{"currency":"EUR","amount":82.14}}]
-```
+No page in the reference demo actually has a `price` set, so that specific instance answers `[]`, a correct, empty response, not a broken one. On a site with a "Consulting Retainer" page priced at 250 USD, the same route answers:
 
-`WP_Query` (or here, `get_posts()`) already covers anything the site itself holds. Guzzle earns its place the moment the data has to come from outside the site: a currency rate, a shipping quote, a weather advisory, an address geocoded before it's saved. That's the actual reason to reach for an HTTP client instead of the many other things on Packagist a route could just as easily `use`, a PDF generator, a CSV parser, a validation library, none of which touch the network at all.
+```json
+[{"title":"Consulting Retainer","link":"https://your-site.com/consulting-retainer/","priceUsd":250,"converted":{"currency":"EUR","amount":230.25}}]
+```
 
 ## Same safety net as everywhere else
 
