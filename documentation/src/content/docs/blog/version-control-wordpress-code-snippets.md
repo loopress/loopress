@@ -3,6 +3,8 @@ title: Version Control Your WordPress Code Snippets
 description: Code Snippets are code. They deserve Git history, diffs, and rollbacks, not a copy-paste from the admin panel.
 date: 2026-07-29
 draft: false
+cliVersion: 0.19.0
+wordpressPluginVersion: 2026.7.15
 authors:
   - maxime
 tags:

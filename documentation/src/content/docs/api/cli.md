@@ -4,7 +4,7 @@ description: Deploy custom WordPress REST API endpoints from version-controlled 
 ---
 
 :::note
-`api` talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
+`pull`, `push`, and `list` below talk to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using those commands. `publish` is the exception: it uploads to your Loopress account, not to WordPress, so it doesn't depend on which plugin edition is installed.
 :::
 
 The `api` command group lets you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required. See [Writing Route Files](/api/routes/) for everything a route file can do: request handling, responses, authentication, CORS, and the security model.
@@ -26,7 +26,7 @@ lps api push
 
 ## The local directory
 
-All three commands operate on one local directory, resolved the same way:
+`pull`, `push`, and `publish` each operate on one local directory, resolved the same way:
 
 1. The `path` argument, if given
 2. The `apiDir` key in the project's `loopress.json`, if set
@@ -111,6 +111,29 @@ Found 2 route files:
 
   hello-world
   webhook-handler
+```
+
+---
+
+### `lps api publish`
+
+Publish local route files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
+
+Requires `lps login` first, and the current project must be linked to your Loopress account (`lps project push`).
+
+```bash
+lps api publish [path]
+```
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `path` | `./api` (or `loopress.json`'s `apiDir`) | Local directory to read `.php` files from |
+
+**Example:**
+
+```bash
+lps api publish
+lps api publish ./api
 ```
 
 ## File format

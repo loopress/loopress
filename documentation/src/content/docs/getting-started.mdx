@@ -1,37 +1,28 @@
 ---
 title: Getting Started
-description: Install the Loopress plugin and CLI and sync your first snippet in about 3 minutes.
+description: Install the CLI and connect it to your WordPress site in under a minute.
 ---
-
-import PluginDownload from '../../components/PluginDownload.astro';
 
 Loopress has two parts: a WordPress plugin and a CLI.
 
-The plugin works standalone, straight from the WordPress admin, for Composer dependency management and code snippet migration. The CLI requires the plugin to be installed and active on the site you want to manage.
+The plugin works standalone, straight from the WordPress admin, for Composer dependency management and code snippet migration. The CLI requires the plugin to be installed and active on the site you want to manage, `lps project config` installs it for you automatically if it's missing, no manual upload needed.
 
 ## Prerequisites
 
 - A WordPress installation (6.0+) with administrator access
 - PHP 8.2+ on the server
 - Node.js 18+ on your machine, for the CLI
+- A local Chrome, Edge, or Chromium install, only needed for the automatic plugin install below
 
-## Quick start (about 3 minutes)
+## Quick start (under a minute)
 
-### 1. Install the Loopress plugin
-
-<PluginDownload edition="full" />
-
-Upload `loopress-full.zip` via **Plugins → Add New → Upload Plugin**, then activate it. See the [plugin page](/wordpress-plugin/) for details. Loopress Full is the recommended default: it includes everything below plus code snippet sync and Composer dependency management, at no extra cost. If you only need ACF and SEO sync, install [Loopress Light](/wordpress-plugin/) (`loopress-light.zip`) instead, it doesn't include snippet sync or Composer support.
-
-This step is required before the CLI can talk to the site.
-
-### 2. Install the CLI
+### 1. Install the CLI
 
 ```bash
 npm install -g @loopress/cli
 ```
 
-### 3. Connect it to your site
+### 2. Connect it to your site
 
 ```bash
 lps project config
@@ -39,7 +30,9 @@ lps project config
 
 Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically. If it can't complete (or you'd rather enter credentials yourself), fall back to manual entry, see the [Application Passwords guide](/application-passwords/) if you can't find that section in your WordPress admin.
 
-### 4. Sync your first snippets
+If Loopress Full isn't active on the site yet, `project config` offers to install it for you: it downloads the latest release, creates a temporary administrator account, uploads and activates the plugin through a headless browser, then deletes the temporary account, all with a confirmation prompt before anything is created. If the automatic install can't complete (some managed hosts block file uploads via `DISALLOW_FILE_MODS`), the command falls back to instructions for a manual upload, see the [plugin page](/wordpress-plugin/) either way.
+
+### 3. Sync your first snippets
 
 ```bash
 # Download your existing snippets as .php files
