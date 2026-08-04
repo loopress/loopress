@@ -21,6 +21,8 @@ Two Loopress Full features, each useful on their own: [Composer dependency manag
 
 `WP_Query` (or `get_posts()`) already covers anything the site itself holds: posts, pages, meta, taxonomies. A Composer package earns its place in a route the moment a request needs something WordPress doesn't have on its own: a currency rate from another service, a PDF built for a download link, a CSV parsed from an upload, a payload checked against a validation library before it touches the database. Once a route file can `use` a package, all of that is ordinary PHP, not a special case.
 
+This matters most when WordPress is used as a headless CMS: a separate frontend (Next.js, Astro) consuming `wp-json` and rendering nothing of its own. There's no theme, no template, nowhere else for that logic to live, every capability a request needs has to be in the route itself. That's exactly where a route being limited to what `WP_Query` already knows would start to hurt.
+
 ## The line you don't have to write
 
 Using a Composer package anywhere else in WordPress, a snippet, `functions.php`, means loading the autoloader yourself first:
