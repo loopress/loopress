@@ -1,0 +1,39 @@
+{
+  "name": "@loopress/mcp",
+  "description": "MCP server exposing Loopress CLI operations (snippet/page/api/plugin/composer push/pull, project status) as tool calls for AI agents",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "lps-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "scripts": {
+    "build": "shx rm -rf dist && tsc -b",
+    "dev": "tsx src/server.ts",
+    "lint": "eslint",
+    "test": "vitest run",
+    "posttest": "pnpm run lint"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/compat": "2.1.0",
+    "@loopress/eslint-config": "workspace:*",
+    "@types/node": "26.1.2",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10",
+    "prettier": "3.9.6",
+    "shx": "^0.4.0",
+    "tsx": "4.23.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "license": "MPL-2.0"
+}
