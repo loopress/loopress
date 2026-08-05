@@ -63,4 +63,26 @@ describe('confirm-tokens', () => {
 
     expect(consumed.ok).toBe(true)
   })
+
+  it('prunes expired entries on the next create instead of growing forever', () => {
+    const {confirmToken: stale} = createConfirmation('snippet_push', ['snippet', 'push'])
+
+    vi.advanceTimersByTime(5 * 60 * 1000 + 1)
+    createConfirmation('page_push', ['page', 'push'])
+
+    // The stale entry is gone from the store entirely (not just logically expired): consuming
+    // it now looks unknown, the same as a token that was never issued.
+    expect(consumeConfirmation('snippet_push', stale).ok).toBe(false)
+  })
+
+  it('caps the number of pending previews, evicting the oldest once full', () => {
+    let firstToken = ''
+    for (let i = 0; i < 101; i++) {
+      const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push', String(i)])
+      if (i === 0) firstToken = confirmToken
+    }
+
+    // The 101st confirmation evicted the very first one to stay at the cap.
+    expect(consumeConfirmation('snippet_push', firstToken).ok).toBe(false)
+  })
 })

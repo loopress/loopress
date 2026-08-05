@@ -2,6 +2,10 @@ import {randomUUID} from 'node:crypto'
 
 const TTL_MS = 5 * 60 * 1000
 
+// ponytail: an abandoned preview (an agent that never calls back with the token) would
+// otherwise sit in the Map until the process restarts. Hard cap, not a real LRU cache.
+const MAX_PENDING = 100
+
 interface PendingConfirmation {
   args: string[]
   expiresAt: number
@@ -12,7 +16,23 @@ interface PendingConfirmation {
 // a shared/clustered MCP server would need external storage instead.
 const pending = new Map<string, PendingConfirmation>()
 
+function pruneExpired(): void {
+  const now = Date.now()
+  for (const [token, entry] of pending) {
+    if (now > entry.expiresAt) pending.delete(token)
+  }
+}
+
 export function createConfirmation(tool: string, args: string[]): {confirmToken: string; expiresAt: string} {
+  pruneExpired()
+
+  // Still at capacity after pruning (a burst of previews nobody confirmed): evict the oldest
+  // rather than fail this preview call. Maps preserve insertion order, so the first key is it.
+  if (pending.size >= MAX_PENDING) {
+    const oldest = pending.keys().next().value
+    if (oldest !== undefined) pending.delete(oldest)
+  }
+
   const confirmToken = randomUUID()
   const expiresAt = Date.now() + TTL_MS
   pending.set(confirmToken, {args, expiresAt, tool})

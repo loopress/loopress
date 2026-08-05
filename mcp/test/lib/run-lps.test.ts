@@ -29,6 +29,31 @@ describe('runLps', () => {
     expect(execFileCustom).toHaveBeenCalledWith('lps', ['snippet', 'push', '--json'], expect.objectContaining({cwd: process.cwd()}))
   })
 
+  it('passes a default timeout to execFile, so a hung child cannot block forever', async () => {
+    execFileCustom.mockResolvedValueOnce({stderr: '', stdout: '{"status":"success"}'})
+
+    await runLps(['snippet', 'push'])
+
+    expect(execFileCustom).toHaveBeenCalledWith('lps', expect.any(Array), expect.objectContaining({timeout: 120_000}))
+  })
+
+  it('forwards an explicit timeoutMs override (e.g. composer_push needing longer than the default)', async () => {
+    execFileCustom.mockResolvedValueOnce({stderr: '', stdout: '{"status":"success"}'})
+
+    await runLps(['composer', 'push'], {timeoutMs: 620_000})
+
+    expect(execFileCustom).toHaveBeenCalledWith('lps', expect.any(Array), expect.objectContaining({timeout: 620_000}))
+  })
+
+  it('reports a timed-out child as a TIMEOUT error instead of a generic ExecError', async () => {
+    const error = Object.assign(new Error('Command failed'), {killed: true, signal: 'SIGTERM'})
+    execFileCustom.mockRejectedValueOnce(error)
+
+    const result = await runLps(['composer', 'push'], {timeoutMs: 1000})
+
+    expect(result).toEqual({error: {message: 'lps composer push timed out after 1s.', name: 'TIMEOUT'}, ok: false})
+  })
+
   it("reads oclif's structured error envelope off the rejection's stdout", async () => {
     const error = Object.assign(new Error('Command failed'), {
       stdout: '{"error":{"message":"No composer.json found","name":"Error"}}',

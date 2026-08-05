@@ -18,7 +18,7 @@ describe('runMutatingTool', () => {
     const result = await runMutatingTool('snippet_push', ['snippet', 'push'])
 
     expect(mockedRunLps).toHaveBeenCalledTimes(1)
-    expect(mockedRunLps).toHaveBeenCalledWith(['snippet', 'push', '--dry-run'])
+    expect(mockedRunLps).toHaveBeenCalledWith(['snippet', 'push', '--dry-run'], undefined)
     expect(result.status).toBe('preview')
     expect(result.preview).toEqual({pushed: ['a'], status: 'dry-run'})
     expect(result.confirmToken).toEqual(expect.any(String))
@@ -39,8 +39,22 @@ describe('runMutatingTool', () => {
     mockedRunLps.mockResolvedValueOnce({data: {pushed: ['a'], status: 'success'}, ok: true})
     const applied = await runMutatingTool('snippet_push', ['snippet', 'push', 'demo/snippets'], preview.confirmToken)
 
-    expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'demo/snippets'])
+    expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'demo/snippets'], undefined)
     expect(applied).toEqual({result: {pushed: ['a'], status: 'success'}, status: 'applied'})
+  })
+
+  it('forwards options (e.g. a longer timeoutMs) to both the preview and the apply call', async () => {
+    const options = {timeoutMs: 620_000}
+
+    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    const preview = await runMutatingTool('composer_push', ['composer', 'push'], undefined, options)
+
+    expect(mockedRunLps).toHaveBeenLastCalledWith(['composer', 'push', '--dry-run'], options)
+
+    mockedRunLps.mockResolvedValueOnce({data: {status: 'success'}, ok: true})
+    await runMutatingTool('composer_push', ['composer', 'push'], preview.confirmToken, options)
+
+    expect(mockedRunLps).toHaveBeenLastCalledWith(['composer', 'push'], options)
   })
 
   it('ignores resubmitted args on confirm, applying whatever was actually previewed', async () => {
@@ -50,7 +64,7 @@ describe('runMutatingTool', () => {
     mockedRunLps.mockResolvedValueOnce({data: {status: 'success'}, ok: true})
     await runMutatingTool('snippet_push', ['snippet', 'push', 'a-different-path'], preview.confirmToken)
 
-    expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'original-path'])
+    expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'original-path'], undefined)
   })
 
   it('rejects an invalid confirmToken without calling lps again', async () => {

@@ -9,6 +9,11 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 const envFlag = z.string().optional().describe('Target environment by name, overriding the globally active one')
 const confirmTokenFlag = z.string().optional().describe('Token from a prior preview call of this same tool, to apply it for real')
 
+// The server-side `composer install` triggered by `lps composer push` can legitimately run for
+// minutes (see cli's own COMPOSER_SYNC_TIMEOUT_MS in commands/composer/push.ts); the default
+// runLps timeout would kill it long before that ceiling is reached.
+const COMPOSER_PUSH_TIMEOUT_MS = 620_000
+
 export function registerComposerTools(server: McpServer): void {
   server.registerTool(
     'composer_push',
@@ -18,7 +23,11 @@ export function registerComposerTools(server: McpServer): void {
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag},
     },
     async ({confirmToken, env}) =>
-      toCallToolResult(await runMutatingTool('composer_push', buildArgs(['composer', 'push'], {env}), confirmToken)),
+      toCallToolResult(
+        await runMutatingTool('composer_push', buildArgs(['composer', 'push'], {env}), confirmToken, {
+          timeoutMs: COMPOSER_PUSH_TIMEOUT_MS,
+        }),
+      ),
   )
 
   server.registerTool(
