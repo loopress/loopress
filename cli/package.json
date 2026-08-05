@@ -16,6 +16,7 @@
     "@oclif/plugin-help": "^6.2.56",
     "@oclif/plugin-warn-if-update-available": "^3.1.70",
     "@sentry/node": "^10.69.0",
+    "chokidar": "^4.0.3",
     "glob": "13.0.6",
     "got": "^15.1.0",
     "listr2": "^11.0.0",
