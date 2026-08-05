@@ -16,18 +16,31 @@ const EXTENSIONS: Record<SnippetType, string> = {
   text: 'txt',
 }
 
+interface PulledSnippet {
+  id: number
+  name: string
+}
+
+interface PullResult {
+  orphans: string[]
+  pulled: PulledSnippet[]
+  skipped: number
+  status: 'dry-run' | 'success'
+}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description = 'Pull snippets from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets']
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PullResult> {
     const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveSnippetsPath(args.path)
@@ -48,6 +61,8 @@ export default class Pull extends LoopressCommand {
       key: numericPrefixKey,
     })
 
+    const pulled = pullable.map((snippet) => ({id: snippet.id, name: snippet.name}))
+
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to ${path}`)
       if (orphans.length > 0) {
@@ -56,7 +71,7 @@ export default class Pull extends LoopressCommand {
         )
       }
 
-      return
+      return {orphans, pulled, skipped, status: 'dry-run'}
     }
 
     await mkdir(path, {recursive: true})
@@ -72,6 +87,7 @@ export default class Pull extends LoopressCommand {
         },
         title: `Pull ${snippet.name}`,
       })),
+      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
 
     await this.removeOrphanedFiles(path, orphans, 'whose snippet no longer exists on WordPress')
@@ -80,5 +96,7 @@ export default class Pull extends LoopressCommand {
     if (skipped > 0) {
       this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
     }
+
+    return {orphans, pulled, skipped, status: 'success'}
   }
 }

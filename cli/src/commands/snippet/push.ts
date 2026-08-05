@@ -11,19 +11,30 @@ import {Snippet} from '../../types/snippet.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
+interface PushedSnippet {
+  id?: number
+  name: string
+}
+
+interface PushResult {
+  pushed: PushedSnippet[]
+  status: 'dry-run' | 'success'
+}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
   static description =
     'Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
+  static enableJsonFlag = true
   static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveSnippetsPath(args.path)
@@ -34,22 +45,28 @@ export default class Push extends PushCommand {
     const snippets = await this.loadSnippets(path)
     this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
 
+    const pushed: PushedSnippet[] = []
+
     await new Listr(
       snippets.map((snippet) => ({
-        task: async (_ctx, task) => this.pushSnippet(snippet, task),
+        task: async (_ctx, task) => {
+          const id = await this.pushSnippet(snippet, task)
+          pushed.push({id, name: snippet.name})
+        },
         title: `Push ${snippet.name}`,
       })),
-      {concurrent: false, exitOnError: false},
+      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
 
     if (this.failedCount > 0) {
       this.error(`${this.failedCount} snippet${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All snippets pushed.')
+    return {pushed, status: 'success'}
   }
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `snippet pull` whenever
@@ -98,14 +115,15 @@ export default class Push extends PushCommand {
     }
   }
 
-  private async pushSnippet(snippet: Snippet, task?: {output: string}): Promise<void> {
+  private async pushSnippet(snippet: Snippet, task?: {output: string}): Promise<number | undefined> {
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${snippet.name}`
-      return
+      return snippet.id
     }
 
     try {
       const payload = this.toPayload(snippet)
+      let {id} = snippet
 
       if (snippet.id) {
         try {
@@ -118,15 +136,18 @@ export default class Push extends PushCommand {
 
           const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
           const created = normalizeSnippet(response)
+          id = created.id
           await this.ensureCanonicalFilename(snippet, created.id, created.name)
         }
       } else {
         const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
         const created = normalizeSnippet(response)
+        id = created.id
         await this.ensureCanonicalFilename(snippet, created.id, created.name)
       }
 
       if (task) task.output = `Pushed: ${snippet.name}`
+      return id
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${snippet.name}: ${(error as Error).message}`, error, task)
     }

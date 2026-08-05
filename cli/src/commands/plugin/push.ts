@@ -5,15 +5,23 @@ import {WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {diffPlugins, parseInstalledPlugins} from '../../utils/plugins.js'
 
+interface PushResult {
+  activated: string[]
+  installed: string[]
+  skippedComposerManaged: string[]
+  status: 'dry-run' | 'in-sync' | 'success'
+}
+
 export default class Push extends PushCommand {
   static description = 'Push plugins to WordPress to match loopress.json'
+  static enableJsonFlag = true
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     const {url} = this.siteConfig
 
     const manifest = this.localConfig.plugins
@@ -29,9 +37,11 @@ export default class Push extends PushCommand {
       Object.entries(manifest).filter(([slug]) => !composerSlugs.includes(slug)),
     )
 
-    const skipped = composerSlugs.filter((slug) => slug in manifest)
-    if (skipped.length > 0) {
-      this.log(`Skipping ${skipped.length} Composer-managed ${skipped.length === 1 ? 'plugin' : 'plugins'}: ${skipped.join(', ')}`)
+    const skippedComposerManaged = composerSlugs.filter((slug) => slug in manifest)
+    if (skippedComposerManaged.length > 0) {
+      this.log(
+        `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,
+      )
       this.log('Run `lps composer push` to deploy them.')
     }
 
@@ -44,7 +54,7 @@ export default class Push extends PushCommand {
 
     if (toInstall.length === 0 && toActivate.length === 0) {
       this.log('Everything is already in sync.')
-      return
+      return {activated: [], installed: [], skippedComposerManaged, status: 'in-sync'}
     }
 
     if (toInstall.length > 0) {
@@ -57,7 +67,10 @@ export default class Push extends PushCommand {
       for (const a of toActivate) this.log(`  ↑ ${a.slug}`)
     }
 
-    if (this.dryRun) return
+    const installedSlugs = toInstall.map((a) => a.slug)
+    const activatedSlugs = toActivate.map((a) => a.slug)
+
+    if (this.dryRun) return {activated: activatedSlugs, installed: installedSlugs, skippedComposerManaged, status: 'dry-run'}
 
     // Installing with `status: active` activates in the same call, so installs never need a
     // separate activation step the way the old custom endpoint's two-step flow did.
@@ -67,7 +80,7 @@ export default class Push extends PushCommand {
           task: async (_ctx, task) => this.installPlugin(action.slug, task),
           title: `Install ${action.slug}`,
         })),
-        {concurrent: false, exitOnError: false},
+        {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
       ).run()
     }
 
@@ -77,7 +90,7 @@ export default class Push extends PushCommand {
           task: async (_ctx, task) => this.activatePlugin(action.file, action.slug, task),
           title: `Activate ${action.slug}`,
         })),
-        {concurrent: false, exitOnError: false},
+        {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
       ).run()
     }
 
@@ -86,6 +99,8 @@ export default class Push extends PushCommand {
     }
 
     await this.recordSuccess()
+
+    return {activated: activatedSlugs, installed: installedSlugs, skippedComposerManaged, status: 'success'}
   }
 
   private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {

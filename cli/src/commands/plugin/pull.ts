@@ -2,16 +2,21 @@ import {LoopressCommand} from '../../lib/base.js'
 import {WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
-import {mergePluginManifest, parseInstalledPlugins} from '../../utils/plugins.js'
+import {mergePluginManifest, MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
+
+interface PullResult extends MergeResult {
+  status: 'dry-run' | 'success'
+}
 
 export default class Pull extends LoopressCommand {
   static description = 'Pull installed plugins from WordPress into loopress.json'
+  static enableJsonFlag = true
   static examples = ['$ lps plugin pull', '$ lps plugin pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PullResult> {
     const {url} = this.siteConfig
 
     this.log(`Pulling plugins from ${url}`)
@@ -42,7 +47,7 @@ export default class Pull extends LoopressCommand {
         for (const u of updated) this.log(`  ~ ${u.slug} (${u.from} → ${u.to})`)
       }
 
-      return
+      return {added, merged, status: 'dry-run', updated}
     }
 
     await writeLocalConfig({...this.localConfig, plugins: merged})
@@ -50,5 +55,7 @@ export default class Pull extends LoopressCommand {
     this.log(`Wrote ${Object.keys(merged).length} plugins to loopress.json`)
     if (added.length > 0) this.log(`  + Added: ${added.join(', ')}`)
     for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
+
+    return {added, merged, status: 'success', updated}
   }
 }

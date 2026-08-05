@@ -60,6 +60,7 @@ export abstract class LoopressCommand extends Command {
     const {flags} = (await this.parse({
       args: this.ctor.args,
       baseFlags: (this.ctor as typeof LoopressCommand).baseFlags,
+      enableJsonFlag: this.ctor.enableJsonFlag,
       flags: this.ctor.flags,
       strict: this.ctor.strict,
     })) as unknown as {flags: ParsedBaseFlags}

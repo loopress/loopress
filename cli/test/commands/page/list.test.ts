@@ -33,15 +33,15 @@ describe('page list', () => {
     expect(logs.log).toHaveBeenCalledWith('  2. Sample Page')
   })
 
-  it('outputs valid JSON when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
+  it('returns the raw page list so oclif can print it as JSON under --json', async () => {
+    const {cmd} = makeCmd(['--json'])
     const pages = [{id: 2, title: {rendered: 'Sample Page'}}]
     const get = vi.fn().mockResolvedValueOnce(pages)
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    expect(JSON.parse(logs.log.mock.calls[0][0] as string)).toEqual(pages)
+    expect(result).toEqual(pages)
   })
 
   it('prints "(none)" when there are no pages', async () => {
