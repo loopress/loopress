@@ -3,6 +3,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightBlog from "starlight-blog";
 import sitemap from "@astrojs/sitemap";
+import indexnow from "astro-indexnow";
 import { createRequire } from "module";
 import { copyFileSync, mkdirSync } from "fs";
 import { join } from "path";
@@ -151,5 +152,9 @@ export default defineConfig({
 			],
 		}),
 		sitemap(),
+		indexnow({
+			key: "e542ad40487f4c508ef8ce9fb107f5e4",
+			enabled: true,
+		}),
 	],
 });

@@ -16,6 +16,7 @@
     "@loopress/assets": "workspace:*",
     "@vercel/analytics": "^2.0.1",
     "astro": "^7.1.6",
+    "astro-indexnow": "^2.3.10",
     "sharp": "^0.35.3",
     "starlight-blog": "^0.28.0"
   }

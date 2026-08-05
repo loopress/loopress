@@ -1,4 +1,6 @@
 {
   "version": 1,
-  "entries": {}
+  "entries": {
+    "https://loopress.dev/": "sha256:7a2bc3bb278c3f69acee660327a1362160b849027a559389e4b63dd8989af912"
+  }
 }
