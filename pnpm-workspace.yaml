@@ -3,6 +3,7 @@ packages:
   - "cli"
   - "documentation"
   - "eslint-config"
+  - "mcp"
   - "website"
   - "wordpress-plugin"
 allowBuilds:
