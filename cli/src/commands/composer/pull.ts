@@ -29,14 +29,20 @@ function isMissingComposerLock(error: unknown): boolean {
   }
 }
 
+interface PullResult {
+  status: 'dry-run' | 'success'
+  wroteLock: boolean
+}
+
 export default class ComposerPull extends LoopressCommand {
   static description = 'Pull composer.json and composer.lock from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps composer pull', '$ lps composer pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PullResult> {
     const {url} = this.siteConfig
 
     this.log(`Pulling composer.json and composer.lock from ${url}`)
@@ -57,7 +63,7 @@ export default class ComposerPull extends LoopressCommand {
 
     if (this.dryRun) {
       this.log(composerLock ? '[dry-run] Would write composer.json and composer.lock' : '[dry-run] Would write composer.json')
-      return
+      return {status: 'dry-run', wroteLock: composerLock !== undefined}
     }
 
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
@@ -65,11 +71,13 @@ export default class ComposerPull extends LoopressCommand {
 
     if (composerLock === undefined) {
       this.log('Wrote composer.json (no composer.lock on this site yet)')
-      return
+      return {status: 'success', wroteLock: false}
     }
 
     const lockPath = join(process.cwd(), this.rootDir, 'composer.lock')
     await writeFile(lockPath, composerLock, 'utf8')
     this.log(`Wrote composer.json and composer.lock`)
+
+    return {status: 'success', wroteLock: true}
   }
 }

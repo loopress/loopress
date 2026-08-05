@@ -98,17 +98,14 @@ describe('snippet list', () => {
     expect(logs.log).toHaveBeenCalledWith('No snippets found')
   })
 
-  it('outputs valid JSON of the normalized snippets when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
+  it('returns the normalized snippets so oclif can print them as JSON under --json', async () => {
+    const {cmd} = makeCmd(['--json'])
     const get = vi.fn().mockResolvedValueOnce([{active: true, id: 3, name: 'Cookie Banner', type: 'js'}])
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const snippets = await cmd.run()
 
-    const jsonCall = logs.log.mock.calls.find(([arg]: [string]) => arg.startsWith('['))
-    expect(jsonCall).toBeDefined()
-    const parsed = JSON.parse(jsonCall![0])
-    expect(parsed).toHaveLength(1)
-    expect(parsed[0]).toMatchObject({active: true, id: 3, name: 'Cookie Banner'})
+    expect(snippets).toHaveLength(1)
+    expect(snippets[0]).toMatchObject({active: true, id: 3, name: 'Cookie Banner'})
   })
 })

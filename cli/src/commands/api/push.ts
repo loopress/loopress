@@ -21,18 +21,24 @@ interface ApiFile {
 // skips a network round-trip that could only ever fail.
 const FILENAME_PATTERN = /^[a-z0-9-]+$/
 
+interface PushResult {
+  pushed: string[]
+  status: 'dry-run' | 'success'
+}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
   }
   static description = 'Push custom API route files to WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps api push', '$ lps api push --path ./api']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveApiPath(args.path)
@@ -43,23 +49,29 @@ export default class Push extends PushCommand {
     const files = await this.loadFiles(path)
     this.log(`Found ${files.length} route file${files.length === 1 ? '' : 's'} to push`)
 
+    const pushed: string[] = []
+
     await new Listr(
       files.map((file) => ({
-        task: async (_ctx, task) => this.pushFile(file, task),
+        task: async (_ctx, task) => {
+          await this.pushFile(file, task)
+          pushed.push(file.filename)
+        },
         title: `Push ${file.filename}`,
       })),
-      {concurrent: false, exitOnError: false},
+      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
 
     if (this.failedCount > 0) {
       this.error(`${this.failedCount} route file${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     await this.syncApiRoutes(files.map((file) => file.filename))
     this.log('All API routes pushed.')
+    return {pushed, status: 'success'}
   }
 
   private async loadFiles(path: string): Promise<ApiFile[]> {

@@ -9,15 +9,22 @@ import {ComposerJson} from '../../utils/composer.js'
 // A cold composer install easily exceeds the global 30s timeout of WpClient.
 const COMPOSER_SYNC_TIMEOUT_MS = 600_000
 
+interface PushResult {
+  hasLock: boolean
+  packageCount: number
+  status: 'dry-run' | 'success'
+}
+
 export default class ComposerPush extends PushCommand {
   static description = 'Push composer.json and composer.lock to WordPress and run composer install'
+  static enableJsonFlag = true
   static examples = ['$ lps composer push', '$ lps composer push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     const {url} = this.siteConfig
 
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
@@ -41,7 +48,7 @@ export default class ComposerPush extends PushCommand {
       this.warn('No composer.lock found. The server will resolve versions freely.')
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {hasLock, packageCount, status: 'dry-run'}
 
     this.log('Running composer install on the server, this can take a few minutes...')
 
@@ -64,5 +71,7 @@ export default class ComposerPush extends PushCommand {
 
     this.log('composer install completed on the server.')
     await this.recordSuccess()
+
+    return {hasLock, packageCount, status: 'success'}
   }
 }

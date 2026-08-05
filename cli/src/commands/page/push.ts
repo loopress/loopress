@@ -14,19 +14,30 @@ interface LocalPage {
   metaPath: string
 }
 
+interface PushedPage {
+  id: null | number
+  title: string
+}
+
+interface PushResult {
+  pushed: PushedPage[]
+  status: 'dry-run' | 'success'
+}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to pages directory (overrides project config)'}),
   }
   static description =
     'Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
+  static enableJsonFlag = true
   static examples = ['$ lps page push']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolvePagePath(args.path)
@@ -37,22 +48,28 @@ export default class Push extends PushCommand {
     const pages = await this.loadFiles(path)
     this.log(`Found ${pages.length} page${pages.length === 1 ? '' : 's'} to push`)
 
+    const pushed: PushedPage[] = []
+
     await new Listr(
       pages.map((page) => ({
-        task: async (_ctx, task) => this.pushPage(page, task),
+        task: async (_ctx, task) => {
+          const id = await this.pushPage(page, task)
+          pushed.push({id, title: getPageTitle(page.meta)})
+        },
         title: `Push ${getPageTitle(page.meta)}`,
       })),
-      {concurrent: false, exitOnError: false},
+      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
 
     if (this.failedCount > 0) {
       this.error(`${this.failedCount} page${this.failedCount === 1 ? '' : 's'} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All pages pushed.')
+    return {pushed, status: 'success'}
   }
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `page pull` whenever it
@@ -130,22 +147,22 @@ export default class Push extends PushCommand {
   // to a site where that id belongs to a different page (or nothing) silently mis-parents or
   // orphans the page. No id-remapping across sites here; fine for same-hierarchy environments,
   // revisit if pushing across sites with divergent page trees becomes a real workflow.
-  private async pushPage(page: LocalPage, task?: {output: string}): Promise<void> {
+  private async pushPage(page: LocalPage, task?: {output: string}): Promise<null | number> {
     const title = getPageTitle(page.meta)
 
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${title}`
-      return
+      return getPageId(page.meta)
     }
 
     try {
-      const id = getPageId(page.meta)
+      let id = getPageId(page.meta)
       const payload = {...page.meta, content: page.content}
 
       if (id === null) {
         const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, payload)
-        const newId = getPageId(created)
-        if (newId !== null) await this.ensureCanonicalFilename(page, newId, title)
+        id = getPageId(created)
+        if (id !== null) await this.ensureCanonicalFilename(page, id, title)
       } else {
         try {
           await this.wp.put(`${PAGE_ENDPOINT}/${id}`, payload)
@@ -161,12 +178,13 @@ export default class Push extends PushCommand {
           const createPayload: Record<string, unknown> = {...payload}
           delete createPayload.id
           const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, createPayload)
-          const newId = getPageId(created)
-          if (newId !== null) await this.ensureCanonicalFilename(page, newId, title)
+          id = getPageId(created)
+          if (id !== null) await this.ensureCanonicalFilename(page, id, title)
         }
       }
 
       if (task) task.output = `Pushed: ${title}`
+      return id
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${title}: ${(error as Error).message}`, error, task)
     }

@@ -7,18 +7,31 @@ import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {getPageContent, getPageId, getPageTitle, PAGE_ENDPOINT, PAGE_LIST_QUERY, pageFileBase, pickPageMeta} from '../../utils/page-format.js'
 
+interface PulledPage {
+  id: number
+  title: string
+}
+
+interface PullResult {
+  orphans: string[]
+  pulled: PulledPage[]
+  skipped: number
+  status: 'dry-run' | 'success'
+}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to pages directory (overrides project config)'}),
   }
   static description = 'Pull pages from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps page pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PullResult> {
     const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolvePagePath(args.path)
@@ -39,6 +52,8 @@ export default class Pull extends LoopressCommand {
       key: numericPrefixKey,
     })
 
+    const pulled = withId.map((page) => ({id: getPageId(page) as number, title: getPageTitle(page)}))
+
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${withId.length} page${withId.length === 1 ? '' : 's'} to ${path}`)
       if (orphans.length > 0) {
@@ -47,7 +62,7 @@ export default class Pull extends LoopressCommand {
         )
       }
 
-      return
+      return {orphans, pulled, skipped, status: 'dry-run'}
     }
 
     if (withId.length > 0) await mkdir(path, {recursive: true})
@@ -68,6 +83,7 @@ export default class Pull extends LoopressCommand {
           title: `Pull ${title}`,
         }
       }),
+      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
 
     await this.removeOrphanedFiles(path, orphans, `in ${path} no longer present on WordPress`)
@@ -76,5 +92,7 @@ export default class Pull extends LoopressCommand {
     if (skipped > 0) {
       this.warn(`${skipped} page${skipped === 1 ? '' : 's'} skipped because they have no id`)
     }
+
+    return {orphans, pulled, skipped, status: 'success'}
   }
 }

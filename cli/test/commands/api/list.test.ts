@@ -47,27 +47,14 @@ describe('api list', () => {
     expect(logs.log).toHaveBeenCalledWith('No API route files found')
   })
 
-  it('outputs valid JSON of the raw files array when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
+  it('returns the raw files array so oclif can print it as JSON under --json', async () => {
+    const {cmd} = makeCmd(['--json'])
     const files = [{content: '<?php', filename: 'products'}]
     const get = vi.fn().mockResolvedValueOnce(files)
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    const jsonCall = logs.log.mock.calls.find(([arg]: [string]) => arg.startsWith('['))
-    expect(jsonCall).toBeDefined()
-    expect(JSON.parse(jsonCall![0])).toEqual(files)
-  })
-
-  it('does not print the "Found" summary when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
-    const get = vi.fn().mockResolvedValueOnce([])
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
-
-    await cmd.run()
-
-    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Found'))
-    expect(logs.log).not.toHaveBeenCalledWith('No API route files found')
+    expect(result).toEqual(files)
   })
 })

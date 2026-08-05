@@ -6,6 +6,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/snippet/push.js'
 import {Snippet} from '../../../src/types/snippet.js'
+import {SNIPPETS_ENDPOINT} from '../../../src/utils/snippet-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -20,8 +21,8 @@ type PushWithLoadSnippets = {loadSnippets(path: string): Promise<Snippet[]>}
 type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void>}
 type PushWithPushSnippet = {
   failedCount: number
-  pushSnippet(snippet: Snippet, task?: {output: string}): Promise<void>
-  wpClient: {put: ReturnType<typeof vi.fn>}
+  pushSnippet(snippet: Snippet, task?: {output: string}): Promise<number | undefined>
+  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 describe('snippet push', () => {
@@ -348,6 +349,37 @@ describe('snippet push', () => {
 
       expect(logs.warn).toHaveBeenCalledWith('  Failed to push demo: boom')
       expect((cmd as unknown as PushWithPushSnippet).failedCount).toBe(1)
+    })
+
+    it('returns the id assigned by the site when creating a new snippet, for callers (e.g. --json) that need it', async () => {
+      writeFileSync(join(dir, '42-demo.php'), '<?php echo 1;')
+      const newSnippet = {...snippet, id: undefined, path: join(dir, '42-demo.php')} as Snippet
+
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const post = vi.fn().mockResolvedValueOnce({id: 42, name: 'demo'})
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {post, put}
+
+      const id = await (cmd as unknown as PushWithPushSnippet).pushSnippet(newSnippet)
+
+      expect(id).toBe(42)
+      expect(put).not.toHaveBeenCalled()
+    })
+
+    it('returns the existing id when updating an already-linked snippet', async () => {
+      writeFileSync(join(dir, '8-demo.php'), '<?php echo 1;')
+      const existingSnippet = {...snippet, path: join(dir, '8-demo.php')} as Snippet
+
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({})
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {post: vi.fn(), put}
+
+      const id = await (cmd as unknown as PushWithPushSnippet).pushSnippet(existingSnippet)
+
+      expect(id).toBe(8)
+      expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/8`, expect.any(Object))
     })
   })
 })
