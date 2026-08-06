@@ -139,39 +139,35 @@ By default, every route is **closed**: it requires an authenticated user with th
 - An [application password](/application-passwords/) for an administrator account, via HTTP Basic auth (what the CLI itself uses)
 - A logged-in admin session with a REST nonce (requests from the WordPress admin)
 
-To change who can call a route, add a public `permission()` method returning a callable. It replaces the default check for every verb in the file:
+To change who can call a route, add a public `permission(WP_REST_Request $request): bool` method. It replaces the default check for every verb in the file, and is called directly by WordPress when the route is dispatched, so it can inspect headers, params, or anything else on the request:
 
 ```php
 // Public route, no authentication
-public function permission(): callable
+public function permission(WP_REST_Request $request): bool
 {
-    return fn(): bool => true;
+    return true;
 }
 ```
 
 ```php
 // Any logged-in user
-public function permission(): callable
+public function permission(WP_REST_Request $request): bool
 {
-    return fn(): bool => is_user_logged_in();
+    return is_user_logged_in();
 }
 ```
 
 ```php
 // A shared secret in a header, e.g. for a webhook
-public function permission(): callable
+public function permission(WP_REST_Request $request): bool
 {
-    return fn(WP_REST_Request $request): bool =>
-        hash_equals((string) get_option('my_webhook_secret'), (string) $request->get_header('x-webhook-secret'));
+    return hash_equals((string) get_option('my_webhook_secret'), (string) $request->get_header('x-webhook-secret'));
 }
 ```
 
-The callable receives the `WP_REST_Request`, so it can inspect headers, params, or anything else. Returning `false` produces WordPress's standard `rest_forbidden` response.
+Returning `false` produces WordPress's standard `rest_forbidden` response.
 
-Defensive behavior, so a mistake never opens or breaks the site:
-
-- If `permission()` returns something that is not callable, the route falls back to the closed `manage_options` default.
-- If `permission()` throws, the whole file is [skipped and logged](#failure-isolation).
+Defensive behavior, so a mistake never breaks the site: if `permission()` throws, the request it was checking is denied (fails closed, same as returning `false`) and the error is logged. The route itself stays registered and keeps working for every other request, only the request that hit the throw is affected.
 
 ## Response headers and CORS
 
