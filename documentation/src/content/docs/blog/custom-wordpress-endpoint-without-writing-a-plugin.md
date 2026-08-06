@@ -94,9 +94,9 @@ For an endpoint another system calls on your behalf, a reporting script, an inte
 This feed, though, is meant for the browser. Making it public is a decision, so it's expressed where decisions belong, in the file, in the diff, in code review:
 
 ```php
-public function permission(): callable
+public function permission(WP_REST_Request $request): bool
 {
-    return fn(): bool => true;
+    return true;
 }
 ```
 
@@ -108,7 +108,7 @@ curl https://your-site.com/wp-json/loopress-api/v1/featured-products
 [{"id":231,"title":"Weekender Backpack","url":"https://your-site.com/product/weekender-backpack"}]
 ```
 
-One greppable line. A reviewer seeing this diff knows exactly what's being opened to the world, which is not something you can say about a checkbox in an admin screen. The same `permission()` method takes any callable, so routes that need their own rules, logged-in users only, a capability check, a signed webhook, express them the same way (the [docs](https://docs.loopress.dev/api/routes/) cover those patterns).
+One greppable line. A reviewer seeing this diff knows exactly what's being opened to the world, which is not something you can say about a checkbox in an admin screen. The same `permission()` method receives the request directly, so routes that need their own rules, logged-in users only, a capability check, a signed webhook, express them the same way (the [docs](https://docs.loopress.dev/api/routes/) cover those patterns).
 
 The frontend lives on another domain? Declare CORS headers in the file too, they apply to every request, preflight included:
 

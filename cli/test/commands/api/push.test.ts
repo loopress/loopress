@@ -67,7 +67,7 @@ describe('api push', () => {
   })
 
   describe('pushFile', () => {
-    const file: ApiFile = {content: '<?php\nfinal class Hello {}\n', filename: 'hello'}
+    const file: ApiFile = {content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n', filename: 'hello'}
 
     it('PUTs to loopress/v1/api-files/<filename> with the raw content', async () => {
       const cmd = new Push([], fakeOclifConfig)
@@ -107,6 +107,41 @@ describe('api push', () => {
 
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Invalid filename "WITH_MAJ_ENDPOINT"')
+      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
+
+    it('rejects a file missing declare(strict_types=1);, without calling the API', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+      const missingDeclare: ApiFile = {content: '<?php\nfinal class Hello {}\n', filename: 'hello'}
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, task)).rejects.toThrow(
+        'declare(strict_types=1);" is missing',
+      )
+
+      expect(put).not.toHaveBeenCalled()
+      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
+
+    it('rejects a file with declare(strict_types=1); appearing more than once, without calling the API', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+      const duplicateDeclare: ApiFile = {
+        content: '<?php\ndeclare(strict_types=1);\ndeclare(strict_types=1);\nfinal class Hello {}\n',
+        filename: 'hello',
+      }
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, task)).rejects.toThrow(
+        'declare(strict_types=1);" appears more than once',
+      )
+
+      expect(put).not.toHaveBeenCalled()
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
     })
   })

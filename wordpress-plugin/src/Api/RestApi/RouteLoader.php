@@ -63,16 +63,15 @@ class RouteLoader
      */
     public function endpointsFor(object $instance): array
     {
-        $permission = $this->permissionCallback();
-        if ($this->hasPublicMethod($instance, 'permission') && is_callable([$instance, 'permission'])) {
-            // A file's permission() is untrusted input in shape, not just in behaviour: fall
-            // back to the closed default rather than register a route with a non-callable
-            // permission_callback if it's malformed.
-            $override = call_user_func([$instance, 'permission']);
-            if (is_callable($override)) {
-                $permission = $override;
-            }
-        }
+        // permission() is now passed by reference, never called here: WP invokes it lazily
+        // at dispatch, as permission_callback(WP_REST_Request): bool, the same way any
+        // native WP REST permission_callback works. No more fabricate-a-callable
+        // indirection, and no more is_callable() guard on its return value: a file's
+        // permission() is always a valid callable reference once hasPublicMethod() confirms
+        // it exists and is public, there's no malformed-shape failure mode left to guard.
+        $permission = $this->hasPublicMethod($instance, 'permission')
+            ? $this->wrapPermission([$instance, 'permission'])
+            : $this->permissionCallback();
 
         $endpoints = [];
         foreach (self::VERBS as $method => $httpMethod) {
@@ -96,6 +95,23 @@ class RouteLoader
     public function hasPublicMethod(object $instance, string $method): bool
     {
         return method_exists($instance, $method) && (new \ReflectionMethod($instance, $method))->isPublic();
+    }
+
+    // permission() now runs at dispatch, not at registration inside loadFile()'s try/catch:
+    // an uncaught throw here would fatal this one request rather than being caught while
+    // skipping the route at boot. Same principle already applied to headers() in
+    // applyHeaders() below: fail closed (deny) and log, rather than let WP see an uncaught
+    // exception from a permission_callback.
+    private function wrapPermission(callable $permission): callable
+    {
+        return function (WP_REST_Request $request) use ($permission) {
+            try {
+                return $permission($request);
+            } catch (\Throwable $e) {
+                $this->log('permission() threw: ' . $e->getMessage());
+                return false;
+            }
+        };
     }
 
     /**
@@ -179,13 +195,18 @@ class RouteLoader
             // whole request the way an uncaught one would (same site-wide blast radius as the
             // write-time race condition in ApiDirectory::write(), different trigger). Also
             // covers a file that required cleanly but doesn't actually declare $className
-            // (e.g. a typo, `new $className()` throws \Error), and a file whose permission()
-            // throws from inside endpointsFor(): none of these may ever fatal rest_api_init.
+            // (e.g. a typo, `new $className()` throws \Error): none of these may ever fatal
+            // rest_api_init.
             $this->log("failed to load api/{$slug}.php: " . $e->getMessage());
             return;
         }
 
         if ($endpoints === []) {
+            // Every other failure branch in this method already logs (collision above, parse
+            // error above); this one didn't, so a typo'd verb method (Get() instead of get(),
+            // or an accidentally-private one) failed in total silence, indistinguishable from
+            // "this file intentionally has no routes yet."
+            $this->log("api/{$slug}.php: no public HTTP verb method found (get/post/put/patch/delete) — route not registered");
             return;
         }
 

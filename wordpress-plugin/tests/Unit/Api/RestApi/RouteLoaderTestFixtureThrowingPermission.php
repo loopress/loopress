@@ -6,7 +6,7 @@ namespace Loopress\Tests\Unit\Api\RestApi;
 
 use WP_REST_Request;
 
-final class RouteLoaderTestFixtureWithOverrides
+final class RouteLoaderTestFixtureThrowingPermission
 {
     public function get(): array
     {
@@ -15,11 +15,6 @@ final class RouteLoaderTestFixtureWithOverrides
 
     public function permission(WP_REST_Request $request): bool
     {
-        return true;
-    }
-
-    public function headers(): array
-    {
-        return ['Access-Control-Allow-Origin' => 'https://example.com'];
+        throw new \RuntimeException('boom');
     }
 }

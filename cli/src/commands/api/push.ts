@@ -21,6 +21,13 @@ interface ApiFile {
 // skips a network round-trip that could only ever fail.
 const FILENAME_PATTERN = /^[a-z0-9-]+$/
 
+// Mirrors the server's own check (wordpress-plugin FileWriter::DECLARE_PATTERN /
+// withGuard()): the server rejects both an absent declare(strict_types=1); and one that
+// appears more than once (it needs a single unambiguous insertion point for the ABSPATH
+// guard). Matching that "exactly once" rule here too, not just presence, so a file that
+// would still fail server-side doesn't falsely pass this earlier check.
+const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
+
 interface PushResult {
   pushed: string[]
   status: 'dry-run' | 'success'
@@ -85,6 +92,13 @@ export default class Push extends PushCommand {
   private async pushFile(file: ApiFile, task?: {output: string}): Promise<void> {
     if (!FILENAME_PATTERN.test(file.filename)) {
       const message = `Invalid filename "${file.filename}": only lowercase letters, digits, and hyphens are allowed (e.g. "hello-world.php")`
+      this.reportTaskFailure(message, new Error(message), task)
+    }
+
+    const declareCount = file.content.match(DECLARE_PATTERN)?.length ?? 0
+    if (declareCount !== 1) {
+      const reason = declareCount === 0 ? 'is missing' : 'appears more than once'
+      const message = `${file.filename}.php: "declare(strict_types=1);" ${reason}, it must appear exactly once as the first statement`
       this.reportTaskFailure(message, new Error(message), task)
     }
 

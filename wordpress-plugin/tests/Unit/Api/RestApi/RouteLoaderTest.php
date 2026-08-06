@@ -115,9 +115,23 @@ class RouteLoaderTest extends TestCase
 
         $endpoints = $loader->endpointsFor($instance);
 
-        // permission() returns a fresh closure on every call, so identity can't be compared
-        // directly; assert the override actually took effect by invoking it.
-        $this->assertTrue(($endpoints[0]['permission_callback'])());
+        // permission_callback is now a wrapper closure around the file's permission()
+        // reference (see wrapPermission()), not permission()'s own return value: invoke it
+        // with a request, same shape WP itself calls it with at dispatch.
+        $this->assertTrue(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
+    }
+
+    public function test_endpointsFor_wraps_a_throwing_permission_to_fail_closed(): void
+    {
+        // permission() now runs lazily at dispatch (wrapPermission()), not eagerly at
+        // registration inside loadFile()'s try/catch: an uncaught throw here would fatal a
+        // real request, so the wrapper must catch it and deny instead, same principle
+        // applyHeaders() already applies to a throwing headers().
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $instance  = new RouteLoaderTestFixtureThrowingPermission();
+        $endpoints = $loader->endpointsFor($instance);
+
+        $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
     }
 
     public function test_hasPublicMethod_is_false_for_a_private_method(): void
@@ -185,20 +199,32 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
-    public function test_loadAndRegister_skips_a_file_whose_permission_throws(): void
+    public function test_loadAndRegister_registers_a_route_even_though_its_permission_would_throw(): void
     {
+        // permission() now runs lazily at dispatch (see endpointsFor()'s wrapPermission()),
+        // not eagerly at registration: unlike a parse error or a class name collision, a
+        // file whose permission() would throw still registers normally. The fail-closed
+        // behaviour of the wrapped callback itself is covered separately by
+        // test_endpointsFor_wraps_a_throwing_permission_to_fail_closed.
         $this->directory->write(
             'test-loader-throws-permission',
-            "<?php\nfinal class TestLoaderThrowsPermission\n{\n    public function get(): array { return []; }\n    public function permission(): callable { throw new \\RuntimeException('boom'); }\n}\n",
+            "<?php\nfinal class TestLoaderThrowsPermission\n{\n    public function get(): array { return []; }\n    public function permission(\\WP_REST_Request \$request): bool { throw new \\RuntimeException('boom'); }\n}\n",
         );
 
-        Functions\expect('register_rest_route')->never();
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(
+                ApiNamespace::DEFAULT,
+                '/test-loader-throws-permission',
+                \Mockery::type('array'),
+            )
+            ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means the exception from permission() was caught
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_skips_a_file_with_no_public_verb_method(): void
