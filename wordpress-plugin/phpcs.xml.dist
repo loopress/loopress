@@ -79,6 +79,10 @@
         <!-- FakeWpdb's methods mirror wpdb's real signature (e.g. the trailing $output
              format argument), even where a given method doesn't need every parameter. -->
         <exclude-pattern>tests/Stubs/*</exclude-pattern>
+        <!-- These fixtures' permission() mirrors the real api/ route file contract
+             (permission(WP_REST_Request $request): bool), same reasoning as the RestApi/*
+             excludes above, just for user-authored api/ files instead of this plugin's own. -->
+        <exclude-pattern>tests/Unit/Api/RestApi/RouteLoaderTestFixture*</exclude-pattern>
     </rule>
 
     <!-- tests/Stubs intentionally bundles several lightweight WP class/interface stubs

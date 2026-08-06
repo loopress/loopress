@@ -72,12 +72,25 @@ describe('api push', () => {
     it('PUTs to loopress/v1/api-files/<filename> with the raw content', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce()
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
       await (cmd as unknown as PushWithPushFile).pushFile(file)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/api-files/hello', {content: file.content})
+    })
+
+    it('reports a skipped syntax check in task.output without failing the push', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      // eslint-disable-next-line camelcase
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello', syntax_check: 'skipped'})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+
+      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+
+      expect(task.output).toBe('Pushed: hello (syntax check skipped, exec() unavailable on this host)')
     })
 
     it('routes the failure message through task.output and rethrows so Listr marks the task failed', async () => {

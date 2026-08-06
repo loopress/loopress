@@ -64,6 +64,10 @@
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
                 <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
                 <referencedMethod name="Loopress\Api\Infrastructure\ApiDirectory::__construct" />
+                <!-- Same untraceable-by-Psalm shape as the DI-container constructors above, but a
+                     different reflective caller: RouteLoader::permissionAttributeFor() reads this
+                     via ReflectionAttribute::newInstance(), never a literal `new Permission(...)`. -->
+                <referencedMethod name="Loopress\Api\Attribute\Permission::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>

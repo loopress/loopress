@@ -171,7 +171,25 @@ Defensive behavior, so a mistake never breaks the site: if `permission()` throws
 
 ## Response headers and CORS
 
-Add a public `headers()` method returning a map of header name to value. The headers are sent on **every** request to the route, including the `OPTIONS` preflight that WordPress answers automatically without ever calling your verb methods, which is exactly what browser CORS needs:
+Two ways to set headers, depending on whether they vary per verb or apply to the whole route.
+
+### Per-verb headers
+
+Return a `WP_REST_Response` and call `header()` on it. This is the right place for anything that depends on the specific request, a cache directive that varies with the resource, a content-disposition on a download, and so on:
+
+```php
+public function get(WP_REST_Request $request): WP_REST_Response
+{
+    $response = new WP_REST_Response(['order_id' => $request->get_param('order_id')]);
+    $response->header('Cache-Control', 'private, max-age=60');
+
+    return $response;
+}
+```
+
+### Route-wide headers, including the OPTIONS preflight
+
+Add a public `headers()` method returning a map of header name to value. The headers are sent on **every** request to the route, including the `OPTIONS` preflight that WordPress answers automatically without ever calling your verb methods, which is exactly what browser CORS needs, and exactly what a per-verb `WP_REST_Response` can't reach:
 
 ```php
 public function headers(): array
@@ -186,7 +204,9 @@ public function headers(): array
 
 Only string-to-string pairs are applied, anything else in the array is ignored. If `headers()` throws, the error is logged and the request is served without the custom headers, it never breaks the response itself.
 
-For one-off headers on a single response, prefer returning a `WP_REST_Response` and setting headers there. `headers()` is for headers that must apply to the whole route, preflight included.
+### Don't set the same header name in both places
+
+`headers()` is applied after your verb method runs, so if the same header name appears in both a `WP_REST_Response` and `headers()`, `headers()` silently wins, even if the `WP_REST_Response` value was the more specific one. Keep the two non-overlapping: `WP_REST_Response` for whatever varies by verb or request, `headers()` strictly for what must apply route-wide, CORS being the main case.
 
 ## The route namespace
 

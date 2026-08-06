@@ -134,6 +134,64 @@ class RouteLoaderTest extends TestCase
         $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
     }
 
+    public function test_endpointsFor_resolves_permission_per_verb_from_method_level_attributes(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributePerVerb());
+
+        $request = new WP_REST_Request([], '/test');
+
+        // get(): #[Permission(public: true)]
+        $this->assertTrue(($endpoints[0]['permission_callback'])($request));
+
+        // post(): #[Permission(capability: 'edit_posts')], a different check than get()'s,
+        // proving each verb resolved its own attribute rather than sharing one.
+        Functions\expect('current_user_can')->once()->with('edit_posts')->andReturn(false);
+        $this->assertFalse(($endpoints[1]['permission_callback'])($request));
+    }
+
+    public function test_endpointsFor_uses_the_class_level_permission_attribute_for_every_verb_without_its_own(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeClassLevel());
+
+        $request = new WP_REST_Request([], '/test');
+
+        $this->assertTrue(($endpoints[0]['permission_callback'])($request)); // get()
+        $this->assertTrue(($endpoints[1]['permission_callback'])($request)); // post()
+    }
+
+    public function test_endpointsFor_lets_a_method_level_permission_attribute_override_the_class_level_one(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeMethodOverridesClass());
+
+        $request = new WP_REST_Request([], '/test');
+
+        // get() has its own #[Permission(public: true)]: overrides the class-level
+        // capability check, current_user_can() must never be called for this verb (no stub
+        // set up for it here, an unstubbed WP function call would error).
+        $this->assertTrue(($endpoints[0]['permission_callback'])($request));
+
+        // post() has no method-level attribute: inherits the class-level
+        // #[Permission(capability: 'edit_posts')].
+        Functions\expect('current_user_can')->once()->with('edit_posts')->andReturn(false);
+        $this->assertFalse(($endpoints[1]['permission_callback'])($request));
+    }
+
+    public function test_endpointsFor_uses_a_shared_static_method_as_the_permission_callback(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeSharedCallback());
+        $callback  = $endpoints[0]['permission_callback'];
+
+        $authorized = new WP_REST_Request(['api_key' => 'secret'], '/test');
+        $this->assertTrue($callback($authorized));
+
+        $unauthorized = new WP_REST_Request([], '/test');
+        $this->assertFalse($callback($unauthorized));
+    }
+
     public function test_hasPublicMethod_is_false_for_a_private_method(): void
     {
         $loader = new RouteLoader($this->directory, $this->environment);
@@ -216,6 +274,46 @@ class RouteLoaderTest extends TestCase
             ->with(
                 ApiNamespace::DEFAULT,
                 '/test-loader-throws-permission',
+                \Mockery::type('array'),
+            )
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    public function test_loadAndRegister_recreates_the_anti_listing_index_file_if_missing(): void
+    {
+        // Simulates a Git-based deploy that never went through lps api push (the only channel
+        // that used to create it): loadAndRegister() must self-heal it on every boot instead
+        // of only when a push happens to write a file.
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertFileExists(WP_CONTENT_DIR . '/loopress/api/index.php');
+    }
+
+    public function test_loadAndRegister_registers_a_route_for_a_file_missing_the_abspath_guard(): void
+    {
+        // The source-controlled version of every api/ file never has the guard (lps api pull
+        // strips it, see FileWriter::stripGuard()), so a file deployed by any channel other
+        // than lps api push arrives here without it. Must still register normally, only be
+        // logged, never blocked.
+        $this->directory->write(
+            'test-loader-no-guard',
+            "<?php\nfinal class TestLoaderNoGuard\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(
+                ApiNamespace::DEFAULT,
+                '/test-loader-no-guard',
                 \Mockery::type('array'),
             )
             ->andReturn(true);

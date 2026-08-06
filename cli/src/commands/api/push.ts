@@ -109,8 +109,15 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.put(`loopress/v1/api-files/${file.filename}`, {content: file.content})
-      if (task) task.output = `Pushed: ${file.filename}`
+      const result = await this.wp.put<{syntax_check?: 'skipped'}>(`loopress/v1/api-files/${file.filename}`, {
+        content: file.content,
+      })
+      if (task) {
+        task.output =
+          result.syntax_check === 'skipped'
+            ? `Pushed: ${file.filename} (syntax check skipped, exec() unavailable on this host)`
+            : `Pushed: ${file.filename}`
+      }
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
     }

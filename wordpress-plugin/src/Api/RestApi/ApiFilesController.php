@@ -80,9 +80,9 @@ class ApiFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
         }
 
-        $syntaxError = $this->checkSyntax($guarded);
-        if ($syntaxError !== null) {
-            return new WP_REST_Response(['error' => "File has invalid PHP syntax: {$syntaxError}"], 400);
+        $syntax = $this->checkSyntax($guarded);
+        if ($syntax['status'] === 'error') {
+            return new WP_REST_Response(['error' => "File has invalid PHP syntax: {$syntax['message']}"], 400);
         }
 
         try {
@@ -91,7 +91,14 @@ class ApiFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        return new WP_REST_Response(['filename' => $filename], 200);
+        $response = ['filename' => $filename];
+        if ($syntax['status'] === 'unavailable') {
+            // Distinguishes "verified, no error" from "couldn't verify here" for the CLI:
+            // the write still succeeded, this is a heads-up, not a failure.
+            $response['syntax_check'] = 'skipped';
+        }
+
+        return new WP_REST_Response($response, 200);
     }
 
     // A file that fails to write was never going to work anyway, but one that writes fine
@@ -111,15 +118,16 @@ class ApiFilesController
     // routinely unavailable on managed hosts, so this degrades to "can't verify" rather than
     // blocking a push that might be perfectly valid — same reasoning either way: never trust a
     // syntax error message before confirming it actually looks like one.
-    private function checkSyntax(string $code): ?string
+    /** @return array{status: 'ok'|'error'|'unavailable', message: ?string} */
+    private function checkSyntax(string $code): array
     {
         if (!function_exists('exec') || str_contains((string) ini_get('disable_functions'), 'exec')) {
-            return null;
+            return ['status' => 'unavailable', 'message' => null];
         }
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'loopress-api-');
         if ($tmpFile === false) {
-            return null;
+            return ['status' => 'unavailable', 'message' => null];
         }
 
         file_put_contents($tmpFile, $code); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
@@ -133,19 +141,19 @@ class ApiFilesController
         $joined = implode("\n", $output);
 
         if ($exitCode === 0 && str_contains($joined, 'No syntax errors detected')) {
-            return null;
+            return ['status' => 'ok', 'message' => null];
         }
 
         // Genuine `php -l` failures always say "Parse error" or "Fatal error"; anything else
         // (missing binary, a php-fpm/php-cgi binary that doesn't understand `-l` the same way,
         // an unexpected output shape) means the check itself is unreliable here, not that the
-        // file is broken — don't turn an inconclusive check into a false rejection.
+        // file is broken, don't turn an inconclusive check into a false rejection.
         if (!str_contains($joined, 'Parse error') && !str_contains($joined, 'Fatal error')) {
-            return null;
+            return ['status' => 'unavailable', 'message' => null];
         }
 
         // First line is always "PHP Parse error: ..." or "PHP Fatal error: ...", the rest is
         // an "Errors parsing ..." footer that repeats the filename back, not useful to the user.
-        return $output[0] ?? 'Unknown syntax error.';
+        return ['status' => 'error', 'message' => $output[0] ?? 'Unknown syntax error.'];
     }
 }
