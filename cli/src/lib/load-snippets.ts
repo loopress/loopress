@@ -37,7 +37,7 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
 
   for (const file of files) {
     const ext = extname(file)
-    if (!(ext in TYPE_BY_EXTENSION)) continue
+    if (!Object.hasOwn(TYPE_BY_EXTENSION, ext)) continue
 
     const filePath = join(path, file)
     const metaPath = join(path, `${basename(file, ext)}.json`)
@@ -80,7 +80,7 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
       }
     }
 
-    const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext] : 'php')
+    const resolvedType = type ?? (Object.hasOwn(TYPE_BY_EXTENSION, ext) ? TYPE_BY_EXTENSION[ext] : 'php')
 
     snippets.push({
       active: isActive,

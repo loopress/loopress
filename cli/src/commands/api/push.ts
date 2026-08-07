@@ -84,7 +84,7 @@ export default class Push extends PushCommand {
   private async loadFiles(path: string): Promise<ApiFile[]> {
     return loadDirectoryFiles<ApiFile>(path, {
       extension: '.php',
-      onSkip: (message) => this.warn(message),
+      onSkip: (message) => { this.warn(message) },
       // relative()'s separator is OS-specific ('\\' on Windows); the server only ever expects
       // '/', same as any URL or import path.
       parse: (raw, filePath) => ({

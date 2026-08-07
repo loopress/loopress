@@ -43,7 +43,7 @@ export async function waitForLocalCallback<T>(options: {
       settle()
     }
 
-    const server = createServer(async (req, res) => {
+    async function handleIncoming(req: IncomingMessage, res: ServerResponse): Promise<void> {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const body: Record<string, string> =
@@ -64,7 +64,9 @@ export async function waitForLocalCallback<T>(options: {
         server.close()
         reject(error)
       }
-    })
+    }
+
+    const server = createServer((req, res) => { void handleIncoming(req, res) })
 
     server.on('error', (err) => {
       clearTimeout(timer)

@@ -24,16 +24,22 @@ export type NormalizedSnippet = {
   type: SnippetType
 }
 
+// Coerces server JSON that should be a string but, being unknown, could in principle be an
+// object; a plain String() on that would print "[object Object]" instead of falling back.
+function coerceString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : fallback
+}
+
 export function parseType(raw: unknown): SnippetType | undefined {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
-  const value = String(raw ?? '').toLowerCase()
+  const value = coerceString(raw).toLowerCase()
   return valid.includes(value as SnippetType) ? (value as SnippetType) : null
 }
 
 const VALID_LOCATIONS = new Set<SnippetLocation>(['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'])
 
 export function parseLocation(raw: unknown): SnippetLocation | undefined {
-  const value = String(raw ?? '').toLowerCase()
+  const value = coerceString(raw).toLowerCase()
   return VALID_LOCATIONS.has(value as SnippetLocation) ? (value as SnippetLocation) : null
 }
 
@@ -101,12 +107,12 @@ export function buildMetaFile(snippet: NormalizedSnippet): string {
 export function normalizeSnippet(data: Record<string, unknown>): NormalizedSnippet {
   return {
     active: Boolean(data.active),
-    code: String(data.code ?? ''),
-    description: String(data.description ?? ''),
+    code: coerceString(data.code),
+    description: coerceString(data.description),
     id: Number(data.id),
     insertMethod: parseInsertMethod(data.insertMethod) ?? 'auto',
     location: parseLocation(data.location) ?? defaultLocationForType(parseType(data.type) ?? 'php'),
-    name: String(data.name ?? ''),
+    name: coerceString(data.name),
     priority: resolvePriority(data.priority),
     shortcodeAttributes: Array.isArray(data.shortcodeAttributes) ? (data.shortcodeAttributes as unknown[]).map(String) : [],
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],

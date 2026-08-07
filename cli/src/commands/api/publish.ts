@@ -58,7 +58,7 @@ export default class Publish extends Command {
 
     const files = await loadFiles<ApiRouteFile>(path, {
       extension: '.php',
-      onSkip: (message) => this.warn(message),
+      onSkip: (message) => { this.warn(message) },
       parse: (raw, filePath) => ({code: raw, filename: basename(filePath, '.php')}),
     })
 

@@ -96,7 +96,6 @@ describe('init', () => {
   })
 
   it('aborts without prompting further when the user declines to overwrite an existing config', async () => {
-    const {existsSync} = await import('node:fs')
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(false)
 
@@ -111,7 +110,6 @@ describe('init', () => {
   })
 
   it('proceeds with the prompts when the user confirms the overwrite', async () => {
-    const {existsSync} = await import('node:fs')
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')

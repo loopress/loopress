@@ -62,7 +62,7 @@ const PAGE_META_FIELDS = [
 export function pickPageMeta(data: Record<string, unknown>): Record<string, unknown> {
   const meta: Record<string, unknown> = {}
   for (const field of PAGE_META_FIELDS) {
-    if (field in data) meta[field] = data[field]
+    if (Object.hasOwn(data, field)) meta[field] = data[field]
   }
 
   return meta

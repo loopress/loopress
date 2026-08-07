@@ -37,7 +37,7 @@ export default class Push extends PushCommand {
       Object.entries(manifest).filter(([slug]) => !composerSlugs.includes(slug)),
     )
 
-    const skippedComposerManaged = composerSlugs.filter((slug) => slug in manifest)
+    const skippedComposerManaged = composerSlugs.filter((slug) => Object.hasOwn(manifest, slug))
     if (skippedComposerManaged.length > 0) {
       this.log(
         `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,

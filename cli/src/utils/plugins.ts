@@ -22,9 +22,9 @@ const LOOPRESS_PLUGIN_SLUGS = new Set(['loopress', 'loopress-full', 'loopress-li
 export function mergePluginManifest(existing: PluginManifest, incoming: PluginManifest): MergeResult {
   const merged = {...existing, ...incoming}
 
-  const added = Object.keys(incoming).filter((s) => !(s in existing))
+  const added = Object.keys(incoming).filter((s) => !Object.hasOwn(existing, s))
   const updated = Object.keys(incoming)
-    .filter((s) => s in existing && existing[s] !== incoming[s])
+    .filter((s) => Object.hasOwn(existing, s) && existing[s] !== incoming[s])
     .map((s) => ({from: existing[s], slug: s, to: incoming[s]}))
 
   return {added, merged, updated}

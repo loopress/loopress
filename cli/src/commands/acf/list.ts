@@ -36,7 +36,8 @@ export default class List extends LoopressCommand {
       }
 
       for (const object of objects) {
-        this.log(`  ${getAcfKey(object) ?? '(no key)'}. ${String(object.title ?? '(untitled)')}`)
+        const title = typeof object.title === 'string' ? object.title : '(untitled)'
+        this.log(`  ${getAcfKey(object) ?? '(no key)'}. ${title}`)
       }
 
       this.log('')

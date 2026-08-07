@@ -111,7 +111,7 @@ export default class Push extends PushCommand {
 
   private async loadSnippets(path: string): Promise<Snippet[]> {
     try {
-      return await loadSnippetsFromDisk(path, (message) => this.warn(message))
+      return await loadSnippetsFromDisk(path, (message) => { this.warn(message) })
     } catch (error) {
       this.error((error as Error).message)
     }

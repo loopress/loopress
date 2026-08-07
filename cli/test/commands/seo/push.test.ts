@@ -24,7 +24,7 @@ function makeCmd(): {cmd: PushInternals; logs: ReturnType<typeof silenceLogs>} {
 
 // Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
 function notFoundError(): Error {
-  return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+  return new Error('not found', {cause: {response: {statusCode: 404}}})
 }
 
 describe('seo push', () => {
