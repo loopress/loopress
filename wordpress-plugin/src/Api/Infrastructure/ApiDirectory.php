@@ -45,23 +45,33 @@ class ApiDirectory
         }
     }
 
-    /** @return string[] slugs (filename without .php), e.g. ['hello', 'hello-world'] */
+    /**
+     * @return string[] slugs: relative path without .php, e.g. ['hello', 'invoice-pdf/[order_id]']
+     *   for api/hello.php and api/invoice-pdf/[order_id].php respectively.
+     */
     public function listSlugs(): array
     {
         if (!is_dir($this->path)) {
             return [];
         }
 
-        $files = scandir($this->path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_scandir
-        if ($files === false) {
-            return [];
-        }
+        // RecursiveIteratorIterator defaults to LEAVES_ONLY: intermediate directories never
+        // appear as their own entry, only actual files do.
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->path, \FilesystemIterator::SKIP_DOTS)
+        );
 
         $slugs = [];
         foreach ($files as $file) {
-            if ($file !== 'index.php' && str_ends_with($file, '.php')) {
-                $slugs[] = substr($file, 0, -4);
+            if (!$file->isFile() || $file->getExtension() !== 'php' || $file->getFilename() === 'index.php') {
+                continue;
             }
+
+            // getPathname() uses the platform's directory separator ('\' on Windows);
+            // RouteLoader always explode()s a slug on '/', so a slug carrying '\' would be
+            // read as one single segment instead of the intended nested path.
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($this->path)));
+            $slugs[]  = substr($relative, 0, -4); // strip the trailing '.php'
         }
 
         return $slugs;

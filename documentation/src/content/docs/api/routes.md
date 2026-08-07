@@ -39,14 +39,40 @@ Three naming rules tie everything together:
 
 | Element | Rule | Example |
 |---------|------|---------|
-| Filename | Lowercase kebab-case: letters, digits, hyphens only, `.php` extension | `hello-world.php` |
-| Class | The filename converted to PascalCase | `HelloWorld` |
-| Route | The filename without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
+| Filename | Lowercase kebab-case path segments (letters, digits, hyphens), optionally nested in subdirectories, `.php` extension | `hello-world.php` |
+| Class | Each path segment converted to PascalCase and joined with `_` | `HelloWorld` (single segment, nothing to join) |
+| Route | The path without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
+
+The `_` between segments (see [Dynamic path segments](#dynamic-path-segments) below for a multi-segment example) isn't just style: plain concatenation would let two differently nested files collide on the same class name (`foo-bar/baz.php` and `foo/bar-baz.php` would both PascalCase-and-strip-hyphens to `FooBarBaz`), joining with `_` keeps the segment boundary and avoids that.
 
 Two structural requirements are enforced at push time, with a clear error if either fails:
 
 - The file must contain `declare(strict_types=1);` exactly once. More than once (even inside a comment) or zero times is rejected.
-- The filename must match the kebab-case pattern. The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+- Every path segment must match the kebab-case pattern, or be a dynamic segment (see below). The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+
+## Dynamic path segments
+
+A segment wrapped in brackets, `[order_id]`, matches anything in that position and passes it through as a request param. The name inside the brackets follows PHP identifier rules (must start with a letter or underscore, since it becomes a named capture group internally), the same charset `$request->get_param()` needs anyway:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+// api/invoice-pdf/[order_id].php
+
+class InvoicePdf_OrderId
+{
+    public function get(WP_REST_Request $request): array
+    {
+        return ['order_id' => $request->get_param('order_id')];
+    }
+}
+```
+
+Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`. Each segment is PascalCased and joined with `_`, brackets stripped: `Orders_OrderId_Items_ItemId`.
+
+There's no catch-all segment (no `[...path]`): every segment, dynamic or not, is explicit and named. A route always has a fixed, predictable number of segments.
 
 ## HTTP verbs
 
@@ -169,9 +195,71 @@ Returning `false` produces WordPress's standard `rest_forbidden` response.
 
 Defensive behavior, so a mistake never breaks the site: if `permission()` throws, the request it was checking is denied (fails closed, same as returning `false`) and the error is logged. The route itself stays registered and keeps working for every other request, only the request that hit the throw is affected.
 
+### Different permissions per verb, with `#[Permission]`
+
+`permission()` applies to every verb in the file. When a file needs a different check per verb, for instance a public `get()` next to an admin-only `post()`, use the `#[Permission]` attribute instead, on a verb method or on the class:
+
+```php
+use Loopress\Api\Attribute\Permission;
+
+class Item
+{
+    #[Permission(public: true)]
+    public function get(): array
+    {
+        return ['items' => get_option('my_items', [])];
+    }
+
+    #[Permission(capability: 'edit_posts')]
+    public function post(WP_REST_Request $request): array
+    {
+        // ...
+    }
+}
+```
+
+A `#[Permission]` on the class applies to every verb that doesn't have its own, a `#[Permission]` on a verb method overrides it for that verb only. Resolution order, most specific first: attribute on the verb, attribute on the class, the file's `permission()` method, the closed `manage_options` default.
+
+`callback` points to the actual check instead of a fixed capability, either a local method name or a shared static method for logic reused across several route files:
+
+```php
+#[Permission(callback: 'checkSignature')]
+public function post(WP_REST_Request $request): array { /* ... */ }
+
+public function checkSignature(WP_REST_Request $request): bool
+{
+    return hash_equals((string) get_option('my_webhook_secret'), (string) $request->get_header('x-webhook-secret'));
+}
+```
+
+```php
+#[Permission(callback: [SharedChecks::class, 'requireApiKey'])] // SharedChecks::requireApiKey must be static
+class Webhook { /* ... */ }
+```
+
+Same fail-closed behavior as `permission()`: a throwing `callback` denies the request and logs the error instead of breaking the site.
+
 ## Response headers and CORS
 
-Add a public `headers()` method returning a map of header name to value. The headers are sent on **every** request to the route, including the `OPTIONS` preflight that WordPress answers automatically without ever calling your verb methods, which is exactly what browser CORS needs:
+Two ways to set headers, depending on whether they vary per verb or apply to the whole route.
+
+### Per-verb headers
+
+Return a `WP_REST_Response` and call `header()` on it. This is the right place for anything that depends on the specific request, a cache directive that varies with the resource, a content-disposition on a download, and so on:
+
+```php
+public function get(WP_REST_Request $request): WP_REST_Response
+{
+    $response = new WP_REST_Response(['order_id' => $request->get_param('order_id')]);
+    $response->header('Cache-Control', 'private, max-age=60');
+
+    return $response;
+}
+```
+
+### Route-wide headers, including the OPTIONS preflight
+
+Add a public `headers()` method returning a map of header name to value. The headers are sent on **every** request to the route, including the `OPTIONS` preflight that WordPress answers automatically without ever calling your verb methods, which is exactly what browser CORS needs, and exactly what a per-verb `WP_REST_Response` can't reach:
 
 ```php
 public function headers(): array
@@ -186,7 +274,9 @@ public function headers(): array
 
 Only string-to-string pairs are applied, anything else in the array is ignored. If `headers()` throws, the error is logged and the request is served without the custom headers, it never breaks the response itself.
 
-For one-off headers on a single response, prefer returning a `WP_REST_Response` and setting headers there. `headers()` is for headers that must apply to the whole route, preflight included.
+### Don't set the same header name in both places
+
+`headers()` is applied after your verb method runs, so if the same header name appears in both a `WP_REST_Response` and `headers()`, `headers()` silently wins, even if the `WP_REST_Response` value was the more specific one. Keep the two non-overlapping: `WP_REST_Response` for whatever varies by verb or request, `headers()` strictly for what must apply route-wide, CORS being the main case.
 
 ## The route namespace
 
@@ -225,6 +315,39 @@ class Webhook
 ```
 
 A broken dependency install (missing package, corrupted autoloader) is logged and skipped the same way a broken route file is, it never breaks the rest of the site's REST API.
+
+### Sharing code between route files (and snippets)
+
+`wp-content/loopress/lib/` is for code reused across several route files, permission checks, formatters, anything that isn't a route itself. Classes there are autoloaded under the `LoopressLib\` namespace, the same `use`-and-go behavior as a Composer dependency:
+
+```php
+// wp-content/loopress/lib/SharedChecks.php
+<?php
+
+declare(strict_types=1);
+
+namespace LoopressLib;
+
+use WP_REST_Request;
+
+final class SharedChecks
+{
+    public static function requireApiKey(WP_REST_Request $request): bool
+    {
+        return hash_equals((string) get_option('my_api_key'), (string) $request->get_param('api_key'));
+    }
+}
+```
+
+```php
+use Loopress\Api\Attribute\Permission;
+use LoopressLib\SharedChecks;
+
+#[Permission(callback: [SharedChecks::class, 'requireApiKey'])]
+class Webhook { /* ... */ }
+```
+
+`lib/` is never scanned for routes, it's a plain autoload target, not another `api/`. In a [code snippet](/composer/using-in-snippets/), where the autoloader isn't loaded automatically, `require_once` the Composer autoloader first, the same one step already needed there for any Composer dependency.
 
 ## Failure isolation
 

@@ -11,6 +11,7 @@ class LoopressEnvironment
 {
     private string $loopressDir;
     private bool $initialized = false;
+    private bool $libAutoloadNeedsDump = false;
     private Filesystem $filesystem;
 
     public function __construct()
@@ -39,11 +40,14 @@ class LoopressEnvironment
             wp_mkdir_p($this->loopressDir);
         }
 
+        $this->ensureLibDir();
+
         if (!file_exists($this->loopressDir . 'composer.json')) {
             $this->writeComposerJson([
                 'name'        => 'loopress/site-dependencies',
                 'description' => 'Site-wide dependencies managed by Loopress Full',
-                'version' => '0.0.0',
+                'version'     => '0.0.0',
+                'autoload'    => ['psr-4' => ['LoopressLib\\' => 'lib/']],
                 'config'      => [
                     'vendor-dir' => 'vendor',
                     'platform'   => ['php' => PHP_VERSION],
@@ -52,12 +56,67 @@ class LoopressEnvironment
             return;
         }
 
+        $json         = $this->readComposerJson();
+        $needsRewrite = false;
+
         // Ensure config.platform.php matches the running PHP; prevents installing
         // packages whose requirements exceed the actual server version.
-        $json = $this->readComposerJson();
         if (($json['config']['platform']['php'] ?? null) !== PHP_VERSION) {
             $json['config']['platform']['php'] = PHP_VERSION;
+            $needsRewrite = true;
+        }
+
+        // Migrates a site whose composer.json (and vendor/) already existed before lib/ was
+        // introduced. Patching composer.json alone has zero runtime effect on an
+        // already-generated autoloader: Composer's ClassLoader only ever reads the files
+        // `dump-autoload` writes to vendor/composer/, never composer.json itself. Flagged
+        // here rather than run directly: LoopressEnvironment has no ComposerRunner (it would
+        // create a constructor cycle, ComposerRunner already depends on LoopressEnvironment),
+        // so the actual dump-autoload is left to a caller that has one, see
+        // needsLibAutoloadDump() and ComposerService::ensureInitialized().
+        if (($json['autoload']['psr-4']['LoopressLib\\'] ?? null) !== 'lib/') {
+            $json['autoload']['psr-4']['LoopressLib\\'] = 'lib/';
+            $needsRewrite               = true;
+            $this->libAutoloadNeedsDump = true;
+        }
+
+        if ($needsRewrite) {
             $this->writeComposerJson($json);
+        }
+    }
+
+    // "Take" semantics (reads and clears in one step) so a caller that polls this after every
+    // ensureInitialized() call, ComposerService::ensureInitialized() does, never triggers more
+    // than one dump-autoload for a single migration, even if called several times per request.
+    public function needsLibAutoloadDump(): bool
+    {
+        $needsDump                  = $this->libAutoloadNeedsDump;
+        $this->libAutoloadNeedsDump = false;
+        return $needsDump;
+    }
+
+    // Called back by ComposerService when its dump-autoload attempt actually fails, so the
+    // flag it just consumed via needsLibAutoloadDump() isn't silently lost: a later call
+    // within the same request (or a future caller sharing this instance) sees the migration
+    // as still pending instead of assuming it already succeeded.
+    public function retryLibAutoloadDump(): void
+    {
+        $this->libAutoloadNeedsDump = true;
+    }
+
+    // Sibling of api/ (see ApiDirectory::ensureExists(), same anti-listing rationale), never
+    // scanned for routing: just a place for code shared between api/ files and snippets via
+    // the LoopressLib\ autoload prefix above.
+    private function ensureLibDir(): void
+    {
+        $libDir = $this->loopressDir . 'lib/';
+        if (!is_dir($libDir)) {
+            wp_mkdir_p($libDir);
+        }
+
+        $indexFile = $libDir . 'index.php';
+        if (!file_exists($indexFile)) {
+            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
         }
     }
 

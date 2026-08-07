@@ -10,6 +10,7 @@ if (!class_exists('WP_REST_Request')) {
     {
         private array $params = [];
         private string $method = '';
+        private array $attributes = [];
 
         /**
          * Accepts either the real WordPress signature (string $method, string $route) or, for
@@ -48,6 +49,16 @@ if (!class_exists('WP_REST_Request')) {
         public function get_method(): string
         {
             return $this->method;
+        }
+
+        public function set_attributes(array $attributes): void
+        {
+            $this->attributes = $attributes;
+        }
+
+        public function get_attributes(): array
+        {
+            return $this->attributes;
         }
     }
 }

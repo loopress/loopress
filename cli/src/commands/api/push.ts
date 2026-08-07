@@ -1,6 +1,6 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
-import {basename} from 'node:path'
+import {relative, sep} from 'node:path'
 
 import {authManager} from '../../config/auth.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
@@ -12,14 +12,13 @@ interface ApiFile {
   filename: string
 }
 
-// Mirrors the server's own allowlist (wordpress-plugin ApiFilesController::FILENAME_PATTERN):
-// the filename becomes a URL path segment matched against this exact regex by the WP REST
-// route itself. A filename that doesn't match never reaches the controller, WordPress's
-// router returns a generic 404 before validate_callback runs, which the CLI's shared error
-// formatter reports as "is the plugin installed?", a confusing message for what is actually
-// an invalid filename. Checking client-side first turns that into an accurate error and
-// skips a network round-trip that could only ever fail.
-const FILENAME_PATTERN = /^[a-z0-9-]+$/
+// Mirrors the server's own allowlist (wordpress-plugin ApiFilesController::isValidFilename()):
+// filename is sent as a body param (not a URL path segment: a nested path can contain '/' and
+// '[]', and depending on a server to handle a percent-encoded slash in a URL path correctly is
+// exactly the kind of hosting-environment variance Loopress can't assume away), but validating
+// client-side first still turns a malformed name into an accurate error and skips a network
+// round-trip that could only ever fail.
+const FILENAME_PATTERN = /^(?:[a-z0-9-]+|\[\w+\])(?:\/(?:[a-z0-9-]+|\[\w+\]))*$/
 
 // Mirrors the server's own check (wordpress-plugin FileWriter::DECLARE_PATTERN /
 // withGuard()): the server rejects both an absent declare(strict_types=1); and one that
@@ -85,13 +84,19 @@ export default class Push extends PushCommand {
     return loadDirectoryFiles<ApiFile>(path, {
       extension: '.php',
       onSkip: (message) => this.warn(message),
-      parse: (raw, filePath) => ({content: raw, filename: basename(filePath, '.php')}),
+      // relative()'s separator is OS-specific ('\\' on Windows); the server only ever expects
+      // '/', same as any URL or import path.
+      parse: (raw, filePath) => ({
+        content: raw,
+        filename: relative(path, filePath).slice(0, -'.php'.length).split(sep).join('/'),
+      }),
+      recursive: true,
     })
   }
 
   private async pushFile(file: ApiFile, task?: {output: string}): Promise<void> {
     if (!FILENAME_PATTERN.test(file.filename)) {
-      const message = `Invalid filename "${file.filename}": only lowercase letters, digits, and hyphens are allowed (e.g. "hello-world.php")`
+      const message = `Invalid filename "${file.filename}": each path segment must be lowercase letters, digits, and hyphens, or a bracketed dynamic segment like "[order_id]" (e.g. "invoice-pdf/[order_id].php")`
       this.reportTaskFailure(message, new Error(message), task)
     }
 
@@ -109,8 +114,16 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.put(`loopress/v1/api-files/${file.filename}`, {content: file.content})
-      if (task) task.output = `Pushed: ${file.filename}`
+      const result = await this.wp.put<{syntax_check?: 'skipped'}>('loopress/v1/api-files', {
+        content: file.content,
+        filename: file.filename,
+      })
+      if (task) {
+        task.output =
+          result.syntax_check === 'skipped'
+            ? `Pushed: ${file.filename} (syntax check skipped, unavailable on this host)`
+            : `Pushed: ${file.filename}`
+      }
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
     }
