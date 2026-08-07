@@ -1,7 +1,7 @@
 {
   "name": "@loopress/mcp",
   "description": "MCP server exposing Loopress CLI operations (snippet/page/api/plugin/composer push/pull, project status) as tool calls for AI agents",
-  "version": "0.1.0",
+  "version": "0.21.0",
   "type": "module",
   "bin": {
     "lps-mcp": "dist/server.js"

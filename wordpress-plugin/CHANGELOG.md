@@ -1,5 +1,22 @@
 # @loopress/wordpress-plugin
 
+## 2026.8.0
+
+### Minor Changes
+
+- 182ae2a: `api/` route files: the anti-listing `index.php` is now recreated on every boot if missing, not only when `lps api push` happens to write a file, so a Git-based deploy that never goes through `lps api push` still gets it. Also logs (without blocking the route) when a file is missing its ABSPATH guard, which is expected for any file deployed outside `lps api push` since the guard is only ever injected at push time and stripped again on pull.
+- 182ae2a: `api/` route files can now use a bracketed segment, `[order_id]`, anywhere in their path (e.g. `api/invoice-pdf/[order_id].php`, `api/orders/[order_id]/items/[item_id].php`) to capture a dynamic value into `$request->get_param(...)`, the same convention as Astro/Next.js dynamic routes, without a catch-all segment. The segment name must start with a letter or underscore (it becomes a PHP identifier internally). The generated class name PascalCases each path segment and joins them with `_` (`InvoicePdf_OrderId`, not `InvoicePdfOrderId`), so two differently nested files can never collide on the same class name.
+
+  `lps api push`/`pull`/`list` now support route files nested in subdirectories, needed for the above. **Internal, breaking**: the upload endpoint (`PUT loopress/v1/api-files`) now takes `filename` as a body field instead of a URL path segment (avoids depending on how a given host handles a percent-encoded slash in a URL), so the CLI and the WordPress plugin must be upgraded together, an old CLI against a new plugin (or the reverse) will fail to push.
+
+- 182ae2a: New `wp-content/loopress/lib/` directory, autoloaded under the `LoopressLib\` namespace (via the same Composer setup as `wp-content/loopress/vendor/`), for code shared between `api/` route files, permission checks and formatters reused across several files, without turning that shared code into a route itself. Existing sites get the new autoload entry migrated into `composer.json` automatically, with a `dump-autoload` to make it take effect immediately rather than only on the next unrelated Composer operation.
+- 182ae2a: `api/` route files can now declare `#[Permission]` on a verb method or on the class, for per-verb authorization (a public `get()` next to an admin-only `post()`, for example) instead of one `permission()` covering every verb. Resolution order: attribute on the verb, attribute on the class, the file's `permission()` method, the closed `manage_options` default. `#[Permission(callback: ...)]` can point to a shared static method, reusable across several route files, with the same fail-closed behavior on a throw as `permission()`. Combining more than one of `public`, `capability`, or `callback` on the same attribute is rejected (the route fails to register, logged, rather than silently picking one).
+- 67a932e: `api/` route files: `permission()` is now called directly by WordPress as the route's `permission_callback` (`permission(WP_REST_Request $request): bool`), instead of being called at registration to produce a callable. **Breaking**: the old `permission(): callable { return fn(): bool => ...; }` form no longer works, update any custom route that overrides `permission()`. A throw inside `permission()` now fails closed (denies that request) instead of skipping the whole route file at boot.
+
+  Also logs when an `api/` file has no public HTTP verb method (`get`/`post`/`put`/`patch`/`delete`), previously silent and indistinguishable from a route that intentionally has none yet.
+
+- 182ae2a: `lps api push`'s server-side PHP syntax check now distinguishes "verified, no error" from "couldn't verify here" (`exec()` disabled, common on managed hosts, or another local condition preventing the check from running), instead of treating both as silent success. The CLI now reports when the check was skipped for the second case instead of staying indistinguishable from a fully verified push.
+
 ## 2026.7.16
 
 ### Patch Changes
