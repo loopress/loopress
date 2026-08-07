@@ -14,7 +14,7 @@ export default defineConfig({
   // without masking a real regression, which would still fail again on the retry.
   retries: 1,
   testDir: './e2e',
-  timeout: 60_000,
+  timeout: 30_000,
   use: {
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
