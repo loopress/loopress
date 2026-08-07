@@ -17,6 +17,7 @@
     "@changesets/cli": "^2.31.1",
     "@eslint/compat": "2.1.0",
     "@playwright/test": "^1.62.1",
+    "@wordpress/e2e-test-utils-playwright": "^1.52.0",
     "eslint": "^10.8.0",
     "eslint-config-oclif": "^7.1.1",
     "eslint-config-prettier": "^10"

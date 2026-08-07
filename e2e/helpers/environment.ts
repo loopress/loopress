@@ -1,4 +1,5 @@
 import {test as base} from '@playwright/test'
+import {RequestUtils} from '@wordpress/e2e-test-utils-playwright'
 import {execFile} from 'node:child_process'
 import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -49,6 +50,7 @@ interface TestFixtures {
 }
 
 interface WorkerFixtures {
+  requestUtils: RequestUtils
   wp: WpCredentials
 }
 
@@ -116,6 +118,19 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       }
     })
   },
+
+  // Test-infrastructure only (plugin activation toggles between describe blocks), never used
+  // for the REST assertions those tests actually make: RequestUtils authenticates via a
+  // WP nonce/cookie session (its own username+password login), not the Basic-Auth/app-password
+  // path every other REST call in this suite exercises, the one the CLI's WpClient actually
+  // uses in production. Mixing the two for an assertion would test a different auth mechanism
+  // than what ships.
+  requestUtils: [
+    async ({wp}, use) => {
+      await use(await RequestUtils.setup({baseURL: wp.url, user: {password: wp.adminPassword, username: wp.username}}))
+    },
+    {scope: 'worker'},
+  ],
 
   wp: [
     async ({}, use) => {

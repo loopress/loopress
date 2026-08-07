@@ -206,6 +206,17 @@ describe('formatWpError', () => {
     expect(message).toContain('Something else went wrong.')
   })
 
+  // Regression coverage: WP core's own generic body for a route it never registered (e.g.
+  // pushing to an endpoint a stale, pre-update plugin version doesn't expose yet) has a
+  // {message} field too, so it used to win over the "is the plugin up to date?" fallback and
+  // read like the endpoint doesn't exist at all instead of pointing at a version mismatch.
+  it("prefers the generic missing-plugin message over WP core's own rest_no_route body on a 404", () => {
+    const body = JSON.stringify({code: 'rest_no_route', data: {status: 404}, message: 'No route was found matching the URL and request method.'})
+    const message = formatWpError({response: {body, statusCode: 404}}, url)
+    expect(message).toContain('Is the required plugin installed')
+    expect(message).not.toContain('No route was found')
+  })
+
   it('falls back to the generic message when the body has neither field', () => {
     const message = formatWpError({response: {body: '{}', statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)

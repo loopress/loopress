@@ -1,4 +1,5 @@
 import type {APIRequestContext} from '@playwright/test'
+import type {RequestUtils} from '@wordpress/e2e-test-utils-playwright'
 
 import {existsSync, mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
@@ -6,7 +7,7 @@ import {join} from 'node:path'
 import type {WpCredentials} from './helpers/environment.js'
 
 import {expect, test, unwrap} from './helpers/environment.js'
-import {loginToWpAdmin, setPluginActive} from './helpers/wp-admin.js'
+import {setPluginActive} from './helpers/wp-admin.js'
 
 const RANK_MATH_SLUG = 'seo-by-rank-math'
 const YOAST_SLUG = 'wordpress-seo'
@@ -25,12 +26,9 @@ async function createPost(request: APIRequestContext, wp: WpCredentials, slug: s
   return post.id
 }
 
-async function setBothActive(wp: WpCredentials, browser: {newPage(): Promise<import('@playwright/test').Page>}, active: boolean): Promise<void> {
-  const page = await browser.newPage()
-  await loginToWpAdmin(page, wp)
-  await setPluginActive(page, wp, RANK_MATH_SLUG, active)
-  await setPluginActive(page, wp, YOAST_SLUG, active)
-  await page.close()
+async function setBothActive(requestUtils: RequestUtils, active: boolean): Promise<void> {
+  await setPluginActive(requestUtils, RANK_MATH_SLUG, active)
+  await setPluginActive(requestUtils, YOAST_SLUG, active)
 }
 
 // The shared e2e instance normally has RankMath and Yoast active at once (SeoService::requireActiveProvider()
@@ -39,8 +37,8 @@ async function setBothActive(wp: WpCredentials, browser: {newPage(): Promise<imp
 // This test alone wants that "both active" state, and ensures it explicitly rather than assuming
 // no other spec file left the instance in a different state.
 test.describe('both RankMath and Yoast active at once', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    await setBothActive(wp, browser, true)
+  test.beforeAll(async ({requestUtils}) => {
+    await setBothActive(requestUtils, true)
   })
 
   test('seo commands fail with a clear "Multiple SEO plugins are active" error', async ({runCli}) => {
@@ -63,12 +61,12 @@ test.describe('both RankMath and Yoast active at once', () => {
 })
 
 test.describe('neither RankMath nor Yoast active', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    await setBothActive(wp, browser, false)
+  test.beforeAll(async ({requestUtils}) => {
+    await setBothActive(requestUtils, false)
   })
 
-  test.afterAll(async ({browser, wp}) => {
-    await setBothActive(wp, browser, true)
+  test.afterAll(async ({requestUtils}) => {
+    await setBothActive(requestUtils, true)
   })
 
   test('seo commands fail with a clear "No supported SEO plugin is active" error', async ({runCli}) => {
@@ -80,18 +78,12 @@ test.describe('neither RankMath nor Yoast active', () => {
 })
 
 test.describe('RankMath active alone', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, YOAST_SLUG, false)
-    await page.close()
+  test.beforeAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, YOAST_SLUG, false)
   })
 
-  test.afterAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, YOAST_SLUG, true)
-    await page.close()
+  test.afterAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, YOAST_SLUG, true)
   })
 
   test('pushes settings to WordPress and they read back identically', async ({projectDir, request, runCli, wp}) => {
@@ -198,18 +190,12 @@ test.describe('RankMath active alone', () => {
 })
 
 test.describe('Yoast active alone', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, RANK_MATH_SLUG, false)
-    await page.close()
+  test.beforeAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, RANK_MATH_SLUG, false)
   })
 
-  test.afterAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, RANK_MATH_SLUG, true)
-    await page.close()
+  test.afterAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, RANK_MATH_SLUG, true)
   })
 
   // Unlike RankMath's `rank-math-options-titles` option (a plain get_option/update_option

@@ -15,6 +15,7 @@ password for an admin user. Point the tests at it with:
 
 ```bash
 export WP_URL=http://your-site.local
+export WP_BASE_URL=$WP_URL            # same value: @wordpress/e2e-test-utils-playwright reads this one itself
 export WP_USERNAME=admin
 export WP_ADMIN_PASSWORD=admin        # the real wp-admin account password (UI login)
 export WP_APP_PASSWORD=xxxxxxxxxxxxxxxxxxxxxxxx   # REST API application password, no spaces

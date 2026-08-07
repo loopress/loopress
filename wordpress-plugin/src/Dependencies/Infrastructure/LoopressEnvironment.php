@@ -153,6 +153,16 @@ class LoopressEnvironment
     {
         $this->ensureInitialized();
 
+        // ensureInitialized() may have just migrated this key onto the file we're about to
+        // overwrite below (fresh site, or one predating lib/), via its own nested
+        // writeComposerJson() call a few lines up. Reassert it here so a caller writing its
+        // own full composer.json (ComposerService::sync(), or the composer init scaffold)
+        // can't silently undo that migration by immediately overwriting the file again.
+        // Unconditional, not ??=: ComposerService::sync() passes this a client-supplied
+        // composer.json verbatim (`lps composer push`), and ??= only guards against the key
+        // being absent, not against the client setting it to something other than 'lib/'.
+        $json['autoload']['psr-4']['LoopressLib\\'] = 'lib/';
+
         $encoded = wp_json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
             throw new \RuntimeException('Failed to encode composer.json: ' . esc_html(json_last_error_msg()));

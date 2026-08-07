@@ -210,11 +210,22 @@ class RouteLoader
             }
 
             try {
-                return call_user_func([$target, $method], $request);
+                $result = call_user_func([$target, $method], $request);
             } catch (\Throwable $e) {
                 $this->log("{$method}() threw: " . $e->getMessage());
                 return false;
             }
+
+            // WP core only denies on a strict `=== false` return, so anything non-bool
+            // (e.g. the pre-#[Permission] convention of permission() returning a Closure
+            // to be called later) would otherwise pass through as "allowed" instead of
+            // failing closed like every other rejection path in this class.
+            if (!is_bool($result)) {
+                $this->log("{$method}() must return bool, got " . get_debug_type($result));
+                return false;
+            }
+
+            return $result;
         };
     }
 

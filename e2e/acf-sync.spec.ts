@@ -4,7 +4,7 @@ import {existsSync, mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test, unwrap} from './helpers/environment.js'
-import {findAcfFieldGroupRow, loginToWpAdmin, setPluginActive, trashAcfFieldGroup} from './helpers/wp-admin.js'
+import {findAcfFieldGroupRow, setPluginActive, trashAcfFieldGroup} from './helpers/wp-admin.js'
 
 function writeFieldGroup(dir: string, key: string, title: string): void {
   mkdirSync(dir, {recursive: true})
@@ -148,18 +148,12 @@ test('push fails clearly for an options page on ACF Free instead of silently no-
 })
 
 test.describe('ACF plugin inactive', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, 'advanced-custom-fields', false)
-    await page.close()
+  test.beforeAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, 'advanced-custom-fields', false)
   })
 
-  test.afterAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, 'advanced-custom-fields', true)
-    await page.close()
+  test.afterAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, 'advanced-custom-fields', true)
   })
 
   test('acf list fails with a clear "ACF is not active" error instead of a 404 or a fatal', async ({runCli}) => {

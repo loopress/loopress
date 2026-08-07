@@ -1,4 +1,5 @@
 import type {Page} from '@playwright/test'
+import type {RequestUtils} from '@wordpress/e2e-test-utils-playwright'
 
 import type {WpCredentials} from './environment.js'
 
@@ -10,27 +11,32 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   await page.waitForLoadState('networkidle')
 }
 
-// Drives the real wp-admin Plugins list (the same "Activate"/"Deactivate" row link a user would
-// click), rather than toggling plugin state through any backdoor, so the resulting state is
-// exactly what a real WordPress install would end up in. Reads the link's href and fires it
-// through `page.request` (same session cookies as `page`) instead of `.click()`: with two SEO
-// plugins active at once, RankMath injects its own dismissible "keep only one SEO plugin
-// active" notice at the top of this page, whose layout settles a beat after load, and that
-// reflow made a real `.click()` here flake exactly the way ACF's PRO upsell banner does for
-// `trashAcfFieldGroup` below.
-export async function setPluginActive(page: Page, wp: WpCredentials, slug: string, active: boolean): Promise<void> {
-  await page.goto(`${wp.url}/wp-admin/plugins.php`)
+// RequestUtils.activatePlugin/deactivatePlugin key plugins by a kebab-cased `Plugin Name:`
+// header (see its getPluginsMap(), paramCase(plugin.name)), not the wp.org install slug
+// setup-ci/scripts/setup-wordpress.sh installs these under. The two only coincide when a
+// plugin's display name happens to equal its slug (advanced-custom-fields, code-snippets);
+// these three don't (checked against the actual headers on the QA WP instance).
+const PLUGIN_NAME_SLUGS: Record<string, string> = {
+  'insert-headers-and-footers': 'wpcode-lite', // Plugin Name: WPCode Lite
+  'seo-by-rank-math': 'rank-math-seo', // Plugin Name: Rank Math SEO
+  'wordpress-seo': 'yoast-seo', // Plugin Name: Yoast SEO
+}
 
-  const link = page.locator(`#${active ? 'activate' : 'deactivate'}-${slug}`)
-  if ((await link.count()) === 0) return // already in the desired state
-
-  const href = await link.getAttribute('href')
-  if (!href) throw new Error(`No ${active ? 'activate' : 'deactivate'} action found for plugin "${slug}"`)
-
-  // plugins.php row actions render as relative URLs (unlike ACF's trash link below, which WP
-  // renders absolute), page.request has no base URL of its own to resolve them against.
-  const response = await page.request.get(new URL(href, page.url()).toString())
-  if (!response.ok()) throw new Error(`Failed to ${active ? 'activate' : 'deactivate'} plugin "${slug}": HTTP ${response.status()}`)
+// Goes through the `wp/v2/plugins/{slug}` REST endpoint (RequestUtils.activatePlugin/
+// deactivatePlugin) rather than driving the wp-admin Plugins list UI: same end state a real
+// admin toggling the row link would produce, but not dependent on that page's markup or its
+// own reflow-related flakiness (with two SEO plugins active at once, RankMath's dismissible
+// "keep only one SEO plugin active" notice made a real `.click()` here flake exactly the way
+// ACF's PRO upsell banner does for `trashAcfFieldGroup` below). Test-infrastructure only, not
+// used for anything actually under test: see the `requestUtils` fixture's own comment on why
+// its nonce/cookie auth must never leak into a REST assertion.
+//
+// Takes the real wp.org install slug (matching `wp plugin install <slug>` in
+// setup-wordpress.sh), translating to whatever RequestUtils itself needs internally, so every
+// call site can keep using the slug a reader actually recognizes.
+export async function setPluginActive(requestUtils: RequestUtils, slug: string, active: boolean): Promise<void> {
+  const nameSlug = PLUGIN_NAME_SLUGS[slug] ?? slug
+  await (active ? requestUtils.activatePlugin(nameSlug) : requestUtils.deactivatePlugin(nameSlug))
 }
 
 // Finds a WPCode admin list row by its exact snippet name. Row actions (Trash, Edit, ...)
