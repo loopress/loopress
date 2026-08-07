@@ -2,25 +2,19 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, unwrap } from "./helpers/environment.js";
-import { loginToWpAdmin, setPluginActive } from "./helpers/wp-admin.js";
+import { setPluginActive } from "./helpers/wp-admin.js";
 
 // Regression test: when both snippet plugins are active at once, Loopress must fail loudly
 // instead of silently picking one (it used to pick WPCode, ignoring loopress.json entirely).
 test.describe("two snippet plugins active at once", () => {
-	test.beforeAll(async ({ browser, wp }) => {
-		const page = await browser.newPage();
-		await loginToWpAdmin(page, wp);
-		await setPluginActive(page, wp, "code-snippets", true);
-		await setPluginActive(page, wp, "insert-headers-and-footers", true);
-		await page.close();
+	test.beforeAll(async ({ requestUtils }) => {
+		await setPluginActive(requestUtils, "code-snippets", true);
+		await setPluginActive(requestUtils, "insert-headers-and-footers", true);
 	});
 
 	// Restore the single-provider baseline other spec files rely on.
-	test.afterAll(async ({ browser, wp }) => {
-		const page = await browser.newPage();
-		await loginToWpAdmin(page, wp);
-		await setPluginActive(page, wp, "code-snippets", false);
-		await page.close();
+	test.afterAll(async ({ requestUtils }) => {
+		await setPluginActive(requestUtils, "code-snippets", false);
 	});
 
 	test('snippet list fails with a clear "multiple plugins active" error', async ({

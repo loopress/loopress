@@ -36,6 +36,16 @@ class LoopressEnvironmentTest extends TestCase
         parent::tearDown();
     }
 
+    // Bypasses writeComposerJson() (which always reasserts the LoopressLib\ autoload entry,
+    // see the fix covered by test_writeComposerJson_does_not_let_its_own_write_undo_the_
+    // migration_ensureInitialized_just_performed below) to fabricate a composer.json exactly
+    // as a real site's would look if its file predates lib/'s introduction entirely: written
+    // by code that never knew about this key, not by anything currently in this class.
+    private function writeLegacyComposerJson(LoopressEnvironment $env, array $json): void
+    {
+        file_put_contents($env->getLoopressDir() . 'composer.json', json_encode($json, JSON_PRETTY_PRINT)); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode
+    }
+
     private function rrmdir(string $dir): void
     {
         if (!is_dir($dir)) {
@@ -144,7 +154,7 @@ class LoopressEnvironmentTest extends TestCase
         // Simulate a site whose composer.json predates the lib/ autoload entry.
         $json = $env->readComposerJson();
         unset($json['autoload']);
-        $env->writeComposerJson($json);
+        $this->writeLegacyComposerJson($env, $json);
 
         // ensureInitialized is memoized per instance (one run per request), so use a fresh
         // instance to simulate the next request: it should add the missing entry.
@@ -161,7 +171,7 @@ class LoopressEnvironmentTest extends TestCase
         $env->ensureInitialized();
         $json = $env->readComposerJson();
         unset($json['autoload']);
-        $env->writeComposerJson($json);
+        $this->writeLegacyComposerJson($env, $json);
 
         $env2 = new LoopressEnvironment();
         $env2->ensureInitialized();
@@ -175,13 +185,40 @@ class LoopressEnvironmentTest extends TestCase
         $env->ensureInitialized();
         $json = $env->readComposerJson();
         unset($json['autoload']);
-        $env->writeComposerJson($json);
+        $this->writeLegacyComposerJson($env, $json);
 
         $env2 = new LoopressEnvironment();
         $env2->ensureInitialized();
 
         $this->assertTrue($env2->needsLibAutoloadDump());
         $this->assertFalse($env2->needsLibAutoloadDump());
+    }
+
+    public function test_writeComposerJson_does_not_let_its_own_write_undo_the_migration_ensureInitialized_just_performed(): void
+    {
+        // Regression for the QA 7th-pass HIGH finding: ComposerService::sync() (the code
+        // behind `lps composer push`) calls writeComposerJson() directly with the client's
+        // raw composer.json, which never contains the LoopressLib\ entry (neither the `lps
+        // composer init` scaffold nor a hand-written one would). writeComposerJson() calls
+        // ensureInitialized() internally, which migrates a legacy file by writing the patched
+        // JSON to disk via its own nested writeComposerJson() call -- but the outer call used
+        // to immediately overwrite that patch with its own, unmigrated $json parameter.
+        $bootstrap = new LoopressEnvironment();
+        $bootstrap->ensureInitialized();
+        $legacyJson = $bootstrap->readComposerJson();
+        unset($legacyJson['autoload']);
+        $this->writeLegacyComposerJson($bootstrap, $legacyJson);
+
+        // A fresh instance, matching how each request gets its own LoopressEnvironment: the
+        // bug only reproduces when ensureInitialized() hasn't already run on this instance,
+        // since writeComposerJson() triggers it internally on first use.
+        $env        = new LoopressEnvironment();
+        $clientJson = ['name' => 'loopress/site-dependencies', 'require' => ['vendor/pkg' => '^1.0']];
+        $env->writeComposerJson($clientJson);
+
+        $written = $env->readComposerJson();
+        $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
+        $this->assertSame('^1.0', $written['require']['vendor/pkg']); // caller's own content still lands
     }
 
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void

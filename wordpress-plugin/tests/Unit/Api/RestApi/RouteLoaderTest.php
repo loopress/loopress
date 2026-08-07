@@ -142,6 +142,18 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
     }
 
+    public function test_endpointsFor_denies_the_pre_direct_callback_permission_convention_instead_of_granting_it(): void
+    {
+        // Regression for the QA 7th-pass CRITICAL finding: permission() returning a callable
+        // (the convention before api-permission-direct-callback) must fail closed, not pass
+        // through as truthy just because it's non-null and non-false.
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $instance  = new RouteLoaderTestFixtureOldStylePermission();
+        $endpoints = $loader->endpointsFor($instance);
+
+        $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
+    }
+
     public function test_endpointsFor_wraps_a_throwing_permission_to_fail_closed(): void
     {
         // permission() now runs lazily at dispatch (wrapPermission()), not eagerly at

@@ -159,6 +159,27 @@ describe('api push', () => {
       })
     })
 
+    it('rejects a dynamic segment starting with a digit, mirroring the server rule', async () => {
+      // Regression for the QA 7th-pass MEDIUM finding: the client pattern used to accept
+      // any \w+ inside brackets, including a leading digit, while the server (matching
+      // RouteLoader::DYNAMIC_SEGMENT_PATTERN, whose comment explains why: a leading digit
+      // makes preg_match()'s named group silently fail) only ever allowed [A-Za-z_]\w*. A
+      // mismatch here just means an avoidable round trip, not a security issue, but the
+      // client's own comment promises "mirrors the server's own allowlist".
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+      const invalidFile: ApiFile = {content: '<?php', filename: 'badseg/[1bad]'}
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+        'Invalid filename "badseg/[1bad]"',
+      )
+
+      expect(put).not.toHaveBeenCalled()
+    })
+
     it('rejects a filename attempting path traversal, without calling the API', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)

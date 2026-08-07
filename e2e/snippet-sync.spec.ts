@@ -4,19 +4,15 @@ import { join } from "node:path";
 import { expect, test } from "./helpers/environment.js";
 import {
 	findWpCodeSnippetRow,
-	loginToWpAdmin,
 	setPluginActive,
 	trashWpCodeSnippet,
 } from "./helpers/wp-admin.js";
 
 // Regression coverage for a bug where two active snippet plugins made WPCode win silently
 // (see snippet-provider-conflict.spec.ts): pin the site to WPCode only for these tests.
-test.beforeAll(async ({ browser, wp }) => {
-	const page = await browser.newPage();
-	await loginToWpAdmin(page, wp);
-	await setPluginActive(page, wp, "code-snippets", false);
-	await setPluginActive(page, wp, "insert-headers-and-footers", true);
-	await page.close();
+test.beforeAll(async ({ requestUtils }) => {
+	await setPluginActive(requestUtils, "code-snippets", false);
+	await setPluginActive(requestUtils, "insert-headers-and-footers", true);
 });
 
 function writeSnippet(

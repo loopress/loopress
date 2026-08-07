@@ -18,7 +18,7 @@ interface ApiFile {
 // exactly the kind of hosting-environment variance Loopress can't assume away), but validating
 // client-side first still turns a malformed name into an accurate error and skips a network
 // round-trip that could only ever fail.
-const FILENAME_PATTERN = /^(?:[a-z0-9-]+|\[\w+\])(?:\/(?:[a-z0-9-]+|\[\w+\]))*$/
+const FILENAME_PATTERN = /^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/
 
 // Mirrors the server's own check (wordpress-plugin FileWriter::DECLARE_PATTERN /
 // withGuard()): the server rejects both an absent declare(strict_types=1); and one that

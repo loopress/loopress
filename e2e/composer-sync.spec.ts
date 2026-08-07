@@ -73,3 +73,34 @@ test('a fresh `composer init` scaffold does not hit the plugin-trust gate on a r
   const output = pushResult.stderr || pushResult.stdout
   expect(output).not.toContain('blocked by your allow-plugins config')
 })
+
+// Regression test (QA 7th-pass HIGH finding): LoopressEnvironment::writeComposerJson() used
+// to call ensureInitialized() (which migrates in the LoopressLib\ autoload entry by writing
+// the patched JSON to disk), then immediately overwrite that same file with its own caller-
+// supplied $json parameter, which never contains the key, neither the `lps composer init`
+// scaffold nor a hand-written composer.json does. Net effect: any real `composer push`, the
+// normal workflow, silently dropped the lib/ autoload entry every single time.
+test(String.raw`a real composer push preserves the LoopressLib\ autoload entry that neither the CLI nor the scaffold ever sends`, async ({
+  projectDir,
+  request,
+  runCli,
+  wp,
+}) => {
+  writeFileSync(
+    join(projectDir, 'composer.json'),
+    JSON.stringify({name: 'loopress/e2e-autoload-test', require: {'psr/log': '^3.0'}}),
+  )
+  rmSync(join(projectDir, 'composer.lock'), {force: true})
+
+  const pushResult = await runCli(['composer', 'push'])
+  expect(pushResult.exitCode, pushResult.stderr).toBe(0)
+
+  const jsonResponse = await request.get(`${wp.url}/wp-json/loopress/v1/composer/json`, {
+    headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},
+  })
+  expect(jsonResponse.ok()).toBe(true)
+  const {composerJson} = (await jsonResponse.json()) as {composerJson: string}
+  const parsed = JSON.parse(composerJson) as {autoload?: {'psr-4'?: Record<string, string>}}
+
+  expect(parsed.autoload?.['psr-4']?.['LoopressLib\\']).toBe('lib/')
+})

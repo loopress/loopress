@@ -108,7 +108,14 @@ function extractServerErrorMessage(body: string | undefined): string | undefined
   if (!body) return undefined
 
   try {
-    const parsed = JSON.parse(body) as {error?: unknown; message?: unknown; output?: unknown}
+    const parsed = JSON.parse(body) as {code?: unknown; error?: unknown; message?: unknown; output?: unknown}
+
+    // WP core's own generic body for a route it never registered (e.g. a plugin too old to
+    // expose this endpoint yet) is never more useful than the "is the plugin up to date?"
+    // fallback below; surfacing it verbatim buries a version-skew mismatch behind text that
+    // reads like the endpoint doesn't exist at all, pointing the user in the wrong direction.
+    if (parsed.code === 'rest_no_route') return undefined
+
     const reason = parsed.error ?? parsed.message
     const summary = typeof reason === 'string' && reason.trim() ? reason : undefined
     const detail = typeof parsed.output === 'string' && parsed.output.trim() ? parsed.output.trim() : undefined
