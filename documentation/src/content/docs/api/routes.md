@@ -40,8 +40,10 @@ Three naming rules tie everything together:
 | Element | Rule | Example |
 |---------|------|---------|
 | Filename | Lowercase kebab-case path segments (letters, digits, hyphens), optionally nested in subdirectories, `.php` extension | `hello-world.php` |
-| Class | Each path segment converted to PascalCase and concatenated | `HelloWorld` |
+| Class | Each path segment converted to PascalCase and joined with `_` | `HelloWorld` (single segment, nothing to join) |
 | Route | The path without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
+
+The `_` between segments (see [Dynamic path segments](#dynamic-path-segments) below for a multi-segment example) isn't just style: plain concatenation would let two differently nested files collide on the same class name (`foo-bar/baz.php` and `foo/bar-baz.php` would both PascalCase-and-strip-hyphens to `FooBarBaz`), joining with `_` keeps the segment boundary and avoids that.
 
 Two structural requirements are enforced at push time, with a clear error if either fails:
 
@@ -50,7 +52,7 @@ Two structural requirements are enforced at push time, with a clear error if eit
 
 ## Dynamic path segments
 
-A segment wrapped in brackets, `[order_id]`, matches anything in that position and passes it through as a request param:
+A segment wrapped in brackets, `[order_id]`, matches anything in that position and passes it through as a request param. The name inside the brackets follows PHP identifier rules (must start with a letter or underscore, since it becomes a named capture group internally), the same charset `$request->get_param()` needs anyway:
 
 ```php
 <?php
@@ -59,7 +61,7 @@ declare(strict_types=1);
 
 // api/invoice-pdf/[order_id].php
 
-class InvoicePdfOrderId
+class InvoicePdf_OrderId
 {
     public function get(WP_REST_Request $request): array
     {
@@ -68,7 +70,7 @@ class InvoicePdfOrderId
 }
 ```
 
-Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`. The class name concatenates every segment, brackets stripped: `OrdersOrderIdItemsItemId`.
+Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`. Each segment is PascalCased and joined with `_`, brackets stripped: `Orders_OrderId_Items_ItemId`.
 
 There's no catch-all segment (no `[...path]`): every segment, dynamic or not, is explicit and named. A route always has a fixed, predictable number of segments.
 
