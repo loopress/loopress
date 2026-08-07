@@ -8,7 +8,7 @@ import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
 import {WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
-import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
+import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 
 const NEW_PROJECT = '__new__'
 const AUTH_BROWSER = 'browser'
@@ -17,6 +17,7 @@ const AUTH_MANUAL = 'manual'
 export default class Config extends Command {
   static description =
     'Add or update a WordPress project environment. By default, authorizes via WordPress in your browser; manual username/Application Password entry is available as a fallback.'
+
   static examples = ['$ lps project config']
 
   async run(): Promise<void> {
@@ -51,11 +52,11 @@ export default class Config extends Command {
     const existingEnv = configManager.getEnvironment(projectId, envName)
 
     if (existingEnv) {
-      const overwrite = await confirm({
+      const isOverwrite = await confirm({
         default: false,
         message: `"${projectName}/${envName}" already exists. Overwrite?`,
       })
-      if (!overwrite) {
+      if (!isOverwrite) {
         this.log('Aborted.')
         return
       }
@@ -116,18 +117,18 @@ export default class Config extends Command {
     // A detection failure (network hiccup, plugins REST disabled) is treated as "assume it's
     // there" rather than surprising the user with an account-creating prompt they didn't ask
     // for; `lps project config` can simply be re-run if it genuinely isn't installed.
-    const alreadyActive = await isLoopressFullActive(wp).catch(() => true)
-    if (alreadyActive) return
+    const isAlreadyActive = await isLoopressFullActive(wp).catch(() => true)
+    if (isAlreadyActive) return
 
-    const proceed = await confirm({
+    const isProceed = await confirm({
       default: true,
       message:
         'Loopress Full was not detected on this site. Install it now? (creates a temporary admin account, removed automatically afterward)',
     })
-    if (!proceed) return
+    if (!isProceed) return
 
     try {
-      await bootstrapLoopressFull(wp, url, (message) => this.log(message))
+      await bootstrapLoopressFull(wp, url, (message) => { this.log(message); })
     } catch (error) {
       this.warn((error as Error).message)
     }
@@ -168,7 +169,7 @@ export default class Config extends Command {
     }
 
     try {
-      const {password, userLogin} = await authorizeWithBrowser(url, (message) => this.log(message))
+      const {password, userLogin} = await authorizeWithBrowser(url, (message) => { this.log(message); })
       return {appPassword: password, user: userLogin}
     } catch (error) {
       this.warn(`${(error as Error).message}\nFalling back to manual credential entry.`)

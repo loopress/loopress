@@ -1,4 +1,4 @@
-import {EnvironmentConfig, ProjectConfig} from '../../src/types/config.js'
+import {type EnvironmentConfig, type ProjectConfig} from '../../src/types/config.js'
 
 // addedAt defaults to "now" (not a fixed past date) so fixture consumers don't incidentally
 // trip the app-password-staleness check in LoopressCommand; pass one explicitly to test that.

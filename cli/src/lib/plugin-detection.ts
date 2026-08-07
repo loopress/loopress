@@ -1,5 +1,5 @@
-import {WpNativePlugin} from '../types/plugin.js'
-import {WpClient} from './wp-client.js'
+import {type WpNativePlugin} from '../types/plugin.js'
+import {type WpClient} from './wp-client.js'
 
 const FULL_PLUGIN_PREFIX = 'loopress-full/'
 

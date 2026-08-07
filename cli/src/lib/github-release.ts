@@ -9,12 +9,12 @@ const REPO = 'loopress/loopress'
 const RELEASE_TAG_PATTERN = /^wordpress-plugin@/
 const ASSET_NAME = 'loopress-full.zip'
 
-interface GithubAsset {
+type GithubAsset = {
   browser_download_url: string
   name: string
 }
 
-interface GithubRelease {
+type GithubRelease = {
   assets: GithubAsset[]
   tag_name: string
 }
@@ -35,7 +35,7 @@ export async function downloadLatestFullZip(): Promise<string> {
     searchParams: {'per_page': 30},
   }).json<GithubRelease[]>()
 
-  const pluginRelease = releases.find((release) => RELEASE_TAG_PATTERN.test(release.tag_name))
+  const pluginRelease = releases.find((release) => release.tag_name.startsWith("wordpress-plugin@"))
   if (!pluginRelease) {
     throw new Error(`No "wordpress-plugin@*" release found in ${REPO}.`)
   }

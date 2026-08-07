@@ -1,3 +1,5 @@
+import type * as FsPromises from 'node:fs/promises'
+
 import {existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -5,12 +7,12 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/snippet/push.js'
-import {Snippet} from '../../../src/types/snippet.js'
+import {type Snippet} from '../../../src/types/snippet.js'
 import {SNIPPETS_ENDPOINT} from '../../../src/utils/snippet-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  const actual = await importOriginal<typeof FsPromises>()
   return {...actual, rename: vi.fn(actual.rename)}
 })
 
@@ -38,7 +40,7 @@ describe('snippet push', () => {
   })
 
   describe('loadSnippets type resolution', () => {
-    it('uses the type recorded in the sidecar .json meta file', () => {
+    it('uses the type recorded in the sidecar .json meta file', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello', type: 'text'}))
 
@@ -48,7 +50,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('falls back to the file extension when the meta file has no type', () => {
+    it('falls back to the file extension when the meta file has no type', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
@@ -57,7 +59,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('falls back to the file extension when there is no meta file at all', () => {
+    it('falls back to the file extension when there is no meta file at all', async () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
@@ -65,7 +67,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('falls back to the file extension when the meta type is invalid', () => {
+    it('falls back to the file extension when the meta type is invalid', async () => {
       writeFileSync(join(dir, '3-css.css'), 'body { margin: 0; }')
       writeFileSync(join(dir, '3-css.json'), JSON.stringify({id: 3, name: 'Style', type: 'not-a-real-type'}))
 
@@ -74,7 +76,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('never relabels a non-php snippet as php just because it lacks meta', () => {
+    it('never relabels a non-php snippet as php just because it lacks meta', async () => {
       writeFileSync(join(dir, '4-note.txt'), 'Thank you for reading!')
 
       return loadSnippets(dir).then((snippets) => {
@@ -84,7 +86,7 @@ describe('snippet push', () => {
   })
 
   describe('loadSnippets active resolution', () => {
-    it('uses the active flag recorded in the sidecar .json meta file', () => {
+    it('uses the active flag recorded in the sidecar .json meta file', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({active: true, id: 1, name: 'Hello'}))
 
@@ -93,7 +95,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults to inactive when the meta file has no active flag', () => {
+    it('defaults to inactive when the meta file has no active flag', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
@@ -102,7 +104,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults to inactive when there is no meta file at all', () => {
+    it('defaults to inactive when there is no meta file at all', async () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
@@ -112,7 +114,7 @@ describe('snippet push', () => {
   })
 
   describe('loadSnippets tags resolution', () => {
-    it('uses the tags recorded in the sidecar .json meta file', () => {
+    it('uses the tags recorded in the sidecar .json meta file', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello', tags: ['foo', 'bar']}))
 
@@ -121,7 +123,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults to no tags when the meta file has no tags', () => {
+    it('defaults to no tags when the meta file has no tags', async () => {
       writeFileSync(join(dir, '1-hello.txt'), 'Just a message')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
@@ -130,7 +132,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults to no tags when there is no meta file at all', () => {
+    it('defaults to no tags when there is no meta file at all', async () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
@@ -140,7 +142,7 @@ describe('snippet push', () => {
   })
 
   describe('loadSnippets location resolution', () => {
-    it('uses the location recorded in the sidecar .json meta file', () => {
+    it('uses the location recorded in the sidecar .json meta file', async () => {
       writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'frontend', name: 'Hello'}))
 
@@ -149,7 +151,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults to a type-appropriate location when the meta file has no location', () => {
+    it('defaults to a type-appropriate location when the meta file has no location', async () => {
       writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
       writeFileSync(join(dir, '2-style.css'), 'body { margin: 0; }')
@@ -164,7 +166,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('ignores an invalid location and falls back to the type default', () => {
+    it('ignores an invalid location and falls back to the type default', async () => {
       writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'not-a-real-location', name: 'Hello'}))
 
@@ -175,7 +177,7 @@ describe('snippet push', () => {
   })
 
   describe('loadSnippets insertMethod/priority/shortcodeAttributes resolution', () => {
-    it('uses the insertMethod, priority and shortcodeAttributes recorded in the sidecar', () => {
+    it('uses the insertMethod, priority and shortcodeAttributes recorded in the sidecar', async () => {
       writeFileSync(join(dir, '1-hello.php'), '<?php echo 1;')
       writeFileSync(
         join(dir, '1-hello.json'),
@@ -189,7 +191,7 @@ describe('snippet push', () => {
       })
     })
 
-    it('defaults insertMethod to "auto", priority to 10 and shortcodeAttributes to an empty array', () => {
+    it('defaults insertMethod to "auto", priority to 10 and shortcodeAttributes to an empty array', async () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
@@ -311,7 +313,7 @@ describe('snippet push', () => {
   })
 
   describe('pushSnippet', () => {
-    const snippet = {
+    const snippet: Snippet = {
       active: false,
       code: '<?php echo 1;',
       id: 8,
@@ -323,7 +325,7 @@ describe('snippet push', () => {
       shortcodeAttributes: [],
       tags: [],
       type: 'php',
-    } as Snippet
+    }
 
     it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
@@ -353,7 +355,7 @@ describe('snippet push', () => {
 
     it('returns the id assigned by the site when creating a new snippet, for callers (e.g. --json) that need it', async () => {
       writeFileSync(join(dir, '42-demo.php'), '<?php echo 1;')
-      const newSnippet = {...snippet, id: undefined, path: join(dir, '42-demo.php')} as Snippet
+      const newSnippet: Snippet = {...snippet, id: undefined, path: join(dir, '42-demo.php')}
 
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
@@ -369,7 +371,7 @@ describe('snippet push', () => {
 
     it('returns the existing id when updating an already-linked snippet', async () => {
       writeFileSync(join(dir, '8-demo.php'), '<?php echo 1;')
-      const existingSnippet = {...snippet, path: join(dir, '8-demo.php')} as Snippet
+      const existingSnippet = {...snippet, path: join(dir, '8-demo.php')}
 
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
@@ -384,13 +386,13 @@ describe('snippet push', () => {
   })
 })
 
-function ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void> {
+async function ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithEnsureCanonicalFilename).ensureCanonicalFilename(snippet, id, name)
 }
 
-function loadSnippets(path: string): Promise<Snippet[]> {
+async function loadSnippets(path: string): Promise<Snippet[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadSnippets).loadSnippets(path)

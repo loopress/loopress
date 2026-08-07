@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer'
 import {createServer, type IncomingMessage, type Server, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
@@ -47,8 +48,8 @@ describe('WpClient', () => {
     const client = await serve((req, res) => {
       seenMethod = req.method ?? ''
       let raw = ''
-      req.on('data', (chunk) => {
-        raw += chunk
+      req.on('data', (chunk: Uint8Array) => {
+        raw += chunk.toString()
       })
       req.on('end', () => {
         seenBody = raw
@@ -244,12 +245,12 @@ describe('formatWpError', () => {
   })
 
   it('treats a whitespace-only {error} field the same as an absent one', () => {
-    const message = formatWpError({response: {body: JSON.stringify({error: '   '}), statusCode: 500}}, url)
+    const message = formatWpError({response: {body: JSON.stringify({error: ' '.repeat(3)}), statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 
   it('treats a whitespace-only {output} field the same as an absent one', () => {
-    const message = formatWpError({response: {body: JSON.stringify({output: '   '}), statusCode: 500}}, url)
+    const message = formatWpError({response: {body: JSON.stringify({output: ' '.repeat(3)}), statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 

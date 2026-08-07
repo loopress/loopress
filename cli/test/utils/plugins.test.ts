@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {InstalledPlugin, WpNativePlugin} from '../../src/types/plugin.js'
+import {type InstalledPlugin, type WpNativePlugin} from '../../src/types/plugin.js'
 import {diffPlugins, mergePluginManifest, parseInstalledPlugins} from '../../src/utils/plugins.js'
 
 const makePlugin = (slug: string, version: string, active = true): InstalledPlugin => ({

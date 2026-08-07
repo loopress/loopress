@@ -5,7 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Dev from '../../src/commands/dev.js'
 import {configManager} from '../../src/config/project-config.manager.js'
-import {WatchTarget} from '../../src/lib/dev-watch.js'
+import {type WatchTarget} from '../../src/lib/dev-watch.js'
 import {readLocalConfig} from '../../src/utils/loopress-config.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 
@@ -132,7 +132,7 @@ describe('dev', () => {
     // `watch()` blocks on SIGINT; fire it once the "Watching..." line proves we got past every
     // pre-flight guard, so this test doesn't need to actually wait for a real file event.
     const runPromise = cmd.run()
-    await vi.waitFor(() => expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching for changes')))
+    await vi.waitFor(() => { expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching for changes')); })
     process.emit('SIGINT')
 
     await runPromise

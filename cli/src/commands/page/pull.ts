@@ -7,12 +7,12 @@ import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {getPageContent, getPageId, getPageTitle, PAGE_ENDPOINT, PAGE_LIST_QUERY, pageFileBase, pickPageMeta} from '../../utils/page-format.js'
 
-interface PulledPage {
+type PulledPage = {
   id: number
   title: string
 }
 
-interface PullResult {
+type PullResult = {
   orphans: string[]
   pulled: PulledPage[]
   skipped: number
@@ -23,6 +23,7 @@ export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to pages directory (overrides project config)'}),
   }
+
   static description = 'Pull pages from WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps page pull']
@@ -41,7 +42,7 @@ export default class Pull extends LoopressCommand {
 
     // context=edit returns title/content/excerpt as raw editable source instead of rendered
     // HTML, needed for the file to be a faithful, re-pushable copy (requires edit_pages).
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}&context=edit`)
+    const remoteList = await this.wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}&context=edit`)
     const withId = remoteList.filter((page) => getPageId(page) !== null)
     const skipped = remoteList.length - withId.length
 
@@ -52,7 +53,7 @@ export default class Pull extends LoopressCommand {
       key: numericPrefixKey,
     })
 
-    const pulled = withId.map((page) => ({id: getPageId(page) as number, title: getPageTitle(page)}))
+    const pulled = withId.map((page) => ({id: getPageId(page)!, title: getPageTitle(page)}))
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull ${withId.length} page${withId.length === 1 ? '' : 's'} to ${path}`)
@@ -69,7 +70,7 @@ export default class Pull extends LoopressCommand {
 
     await new Listr(
       withId.map((page) => {
-        const id = getPageId(page) as number
+        const id = getPageId(page)!
         const title = getPageTitle(page)
         return {
           async task(_ctx, task) {

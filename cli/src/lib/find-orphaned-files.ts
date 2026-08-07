@@ -8,7 +8,7 @@ import {extname, join} from 'node:path'
 // matcher returns null for anything else, so a hand-created file with an unrelated name is
 // never at risk of being picked up. ENOENT on the directory means "nothing pulled yet",
 // therefore no orphans.
-export interface OrphanMatcher {
+export type OrphanMatcher = {
   // Accepted extensions, with the leading dot (e.g. ['.json']).
   extensions: string[]
   // Extracts the file's identity from its basename without extension; null = not ours.

@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
-import {ComposerJson} from '../../utils/composer.js'
+import {type ComposerJson} from '../../utils/composer.js'
 
 const WPACKAGIST_REPOSITORY = {type: 'composer', url: 'https://wpackagist.org'}
 const INSTALLERS_PACKAGE = 'composer/installers'
@@ -35,11 +35,16 @@ export default class ComposerInit extends LoopressCommand {
         return
       }
 
-      const overwrite = await confirm({default: false, message: 'composer.json already exists. Overwrite?'})
-      if (!overwrite) {
+      const isOverwrite = await confirm({default: false, message: 'composer.json already exists. Overwrite?'})
+      if (!isOverwrite) {
         this.log('Aborted.')
         return
       }
+    }
+
+    if (this.dryRun) {
+      this.log(`[dry-run] Would write composer.json to ${composerJsonPath}`)
+      return
     }
 
     const composerJson: ComposerJson = {
@@ -54,11 +59,6 @@ export default class ComposerInit extends LoopressCommand {
       require: {
         [INSTALLERS_PACKAGE]: INSTALLERS_CONSTRAINT,
       },
-    }
-
-    if (this.dryRun) {
-      this.log(`[dry-run] Would write composer.json to ${composerJsonPath}`)
-      return
     }
 
     await writeFile(composerJsonPath, JSON.stringify(composerJson, null, 2) + '\n', 'utf8')

@@ -9,14 +9,14 @@ import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 // loadObjects() and pushObject() are private; the cast below is the same escape hatch used
 // throughout this CLI's test suite to unit-test command internals without going through the
 // full oclif run() lifecycle (see snippet push.test.ts).
-type PushWithLoadObjects = {loadObjects(dir: string): Promise<Record<string, unknown>[]>}
+type PushWithLoadObjects = {loadObjects(dir: string): Promise<Array<Record<string, unknown>>>}
 type PushWithPushObject = {
   failedCount: number
   pushObject(type: string, object: Record<string, unknown>, task?: {output: string}): Promise<void>
   wpClient: {post: ReturnType<typeof vi.fn>}
 }
 
-function loadObjects(dir: string): Promise<Record<string, unknown>[]> {
+async function loadObjects(dir: string): Promise<Array<Record<string, unknown>>> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadObjects).loadObjects(dir)

@@ -7,19 +7,19 @@ import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {getPageId, getPageTitle, PAGE_ENDPOINT, pageFileBase} from '../../utils/page-format.js'
 
-interface LocalPage {
+type LocalPage = {
   content: string
   contentPath: string
   meta: Record<string, unknown>
   metaPath: string
 }
 
-interface PushedPage {
+type PushedPage = {
   id: null | number
   title: string
 }
 
-interface PushResult {
+type PushResult = {
   pushed: PushedPage[]
   status: 'dry-run' | 'success'
 }
@@ -28,8 +28,10 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to pages directory (overrides project config)'}),
   }
+
   static description =
     'Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
+
   static enableJsonFlag = true
   static examples = ['$ lps page push']
   static flags = {
@@ -175,9 +177,9 @@ export default class Push extends PushCommand {
           // be stripped before falling back to create.
           if (!isNotFoundError(error)) throw error
 
-          const createPayload: Record<string, unknown> = {...payload}
-          delete createPayload.id
-          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, createPayload)
+          const newPayload: Record<string, unknown> = {...payload}
+          delete newPayload.id
+          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, newPayload)
           id = getPageId(created)
           if (id !== null) await this.ensureCanonicalFilename(page, id, title)
         }

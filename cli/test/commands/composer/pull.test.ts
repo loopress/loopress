@@ -4,8 +4,8 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import ComposerPull from '../../../src/commands/composer/pull.js'
-import {EnvironmentConfig} from '../../../src/types/config.js'
-import {LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
@@ -21,7 +21,7 @@ function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {
   const cmd = new TestComposerPull([], fakeOclifConfig)
   cmd.setup({dryRun, localConfig, siteConfig: makeEnv('production', 'https://acme.com')})
   silenceLogs(cmd)
-  const get = vi.fn((path: string) =>
+  const get = vi.fn(async (path: string) =>
     path === 'loopress/v1/composer/json'
       ? Promise.resolve({composerJson: '{"name": "demo/site"}'})
       : Promise.resolve({composerLock: '{"packages": []}'}),
@@ -76,10 +76,10 @@ describe('composer pull', () => {
     const cmd = new TestComposerPull([], fakeOclifConfig)
     cmd.setup({dryRun: false, localConfig: {}, siteConfig: makeEnv('production', 'https://acme.com')})
     const logs = silenceLogs(cmd)
-    const missingLock = Object.assign(new Error('not found'), {
+    const missingLock = new Error('not found', {
       cause: {response: {body: JSON.stringify({error: 'composer.lock not found'}), statusCode: 404}},
     })
-    const get = vi.fn((path: string) =>
+    const get = vi.fn(async (path: string) =>
       path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(missingLock),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
@@ -99,10 +99,10 @@ describe('composer pull', () => {
     const cmd = new TestComposerPull([], fakeOclifConfig)
     cmd.setup({dryRun: true, localConfig: {}, siteConfig: makeEnv('production', 'https://acme.com')})
     const logs = silenceLogs(cmd)
-    const missingLock = Object.assign(new Error('not found'), {
+    const missingLock = new Error('not found', {
       cause: {response: {body: JSON.stringify({error: 'composer.lock not found'}), statusCode: 404}},
     })
-    const get = vi.fn((path: string) =>
+    const get = vi.fn(async (path: string) =>
       path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(missingLock),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
@@ -121,7 +121,7 @@ describe('composer pull', () => {
   // lock yet" too, hiding the real problem behind a false success.
   it('rethrows a 404 whose body is not the controller\'s missing-lock response (e.g. plugin not installed or outdated)', async () => {
     const {cmd} = make(false)
-    const routeAbsent = Object.assign(new Error('Endpoint not found (404) on https://acme.com/wp-json/loopress/v1/composer/lock. Is the required plugin installed and up to date on the site?'), {
+    const routeAbsent = new Error('Endpoint not found (404) on https://acme.com/wp-json/loopress/v1/composer/lock. Is the required plugin installed and up to date on the site?', {
       cause: {
         response: {
           body: JSON.stringify({code: 'rest_no_route', data: {status: 404}, message: 'No route was found matching the URL and request method.'}),
@@ -129,7 +129,7 @@ describe('composer pull', () => {
         },
       },
     })
-    const get = vi.fn((path: string) =>
+    const get = vi.fn(async (path: string) =>
       path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(routeAbsent),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
@@ -139,8 +139,8 @@ describe('composer pull', () => {
 
   it('rethrows a 404 with no response body instead of treating it as "no lock yet"', async () => {
     const {cmd} = make(false)
-    const notFound = Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
-    const get = vi.fn((path: string) =>
+    const notFound = new Error('not found', {cause: {response: {statusCode: 404}}})
+    const get = vi.fn(async (path: string) =>
       path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(notFound),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
@@ -150,8 +150,8 @@ describe('composer pull', () => {
 
   it('rethrows a non-404 failure from composer/lock instead of treating it as "no lock yet"', async () => {
     const {cmd} = make(false)
-    const serverError = Object.assign(new Error('server error'), {cause: {response: {statusCode: 500}}})
-    const get = vi.fn((path: string) =>
+    const serverError = new Error('server error', {cause: {response: {statusCode: 500}}})
+    const get = vi.fn(async (path: string) =>
       path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(serverError),
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}

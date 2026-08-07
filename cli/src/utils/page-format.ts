@@ -10,7 +10,7 @@ export const PAGE_LIST_QUERY = 'per_page=100'
 
 export function getPageId(data: Record<string, unknown>): null | number {
   const id = Number(data.id)
-  return Number.isInteger(id) && id > 0 ? id : null
+  return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
 // `title`/`content`/`excerpt` come back as `{raw, rendered}` from `?context=edit` (what `page
@@ -62,7 +62,7 @@ const PAGE_META_FIELDS = [
 export function pickPageMeta(data: Record<string, unknown>): Record<string, unknown> {
   const meta: Record<string, unknown> = {}
   for (const field of PAGE_META_FIELDS) {
-    if (field in data) meta[field] = data[field]
+    if (Object.hasOwn(data, field)) meta[field] = data[field]
   }
 
   return meta

@@ -15,7 +15,7 @@ type PullInternals = {
 
 // The same matchers `seo pull` wires: post-meta uses the whole `<slug>` basename as key,
 // redirects use the `<id>-` numeric prefix.
-function findOrphanedFiles(dir: string, keepKeys: Set<string>, numericIdPrefix: boolean): Promise<string[]> {
+async function findOrphanedFiles(dir: string, keepKeys: Set<string>, numericIdPrefix: boolean): Promise<string[]> {
   return findOrphanedFilesLib(dir, keepKeys, {
     extensions: ['.json'],
     key: numericIdPrefix ? numericPrefixKey : basenameKey,

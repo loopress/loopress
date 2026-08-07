@@ -12,8 +12,10 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
+
   static description =
     'Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
+
   static examples = ['$ lps form push']
   static flags = {
     ...PushCommand.dryRunFlag,

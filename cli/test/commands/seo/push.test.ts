@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/seo/push.js'
-import {SeoRedirect} from '../../../src/utils/seo-format.js'
+import {type SeoRedirect} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 type PushInternals = {
@@ -24,7 +24,7 @@ function makeCmd(): {cmd: PushInternals; logs: ReturnType<typeof silenceLogs>} {
 
 // Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
 function notFoundError(): Error {
-  return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+  return new Error('not found', {cause: {response: {statusCode: 404}}})
 }
 
 describe('seo push', () => {

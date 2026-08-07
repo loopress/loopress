@@ -5,14 +5,14 @@ import {readLocalConfig} from '../utils/loopress-config.js'
 
 const c = ux.colorize
 
-interface StatusInfo {
+type StatusInfo = {
   environments?: string[]
   note?: string
   project?: string
   url?: string
 }
 
-interface StatusResult extends StatusInfo {
+type StatusResult = StatusInfo & {
   configDir: string
   dataDir: string
 }

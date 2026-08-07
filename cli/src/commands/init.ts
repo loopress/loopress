@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {isInteractive} from '../lib/interactive.js'
-import {LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
+import {type LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
 
 // WordPress.org slugs for the two snippet plugins the Loopress WordPress plugin supports
 // (see SnippetModule.php, which wires up both providers and auto-detects the active one).
@@ -39,11 +39,11 @@ export default class Init extends Command {
     const configPath = join(process.cwd(), 'loopress.json')
 
     if (existsSync(configPath)) {
-      const overwrite = await confirm({
+      const isOverwrite = await confirm({
         default: false,
         message: 'loopress.json already exists. Overwrite?',
       })
-      if (!overwrite) {
+      if (!isOverwrite) {
         this.log('Aborted.')
         return
       }
@@ -82,11 +82,11 @@ export default class Init extends Command {
 
     await writeLocalConfig(config)
 
-    let providerAdded = false
+    let isProviderAdded = false
     if (providerChoice !== '__none__') {
       try {
         await this.config.runCommand('plugin:add', [providerChoice])
-        providerAdded = true
+        isProviderAdded = true
       } catch (error) {
         this.warn((error as Error).message)
       }
@@ -101,7 +101,7 @@ export default class Init extends Command {
       }
     }
 
-    if (providerAdded) {
+    if (isProviderAdded) {
       this.log(`  Plugin:   ${providerChoice}`)
     }
 
@@ -124,9 +124,9 @@ export default class Init extends Command {
 
     if (projects.length === 0) {
       this.log('No projects configured yet.')
-      const runConfig = await confirm({default: true, message: 'Run `lps project config` now to add one?'})
+      const isRunConfig = await confirm({default: true, message: 'Run `lps project config` now to add one?'})
 
-      if (!runConfig) {
+      if (!isRunConfig) {
         return this.promptManualProjectId()
       }
 

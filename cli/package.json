@@ -34,7 +34,7 @@
     "@types/write-file-atomic": "^4.0.3",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "^10.8.0",
-    "eslint-config-oclif": "^6.0.179",
+    "eslint-config-oclif": "^7.1.1",
     "eslint-config-prettier": "^10",
     "json-schema-to-typescript": "^15.0.4",
     "oclif": "^4.23.29",

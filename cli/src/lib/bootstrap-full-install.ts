@@ -1,7 +1,7 @@
 import {launchLocalBrowser} from './browser-launch.js'
 import {downloadLatestFullZip} from './github-release.js'
 import {createTempAdmin, deleteTempAdmin, type TempAdmin} from './temp-admin.js'
-import {WpClient} from './wp-client.js'
+import {type WpClient} from './wp-client.js'
 
 /**
  * Installs and activates Loopress Full on a site that doesn't have it yet: downloads the
@@ -47,7 +47,7 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
     )
   }
 
-  if (cleanupError) throw cleanupError
+  if (cleanupError) throw cleanupError as Error
 
   if (installError) {
     throw new Error(`Could not install Loopress Full automatically. ${manualFallback}`, {cause: installError})

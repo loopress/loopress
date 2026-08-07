@@ -1,4 +1,5 @@
 import got, {type Got} from 'got'
+import {Buffer} from 'node:buffer'
 
 export const REQUEST_TIMEOUT_MS = 30_000
 
@@ -54,7 +55,7 @@ export class WpClient {
   }
 }
 
-interface RequestOptions {
+type RequestOptions = {
   timeoutMs?: number
 }
 

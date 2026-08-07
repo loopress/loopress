@@ -1,11 +1,11 @@
 import {Listr} from 'listr2'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {WpNativePlugin} from '../../types/plugin.js'
+import {type WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {diffPlugins, parseInstalledPlugins} from '../../utils/plugins.js'
 
-interface PushResult {
+type PushResult = {
   activated: string[]
   installed: string[]
   skippedComposerManaged: string[]
@@ -37,7 +37,7 @@ export default class Push extends PushCommand {
       Object.entries(manifest).filter(([slug]) => !composerSlugs.includes(slug)),
     )
 
-    const skippedComposerManaged = composerSlugs.filter((slug) => slug in manifest)
+    const skippedComposerManaged = composerSlugs.filter((slug) => Object.hasOwn(manifest, slug))
     if (skippedComposerManaged.length > 0) {
       this.log(
         `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,
@@ -104,11 +104,11 @@ export default class Push extends PushCommand {
   }
 
   private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction('activate', slug, () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
+    await this.performPluginAction('activate', slug, async () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
   }
 
   private async installPlugin(slug: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction('install', slug, () => this.wp.post('wp/v2/plugins', {slug, status: 'active'}), task)
+    await this.performPluginAction('install', slug, async () => this.wp.post('wp/v2/plugins', {slug, status: 'active'}), task)
   }
 
   private async performPluginAction(

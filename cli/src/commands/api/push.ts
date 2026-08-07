@@ -7,7 +7,7 @@ import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles as loadDirectoryFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 
-interface ApiFile {
+type ApiFile = {
   content: string
   filename: string
 }
@@ -27,7 +27,7 @@ const FILENAME_PATTERN = /^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[
 // would still fail server-side doesn't falsely pass this earlier check.
 const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
 
-interface PushResult {
+type PushResult = {
   pushed: string[]
   status: 'dry-run' | 'success'
 }
@@ -36,6 +36,7 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
   }
+
   static description = 'Push custom API route files to WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps api push', '$ lps api push --path ./api']
@@ -83,7 +84,7 @@ export default class Push extends PushCommand {
   private async loadFiles(path: string): Promise<ApiFile[]> {
     return loadDirectoryFiles<ApiFile>(path, {
       extension: '.php',
-      onSkip: (message) => this.warn(message),
+      onSkip: (message) => { this.warn(message) },
       // relative()'s separator is OS-specific ('\\' on Windows); the server only ever expects
       // '/', same as any URL or import path.
       parse: (raw, filePath) => ({

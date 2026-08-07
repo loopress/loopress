@@ -7,7 +7,7 @@ import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../..
 
 // The same matcher `page pull` wires in run(): both the `<id>-<slug>.html` and
 // `<id>-<slug>.json` of a pair are candidates, the numeric prefix is the id.
-function findOrphanedFiles(dir: string, keepIds: Set<string>): Promise<string[]> {
+async function findOrphanedFiles(dir: string, keepIds: Set<string>): Promise<string[]> {
   return findOrphanedFilesLib(dir, keepIds, {extensions: ['.json', '.html'], key: numericPrefixKey})
 }
 

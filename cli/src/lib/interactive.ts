@@ -3,5 +3,5 @@
 // Every command that prompts routes its decision through this so the CLI never hangs on a
 // question nobody can answer.
 export function isInteractive(): boolean {
-  return Boolean(process.stdin.isTTY) && Boolean(process.stdout.isTTY) && !process.env.CI
+  return process.stdin.isTTY && process.stdout.isTTY && !process.env.CI
 }

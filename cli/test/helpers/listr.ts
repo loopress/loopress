@@ -1,15 +1,15 @@
 import {vi} from 'vitest'
 
-export interface FakeListrOptions {
+export type FakeListrOptions = {
   exitOnError?: boolean
 }
 
-export interface FakeListrTask {
+export type FakeListrTask = {
   task: (ctx: Record<string, unknown>, task: {output: string}) => Promise<void> | void
   title: string
 }
 
-export interface FakeListrInstance {
+export type FakeListrInstance = {
   options: FakeListrOptions
   outputs: string[]
   tasks: FakeListrTask[]

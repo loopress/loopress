@@ -19,7 +19,7 @@ export type AuthorizeResult = {password: string; userLogin: string}
  *      Application Password to the local callback server.
  *   6. The local server extracts the credentials and resolves the promise.
  */
-export function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
+export async function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
   return waitForLocalCallback<AuthorizeResult>({
     buildUrl(callbackBaseUrl) {
       const relayUrl = 'https://api.loopress.dev/auth/wp-authorize'
@@ -38,7 +38,11 @@ export function authorizeWithBrowser(siteUrl: string, log: (message: string) => 
         return
       }
 
+      // `||`, not `??`: an empty-string field counts as absent here, same as the `!password`
+      // check below, so falls through to the query-param fallback instead of stopping at "".
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       const password = body.password || url.searchParams.get('password') || ''
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       const userLogin = body.user_login || url.searchParams.get('user_login') || ''
 
       if (!password || !userLogin) {

@@ -1,7 +1,7 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {DEFAULT_POST_TYPES, SEO_REDIRECTS_ENDPOINT, SeoPostMeta, seoPostMetaEndpoint, SeoRedirect} from '../../utils/seo-format.js'
+import {DEFAULT_POST_TYPES, SEO_REDIRECTS_ENDPOINT, type SeoPostMeta, seoPostMetaEndpoint, type SeoRedirect} from '../../utils/seo-format.js'
 
 export default class List extends LoopressCommand {
   static description = 'List posts with SEO meta, and redirects if supported by the active SEO plugin, on WordPress'

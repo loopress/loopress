@@ -1,3 +1,5 @@
+import type * as FsPromises from 'node:fs/promises'
+
 import {existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -8,11 +10,11 @@ import Push from '../../../src/commands/page/push.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  const actual = await importOriginal<typeof FsPromises>()
   return {...actual, rename: vi.fn(actual.rename)}
 })
 
-interface LocalPage {
+type LocalPage = {
   content: string
   contentPath: string
   meta: Record<string, unknown>
@@ -30,13 +32,13 @@ type PushWithPushPage = {
   wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
-function ensureCanonicalFilename(page: LocalPage, id: number, title: string): Promise<void> {
+async function ensureCanonicalFilename(page: LocalPage, id: number, title: string): Promise<void> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithEnsureCanonicalFilename).ensureCanonicalFilename(page, id, title)
 }
 
-function loadFiles(path: string): Promise<LocalPage[]> {
+async function loadFiles(path: string): Promise<LocalPage[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
@@ -44,7 +46,7 @@ function loadFiles(path: string): Promise<LocalPage[]> {
 
 // Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
 function notFoundError(): Error {
-  return Object.assign(new Error('not found'), {cause: {response: {statusCode: 404}}})
+  return new Error('not found', {cause: {response: {statusCode: 404}}})
 }
 
 describe('page push', () => {

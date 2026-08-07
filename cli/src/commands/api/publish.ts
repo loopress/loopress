@@ -7,7 +7,7 @@ import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles} from '../../lib/load-files.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
 
-interface ApiRouteFile {
+type ApiRouteFile = {
   code: string
   filename: string
 }
@@ -23,8 +23,10 @@ export default class Publish extends Command {
   static args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
   }
+
   static description =
     'Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.'
+
   static examples = ['$ lps api publish', '$ lps api publish --path ./api']
 
   async run(): Promise<void> {
@@ -56,7 +58,7 @@ export default class Publish extends Command {
 
     const files = await loadFiles<ApiRouteFile>(path, {
       extension: '.php',
-      onSkip: (message) => this.warn(message),
+      onSkip: (message) => { this.warn(message) },
       parse: (raw, filePath) => ({code: raw, filename: basename(filePath, '.php')}),
     })
 

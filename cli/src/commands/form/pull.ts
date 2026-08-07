@@ -12,6 +12,7 @@ export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
+
   static description = 'Pull forms from WordPress'
   static examples = ['$ lps form pull']
   static flags = {
@@ -27,7 +28,7 @@ export default class Pull extends LoopressCommand {
     this.log(`Pulling forms from ${url}`)
     this.log(`Forms path: ${path}`)
 
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(FORM_ENDPOINT)
+    const remoteList = await this.wp.get<Array<Record<string, unknown>>>(FORM_ENDPOINT)
     const withId = remoteList.filter((form) => getFormId(form) !== null)
     const skipped = remoteList.length - withId.length
 
@@ -53,7 +54,7 @@ export default class Pull extends LoopressCommand {
 
     await new Listr(
       withId.map((form) => {
-        const id = getFormId(form) as number
+        const id = getFormId(form)!
         const title = getFormTitle(form)
         return {
           async task(_ctx, task) {

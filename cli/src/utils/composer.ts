@@ -2,7 +2,7 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-export interface ComposerJson {
+export type ComposerJson = {
   config?: {
     'allow-plugins'?: Record<string, boolean>
   }

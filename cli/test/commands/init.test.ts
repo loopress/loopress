@@ -96,7 +96,6 @@ describe('init', () => {
   })
 
   it('aborts without prompting further when the user declines to overwrite an existing config', async () => {
-    const {existsSync} = await import('node:fs')
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(false)
 
@@ -111,7 +110,6 @@ describe('init', () => {
   })
 
   it('proceeds with the prompts when the user confirms the overwrite', async () => {
-    const {existsSync} = await import('node:fs')
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
@@ -168,7 +166,7 @@ describe('init', () => {
     await cmd.run()
 
     const projectIdCall = vi.mocked(input).mock.calls[0][0] as {validate: (value: string) => string | true}
-    expect(projectIdCall.validate('   ')).toBe('Project ID cannot be empty')
+    expect(projectIdCall.validate(' '.repeat(3))).toBe('Project ID cannot be empty')
     expect(projectIdCall.validate('manual-id')).toBe(true)
   })
 
@@ -206,7 +204,7 @@ describe('init', () => {
 
     const projectIdCall = vi.mocked(input).mock.calls[0][0] as {validate: (value: string) => string | true}
     expect(projectIdCall.message).toBe('Project ID')
-    expect(projectIdCall.validate('   ')).toBe('Project ID cannot be empty')
+    expect(projectIdCall.validate(' '.repeat(3))).toBe('Project ID cannot be empty')
     expect(projectIdCall.validate('manual-id')).toBe(true)
   })
 

@@ -12,7 +12,7 @@ export default class List extends LoopressCommand {
 
   async run(): Promise<void> {
     const {flags} = await this.parse(List)
-    const forms = await this.wp.get<Record<string, unknown>[]>(FORM_ENDPOINT)
+    const forms = await this.wp.get<Array<Record<string, unknown>>>(FORM_ENDPOINT)
 
     if (flags.json) {
       this.log(JSON.stringify(forms, null, 2))

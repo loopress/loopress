@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
-import {buildMetaFile, buildSnippetFile, normalizeSnippet, SNIPPETS_ENDPOINT, SnippetType} from '../../utils/snippet-format.js'
+import {buildMetaFile, buildSnippetFile, normalizeSnippet, SNIPPETS_ENDPOINT, type SnippetType} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 const EXTENSIONS: Record<SnippetType, string> = {
@@ -16,12 +16,12 @@ const EXTENSIONS: Record<SnippetType, string> = {
   text: 'txt',
 }
 
-interface PulledSnippet {
+type PulledSnippet = {
   id: number
   name: string
 }
 
-interface PullResult {
+type PullResult = {
   orphans: string[]
   pulled: PulledSnippet[]
   skipped: number
@@ -32,6 +32,7 @@ export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
+
   static description = 'Pull snippets from WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps snippet pull', '$ lps snippet pull --path ./snippets']
@@ -48,7 +49,7 @@ export default class Pull extends LoopressCommand {
     this.log(`Pulling snippets from ${url}`)
     this.log(`Snippets path: ${path}`)
 
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(SNIPPETS_ENDPOINT)
+    const remoteList = await this.wp.get<Array<Record<string, unknown>>>(SNIPPETS_ENDPOINT)
     const snippets = remoteList.map((r) => normalizeSnippet(r))
     const pullable = snippets.filter((snippet) => snippet.name.trim())
     const skipped = snippets.length - pullable.length

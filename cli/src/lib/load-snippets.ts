@@ -1,16 +1,16 @@
 import {readdir, readFile} from 'node:fs/promises'
 import {basename, extname, join} from 'node:path'
 
-import {LoopressSnippetMetadata} from '../types/snippet.generated.js'
-import {Snippet} from '../types/snippet.js'
+import {type LoopressSnippetMetadata} from '../types/snippet.generated.js'
+import {type Snippet} from '../types/snippet.js'
 import {
   defaultLocationForType,
   parseInsertMethod,
   parseLocation,
   parseType,
-  SnippetInsertMethod,
-  SnippetLocation,
-  SnippetType,
+  type SnippetInsertMethod,
+  type SnippetLocation,
+  type SnippetType,
 } from '../utils/snippet-format.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
@@ -32,12 +32,12 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
   try {
     files = await readdir(path)
   } catch (error) {
-    throw new Error(`Error loading snippets: ${(error as Error).message}`)
+    throw new Error(`Error loading snippets: ${(error as Error).message}`, {cause: error})
   }
 
   for (const file of files) {
     const ext = extname(file)
-    if (!(ext in TYPE_BY_EXTENSION)) continue
+    if (!Object.hasOwn(TYPE_BY_EXTENSION, ext)) continue
 
     const filePath = join(path, file)
     const metaPath = join(path, `${basename(file, ext)}.json`)
@@ -55,7 +55,7 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
     let id: number | undefined
     let name: string | undefined
     let type: SnippetType | undefined
-    let active = false
+    let isActive = false
     let tags: string[] = []
     let location: null | SnippetLocation = null
     let insertMethod: null | SnippetInsertMethod = null
@@ -64,14 +64,16 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
     try {
       const metaContent = await readFile(metaPath, 'utf8')
       const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
-      id = meta.id === undefined ? undefined : Number(meta.id)
-      name = meta.name ? String(meta.name) : undefined
+      id = meta.id
+      // `||`, not `??`: an empty-string name in the sidecar JSON counts as absent too.
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      name = meta.name || undefined
       type = parseType(meta.type) ?? undefined
-      active = Boolean(meta.active)
+      isActive = Boolean(meta.active)
       tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
       location = parseLocation(meta.location)
       insertMethod = parseInsertMethod(meta.insertMethod)
-      priority = meta.priority === undefined ? 10 : Number(meta.priority)
+      priority = meta.priority ?? 10
       shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -80,10 +82,10 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
       }
     }
 
-    const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext as keyof typeof TYPE_BY_EXTENSION] : 'php')
+    const resolvedType = type ?? (Object.hasOwn(TYPE_BY_EXTENSION, ext) ? TYPE_BY_EXTENSION[ext] : 'php')
 
     snippets.push({
-      active,
+      active: isActive,
       code: content,
       id,
       insertMethod: insertMethod ?? 'auto',

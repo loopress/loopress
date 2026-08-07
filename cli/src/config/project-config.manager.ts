@@ -1,7 +1,7 @@
 import {existsSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {CurrentProjectPointer, EnvironmentConfig, LoopressConfig, ProjectConfig, TelemetryConfig} from '../types/config.js'
+import {type CurrentProjectPointer, type EnvironmentConfig, type LoopressConfig, type ProjectConfig, type TelemetryConfig} from '../types/config.js'
 import {toSlug} from '../utils/to-slug.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
@@ -14,7 +14,7 @@ export class ProjectConfigManager {
 
     let id = base
     let suffix = 2
-    while (config.projects[id]) {
+    while (Object.hasOwn(config.projects, id)) {
       id = `${base}-${suffix}`
       suffix++
     }
@@ -110,7 +110,7 @@ export class ProjectConfigManager {
     const project = config.projects[projectId]
     if (!project) return
 
-    delete project.environments[envName]
+    Reflect.deleteProperty(project.environments, envName)
 
     if (config.currentProject?.id === projectId && config.currentProject.env === envName) {
       const remaining = Object.keys(project.environments)
@@ -122,7 +122,7 @@ export class ProjectConfigManager {
 
   removeProject(id: string): void {
     const config = this.readConfig()
-    delete config.projects[id]
+    Reflect.deleteProperty(config.projects, id)
 
     if (config.currentProject?.id === id) {
       const [nextId] = Object.keys(config.projects)
@@ -143,7 +143,7 @@ export class ProjectConfigManager {
 
   setCurrent(projectId: string, envName: string): void {
     const config = this.readConfig()
-    if (!config.projects[projectId]) return
+    if (!Object.hasOwn(config.projects, projectId)) return
     config.currentProject = {env: envName, id: projectId}
     this.writeConfig(config)
   }
@@ -154,7 +154,7 @@ export class ProjectConfigManager {
     if (!project) return
 
     project.environments[envName] = env
-    if (!config.currentProject) config.currentProject = {env: envName, id: projectId}
+    config.currentProject ??= {env: envName, id: projectId}
 
     this.writeConfig(config)
   }

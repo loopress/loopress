@@ -3,12 +3,12 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 import {isInteractive} from '../../src/lib/interactive.js'
 
 describe('isInteractive', () => {
-  const originalStdinTty = process.stdin.isTTY
-  const originalStdoutTty = process.stdout.isTTY
+  const isOriginalStdinTty = process.stdin.isTTY
+  const isOriginalStdoutTty = process.stdout.isTTY
 
   afterEach(() => {
-    process.stdin.isTTY = originalStdinTty
-    process.stdout.isTTY = originalStdoutTty
+    process.stdin.isTTY = isOriginalStdinTty
+    process.stdout.isTTY = isOriginalStdoutTty
     vi.unstubAllEnvs()
   })
 
@@ -21,7 +21,7 @@ describe('isInteractive', () => {
   })
 
   it('is false when stdin is not a TTY', () => {
-    process.stdin.isTTY = false as never
+    process.stdin.isTTY = false
     process.stdout.isTTY = true
     vi.stubEnv('CI', '')
 

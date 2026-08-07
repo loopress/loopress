@@ -1,11 +1,12 @@
+import {Buffer} from 'node:buffer'
 import {createServer, type IncomingMessage, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
 
 async function readBody(req: IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = []
-  for await (const chunk of req) chunks.push(chunk as Buffer)
+  const chunks: Uint8Array[] = []
+  for await (const chunk of req) chunks.push(chunk as Uint8Array)
   return Buffer.concat(chunks).toString('utf8')
 }
 
@@ -24,7 +25,7 @@ export type CallbackHelpers<T> = {
  * Sends the user to a URL in their browser and catches the resulting redirect on a short-lived
  * local server; this factors out the server setup, timeout, and browser-opening boilerplate.
  */
-export function waitForLocalCallback<T>(options: {
+export async function waitForLocalCallback<T>(options: {
   buildUrl: (callbackBaseUrl: string) => string
   handleRequest: (url: URL, helpers: CallbackHelpers<T>) => void
   log: (message: string) => void
@@ -43,15 +44,15 @@ export function waitForLocalCallback<T>(options: {
       settle()
     }
 
-    const server = createServer(async (req, res) => {
+    async function handleIncoming(req: IncomingMessage, res: ServerResponse): Promise<void> {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const body: Record<string, string> =
           req.method === 'POST' ? parseFormData(await readBody(req)) : {}
 
         options.handleRequest(url, {
-          rejectWithPage: (page, error) => finish(res, page, () => reject(error)),
-          resolveWithPage: (page, value) => finish(res, page, () => resolve(value)),
+          rejectWithPage(page, error) { finish(res, page, () => { reject(error); }); },
+          resolveWithPage(page, value) { finish(res, page, () => { resolve(value); }); },
           respondBadRequest(message) {
             res.writeHead(400, {'Content-Type': 'text/plain'})
             res.end(message)
@@ -62,9 +63,11 @@ export function waitForLocalCallback<T>(options: {
         res.writeHead(500)
         res.end('Internal error')
         server.close()
-        reject(error)
+        reject(error instanceof Error ? error : new Error(String(error)))
       }
-    })
+    }
+
+    const server = createServer((req, res) => { void handleIncoming(req, res) })
 
     server.on('error', (err) => {
       clearTimeout(timer)

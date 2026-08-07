@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {ProjectConfigManager} from '../../src/config/project-config.manager.js'
-import {EnvironmentConfig, ProjectConfig} from '../../src/types/config.js'
+import {type EnvironmentConfig, type ProjectConfig} from '../../src/types/config.js'
 
 const makeEnv = (name: string, url = 'https://example.com'): EnvironmentConfig => ({
   addedAt: '2024-01-01T00:00:00.000Z',
@@ -143,7 +143,7 @@ describe('ProjectConfigManager', () => {
 
     it('is a no-op when the config directory already exists', () => {
       manager.ensureConfigDir()
-      expect(() => manager.ensureConfigDir()).not.toThrow()
+      expect(() => { manager.ensureConfigDir(); }).not.toThrow()
       expect(existsSync(tmpDir)).toBe(true)
     })
   })
@@ -386,7 +386,7 @@ describe('ProjectConfigManager', () => {
     })
 
     it('does nothing for an unknown project', () => {
-      expect(() => manager.removeEnvironment('ghost', 'production')).not.toThrow()
+      expect(() => { manager.removeEnvironment('ghost', 'production'); }).not.toThrow()
     })
 
     it('leaves currentProject untouched when removing an environment on a different project', () => {
