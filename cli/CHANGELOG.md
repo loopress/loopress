@@ -1,5 +1,21 @@
 # @loopress/cli
 
+## 0.21.0
+
+### Minor Changes
+
+- 182ae2a: `api/` route files can now use a bracketed segment, `[order_id]`, anywhere in their path (e.g. `api/invoice-pdf/[order_id].php`, `api/orders/[order_id]/items/[item_id].php`) to capture a dynamic value into `$request->get_param(...)`, the same convention as Astro/Next.js dynamic routes, without a catch-all segment. The segment name must start with a letter or underscore (it becomes a PHP identifier internally). The generated class name PascalCases each path segment and joins them with `_` (`InvoicePdf_OrderId`, not `InvoicePdfOrderId`), so two differently nested files can never collide on the same class name.
+
+  `lps api push`/`pull`/`list` now support route files nested in subdirectories, needed for the above. **Internal, breaking**: the upload endpoint (`PUT loopress/v1/api-files`) now takes `filename` as a body field instead of a URL path segment (avoids depending on how a given host handles a percent-encoded slash in a URL), so the CLI and the WordPress plugin must be upgraded together, an old CLI against a new plugin (or the reverse) will fail to push.
+
+- c365613: Add `lps dev`, which watches snippets, pages, API routes, and the plugin manifest, pushing each change to the `local` environment automatically. Supports `--only`/`--skip` to limit which resource types are watched.
+- 421a1e8: `--json` now works consistently across `snippet`/`page`/`api`/`plugin`/`composer` push/pull/list and `status`: each command returns a structured result (shape documented per command) instead of the interactive progress UI, and errors come through as `{error: {message, name}}` with a non-zero exit code. `snippet list`/`page list`/`api list` previously had their own one-off `--json`/`-j` flag; they now use the same oclif mechanism as everything else. First step towards a `@loopress/mcp` server that wraps `lps` instead of duplicating its logic, see `obsidian/Product/Loopress MCP.md`.
+
+### Patch Changes
+
+- 67a932e: `lps api push` now rejects a file missing `declare(strict_types=1);` (or containing it more than once) before making any network call, mirroring the server's own check instead of failing only after the round-trip.
+- 182ae2a: `lps api push`'s server-side PHP syntax check now distinguishes "verified, no error" from "couldn't verify here" (`exec()` disabled, common on managed hosts, or another local condition preventing the check from running), instead of treating both as silent success. The CLI now reports when the check was skipped for the second case instead of staying indistinguishable from a fully verified push.
+
 ## 0.20.1
 
 ### Patch Changes
