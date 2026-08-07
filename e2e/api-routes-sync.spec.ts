@@ -110,7 +110,11 @@ test("a route file still using the pre-direct-callback permission() convention d
 	// No Authorization header: this is the real anonymous-request scenario the bug exposed.
 	const response = await request.get(`${wp.url}/wp-json/loopress-api/v1/qa-old-style-deny`);
 
-	expect(response.status()).not.toBe(200);
+	// 401, not just "not 200": rest_authorization_required_code() returns 401 for an
+	// anonymous caller, 403 only once already logged in, so this also pins the exact
+	// WP_Error code core's dispatch() assigns on a strict `=== false` permission result.
+	expect(response.status()).toBe(401);
+	expect(((await response.json()) as {code: string}).code).toBe("rest_forbidden");
 	expect(await response.text()).not.toContain("should_never_be_reached");
 });
 

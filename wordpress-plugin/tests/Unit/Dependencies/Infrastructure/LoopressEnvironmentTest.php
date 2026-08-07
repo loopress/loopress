@@ -221,6 +221,19 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame('^1.0', $written['require']['vendor/pkg']); // caller's own content still lands
     }
 
+    public function test_writeComposerJson_overrides_a_client_supplied_LoopressLib_mapping(): void
+    {
+        // LoopressLib\ is reserved: it must always point at lib/, the directory api/ files and
+        // snippets share code through. A ??= only guards the key being absent, not a client
+        // (ComposerService::sync(), i.e. `lps composer push`) explicitly setting it elsewhere.
+        $env        = new LoopressEnvironment();
+        $clientJson = ['name' => 'loopress/site-dependencies', 'autoload' => ['psr-4' => ['LoopressLib\\' => 'not-lib/']]];
+        $env->writeComposerJson($clientJson);
+
+        $written = $env->readComposerJson();
+        $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
+    }
+
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void
     {
         $env = new LoopressEnvironment();
