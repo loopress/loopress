@@ -31,7 +31,7 @@ describe('ApiClient', () => {
       seenAuth = req.headers.authorization ?? ''
       let raw = ''
       req.on('data', (chunk: Uint8Array) => {
-        raw += chunk
+        raw += chunk.toString()
       })
       req.on('end', () => {
         seenBody = raw

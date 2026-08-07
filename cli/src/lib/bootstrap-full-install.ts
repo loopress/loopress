@@ -47,7 +47,7 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
     )
   }
 
-  if (cleanupError) throw cleanupError
+  if (cleanupError) throw cleanupError as Error
 
   if (installError) {
     throw new Error(`Could not install Loopress Full automatically. ${manualFallback}`, {cause: installError})

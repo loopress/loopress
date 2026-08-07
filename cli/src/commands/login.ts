@@ -23,13 +23,13 @@ export default class Login extends Command {
         `${CONSOLE_URL}/cli-auth?callbackUrl=${encodeURIComponent(`${callbackBaseUrl}/callback`)}`,
       handleRequest(url, {resolveWithPage, respondBadRequest}) {
         const token = url.searchParams.get('token')
-        const email = url.searchParams.get('email') ?? undefined
 
         if (!token) {
           respondBadRequest('Missing token')
           return
         }
 
+        const email = url.searchParams.get('email') ?? undefined
         resolveWithPage(SUCCESS_PAGE, {email, token})
       },
       log: (message) => { this.log(message); },

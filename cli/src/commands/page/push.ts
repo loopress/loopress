@@ -177,9 +177,9 @@ export default class Push extends PushCommand {
           // be stripped before falling back to create.
           if (!isNotFoundError(error)) throw error
 
-          const createPayload: Record<string, unknown> = {...payload}
-          delete createPayload.id
-          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, createPayload)
+          const newPayload: Record<string, unknown> = {...payload}
+          delete newPayload.id
+          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, newPayload)
           id = getPageId(created)
           if (id !== null) await this.ensureCanonicalFilename(page, id, title)
         }

@@ -1,11 +1,12 @@
+import {Buffer} from 'node:buffer'
 import {createServer, type IncomingMessage, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
 
 async function readBody(req: IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = []
-  for await (const chunk of req) chunks.push(chunk as Buffer)
+  const chunks: Uint8Array[] = []
+  for await (const chunk of req) chunks.push(chunk as Uint8Array)
   return Buffer.concat(chunks).toString('utf8')
 }
 

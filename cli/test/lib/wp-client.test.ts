@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer'
 import {createServer, type IncomingMessage, type Server, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
@@ -48,7 +49,7 @@ describe('WpClient', () => {
       seenMethod = req.method ?? ''
       let raw = ''
       req.on('data', (chunk: Uint8Array) => {
-        raw += chunk
+        raw += chunk.toString()
       })
       req.on('end', () => {
         seenBody = raw

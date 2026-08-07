@@ -42,6 +42,11 @@ export default class ComposerInit extends LoopressCommand {
       }
     }
 
+    if (this.dryRun) {
+      this.log(`[dry-run] Would write composer.json to ${composerJsonPath}`)
+      return
+    }
+
     const composerJson: ComposerJson = {
       // composer/installers is itself a Composer plugin, and Composer 2.2+ refuses to run any
       // plugin that isn't explicitly trusted when running non-interactively (which every
@@ -54,11 +59,6 @@ export default class ComposerInit extends LoopressCommand {
       require: {
         [INSTALLERS_PACKAGE]: INSTALLERS_CONSTRAINT,
       },
-    }
-
-    if (this.dryRun) {
-      this.log(`[dry-run] Would write composer.json to ${composerJsonPath}`)
-      return
     }
 
     await writeFile(composerJsonPath, JSON.stringify(composerJson, null, 2) + '\n', 'utf8')

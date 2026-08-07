@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url'
 
 const gitignorePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.gitignore')
 
-export default [
+const eslintConfig = [
   includeIgnoreFile(gitignorePath),
   {ignores: ['dist/**', 'tmp/**', 'src/types/*.generated.ts']},
   // ponytail: eslint-plugin-mocha v10 (pinned by eslint-config-oclif) crashes on ESLint 10,
@@ -52,6 +52,21 @@ export default [
       // Flags established, unambiguous names (dryRun mirrors the --dry-run flag, disabled/active
       // match the API's own field names).
       'unicorn/consistent-boolean-name': 'off',
+      // Autofix suggests Iterator#toArray(), Node 22+ only; package.json declares engines >= 18.
+      'unicorn/prefer-iterator-to-array': 'off',
+      // Wants a `continue` inside a doubly-nested loop pulled into its own function, even when
+      // (as in project/push.ts) it unambiguously continues the innermost loop.
+      'unicorn/no-break-in-nested-loop': 'off',
+    },
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      // Default max of 3 flags the standard `expect(JSON.parse(readFileSync(join(...))))`
+      // one-liner used throughout these tests to read back a written file.
+      'unicorn/max-nested-calls': 'off',
     },
   },
 ]
+
+export default eslintConfig

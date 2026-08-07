@@ -311,7 +311,7 @@ describe('snippet push', () => {
   })
 
   describe('pushSnippet', () => {
-    const snippet = {
+    const snippet: Snippet = {
       active: false,
       code: '<?php echo 1;',
       id: 8,
@@ -323,7 +323,7 @@ describe('snippet push', () => {
       shortcodeAttributes: [],
       tags: [],
       type: 'php',
-    } as Snippet
+    }
 
     it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
@@ -353,7 +353,7 @@ describe('snippet push', () => {
 
     it('returns the id assigned by the site when creating a new snippet, for callers (e.g. --json) that need it', async () => {
       writeFileSync(join(dir, '42-demo.php'), '<?php echo 1;')
-      const newSnippet = {...snippet, id: undefined, path: join(dir, '42-demo.php')} as Snippet
+      const newSnippet: Snippet = {...snippet, id: undefined, path: join(dir, '42-demo.php')}
 
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)

@@ -24,9 +24,9 @@ describe('loadFiles', () => {
   it('returns an empty array when the directory does not exist yet, recursive or not', async () => {
     const missing = join(dir, 'does-not-exist')
 
-    await expect(loadFiles(missing, {extension: '.php', onSkip: vi.fn(), parse: (raw) => raw})).resolves.toEqual([])
+    await expect(loadFiles(missing, {extension: '.php', onSkip: vi.fn<(message: string) => void>(), parse: (raw) => raw})).resolves.toEqual([])
     await expect(
-      loadFiles(missing, {extension: '.php', onSkip: vi.fn(), parse: (raw) => raw, recursive: true}),
+      loadFiles(missing, {extension: '.php', onSkip: vi.fn<(message: string) => void>(), parse: (raw) => raw, recursive: true}),
     ).resolves.toEqual([])
   })
 
@@ -38,7 +38,7 @@ describe('loadFiles', () => {
 
       const files = await loadFiles<ParsedFile>(dir, {
         extension: '.php',
-        onSkip: vi.fn(),
+        onSkip: vi.fn<(message: string) => void>(),
         parse: (raw, filePath) => ({content: raw, filename: relative(dir, filePath)}),
       })
 
@@ -54,7 +54,7 @@ describe('loadFiles', () => {
 
       const files = await loadFiles<ParsedFile>(dir, {
         extension: '.php',
-        onSkip: vi.fn(),
+        onSkip: vi.fn<(message: string) => void>(),
         parse: (raw, filePath) => ({content: raw, filename: relative(dir, filePath)}),
         recursive: true,
       })
@@ -68,7 +68,7 @@ describe('loadFiles', () => {
 
       const files = await loadFiles<ParsedFile>(dir, {
         extension: '.php',
-        onSkip: vi.fn(),
+        onSkip: vi.fn<(message: string) => void>(),
         parse: (raw, filePath) => ({content: raw, filename: relative(dir, filePath)}),
         recursive: true,
       })
@@ -81,7 +81,7 @@ describe('loadFiles', () => {
     it('still skips a file that fails to parse, without aborting the rest', async () => {
       writeFileSync(join(dir, 'good.php'), '<?php')
       writeFileSync(join(dir, 'bad.php'), '<?php')
-      const onSkip = vi.fn()
+      const onSkip = vi.fn<(message: string) => void>()
 
       const files = await loadFiles<ParsedFile>(dir, {
         extension: '.php',

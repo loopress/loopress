@@ -34,9 +34,9 @@ function fakeWorkingBrowser() {
 }
 
 describe('bootstrapLoopressFull', () => {
-  const wp = {} as WpClient
+  const wp = {} as unknown as WpClient
   const admin = {id: 7, password: 'x', username: 'lps-temp-abc'}
-  const log = vi.fn()
+  const log = vi.fn<(message: string) => void>()
 
   beforeEach(() => {
     vi.clearAllMocks()

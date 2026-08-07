@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer'
 import {readFile} from 'node:fs/promises'
 import {Readable} from 'node:stream'
 import {beforeEach, describe, expect, it, vi} from 'vitest'

@@ -32,7 +32,7 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
   try {
     files = await readdir(path)
   } catch (error) {
-    throw new Error(`Error loading snippets: ${(error as Error).message}`)
+    throw new Error(`Error loading snippets: ${(error as Error).message}`, {cause: error})
   }
 
   for (const file of files) {
