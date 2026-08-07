@@ -4,7 +4,7 @@ import writeFileAtomic from 'write-file-atomic'
 
 // Missing file or invalid JSON are treated as "no data" (returns null). Any other
 // read failure (permissions, EISDIR, ...) propagates instead of being swallowed.
-export function readJsonFile<T>(filePath: string): T | undefined {
+export function readJsonFile<T>(filePath: string): null | T {
   if (!existsSync(filePath)) return null
 
   const content = readFileSync(filePath, 'utf8')

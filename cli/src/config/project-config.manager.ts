@@ -33,7 +33,7 @@ export class ProjectConfigManager {
   // avoid minting a new local project every time it pulls an API project whose local link was
   // lost (e.g. after a reset or partial config corruption), which otherwise accumulates
   // duplicate entries.
-  findProjectByApiId(apiProjectId: string): (ProjectConfig & {id: string}) | undefined {
+  findProjectByApiId(apiProjectId: string): null | (ProjectConfig & {id: string}) {
     const config = this.readConfig()
     for (const [id, project] of Object.entries(config.projects)) {
       if (project.apiProjectId === apiProjectId) return {...project, id}
@@ -46,7 +46,7 @@ export class ProjectConfigManager {
     return join(this.requireConfigDir(), 'config.json')
   }
 
-  getCurrentEnv(): EnvironmentConfig | undefined {
+  getCurrentEnv(): EnvironmentConfig | null {
     const config = this.readConfig()
     if (!config.currentProject) return null
     const project = config.projects[config.currentProject.id]
@@ -54,7 +54,7 @@ export class ProjectConfigManager {
     return project.environments[config.currentProject.env] ?? null
   }
 
-  getCurrentProject(): (ProjectConfig & {id: string}) | undefined {
+  getCurrentProject(): null | (ProjectConfig & {id: string}) {
     const config = this.readConfig()
     if (!config.currentProject) return null
     const project = config.projects[config.currentProject.id]
@@ -62,13 +62,13 @@ export class ProjectConfigManager {
     return {...project, id: config.currentProject.id}
   }
 
-  getEnvironment(projectId: string, envName: string): EnvironmentConfig | undefined {
+  getEnvironment(projectId: string, envName: string): EnvironmentConfig | null {
     const project = this.getProject(projectId)
     if (!project) return null
     return project.environments[envName] ?? null
   }
 
-  getProject(id: string): ProjectConfig | undefined {
+  getProject(id: string): null | ProjectConfig {
     const config = this.readConfig()
     return config.projects[id] ?? null
   }
@@ -225,7 +225,7 @@ export class ProjectConfigManager {
     }
   }
 
-  private sanitizeCurrentProject(value: unknown): CurrentProjectPointer | undefined {
+  private sanitizeCurrentProject(value: unknown): CurrentProjectPointer | null {
     if (value === null || typeof value !== 'object') return null
     const pointer = value as Partial<CurrentProjectPointer>
     return typeof pointer.id === 'string' && typeof pointer.env === 'string' ? {env: pointer.env, id: pointer.id} : null

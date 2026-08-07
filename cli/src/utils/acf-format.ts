@@ -10,6 +10,6 @@ export function acfEndpoint(type: AcfObjectType): string {
 // everything else round-trips through pull/push untouched, so there's no generated type for it
 // (see the plan for why: shadowing ACF's own schema would be an ongoing losing battle, and the
 // shared schema:types compiler options (additionalProperties: false) would be actively wrong here).
-export function getAcfKey(data: Record<string, unknown>): string | undefined {
+export function getAcfKey(data: Record<string, unknown>): null | string {
   return typeof data.key === 'string' && data.key.trim() !== '' ? data.key : null
 }

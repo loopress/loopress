@@ -12,7 +12,7 @@ export type OrphanMatcher = {
   // Accepted extensions, with the leading dot (e.g. ['.json']).
   extensions: string[]
   // Extracts the file's identity from its basename without extension; null = not ours.
-  key(base: string): string | undefined
+  key(base: string): null | string
   // Defaults to false: a flat directory listing. Only the api resource type needs true, path-
   // param route files can live in subdirectories, e.g. api/invoice-pdf/[order_id].php.
   recursive?: boolean
@@ -74,7 +74,7 @@ export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher:
 }
 
 // The `<id>-<slug>.*` filename convention: the numeric prefix is the identity.
-export function numericPrefixKey(base: string): string | undefined {
+export function numericPrefixKey(base: string): null | string {
   const match = /^(\d+)-/.exec(base)
   return match?.[1] ?? null
 }

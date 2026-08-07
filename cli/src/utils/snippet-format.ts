@@ -30,7 +30,7 @@ function coerceString(value: unknown, fallback = ''): string {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : fallback
 }
 
-export function parseType(raw: unknown): SnippetType | undefined {
+export function parseType(raw: unknown): null | SnippetType {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
   const value = coerceString(raw).toLowerCase()
   return valid.includes(value as SnippetType) ? (value as SnippetType) : null
@@ -38,12 +38,12 @@ export function parseType(raw: unknown): SnippetType | undefined {
 
 const VALID_LOCATIONS = new Set<SnippetLocation>(['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'])
 
-export function parseLocation(raw: unknown): SnippetLocation | undefined {
+export function parseLocation(raw: unknown): null | SnippetLocation {
   const value = coerceString(raw).toLowerCase()
   return VALID_LOCATIONS.has(value as SnippetLocation) ? (value as SnippetLocation) : null
 }
 
-export function parseInsertMethod(raw: unknown): SnippetInsertMethod | undefined {
+export function parseInsertMethod(raw: unknown): null | SnippetInsertMethod {
   return raw === 'auto' || raw === 'shortcode' ? raw : null
 }
 

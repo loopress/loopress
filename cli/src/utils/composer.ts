@@ -15,7 +15,7 @@ export type ComposerJson = {
   'require-dev'?: Record<string, string>
 }
 
-export async function readComposerJson(): Promise<ComposerJson | undefined> {
+export async function readComposerJson(): Promise<ComposerJson | null> {
   const path = join(process.cwd(), 'composer.json')
   if (!existsSync(path)) return null
   try {
@@ -26,7 +26,7 @@ export async function readComposerJson(): Promise<ComposerJson | undefined> {
   }
 }
 
-export async function readComposerLock(): Promise<string | undefined> {
+export async function readComposerLock(): Promise<null | string> {
   const path = join(process.cwd(), 'composer.lock')
   if (!existsSync(path)) return null
   try {

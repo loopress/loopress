@@ -57,8 +57,8 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
     let type: SnippetType | undefined
     let isActive = false
     let tags: string[] = []
-    let location: SnippetLocation | undefined = null
-    let insertMethod: SnippetInsertMethod | undefined = null
+    let location: null | SnippetLocation = null
+    let insertMethod: null | SnippetInsertMethod = null
     let priority = 10
     let shortcodeAttributes: string[] = []
     try {

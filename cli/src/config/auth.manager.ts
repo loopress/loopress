@@ -17,7 +17,7 @@ export class AuthManager {
     if (existsSync(filePath)) unlinkSync(filePath)
   }
 
-  getAuth(): ConsoleAuth | undefined {
+  getAuth(): ConsoleAuth | null {
     return readJsonFile<ConsoleAuth>(this.getAuthFilePath())
   }
 

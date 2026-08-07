@@ -7,7 +7,7 @@ export const FORM_ENDPOINT = 'loopress/v1/forms'
 // wrote it. We only need `id` for filenames/identity and `settings.form_title` for display
 // (the field WPForms itself uses; a future provider may differ), everything else round-trips
 // through pull/push untouched.
-export function getFormId(data: Record<string, unknown>): number | undefined {
+export function getFormId(data: Record<string, unknown>): null | number {
   const id = Number(data.id)
   return Number.isSafeInteger(id) && id > 0 ? id : null
 }

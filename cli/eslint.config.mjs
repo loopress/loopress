@@ -60,6 +60,30 @@ const eslintConfig = [
       // Promise.withResolvers is ES2024; tsconfig's target is es2022, so it type-checks as
       // `any` and trips no-unsafe-call. Node 20+ only anyway; package.json declares engines >= 18.
       'unicorn/prefer-promise-with-resolvers': 'off',
+      // xo bans the `null` type outright (fixWith: 'undefined'), but this codebase uses `null`
+      // as its established "absent value" sentinel throughout (config fields, lookups, parsed
+      // JSON), including one type generated straight from a JSON schema that is `null`, not
+      // `undefined`. The autofix only rewrites the type annotation, not the `return null`/`??
+      // null` bodies behind it, which silently breaks the `tsc` build. Keep the rule's other,
+      // unrelated bans (object/Buffer/empty-array-type).
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            object: {
+              fixWith: 'Record<string, unknown>',
+              message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+            },
+            Buffer: {
+              message: 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
+              suggest: ['Uint8Array'],
+            },
+            '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+            '[[]]': "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+            '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
+          },
+        },
+      ],
     },
   },
   {

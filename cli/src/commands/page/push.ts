@@ -15,7 +15,7 @@ type LocalPage = {
 }
 
 type PushedPage = {
-  id: number | undefined
+  id: null | number
   title: string
 }
 
@@ -149,7 +149,7 @@ export default class Push extends PushCommand {
   // to a site where that id belongs to a different page (or nothing) silently mis-parents or
   // orphans the page. No id-remapping across sites here; fine for same-hierarchy environments,
   // revisit if pushing across sites with divergent page trees becomes a real workflow.
-  private async pushPage(page: LocalPage, task?: {output: string}): Promise<number | undefined> {
+  private async pushPage(page: LocalPage, task?: {output: string}): Promise<null | number> {
     const title = getPageTitle(page.meta)
 
     if (this.dryRun) {
