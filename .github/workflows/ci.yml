@@ -119,6 +119,11 @@ jobs:
       - name: Run CLI e2e tests
         env:
           WP_URL: http://localhost:8080
+          # @wordpress/e2e-test-utils-playwright's own REST API discovery (getAPIRootURL, used
+          # by the requestUtils fixture) reads this env var directly rather than the baseURL
+          # passed to RequestUtils.setup(), defaulting to http://localhost:8889 if unset, a
+          # bare HEAD request that ECONNREFUSEs against this job's actual WordPress port.
+          WP_BASE_URL: http://localhost:8080
           WP_USERNAME: admin
           # Matches the account password `loopress/setup-ci` hardcodes when it runs
           # `wp core install --admin_password="admin"` — needed for wp-admin UI login,
