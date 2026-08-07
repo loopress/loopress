@@ -60,14 +60,17 @@ describe('api pull', () => {
 
       const orphans = await findOrphanedFiles(dir, new Set())
 
-      expect(orphans).toEqual([join('invoice-pdf', '[order_id].php')])
+      // Hardcoded '/', not join(): the server always sends filenames with '/', regardless of
+      // the OS this runs on, a join()-built expectation would tautologically pass either way.
+      expect(orphans).toEqual(['invoice-pdf/[order_id].php'])
     })
 
     it('keeps a nested file whose filename is still in the current remote list', async () => {
       mkdirSync(join(dir, 'invoice-pdf'), {recursive: true})
       writeFileSync(join(dir, 'invoice-pdf', '[order_id].php'), '<?php')
 
-      const orphans = await findOrphanedFiles(dir, new Set([join('invoice-pdf', '[order_id]')]))
+      // The keep set as the server would actually send it: always '/', never the OS separator.
+      const orphans = await findOrphanedFiles(dir, new Set(['invoice-pdf/[order_id]']))
 
       expect(orphans).toEqual([])
     })
