@@ -67,7 +67,10 @@ class ApiDirectory
                 continue;
             }
 
-            $relative = substr($file->getPathname(), strlen($this->path));
+            // getPathname() uses the platform's directory separator ('\' on Windows);
+            // RouteLoader always explode()s a slug on '/', so a slug carrying '\' would be
+            // read as one single segment instead of the intended nested path.
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($this->path)));
             $slugs[]  = substr($relative, 0, -4); // strip the trailing '.php'
         }
 

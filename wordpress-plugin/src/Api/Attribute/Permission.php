@@ -21,5 +21,16 @@ final class Permission
         public readonly bool $public = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.publicFound -- #[Permission(public: true)] is the intended, decided call-site syntax
         public readonly ?string $capability = null,
         public readonly string|array|null $callback = null,
-    ) {}
+    ) {
+        // RouteLoader::permissionFromAttribute() checks public, then callback, then capability,
+        // in that order: combining more than one would silently pick whichever it checks
+        // first rather than error, exactly the kind of ambiguous-input footgun this file's
+        // sibling classes (permission(), FileWriter's declare check) already fail loudly on
+        // instead of guessing. Caught by RouteLoader::loadFile()'s existing try/catch, same
+        // "skip this route, log it, never fatal the site" handling as any other malformed file.
+        $optionsSet = ($this->public ? 1 : 0) + ($this->capability !== null ? 1 : 0) + ($this->callback !== null ? 1 : 0);
+        if ($optionsSet > 1) {
+            throw new \InvalidArgumentException('#[Permission] accepts only one of public, capability, or callback.');
+        }
+    }
 }

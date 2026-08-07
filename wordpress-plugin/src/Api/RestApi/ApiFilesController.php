@@ -22,8 +22,10 @@ class ApiFilesController
     // Matches FileWriter/RouteLoader's filename convention: a slash-separated path of
     // segments, each either lowercase kebab-case or a bracketed dynamic segment name (e.g.
     // 'invoice-pdf/[order_id]'), no path traversal (no '.' anywhere), extension is never
-    // taken from the client.
-    private const FILENAME_PATTERN = '/^(?:[a-z0-9-]+|\[\w+\])(?:\/(?:[a-z0-9-]+|\[\w+\]))*$/';
+    // taken from the client. The bracket alternative's first char is restricted the same way
+    // as RouteLoader::DYNAMIC_SEGMENT_PATTERN: a leading digit would push cleanly but produce
+    // a route that silently never matches any request (see that constant's own comment).
+    private const FILENAME_PATTERN = '/^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/';
 
     public function __construct(private ApiDirectory $directory) {}
 
@@ -133,7 +135,7 @@ class ApiFilesController
     /** @return array{status: 'ok'|'error'|'unavailable', message: ?string} */
     private function checkSyntax(string $code): array
     {
-        if (!function_exists('exec') || str_contains((string) ini_get('disable_functions'), 'exec')) {
+        if (!function_exists('exec') || self::execDisabled()) {
             return ['status' => 'unavailable', 'message' => null];
         }
 
@@ -142,7 +144,13 @@ class ApiFilesController
             return ['status' => 'unavailable', 'message' => null];
         }
 
-        file_put_contents($tmpFile, $code); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        // A failed write leaves $tmpFile at 0 bytes, and `php -l` on an empty file reports
+        // "No syntax errors detected", a false "ok" for content that was never actually
+        // linted: exactly the false-positive this whole method exists to avoid.
+        if (file_put_contents($tmpFile, $code) === false) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            unlink($tmpFile); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            return ['status' => 'unavailable', 'message' => null];
+        }
 
         $output   = [];
         $exitCode = 0;
@@ -167,5 +175,14 @@ class ApiFilesController
         // First line is always "PHP Parse error: ..." or "PHP Fatal error: ...", the rest is
         // an "Errors parsing ..." footer that repeats the filename back, not useful to the user.
         return ['status' => 'error', 'message' => $output[0] ?? 'Unknown syntax error.'];
+    }
+
+    // disable_functions is a comma-separated list of exact function names: a substring check
+    // for 'exec' would also match 'shell_exec' being disabled while exec() itself is still
+    // callable, wrongly reporting the check as unavailable.
+    private static function execDisabled(): bool
+    {
+        $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+        return in_array('exec', $disabled, true);
     }
 }

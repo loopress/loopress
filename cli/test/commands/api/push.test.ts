@@ -108,7 +108,7 @@ describe('api push', () => {
 
       await (cmd as unknown as PushWithPushFile).pushFile(file, task)
 
-      expect(task.output).toBe('Pushed: hello (syntax check skipped, exec() unavailable on this host)')
+      expect(task.output).toBe('Pushed: hello (syntax check skipped, unavailable on this host)')
     })
 
     it('routes the failure message through task.output and rethrows so Listr marks the task failed', async () => {

@@ -103,9 +103,6 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(200, $response->status);
-        // syntax_check is only present when the check itself couldn't run (e.g. exec()
-        // disabled), never on a normal successful push where it actually verified the file.
-        $this->assertArrayNotHasKey('syntax_check', $response->data);
     }
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void

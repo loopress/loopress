@@ -35,8 +35,13 @@ async function walk(dir: string, extensions: string[]): Promise<string[]> {
   const relativePaths: string[] = []
   for (const entry of entries) {
     if (entry.isDirectory()) {
+      // join() builds the real OS path to actually walk, but the returned identity is always
+      // '/'-joined regardless of platform: it's matched against `keep`, filenames the server
+      // sends with '/', never the OS separator. join() here (backslash on Windows) would make
+      // every nested file's identity never match, findOrphanedFiles() would then report a
+      // live, kept file as orphaned and pull.ts would delete it.
       const nested = await walk(join(dir, entry.name), extensions)
-      relativePaths.push(...nested.map((relativePath) => join(entry.name, relativePath)))
+      relativePaths.push(...nested.map((relativePath) => `${entry.name}/${relativePath}`))
     } else if (extensions.includes(extname(entry.name))) {
       relativePaths.push(entry.name)
     }

@@ -24,8 +24,13 @@ class RouteLoader
     /** @var array<string, string> method name => HTTP method */
     private const VERBS = ['get' => 'GET', 'post' => 'POST', 'put' => 'PUT', 'patch' => 'PATCH', 'delete' => 'DELETE'];
 
-    /** Matches a single dynamic path segment, e.g. '[order_id]' capturing 'order_id'. */
-    private const DYNAMIC_SEGMENT_PATTERN = '/^\[(\w+)\]$/';
+    // Matches a single dynamic path segment, e.g. '[order_id]' capturing 'order_id'. First
+    // char restricted to a letter or underscore: the capture becomes a PCRE named group
+    // in segmentToRegex() below, and a leading digit there (e.g. '[1abc]') is a compile
+    // error PHP's preg_match() fails on silently (returns false, not 0), which WP core's own
+    // match loop then reads as "no match" rather than an error, a route that would never
+    // match any request, with nothing pointing at why.
+    private const DYNAMIC_SEGMENT_PATTERN = '/^\[([A-Za-z_]\w*)\]$/';
 
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
@@ -56,18 +61,19 @@ class RouteLoader
         add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
     }
 
-    // Each segment PascalCased and concatenated: 'invoice-pdf/[order_id]' -> 'InvoicePdfOrderId'.
-    // The folder prefix in the name is what keeps a dynamic segment name from colliding across
-    // different folders (e.g. orders/[id] and items/[id] don't produce the same class name).
+    // Each segment PascalCased and joined with '_': 'invoice-pdf/[order_id]' ->
+    // 'InvoicePdf_OrderId'. The '_' is load-bearing, not cosmetic: plain concatenation would
+    // lose the segment boundary and let two different folder structures collide on the same
+    // class name (e.g. 'foo-bar/baz' and 'foo/bar-baz' both PascalCase-and-strip-hyphens to
+    // 'FooBarBaz'); joining with '_' keeps them distinct ('FooBar_Baz' vs 'Foo_BarBaz').
     public static function classNameFor(string $slug): string
     {
-        $className = '';
-        foreach (explode('/', $slug) as $segment) {
-            $segment    = preg_replace(self::DYNAMIC_SEGMENT_PATTERN, '$1', $segment) ?? $segment;
-            $className .= str_replace(['-', '_'], '', ucwords($segment, '-_'));
-        }
+        $segments = array_map(static function (string $segment): string {
+            $segment = preg_replace(self::DYNAMIC_SEGMENT_PATTERN, '$1', $segment) ?? $segment;
+            return str_replace(['-', '_'], '', ucwords($segment, '-_'));
+        }, explode('/', $slug));
 
-        return $className;
+        return implode('_', $segments);
     }
 
     // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture

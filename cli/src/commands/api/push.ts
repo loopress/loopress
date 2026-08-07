@@ -121,7 +121,7 @@ export default class Push extends PushCommand {
       if (task) {
         task.output =
           result.syntax_check === 'skipped'
-            ? `Pushed: ${file.filename} (syntax check skipped, exec() unavailable on this host)`
+            ? `Pushed: ${file.filename} (syntax check skipped, unavailable on this host)`
             : `Pushed: ${file.filename}`
       }
     } catch (error) {

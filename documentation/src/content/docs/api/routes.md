@@ -338,6 +338,7 @@ final class SharedChecks
 ```
 
 ```php
+use Loopress\Api\Attribute\Permission;
 use LoopressLib\SharedChecks;
 
 #[Permission(callback: [SharedChecks::class, 'requireApiKey'])]

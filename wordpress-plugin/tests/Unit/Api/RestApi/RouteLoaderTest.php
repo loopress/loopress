@@ -79,13 +79,21 @@ class RouteLoaderTest extends TestCase
 
     public function test_classNameFor_strips_brackets_from_a_dynamic_segment(): void
     {
-        $this->assertSame('InvoicePdfOrderId', RouteLoader::classNameFor('invoice-pdf/[order_id]'));
+        $this->assertSame('InvoicePdf_OrderId', RouteLoader::classNameFor('invoice-pdf/[order_id]'));
+    }
+
+    public function test_classNameFor_joins_segments_with_an_underscore_to_avoid_collisions(): void
+    {
+        // Plain concatenation would collide: 'foo-bar/baz' and 'foo/bar-baz' both
+        // PascalCase-and-strip-hyphens to 'FooBarBaz'. Joining with '_' keeps them distinct.
+        $this->assertSame('FooBar_Baz', RouteLoader::classNameFor('foo-bar/baz'));
+        $this->assertSame('Foo_BarBaz', RouteLoader::classNameFor('foo/bar-baz'));
     }
 
     public function test_classNameFor_handles_multiple_dynamic_segments(): void
     {
         $this->assertSame(
-            'OrdersOrderIdItemsItemId',
+            'Orders_OrderId_Items_ItemId',
             RouteLoader::classNameFor('orders/[order_id]/items/[item_id]'),
         );
     }
@@ -277,7 +285,7 @@ class RouteLoaderTest extends TestCase
     {
         $this->directory->write(
             'invoice-pdf/[order_id]',
-            "<?php\nfinal class InvoicePdfOrderId\n{\n    public function get(WP_REST_Request \$request): array\n    {\n        return ['order_id' => \$request->get_param('order_id')];\n    }\n}\n",
+            "<?php\nfinal class InvoicePdf_OrderId\n{\n    public function get(WP_REST_Request \$request): array\n    {\n        return ['order_id' => \$request->get_param('order_id')];\n    }\n}\n",
         );
 
         Functions\expect('register_rest_route')
@@ -300,7 +308,7 @@ class RouteLoaderTest extends TestCase
     {
         $this->directory->write(
             'orders/[order_id]/items/[item_id]',
-            "<?php\nfinal class OrdersOrderIdItemsItemId\n{\n    public function get(): array { return []; }\n}\n",
+            "<?php\nfinal class Orders_OrderId_Items_ItemId\n{\n    public function get(): array { return []; }\n}\n",
         );
 
         Functions\expect('register_rest_route')

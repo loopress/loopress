@@ -95,6 +95,15 @@ class LoopressEnvironment
         return $needsDump;
     }
 
+    // Called back by ComposerService when its dump-autoload attempt actually fails, so the
+    // flag it just consumed via needsLibAutoloadDump() isn't silently lost: a later call
+    // within the same request (or a future caller sharing this instance) sees the migration
+    // as still pending instead of assuming it already succeeded.
+    public function retryLibAutoloadDump(): void
+    {
+        $this->libAutoloadNeedsDump = true;
+    }
+
     // Sibling of api/ (see ApiDirectory::ensureExists(), same anti-listing rationale), never
     // scanned for routing: just a place for code shared between api/ files and snippets via
     // the LoopressLib\ autoload prefix above.

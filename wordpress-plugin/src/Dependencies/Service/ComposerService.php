@@ -29,11 +29,12 @@ class ComposerService
     // Best-effort: getInstalled()/getDiagnostics()/getJson() (this method's only callers)
     // don't wrap this call in a try/catch the way requirePackage()/repair()/etc. do, a
     // dump-autoload failure here (e.g. another Composer operation holding the lock) would
-    // otherwise turn a plain read into an uncaught exception. Not retried automatically on a
-    // later request if it fails here: composer.json is already patched by this point, so
-    // needsLibAutoloadDump() won't flag it again. Self-heals anyway the next time any real
-    // Composer operation runs (require/update/repair all regenerate the autoloader from the
-    // composer.json already on disk, lib/ entry included), just not before then.
+    // otherwise turn a plain read into an uncaught exception. composer.json is already
+    // patched by this point regardless, so retryLibAutoloadDump() re-flags the pending
+    // migration on failure rather than letting needsLibAutoloadDump()'s own take-semantics
+    // silently discard it, still self-heals anyway the next time any real Composer operation
+    // runs (require/update/repair all regenerate the autoloader from the composer.json
+    // already on disk, lib/ entry included), just not before then.
     private function ensureInitialized(): void
     {
         $this->environment->ensureInitialized();
@@ -42,6 +43,7 @@ class ComposerService
             try {
                 $this->composerRunner->run(['dump-autoload']);
             } catch (\Throwable $e) {
+                $this->environment->retryLibAutoloadDump();
                 error_log('Loopress composer: failed to dump the autoloader after adding lib/: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             }
         }
