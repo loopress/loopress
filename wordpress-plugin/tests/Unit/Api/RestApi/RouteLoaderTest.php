@@ -77,6 +77,19 @@ class RouteLoaderTest extends TestCase
         $this->assertSame('HelloWorld', RouteLoader::classNameFor('hello-world'));
     }
 
+    public function test_classNameFor_strips_brackets_from_a_dynamic_segment(): void
+    {
+        $this->assertSame('InvoicePdfOrderId', RouteLoader::classNameFor('invoice-pdf/[order_id]'));
+    }
+
+    public function test_classNameFor_handles_multiple_dynamic_segments(): void
+    {
+        $this->assertSame(
+            'OrdersOrderIdItemsItemId',
+            RouteLoader::classNameFor('orders/[order_id]/items/[item_id]'),
+        );
+    }
+
     // ── endpointsFor / hasPublicMethod (pure logic, no I/O) ─────────────────
 
     public function test_endpointsFor_only_includes_publicly_implemented_verbs(): void
@@ -245,7 +258,56 @@ class RouteLoaderTest extends TestCase
             ->once()
             ->with(
                 ApiNamespace::DEFAULT,
-                '/test-loader-valid',
+                // preg_quote() escapes every special char of a plain kebab-case segment,
+                // including '-': functionally identical to the unescaped route (a literal
+                // hyphen matches the same either way), but the registered string now differs.
+                '/test\-loader\-valid',
+                \Mockery::type('array'),
+            )
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    public function test_loadAndRegister_registers_a_regex_route_for_a_file_with_a_dynamic_segment(): void
+    {
+        $this->directory->write(
+            'invoice-pdf/[order_id]',
+            "<?php\nfinal class InvoicePdfOrderId\n{\n    public function get(WP_REST_Request \$request): array\n    {\n        return ['order_id' => \$request->get_param('order_id')];\n    }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(
+                ApiNamespace::DEFAULT,
+                '/invoice\-pdf/(?P<order_id>[^/]+)',
+                \Mockery::type('array'),
+            )
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    public function test_loadAndRegister_registers_a_route_with_multiple_dynamic_segments(): void
+    {
+        $this->directory->write(
+            'orders/[order_id]/items/[item_id]',
+            "<?php\nfinal class OrdersOrderIdItemsItemId\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(
+                ApiNamespace::DEFAULT,
+                '/orders/(?P<order_id>[^/]+)/items/(?P<item_id>[^/]+)',
                 \Mockery::type('array'),
             )
             ->andReturn(true);
@@ -273,7 +335,7 @@ class RouteLoaderTest extends TestCase
             ->once()
             ->with(
                 ApiNamespace::DEFAULT,
-                '/test-loader-throws-permission',
+                '/test\-loader\-throws\-permission',
                 \Mockery::type('array'),
             )
             ->andReturn(true);
@@ -313,7 +375,7 @@ class RouteLoaderTest extends TestCase
             ->once()
             ->with(
                 ApiNamespace::DEFAULT,
-                '/test-loader-no-guard',
+                '/test\-loader\-no\-guard',
                 \Mockery::type('array'),
             )
             ->andReturn(true);
@@ -400,18 +462,17 @@ class RouteLoaderTest extends TestCase
 
     public function test_applyHeaders_returns_served_unchanged_when_the_files_headers_method_throws(): void
     {
-        $this->directory->write(
-            'test-loader-throws-headers',
-            "<?php\nfinal class TestLoaderThrowsHeaders\n{\n    public function get(): array { return []; }\n    public function headers(): array { throw new \\RuntimeException('boom'); }\n}\n",
-        );
+        // applyHeaders() now reads the matched endpoint off $request->get_attributes(), the
+        // same place WP core itself puts it during a real dispatch (verified against
+        // WP_REST_Server::match_request_to_handler() and rest_handle_options_request()).
+        // Simulating that directly here, rather than going through loadAndRegister() +
+        // register_rest_route(), which no longer says anything about what a real dispatch
+        // would have put on the request.
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureThrowingHeaders());
 
-        Functions\when('register_rest_route')->justReturn(true);
-        Functions\when('add_filter')->justReturn(true);
-
-        $loader = new RouteLoader($this->directory, $this->environment);
-        $loader->loadAndRegister();
-
-        $request = new WP_REST_Request([], ApiNamespace::DEFAULT . '/test-loader-throws-headers');
+        $request = new WP_REST_Request([], '/test');
+        $request->set_attributes($endpoints[0]);
 
         $served = $loader->applyHeaders(true, null, $request);
 

@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -64,12 +64,30 @@ describe('api push', () => {
 
       expect(files).toEqual([])
     })
+
+    it('reads a file nested in a subdirectory, filename using forward slashes', async () => {
+      mkdirSync(join(dir, 'invoice-pdf'), {recursive: true})
+      writeFileSync(join(dir, 'invoice-pdf', '[order_id].php'), '<?php')
+
+      const files = await loadFiles(dir)
+
+      expect(files).toEqual([{content: '<?php', filename: 'invoice-pdf/[order_id]'}])
+    })
+
+    it('reads a file nested more than one level deep', async () => {
+      mkdirSync(join(dir, 'orders', '[order_id]', 'items'), {recursive: true})
+      writeFileSync(join(dir, 'orders', '[order_id]', 'items', '[item_id].php'), '<?php')
+
+      const files = await loadFiles(dir)
+
+      expect(files).toEqual([{content: '<?php', filename: 'orders/[order_id]/items/[item_id]'}])
+    })
   })
 
   describe('pushFile', () => {
     const file: ApiFile = {content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n', filename: 'hello'}
 
-    it('PUTs to loopress/v1/api-files/<filename> with the raw content', async () => {
+    it('PUTs to loopress/v1/api-files with the filename and raw content in the body', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
@@ -77,7 +95,7 @@ describe('api push', () => {
 
       await (cmd as unknown as PushWithPushFile).pushFile(file)
 
-      expect(put).toHaveBeenCalledWith('loopress/v1/api-files/hello', {content: file.content})
+      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
     })
 
     it('reports a skipped syntax check in task.output without failing the push', async () => {
@@ -121,6 +139,39 @@ describe('api push', () => {
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Invalid filename "WITH_MAJ_ENDPOINT"')
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
+
+    it('accepts a nested filename with a dynamic segment', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({filename: 'invoice-pdf/[order_id]'})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const dynamicFile: ApiFile = {
+        content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class InvoicePdfOrderId {}\n',
+        filename: 'invoice-pdf/[order_id]',
+      }
+
+      await (cmd as unknown as PushWithPushFile).pushFile(dynamicFile)
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {
+        content: dynamicFile.content,
+        filename: 'invoice-pdf/[order_id]',
+      })
+    })
+
+    it('rejects a filename attempting path traversal, without calling the API', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+      const traversalFile: ApiFile = {content: '<?php', filename: 'invoice-pdf/..'}
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, task)).rejects.toThrow(
+        'Invalid filename "invoice-pdf/.."',
+      )
+
+      expect(put).not.toHaveBeenCalled()
     })
 
     it('rejects a file missing declare(strict_types=1);, without calling the API', async () => {

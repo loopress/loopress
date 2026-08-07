@@ -31,6 +31,37 @@ class ApiFilesControllerTest extends TestCase
         parent::tearDown();
     }
 
+    // ── isValidFilename ──────────────────────────────────────────────────────
+
+    public function test_isValidFilename_accepts_a_plain_kebab_case_name(): void
+    {
+        $this->assertTrue(ApiFilesController::isValidFilename('hello'));
+        $this->assertTrue(ApiFilesController::isValidFilename('hello-world'));
+    }
+
+    public function test_isValidFilename_accepts_a_dynamic_segment(): void
+    {
+        $this->assertTrue(ApiFilesController::isValidFilename('invoice-pdf/[order_id]'));
+        $this->assertTrue(ApiFilesController::isValidFilename('orders/[order_id]/items/[item_id]'));
+    }
+
+    public function test_isValidFilename_rejects_path_traversal(): void
+    {
+        $this->assertFalse(ApiFilesController::isValidFilename('../../../wp-config'));
+        $this->assertFalse(ApiFilesController::isValidFilename('invoice-pdf/..'));
+    }
+
+    public function test_isValidFilename_rejects_malformed_input(): void
+    {
+        $this->assertFalse(ApiFilesController::isValidFilename(''));
+        $this->assertFalse(ApiFilesController::isValidFilename('/leading-slash'));
+        $this->assertFalse(ApiFilesController::isValidFilename('trailing-slash/'));
+        $this->assertFalse(ApiFilesController::isValidFilename('double//slash'));
+        $this->assertFalse(ApiFilesController::isValidFilename('WITH_MAJ_ENDPOINT'));
+        $this->assertFalse(ApiFilesController::isValidFilename('[not-a-word-char!]'));
+        $this->assertFalse(ApiFilesController::isValidFilename(123));
+    }
+
     // ── list_files ───────────────────────────────────────────────────────────
 
     public function test_list_files_returns_content_with_the_guard_stripped(): void

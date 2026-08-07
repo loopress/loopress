@@ -19,23 +19,28 @@ class ApiFilesController
 {
     use RequiresManageOptionsCapability;
 
-    // Matches FileWriter/RouteLoader's filename convention: lowercase kebab-case only, no
-    // path traversal, extension is never taken from the client.
-    private const FILENAME_PATTERN = '/^[a-z0-9-]+$/';
+    // Matches FileWriter/RouteLoader's filename convention: a slash-separated path of
+    // segments, each either lowercase kebab-case or a bracketed dynamic segment name (e.g.
+    // 'invoice-pdf/[order_id]'), no path traversal (no '.' anywhere), extension is never
+    // taken from the client.
+    private const FILENAME_PATTERN = '/^(?:[a-z0-9-]+|\[\w+\])(?:\/(?:[a-z0-9-]+|\[\w+\]))*$/';
 
     public function __construct(private ApiDirectory $directory) {}
 
     public function register_routes(): void
     {
+        // filename is a body arg, not a URL path param: a nested slug can contain '/' and
+        // '[]', and embedding those in a URL path segment would depend on the target server
+        // correctly handling percent-encoded slashes (Apache rejects %2F by default unless
+        // AllowEncodedSlashes is set; nginx has its own equivalent quirks), exactly the kind
+        // of hosting-environment variance Loopress can't assume away. A body param sidesteps
+        // it entirely, same as 'content' already does.
         register_rest_route('loopress/v1', '/api-files', [
             [
                 'methods'             => 'GET',
                 'callback'            => [$this, 'list_files'],
                 'permission_callback' => $this->permissionCallback(),
             ],
-        ]);
-
-        register_rest_route('loopress/v1', '/api-files/(?P<filename>[a-z0-9-]+)', [
             [
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'push_file'],
@@ -43,7 +48,7 @@ class ApiFilesController
                 'args'                => [
                     'filename' => [
                         'required'          => true,
-                        'validate_callback' => static fn($value): bool => is_string($value) && preg_match(self::FILENAME_PATTERN, $value) === 1,
+                        'validate_callback' => self::isValidFilename(...),
                     ],
                     'content' => [
                         'required' => true,
@@ -52,6 +57,13 @@ class ApiFilesController
                 ],
             ],
         ]);
+    }
+
+    // Public and static, like ApiNamespace::isValid(), so it's directly unit-testable rather
+    // than only reachable through a real WP REST dispatch.
+    public static function isValidFilename(mixed $value): bool
+    {
+        return is_string($value) && preg_match(self::FILENAME_PATTERN, $value) === 1;
     }
 
     public function list_files(): WP_REST_Response

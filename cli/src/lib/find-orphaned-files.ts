@@ -1,5 +1,6 @@
+import {type Dirent} from 'node:fs'
 import {readdir} from 'node:fs/promises'
-import {extname} from 'node:path'
+import {extname, join} from 'node:path'
 
 // A local file whose identity is no longer in the current remote list belongs to something
 // deleted on WordPress. Left on disk, it would silently come back to life on the next push.
@@ -12,16 +13,50 @@ export interface OrphanMatcher {
   extensions: string[]
   // Extracts the file's identity from its basename without extension; null = not ours.
   key(base: string): null | string
+  // Defaults to false: a flat directory listing. Only the api resource type needs true, path-
+  // param route files can live in subdirectories, e.g. api/invoice-pdf/[order_id].php.
+  recursive?: boolean
 }
 
-export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
-  let files: string[]
+// Same shape as load-files.ts's own walker, kept separate rather than shared: this one
+// filters against a list of extensions (page/snippet pull need more than one), that one
+// against a single extension, and reconciling the two would cost more than the ~15 duplicated
+// lines it would save.
+async function walk(dir: string, extensions: string[]): Promise<string[]> {
+  let entries: Dirent[]
   try {
-    files = await readdir(dir)
+    entries = await readdir(dir, {withFileTypes: true})
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
 
     throw error
+  }
+
+  const relativePaths: string[] = []
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const nested = await walk(join(dir, entry.name), extensions)
+      relativePaths.push(...nested.map((relativePath) => join(entry.name, relativePath)))
+    } else if (extensions.includes(extname(entry.name))) {
+      relativePaths.push(entry.name)
+    }
+  }
+
+  return relativePaths
+}
+
+export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
+  let files: string[]
+  if (matcher.recursive) {
+    files = await walk(dir, matcher.extensions)
+  } else {
+    try {
+      files = await readdir(dir)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+
+      throw error
+    }
   }
 
   return files.filter((file) => {

@@ -24,8 +24,8 @@ class RouteLoader
     /** @var array<string, string> method name => HTTP method */
     private const VERBS = ['get' => 'GET', 'post' => 'POST', 'put' => 'PUT', 'patch' => 'PATCH', 'delete' => 'DELETE'];
 
-    /** @var array<string, object> route ("namespace/slug", no leading slash) => file instance, read by applyHeaders() */
-    private array $headerInstances = [];
+    /** Matches a single dynamic path segment, e.g. '[order_id]' capturing 'order_id'. */
+    private const DYNAMIC_SEGMENT_PATTERN = '/^\[(\w+)\]$/';
 
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
@@ -56,9 +56,38 @@ class RouteLoader
         add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
     }
 
+    // Each segment PascalCased and concatenated: 'invoice-pdf/[order_id]' -> 'InvoicePdfOrderId'.
+    // The folder prefix in the name is what keeps a dynamic segment name from colliding across
+    // different folders (e.g. orders/[id] and items/[id] don't produce the same class name).
     public static function classNameFor(string $slug): string
     {
-        return str_replace('-', '', ucwords($slug, '-'));
+        $className = '';
+        foreach (explode('/', $slug) as $segment) {
+            $segment    = preg_replace(self::DYNAMIC_SEGMENT_PATTERN, '$1', $segment) ?? $segment;
+            $className .= str_replace(['-', '_'], '', ucwords($segment, '-_'));
+        }
+
+        return $className;
+    }
+
+    // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture
+    // group WP_REST_Server matches against the resolved request path, exactly like the regex
+    // routes Loopress's own management endpoints already use (see ApiFilesController).
+    private static function segmentToRegex(string $segment): string
+    {
+        if (preg_match(self::DYNAMIC_SEGMENT_PATTERN, $segment, $matches) === 1) {
+            return '(?P<' . $matches[1] . '>[^/]+)';
+        }
+
+        // '@' matches the delimiter WP_REST_Server::match_request_to_handler() itself uses
+        // (preg_match('@^' . $route . '$@i', ...)) when matching this route at dispatch.
+        return preg_quote($segment, '@');
+    }
+
+    /** @return non-falsy-string always starts with '/', what register_rest_route() requires. */
+    private static function routeFor(string $slug): string
+    {
+        return '/' . implode('/', array_map(self::segmentToRegex(...), explode('/', $slug)));
     }
 
     /**
@@ -66,7 +95,7 @@ class RouteLoader
      * verb the file publicly implements. Kept as pure logic (no WP calls) so it's testable
      * without stubbing register_rest_route().
      *
-     * @return array<int, array{methods: string, callback: array{0: object, 1: string}, permission_callback: callable}>
+     * @return array<int, array{methods: string, callback: array{0: object, 1: string}, permission_callback: callable, loopress_instance?: object}>
      */
     public function endpointsFor(object $instance): array
     {
@@ -76,11 +105,24 @@ class RouteLoader
                 continue;
             }
 
-            $endpoints[] = [
+            $endpoint = [
                 'methods'             => $httpMethod,
                 'callback'            => [$instance, $method],
                 'permission_callback' => $this->resolvePermission($instance, $method),
             ];
+
+            // WP passes unknown keys through register_rest_route() untouched, and reflects
+            // whichever endpoint entry actually matched back onto the request via
+            // set_attributes() (verified against WP core: WP_REST_Server::
+            // match_request_to_handler() and rest_handle_options_request() both do this, the
+            // latter covering the OPTIONS preflight too). applyHeaders() reads it back from
+            // there instead of a route-string-keyed lookup, which would need reworking for
+            // every dynamic-segment route path added here.
+            if ($this->hasPublicMethod($instance, 'headers')) {
+                $endpoint['loopress_instance'] = $instance;
+            }
+
+            $endpoints[] = $endpoint;
         }
 
         return $endpoints;
@@ -177,8 +219,8 @@ class RouteLoader
      */
     public function applyHeaders(bool $served, $result, WP_REST_Request $request): bool
     {
-        $instance = $this->headerInstances[ltrim($request->get_route(), '/')] ?? null;
-        if ($instance === null) {
+        $instance = $request->get_attributes()['loopress_instance'] ?? null;
+        if (!is_object($instance)) {
             return $served;
         }
 
@@ -280,13 +322,7 @@ class RouteLoader
             return;
         }
 
-        $namespace = ApiNamespace::current();
-        $route     = '/' . $slug;
-        register_rest_route($namespace, $route, $endpoints);
-
-        if ($this->hasPublicMethod($instance, 'headers')) {
-            $this->headerInstances[$namespace . $route] = $instance;
-        }
+        register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
     }
 
     private function log(string $message): void

@@ -1,7 +1,7 @@
 import {Args} from '@oclif/core'
 import {Listr} from 'listr2'
 import {mkdir, writeFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {dirname, join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
@@ -45,6 +45,7 @@ export default class Pull extends LoopressCommand {
     const orphans = await findOrphanedFiles(path, new Set(files.map((file) => file.filename)), {
       extensions: ['.php'],
       key: basenameKey,
+      recursive: true,
     })
 
     const pulled = files.map((file) => file.filename)
@@ -65,7 +66,12 @@ export default class Pull extends LoopressCommand {
     await new Listr(
       files.map((file) => ({
         async task(_ctx, task) {
-          await writeFile(join(path, `${file.filename}.php`), file.content)
+          const filePath = join(path, `${file.filename}.php`)
+          // filename can contain '/' (a path-param route, e.g. invoice-pdf/[order_id]):
+          // writeFile() doesn't create parent directories on its own the way mkdir()'s
+          // recursive option does above for the top-level path.
+          await mkdir(dirname(filePath), {recursive: true})
+          await writeFile(filePath, file.content)
           task.output = `Pulled: ${file.filename}`
         },
         title: `Pull ${file.filename}`,

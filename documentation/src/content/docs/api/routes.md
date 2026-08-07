@@ -39,14 +39,38 @@ Three naming rules tie everything together:
 
 | Element | Rule | Example |
 |---------|------|---------|
-| Filename | Lowercase kebab-case: letters, digits, hyphens only, `.php` extension | `hello-world.php` |
-| Class | The filename converted to PascalCase | `HelloWorld` |
-| Route | The filename without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
+| Filename | Lowercase kebab-case path segments (letters, digits, hyphens), optionally nested in subdirectories, `.php` extension | `hello-world.php` |
+| Class | Each path segment converted to PascalCase and concatenated | `HelloWorld` |
+| Route | The path without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
 
 Two structural requirements are enforced at push time, with a clear error if either fails:
 
 - The file must contain `declare(strict_types=1);` exactly once. More than once (even inside a comment) or zero times is rejected.
-- The filename must match the kebab-case pattern. The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+- Every path segment must match the kebab-case pattern, or be a dynamic segment (see below). The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+
+## Dynamic path segments
+
+A segment wrapped in brackets, `[order_id]`, matches anything in that position and passes it through as a request param:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+// api/invoice-pdf/[order_id].php
+
+class InvoicePdfOrderId
+{
+    public function get(WP_REST_Request $request): array
+    {
+        return ['order_id' => $request->get_param('order_id')];
+    }
+}
+```
+
+Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`. The class name concatenates every segment, brackets stripped: `OrdersOrderIdItemsItemId`.
+
+There's no catch-all segment (no `[...path]`): every segment, dynamic or not, is explicit and named. A route always has a fixed, predictable number of segments.
 
 ## HTTP verbs
 

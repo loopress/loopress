@@ -139,4 +139,41 @@ class ApiDirectoryTest extends TestCase
 
         $this->assertSame(['hello'], $dir->listSlugs());
     }
+
+    public function test_listSlugs_returns_a_relative_path_for_a_nested_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('invoice-pdf/[order_id]', '<?php');
+
+        $this->assertSame(['invoice-pdf/[order_id]'], $dir->listSlugs());
+    }
+
+    public function test_listSlugs_returns_a_relative_path_for_multiple_dynamic_segments(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('orders/[order_id]/items/[item_id]', '<?php');
+
+        $this->assertSame(['orders/[order_id]/items/[item_id]'], $dir->listSlugs());
+    }
+
+    public function test_listSlugs_mixes_top_level_and_nested_files(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php');
+        $dir->write('invoice-pdf/[order_id]', '<?php');
+
+        $slugs = $dir->listSlugs();
+        sort($slugs);
+
+        $this->assertSame(['hello', 'invoice-pdf/[order_id]'], $slugs);
+    }
+
+    public function test_listSlugs_ignores_a_nested_index_php(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('invoice-pdf/[order_id]', '<?php');
+        file_put_contents($dir->filePath('invoice-pdf/index'), '<?php // not a route'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $this->assertSame(['invoice-pdf/[order_id]'], $dir->listSlugs());
+    }
 }
