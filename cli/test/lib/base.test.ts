@@ -4,6 +4,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type * as RotateAppPassword from '../../src/lib/rotate-app-password.js'
+
 import {configManager} from '../../src/config/project-config.manager.js'
 import {LoopressCommand} from '../../src/lib/base.js'
 import {rotateAppPassword} from '../../src/lib/rotate-app-password.js'
@@ -17,7 +19,7 @@ vi.mock('../../src/utils/loopress-config.js', () => ({
 }))
 
 vi.mock('../../src/lib/rotate-app-password.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/lib/rotate-app-password.js')>()
+  const actual = await importOriginal<typeof RotateAppPassword>()
   return {...actual, rotateAppPassword: vi.fn()}
 })
 

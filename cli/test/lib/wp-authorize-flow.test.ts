@@ -19,7 +19,7 @@ describe('authorizeWithBrowser', () => {
   })
 
   it('opens the api.loopress.dev relay URL with callbackUrl and wpUrl params', async () => {
-    authorizeWithBrowser('https://my-wp-site.com', () => {})
+    void authorizeWithBrowser('https://my-wp-site.com', () => {})
     const relayUrl = await waitForOpenUrl()
 
     expect(relayUrl.origin).toBe('https://api.loopress.dev')

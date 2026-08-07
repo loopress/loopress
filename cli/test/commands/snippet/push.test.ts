@@ -1,3 +1,5 @@
+import type * as FsPromises from 'node:fs/promises'
+
 import {existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -10,7 +12,7 @@ import {SNIPPETS_ENDPOINT} from '../../../src/utils/snippet-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  const actual = await importOriginal<typeof FsPromises>()
   return {...actual, rename: vi.fn(actual.rename)}
 })
 

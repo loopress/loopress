@@ -63,7 +63,7 @@ export async function waitForLocalCallback<T>(options: {
         res.writeHead(500)
         res.end('Internal error')
         server.close()
-        reject(error)
+        reject(error instanceof Error ? error : new Error(String(error)))
       }
     }
 

@@ -65,13 +65,15 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
       const metaContent = await readFile(metaPath, 'utf8')
       const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
       id = meta.id
-      name = meta.name ? meta.name : undefined
+      // `||`, not `??`: an empty-string name in the sidecar JSON counts as absent too.
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      name = meta.name || undefined
       type = parseType(meta.type) ?? undefined
       isActive = Boolean(meta.active)
       tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
       location = parseLocation(meta.location)
       insertMethod = parseInsertMethod(meta.insertMethod)
-      priority = meta.priority === undefined ? 10 : meta.priority
+      priority = meta.priority ?? 10
       shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {

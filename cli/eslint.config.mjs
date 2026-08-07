@@ -57,6 +57,9 @@ const eslintConfig = [
       // Wants a `continue` inside a doubly-nested loop pulled into its own function, even when
       // (as in project/push.ts) it unambiguously continues the innermost loop.
       'unicorn/no-break-in-nested-loop': 'off',
+      // Promise.withResolvers is ES2024; tsconfig's target is es2022, so it type-checks as
+      // `any` and trips no-unsafe-call. Node 20+ only anyway; package.json declares engines >= 18.
+      'unicorn/prefer-promise-with-resolvers': 'off',
     },
   },
   {
