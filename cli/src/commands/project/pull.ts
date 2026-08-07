@@ -4,16 +4,16 @@ import {Listr} from 'listr2'
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
-import {EnvironmentConfig} from '../../types/config.js'
+import {type EnvironmentConfig} from '../../types/config.js'
 
-interface ApiEnvironment {
+type ApiEnvironment = {
   createdAt: string
   id: string
   name: string
   url: string
 }
 
-interface ApiProject {
+type ApiProject = {
   createdAt: string
   environments: ApiEnvironment[]
   id: string

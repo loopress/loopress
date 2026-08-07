@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import ComposerPush from '../../../src/commands/composer/push.js'
-import {EnvironmentConfig} from '../../../src/types/config.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 

@@ -35,7 +35,7 @@ describe('authorizeWithBrowser', () => {
 
     await got(`${callbackUrl}/callback`, {
       method: 'POST',
-      // eslint-disable-next-line camelcase
+       
       form: {password: 'app-pass-123', user_login: 'admin'},
     })
 

@@ -5,8 +5,8 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import ComposerInit from '../../../src/commands/composer/init.js'
-import {EnvironmentConfig} from '../../../src/types/config.js'
-import {LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 

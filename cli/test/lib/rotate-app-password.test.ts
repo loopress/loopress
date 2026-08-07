@@ -3,7 +3,7 @@ import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
 import {isAppPasswordStale, rotateAppPassword} from '../../src/lib/rotate-app-password.js'
-import {EnvironmentConfig} from '../../src/types/config.js'
+import {type EnvironmentConfig} from '../../src/types/config.js'
 
 const OLD_TOKEN = 'user:old-pass'
 const NEW_TOKEN_PASSWORD = 'new-pass-123'
@@ -24,8 +24,8 @@ describe('isAppPasswordStale', () => {
 describe('rotateAppPassword', () => {
   let server: Server | undefined
   let requests: Array<{auth: string; method: string; url: string}>
-  let verifyShouldFail: boolean
-  let createOmitsPassword: boolean
+  let isVerifyShouldFail: boolean
+  let isCreateOmitsPassword: boolean
 
   afterEach(() => {
     server?.close()
@@ -34,20 +34,20 @@ describe('rotateAppPassword', () => {
 
   async function serve(): Promise<{env: EnvironmentConfig & {token: string}; url: string}> {
     requests = []
-    verifyShouldFail = false
-    createOmitsPassword = false
+    isVerifyShouldFail = false
+    isCreateOmitsPassword = false
 
     server = createServer((req: IncomingMessage, res: ServerResponse) => {
       requests.push({auth: req.headers.authorization ?? '', method: req.method ?? '', url: req.url ?? ''})
       const auth = req.headers.authorization ?? ''
       const isNewToken = auth === `Basic ${Buffer.from(`user:${NEW_TOKEN_PASSWORD}`).toString('base64')}`
 
-      res.writeHead(verifyShouldFail && isNewToken ? 401 : 200, {'Content-Type': 'application/json'})
+      res.writeHead(isVerifyShouldFail && isNewToken ? 401 : 200, {'Content-Type': 'application/json'})
 
       if (req.method === 'GET' && req.url?.endsWith('/introspect')) {
         res.end(JSON.stringify({uuid: isNewToken ? NEW_UUID : OLD_UUID}))
       } else if (req.method === 'POST') {
-        res.end(JSON.stringify(createOmitsPassword ? {uuid: NEW_UUID} : {password: NEW_TOKEN_PASSWORD, uuid: NEW_UUID}))
+        res.end(JSON.stringify(isCreateOmitsPassword ? {uuid: NEW_UUID} : {password: NEW_TOKEN_PASSWORD, uuid: NEW_UUID}))
       } else if (req.method === 'DELETE') {
         res.end(JSON.stringify({deleted: true}))
       } else {
@@ -88,7 +88,7 @@ describe('rotateAppPassword', () => {
 
   it('never revokes the old credential when the new one fails to verify, and cleans up the orphan instead', async () => {
     const {env} = await serve()
-    verifyShouldFail = true
+    isVerifyShouldFail = true
 
     await expect(rotateAppPassword(env)).rejects.toThrow()
 
@@ -101,7 +101,7 @@ describe('rotateAppPassword', () => {
 
   it('throws a clear error, without ever calling the new credential, when creation omits a password', async () => {
     const {env} = await serve()
-    createOmitsPassword = true
+    isCreateOmitsPassword = true
 
     await expect(rotateAppPassword(env)).rejects.toThrow('did not return a password')
 

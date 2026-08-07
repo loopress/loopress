@@ -2,7 +2,7 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-export interface ComposerJson {
+export type ComposerJson = {
   config?: {
     'allow-plugins'?: Record<string, boolean>
   }
@@ -15,7 +15,7 @@ export interface ComposerJson {
   'require-dev'?: Record<string, string>
 }
 
-export async function readComposerJson(): Promise<ComposerJson | null> {
+export async function readComposerJson(): Promise<ComposerJson | undefined> {
   const path = join(process.cwd(), 'composer.json')
   if (!existsSync(path)) return null
   try {
@@ -26,7 +26,7 @@ export async function readComposerJson(): Promise<ComposerJson | null> {
   }
 }
 
-export async function readComposerLock(): Promise<null | string> {
+export async function readComposerLock(): Promise<string | undefined> {
   const path = join(process.cwd(), 'composer.lock')
   if (!existsSync(path)) return null
   try {

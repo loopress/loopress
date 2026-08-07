@@ -7,17 +7,17 @@ import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
-import {EnvironmentConfig, ProjectConfig} from '../../types/config.js'
+import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {toSlug} from '../../utils/to-slug.js'
 
-interface ApiEnvironment {
+type ApiEnvironment = {
   createdAt: string
   id: string
   name: string
   url: string
 }
 
-interface ApiProject {
+type ApiProject = {
   createdAt: string
   environments: ApiEnvironment[]
   id: string
@@ -29,14 +29,14 @@ interface ApiProject {
 // made: 'synced' means nothing to do, 'link' just needs a local config write, 'create' needs a
 // POST. Splitting planning (interactive) from execution (Listr) is what lets confirm() prompts
 // run to completion before the Listr renderer takes over the terminal.
-interface EnvPlan {
+type EnvPlan = {
   action: 'create' | 'link' | 'synced'
   apiEnvironmentId?: string
   env: EnvironmentConfig
   projectId: string
 }
 
-interface ProjectPlan {
+type ProjectPlan = {
   action: 'create' | 'link' | 'synced'
   apiProjectId?: string
   project: ProjectConfig & {id: string}
@@ -48,6 +48,7 @@ export default class Push extends Command {
   static flags = {
     ...LoopressCommand.yesFlag,
   }
+
   private yes = false
 
   async run(): Promise<void> {
@@ -237,11 +238,11 @@ export default class Push extends Command {
     )
 
     if (match) {
-      const link = await this.confirmLink(
+      const isLink = await this.confirmLink(
         `Environment "${env.name}" already exists on "${apiProject?.name}". Link to it instead of creating a new one?`,
       )
 
-      if (link) {
+      if (isLink) {
         claimedEnvironmentIds.add(match.id)
         return {action: 'link', apiEnvironmentId: match.id, env, projectId}
       }
@@ -264,11 +265,11 @@ export default class Push extends Command {
     const match = apiProjects.find((candidate) => candidate.slug === slug && !claimedProjectIds.has(candidate.id))
 
     if (match) {
-      const link = await this.confirmLink(
+      const isLink = await this.confirmLink(
         `A project named "${project.name}" already exists on your account. Link to it instead of creating a new one?`,
       )
 
-      if (link) {
+      if (isLink) {
         claimedProjectIds.add(match.id)
         return {action: 'link', apiProjectId: match.id, project}
       }

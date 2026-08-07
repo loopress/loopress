@@ -2,7 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {PushCommand} from '../../src/lib/push-command.js'
-import {EnvironmentConfig} from '../../src/types/config.js'
+import {type EnvironmentConfig} from '../../src/types/config.js'
 
 vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../../src/lib/interactive.js', () => ({
   isInteractive: () => interactive.value,
 }))
 
-const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', url: 'http://example.com'}
+const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', url: 'https://example.com'}
 const PRODUCTION: EnvironmentConfig = {addedAt: '2024-01-01', name: 'production', url: 'https://acme.com'}
 
 class TestPush extends PushCommand {

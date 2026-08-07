@@ -1,4 +1,4 @@
-import {LoopressSnippetMetadata} from '../types/snippet.generated.js'
+import {type LoopressSnippetMetadata} from '../types/snippet.generated.js'
 
 export const SNIPPETS_ENDPOINT = 'loopress/v1/snippets'
 
@@ -10,7 +10,7 @@ export type SnippetInsertMethod = 'auto' | 'shortcode'
 // Snippets, whichever is active) translates these to its own backend-specific vocabulary.
 export type SnippetLocation = 'admin' | 'body' | 'everywhere' | 'footer' | 'frontend' | 'header' | 'once'
 
-export interface NormalizedSnippet {
+export type NormalizedSnippet = {
   active: boolean
   code: string
   description: string
@@ -24,7 +24,7 @@ export interface NormalizedSnippet {
   type: SnippetType
 }
 
-export function parseType(raw: unknown): null | SnippetType {
+export function parseType(raw: unknown): SnippetType | undefined {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
   const value = String(raw ?? '').toLowerCase()
   return valid.includes(value as SnippetType) ? (value as SnippetType) : null
@@ -32,12 +32,12 @@ export function parseType(raw: unknown): null | SnippetType {
 
 const VALID_LOCATIONS = new Set<SnippetLocation>(['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'])
 
-export function parseLocation(raw: unknown): null | SnippetLocation {
+export function parseLocation(raw: unknown): SnippetLocation | undefined {
   const value = String(raw ?? '').toLowerCase()
   return VALID_LOCATIONS.has(value as SnippetLocation) ? (value as SnippetLocation) : null
 }
 
-export function parseInsertMethod(raw: unknown): null | SnippetInsertMethod {
+export function parseInsertMethod(raw: unknown): SnippetInsertMethod | undefined {
   return raw === 'auto' || raw === 'shortcode' ? raw : null
 }
 

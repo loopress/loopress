@@ -2,7 +2,7 @@ import {existsSync} from 'node:fs'
 import {readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {LoopressProjectConfiguration} from '../types/project-config.generated.js'
+import {type LoopressProjectConfiguration} from '../types/project-config.generated.js'
 
 export type LoopressLocalConfig = LoopressProjectConfiguration
 

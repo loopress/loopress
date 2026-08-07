@@ -24,7 +24,7 @@ export type CallbackHelpers<T> = {
  * Sends the user to a URL in their browser and catches the resulting redirect on a short-lived
  * local server; this factors out the server setup, timeout, and browser-opening boilerplate.
  */
-export function waitForLocalCallback<T>(options: {
+export async function waitForLocalCallback<T>(options: {
   buildUrl: (callbackBaseUrl: string) => string
   handleRequest: (url: URL, helpers: CallbackHelpers<T>) => void
   log: (message: string) => void
@@ -50,8 +50,8 @@ export function waitForLocalCallback<T>(options: {
           req.method === 'POST' ? parseFormData(await readBody(req)) : {}
 
         options.handleRequest(url, {
-          rejectWithPage: (page, error) => finish(res, page, () => reject(error)),
-          resolveWithPage: (page, value) => finish(res, page, () => resolve(value)),
+          rejectWithPage(page, error) { finish(res, page, () => { reject(error); }); },
+          resolveWithPage(page, value) { finish(res, page, () => { resolve(value); }); },
           respondBadRequest(message) {
             res.writeHead(400, {'Content-Type': 'text/plain'})
             res.end(message)

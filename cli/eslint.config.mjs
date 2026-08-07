@@ -14,6 +14,16 @@ export default [
   ...oclif.filter((config) => config.name !== 'mocha/recommended'),
   prettier,
   {
+    files: ['**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ['vitest.config.ts', 'scripts/*.ts'],
+        },
+      },
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'no-await-in-loop': 'off',

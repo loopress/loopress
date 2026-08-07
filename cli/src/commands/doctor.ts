@@ -20,11 +20,11 @@ export default class Doctor extends LoopressCommand {
 
     let failed = 0
 
-    const reachable = await this.check('WordPress REST API reachable', async () => {
+    const isReachable = await this.check('WordPress REST API reachable', async () => {
       const diagnostic = await diagnoseWpSite(url)
       if (!diagnostic.ok) throw new Error(diagnostic.reason)
     })
-    if (!reachable) {
+    if (!isReachable) {
       failed++
       this.log('- Remaining checks skipped while the site is unreachable.')
       this.error('1 check failed.', {exit: 1})
@@ -40,13 +40,13 @@ export default class Doctor extends LoopressCommand {
     // The namespace index answers regardless of which Loopress features are active, so a 404
     // here can only mean the plugin itself is missing or outdated (WpClient's 404 message
     // already says exactly that).
-    if (!(await this.check('Loopress plugin installed (loopress/v1 endpoints)', () => this.wp.get('loopress/v1')))) {
+    if (!(await this.check('Loopress plugin installed (loopress/v1 endpoints)', async () => this.wp.get('loopress/v1')))) {
       failed++
     }
 
     // wp/v2/users/me is WordPress core and requires authentication, so it validates the
     // application password without depending on any Loopress feature.
-    if (!(await this.check('Credentials accepted (authenticated request)', () => this.wp.get('wp/v2/users/me')))) {
+    if (!(await this.check('Credentials accepted (authenticated request)', async () => this.wp.get('wp/v2/users/me')))) {
       failed++
     }
 

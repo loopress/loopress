@@ -6,8 +6,8 @@ export default class List extends LoopressCommand {
   static enableJsonFlag = true
   static examples = ['$ lps page list']
 
-  async run(): Promise<Record<string, unknown>[]> {
-    const pages = await this.wp.get<Record<string, unknown>[]>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}`)
+  async run(): Promise<Array<Record<string, unknown>>> {
+    const pages = await this.wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}`)
 
     this.log(`Pages (${pages.length}):`)
     if (pages.length === 0) {

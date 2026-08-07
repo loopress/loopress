@@ -5,10 +5,10 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Add from '../../../src/commands/plugin/add.js'
-import {LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
-interface AddInternals {
+type AddInternals = {
   dryRun: boolean
   localConfig: LoopressLocalConfig
 }

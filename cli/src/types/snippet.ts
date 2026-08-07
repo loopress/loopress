@@ -1,6 +1,6 @@
-import {SnippetInsertMethod, SnippetLocation, SnippetType} from '../utils/snippet-format.js'
+import {type SnippetInsertMethod, type SnippetLocation, type SnippetType} from '../utils/snippet-format.js'
 
-export interface Snippet {
+export type Snippet = {
   active: boolean
   code: string
   id?: number

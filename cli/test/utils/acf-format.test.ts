@@ -26,7 +26,7 @@ describe('acf-format', () => {
     })
 
     it('returns null when key is only whitespace', () => {
-      expect(getAcfKey({key: '   '})).toBeNull()
+      expect(getAcfKey({key: ' '.repeat(3)})).toBeNull()
     })
 
     it('returns null when key is not a string', () => {

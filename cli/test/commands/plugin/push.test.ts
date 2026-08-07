@@ -5,7 +5,7 @@ import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 // installPlugin() and activatePlugin() are private; the casts below are the same escape hatch
 // used throughout this suite to unit-test command internals.
-interface PushInternals {
+type PushInternals = {
   activatePlugin(file: string, slug: string): Promise<void>
   failedCount: number
   installPlugin(slug: string): Promise<void>

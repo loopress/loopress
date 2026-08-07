@@ -1,10 +1,10 @@
 import {LoopressCommand} from '../../lib/base.js'
-import {WpNativePlugin} from '../../types/plugin.js'
+import {type WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
-import {mergePluginManifest, MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
+import {mergePluginManifest, type MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
 
-interface PullResult extends MergeResult {
+type PullResult = MergeResult & {
   status: 'dry-run' | 'success'
 }
 

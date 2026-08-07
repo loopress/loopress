@@ -54,7 +54,7 @@ export class WpClient {
   }
 }
 
-interface RequestOptions {
+type RequestOptions = {
   timeoutMs?: number
 }
 

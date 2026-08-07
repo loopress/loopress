@@ -7,6 +7,7 @@ export default class Add extends LoopressCommand {
   static args = {
     slug: Args.string({description: 'Plugin slug on WordPress.org', required: true}),
   }
+
   static description = 'Add a WordPress.org plugin to loopress.json'
   static examples = ['$ lps plugin add woocommerce', '$ lps plugin add contact-form-7 --dry-run']
   static flags = {
@@ -24,10 +25,10 @@ export default class Add extends LoopressCommand {
       return
     }
 
-    const updated = existing[slug] !== undefined
+    const isUpdated = existing[slug] !== undefined
 
     if (this.dryRun) {
-      this.log(`[dry-run] Would ${updated ? 'update' : 'add'} ${slug} in loopress.json`)
+      this.log(`[dry-run] Would ${isUpdated ? 'update' : 'add'} ${slug} in loopress.json`)
       return
     }
 
@@ -36,6 +37,6 @@ export default class Add extends LoopressCommand {
       plugins: {...existing, [slug]: 'latest'},
     })
 
-    this.log(`${updated ? 'Updated' : 'Added'} ${slug}`)
+    this.log(`${isUpdated ? 'Updated' : 'Added'} ${slug}`)
   }
 }

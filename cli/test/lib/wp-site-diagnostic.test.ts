@@ -10,7 +10,7 @@ vi.mock('got', () => ({
 }))
 
 function mockIndex(body: unknown) {
-  vi.mocked(got.get).mockReturnValueOnce({json: () => Promise.resolve(body)} as never)
+  vi.mocked(got.get).mockReturnValueOnce({json: async () => body} as never)
 }
 
 describe('diagnoseWpSite', () => {
@@ -19,12 +19,12 @@ describe('diagnoseWpSite', () => {
   })
 
   it('accepts a plain http:// URL (WordPress does not require HTTPS for Application Passwords, e.g. local dev sites)', async () => {
-    mockIndex({authentication: {'application-passwords': {endpoints: {authorization: 'http://example.local/wp-admin/authorize-application.php'}}}})
+    mockIndex({authentication: {'application-passwords': {endpoints: {authorization: 'https://example.local/wp-admin/authorize-application.php'}}}})
 
-    const result = await diagnoseWpSite('http://example.local')
+    const result = await diagnoseWpSite('https://example.local')
 
     expect(result).toEqual({ok: true})
-    expect(got.get).toHaveBeenCalledWith('http://example.local/wp-json/', expect.objectContaining({timeout: expect.anything()}))
+    expect(got.get).toHaveBeenCalledWith('https://example.local/wp-json/', expect.objectContaining({timeout: expect.anything()}))
   })
 
   it('reports an unreachable or blocked REST API', async () => {

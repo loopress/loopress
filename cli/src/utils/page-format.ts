@@ -8,7 +8,7 @@ export const PAGE_ENDPOINT = 'wp/v2/pages'
 // pagination (X-WP-TotalPages) if a site ever has more than 100 pages.
 export const PAGE_LIST_QUERY = 'per_page=100'
 
-export function getPageId(data: Record<string, unknown>): null | number {
+export function getPageId(data: Record<string, unknown>): number | undefined {
   const id = Number(data.id)
   return Number.isInteger(id) && id > 0 ? id : null
 }

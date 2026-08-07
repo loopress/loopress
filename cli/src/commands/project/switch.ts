@@ -2,7 +2,7 @@ import {select, Separator} from '@inquirer/prompts'
 import {Command, ux} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
-import {ProjectConfig} from '../../types/config.js'
+import {type ProjectConfig} from '../../types/config.js'
 
 const c = ux.colorize
 
@@ -59,7 +59,7 @@ export default class Switch extends Command {
       message: 'Select project / environment',
     })
 
-    const [projectId, envName] = chosen.split('::')
+    const [projectId, envName] = chosen.split('::', 2)
     const {project} = groups.find((group) => group.project.id === projectId)!
 
     return {envName, projectId, projectName: project.name}

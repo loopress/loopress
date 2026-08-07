@@ -3,7 +3,7 @@ import {join} from 'node:path'
 
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
-export interface ConsoleAuth {
+export type ConsoleAuth = {
   email?: string
   savedAt: string
   token: string
@@ -17,7 +17,7 @@ export class AuthManager {
     if (existsSync(filePath)) unlinkSync(filePath)
   }
 
-  getAuth(): ConsoleAuth | null {
+  getAuth(): ConsoleAuth | undefined {
     return readJsonFile<ConsoleAuth>(this.getAuthFilePath())
   }
 

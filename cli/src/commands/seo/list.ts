@@ -1,7 +1,7 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {DEFAULT_POST_TYPES, SEO_REDIRECTS_ENDPOINT, SeoPostMeta, seoPostMetaEndpoint, SeoRedirect} from '../../utils/seo-format.js'
+import {DEFAULT_POST_TYPES, SEO_REDIRECTS_ENDPOINT, type SeoPostMeta, seoPostMetaEndpoint, type SeoRedirect} from '../../utils/seo-format.js'
 
 export default class List extends LoopressCommand {
   static description = 'List posts with SEO meta, and redirects if supported by the active SEO plugin, on WordPress'
@@ -63,7 +63,7 @@ export default class List extends LoopressCommand {
   // Redirects are only supported by some SeoProvider backends (RankMath, not Yoast); reported
   // as a line in the listing rather than failing the whole command, since post meta above may
   // well have succeeded.
-  private async fetchRedirects(): Promise<{redirects: null | SeoRedirect[]; unsupportedReason: string | undefined}> {
+  private async fetchRedirects(): Promise<{redirects: SeoRedirect[] | undefined; unsupportedReason: string | undefined}> {
     try {
       return {redirects: await this.wp.get<SeoRedirect[]>(SEO_REDIRECTS_ENDPOINT), unsupportedReason: undefined}
     } catch (error) {

@@ -7,7 +7,7 @@ import {basenameKey, findOrphanedFiles as findOrphanedFilesLib} from '../../../s
 
 // The same matcher `api pull` wires in run(): `<filename>.php`, the whole basename is the key,
 // recursive since a path-param route file can live in a subdirectory.
-function findOrphanedFiles(path: string, keepFilenames: Set<string>): Promise<string[]> {
+async function findOrphanedFiles(path: string, keepFilenames: Set<string>): Promise<string[]> {
   return findOrphanedFilesLib(path, keepFilenames, {extensions: ['.php'], key: basenameKey, recursive: true})
 }
 

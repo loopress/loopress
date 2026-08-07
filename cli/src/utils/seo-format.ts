@@ -18,7 +18,7 @@ export function seoPostMetaEndpoint(postType: string): string {
 // of its own plugin-prefixed postmeta keys generically (see RankMathService/YoastService's
 // docblocks), so there's no fixed field list to model here either: whatever the active plugin
 // stores round-trips through pull/push untouched.
-export interface SeoPostMeta {
+export type SeoPostMeta = {
   meta: Record<string, unknown>
   slug: string
   title: string
@@ -27,14 +27,14 @@ export interface SeoPostMeta {
 // Only the active provider knowing how to handle redirects (RankMath does, Yoast doesn't, see
 // SeoRedirectProvider) makes this endpoint fail with a clear error rather than return data, not
 // a shape difference on success.
-export interface SeoRedirect {
-  createdAt: null | string
+export type SeoRedirect = {
+  createdAt: string | undefined
   headerCode: number
   hits: number
   id: number
   sources: unknown
   status: string
-  updatedAt: null | string
+  updatedAt: string | undefined
   urlTo: string
 }
 

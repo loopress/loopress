@@ -4,13 +4,13 @@ import {rm} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {EnvironmentConfig} from '../types/config.js'
-import {LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
+import {type EnvironmentConfig} from '../types/config.js'
+import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {WpClient} from './wp-client.js'
 
-interface ParsedBaseFlags {
+type ParsedBaseFlags = {
   'dry-run'?: boolean
   env?: string
   yes?: boolean
@@ -24,12 +24,15 @@ export abstract class LoopressCommand extends Command {
       description: 'Target environment by name, overriding the globally active one (lps project switch)',
     }),
   }
+
   static dryRunFlag = {
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
   }
+
   static yesFlag = {
     yes: Flags.boolean({char: 'y', description: 'Answer yes to confirmation prompts'}),
   }
+
   protected dryRun = false
   protected localConfig: LoopressLocalConfig = {}
   protected projectId!: string
@@ -106,8 +109,8 @@ export abstract class LoopressCommand extends Command {
     const description = `${orphans.length} local file${orphans.length === 1 ? '' : 's'} ${reason}: ${orphans.join(', ')}`
 
     if (!this.yes && isInteractive()) {
-      const proceed = await confirm({default: true, message: `Remove ${description}?`})
-      if (!proceed) {
+      const isProceed = await confirm({default: true, message: `Remove ${description}?`})
+      if (!isProceed) {
         this.log(`Kept ${description}`)
         return
       }

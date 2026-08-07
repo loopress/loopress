@@ -1,7 +1,7 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class List extends LoopressCommand {
   static description = 'List ACF field groups, post types, taxonomies, and options pages from WordPress'
@@ -15,9 +15,9 @@ export default class List extends LoopressCommand {
     const {flags} = await this.parse(List)
     const types = (flags.type && flags.type.length > 0 ? flags.type : ACF_OBJECT_TYPES) as AcfObjectType[]
 
-    const byType: Record<string, Record<string, unknown>[]> = {}
+    const byType: Record<string, Array<Record<string, unknown>>> = {}
     for (const type of types) {
-      byType[type] = await this.wp.get<Record<string, unknown>[]>(acfEndpoint(type))
+      byType[type] = await this.wp.get<Array<Record<string, unknown>>>(acfEndpoint(type))
     }
 
     if (flags.json) {

@@ -1,13 +1,13 @@
 import {existsSync} from 'node:fs'
 import {join, sep} from 'node:path'
 
-import {LoopressLocalConfig} from '../utils/loopress-config.js'
+import {type LoopressLocalConfig} from '../utils/loopress-config.js'
 
 export type ResourceType = 'api' | 'pages' | 'plugins' | 'snippets'
 
 export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'pages', 'api', 'plugins']
 
-export interface WatchTarget {
+export type WatchTarget = {
   commandId: string
   path: string
   type: ResourceType
@@ -47,7 +47,7 @@ export function resourceTypeForPath(filePath: string, targets: WatchTarget[]): R
   return targets.find((target) => filePath === target.path || filePath.startsWith(target.path + sep))?.type
 }
 
-export interface DebouncedBatcher {
+export type DebouncedBatcher = {
   // Stops a pending debounce timer from firing; does not cancel a flush already in flight.
   cancel: () => void
   queue: (path: string) => void
@@ -60,7 +60,7 @@ export interface DebouncedBatcher {
 export function createDebouncedBatcher(flush: (paths: string[]) => Promise<void>, debounceMs: number): DebouncedBatcher {
   const pending = new Set<string>()
   let timer: NodeJS.Timeout | undefined
-  let busy = false
+  let isBusy = false
 
   const schedule = (): void => {
     clearTimeout(timer)
@@ -70,22 +70,22 @@ export function createDebouncedBatcher(flush: (paths: string[]) => Promise<void>
   }
 
   const runFlush = async (): Promise<void> => {
-    if (busy || pending.size === 0) return
+    if (isBusy || pending.size === 0) return
 
-    busy = true
+    isBusy = true
     const paths = [...pending]
     pending.clear()
 
     try {
       await flush(paths)
     } finally {
-      busy = false
+      isBusy = false
       if (pending.size > 0) schedule()
     }
   }
 
   return {
-    cancel: () => clearTimeout(timer),
+    cancel() { clearTimeout(timer); },
     queue(path: string) {
       pending.add(path)
       schedule()

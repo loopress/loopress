@@ -30,8 +30,8 @@ export abstract class PushCommand extends LoopressCommand {
       this.error('Target environment is "production". Pass --yes to confirm the push in a non-interactive run.')
     }
 
-    const proceed = await confirm({default: true, message: `Push to production (${this.siteConfig.url})?`})
-    if (!proceed) {
+    const isProceed = await confirm({default: true, message: `Push to production (${this.siteConfig.url})?`})
+    if (!isProceed) {
       this.refusedByGuard = true
       this.error('Aborted.')
     }

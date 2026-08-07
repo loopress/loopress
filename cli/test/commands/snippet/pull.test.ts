@@ -4,11 +4,11 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../../../src/lib/find-orphaned-files.js'
-import {buildMetaFile, buildSnippetFile, NormalizedSnippet, SnippetType} from '../../../src/utils/snippet-format.js'
+import {buildMetaFile, buildSnippetFile, type NormalizedSnippet, type SnippetType} from '../../../src/utils/snippet-format.js'
 
 // The same matcher `snippet pull` wires in run(): code extensions plus the json sidecar,
 // identity taken from the `<id>-` prefix.
-function findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]> {
+async function findOrphanedFiles(path: string, keepIds: Set<number>): Promise<string[]> {
   return findOrphanedFilesLib(path, new Set([...keepIds].map(String)), {
     extensions: ['.json', '.css', '.html', '.js', '.php', '.txt'],
     key: numericPrefixKey,
@@ -95,17 +95,17 @@ describe('pull helpers', () => {
     })
 
     it('does not add <?php for non-PHP types', () => {
-      const snippet: NormalizedSnippet = {...base, type: 'css' as SnippetType, code: 'body { margin: 0; }'}
+      const snippet: NormalizedSnippet = {...base, type: 'css', code: 'body { margin: 0; }'}
       expect(buildSnippetFile(snippet)).toBe('body { margin: 0; }')
     })
 
     it('returns code as-is for js type', () => {
-      const snippet: NormalizedSnippet = {...base, type: 'js' as SnippetType, code: 'console.log(1)'}
+      const snippet: NormalizedSnippet = {...base, type: 'js', code: 'console.log(1)'}
       expect(buildSnippetFile(snippet)).toBe('console.log(1)')
     })
 
     it('returns code as-is for html type', () => {
-      const snippet: NormalizedSnippet = {...base, type: 'html' as SnippetType, code: '<div>hi</div>'}
+      const snippet: NormalizedSnippet = {...base, type: 'html', code: '<div>hi</div>'}
       expect(buildSnippetFile(snippet)).toBe('<div>hi</div>')
     })
   })

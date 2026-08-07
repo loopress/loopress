@@ -39,7 +39,7 @@ describe('form-format', () => {
 
   describe('getFormTitle', () => {
     it('returns settings.form_title when present', () => {
-      // eslint-disable-next-line camelcase
+       
       expect(getFormTitle({settings: {form_title: 'Contact Us'}})).toBe('Contact Us')
     })
 
@@ -52,12 +52,12 @@ describe('form-format', () => {
     })
 
     it('returns "(untitled)" when form_title is blank', () => {
-      // eslint-disable-next-line camelcase
-      expect(getFormTitle({settings: {form_title: '   '}})).toBe('(untitled)')
+       
+      expect(getFormTitle({settings: {form_title: ' '.repeat(3)}})).toBe('(untitled)')
     })
 
     it('returns "(untitled)" when form_title is not a string', () => {
-      // eslint-disable-next-line camelcase
+       
       expect(getFormTitle({settings: {form_title: 42}})).toBe('(untitled)')
     })
   })

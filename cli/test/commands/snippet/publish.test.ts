@@ -4,7 +4,7 @@ import Publish from '../../../src/commands/snippet/publish.js'
 import {authManager} from '../../../src/config/auth.manager.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {ApiClient} from '../../../src/lib/api-client.js'
-import {Snippet} from '../../../src/types/snippet.js'
+import {type Snippet} from '../../../src/types/snippet.js'
 import {readLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 

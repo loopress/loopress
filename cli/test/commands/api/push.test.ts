@@ -6,7 +6,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Push from '../../../src/commands/api/push.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
-interface ApiFile {
+type ApiFile = {
   content: string
   filename: string
 }
@@ -18,7 +18,7 @@ type PushWithPushFile = {
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
-function loadFiles(path: string): Promise<ApiFile[]> {
+async function loadFiles(path: string): Promise<ApiFile[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
@@ -101,7 +101,7 @@ describe('api push', () => {
     it('reports a skipped syntax check in task.output without failing the push', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      // eslint-disable-next-line camelcase
+       
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello', syntax_check: 'skipped'})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}

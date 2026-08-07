@@ -244,12 +244,12 @@ describe('formatWpError', () => {
   })
 
   it('treats a whitespace-only {error} field the same as an absent one', () => {
-    const message = formatWpError({response: {body: JSON.stringify({error: '   '}), statusCode: 500}}, url)
+    const message = formatWpError({response: {body: JSON.stringify({error: ' '.repeat(3)}), statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 
   it('treats a whitespace-only {output} field the same as an absent one', () => {
-    const message = formatWpError({response: {body: JSON.stringify({output: '   '}), statusCode: 500}}, url)
+    const message = formatWpError({response: {body: JSON.stringify({output: ' '.repeat(3)}), statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)
   })
 

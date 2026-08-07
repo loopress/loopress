@@ -4,7 +4,7 @@ export const REQUEST_TIMEOUT_MS = 10_000
 
 export type DiagnosticResult = {ok: false; reason: string} | {ok: true}
 
-type WpIndexResponse = null | {authentication?: Record<string, unknown>}
+type WpIndexResponse = undefined | {authentication?: Record<string, unknown>}
 
 /**
  * Pre-flight checks run before starting the browser authorization flow, so failures

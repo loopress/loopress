@@ -5,12 +5,13 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
+
   static description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress'
   static examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
   static flags = {
@@ -35,14 +36,14 @@ export default class Pull extends LoopressCommand {
 
   private async pullType(type: AcfObjectType, basePath: string): Promise<void> {
     const dir = join(basePath, type)
-    const remoteList = await this.wp.get<Record<string, unknown>[]>(acfEndpoint(type))
+    const remoteList = await this.wp.get<Array<Record<string, unknown>>>(acfEndpoint(type))
     const withKey = remoteList.filter((object) => getAcfKey(object) !== null)
     const skipped = remoteList.length - withKey.length
 
     // Every file in a type's subdirectory is unambiguously `<key>.json`: `key` is the stable
     // identity ACF itself already uses (see its own Local JSON mechanism), no numeric-id/slug
     // filename convention like snippets.
-    const orphans = await findOrphanedFiles(dir, new Set(withKey.map((object) => getAcfKey(object) as string)), {
+    const orphans = await findOrphanedFiles(dir, new Set(withKey.map((object) => getAcfKey(object)!)), {
       extensions: ['.json'],
       key: basenameKey,
     })
@@ -62,7 +63,7 @@ export default class Pull extends LoopressCommand {
 
     await new Listr(
       withKey.map((object) => {
-        const key = getAcfKey(object) as string
+        const key = getAcfKey(object)!
         return {
           async task(_ctx, task) {
             await writeFile(join(dir, `${key}.json`), JSON.stringify(object, null, 2) + '\n')

@@ -1,4 +1,4 @@
-export interface InstalledPlugin {
+export type InstalledPlugin = {
   active: boolean
   file: string
   name: string
@@ -7,7 +7,7 @@ export interface InstalledPlugin {
 }
 
 // Shape of an item returned by WordPress core's native `wp/v2/plugins` REST endpoint.
-export interface WpNativePlugin {
+export type WpNativePlugin = {
   name: string
   plugin: string
   status: 'active' | 'inactive' | 'network-active'

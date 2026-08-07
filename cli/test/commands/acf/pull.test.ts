@@ -6,7 +6,7 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 import {basenameKey, findOrphanedFiles as findOrphanedFilesLib} from '../../../src/lib/find-orphaned-files.js'
 
 // The same matcher `acf pull` wires in pullType(): `<key>.json`, the whole basename is the key.
-function findOrphanedFiles(dir: string, keepKeys: Set<string>): Promise<string[]> {
+async function findOrphanedFiles(dir: string, keepKeys: Set<string>): Promise<string[]> {
   return findOrphanedFilesLib(dir, keepKeys, {extensions: ['.json'], key: basenameKey})
 }
 

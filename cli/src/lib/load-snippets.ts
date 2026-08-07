@@ -1,16 +1,16 @@
 import {readdir, readFile} from 'node:fs/promises'
 import {basename, extname, join} from 'node:path'
 
-import {LoopressSnippetMetadata} from '../types/snippet.generated.js'
-import {Snippet} from '../types/snippet.js'
+import {type LoopressSnippetMetadata} from '../types/snippet.generated.js'
+import {type Snippet} from '../types/snippet.js'
 import {
   defaultLocationForType,
   parseInsertMethod,
   parseLocation,
   parseType,
-  SnippetInsertMethod,
-  SnippetLocation,
-  SnippetType,
+  type SnippetInsertMethod,
+  type SnippetLocation,
+  type SnippetType,
 } from '../utils/snippet-format.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
@@ -55,10 +55,10 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
     let id: number | undefined
     let name: string | undefined
     let type: SnippetType | undefined
-    let active = false
+    let isActive = false
     let tags: string[] = []
-    let location: null | SnippetLocation = null
-    let insertMethod: null | SnippetInsertMethod = null
+    let location: SnippetLocation | undefined = null
+    let insertMethod: SnippetInsertMethod | undefined = null
     let priority = 10
     let shortcodeAttributes: string[] = []
     try {
@@ -67,7 +67,7 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
       id = meta.id === undefined ? undefined : Number(meta.id)
       name = meta.name ? String(meta.name) : undefined
       type = parseType(meta.type) ?? undefined
-      active = Boolean(meta.active)
+      isActive = Boolean(meta.active)
       tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
       location = parseLocation(meta.location)
       insertMethod = parseInsertMethod(meta.insertMethod)
@@ -80,10 +80,10 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
       }
     }
 
-    const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext as keyof typeof TYPE_BY_EXTENSION] : 'php')
+    const resolvedType = type ?? (ext in TYPE_BY_EXTENSION ? TYPE_BY_EXTENSION[ext] : 'php')
 
     snippets.push({
-      active,
+      active: isActive,
       code: content,
       id,
       insertMethod: insertMethod ?? 'auto',

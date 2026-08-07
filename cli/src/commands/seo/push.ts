@@ -9,9 +9,9 @@ import {
   redirectFileBase,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
-  SeoPostMeta,
+  type SeoPostMeta,
   seoPostMetaEndpoint,
-  SeoRedirect,
+  type SeoRedirect,
   seoRedirectEndpoint,
 } from '../../utils/seo-format.js'
 
@@ -19,8 +19,10 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to SEO directory (overrides project config)'}),
   }
+
   static description =
     'Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to the `<id>-<slug>` convention. Fails clearly per file if the active SEO plugin does not support redirects.'
+
   static examples = ['$ lps seo push']
   static flags = {
     ...PushCommand.dryRunFlag,

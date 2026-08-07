@@ -1,12 +1,12 @@
-import {InstalledPlugin, PluginManifest, WpNativePlugin} from '../types/plugin.js'
+import {type InstalledPlugin, type PluginManifest, type WpNativePlugin} from '../types/plugin.js'
 
-export interface PluginDiff {
+export type PluginDiff = {
   toActivate: Array<{file: string; slug: string}>
   toInstall: Array<{slug: string}>
   upToDate: string[]
 }
 
-export interface MergeResult {
+export type MergeResult = {
   added: string[]
   merged: PluginManifest
   updated: Array<{from: string; slug: string; to: string}>
@@ -34,7 +34,7 @@ export function mergePluginManifest(existing: PluginManifest, incoming: PluginMa
 // single-file plugin) with the `.php` extension stripped; the WordPress.org slug is just the
 // folder name (or the bare id itself for a single-file plugin).
 function slugFromPluginFile(file: string): string {
-  return file.split('/')[0]
+  return file.split('/', 1)[0]
 }
 
 export function parseInstalledPlugins(raw: WpNativePlugin[]): InstalledPlugin[] {

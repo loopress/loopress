@@ -6,12 +6,12 @@ import {dirname, join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 
-interface ApiFile {
+type ApiFile = {
   content: string
   filename: string
 }
 
-interface PullResult {
+type PullResult = {
   orphans: string[]
   pulled: string[]
   status: 'dry-run' | 'success'
@@ -21,6 +21,7 @@ export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
   }
+
   static description = 'Pull custom API route files from WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps api pull', '$ lps api pull --path ./api']

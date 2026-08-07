@@ -1,14 +1,14 @@
 import {randomBytes} from 'node:crypto'
 
-import {isNotFoundError, WpClient} from './wp-client.js'
+import {isNotFoundError, type WpClient} from './wp-client.js'
 
-export interface TempAdmin {
+export type TempAdmin = {
   id: number
   password: string
   username: string
 }
 
-interface WpUser {
+type WpUser = {
   id: number
 }
 
@@ -52,7 +52,7 @@ export async function deleteTempAdmin(wp: WpClient, admin: TempAdmin): Promise<v
     )
   }
 
-  const stillExists = await wp
+  const isStillExists = await wp
     .get<WpUser>(`wp/v2/users/${admin.id}`)
     .then(() => true)
     .catch((error: unknown) => {
@@ -60,7 +60,7 @@ export async function deleteTempAdmin(wp: WpClient, admin: TempAdmin): Promise<v
       throw error
     })
 
-  if (stillExists) {
+  if (isStillExists) {
     throw new Error(
       `Temporary admin account "${admin.username}" (id ${admin.id}) still exists after deletion. Remove it manually from wp-admin.`,
     )

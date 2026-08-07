@@ -5,7 +5,7 @@ import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
-import {Snippet} from '../../types/snippet.js'
+import {type Snippet} from '../../types/snippet.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -17,8 +17,10 @@ export default class Publish extends Command {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
+
   static description =
     'Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.'
+
   static examples = ['$ lps snippet publish', '$ lps snippet publish --path ./snippets']
 
   async run(): Promise<void> {

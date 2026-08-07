@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
-import {ComposerJson} from '../../utils/composer.js'
+import {type ComposerJson} from '../../utils/composer.js'
 
 const WPACKAGIST_REPOSITORY = {type: 'composer', url: 'https://wpackagist.org'}
 const INSTALLERS_PACKAGE = 'composer/installers'
@@ -35,8 +35,8 @@ export default class ComposerInit extends LoopressCommand {
         return
       }
 
-      const overwrite = await confirm({default: false, message: 'composer.json already exists. Overwrite?'})
-      if (!overwrite) {
+      const isOverwrite = await confirm({default: false, message: 'composer.json already exists. Overwrite?'})
+      if (!isOverwrite) {
         this.log('Aborted.')
         return
       }

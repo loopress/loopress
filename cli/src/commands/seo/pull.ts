@@ -10,15 +10,16 @@ import {
   redirectFileBase,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
-  SeoPostMeta,
+  type SeoPostMeta,
   seoPostMetaEndpoint,
-  SeoRedirect,
+  type SeoRedirect,
 } from '../../utils/seo-format.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to SEO directory (overrides project config)'}),
   }
+
   static description = 'Pull SEO settings, post meta, and (if supported) redirects from WordPress'
   static examples = ['$ lps seo pull', '$ lps seo pull --post-type post --post-type page']
   static flags = {

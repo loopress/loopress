@@ -3,7 +3,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import Rotate from '../../../src/commands/project/rotate.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {rotateAppPassword} from '../../../src/lib/rotate-app-password.js'
-import {EnvironmentConfig} from '../../../src/types/config.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 

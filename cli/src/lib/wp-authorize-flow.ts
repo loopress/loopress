@@ -19,7 +19,7 @@ export type AuthorizeResult = {password: string; userLogin: string}
  *      Application Password to the local callback server.
  *   6. The local server extracts the credentials and resolves the promise.
  */
-export function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
+export async function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
   return waitForLocalCallback<AuthorizeResult>({
     buildUrl(callbackBaseUrl) {
       const relayUrl = 'https://api.loopress.dev/auth/wp-authorize'

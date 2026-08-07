@@ -6,17 +6,17 @@ import {basename, dirname, extname, join} from 'node:path'
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
-import {LoopressSnippetMetadata} from '../../types/snippet.generated.js'
-import {Snippet} from '../../types/snippet.js'
+import {type LoopressSnippetMetadata} from '../../types/snippet.generated.js'
+import {type Snippet} from '../../types/snippet.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
-interface PushedSnippet {
+type PushedSnippet = {
   id?: number
   name: string
 }
 
-interface PushResult {
+type PushResult = {
   pushed: PushedSnippet[]
   status: 'dry-run' | 'success'
 }
@@ -25,8 +25,10 @@ export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
+
   static description =
     'Push snippets to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
+
   static enableJsonFlag = true
   static examples = ['$ lps snippet push', '$ lps snippet push --path ./snippets']
   static flags = {

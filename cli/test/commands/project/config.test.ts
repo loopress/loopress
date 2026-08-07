@@ -212,7 +212,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
     vi.mocked(select)
-      .mockResolvedValueOnce(('__new__') as never)
+      .mockResolvedValueOnce(('__new__'))
       .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('manual')
     vi.mocked(input)
@@ -227,7 +227,7 @@ describe('project config', () => {
 
     const {validate} = callByMessage(input, 'Project name') as {validate: (value: string) => string | true}
     expect(validate('')).toBe('Name cannot be empty')
-    expect(validate('   ')).toBe('Name cannot be empty')
+    expect(validate(' '.repeat(3))).toBe('Name cannot be empty')
     expect(validate('acme')).toBe('A project named "acme" already exists')
     expect(validate('ACME')).toBe('A project named "ACME" already exists')
     expect(validate('beta')).toBe(true)
@@ -282,7 +282,7 @@ describe('project config', () => {
     await cmd.run()
 
     const {validate} = callByMessage(input, 'Environment name') as {validate: (value: string) => string | true}
-    expect(validate('   ')).toBe('Name cannot be empty')
+    expect(validate(' '.repeat(3))).toBe('Name cannot be empty')
     expect(validate('qa')).toBe(true)
   })
 
@@ -312,7 +312,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
-      .mockResolvedValueOnce('http://example.com')
+      .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
@@ -321,7 +321,7 @@ describe('project config', () => {
     await cmd.run()
 
     const {validate} = callByMessage(input, 'WordPress URL') as {validate: (value: string) => string | true}
-    expect(validate('http://example.com')).toBe(true)
+    expect(validate('https://example.com')).toBe(true)
   })
 
   it('prompts for username and application password with the expected shape', async () => {
@@ -343,7 +343,7 @@ describe('project config', () => {
     await cmd.run()
 
     const usernameCall = callByMessage(input, 'Username') as {validate: (value: string) => string | true}
-    expect(usernameCall.validate('   ')).toBe('Username cannot be empty')
+    expect(usernameCall.validate(' '.repeat(3))).toBe('Username cannot be empty')
     expect(usernameCall.validate('admin')).toBe(true)
 
     expect(passwordPrompt).toHaveBeenCalledWith({
@@ -352,7 +352,7 @@ describe('project config', () => {
       validate: expect.any(Function),
     })
     const passwordCall = vi.mocked(passwordPrompt).mock.calls[0][0] as {validate: (value: string) => string | true}
-    expect(passwordCall.validate('   ')).toBe('Application password cannot be empty')
+    expect(passwordCall.validate(' '.repeat(3))).toBe('Application password cannot be empty')
     expect(passwordCall.validate('secret')).toBe(true)
   })
 

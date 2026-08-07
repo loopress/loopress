@@ -4,12 +4,13 @@ import {join} from 'node:path'
 
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
+
   static description = 'Push ACF field groups, post types, taxonomies, and options pages to WordPress'
   static examples = ['$ lps acf push', '$ lps acf push --type field-groups']
   static flags = {
@@ -41,7 +42,7 @@ export default class Push extends PushCommand {
     this.log('All ACF objects pushed.')
   }
 
-  private async loadObjects(dir: string): Promise<Record<string, unknown>[]> {
+  private async loadObjects(dir: string): Promise<Array<Record<string, unknown>>> {
     return loadFiles<Record<string, unknown>>(dir, {
       extension: '.json',
       onSkip: (message) => this.warn(message),

@@ -3,7 +3,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import Doctor from '../../src/commands/doctor.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {diagnoseWpSite} from '../../src/lib/wp-site-diagnostic.js'
-import {EnvironmentConfig} from '../../src/types/config.js'
+import {type EnvironmentConfig} from '../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv, makeListedProject} from '../helpers/project-fixtures.js'
 

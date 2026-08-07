@@ -12,7 +12,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   return {...actual, rename: vi.fn(actual.rename)}
 })
 
-interface LocalPage {
+type LocalPage = {
   content: string
   contentPath: string
   meta: Record<string, unknown>
@@ -30,13 +30,13 @@ type PushWithPushPage = {
   wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
-function ensureCanonicalFilename(page: LocalPage, id: number, title: string): Promise<void> {
+async function ensureCanonicalFilename(page: LocalPage, id: number, title: string): Promise<void> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithEnsureCanonicalFilename).ensureCanonicalFilename(page, id, title)
 }
 
-function loadFiles(path: string): Promise<LocalPage[]> {
+async function loadFiles(path: string): Promise<LocalPage[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)

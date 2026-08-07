@@ -4,11 +4,11 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 
-interface ComposerJsonResponse {
+type ComposerJsonResponse = {
   composerJson: string
 }
 
-interface ComposerLockResponse {
+type ComposerLockResponse = {
   composerLock: string
 }
 
@@ -29,7 +29,7 @@ function isMissingComposerLock(error: unknown): boolean {
   }
 }
 
-interface PullResult {
+type PullResult = {
   status: 'dry-run' | 'success'
   wroteLock: boolean
 }

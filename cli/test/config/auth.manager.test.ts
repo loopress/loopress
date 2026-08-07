@@ -59,7 +59,7 @@ describe('AuthManager', () => {
   })
 
   it('clearAuth() is a no-op when there is nothing to clear', () => {
-    expect(() => manager.clearAuth()).not.toThrow()
+    expect(() => { manager.clearAuth(); }).not.toThrow()
     expect(manager.getAuth()).toBeNull()
   })
 })

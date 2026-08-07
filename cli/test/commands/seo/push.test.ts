@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/seo/push.js'
-import {SeoRedirect} from '../../../src/utils/seo-format.js'
+import {type SeoRedirect} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 type PushInternals = {

@@ -1,6 +1,6 @@
 import {LoopressCommand} from '../../lib/base.js'
 
-interface ApiFile {
+type ApiFile = {
   content: string
   filename: string
 }

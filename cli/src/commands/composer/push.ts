@@ -4,12 +4,12 @@ import {join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {isTimeoutError} from '../../lib/wp-client.js'
-import {ComposerJson} from '../../utils/composer.js'
+import {type ComposerJson} from '../../utils/composer.js'
 
 // A cold composer install easily exceeds the global 30s timeout of WpClient.
 const COMPOSER_SYNC_TIMEOUT_MS = 600_000
 
-interface PushResult {
+type PushResult = {
   hasLock: boolean
   packageCount: number
   status: 'dry-run' | 'success'

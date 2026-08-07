@@ -5,7 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {loadFiles} from '../../src/lib/load-files.js'
 
-interface ParsedFile {
+type ParsedFile = {
   content: string
   filename: string
 }

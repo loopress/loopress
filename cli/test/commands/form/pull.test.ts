@@ -7,7 +7,7 @@ import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../..
 
 // The same matcher `form pull` wires in run(): forms are single `<id>-<slug>.json` files,
 // identity taken from the `<id>-` prefix, same principle as acf pull / page pull.
-function findOrphanedFiles(dir: string, keepIds: Set<string>): Promise<string[]> {
+async function findOrphanedFiles(dir: string, keepIds: Set<string>): Promise<string[]> {
   return findOrphanedFilesLib(dir, keepIds, {extensions: ['.json'], key: numericPrefixKey})
 }
 
