@@ -53,7 +53,7 @@ export default class Push extends Command {
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Push)
-    this.yes = Boolean(flags.yes)
+    this.yes = flags.yes
 
     const token = authManager.getAuth()?.token
     if (!token) {

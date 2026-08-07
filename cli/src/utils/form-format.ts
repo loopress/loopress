@@ -9,7 +9,7 @@ export const FORM_ENDPOINT = 'loopress/v1/forms'
 // through pull/push untouched.
 export function getFormId(data: Record<string, unknown>): number | undefined {
   const id = Number(data.id)
-  return Number.isInteger(id) && id > 0 ? id : null
+  return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
 export function getFormTitle(data: Record<string, unknown>): string {

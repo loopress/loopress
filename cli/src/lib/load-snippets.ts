@@ -64,14 +64,14 @@ export async function loadSnippets(path: string, onSkip?: (message: string) => v
     try {
       const metaContent = await readFile(metaPath, 'utf8')
       const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
-      id = meta.id === undefined ? undefined : Number(meta.id)
-      name = meta.name ? String(meta.name) : undefined
+      id = meta.id
+      name = meta.name ? meta.name : undefined
       type = parseType(meta.type) ?? undefined
       isActive = Boolean(meta.active)
       tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
       location = parseLocation(meta.location)
       insertMethod = parseInsertMethod(meta.insertMethod)
-      priority = meta.priority === undefined ? 10 : Number(meta.priority)
+      priority = meta.priority === undefined ? 10 : meta.priority
       shortcodeAttributes = Array.isArray(meta.shortcodeAttributes) ? meta.shortcodeAttributes.map(String) : []
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {

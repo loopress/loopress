@@ -30,7 +30,7 @@ describe('ApiClient', () => {
     const client = await serve((req, res) => {
       seenAuth = req.headers.authorization ?? ''
       let raw = ''
-      req.on('data', (chunk) => {
+      req.on('data', (chunk: Uint8Array) => {
         raw += chunk
       })
       req.on('end', () => {

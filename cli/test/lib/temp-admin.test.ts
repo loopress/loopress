@@ -26,7 +26,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
     let seenBody = ''
     const wp = await serve((req, res) => {
       let raw = ''
-      req.on('data', (chunk) => {
+      req.on('data', (chunk: Uint8Array) => {
         raw += chunk
       })
       req.on('end', () => {

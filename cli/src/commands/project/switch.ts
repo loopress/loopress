@@ -44,7 +44,7 @@ export default class Switch extends Command {
     }
 
     const choices = groups.flatMap(({envs, project}) => [
-      new Separator(project.isCurrent ? c('green', `─── ${project.name} ───`) : c('dim', `─── ${project.name} ───`)),
+      new Separator(c(project.isCurrent ? 'green' : 'dim', `─── ${project.name} ───`)),
       ...envs.map((env) => ({
         name: `${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
         value: `${project.id}::${env.name}`,

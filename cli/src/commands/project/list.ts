@@ -27,8 +27,8 @@ export default class List extends Command {
       this.log(`${marker} ${name}${currentTag}`)
 
       for (const env of envs) {
-        const envMarker = env.isCurrent ? c('cyan', '·') : c('dim', '·')
-        const envName = env.isCurrent ? c('cyan', env.name.padEnd(15)) : c('dim', env.name.padEnd(15))
+        const envMarker = c(env.isCurrent ? 'cyan' : 'dim', '·')
+        const envName = c(env.isCurrent ? 'cyan' : 'dim', env.name.padEnd(15))
         const envUrl = c('dim', env.url)
         const activeTag = env.isCurrent ? ` ${c('cyan', '←')}` : ''
         this.log(`  ${envMarker} ${envName} ${envUrl}${activeTag}`)

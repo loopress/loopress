@@ -47,7 +47,7 @@ describe('WpClient', () => {
     const client = await serve((req, res) => {
       seenMethod = req.method ?? ''
       let raw = ''
-      req.on('data', (chunk) => {
+      req.on('data', (chunk: Uint8Array) => {
         raw += chunk
       })
       req.on('end', () => {
