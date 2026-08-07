@@ -11,6 +11,17 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   await page.waitForLoadState('networkidle')
 }
 
+// RequestUtils.activatePlugin/deactivatePlugin key plugins by a kebab-cased `Plugin Name:`
+// header (see its getPluginsMap(), paramCase(plugin.name)), not the wp.org install slug
+// setup-ci/scripts/setup-wordpress.sh installs these under. The two only coincide when a
+// plugin's display name happens to equal its slug (advanced-custom-fields, code-snippets);
+// these three don't (checked against the actual headers on the QA WP instance).
+const PLUGIN_NAME_SLUGS: Record<string, string> = {
+  'insert-headers-and-footers': 'wpcode-lite', // Plugin Name: WPCode Lite
+  'seo-by-rank-math': 'rank-math-seo', // Plugin Name: Rank Math SEO
+  'wordpress-seo': 'yoast-seo', // Plugin Name: Yoast SEO
+}
+
 // Goes through the `wp/v2/plugins/{slug}` REST endpoint (RequestUtils.activatePlugin/
 // deactivatePlugin) rather than driving the wp-admin Plugins list UI: same end state a real
 // admin toggling the row link would produce, but not dependent on that page's markup or its
@@ -19,8 +30,13 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
 // ACF's PRO upsell banner does for `trashAcfFieldGroup` below). Test-infrastructure only, not
 // used for anything actually under test: see the `requestUtils` fixture's own comment on why
 // its nonce/cookie auth must never leak into a REST assertion.
+//
+// Takes the real wp.org install slug (matching `wp plugin install <slug>` in
+// setup-wordpress.sh), translating to whatever RequestUtils itself needs internally, so every
+// call site can keep using the slug a reader actually recognizes.
 export async function setPluginActive(requestUtils: RequestUtils, slug: string, active: boolean): Promise<void> {
-  await (active ? requestUtils.activatePlugin(slug) : requestUtils.deactivatePlugin(slug))
+  const nameSlug = PLUGIN_NAME_SLUGS[slug] ?? slug
+  await (active ? requestUtils.activatePlugin(nameSlug) : requestUtils.deactivatePlugin(nameSlug))
 }
 
 // Finds a WPCode admin list row by its exact snippet name. Row actions (Trash, Edit, ...)
