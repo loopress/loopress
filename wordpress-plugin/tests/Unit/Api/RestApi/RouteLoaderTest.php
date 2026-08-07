@@ -141,11 +141,11 @@ class RouteLoaderTest extends TestCase
 
         $request = new WP_REST_Request([], '/test');
 
-        // get(): #[Permission(public: true)]
+        // get() is public via its own attribute.
         $this->assertTrue(($endpoints[0]['permission_callback'])($request));
 
-        // post(): #[Permission(capability: 'edit_posts')], a different check than get()'s,
-        // proving each verb resolved its own attribute rather than sharing one.
+        // post() requires a different capability than get()'s attribute, proving each verb
+        // resolved its own attribute rather than sharing one.
         Functions\expect('current_user_can')->once()->with('edit_posts')->andReturn(false);
         $this->assertFalse(($endpoints[1]['permission_callback'])($request));
     }
@@ -157,8 +157,8 @@ class RouteLoaderTest extends TestCase
 
         $request = new WP_REST_Request([], '/test');
 
-        $this->assertTrue(($endpoints[0]['permission_callback'])($request)); // get()
-        $this->assertTrue(($endpoints[1]['permission_callback'])($request)); // post()
+        $this->assertTrue(($endpoints[0]['permission_callback'])($request)); // the get() endpoint
+        $this->assertTrue(($endpoints[1]['permission_callback'])($request)); // the post() endpoint
     }
 
     public function test_endpointsFor_lets_a_method_level_permission_attribute_override_the_class_level_one(): void

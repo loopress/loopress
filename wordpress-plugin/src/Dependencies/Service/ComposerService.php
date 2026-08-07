@@ -21,9 +21,35 @@ class ComposerService
         return $this->packagistClient->getVersions($package);
     }
 
-    public function getInstalled(): array
+    // LoopressEnvironment can't run Composer itself (it has no ComposerRunner: that would be
+    // a constructor cycle, ComposerRunner already depends on LoopressEnvironment), so it only
+    // flags when composer.json was migrated to add the lib/ autoload entry. This service has
+    // both dependencies already, so it's where the flag actually gets acted on.
+    //
+    // Best-effort: getInstalled()/getDiagnostics()/getJson() (this method's only callers)
+    // don't wrap this call in a try/catch the way requirePackage()/repair()/etc. do, a
+    // dump-autoload failure here (e.g. another Composer operation holding the lock) would
+    // otherwise turn a plain read into an uncaught exception. Not retried automatically on a
+    // later request if it fails here: composer.json is already patched by this point, so
+    // needsLibAutoloadDump() won't flag it again. Self-heals anyway the next time any real
+    // Composer operation runs (require/update/repair all regenerate the autoloader from the
+    // composer.json already on disk, lib/ entry included), just not before then.
+    private function ensureInitialized(): void
     {
         $this->environment->ensureInitialized();
+
+        if ($this->environment->needsLibAutoloadDump()) {
+            try {
+                $this->composerRunner->run(['dump-autoload']);
+            } catch (\Throwable $e) {
+                error_log('Loopress composer: failed to dump the autoloader after adding lib/: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            }
+        }
+    }
+
+    public function getInstalled(): array
+    {
+        $this->ensureInitialized();
 
         $json    = $this->environment->readComposerJson();
         $require = $json['require'] ?? [];
@@ -105,7 +131,7 @@ class ComposerService
 
     public function getDiagnostics(): array
     {
-        $this->environment->ensureInitialized();
+        $this->ensureInitialized();
 
         $phpVersion  = PHP_VERSION;
         $json        = $this->environment->readComposerJson();
@@ -199,7 +225,7 @@ class ComposerService
 
     public function getJson(): ?string
     {
-        $this->environment->ensureInitialized();
+        $this->ensureInitialized();
         return $this->environment->readComposerJsonRaw();
     }
 

@@ -107,6 +107,83 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame(PHP_VERSION, $json['config']['platform']['php']);
     }
 
+    public function test_ensureInitialized_sets_the_lib_autoload_entry_on_a_new_site(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        $json = $env->readComposerJson();
+        $this->assertSame('lib/', $json['autoload']['psr-4']['LoopressLib\\']);
+    }
+
+    public function test_ensureInitialized_does_not_flag_a_dump_for_a_new_site(): void
+    {
+        // The key is already correct from the moment composer.json is first written, no
+        // stale generated autoloader to repair.
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        $this->assertFalse($env->needsLibAutoloadDump());
+    }
+
+    public function test_ensureInitialized_creates_the_lib_directory_with_an_anti_listing_index(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        $libDir = $env->getLoopressDir() . 'lib/';
+        $this->assertDirectoryExists($libDir);
+        $this->assertFileExists($libDir . 'index.php');
+    }
+
+    public function test_ensureInitialized_migrates_a_composer_json_missing_the_lib_autoload_entry(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        // Simulate a site whose composer.json predates the lib/ autoload entry.
+        $json = $env->readComposerJson();
+        unset($json['autoload']);
+        $env->writeComposerJson($json);
+
+        // ensureInitialized is memoized per instance (one run per request), so use a fresh
+        // instance to simulate the next request: it should add the missing entry.
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+
+        $migrated = $env2->readComposerJson();
+        $this->assertSame('lib/', $migrated['autoload']['psr-4']['LoopressLib\\']);
+    }
+
+    public function test_needsLibAutoloadDump_is_true_right_after_migrating_an_existing_composer_json(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['autoload']);
+        $env->writeComposerJson($json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+
+        $this->assertTrue($env2->needsLibAutoloadDump());
+    }
+
+    public function test_needsLibAutoloadDump_resets_after_being_read_once(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['autoload']);
+        $env->writeComposerJson($json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+
+        $this->assertTrue($env2->needsLibAutoloadDump());
+        $this->assertFalse($env2->needsLibAutoloadDump());
+    }
+
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void
     {
         $env = new LoopressEnvironment();

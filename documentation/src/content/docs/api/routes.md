@@ -169,6 +169,50 @@ Returning `false` produces WordPress's standard `rest_forbidden` response.
 
 Defensive behavior, so a mistake never breaks the site: if `permission()` throws, the request it was checking is denied (fails closed, same as returning `false`) and the error is logged. The route itself stays registered and keeps working for every other request, only the request that hit the throw is affected.
 
+### Different permissions per verb, with `#[Permission]`
+
+`permission()` applies to every verb in the file. When a file needs a different check per verb, for instance a public `get()` next to an admin-only `post()`, use the `#[Permission]` attribute instead, on a verb method or on the class:
+
+```php
+use Loopress\Api\Attribute\Permission;
+
+class Item
+{
+    #[Permission(public: true)]
+    public function get(): array
+    {
+        return ['items' => get_option('my_items', [])];
+    }
+
+    #[Permission(capability: 'edit_posts')]
+    public function post(WP_REST_Request $request): array
+    {
+        // ...
+    }
+}
+```
+
+A `#[Permission]` on the class applies to every verb that doesn't have its own, a `#[Permission]` on a verb method overrides it for that verb only. Resolution order, most specific first: attribute on the verb, attribute on the class, the file's `permission()` method, the closed `manage_options` default.
+
+`callback` points to the actual check instead of a fixed capability, either a local method name or a shared static method for logic reused across several route files:
+
+```php
+#[Permission(callback: 'checkSignature')]
+public function post(WP_REST_Request $request): array { /* ... */ }
+
+public function checkSignature(WP_REST_Request $request): bool
+{
+    return hash_equals((string) get_option('my_webhook_secret'), (string) $request->get_header('x-webhook-secret'));
+}
+```
+
+```php
+#[Permission(callback: [SharedChecks::class, 'requireApiKey'])] // SharedChecks::requireApiKey must be static
+class Webhook { /* ... */ }
+```
+
+Same fail-closed behavior as `permission()`: a throwing `callback` denies the request and logs the error instead of breaking the site.
+
 ## Response headers and CORS
 
 Two ways to set headers, depending on whether they vary per verb or apply to the whole route.
@@ -245,6 +289,38 @@ class Webhook
 ```
 
 A broken dependency install (missing package, corrupted autoloader) is logged and skipped the same way a broken route file is, it never breaks the rest of the site's REST API.
+
+### Sharing code between route files (and snippets)
+
+`wp-content/loopress/lib/` is for code reused across several route files, permission checks, formatters, anything that isn't a route itself. Classes there are autoloaded under the `LoopressLib\` namespace, the same `use`-and-go behavior as a Composer dependency:
+
+```php
+// wp-content/loopress/lib/SharedChecks.php
+<?php
+
+declare(strict_types=1);
+
+namespace LoopressLib;
+
+use WP_REST_Request;
+
+final class SharedChecks
+{
+    public static function requireApiKey(WP_REST_Request $request): bool
+    {
+        return hash_equals((string) get_option('my_api_key'), (string) $request->get_param('api_key'));
+    }
+}
+```
+
+```php
+use LoopressLib\SharedChecks;
+
+#[Permission(callback: [SharedChecks::class, 'requireApiKey'])]
+class Webhook { /* ... */ }
+```
+
+`lib/` is never scanned for routes, it's a plain autoload target, not another `api/`. In a [code snippet](/composer/using-in-snippets/), where the autoloader isn't loaded automatically, `require_once` the Composer autoloader first, the same one step already needed there for any Composer dependency.
 
 ## Failure isolation
 

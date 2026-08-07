@@ -18,7 +18,7 @@ final class Permission
      *   check. Either way the referenced method must accept a WP_REST_Request and return bool.
      */
     public function __construct(
-        public readonly bool $public = false,
+        public readonly bool $public = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.publicFound -- #[Permission(public: true)] is the intended, decided call-site syntax
         public readonly ?string $capability = null,
         public readonly string|array|null $callback = null,
     ) {}

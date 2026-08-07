@@ -42,6 +42,43 @@ class ComposerServiceTest extends TestCase
         parent::tearDown();
     }
 
+    // ── ensureInitialized (lib/ autoload dump-autoload) ──────────────────────
+    // Exercised through getInstalled(), one of ensureInitialized()'s three callers: it's a
+    // private method, its effect (does it trigger dump-autoload?) is what matters here, not
+    // the internal call.
+
+    public function test_getInstalled_triggers_a_dump_autoload_when_lib_autoload_was_just_migrated(): void
+    {
+        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->environment->method('needsLibAutoloadDump')->willReturn(true);
+
+        $this->runner->expects($this->once())->method('run')->with(['dump-autoload']);
+
+        $this->service->getInstalled();
+    }
+
+    public function test_getInstalled_does_not_trigger_a_dump_autoload_when_nothing_was_migrated(): void
+    {
+        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->environment->method('needsLibAutoloadDump')->willReturn(false);
+
+        $this->runner->expects($this->never())->method('run');
+
+        $this->service->getInstalled();
+    }
+
+    public function test_getInstalled_survives_a_failed_dump_autoload(): void
+    {
+        // getInstalled()/getDiagnostics()/getJson() don't wrap this call in a try/catch the
+        // way requirePackage()/repair()/etc. do: a failed migration dump-autoload must never
+        // turn a plain read into an uncaught exception.
+        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->environment->method('needsLibAutoloadDump')->willReturn(true);
+        $this->runner->method('run')->willThrowException(new \RuntimeException('lock held'));
+
+        $this->assertSame([], $this->service->getInstalled());
+    }
+
     // ── getInstalled ─────────────────────────────────────────────────────────
 
     public function test_getInstalled_returns_empty_when_no_require(): void
