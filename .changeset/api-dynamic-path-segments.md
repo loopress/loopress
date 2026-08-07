@@ -1,5 +1,5 @@
 ---
-"@loopress/wordpress-plugin": patch
+"@loopress/wordpress-plugin": minor
 "@loopress/cli": minor
 ---
 
