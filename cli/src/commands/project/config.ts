@@ -64,7 +64,7 @@ export default class Config extends Command {
 
     const rawUrl = await input({
       message: 'WordPress URL',
-      validate(value) {
+      validate(value): string | true {
         try {
           const parsed = new URL(value)
           if (!['http:', 'https:'].includes(parsed.protocol)) {
@@ -77,7 +77,10 @@ export default class Config extends Command {
         }
       },
     })
-    const url = rawUrl.replace(/\/+$/, '')
+    let url = rawUrl
+    while (url.endsWith('/')) {
+      url = url.slice(0, -1)
+    }
 
     const {appPassword, user} = await this.resolveCredentials(url)
 

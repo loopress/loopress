@@ -42,7 +42,8 @@ describe('api push', () => {
 
       const files = await loadFiles(dir)
 
-      expect(files.sort((a, b) => a.filename.localeCompare(b.filename))).toEqual([
+      files.sort((a, b) => a.filename.localeCompare(b.filename))
+      expect(files).toEqual([
         {content: '<?php\nfinal class Hello {}\n', filename: 'hello'},
         {content: '<?php\nfinal class HelloWorld {}\n', filename: 'hello-world'},
       ])

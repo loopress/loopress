@@ -35,6 +35,7 @@ const snippet = (overrides: Partial<Snippet> = {}): Snippet => ({
   insertMethod: 'auto',
   location: 'footer',
   name: 'Cookie Banner!',
+  // eslint-disable-next-line sonarjs/publicly-writable-directories -- fixture data, never written to disk
   path: '/tmp/snippets/cookie-banner.js',
   priority: 10,
   shortcodeAttributes: [],

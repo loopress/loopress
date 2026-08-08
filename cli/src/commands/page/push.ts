@@ -74,6 +74,13 @@ export default class Push extends PushCommand {
     return {pushed, status: 'success'}
   }
 
+  private async createPage(page: LocalPage, payload: Record<string, unknown>, title: string): Promise<null | number> {
+    const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, payload)
+    const id = getPageId(created)
+    if (id !== null) await this.ensureCanonicalFilename(page, id, title)
+    return id
+  }
+
   // Renames the local file pair to the `<id>-<slug>` convention used by `page pull` whenever it
   // doesn't already match, same principle as ensureCanonicalFilename in commands/snippet/push.ts:
   // the id is persisted into the sidecar before any rename, so a crash mid-rename still leaves a
@@ -158,37 +165,35 @@ export default class Push extends PushCommand {
     }
 
     try {
-      let id = getPageId(page.meta)
+      const id = getPageId(page.meta)
       const payload = {...page.meta, content: page.content}
 
-      if (id === null) {
-        const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, payload)
-        id = getPageId(created)
-        if (id !== null) await this.ensureCanonicalFilename(page, id, title)
-      } else {
-        try {
-          await this.wp.put(`${PAGE_ENDPOINT}/${id}`, payload)
-          await this.ensureCanonicalFilename(page, id, title)
-        } catch (error) {
-          // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
-          // it instead of failing, and adopt whatever id the site assigns. WordPress core
-          // rejects any POST that still carries a (now stale) `id` field with a 400 "Cannot
-          // create existing post", regardless of whether that id actually exists, so it must
-          // be stripped before falling back to create.
-          if (!isNotFoundError(error)) throw error
-
-          const newPayload: Record<string, unknown> = {...payload}
-          delete newPayload.id
-          const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, newPayload)
-          id = getPageId(created)
-          if (id !== null) await this.ensureCanonicalFilename(page, id, title)
-        }
-      }
+      const resultId =
+        id === null ? await this.createPage(page, payload, title) : await this.updateOrCreatePage(page, id, payload, title)
 
       if (task) task.output = `Pushed: ${title}`
-      return id
+      return resultId
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${title}: ${(error as Error).message}`, error, task)
+    }
+  }
+
+  private async updateOrCreatePage(page: LocalPage, id: number, payload: Record<string, unknown>, title: string): Promise<null | number> {
+    try {
+      await this.wp.put(`${PAGE_ENDPOINT}/${id}`, payload)
+      await this.ensureCanonicalFilename(page, id, title)
+      return id
+    } catch (error) {
+      // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
+      // it instead of failing, and adopt whatever id the site assigns. WordPress core
+      // rejects any POST that still carries a (now stale) `id` field with a 400 "Cannot
+      // create existing post", regardless of whether that id actually exists, so it must
+      // be stripped before falling back to create.
+      if (!isNotFoundError(error)) throw error
+
+      const newPayload: Record<string, unknown> = {...payload}
+      delete newPayload.id
+      return this.createPage(page, newPayload, title)
     }
   }
 }

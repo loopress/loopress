@@ -68,86 +68,18 @@ export default class Push extends Command {
 
     const api = new ApiClient(token)
     const apiProjects = await this.fetchApiProjects(api)
-    const claimedProjectIds = new Set<string>()
-    const envPlansByProject = new Map<string, EnvPlan[]>()
-
-    const projectPlans: ProjectPlan[] = []
-    for (const project of projects) {
-      const plan = await this.planProject(project, apiProjects, claimedProjectIds)
-      projectPlans.push(plan)
-
-      const apiProject = plan.apiProjectId ? apiProjects.find((candidate) => candidate.id === plan.apiProjectId) : undefined
-      const claimedEnvironmentIds = new Set<string>()
-      const envPlans: EnvPlan[] = []
-
-      for (const env of configManager.listEnvironments(project.id)) {
-        envPlans.push(
-          plan.action === 'create'
-            ? {action: 'create', env, projectId: project.id}
-            : await this.planEnvironment(env, project.id, apiProject, claimedEnvironmentIds),
-        )
-      }
-
-      envPlansByProject.set(project.id, envPlans)
-    }
+    const {envPlansByProject, projectPlans} = await this.planAll(projects, apiProjects)
 
     let projectCount = projectPlans.filter((plan) => plan.action === 'synced').length
     let environmentCount = [...envPlansByProject.values()].flat().filter((plan) => plan.action === 'synced').length
 
     const projectsNeedingWork = projectPlans.filter((plan) => plan.action !== 'synced')
-    if (projectsNeedingWork.length > 0) {
-      await new Listr(
-        projectsNeedingWork.map((plan) => ({
-          task: async (_ctx, task) => {
-            await this.applyProject(api, plan, task)
-            projectCount++
-          },
-          title:
-            plan.action === 'create'
-              ? `Create project "${plan.project.name}" on the API`
-              : `Link project "${plan.project.name}" to the API`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
-    }
+    projectCount += await this.applyProjectPlans(api, projectsNeedingWork)
 
-    const envsNeedingWork = projectPlans
-      .filter((plan): plan is ProjectPlan & {apiProjectId: string} => Boolean(plan.apiProjectId))
-      .flatMap((plan) =>
-        (envPlansByProject.get(plan.project.id) ?? [])
-          .filter((envPlan) => envPlan.action !== 'synced')
-          .map((envPlan) => ({apiProjectId: plan.apiProjectId, envPlan, projectName: plan.project.name})),
-      )
+    const envsNeedingWork = this.collectEnvsNeedingWork(projectPlans, envPlansByProject)
+    environmentCount += await this.applyEnvironmentPlans(api, envsNeedingWork)
 
-    if (envsNeedingWork.length > 0) {
-      await new Listr(
-        envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
-          task: async (_ctx, task) => {
-            await this.applyEnvironment(api, apiProjectId, envPlan, task)
-            environmentCount++
-          },
-          title:
-            envPlan.action === 'create'
-              ? `Create environment "${envPlan.env.name}" on "${projectName}"`
-              : `Link environment "${envPlan.env.name}" on "${projectName}"`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
-    }
-
-    for (const plan of projectPlans) {
-      if (!plan.apiProjectId) continue
-
-      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
-        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
-
-        try {
-          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
-        } catch (error) {
-          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
-        }
-      }
-    }
+    await this.pushAllCredentials(api, projectPlans, envPlansByProject)
 
     this.log(
       `\n✓ Pushed ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} to your Loopress account`,
@@ -182,6 +114,30 @@ export default class Push extends Command {
     }
   }
 
+  private async applyEnvironmentPlans(
+    api: ApiClient,
+    envsNeedingWork: Array<{apiProjectId: string; envPlan: EnvPlan; projectName: string}>,
+  ): Promise<number> {
+    if (envsNeedingWork.length === 0) return 0
+
+    let count = 0
+    await new Listr(
+      envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
+        task: async (_ctx, task) => {
+          await this.applyEnvironment(api, apiProjectId, envPlan, task)
+          count++
+        },
+        title:
+          envPlan.action === 'create'
+            ? `Create environment "${envPlan.env.name}" on "${projectName}"`
+            : `Link environment "${envPlan.env.name}" on "${projectName}"`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
+
+    return count
+  }
+
   private async applyProject(api: ApiClient, plan: ProjectPlan, task?: {output: string}): Promise<void> {
     try {
       if (plan.action === 'create') {
@@ -202,6 +158,40 @@ export default class Push extends Command {
     }
   }
 
+  private async applyProjectPlans(api: ApiClient, projectsNeedingWork: ProjectPlan[]): Promise<number> {
+    if (projectsNeedingWork.length === 0) return 0
+
+    let count = 0
+    await new Listr(
+      projectsNeedingWork.map((plan) => ({
+        task: async (_ctx, task) => {
+          await this.applyProject(api, plan, task)
+          count++
+        },
+        title:
+          plan.action === 'create'
+            ? `Create project "${plan.project.name}" on the API`
+            : `Link project "${plan.project.name}" to the API`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
+
+    return count
+  }
+
+  private collectEnvsNeedingWork(
+    projectPlans: ProjectPlan[],
+    envPlansByProject: Map<string, EnvPlan[]>,
+  ): Array<{apiProjectId: string; envPlan: EnvPlan; projectName: string}> {
+    return projectPlans
+      .filter((plan): plan is ProjectPlan & {apiProjectId: string} => Boolean(plan.apiProjectId))
+      .flatMap((plan) =>
+        (envPlansByProject.get(plan.project.id) ?? [])
+          .filter((envPlan) => envPlan.action !== 'synced')
+          .map((envPlan) => ({apiProjectId: plan.apiProjectId, envPlan, projectName: plan.project.name})),
+      )
+  }
+
   // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
   // taken without prompting, and logged, so CI runs never mint duplicate projects.
   private async confirmLink(message: string): Promise<boolean> {
@@ -220,6 +210,36 @@ export default class Push extends Command {
       this.warn(`Could not fetch existing projects from the API, will create everything as new: ${(error as Error).message}`)
       return []
     }
+  }
+
+  private async planAll(
+    projects: Array<ProjectConfig & {id: string}>,
+    apiProjects: ApiProject[],
+  ): Promise<{envPlansByProject: Map<string, EnvPlan[]>; projectPlans: ProjectPlan[]}> {
+    const claimedProjectIds = new Set<string>()
+    const envPlansByProject = new Map<string, EnvPlan[]>()
+
+    const projectPlans: ProjectPlan[] = []
+    for (const project of projects) {
+      const plan = await this.planProject(project, apiProjects, claimedProjectIds)
+      projectPlans.push(plan)
+
+      const apiProject = plan.apiProjectId ? apiProjects.find((candidate) => candidate.id === plan.apiProjectId) : undefined
+      const claimedEnvironmentIds = new Set<string>()
+      const envPlans: EnvPlan[] = []
+
+      for (const env of configManager.listEnvironments(project.id)) {
+        envPlans.push(
+          plan.action === 'create'
+            ? {action: 'create', env, projectId: project.id}
+            : await this.planEnvironment(env, project.id, apiProject, claimedEnvironmentIds),
+        )
+      }
+
+      envPlansByProject.set(project.id, envPlans)
+    }
+
+    return {envPlansByProject, projectPlans}
   }
 
   private async planEnvironment(
@@ -276,6 +296,26 @@ export default class Push extends Command {
     }
 
     return {action: 'create', project}
+  }
+
+  private async pushAllCredentials(
+    api: ApiClient,
+    projectPlans: ProjectPlan[],
+    envPlansByProject: Map<string, EnvPlan[]>,
+  ): Promise<void> {
+    for (const plan of projectPlans) {
+      if (!plan.apiProjectId) continue
+
+      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
+        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
+
+        try {
+          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
+        } catch (error) {
+          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
+        }
+      }
+    }
   }
 
   private async pushCredentials(

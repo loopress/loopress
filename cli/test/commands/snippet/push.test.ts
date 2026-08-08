@@ -243,7 +243,7 @@ describe('snippet push', () => {
         'demo',
       )
 
-      const files = readdirSync(dir).sort()
+      const files = readdirSync(dir).sort((a, b) => a.localeCompare(b))
       expect(files).toEqual(['8-demo.json', '8-demo.php'])
       expect(existsSync(join(dir, 'demo.php'))).toBe(false)
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
@@ -255,7 +255,7 @@ describe('snippet push', () => {
 
       await ensureCanonicalFilename({code: '<?php echo 1;', path: join(dir, 'foo.php'), type: 'php'} as Snippet, 5, 'foo')
 
-      expect(readdirSync(dir).sort()).toEqual(['5-foo.json', '5-foo.php'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['5-foo.json', '5-foo.php'])
     })
 
     it('leaves an already-canonical file in place', async () => {
@@ -280,7 +280,7 @@ describe('snippet push', () => {
         'hello',
       )
 
-      expect(readdirSync(dir).sort()).toEqual(['6-hello.json', '6-hello.txt'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['6-hello.json', '6-hello.txt'])
     })
 
     it('slugifies a name with spaces and punctuation for the new filename', async () => {
@@ -292,7 +292,7 @@ describe('snippet push', () => {
         'Weird Name!',
       )
 
-      expect(readdirSync(dir).sort()).toEqual(['9-weird-name.json', '9-weird-name.php'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['9-weird-name.json', '9-weird-name.php'])
     })
 
     it('persists the id under the current filename before attempting the rename, so a failed rename does not lose it', async () => {

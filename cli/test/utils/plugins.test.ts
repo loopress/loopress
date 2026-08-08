@@ -24,7 +24,7 @@ describe('plugins', () => {
     it('adds all plugins when existing manifest is empty', () => {
       const {added, merged, updated} = mergePluginManifest({}, {woocommerce: 'latest', acf: 'latest'})
       expect(merged).toEqual({woocommerce: 'latest', acf: 'latest'})
-      expect([...added].sort()).toEqual(['acf', 'woocommerce'])
+      expect([...added].sort((a, b) => a.localeCompare(b))).toEqual(['acf', 'woocommerce'])
       expect(updated).toHaveLength(0)
     })
 

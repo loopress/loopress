@@ -31,21 +31,14 @@ export default class Pull extends LoopressCommand {
       installed.filter((p) => !composerSlugs.includes(p.slug)).map((p) => [p.slug, 'latest']),
     )
 
-    if (composerSlugs.length > 0) {
-      const found = installed.filter((p) => composerSlugs.includes(p.slug)).map((p) => p.slug)
-      if (found.length > 0) {
-        this.log(`Skipping ${found.length} Composer-managed ${found.length === 1 ? 'plugin' : 'plugins'}: ${found.join(', ')}`)
-      }
-    }
+    this.logSkippedComposerManaged(installed.filter((p) => composerSlugs.includes(p.slug)).map((p) => p.slug))
 
     const {added, merged, updated} = mergePluginManifest(this.localConfig.plugins ?? {}, incoming)
 
     if (this.dryRun) {
       this.log(`[dry-run] Would write ${Object.keys(merged).length} plugins to loopress.json`)
       if (added.length > 0) this.log(`  + ${added.join(', ')}`)
-      if (updated.length > 0) {
-        for (const u of updated) this.log(`  ~ ${u.slug} (${u.from} → ${u.to})`)
-      }
+      for (const u of updated) this.log(`  ~ ${u.slug} (${u.from} → ${u.to})`)
 
       return {added, merged, status: 'dry-run', updated}
     }
@@ -57,5 +50,11 @@ export default class Pull extends LoopressCommand {
     for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
 
     return {added, merged, status: 'success', updated}
+  }
+
+  private logSkippedComposerManaged(found: string[]): void {
+    if (found.length > 0) {
+      this.log(`Skipping ${found.length} Composer-managed ${found.length === 1 ? 'plugin' : 'plugins'}: ${found.join(', ')}`)
+    }
   }
 }

@@ -8,7 +8,7 @@ import {readLocalConfig} from '../utils/loopress-config.js'
 
 const DEBOUNCE_MS = 400
 // Noise no one wants pushed: VCS internals, deps, and editor/OS droppings.
-const IGNORED = /(^|[/\\])(\.git|node_modules|\.DS_Store)(?:[/\\]|$)|\.swp$/
+const IGNORED = /(?:(^|[/\\])(\.git|node_modules|\.DS_Store)(?:[/\\]|$))|(?:\.swp$)/
 
 export default class Dev extends Command {
   static description =

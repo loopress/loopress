@@ -19,7 +19,8 @@ describe('composer utils', () => {
         },
       })
 
-      expect(slugs.sort()).toEqual(['akismet', 'query-monitor', 'wordpress-seo'])
+      slugs.sort((a, b) => a.localeCompare(b))
+      expect(slugs).toEqual(['akismet', 'query-monitor', 'wordpress-seo'])
     })
 
     it('returns an empty list when nothing is wpackagist-managed', () => {

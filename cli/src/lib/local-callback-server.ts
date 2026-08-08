@@ -36,12 +36,11 @@ export async function waitForLocalCallback<T>(options: {
   const timeoutMs = options.timeoutMs ?? 5 * 60 * 1000
 
   return new Promise((resolve, reject) => {
-    function finish(res: ServerResponse, page: string, settle: () => void): void {
+    function finish(res: ServerResponse, page: string): void {
       res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'})
       res.end(page)
       clearTimeout(timer)
       server.close()
-      settle()
     }
 
     async function handleIncoming(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -51,8 +50,14 @@ export async function waitForLocalCallback<T>(options: {
           req.method === 'POST' ? parseFormData(await readBody(req)) : {}
 
         options.handleRequest(url, {
-          rejectWithPage(page, error) { finish(res, page, () => { reject(error); }); },
-          resolveWithPage(page, value) { finish(res, page, () => { resolve(value); }); },
+          rejectWithPage(page, error) {
+            finish(res, page)
+            reject(error)
+          },
+          resolveWithPage(page, value) {
+            finish(res, page)
+            resolve(value)
+          },
           respondBadRequest(message) {
             res.writeHead(400, {'Content-Type': 'text/plain'})
             res.end(message)

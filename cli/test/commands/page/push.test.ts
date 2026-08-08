@@ -173,7 +173,7 @@ describe('page push', () => {
         'Demo Page',
       )
 
-      const files = readdirSync(dir).sort()
+      const files = readdirSync(dir).sort((a, b) => a.localeCompare(b))
       expect(files).toEqual(['8-demo-page.html', '8-demo-page.json'])
       expect(existsSync(join(dir, 'demo.html'))).toBe(false)
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
@@ -185,7 +185,7 @@ describe('page push', () => {
 
       await ensureCanonicalFilename({content: '<p>Hi</p>', contentPath: join(dir, 'foo.html'), meta: {}, metaPath: join(dir, 'foo.json')}, 5, 'Foo')
 
-      expect(readdirSync(dir).sort()).toEqual(['5-foo.html', '5-foo.json'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['5-foo.html', '5-foo.json'])
     })
 
     it('leaves an already-canonical pair in place, without calling rename at all', async () => {
@@ -198,7 +198,7 @@ describe('page push', () => {
         'hello',
       )
 
-      expect(readdirSync(dir).sort()).toEqual(['6-hello.html', '6-hello.json'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['6-hello.html', '6-hello.json'])
       // Same end state would also result from renaming a file to its own name, so the file
       // listing alone doesn't prove the early-return branch actually ran.
       expect(rename).not.toHaveBeenCalled()
@@ -213,7 +213,7 @@ describe('page push', () => {
         'Weird Name!',
       )
 
-      expect(readdirSync(dir).sort()).toEqual(['9-weird-name.html', '9-weird-name.json'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['9-weird-name.html', '9-weird-name.json'])
     })
 
     it('persists the id under the current filename before attempting the rename, so a failed rename does not lose it', async () => {
@@ -307,7 +307,7 @@ describe('page push', () => {
       expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'New'})
       // Regression coverage: nothing else in this test observes whether ensureCanonicalFilename
       // actually ran after a successful create, only that `post` was called correctly.
-      expect(readdirSync(dir).sort()).toEqual(['42-new.html', '42-new.json'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['42-new.html', '42-new.json'])
     })
 
     it('skips the network entirely on a dry run, and reports what would happen on the task', async () => {
@@ -349,7 +349,7 @@ describe('page push', () => {
       // No `id` in the create payload: WordPress core rejects a POST that carries one with a
       // 400 "Cannot create existing post", even when that id no longer exists on the site.
       expect(post).toHaveBeenCalledWith('wp/v2/pages', {content: '<p>Hi</p>', title: 'Demo'})
-      expect(readdirSync(dir).sort()).toEqual(['99-demo.html', '99-demo.json'])
+      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['99-demo.html', '99-demo.json'])
     })
   })
 })

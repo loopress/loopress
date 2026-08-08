@@ -7,7 +7,9 @@ import {isAppPasswordStale, rotateAppPassword} from '../../src/lib/rotate-app-pa
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
 const OLD_TOKEN = 'user:old-pass'
+// eslint-disable-next-line sonarjs/no-hardcoded-passwords -- mock credential fixture, not a real secret
 const NEW_TOKEN_PASSWORD = 'new-pass-123'
+const NEW_TOKEN = `user:${NEW_TOKEN_PASSWORD}`
 const OLD_UUID = 'old-uuid'
 const NEW_UUID = 'new-uuid'
 
@@ -41,7 +43,7 @@ describe('rotateAppPassword', () => {
     server = createServer((req: IncomingMessage, res: ServerResponse) => {
       requests.push({auth: req.headers.authorization ?? '', method: req.method ?? '', url: req.url ?? ''})
       const auth = req.headers.authorization ?? ''
-      const isNewToken = auth === `Basic ${Buffer.from(`user:${NEW_TOKEN_PASSWORD}`).toString('base64')}`
+      const isNewToken = auth === `Basic ${Buffer.from(NEW_TOKEN).toString('base64')}`
 
       res.writeHead(isVerifyShouldFail && isNewToken ? 401 : 200, {'Content-Type': 'application/json'})
 
@@ -84,7 +86,7 @@ describe('rotateAppPassword', () => {
     // the introspect used to find what to delete authenticated with the OLD credential,
     // the verify + delete steps both used the NEW one, never the old one for the delete
     expect(requests[0].auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
-    expect(requests[3].auth).toBe(`Basic ${Buffer.from(`user:${NEW_TOKEN_PASSWORD}`).toString('base64')}`)
+    expect(requests[3].auth).toBe(`Basic ${Buffer.from(NEW_TOKEN).toString('base64')}`)
   })
 
   it('never revokes the old credential when the new one fails to verify, and cleans up the orphan instead', async () => {
