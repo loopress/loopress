@@ -27,7 +27,7 @@ class UninstallTest extends TestCase
 
         // Reaching this line at all is the assertion: the old code fataled on the require_once
         // before ever getting here.
-        include $dir . '/uninstall.php';
+        include_once $dir . '/uninstall.php';
         $this->addToAssertionCount(1);
 
         $this->removeDirRecursive($dir);
@@ -43,7 +43,7 @@ class UninstallTest extends TestCase
         define('WP_CONTENT_DIR', $contentDir);
         define('WP_UNINSTALL_PLUGIN', true);
 
-        include $dir . '/uninstall.php';
+        include_once $dir . '/uninstall.php';
 
         $this->assertSame([$contentDir . '/loopress/'], \Symfony\Component\Filesystem\Filesystem::$removed);
 

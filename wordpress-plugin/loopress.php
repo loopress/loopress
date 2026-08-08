@@ -21,13 +21,13 @@ if (!defined('ABSPATH')) {
 // Light's file loads first alphabetically and already defined LOOPRESS_VERSION) and this
 // hook would never be registered, silently breaking the automatic Loopress Light deactivation.
 register_activation_hook(__FILE__, function () {
-    /* LOOPRESS_PLUS_START */
+    /* LOOPRESS_FULL_START */
     // Loopress Full replaces Loopress Light: deactivate the Light edition on activation so
     // the coexistence guard below never fires during a normal upgrade.
     if (function_exists('deactivate_plugins')) {
         deactivate_plugins('loopress-light/loopress.php');
     }
-    /* LOOPRESS_PLUS_END */
+    /* LOOPRESS_FULL_END */
     do_action('litespeed_purge_all');
 });
 
@@ -70,7 +70,7 @@ require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
 
 use Loopress\Plugin;
 
-/* LOOPRESS_PLUS_START */
+/* LOOPRESS_FULL_START */
 // Stripped from the Loopress Light wordpress.org build by scripts/build-flavor.cjs, together
 // with src/Dependencies/, src/Update/, src/Snippets/, src/Api/ and uninstall.php: the Light
 // artifact must not contain any reference to these Plus features, even inactive ones.
@@ -82,11 +82,11 @@ foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Form', 'Settin
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
 }
-/* LOOPRESS_PLUS_END */
+/* LOOPRESS_FULL_END */
 
 // Booting on plugins_loaded rather than at file inclusion; priority 1 because snippet
 // plugins execute user snippets on this same hook at their default priority, and the
 // plugin's modules must be registered before that.
 add_action('plugins_loaded', function () {
-    new Plugin();
+    return new Plugin();
 }, 1);

@@ -50,6 +50,7 @@ export function Nav() {
         </nav>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={toggle}
             aria-label="Toggle theme"
             className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

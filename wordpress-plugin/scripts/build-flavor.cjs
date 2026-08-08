@@ -12,16 +12,16 @@ const { execFileSync } = require('node:child_process')
 const root = path.resolve(__dirname, '..')
 
 // Single source of truth for which src/ features are Full-only: parsed out of the
-// LOOPRESS_PLUS_START/END block in loopress.php (the `foreach (['Dependencies', ...])`
+// LOOPRESS_FULL_START/END block in loopress.php (the `foreach (['Dependencies', ...])`
 // array US-5 introduced) instead of being duplicated here by hand, so the two can never
-// drift out of sync. loopress.php has more than one LOOPRESS_PLUS_START/END block (the
+// drift out of sync. loopress.php has more than one LOOPRESS_FULL_START/END block (the
 // activation hook has its own), so this matches every block and picks the one with the
 // feature-bootstrap foreach rather than assuming it's the first.
 function deriveFullOnlyFeatures(root) {
   const entry = fs.readFileSync(path.join(root, 'loopress.php'), 'utf8')
-  const plusBlocks = entry.matchAll(/LOOPRESS_PLUS_START \*\/([\s\S]*?)\/\* LOOPRESS_PLUS_END/g)
-  for (const plusBlock of plusBlocks) {
-    const foreachArray = plusBlock[1].match(/foreach\s*\(\[([^\]]*)\]\s*as/)
+  const fullBlocks = entry.matchAll(/LOOPRESS_FULL_START \*\/([\s\S]*?)\/\* LOOPRESS_FULL_END/g)
+  for (const fullBlock of fullBlocks) {
+    const foreachArray = fullBlock[1].match(/foreach\s*\(\[([^\]]*)\]\s*as/)
     if (foreachArray) {
       return [...foreachArray[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
     }
@@ -113,8 +113,8 @@ if (require.main === module) {
   })
 
   // 2. Entry file: strip or keep the marked Plus block, patch the header for the full edition.
-  const START = '/* LOOPRESS_PLUS_START */'
-  const END = '/* LOOPRESS_PLUS_END */'
+  const START = '/* LOOPRESS_FULL_START */'
+  const END = '/* LOOPRESS_FULL_END */'
   let entry = fs.readFileSync(path.join(root, 'loopress.php'), 'utf8')
   const blockPattern = new RegExp(`[ \\t]*${escapeRegExp(START)}[\\s\\S]*?${escapeRegExp(END)}\\n?`, 'g')
 
