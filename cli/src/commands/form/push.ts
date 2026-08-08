@@ -51,6 +51,12 @@ export default class Push extends PushCommand {
     this.log('All forms pushed.')
   }
 
+  private async createForm(filePath: string, data: Record<string, unknown>, title: string): Promise<void> {
+    const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
+    const newId = getFormId(created)
+    if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
+  }
+
   // Renames the local file to the `<id>-<slug>.json` convention used by `form pull`
   // whenever it doesn't already match (a hand-created file with no id, or a stale slug after
   // a title change in the WordPress admin), same principle as ensureCanonicalFilename in
@@ -111,9 +117,7 @@ export default class Push extends PushCommand {
       const id = getFormId(data)
 
       if (id === null) {
-        const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
-        const newId = getFormId(created)
-        if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
+        await this.createForm(filePath, data, title)
       } else {
         try {
           await this.wp.put(`${FORM_ENDPOINT}/${id}`, data)
@@ -123,9 +127,7 @@ export default class Push extends PushCommand {
           // it instead of failing, and adopt whatever id the site assigns.
           if (!isNotFoundError(error)) throw error
 
-          const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
-          const newId = getFormId(created)
-          if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
+          await this.createForm(filePath, data, title)
         }
       }
 

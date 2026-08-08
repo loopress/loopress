@@ -72,6 +72,10 @@ export default class Push extends PushCommand {
     return {activated: activatedSlugs, installed: installedSlugs, skippedComposerManaged, status: 'success'}
   }
 
+  private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {
+    await this.performPluginAction('activate', slug, async () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
+  }
+
   private async applyPluginChanges(toInstall: PluginDiff['toInstall'], toActivate: PluginDiff['toActivate']): Promise<void> {
     if (toInstall.length > 0) {
       await new Listr(
@@ -94,6 +98,10 @@ export default class Push extends PushCommand {
     }
   }
 
+  private async installPlugin(slug: string, task?: {output: string}): Promise<void> {
+    await this.performPluginAction('install', slug, async () => this.wp.post('wp/v2/plugins', {slug, status: 'active'}), task)
+  }
+
   private logPlannedChanges(toInstall: PluginDiff['toInstall'], toActivate: PluginDiff['toActivate']): void {
     if (toInstall.length > 0) {
       this.log(`\nTo install (${toInstall.length}):`)
@@ -113,14 +121,6 @@ export default class Push extends PushCommand {
       `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,
     )
     this.log('Run `lps composer push` to deploy them.')
-  }
-
-  private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction('activate', slug, async () => this.wp.put(`wp/v2/plugins/${file}`, {status: 'active'}), task)
-  }
-
-  private async installPlugin(slug: string, task?: {output: string}): Promise<void> {
-    await this.performPluginAction('install', slug, async () => this.wp.post('wp/v2/plugins', {slug, status: 'active'}), task)
   }
 
   private async performPluginAction(

@@ -3,7 +3,12 @@
     "allow": [
       "Bash(composer psalm *)",
       "Bash(composer cs *)",
-      "Bash(pnpm remove *)"
+      "Bash(pnpm remove *)",
+      "Bash(./node_modules/.bin/eslint src/commands/project/push.ts --format json)",
+      "Bash(./node_modules/.bin/eslint . --format json)",
+      "Bash(python3 -c \"import json,sys; print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in json.load\\(sys.stdin\\)['scripts'].items\\(\\)\\)\\)\")",
+      "Bash(./node_modules/.bin/tsc -b --noEmit)",
+      "Bash(./node_modules/.bin/vitest run *)"
     ]
   }
 }

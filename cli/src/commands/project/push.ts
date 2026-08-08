@@ -86,6 +86,34 @@ export default class Push extends Command {
     )
   }
 
+  private async applyEnvironment(
+    api: ApiClient,
+    apiProjectId: string,
+    envPlan: EnvPlan,
+    task?: {output: string},
+  ): Promise<void> {
+    try {
+      if (envPlan.action === 'create') {
+        const created = await api.post<ApiEnvironment>(`projects/${apiProjectId}/environments`, {
+          name: envPlan.env.name,
+          url: envPlan.env.url,
+        })
+        envPlan.apiEnvironmentId = created.id
+      }
+
+      if (!envPlan.apiEnvironmentId) {
+        throw new Error(`No API environment id resolved for "${envPlan.env.name}" (action: ${envPlan.action})`)
+      }
+
+      configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
+      if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
+    } catch (error) {
+      const message = `Failed to push "${envPlan.env.name}": ${(error as Error).message}`
+      if (task) task.output = message
+      throw error
+    }
+  }
+
   private async applyEnvironmentPlans(
     api: ApiClient,
     envsNeedingWork: Array<{apiProjectId: string; envPlan: EnvPlan; projectName: string}>,
@@ -108,6 +136,26 @@ export default class Push extends Command {
     ).run()
 
     return count
+  }
+
+  private async applyProject(api: ApiClient, plan: ProjectPlan, task?: {output: string}): Promise<void> {
+    try {
+      if (plan.action === 'create') {
+        const created = await api.post<ApiProject>('projects', {name: plan.project.name})
+        plan.apiProjectId = created.id
+      }
+
+      if (!plan.apiProjectId) {
+        throw new Error(`No API project id resolved for "${plan.project.name}" (action: ${plan.action})`)
+      }
+
+      configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
+      if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
+    } catch (error) {
+      const message = `Failed to push project "${plan.project.name}": ${(error as Error).message}`
+      if (task) task.output = message
+      throw error
+    }
   }
 
   private async applyProjectPlans(api: ApiClient, projectsNeedingWork: ProjectPlan[]): Promise<number> {
@@ -144,6 +192,26 @@ export default class Push extends Command {
       )
   }
 
+  // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
+  // taken without prompting, and logged, so CI runs never mint duplicate projects.
+  private async confirmLink(message: string): Promise<boolean> {
+    if (this.yes || !isInteractive()) {
+      this.log(`${message} Assuming yes (link).`)
+      return true
+    }
+
+    return confirm({default: true, message})
+  }
+
+  private async fetchApiProjects(api: ApiClient): Promise<ApiProject[]> {
+    try {
+      return await api.get<ApiProject[]>('projects')
+    } catch (error) {
+      this.warn(`Could not fetch existing projects from the API, will create everything as new: ${(error as Error).message}`)
+      return []
+    }
+  }
+
   private async planAll(
     projects: Array<ProjectConfig & {id: string}>,
     apiProjects: ApiProject[],
@@ -172,94 +240,6 @@ export default class Push extends Command {
     }
 
     return {envPlansByProject, projectPlans}
-  }
-
-  private async pushAllCredentials(
-    api: ApiClient,
-    projectPlans: ProjectPlan[],
-    envPlansByProject: Map<string, EnvPlan[]>,
-  ): Promise<void> {
-    for (const plan of projectPlans) {
-      if (!plan.apiProjectId) continue
-
-      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
-        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
-
-        try {
-          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
-        } catch (error) {
-          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
-        }
-      }
-    }
-  }
-
-  private async applyEnvironment(
-    api: ApiClient,
-    apiProjectId: string,
-    envPlan: EnvPlan,
-    task?: {output: string},
-  ): Promise<void> {
-    try {
-      if (envPlan.action === 'create') {
-        const created = await api.post<ApiEnvironment>(`projects/${apiProjectId}/environments`, {
-          name: envPlan.env.name,
-          url: envPlan.env.url,
-        })
-        envPlan.apiEnvironmentId = created.id
-      }
-
-      if (!envPlan.apiEnvironmentId) {
-        throw new Error(`No API environment id resolved for "${envPlan.env.name}" (action: ${envPlan.action})`)
-      }
-
-      configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
-      if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
-    } catch (error) {
-      const message = `Failed to push "${envPlan.env.name}": ${(error as Error).message}`
-      if (task) task.output = message
-      throw error
-    }
-  }
-
-  private async applyProject(api: ApiClient, plan: ProjectPlan, task?: {output: string}): Promise<void> {
-    try {
-      if (plan.action === 'create') {
-        const created = await api.post<ApiProject>('projects', {name: plan.project.name})
-        plan.apiProjectId = created.id
-      }
-
-      if (!plan.apiProjectId) {
-        throw new Error(`No API project id resolved for "${plan.project.name}" (action: ${plan.action})`)
-      }
-
-      configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
-      if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
-    } catch (error) {
-      const message = `Failed to push project "${plan.project.name}": ${(error as Error).message}`
-      if (task) task.output = message
-      throw error
-    }
-  }
-
-  // Linking to the existing match is the safe default: outside a TTY (or with --yes) it is
-  // taken without prompting, and logged, so CI runs never mint duplicate projects.
-  private async confirmLink(message: string): Promise<boolean> {
-    if (this.yes || !isInteractive()) {
-      this.log(`${message} Assuming yes (link).`)
-      return true
-    }
-
-    return confirm({default: true, message})
-  }
-
-  private async fetchApiProjects(api: ApiClient): Promise<ApiProject[]> {
-    try {
-      return await api.get<ApiProject[]>('projects')
-    } catch (error) {
-      this.warn(`Could not fetch existing projects from the API, will create everything as new: ${(error as Error).message}`)
-      return []
-    }
   }
 
   private async planEnvironment(
@@ -316,6 +296,26 @@ export default class Push extends Command {
     }
 
     return {action: 'create', project}
+  }
+
+  private async pushAllCredentials(
+    api: ApiClient,
+    projectPlans: ProjectPlan[],
+    envPlansByProject: Map<string, EnvPlan[]>,
+  ): Promise<void> {
+    for (const plan of projectPlans) {
+      if (!plan.apiProjectId) continue
+
+      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
+        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
+
+        try {
+          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
+        } catch (error) {
+          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
+        }
+      }
+    }
   }
 
   private async pushCredentials(

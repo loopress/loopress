@@ -169,6 +169,27 @@ export abstract class LoopressCommand extends Command {
     return env
   }
 
+  private resolveEnvironment(envName?: string): {env: EnvironmentConfig; projectId: string} {
+    if (this.localConfig.projectId) {
+      return this.resolveEnvironmentForConfiguredProject(this.localConfig.projectId, envName)
+    }
+
+    if (envName) {
+      const current = configManager.getCurrentProject()
+      if (!current) {
+        this.error('No project configured. Run `lps project config` first.')
+      }
+
+      return {env: this.pickEnvironment(current, envName), projectId: current.id}
+    }
+
+    const env = configManager.getCurrentEnv()
+    const current = configManager.getCurrentProject()
+    if (env && current) return {env, projectId: current.id}
+
+    this.error('No environment configured. Run `lps project config` first.')
+  }
+
   private resolveEnvironmentForConfiguredProject(projectId: string, envName?: string): {env: EnvironmentConfig; projectId: string} {
     const project = configManager.getProject(projectId)
     if (!project) {
@@ -193,26 +214,5 @@ export abstract class LoopressCommand extends Command {
     }
 
     return {env: currentEnv, projectId}
-  }
-
-  private resolveEnvironment(envName?: string): {env: EnvironmentConfig; projectId: string} {
-    if (this.localConfig.projectId) {
-      return this.resolveEnvironmentForConfiguredProject(this.localConfig.projectId, envName)
-    }
-
-    if (envName) {
-      const current = configManager.getCurrentProject()
-      if (!current) {
-        this.error('No project configured. Run `lps project config` first.')
-      }
-
-      return {env: this.pickEnvironment(current, envName), projectId: current.id}
-    }
-
-    const env = configManager.getCurrentEnv()
-    const current = configManager.getCurrentProject()
-    if (env && current) return {env, projectId: current.id}
-
-    this.error('No environment configured. Run `lps project config` first.')
   }
 }
