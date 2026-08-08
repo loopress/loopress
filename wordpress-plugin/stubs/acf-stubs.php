@@ -12,6 +12,7 @@
  */
 function acf_get_internal_post_type_instance(string $post_type = 'acf-field-group')
 {
+    return false;
 }
 
 /**
@@ -20,6 +21,7 @@ function acf_get_internal_post_type_instance(string $post_type = 'acf-field-grou
  */
 function acf_get_internal_post_type($id, string $post_type)
 {
+    return false;
 }
 
 /**
@@ -28,6 +30,7 @@ function acf_get_internal_post_type($id, string $post_type)
  */
 function acf_get_internal_post_type_post($id, string $post_type)
 {
+    return false;
 }
 
 /**
@@ -36,6 +39,7 @@ function acf_get_internal_post_type_post($id, string $post_type)
  */
 function acf_get_internal_post_type_posts(string $post_type = 'acf-field-group', array $filter = []): array
 {
+    return [];
 }
 
 /**
@@ -44,6 +48,7 @@ function acf_get_internal_post_type_posts(string $post_type = 'acf-field-group',
  */
 function acf_prepare_internal_post_type_for_export(array $post = [], string $post_type = 'acf-field-group'): array
 {
+    return [];
 }
 
 /**
@@ -52,6 +57,7 @@ function acf_prepare_internal_post_type_for_export(array $post = [], string $pos
  */
 function acf_import_internal_post_type(array $post, string $post_type): array
 {
+    return [];
 }
 
 /**
@@ -59,6 +65,7 @@ function acf_import_internal_post_type(array $post, string $post_type): array
  */
 function acf_delete_internal_post_type($id, string $post_type_name): bool
 {
+    return false;
 }
 
 /**
@@ -67,4 +74,5 @@ function acf_delete_internal_post_type($id, string $post_type_name): bool
  */
 function acf_get_fields($selector)
 {
+    return false;
 }
