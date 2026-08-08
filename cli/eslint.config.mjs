@@ -3,6 +3,7 @@ import oclif from 'eslint-config-oclif'
 import prettier from 'eslint-config-prettier'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
+import sonarjs from 'eslint-plugin-sonarjs'
 
 const gitignorePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.gitignore')
 
@@ -12,6 +13,7 @@ const eslintConfig = [
   // ponytail: eslint-plugin-mocha v10 (pinned by eslint-config-oclif) crashes on ESLint 10,
   // drop this filter once eslint-config-oclif ships eslint-plugin-mocha v11
   ...oclif.filter((config) => config.name !== 'mocha/recommended'),
+  sonarjs.configs.recommended,
   prettier,
   {
     files: ['**/*.ts'],
@@ -30,6 +32,9 @@ const eslintConfig = [
       'unicorn/no-useless-switch-case': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'perfectionist/sort-objects': 'off',
+      // Every oclif Command subclass declares `static description`/`static flags`/`static args`
+      // plain (never `readonly`) by framework convention; flagging all of them is just noise.
+      'sonarjs/public-static-readonly': 'off',
       // Companions to no-explicit-any above: same call, any is unsafe by design once allowed.
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(composer psalm *)",
-      "Bash(composer cs *)"
+      "Bash(composer cs *)",
+      "Bash(pnpm remove *)"
     ]
   }
 }
