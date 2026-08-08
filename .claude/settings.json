@@ -8,7 +8,10 @@
       "Bash(./node_modules/.bin/eslint . --format json)",
       "Bash(python3 -c \"import json,sys; print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in json.load\\(sys.stdin\\)['scripts'].items\\(\\)\\)\\)\")",
       "Bash(./node_modules/.bin/tsc -b --noEmit)",
-      "Bash(./node_modules/.bin/vitest run *)"
+      "Bash(./node_modules/.bin/vitest run *)",
+      "WebFetch(domain:docs.sonarsource.com)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/analysis-parameters\")"
     ]
   }
 }
