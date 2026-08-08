@@ -3,7 +3,7 @@ import {Listr} from 'listr2'
 import {PushCommand} from '../../lib/push-command.js'
 import {type WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
-import {diffPlugins, parseInstalledPlugins} from '../../utils/plugins.js'
+import {diffPlugins, parseInstalledPlugins, type PluginDiff} from '../../utils/plugins.js'
 
 type PushResult = {
   activated: string[]
@@ -38,12 +38,7 @@ export default class Push extends PushCommand {
     )
 
     const skippedComposerManaged = composerSlugs.filter((slug) => Object.hasOwn(manifest, slug))
-    if (skippedComposerManaged.length > 0) {
-      this.log(
-        `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,
-      )
-      this.log('Run `lps composer push` to deploy them.')
-    }
+    this.logSkippedComposerManaged(skippedComposerManaged)
 
     this.log(`Pushing plugins to ${url}`)
 
@@ -57,15 +52,7 @@ export default class Push extends PushCommand {
       return {activated: [], installed: [], skippedComposerManaged, status: 'in-sync'}
     }
 
-    if (toInstall.length > 0) {
-      this.log(`\nTo install (${toInstall.length}):`)
-      for (const a of toInstall) this.log(`  + ${a.slug}`)
-    }
-
-    if (toActivate.length > 0) {
-      this.log(`\nTo activate (${toActivate.length}):`)
-      for (const a of toActivate) this.log(`  ↑ ${a.slug}`)
-    }
+    this.logPlannedChanges(toInstall, toActivate)
 
     const installedSlugs = toInstall.map((a) => a.slug)
     const activatedSlugs = toActivate.map((a) => a.slug)
@@ -74,6 +61,18 @@ export default class Push extends PushCommand {
 
     // Installing with `status: active` activates in the same call, so installs never need a
     // separate activation step the way the old custom endpoint's two-step flow did.
+    await this.applyPluginChanges(toInstall, toActivate)
+
+    if (this.failedCount > 0) {
+      this.error(`${this.failedCount} plugin${this.failedCount === 1 ? '' : 's'} failed to install or activate.`)
+    }
+
+    await this.recordSuccess()
+
+    return {activated: activatedSlugs, installed: installedSlugs, skippedComposerManaged, status: 'success'}
+  }
+
+  private async applyPluginChanges(toInstall: PluginDiff['toInstall'], toActivate: PluginDiff['toActivate']): Promise<void> {
     if (toInstall.length > 0) {
       await new Listr(
         toInstall.map((action) => ({
@@ -93,14 +92,27 @@ export default class Push extends PushCommand {
         {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
       ).run()
     }
+  }
 
-    if (this.failedCount > 0) {
-      this.error(`${this.failedCount} plugin${this.failedCount === 1 ? '' : 's'} failed to install or activate.`)
+  private logPlannedChanges(toInstall: PluginDiff['toInstall'], toActivate: PluginDiff['toActivate']): void {
+    if (toInstall.length > 0) {
+      this.log(`\nTo install (${toInstall.length}):`)
+      for (const a of toInstall) this.log(`  + ${a.slug}`)
     }
 
-    await this.recordSuccess()
+    if (toActivate.length > 0) {
+      this.log(`\nTo activate (${toActivate.length}):`)
+      for (const a of toActivate) this.log(`  ↑ ${a.slug}`)
+    }
+  }
 
-    return {activated: activatedSlugs, installed: installedSlugs, skippedComposerManaged, status: 'success'}
+  private logSkippedComposerManaged(skippedComposerManaged: string[]): void {
+    if (skippedComposerManaged.length === 0) return
+
+    this.log(
+      `Skipping ${skippedComposerManaged.length} Composer-managed ${skippedComposerManaged.length === 1 ? 'plugin' : 'plugins'}: ${skippedComposerManaged.join(', ')}`,
+    )
+    this.log('Run `lps composer push` to deploy them.')
   }
 
   private async activatePlugin(file: string, slug: string, task?: {output: string}): Promise<void> {

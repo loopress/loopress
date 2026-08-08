@@ -169,32 +169,35 @@ export abstract class LoopressCommand extends Command {
     return env
   }
 
+  private resolveEnvironmentForConfiguredProject(projectId: string, envName?: string): {env: EnvironmentConfig; projectId: string} {
+    const project = configManager.getProject(projectId)
+    if (!project) {
+      this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
+    }
+
+    const envNames = Object.keys(project.environments)
+    if (envNames.length === 0) {
+      this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
+    }
+
+    if (envName) return {env: this.pickEnvironment(project, envName), projectId}
+
+    if (envNames.length === 1) {
+      return {env: project.environments[envNames[0]], projectId}
+    }
+
+    const current = configManager.getCurrentProject()
+    const currentEnv = current?.id === projectId ? configManager.getCurrentEnv() : null
+    if (!currentEnv) {
+      this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
+    }
+
+    return {env: currentEnv, projectId}
+  }
+
   private resolveEnvironment(envName?: string): {env: EnvironmentConfig; projectId: string} {
     if (this.localConfig.projectId) {
-      const {projectId} = this.localConfig
-      const project = configManager.getProject(projectId)
-      if (!project) {
-        this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
-      }
-
-      const envNames = Object.keys(project.environments)
-      if (envNames.length === 0) {
-        this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
-      }
-
-      if (envName) return {env: this.pickEnvironment(project, envName), projectId}
-
-      if (envNames.length === 1) {
-        return {env: project.environments[envNames[0]], projectId}
-      }
-
-      const current = configManager.getCurrentProject()
-      const currentEnv = current?.id === projectId ? configManager.getCurrentEnv() : null
-      if (!currentEnv) {
-        this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
-      }
-
-      return {env: currentEnv, projectId}
+      return this.resolveEnvironmentForConfiguredProject(this.localConfig.projectId, envName)
     }
 
     if (envName) {

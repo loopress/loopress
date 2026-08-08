@@ -68,6 +68,86 @@ export default class Push extends Command {
 
     const api = new ApiClient(token)
     const apiProjects = await this.fetchApiProjects(api)
+    const {envPlansByProject, projectPlans} = await this.planAll(projects, apiProjects)
+
+    let projectCount = projectPlans.filter((plan) => plan.action === 'synced').length
+    let environmentCount = [...envPlansByProject.values()].flat().filter((plan) => plan.action === 'synced').length
+
+    const projectsNeedingWork = projectPlans.filter((plan) => plan.action !== 'synced')
+    projectCount += await this.applyProjectPlans(api, projectsNeedingWork)
+
+    const envsNeedingWork = this.collectEnvsNeedingWork(projectPlans, envPlansByProject)
+    environmentCount += await this.applyEnvironmentPlans(api, envsNeedingWork)
+
+    await this.pushAllCredentials(api, projectPlans, envPlansByProject)
+
+    this.log(
+      `\n✓ Pushed ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} to your Loopress account`,
+    )
+  }
+
+  private async applyEnvironmentPlans(
+    api: ApiClient,
+    envsNeedingWork: Array<{apiProjectId: string; envPlan: EnvPlan; projectName: string}>,
+  ): Promise<number> {
+    if (envsNeedingWork.length === 0) return 0
+
+    let count = 0
+    await new Listr(
+      envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
+        task: async (_ctx, task) => {
+          await this.applyEnvironment(api, apiProjectId, envPlan, task)
+          count++
+        },
+        title:
+          envPlan.action === 'create'
+            ? `Create environment "${envPlan.env.name}" on "${projectName}"`
+            : `Link environment "${envPlan.env.name}" on "${projectName}"`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
+
+    return count
+  }
+
+  private async applyProjectPlans(api: ApiClient, projectsNeedingWork: ProjectPlan[]): Promise<number> {
+    if (projectsNeedingWork.length === 0) return 0
+
+    let count = 0
+    await new Listr(
+      projectsNeedingWork.map((plan) => ({
+        task: async (_ctx, task) => {
+          await this.applyProject(api, plan, task)
+          count++
+        },
+        title:
+          plan.action === 'create'
+            ? `Create project "${plan.project.name}" on the API`
+            : `Link project "${plan.project.name}" to the API`,
+      })),
+      {concurrent: false, exitOnError: false},
+    ).run()
+
+    return count
+  }
+
+  private collectEnvsNeedingWork(
+    projectPlans: ProjectPlan[],
+    envPlansByProject: Map<string, EnvPlan[]>,
+  ): Array<{apiProjectId: string; envPlan: EnvPlan; projectName: string}> {
+    return projectPlans
+      .filter((plan): plan is ProjectPlan & {apiProjectId: string} => Boolean(plan.apiProjectId))
+      .flatMap((plan) =>
+        (envPlansByProject.get(plan.project.id) ?? [])
+          .filter((envPlan) => envPlan.action !== 'synced')
+          .map((envPlan) => ({apiProjectId: plan.apiProjectId, envPlan, projectName: plan.project.name})),
+      )
+  }
+
+  private async planAll(
+    projects: Array<ProjectConfig & {id: string}>,
+    apiProjects: ApiProject[],
+  ): Promise<{envPlansByProject: Map<string, EnvPlan[]>; projectPlans: ProjectPlan[]}> {
     const claimedProjectIds = new Set<string>()
     const envPlansByProject = new Map<string, EnvPlan[]>()
 
@@ -91,50 +171,14 @@ export default class Push extends Command {
       envPlansByProject.set(project.id, envPlans)
     }
 
-    let projectCount = projectPlans.filter((plan) => plan.action === 'synced').length
-    let environmentCount = [...envPlansByProject.values()].flat().filter((plan) => plan.action === 'synced').length
+    return {envPlansByProject, projectPlans}
+  }
 
-    const projectsNeedingWork = projectPlans.filter((plan) => plan.action !== 'synced')
-    if (projectsNeedingWork.length > 0) {
-      await new Listr(
-        projectsNeedingWork.map((plan) => ({
-          task: async (_ctx, task) => {
-            await this.applyProject(api, plan, task)
-            projectCount++
-          },
-          title:
-            plan.action === 'create'
-              ? `Create project "${plan.project.name}" on the API`
-              : `Link project "${plan.project.name}" to the API`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
-    }
-
-    const envsNeedingWork = projectPlans
-      .filter((plan): plan is ProjectPlan & {apiProjectId: string} => Boolean(plan.apiProjectId))
-      .flatMap((plan) =>
-        (envPlansByProject.get(plan.project.id) ?? [])
-          .filter((envPlan) => envPlan.action !== 'synced')
-          .map((envPlan) => ({apiProjectId: plan.apiProjectId, envPlan, projectName: plan.project.name})),
-      )
-
-    if (envsNeedingWork.length > 0) {
-      await new Listr(
-        envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
-          task: async (_ctx, task) => {
-            await this.applyEnvironment(api, apiProjectId, envPlan, task)
-            environmentCount++
-          },
-          title:
-            envPlan.action === 'create'
-              ? `Create environment "${envPlan.env.name}" on "${projectName}"`
-              : `Link environment "${envPlan.env.name}" on "${projectName}"`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
-    }
-
+  private async pushAllCredentials(
+    api: ApiClient,
+    projectPlans: ProjectPlan[],
+    envPlansByProject: Map<string, EnvPlan[]>,
+  ): Promise<void> {
     for (const plan of projectPlans) {
       if (!plan.apiProjectId) continue
 
@@ -148,10 +192,6 @@ export default class Push extends Command {
         }
       }
     }
-
-    this.log(
-      `\n✓ Pushed ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} to your Loopress account`,
-    )
   }
 
   private async applyEnvironment(
