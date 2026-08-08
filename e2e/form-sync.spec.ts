@@ -2,7 +2,7 @@ import {existsSync, mkdirSync, readdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test, unwrap, type WpCredentials} from './helpers/environment.js'
-import {loginToWpAdmin, setPluginActive} from './helpers/wp-admin.js'
+import {setPluginActive} from './helpers/wp-admin.js'
 
 const WPFORMS_SLUG = 'wpforms-lite'
 
@@ -157,18 +157,12 @@ test('never touches a hand-created file with no numeric id prefix while cleaning
 // active at once" isn't reachable, unlike seo-sync.spec.ts's RankMath/Yoast pair. "Zero active"
 // is the one reachable failure mode, mirrors acf-sync.spec.ts's "ACF plugin inactive" block.
 test.describe('no active form plugin', () => {
-  test.beforeAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, WPFORMS_SLUG, false)
-    await page.close()
+  test.beforeAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, WPFORMS_SLUG, false)
   })
 
-  test.afterAll(async ({browser, wp}) => {
-    const page = await browser.newPage()
-    await loginToWpAdmin(page, wp)
-    await setPluginActive(page, wp, WPFORMS_SLUG, true)
-    await page.close()
+  test.afterAll(async ({requestUtils}) => {
+    await setPluginActive(requestUtils, WPFORMS_SLUG, true)
   })
 
   test('form list fails with a clear "No supported form plugin is active" error', async ({runCli}) => {
