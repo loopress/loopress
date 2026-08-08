@@ -78,7 +78,7 @@ vi.mock('@wordpress/components', () => ({
                 value={value ?? ''}
             />
             {options?.map((opt: any) => (
-                <button key={opt.value} onClick={() => onChange(opt.value)}>
+                <button type="button" key={opt.value} onClick={() => onChange(opt.value)}>
                     {opt.label}
                 </button>
             ))}
@@ -96,6 +96,7 @@ vi.mock('@wordpress/components', () => ({
                 <div role="tablist">
                     {tabs.map((tab: any) => (
                         <button
+                            type="button"
                             key={tab.name}
                             role="tab"
                             aria-selected={tab.name === activeName}
