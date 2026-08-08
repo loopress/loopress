@@ -12,27 +12,15 @@ describe('isInteractive', () => {
     vi.unstubAllEnvs()
   })
 
-  it('is true with a TTY on both ends and no CI variable', () => {
-    process.stdin.isTTY = true
-    process.stdout.isTTY = true
-    vi.stubEnv('CI', '')
+  it.each([
+    {ci: '', expected: true, stdin: true, stdout: true, title: 'is true with a TTY on both ends and no CI variable'},
+    {ci: '', expected: false, stdin: false, stdout: true, title: 'is false when stdin is not a TTY'},
+    {ci: 'true', expected: false, stdin: true, stdout: true, title: 'is false on a CI runner even with a TTY'},
+  ])('$title', ({ci, expected, stdin, stdout}) => {
+    process.stdin.isTTY = stdin
+    process.stdout.isTTY = stdout
+    vi.stubEnv('CI', ci)
 
-    expect(isInteractive()).toBe(true)
-  })
-
-  it('is false when stdin is not a TTY', () => {
-    process.stdin.isTTY = false
-    process.stdout.isTTY = true
-    vi.stubEnv('CI', '')
-
-    expect(isInteractive()).toBe(false)
-  })
-
-  it('is false on a CI runner even with a TTY', () => {
-    process.stdin.isTTY = true
-    process.stdout.isTTY = true
-    vi.stubEnv('CI', 'true')
-
-    expect(isInteractive()).toBe(false)
+    expect(isInteractive()).toBe(expected)
   })
 })

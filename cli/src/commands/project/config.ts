@@ -77,7 +77,10 @@ export default class Config extends Command {
         }
       },
     })
-    const url = rawUrl.replace(/\/+$/, '')
+    let url = rawUrl
+    while (url.endsWith('/')) {
+      url = url.slice(0, -1)
+    }
 
     const {appPassword, user} = await this.resolveCredentials(url)
 
