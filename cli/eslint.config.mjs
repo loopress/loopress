@@ -1,9 +1,9 @@
 import {includeIgnoreFile} from '@eslint/compat'
 import oclif from 'eslint-config-oclif'
 import prettier from 'eslint-config-prettier'
+import sonarjs from 'eslint-plugin-sonarjs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
-import sonarjs from 'eslint-plugin-sonarjs'
 
 const gitignorePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.gitignore')
 

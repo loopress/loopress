@@ -46,6 +46,10 @@ describe('composer init', () => {
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
   })
 
+  afterEach(() => {
+    rmSync(dir, {force: true, recursive: true})
+  })
+
   it('does not overwrite an existing composer.json in a non-interactive terminal', async () => {
     interactive.value = false
     const {writeFileSync} = await import('node:fs')
@@ -57,10 +61,6 @@ describe('composer init', () => {
     expect(confirm).not.toHaveBeenCalled()
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('not overwriting'))
     expect(JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))).toEqual({kept: true})
-  })
-
-  afterEach(() => {
-    rmSync(dir, {force: true, recursive: true})
   })
 
   it('writes a composer.json wired to WPackagist', async () => {

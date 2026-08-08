@@ -29,7 +29,8 @@ describe('page pull', () => {
 
       const orphans = await findOrphanedFiles(dir, new Set())
 
-      expect(orphans.sort()).toEqual(['9-contact.html', '9-contact.json'])
+      orphans.sort((a, b) => a.localeCompare(b))
+      expect(orphans).toEqual(['9-contact.html', '9-contact.json'])
     })
 
     it('keeps a pair whose id is still in the current remote list', async () => {

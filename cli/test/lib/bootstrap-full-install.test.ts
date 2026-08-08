@@ -40,6 +40,7 @@ describe('bootstrapLoopressFull', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // eslint-disable-next-line sonarjs/publicly-writable-directories -- mocked return value, never written to disk
     downloadLatestFullZipMock.mockResolvedValue('/tmp/lps-loopress-full-xyz/loopress-full.zip')
     createTempAdminMock.mockResolvedValue(admin)
     deleteTempAdminMock.mockResolvedValue()

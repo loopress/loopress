@@ -14,13 +14,16 @@ export default class Login extends Command {
 
     authManager.setAuth({email, savedAt: new Date().toISOString(), token})
 
-    this.log(`\nLogged in${email ? ` as ${email}` : ''}. You're all set!`)
+    const emailSuffix = email ? ` as ${email}` : ''
+    this.log(`\nLogged in${emailSuffix}. You're all set!`)
   }
 
   private async waitForCallback(): Promise<{email?: string; token: string}> {
     return waitForLocalCallback<{email?: string; token: string}>({
-      buildUrl: (callbackBaseUrl) =>
-        `${CONSOLE_URL}/cli-auth?callbackUrl=${encodeURIComponent(`${callbackBaseUrl}/callback`)}`,
+      buildUrl: (callbackBaseUrl) => {
+        const callbackUrl = encodeURIComponent(`${callbackBaseUrl}/callback`)
+        return `${CONSOLE_URL}/cli-auth?callbackUrl=${callbackUrl}`
+      },
       handleRequest(url, {resolveWithPage, respondBadRequest}) {
         const token = url.searchParams.get('token')
 

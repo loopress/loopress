@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../../../src/lib/find-orphaned-files.js'
-import {buildMetaFile, buildSnippetFile, type NormalizedSnippet, type SnippetType} from '../../../src/utils/snippet-format.js'
+import {buildMetaFile, buildSnippetFile, type NormalizedSnippet} from '../../../src/utils/snippet-format.js'
 
 // The same matcher `snippet pull` wires in run(): code extensions plus the json sidecar,
 // identity taken from the `<id>-` prefix.
@@ -47,7 +47,8 @@ describe('pull helpers', () => {
 
       const orphans = await findOrphanedFiles(dir, new Set())
 
-      expect(orphans.sort()).toEqual(['12-coucou.html', '12-coucou.json'])
+      orphans.sort((a, b) => a.localeCompare(b))
+      expect(orphans).toEqual(['12-coucou.html', '12-coucou.json'])
     })
 
     it('keeps files whose id is still in the current remote list', async () => {
