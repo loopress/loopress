@@ -11,7 +11,7 @@
     <file>tests</file>
     <file>loopress.php</file>
     <file>uninstall.php</file>
-    <file>psalm-stubs.php</file>
+    <file>stubs/psalm-stubs.php</file>
 
     <!--
         Base standard: WordPress-Extra (WordPress-Core + best-practice sniffs).

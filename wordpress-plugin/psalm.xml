@@ -19,10 +19,10 @@
 
     <stubs>
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php" />
-        <file name="psalm-stubs.php" />
-        <file name="code-snippets-stubs.php" />
-        <file name="acf-stubs.php" />
-        <file name="wpforms-stubs.php" />
+        <file name="stubs/psalm-stubs.php" />
+        <file name="stubs/code-snippets-stubs.php" />
+        <file name="stubs/acf-stubs.php" />
+        <file name="stubs/wpforms-stubs.php" />
     </stubs>
 
     <issueHandlers>
