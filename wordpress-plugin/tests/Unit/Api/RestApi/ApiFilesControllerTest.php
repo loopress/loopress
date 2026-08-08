@@ -115,6 +115,22 @@ class ApiFilesControllerTest extends TestCase
 
     // ── push_file ────────────────────────────────────────────────────────────
 
+    public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void
+    {
+        // register_routes()'s validate_callback normally rejects this before WP ever calls
+        // push_file(), but that's not exercised by a direct call to the controller in these
+        // unit tests: this covers the defense-in-depth re-check inside push_file() itself
+        // (also what clears the path-injection finding a static analyzer raises otherwise,
+        // since the validate_callback wiring elsewhere isn't visible to it).
+        $request = new WP_REST_Request(['filename' => '../../../wp-config', 'content' => '<?php']);
+
+        $this->directory->expects($this->never())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_push_file_writes_the_guarded_content(): void
     {
         $request = new WP_REST_Request([

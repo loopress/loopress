@@ -101,6 +101,16 @@ class ApiFilesController
         $filename = (string) $request->get_param('filename');
         $content  = (string) $request->get_param('content');
 
+        // register_routes()'s validate_callback already rejects the request before WP ever
+        // calls this method, but that enforcement is invisible to static analysis: nothing in
+        // this function's own body ties $filename back to FILENAME_PATTERN, and $filename
+        // reaches a filesystem path a few lines down (ApiDirectory::filePath()/write()). A
+        // direct regex check on the raw value here, not just the indirect validate_callback
+        // registration, is what actually clears that path-injection finding.
+        if (!self::isValidFilename($filename)) {
+            return new WP_REST_Response(['error' => 'Invalid filename'], 400);
+        }
+
         try {
             $guarded = FileWriter::withGuard($content);
         } catch (\InvalidArgumentException $e) {
