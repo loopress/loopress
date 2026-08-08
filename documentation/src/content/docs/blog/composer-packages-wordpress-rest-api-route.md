@@ -1,6 +1,6 @@
 ---
-title: Composer Packages Are Available Inside Every Custom API Route
-description: How Loopress's two Full-only features connect. Any package installed through Composer dependency management is available to `use` inside a Custom API Route, autoloaded automatically, no wiring required.
+title: Composer Packages in a WordPress REST API Route
+description: How Loopress's two Full-only features connect. Any package installed through Composer dependency management is available to `use` inside a custom WordPress REST API route, autoloaded automatically, no wiring required.
 date: 2026-08-03
 draft: false
 cliVersion: 0.20.1
@@ -15,7 +15,7 @@ tags:
 excerpt: Composer dependency management and Custom API Routes were built as two separate Loopress Full features. They were also built to fit together. Here's the mechanism connecting them, and what it opens up.
 ---
 
-Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
+Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint, deployed with the [Loopress CLI](/cli/getting-started/) once it's set up for the project. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
 
 ## Why reach for a package at all
 
@@ -59,9 +59,9 @@ class Webhook
 
 No `require_once`, no path to get wrong, no difference between this and any Composer project you've worked on. The full reference is in [Writing Route Files](/api/routes/#using-your-own-composer-dependencies).
 
-## Same safety net as everywhere else
+## If the package isn't there
 
-A package that fails to load, missing from `vendor/`, a corrupted autoloader, doesn't take the route down with it. It's [logged and skipped](/api/routes/#failure-isolation) exactly like a broken route file: that one endpoint stops responding, everything else on the site keeps working. Composer dependencies inside a route get the same failure isolation as the route file itself, not a separate, weaker guarantee.
+A corrupted or missing `wp-content/loopress/vendor/autoload.php` is caught and [logged](/api/routes/#failure-isolation) once, before any route file loads, every other route still registers normally. A single package missing from an intact `vendor/`, Guzzle never installed, say, isn't something Loopress catches on your behalf: it surfaces as an ordinary PHP error on that request, the same as calling any undefined class anywhere else in PHP. WordPress serves each request in its own process, so the error stays contained to the one endpoint that hit it, everything else on the site keeps working, but push the package before you push the route that depends on it.
 
 ## What this opens up
 

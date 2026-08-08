@@ -315,7 +315,7 @@ class Webhook
 }
 ```
 
-A broken dependency install (missing package, corrupted autoloader) is logged and skipped the same way a broken route file is, it never breaks the rest of the site's REST API.
+A corrupted or missing `wp-content/loopress/vendor/autoload.php` is caught and logged once, before any route file loads, the rest of the routes still register normally. A single package missing from an otherwise intact `vendor/` isn't caught by Loopress: it surfaces as an ordinary PHP error on that request, the same as calling any undefined class anywhere else in PHP. WordPress serves each request in its own process, so the error stays confined to the one route that hit it, but unlike the failures in [Failure isolation](#failure-isolation) below, it produces no `Loopress api/:` log line and no entry in the **API Routes** admin tab.
 
 ### Sharing code between route files (and snippets)
 

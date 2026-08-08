@@ -47,6 +47,8 @@ export default defineConfig({
 		"/wordpress-plugin/diagnostics": "/composer/diagnostics",
 		"/wordpress-plugin/code-snippets": "/composer/using-in-snippets",
 		"/wordpress-plugin/api": "/api/admin-ui",
+		// Blog post retitled for SEO (WordPress REST API terminology over Loopress jargon).
+		"/blog/composer-packages-inside-custom-api-routes": "/blog/composer-packages-wordpress-rest-api-route",
 	},
 	integrations: [
 		loopressFavicon(),
