@@ -1,5 +1,5 @@
 ---
-"@loopress/wordpress-plugin": minor
+"@loopress/wordpress-plugin": patch
 ---
 
 `api/` route files no longer need their class name to match a formula derived from the filename (kebab-case filename -> PascalCase class): the class is now discovered by reading the file itself (PHP's own tokenizer, never executed to find out), so it can be named anything. **Internal, breaking**: this replaces the old naming convention entirely, no transition period.
