@@ -44,27 +44,27 @@ class PermissionTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new Permission(public: true, capability: 'manage_options');
+        new Permission(public: true, capability: 'manage_options'); // NOSONAR (php:S1848) - constructor is expected to throw
     }
 
     public function test_rejects_public_combined_with_callback(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new Permission(public: true, callback: 'checkSomething');
+        new Permission(public: true, callback: 'checkSomething'); // NOSONAR (php:S1848) - constructor is expected to throw
     }
 
     public function test_rejects_capability_combined_with_callback(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new Permission(capability: 'manage_options', callback: 'checkSomething');
+        new Permission(capability: 'manage_options', callback: 'checkSomething'); // NOSONAR (php:S1848) - constructor is expected to throw
     }
 
     public function test_rejects_all_three_at_once(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new Permission(public: true, capability: 'manage_options', callback: 'checkSomething');
+        new Permission(public: true, capability: 'manage_options', callback: 'checkSomething'); // NOSONAR (php:S1848) - constructor is expected to throw
     }
 }

@@ -11,7 +11,9 @@
       "Bash(./node_modules/.bin/vitest run *)",
       "WebFetch(domain:docs.sonarsource.com)",
       "Bash(python3 -c ' *)",
-      "Bash(curl -s -A \"Mozilla/5.0\" \"https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/analysis-parameters\")"
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/analysis-parameters\")",
+      "Bash(/usr/bin/find /Users/maximeblanc/Localdev/loopress/wordpress-plugin -iname \"*PermissionT*\" -not -path \"*/vendor/*\" -not -path \"*/node_modules/*\")",
+      "Bash(/usr/bin/find frontend *)"
     ]
   }
 }

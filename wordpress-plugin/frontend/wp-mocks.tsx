@@ -17,7 +17,7 @@ vi.mock('@wordpress/components', () => ({
         <div role="alert" data-status={status}>
             {children}
             {isDismissible && onRemove && (
-                <button onClick={onRemove} aria-label="Dismiss">×</button>
+                <button type="button" onClick={onRemove} aria-label="Dismiss">×</button>
             )}
         </div>
     ),
