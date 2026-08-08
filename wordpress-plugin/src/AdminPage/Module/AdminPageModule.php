@@ -11,10 +11,9 @@ class AdminPageModule implements Module
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
-        add_action('admin_head', [$this, 'addMenuIconStyle']);
-        // Page-specific hook (fires only on this admin page, unlike the admin_head above)
-        // so this override never reaches any other wp-admin screen.
-        add_action('admin_head-toplevel_page_loopress', [$this, 'removeContentPadding']);
+        // Fires on every admin screen, unlike enqueueScripts below, because the menu
+        // icon it styles sits in the sidebar that's present on every admin screen.
+        add_action('admin_enqueue_scripts', [$this, 'enqueueMenuIconStyle']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueScripts']);
     }
 
@@ -27,20 +26,18 @@ class AdminPageModule implements Module
             'loopress',
             [$this, 'renderPage'],
             LOOPRESS_PLUGIN_URL . 'assets/logo.svg',
-            6
+            100
         );
     }
 
-    public function addMenuIconStyle(): void
+    public function enqueueMenuIconStyle(): void
     {
-        echo '<style>#toplevel_page_loopress .wp-menu-image img { width: 26px; height: 100%; padding: 0; vertical-align: middle }</style>';
-    }
-
-    public function removeContentPadding(): void
-    {
-        // #wpcontent's left padding is wp-admin core chrome, not ours to edit directly;
-        // this page's own layout (Page component) already handles its own spacing.
-        echo '<style>#wpcontent { padding-left: 0; }</style>';
+        wp_register_style('loopress-admin-icon', false, [], LOOPRESS_VERSION);
+        wp_enqueue_style('loopress-admin-icon');
+        wp_add_inline_style(
+            'loopress-admin-icon',
+            '#toplevel_page_loopress .wp-menu-image img { width: 26px; height: 100%; padding: 0; vertical-align: middle }'
+        );
     }
 
     public function enqueueScripts(string $hook): void
@@ -63,6 +60,9 @@ class AdminPageModule implements Module
         );
 
         wp_enqueue_style('wp-components');
+        // #wpcontent's left padding is wp-admin core chrome, not ours to edit directly;
+        // this page's own layout (Page component) already handles its own spacing.
+        wp_add_inline_style('wp-components', '#wpcontent { padding-left: 0; }');
 
         $pluginData = get_file_data(LOOPRESS_PLUGIN_PATH . 'loopress.php', ['Version' => 'Version']);
 
