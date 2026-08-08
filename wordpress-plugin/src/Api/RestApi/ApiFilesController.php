@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\Infrastructure\ApiDirectory;
+use Loopress\Api\Infrastructure\ClassScanner;
 use Loopress\Api\Infrastructure\FileWriter;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -70,6 +71,13 @@ class ApiFilesController
 
     public function list_files(): WP_REST_Response
     {
+        // Written by RouteLoader at the end of its own boot-time pass (ApiDirectory::
+        // LOAD_ERRORS_OPTION), overwritten in full every rest_api_init: a file present here
+        // failed to load at the *last* boot, not necessarily still today, which is exactly
+        // why no separate "resolved" flag is needed, a clean reload next boot just drops it.
+        $loadErrors = get_option(ApiDirectory::LOAD_ERRORS_OPTION, []);
+        $loadErrors = is_array($loadErrors) ? $loadErrors : [];
+
         $files = [];
         foreach ($this->directory->listSlugs() as $slug) {
             $content = $this->directory->read($slug);
@@ -77,7 +85,12 @@ class ApiFilesController
                 continue;
             }
 
-            $files[] = ['filename' => $slug, 'content' => FileWriter::stripGuard($content)];
+            $file = ['filename' => $slug, 'content' => FileWriter::stripGuard($content)];
+            if (isset($loadErrors[$slug]) && is_string($loadErrors[$slug])) {
+                $file['error'] = $loadErrors[$slug];
+            }
+
+            $files[] = $file;
         }
 
         return new WP_REST_Response($files, 200);
@@ -88,6 +101,16 @@ class ApiFilesController
         $filename = (string) $request->get_param('filename');
         $content  = (string) $request->get_param('content');
 
+        // register_routes()'s validate_callback already rejects the request before WP ever
+        // calls this method, but that enforcement is invisible to static analysis: nothing in
+        // this function's own body ties $filename back to FILENAME_PATTERN, and $filename
+        // reaches a filesystem path a few lines down (ApiDirectory::filePath()/write()). A
+        // direct regex check on the raw value here, not just the indirect validate_callback
+        // registration, is what actually clears that path-injection finding.
+        if (!self::isValidFilename($filename)) {
+            return new WP_REST_Response(['error' => 'Invalid filename'], 400);
+        }
+
         try {
             $guarded = FileWriter::withGuard($content);
         } catch (\InvalidArgumentException $e) {
@@ -97,6 +120,23 @@ class ApiFilesController
         $syntax = $this->checkSyntax($guarded);
         if ($syntax['status'] === 'error') {
             return new WP_REST_Response(['error' => "File has invalid PHP syntax: {$syntax['message']}"], 400);
+        }
+
+        // Same tokenizer RouteLoader itself uses at boot (ClassScanner::declaredClasses()),
+        // run here instead so a wrong number of classes fails the push immediately with a
+        // clear message, rather than surfacing later as a silent 404 only visible in the PHP
+        // error log. Unlike checkSyntax() above, this needs no `exec`/`php` binary, so it
+        // still runs even on hosts where the syntax check itself is unavailable.
+        $classes = ClassScanner::declaredClasses($content);
+        if (count($classes) !== 1) {
+            $found = $classes === [] ? 'none' : implode(', ', $classes);
+            return new WP_REST_Response(['error' => "File must declare exactly one class, found {$found}"], 400);
+        }
+
+        $className = $classes[0];
+        $collision = $this->findCollision($filename, $className);
+        if ($collision !== null) {
+            return new WP_REST_Response(['error' => $collision], 400);
         }
 
         try {
@@ -113,6 +153,56 @@ class ApiFilesController
         }
 
         return new WP_REST_Response($response, 200);
+    }
+
+    // Catches at push time what RouteLoader would otherwise only discover, silently, at the
+    // next boot (see US-4 in the plugin's "Extensions proposées (2e vague)" doc). Two sources
+    // checked, in order:
+    // 1. Another api/ file already declaring the same class: found by the same static
+    //    tokenizer scan, never by require()ing anything.
+    // 2. WP core or another active plugin, both already loaded in this very request (push_file
+    //    is itself a WP REST request, dispatched after rest_api_init already ran RouteLoader):
+    //    class_exists() is safe to use directly here, unlike at RouteLoader::loadFile()'s own
+    //    class_exists() check which only rules out *other* files.
+    private function findCollision(string $filename, string $className): ?string
+    {
+        // PHP resolves class names case-insensitively (class_exists(), `new $x()`, and the
+        // "Cannot redeclare class" fatal itself all ignore case), so comparing scanned names
+        // with a strict, case-sensitive in_array() would miss a real collision that only
+        // differs by case, and would also miss the inverse: wrongly flagging a file that only
+        // recased its own class (e.g. `Hello` -> `HELLO`) as a collision with WP core/another
+        // plugin, since its lowercased form no longer strictly matches $previousClasses below.
+        $normalizedClassName = strtolower($className);
+
+        foreach ($this->directory->listSlugs() as $slug) {
+            if ($slug === $filename) {
+                continue; // re-pushing the same file is an update, never a collision with itself
+            }
+
+            $existingContent = $this->directory->read($slug);
+            if ($existingContent === null) {
+                continue;
+            }
+
+            $existingClasses = array_map('strtolower', ClassScanner::declaredClasses($existingContent));
+            if (in_array($normalizedClassName, $existingClasses, true)) {
+                return "Class {$className} is already declared by api/{$slug}.php";
+            }
+        }
+
+        // RouteLoader already ran for this same request and required every existing file,
+        // including $filename's own previous content if it existed: class_exists() would
+        // therefore already be true for a class name this exact file declared before this
+        // push, which isn't a collision, just an unchanged (or renamed-away-from) class.
+        $previousContent = $this->directory->read($filename);
+        $previousClasses = $previousContent !== null
+            ? array_map('strtolower', ClassScanner::declaredClasses($previousContent))
+            : [];
+        if (!in_array($normalizedClassName, $previousClasses, true) && class_exists($className, false)) {
+            return "Class {$className} is already declared by WordPress core or another plugin";
+        }
+
+        return null;
     }
 
     // A file that fails to write was never going to work anyway, but one that writes fine

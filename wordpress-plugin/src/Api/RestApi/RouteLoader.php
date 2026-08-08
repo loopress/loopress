@@ -7,15 +7,22 @@ namespace Loopress\Api\RestApi;
 use Loopress\Api\ApiNamespace;
 use Loopress\Api\Attribute\Permission;
 use Loopress\Api\Infrastructure\ApiDirectory;
+use Loopress\Api\Infrastructure\ClassScanner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 
 /**
- * Scans wp-content/loopress/api/*.php on rest_api_init, requires each file by convention
- * (kebab-case filename -> PascalCase class), and registers one WP REST route per file under
- * ApiNamespace::current() (loopress-api/v1 by default, not loopress/v1, to avoid colliding
- * with ApiFilesController's own management endpoint).
+ * Scans wp-content/loopress/api/*.php on rest_api_init, requires each file, and registers one
+ * WP REST route per file under ApiNamespace::current() (loopress-api/v1 by default, not
+ * loopress/v1, to avoid colliding with ApiFilesController's own management endpoint).
+ *
+ * The class to instantiate is whatever the file actually declares, discovered by
+ * ClassScanner::declaredClasses() (PHP's own tokenizer, never require()d to find out): there
+ * used to be a "kebab-case filename -> PascalCase class" naming convention instead, dropped
+ * because a mismatch between a file's name and the formula's expected class name produced a
+ * silent 404, never an error, and was non-trivial enough to get wrong in practice (see the
+ * plugin's "Convention de fichier" doc for the incident that triggered this).
  */
 class RouteLoader
 {
@@ -31,6 +38,9 @@ class RouteLoader
     // match loop then reads as "no match" rather than an error, a route that would never
     // match any request, with nothing pointing at why.
     private const DYNAMIC_SEGMENT_PATTERN = '/^\[([A-Za-z_]\w*)\]$/';
+
+    /** @var array<string, string> slug => failure reason, accumulated over one loadAndRegister() pass. */
+    private array $errors = [];
 
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
@@ -51,29 +61,21 @@ class RouteLoader
         // its own dependency here instead of relying on another feature's side effect.
         $this->requireUserAutoload();
 
+        $this->errors = [];
         foreach ($this->directory->listSlugs() as $slug) {
             $this->loadFile($slug);
         }
+
+        // Overwritten in full on every boot, not merged: a file that failed last time and
+        // loads clean now simply isn't in $this->errors anymore, no separate "resolved" state
+        // to track or clean up. autoload: false, this is only ever read from the admin UI
+        // (ApiFilesController::list_files()), never on a hot path.
+        update_option(ApiDirectory::LOAD_ERRORS_OPTION, $this->errors, false);
 
         // Single dispatch-level hook for every file's headers(), rather than one hook per
         // file: needed even for a plain response, but especially for the OPTIONS preflight
         // WP core answers automatically without ever invoking the file's own verb method.
         add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
-    }
-
-    // Each segment PascalCased and joined with '_': 'invoice-pdf/[order_id]' ->
-    // 'InvoicePdf_OrderId'. The '_' is load-bearing, not cosmetic: plain concatenation would
-    // lose the segment boundary and let two different folder structures collide on the same
-    // class name (e.g. 'foo-bar/baz' and 'foo/bar-baz' both PascalCase-and-strip-hyphens to
-    // 'FooBarBaz'); joining with '_' keeps them distinct ('FooBar_Baz' vs 'Foo_BarBaz').
-    public static function classNameFor(string $slug): string
-    {
-        $segments = array_map(static function (string $segment): string {
-            $segment = preg_replace(self::DYNAMIC_SEGMENT_PATTERN, '$1', $segment) ?? $segment;
-            return str_replace(['-', '_'], '', ucwords($segment, '-_'));
-        }, explode('/', $slug));
-
-        return implode('_', $segments);
     }
 
     // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture
@@ -291,12 +293,29 @@ class RouteLoader
 
     private function loadFile(string $slug): void
     {
-        $className = self::classNameFor($slug);
+        $content = $this->directory->read($slug);
+        if ($content === null) {
+            return; // gone between listSlugs() and here (e.g. deleted concurrently); nothing to load
+        }
+
+        // Discovering the class never requires the file: a file with the wrong number of
+        // classes, or one that collides with an already-declared class, must never even be
+        // require()d, let alone instantiated.
+        $classes = ClassScanner::declaredClasses($content);
+        if (count($classes) !== 1) {
+            $found = $classes === [] ? 'none' : implode(', ', $classes);
+            $this->fail($slug, "expected exactly one class declaration, found {$found}");
+            return;
+        }
+
+        $className = $classes[0];
 
         // A collision (WP core, another plugin, another api/ file) must never fatal the
-        // whole site's rest_api_init.
+        // whole site's rest_api_init. Checked against the name the file actually declares, not
+        // a name computed from its path: two files can only collide if they really do declare
+        // the same class, which this now detects regardless of what either is named.
         if (class_exists($className, false)) {
-            $this->log("skipping api/{$slug}.php: class {$className} is already declared");
+            $this->fail($slug, "class {$className} is already declared");
             return;
         }
 
@@ -309,8 +328,7 @@ class RouteLoader
         // this can't be more than a log: the route itself is fine, only a direct HTTP request to
         // the raw file is at risk, refusing to register would punish availability for a risk
         // that isn't this route's fault.
-        $content = $this->directory->read($slug);
-        if ($content !== null && !str_contains($content, "defined('ABSPATH')")) {
+        if (!str_contains($content, "defined('ABSPATH')")) {
             $this->log("api/{$slug}.php: no ABSPATH guard detected, deployed outside lps api push? File may be directly reachable over HTTP.");
         }
 
@@ -322,11 +340,12 @@ class RouteLoader
             // Covers real parse errors too: since PHP 7, a compile error in a required file
             // throws \ParseError (a \Throwable), catchable here rather than fataling the
             // whole request the way an uncaught one would (same site-wide blast radius as the
-            // write-time race condition in ApiDirectory::write(), different trigger). Also
-            // covers a file that required cleanly but doesn't actually declare $className
-            // (e.g. a typo, `new $className()` throws \Error): none of these may ever fatal
-            // rest_api_init.
-            $this->log("failed to load api/{$slug}.php: " . $e->getMessage());
+            // write-time race condition in ApiDirectory::write(), different trigger). $className
+            // is now discovered from the file's own tokens above, so it should always exist
+            // after a clean require, but a conditional declaration (an `if` around the class,
+            // unusual but not impossible) could still leave it missing: none of these may ever
+            // fatal rest_api_init.
+            $this->fail($slug, 'failed to load: ' . $e->getMessage());
             return;
         }
 
@@ -335,11 +354,21 @@ class RouteLoader
             // error above); this one didn't, so a typo'd verb method (Get() instead of get(),
             // or an accidentally-private one) failed in total silence, indistinguishable from
             // "this file intentionally has no routes yet."
-            $this->log("api/{$slug}.php: no public HTTP verb method found (get/post/put/patch/delete), route not registered");
+            $this->fail($slug, 'no public HTTP verb method found (get/post/put/patch/delete), route not registered');
             return;
         }
 
         register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
+    }
+
+    // Every loadFile() failure branch goes through here, never $this->log() directly: it's
+    // both an error-log line (for a developer who checks it) and an entry in the admin-UI
+    // option below (for one who doesn't). The ABSPATH-guard warning above is deliberately not
+    // routed through this: it's informational (the route still registers), not a load failure.
+    private function fail(string $slug, string $reason): void
+    {
+        $this->log("api/{$slug}.php: {$reason}");
+        $this->errors[$slug] = $reason;
     }
 
     private function log(string $message): void

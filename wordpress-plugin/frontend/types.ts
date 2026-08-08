@@ -74,6 +74,10 @@ export interface AuditResult {
 export interface ApiFile {
     filename: string;
     content: string;
+    // Present when this file failed to load at the last boot (RouteLoader's tokenizer
+    // discovery found the wrong number of classes, a name collision, a parse error...), absent
+    // once it reloads clean, see RouteLoader::fail() / ApiDirectory::LOAD_ERRORS_OPTION.
+    error?: string;
 }
 
 export interface ApiNamespace {

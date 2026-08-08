@@ -71,6 +71,17 @@ export function ApiRoutes() {
                             <tr key={file.filename} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                 <td style={{ padding: '8px' }}>
                                     <strong>{file.filename}.php</strong>
+                                    {file.error && (
+                                        <span style={{
+                                            marginLeft: 8, fontSize: 11, fontWeight: 500,
+                                            color: '#991b1b', background: '#fee2e2', borderRadius: 12, padding: '2px 8px',
+                                        }}>
+                                            Failed to load
+                                        </span>
+                                    )}
+                                    {file.error && (
+                                        <div style={{ marginTop: 4, fontSize: 12, color: '#991b1b' }}>{file.error}</div>
+                                    )}
                                 </td>
                                 <td style={{ padding: '8px', fontFamily: 'monospace', color: '#1d4ed8' }}>
                                     {namespace}/{file.filename}
