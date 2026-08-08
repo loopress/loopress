@@ -166,13 +166,26 @@ class ApiFilesController
     //    class_exists() check which only rules out *other* files.
     private function findCollision(string $filename, string $className): ?string
     {
+        // PHP resolves class names case-insensitively (class_exists(), `new $x()`, and the
+        // "Cannot redeclare class" fatal itself all ignore case), so comparing scanned names
+        // with a strict, case-sensitive in_array() would miss a real collision that only
+        // differs by case, and would also miss the inverse: wrongly flagging a file that only
+        // recased its own class (e.g. `Hello` -> `HELLO`) as a collision with WP core/another
+        // plugin, since its lowercased form no longer strictly matches $previousClasses below.
+        $normalizedClassName = strtolower($className);
+
         foreach ($this->directory->listSlugs() as $slug) {
             if ($slug === $filename) {
                 continue; // re-pushing the same file is an update, never a collision with itself
             }
 
             $existingContent = $this->directory->read($slug);
-            if ($existingContent !== null && in_array($className, ClassScanner::declaredClasses($existingContent), true)) {
+            if ($existingContent === null) {
+                continue;
+            }
+
+            $existingClasses = array_map('strtolower', ClassScanner::declaredClasses($existingContent));
+            if (in_array($normalizedClassName, $existingClasses, true)) {
                 return "Class {$className} is already declared by api/{$slug}.php";
             }
         }
@@ -182,8 +195,10 @@ class ApiFilesController
         // therefore already be true for a class name this exact file declared before this
         // push, which isn't a collision, just an unchanged (or renamed-away-from) class.
         $previousContent = $this->directory->read($filename);
-        $previousClasses = $previousContent !== null ? ClassScanner::declaredClasses($previousContent) : [];
-        if (!in_array($className, $previousClasses, true) && class_exists($className, false)) {
+        $previousClasses = $previousContent !== null
+            ? array_map('strtolower', ClassScanner::declaredClasses($previousContent))
+            : [];
+        if (!in_array($normalizedClassName, $previousClasses, true) && class_exists($className, false)) {
             return "Class {$className} is already declared by WordPress core or another plugin";
         }
 

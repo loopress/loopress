@@ -226,6 +226,28 @@ class ApiFilesControllerTest extends TestCase
         $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
     }
 
+    public function test_push_file_returns_400_when_the_class_collides_with_another_api_file_differing_only_by_case(): void
+    {
+        // PHP resolves class names case-insensitively (a real "Cannot redeclare class" fatal
+        // would happen here too), so a collision that only differs by case must be caught the
+        // same as an exact match.
+        $request = new WP_REST_Request([
+            'filename' => 'new-file',
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class shared {}\n",
+        ]);
+
+        $this->directory->method('listSlugs')->willReturn(['other-file']);
+        $this->directory->method('read')->with('other-file')->willReturn(
+            "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n",
+        );
+        $this->directory->expects($this->never())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
+    }
+
     public function test_push_file_returns_400_when_the_class_collides_with_an_already_loaded_class(): void
     {
         // WP_Post is one of the global WP REST stubs already loaded for every test (see
@@ -255,6 +277,28 @@ class ApiFilesControllerTest extends TestCase
 
         $this->directory->method('listSlugs')->willReturn(['hello']);
         $this->directory->method('read')->with('hello')->willReturn($content);
+        $this->directory->expects($this->once())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_push_file_does_not_flag_a_collision_when_the_same_file_only_recases_its_class_name(): void
+    {
+        // Same false-positive risk as the unchanged-repush case above, but triggered by case
+        // alone: the file's previous content declared `WP_Post`, already loaded by RouteLoader
+        // this same request; a strict, case-sensitive self-exclusion check would fail to
+        // recognize `wp_post` as "the same class" and wrongly report a collision.
+        $request = new WP_REST_Request([
+            'filename' => 'hello',
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class wp_post {}\n",
+        ]);
+
+        $this->directory->method('listSlugs')->willReturn(['hello']);
+        $this->directory->method('read')->with('hello')->willReturn(
+            "<?php\ndeclare(strict_types=1);\nfinal class WP_Post {}\n",
+        );
         $this->directory->expects($this->once())->method('write');
 
         $response = $this->controller->push_file($request);

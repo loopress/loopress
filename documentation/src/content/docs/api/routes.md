@@ -357,9 +357,8 @@ A single bad route file can never take down the site or the rest of its REST API
 - A parse error or fatal error while loading the file
 - A file that doesn't declare exactly one class (zero, or more than one)
 - A class name that is already taken by WordPress core, another plugin, or another route file
-- A `permission()` method that throws
 
-Every other route file keeps working, and so does everything else on the site.
+Every other route file keeps working, and so does everything else on the site. A throwing `permission()` is a different, narrower failure mode, not a load failure: the file still loads and the route stays registered, only the individual request that hit the throw is denied, see [Authentication and permissions](#authentication-and-permissions).
 
 A skipped file also shows up as a warning in the plugin's **API Routes** admin tab (see [Admin UI](/api/admin-ui/)), with the same reason as the error log, so you don't have to go looking for it there. The warning clears itself the next time the file loads cleanly, nothing to dismiss manually.
 
