@@ -53,4 +53,23 @@ describe('ApiRoutes', () => {
         render(<ApiRoutes />, { wrapper: errorWrapper });
         expect(await screen.findByText('Failed to load API routes.')).toBeInTheDocument();
     });
+
+    test('shows a load-failure badge and the reason for a file with an error', () => {
+        const files: ApiFile[] = [
+            { filename: 'broken', content: '<?php', error: 'expected exactly one class declaration, found none' },
+        ];
+
+        render(<ApiRoutes />, { wrapper: wrapperWithFiles(files) });
+
+        expect(screen.getByText('Failed to load')).toBeInTheDocument();
+        expect(screen.getByText('expected exactly one class declaration, found none')).toBeInTheDocument();
+    });
+
+    test('shows no badge for a file that loaded cleanly', () => {
+        const files: ApiFile[] = [{ filename: 'hello-world', content: '<?php' }];
+
+        render(<ApiRoutes />, { wrapper: wrapperWithFiles(files) });
+
+        expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+    });
 });

@@ -80,7 +80,7 @@ lps api push [path]
 
 What push does, and deliberately does not do:
 
-- **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with invalid PHP syntax (returning the parse error) or a malformed `declare(strict_types=1);` line. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
+- **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with invalid PHP syntax (returning the parse error), a malformed `declare(strict_types=1);` line, zero or more than one class declared, or a class name that collides with WordPress core, another active plugin, or another `api/` file. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
 - **One bad file doesn't block the rest.** Files are pushed one by one; a failure is reported per file and the remaining files still go through. The command exits with an error summarizing how many failed.
 - **Pushing never deletes a route on WordPress**, even if the local file is gone. Only `lps api pull` cleans up, and only locally.
 
@@ -138,7 +138,7 @@ lps api publish ./api
 
 ## File format
 
-Each file is named `{slug}.php` and declares a class matching the filename, with one public method per HTTP verb:
+Each file is named `{slug}.php` and declares exactly one class, named however you like, with one public method per HTTP verb:
 
 ```php
 <?php

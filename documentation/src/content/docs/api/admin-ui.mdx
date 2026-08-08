@@ -22,6 +22,8 @@ For each uploaded route file:
 | File | The filename on disk, `{slug}.php` |
 | Route | The live endpoint path under the `loopress-api/v1` namespace |
 
+A file that failed to load at the site's last boot (wrong number of classes, a class name collision, a parse error, see [Failure isolation](/api/routes/#failure-isolation)) shows a "Failed to load" badge next to its filename, with the actual reason underneath. The warning clears itself automatically the next time the file loads cleanly, nothing to dismiss.
+
 The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the command reference and [Writing Route Files](/api/routes/) for the file format.
 
 ## Route namespace
@@ -46,8 +48,15 @@ The tab reads from `GET /wp-json/loopress/v1/api-files`, the same management end
   {
     "filename": "hello-world",
     "content": "<?php\n\ndeclare(strict_types=1);\n\nclass HelloWorld\n{\n    public function get(): array\n    {\n        return ['message' => 'Hello, world!'];\n    }\n}\n"
+  },
+  {
+    "filename": "broken",
+    "content": "<?php\n\ndeclare(strict_types=1);\n\nfunction not_a_class(): void {}\n",
+    "error": "expected exactly one class declaration, found none"
   }
 ]
 ```
+
+`error` is only present for a file that failed to load at the last boot, absent otherwise.
 
 This is distinct from the routes a deployed file itself exposes, which are registered under `loopress-api/v1` instead, to avoid a namespace collision with this management endpoint.

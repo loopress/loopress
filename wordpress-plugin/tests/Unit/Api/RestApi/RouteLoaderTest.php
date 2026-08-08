@@ -69,35 +69,6 @@ class RouteLoaderTest extends TestCase
         rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
     }
 
-    // ── classNameFor ─────────────────────────────────────────────────────────
-
-    public function test_classNameFor_converts_kebab_case_to_pascal_case(): void
-    {
-        $this->assertSame('Hello', RouteLoader::classNameFor('hello'));
-        $this->assertSame('HelloWorld', RouteLoader::classNameFor('hello-world'));
-    }
-
-    public function test_classNameFor_strips_brackets_from_a_dynamic_segment(): void
-    {
-        $this->assertSame('InvoicePdf_OrderId', RouteLoader::classNameFor('invoice-pdf/[order_id]'));
-    }
-
-    public function test_classNameFor_joins_segments_with_an_underscore_to_avoid_collisions(): void
-    {
-        // Plain concatenation would collide: 'foo-bar/baz' and 'foo/bar-baz' both
-        // PascalCase-and-strip-hyphens to 'FooBarBaz'. Joining with '_' keeps them distinct.
-        $this->assertSame('FooBar_Baz', RouteLoader::classNameFor('foo-bar/baz'));
-        $this->assertSame('Foo_BarBaz', RouteLoader::classNameFor('foo/bar-baz'));
-    }
-
-    public function test_classNameFor_handles_multiple_dynamic_segments(): void
-    {
-        $this->assertSame(
-            'Orders_OrderId_Items_ItemId',
-            RouteLoader::classNameFor('orders/[order_id]/items/[item_id]'),
-        );
-    }
-
     // ── endpointsFor / hasPublicMethod (pure logic, no I/O) ─────────────────
 
     public function test_endpointsFor_only_includes_publicly_implemented_verbs(): void
@@ -244,17 +215,148 @@ class RouteLoaderTest extends TestCase
     public function test_loadAndRegister_skips_a_class_name_collision_without_registering_anything(): void
     {
         // TestLoaderCollisionFixture is already declared at the top of this file, simulating
-        // a collision with WP core, another plugin, or another api/ file. The written content
-        // is never actually required.
-        $this->directory->write('test-loader-collision-fixture', '<?php // never actually required');
+        // a collision with WP core, another plugin, or another api/ file. Unlike the old
+        // path-derived convention, the collision is now only detectable by reading what the
+        // file itself declares, so the written content has to actually declare it, under an
+        // otherwise unrelated filename, proving the check no longer depends on naming.
+        $this->directory->write('anything', "<?php\nfinal class TestLoaderCollisionFixture\n{\n    public function get(): array { return []; }\n}\n");
 
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true); // reaching this line means it didn't fatal
+    }
+
+    public function test_loadAndRegister_skips_the_second_of_two_files_declaring_the_same_class(): void
+    {
+        // A gap the old convention couldn't produce a test for: two different slugs always
+        // computed two different class names, so this collision (two api/ files agreeing, by
+        // mistake, on the same real class name) could never be reached under it. Which of the
+        // two loads first isn't guaranteed by directory iteration order, so this only asserts
+        // exactly one registration happens and nothing fatals, not which file "won".
+        $this->directory->write('first', "<?php\nfinal class DuplicateClassName\n{\n    public function get(): array { return []; }\n}\n");
+        $this->directory->write('second', "<?php\nfinal class DuplicateClassName\n{\n    public function get(): array { return []; }\n}\n");
+
+        Functions\expect('register_rest_route')->once()->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // reaching this line means the second file was skipped, not fatal
+    }
+
+    public function test_loadAndRegister_skips_a_file_declaring_no_class(): void
+    {
+        $this->directory->write('test-loader-empty', "<?php\nfunction not_a_class(): void {}\n");
+
+        Functions\expect('register_rest_route')->never();
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true);
+    }
+
+    public function test_loadAndRegister_skips_a_file_declaring_more_than_one_class(): void
+    {
+        $this->directory->write(
+            'test-loader-two-classes',
+            "<?php\nfinal class TestLoaderFirst\n{\n    public function get(): array { return []; }\n}\nfinal class TestLoaderSecond\n{\n}\n",
+        );
+
+        Functions\expect('register_rest_route')->never();
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true);
+    }
+
+    public function test_loadAndRegister_registers_a_route_for_a_class_named_nothing_like_its_filename(): void
+    {
+        // The whole point of the tokenizer-based discovery: no formula ties the filename to
+        // the class name anymore, so an arbitrarily named class must work exactly the same as
+        // one that happens to follow the old convention.
+        $this->directory->write('totally-unrelated-slug', "<?php\nfinal class WhateverIWant\n{\n    public function get(): array { return []; }\n}\n");
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(ApiNamespace::DEFAULT, '/totally\-unrelated\-slug', \Mockery::type('array'))
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    public function test_loadAndRegister_registers_a_namespaced_class(): void
+    {
+        $this->directory->write(
+            'test-loader-namespaced',
+            "<?php\nnamespace Loopress\\Tests\\Fixtures;\nfinal class TestLoaderNamespaced\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(ApiNamespace::DEFAULT, '/test\-loader\-namespaced', \Mockery::type('array'))
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    public function test_loadAndRegister_ignores_a_class_constant_reference_when_counting_declarations(): void
+    {
+        // `Foo::class` tokenizes the `class` keyword the same way a real declaration does;
+        // without excluding it, this file would look like it declares two classes and get
+        // skipped instead of registered.
+        $this->directory->write(
+            'test-loader-class-constant',
+            "<?php\nfinal class TestLoaderClassConstant\n{\n    public function get(): array\n    {\n        return ['self' => self::class];\n    }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(ApiNamespace::DEFAULT, '/test\-loader\-class\-constant', \Mockery::type('array'))
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_skips_a_file_with_a_php_parse_error(): void
@@ -263,6 +365,9 @@ class RouteLoaderTest extends TestCase
 
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -286,6 +391,9 @@ class RouteLoaderTest extends TestCase
             )
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -309,6 +417,9 @@ class RouteLoaderTest extends TestCase
             )
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -332,6 +443,9 @@ class RouteLoaderTest extends TestCase
             )
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -360,6 +474,9 @@ class RouteLoaderTest extends TestCase
             )
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -373,6 +490,9 @@ class RouteLoaderTest extends TestCase
         // that used to create it): loadAndRegister() must self-heal it on every boot instead
         // of only when a push happens to write a file.
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -400,6 +520,9 @@ class RouteLoaderTest extends TestCase
             )
             ->andReturn(true);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -413,11 +536,52 @@ class RouteLoaderTest extends TestCase
 
         Functions\expect('register_rest_route')->never();
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
         $this->assertTrue(true);
+    }
+
+    // ── loadAndRegister: boot-time load-error reporting (US-5) ──────────────
+
+    public function test_loadAndRegister_records_a_load_failure_in_the_option_keyed_by_slug(): void
+    {
+        $this->directory->write('test-loader-empty', "<?php\nfunction not_a_class(): void {}\n");
+
+        Functions\when('add_filter')->justReturn(true);
+        Functions\expect('update_option')
+            ->once()
+            ->with(
+                ApiDirectory::LOAD_ERRORS_OPTION,
+                \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
+                    && array_key_exists('test-loader-empty', $errors)
+                    && is_string($errors['test-loader-empty'])),
+                false,
+            )
+            ->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the update_option expectation in tearDown
+    }
+
+    public function test_loadAndRegister_writes_an_empty_option_when_every_file_loads_cleanly(): void
+    {
+        $this->directory->write('test-loader-clean', "<?php\nfinal class TestLoaderClean\n{\n    public function get(): array { return []; }\n}\n");
+
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('register_rest_route')->justReturn(true);
+        Functions\expect('update_option')->once()->with(ApiDirectory::LOAD_ERRORS_OPTION, [], false)->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the update_option expectation in tearDown
     }
 
     // ── loadAndRegister: user vendor autoload ────────────────────────────────
@@ -428,6 +592,9 @@ class RouteLoaderTest extends TestCase
         // rather than relying on it silently.
         $this->environment->method('getAutoloadPath')->willReturn(null);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
@@ -446,6 +613,9 @@ class RouteLoaderTest extends TestCase
         $environment = $this->createMock(LoopressEnvironment::class);
         $environment->method('getAutoloadPath')->willReturn($autoloadPath);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $environment);
         $loader->loadAndRegister();
@@ -461,6 +631,9 @@ class RouteLoaderTest extends TestCase
         $environment = $this->createMock(LoopressEnvironment::class);
         $environment->method('getAutoloadPath')->willReturn($autoloadPath);
         Functions\when('add_filter')->justReturn(true);
+        // loadAndRegister() always writes the load-errors option at the end of its pass (see
+        // US-5); dedicated assertions on its content live in their own tests further below.
+        Functions\when('update_option')->justReturn(true);
 
         $loader = new RouteLoader($this->directory, $environment);
         $loader->loadAndRegister();

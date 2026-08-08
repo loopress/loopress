@@ -35,19 +35,20 @@ Saved as `api/hello-world.php` and pushed, this file answers at:
 https://example.com/wp-json/loopress-api/v1/hello-world
 ```
 
-Three naming rules tie everything together:
+Two things tie everything together:
 
 | Element | Rule | Example |
 |---------|------|---------|
 | Filename | Lowercase kebab-case path segments (letters, digits, hyphens), optionally nested in subdirectories, `.php` extension | `hello-world.php` |
-| Class | Each path segment converted to PascalCase and joined with `_` | `HelloWorld` (single segment, nothing to join) |
 | Route | The path without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
 
-The `_` between segments (see [Dynamic path segments](#dynamic-path-segments) below for a multi-segment example) isn't just style: plain concatenation would let two differently nested files collide on the same class name (`foo-bar/baz.php` and `foo/bar-baz.php` would both PascalCase-and-strip-hyphens to `FooBarBaz`), joining with `_` keeps the segment boundary and avoids that.
+**The class can be named anything.** There's no filename-to-class-name formula to get right: the plugin reads the file to find out what class it declares (via PHP's own tokenizer, never by executing the file), so `HelloWorld`, `Handler`, or anything else all work identically. The one rule that matters: **exactly one class per file**. Zero classes, or more than one, is rejected.
 
-Two structural requirements are enforced at push time, with a clear error if either fails:
+Several structural requirements are enforced at push time, with a clear error if any fails:
 
 - The file must contain `declare(strict_types=1);` exactly once. More than once (even inside a comment) or zero times is rejected.
+- The file must declare exactly one class. `lps api push` rejects zero or several immediately, before anything is written; put code shared between several route files in [`lib/`](#sharing-code-between-route-files-and-snippets) instead of a second class in the same file.
+- The class name must not already be taken by another `api/` file, WordPress core, or another active plugin. `lps api push` checks all three and rejects the push immediately if any collide.
 - Every path segment must match the kebab-case pattern, or be a dynamic segment (see below). The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
 
 ## Dynamic path segments
@@ -61,7 +62,7 @@ declare(strict_types=1);
 
 // api/invoice-pdf/[order_id].php
 
-class InvoicePdf_OrderId
+class InvoicePdf
 {
     public function get(WP_REST_Request $request): array
     {
@@ -70,7 +71,7 @@ class InvoicePdf_OrderId
 }
 ```
 
-Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`. Each segment is PascalCased and joined with `_`, brackets stripped: `Orders_OrderId_Items_ItemId`.
+Answers at `/loopress-api/v1/invoice-pdf/482`, `/loopress-api/v1/invoice-pdf/anything-else`, and so on, `order_id` available through `$request->get_param('order_id')` exactly like a query param. A route can have more than one dynamic segment, nested at any depth: `api/orders/[order_id]/items/[item_id].php` gives both `order_id` and `item_id`, class named however you like, same as any other route file.
 
 There's no catch-all segment (no `[...path]`): every segment, dynamic or not, is explicit and named. A route always has a fixed, predictable number of segments.
 
@@ -354,13 +355,19 @@ class Webhook { /* ... */ }
 A single bad route file can never take down the site or the rest of its REST API. Each file is loaded independently, and any of these problems skip **that file only**, with a line in the PHP error log prefixed `Loopress api/:` explaining why:
 
 - A parse error or fatal error while loading the file
-- A file that loads but doesn't declare the expected class
+- A file that doesn't declare exactly one class (zero, or more than one)
 - A class name that is already taken by WordPress core, another plugin, or another route file
 - A `permission()` method that throws
 
 Every other route file keeps working, and so does everything else on the site.
 
-Most syntax errors never make it that far: `lps api push` runs a server-side syntax check on each file and rejects invalid PHP with the parse error message before anything is written. On hosts where the check can't run (no PHP CLI binary, `exec` disabled), the push goes through and a broken file is caught by the isolation above instead.
+A skipped file also shows up as a warning in the plugin's **API Routes** admin tab (see [Admin UI](/api/admin-ui/)), with the same reason as the error log, so you don't have to go looking for it there. The warning clears itself the next time the file loads cleanly, nothing to dismiss manually.
+
+Most of these never make it that far: `lps api push` rejects the same problems immediately, before anything is written, so they surface as a CLI error at push time instead of a log line discovered later:
+
+- **Invalid PHP syntax**: a server-side `php -l` check on each file. On hosts where it can't run (no PHP CLI binary, `exec` disabled), the push goes through and a broken file is caught by the isolation above instead.
+- **Zero or more than one class declared.**
+- **A class name collision**, checked against WordPress core, every other active plugin, and every other `api/` file already on the site.
 
 ## Where files live on the server
 
