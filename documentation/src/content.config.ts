@@ -15,6 +15,9 @@ export const collections = {
 					// specific version-dependent feature (drafts, pre-release posts).
 					cliVersion: z.string().optional(),
 					wordpressPluginVersion: z.string().optional(),
+					// Cookbook recipes only: which Loopress mechanism the recipe is built on, drives
+					// the closing CTA that MarkdownContent.astro appends automatically.
+					kind: z.enum(['route', 'snippet']).optional(),
 				}),
 		}),
 	}),

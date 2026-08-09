@@ -1,10 +1,49 @@
 ---
 import Default from "@astrojs/starlight/components/MarkdownContent.astro";
 import StarlightBlogMarkdownContent from "starlight-blog/components/MarkdownContent.astro";
+import { Code } from "@astrojs/starlight/components";
+import { getCollection } from "astro:content";
 
 const { entry } = Astro.locals.starlightRoute;
 const isBlogPost = entry.id.startsWith("blog/");
-const { cliVersion, wordpressPluginVersion } = entry.data;
+const isCookbookIndex = entry.id === "cookbook";
+const isCookbookRecipe = entry.id.startsWith("cookbook/");
+const { cliVersion, wordpressPluginVersion, kind } = entry.data;
+
+// Keep in sync with the "Cookbook" sidebar section in astro.config.mjs.
+const cookbookCategoryLabels: Record<string, string> = {
+	"documents-and-files": "Documents & Files",
+	"content-and-data": "Content & Data",
+	"search-and-data-services": "Search & Data Services",
+	"auth-and-security": "Auth & Security",
+	"third-party-integrations": "Third-Party Integrations",
+};
+
+let cookbookGroups: {
+	label: string;
+	recipes: { href: string; title: string; description?: string }[];
+}[] = [];
+
+if (isCookbookIndex) {
+	const recipes = await getCollection("docs", (e) => e.id.startsWith("cookbook/"));
+
+	const byCategory = new Map<string, typeof recipes>();
+	for (const recipe of recipes) {
+		const category = recipe.id.split("/")[1] ?? "";
+		if (!byCategory.has(category)) byCategory.set(category, []);
+		byCategory.get(category)!.push(recipe);
+	}
+
+	cookbookGroups = Object.keys(cookbookCategoryLabels)
+		.filter((category) => byCategory.has(category))
+		.map((category) => ({
+			label: cookbookCategoryLabels[category],
+			recipes: byCategory
+				.get(category)!
+				.sort((a, b) => a.data.title.localeCompare(b.data.title))
+				.map((r) => ({ href: `/${r.id}/`, title: r.data.title, description: r.data.description })),
+		}));
+}
 ---
 
 {
@@ -39,6 +78,47 @@ const { cliVersion, wordpressPluginVersion } = entry.data;
 		</Default>
 	)
 }
+{
+	isCookbookRecipe && (
+		<div class="cookbook-cta not-content">
+			<hr />
+			<p>
+				{kind === "snippet" ? "Snippets" : "Custom API Routes"} and Composer dependency management
+				ship with Loopress Full, a free WordPress plugin and CLI for managing custom code and
+				dependencies as version-controlled files instead of pasting into wp-admin.
+			</p>
+			<p>
+				<a href="/getting-started/">Getting Started</a> walks through connecting it to your site in
+				under a minute.{" "}
+				{kind === "snippet" ? (
+					<>
+						<a href="/snippets/">Snippets</a> covers the complete command reference.
+					</>
+				) : (
+					<>
+						<a href="/api/routes/">Writing Route Files</a> covers the complete file reference.
+					</>
+				)}
+			</p>
+		</div>
+	)
+}
+{
+	isCookbookIndex &&
+		cookbookGroups.map((group) => (
+			<div class="cookbook-index not-content">
+				<h2>{group.label}</h2>
+				<ul>
+					{group.recipes.map((recipe) => (
+						<li>
+							<a href={recipe.href}>{recipe.title}</a>
+							{recipe.description && <p>{recipe.description}</p>}
+						</li>
+					))}
+				</ul>
+			</div>
+		))
+}
 
 <style>
 	.published-with {
@@ -48,5 +128,34 @@ const { cliVersion, wordpressPluginVersion } = entry.data;
 	}
 	.published-with code {
 		font-size: inherit;
+	}
+	/* .not-content opts this block out of Starlight's own vertical rhythm
+	   (.sl-markdown-content), so it's reapplied here to match. */
+	.cookbook-cta > :not(:first-child) {
+		margin-top: var(--sl-content-gap-y);
+	}
+	.cookbook-cta hr {
+		margin-block: 2rem 1.5rem;
+		border-color: var(--sl-color-hairline);
+	}
+	.cookbook-index h2 {
+		margin-block-start: 2.5rem;
+	}
+	.cookbook-index ul {
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+	.cookbook-index li {
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 0.5rem;
+		padding: 0.75rem 1rem;
+	}
+	.cookbook-index li p {
+		margin: 0.35rem 0 0;
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
 	}
 </style>

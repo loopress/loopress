@@ -164,6 +164,9 @@ importers:
       starlight-blog:
         specifier: ^0.28.0
         version: 0.28.0(@astrojs/markdown-satteri@0.3.5)(@astrojs/starlight@0.41.7(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(@vercel/functions@3.7.6(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.1))(db0@0.3.4)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(tsx@4.23.10)(yaml@2.9.0))(supports-color@8.1.1)(typescript@6.0.3))(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(@vercel/functions@3.7.6(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.1))(db0@0.3.4)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(tsx@4.23.10)(yaml@2.9.0))(supports-color@8.1.1)(typescript@6.0.3)
+      starlight-sidebar-topics:
+        specifier: ^0.8.0
+        version: 0.8.0(@astrojs/starlight@0.41.7(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(@vercel/functions@3.7.6(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.1))(db0@0.3.4)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(tsx@4.23.10)(yaml@2.9.0))(supports-color@8.1.1)(typescript@6.0.3))
 
   eslint-config:
     dependencies:
@@ -11135,6 +11138,12 @@ packages:
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@astrojs/starlight': '>=0.41.0'
+
+  starlight-sidebar-topics@0.8.0:
+    resolution: {integrity: sha512-hE8+w2vNL13h6cq3UJGl05milJQ3+1BSlhaV5V4a993YzYczU6uLAj6jfUDKQ2mmgkdVWp8/UNDF4Je/rQXNQw==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      '@astrojs/starlight': '>=0.38.0'
 
   statuses@1.5.0:
     resolution: {integrity: sha512-OpZ3zP+jT1PI7I8nemJX4AKmAX070ZkYPVWV/AaKTJl+tXCTGyVdC1a4SL8RUQYEwk/f34ZX8UTykN68FwrqAA==}
@@ -25525,6 +25534,11 @@ snapshots:
       - astro
       - supports-color
       - typescript
+
+  starlight-sidebar-topics@0.8.0(@astrojs/starlight@0.41.7(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(@vercel/functions@3.7.6(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.1))(db0@0.3.4)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(tsx@4.23.10)(yaml@2.9.0))(supports-color@8.1.1)(typescript@6.0.3)):
+    dependencies:
+      '@astrojs/starlight': 0.41.7(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(astro@7.2.0(@astrojs/markdown-remark@7.2.2(supports-color@8.1.1))(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(@vercel/functions@3.7.6(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.1))(db0@0.3.4)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(tsx@4.23.10)(yaml@2.9.0))(supports-color@8.1.1)(typescript@6.0.3)
+      picomatch: 4.0.5
 
   statuses@1.5.0: {}
 
