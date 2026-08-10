@@ -22,7 +22,7 @@ use Smalot\PdfParser\Parser;
 
 add_action('add_attachment', function (int $attachmentId): void {
     $path = get_attached_file($attachmentId);
-    if ($path === false || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'pdf') {
+    if ($path === false || !file_exists($path) || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'pdf') {
         return;
     }
 
@@ -47,6 +47,8 @@ lps snippet push
 Unlike a route, a snippet doesn't get the Composer autoloader for free, `require_once` at the top does that, the one manual step [Using dependencies in code snippets](/composer/using-in-snippets/) covers. `add_attachment` fires for every upload WordPress processes, this snippet filters down to PDFs, but the hook itself doesn't care what kind of file it is.
 
 The extracted text is stripped and stored as post meta rather than kept anywhere else, once it's meta, it's searchable through a normal `meta_query`, or indexed into [a real search engine](/cookbook/search-and-data-services/instant-search-algolia-wordpress-rest-api/) the same as any other field, which is the actual point: turning an opaque attachment into something the rest of WordPress can query against.
+
+`wp_strip_all_tags()` runs on plain text `getText()` already returns, not markup, so there's nothing to strip in the ordinary case. It's there for the extraordinary one: a resume containing a literal `<script>`-looking string, or an email address written as `<name@example.com>`, stored as meta today and rendered unescaped in an admin list table or a search result somewhere down the line. Stripping now means a genuine `<` or `>` in the source text won't survive intact, an acceptable trade for content that's meant to be searched, not reproduced byte for byte.
 
 ## Nothing to gate, and why that's fine
 

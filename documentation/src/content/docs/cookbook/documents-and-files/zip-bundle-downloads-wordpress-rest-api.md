@@ -82,7 +82,7 @@ curl https://your-site.com/wp-json/loopress-api/v1/order-downloads/482 \
 
 ## Permission
 
-Digital downloads are tied to the order that paid for them, same ownership model as [the invoice PDF route](/cookbook/documents-and-files/pdf-generation-tcpdf-wordpress-rest-api/) earlier in this series:
+Digital downloads are tied to the order that paid for them, same ownership model as [the ticket QR code route](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/) earlier in this series:
 
 ```php
 public function permission(WP_REST_Request $request): bool

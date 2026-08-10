@@ -1,7 +1,7 @@
 ---
 import Default from "@astrojs/starlight/components/MarkdownContent.astro";
 import StarlightBlogMarkdownContent from "starlight-blog/components/MarkdownContent.astro";
-import { Code } from "@astrojs/starlight/components";
+import { Aside } from "@astrojs/starlight/components";
 import { getCollection } from "astro:content";
 
 const { entry } = Astro.locals.starlightRoute;
@@ -25,7 +25,10 @@ let cookbookGroups: {
 }[] = [];
 
 if (isCookbookIndex) {
-	const recipes = await getCollection("docs", (e) => e.id.startsWith("cookbook/"));
+	const recipes = await getCollection(
+		"docs",
+		(e) => e.id.startsWith("cookbook/") && !e.data.draft,
+	);
 
 	const byCategory = new Map<string, typeof recipes>();
 	for (const recipe of recipes) {
@@ -65,6 +68,25 @@ if (isCookbookIndex) {
 			)}
 			.
 		</p>
+	)
+}
+{
+	isCookbookRecipe && (
+		<Aside type="note">
+			{kind === "snippet" ? (
+				<>
+					This is a Loopress <a href="/snippets/">snippet</a>, a plain PHP file in{" "}
+					<code>snippets/</code> deployed with <code>lps snippet push</code>.
+				</>
+			) : (
+				<>
+					This is a Loopress <a href="/api/routes/">Custom API Route</a>, a plain PHP file in{" "}
+					<code>api/</code> deployed with <code>lps api push</code>.
+				</>
+			)}{" "}
+			New to Loopress? <a href="/getting-started/">Getting Started</a> covers installing the CLI and
+			connecting it to your site.
+		</Aside>
 	)
 }
 {

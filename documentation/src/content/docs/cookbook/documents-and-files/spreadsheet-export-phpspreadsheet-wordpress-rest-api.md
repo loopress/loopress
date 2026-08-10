@@ -13,6 +13,8 @@ The `.xlsx` format is a zipped bundle of XML files with its own internal structu
 
 ## The route
 
+Querying orders through `WP_Query` and reading `_order_total`/`_billing_email` as post meta is the older WooCommerce shape, one that assumes an order is stored as a post. Since WooCommerce's High-Performance Order Storage (HPOS), the default on new stores, orders live in their own database table instead of `wp_posts`, so that query silently returns nothing on a site using it. [`wc_get_orders()`](https://developer.woocommerce.com/docs/extensions/core-concepts/wc-get-orders/) is WooCommerce's own query function, it works the same way regardless of which storage a site has enabled, which matters here since a route pushed to a client's site has no control over that setting:
+
 ```php title="api/orders-export.php"
 <?php
 
@@ -25,10 +27,9 @@ class OrdersExport
 {
     public function get(): WP_REST_Response
     {
-        $orders = new WP_Query([
-            'post_type'      => 'shop_order',
-            'posts_per_page' => -1,
-            'post_status'    => 'wc-completed',
+        $orders = wc_get_orders([
+            'status' => 'completed',
+            'limit'  => -1,
         ]);
 
         $spreadsheet = new Spreadsheet();
@@ -37,12 +38,12 @@ class OrdersExport
         $sheet->fromArray(['Order ID', 'Date', 'Total', 'Customer email'], null, 'A1');
 
         $row = 2;
-        foreach ($orders->posts as $order) {
+        foreach ($orders as $order) {
             $sheet->fromArray([
-                $order->ID,
-                get_the_date('Y-m-d', $order),
-                get_post_meta($order->ID, '_order_total', true),
-                get_post_meta($order->ID, '_billing_email', true),
+                $order->get_id(),
+                $order->get_date_created()?->format('Y-m-d'),
+                $order->get_total(),
+                $order->get_billing_email(),
             ], null, "A{$row}");
             $row++;
         }
@@ -70,6 +71,8 @@ lps composer push
 ```
 
 `Xlsx::save()` normally takes a file path, but it accepts a writable stream just as well, `php://temp` keeps the file in memory (spilling to a temp file only past a few megabytes) instead of touching the disk for a file nobody needs to keep. As with any binary output from a route, the response carries it as base64 inside the JSON body, that's what going through WordPress's standard REST serialization (documented for both `array` and `WP_REST_Response` returns) predictably gets you, the frontend decodes it and offers the file as a download.
+
+`limit => -1` matches the "every completed order" goal here, but it also means loading every one into memory as a `WC_Order` object before the spreadsheet is even built. Fine for hundreds of orders, a store with a genuinely large order history should narrow this with a date range (`wc_get_orders()` accepts `date_created` the same way it accepts `status`) or paginate, neither shown here to keep the example focused.
 
 ## Now call it
 

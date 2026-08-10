@@ -77,7 +77,7 @@ curl "https://your-site.com/wp-json/loopress-api/v1/quote/482?discount=15"
 
 ## Permission
 
-A price quote from a public product price isn't sensitive, this route stays open. The same shape computing a customer-specific negotiated price, or anything reading from an order rather than a public product, should not: that's the same closed-by-default, admin-or-owner pattern the [invoice](/cookbook/documents-and-files/pdf-generation-tcpdf-wordpress-rest-api/) and [QR code](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/) routes in this series both use.
+A price quote from a public product price isn't sensitive, this route stays open. The same shape computing a customer-specific negotiated price, or anything reading from an order rather than a public product, should not: that's the same closed-by-default, admin-or-owner pattern the [QR code](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/) route in this series uses.
 
 ## A missing package fails the one request, not the site
 
