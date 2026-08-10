@@ -159,6 +159,27 @@ public function post(WP_REST_Request $request): WP_REST_Response|WP_Error
 }
 ```
 
+### Streaming a file instead of JSON
+
+The three shapes above all go through WordPress's standard REST serialization. For binary output, that's usually fine as base64 inside the JSON body, see the [cookbook](/cookbook/) for image, QR code, and spreadsheet examples that do exactly that, useful when the consumer is your own frontend turning the response straight into a `data:` URI.
+
+When the consumer is a browser navigating to the URL directly, or a tool like `curl -o`, a real download needs real headers and raw bytes, not JSON. Nothing about a route file forces a return value through `WP_REST_Response`: a verb method can send its own headers, echo raw bytes, and `exit` before WordPress gets a chance to serialize anything.
+
+```php
+public function get(WP_REST_Request $request): void
+{
+    $postId = (int) $request->get_param('post_id');
+    // ... build $pdfBytes ...
+
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . sanitize_title($filename) . '.pdf"');
+    echo $pdfBytes;
+    exit;
+}
+```
+
+See [Rendering a WordPress Post as a Downloadable PDF](/cookbook/documents-and-files/post-to-pdf-dompdf-wordpress-rest-api/) for a full working example, `permission()`, `wp_die()` on a missing post, and all.
+
 ## Authentication and permissions
 
 By default, every route is **closed**: it requires an authenticated user with the `manage_options` capability, the same check the Loopress management endpoints use. Two ways to satisfy it:

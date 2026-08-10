@@ -9,6 +9,7 @@ import { createRequire } from "module";
 import { copyFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import starlightLlmsTxt from 'starlight-llms-txt'
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -67,6 +68,7 @@ export default defineConfig({
 				MarkdownContent: "./src/components/MarkdownContent.astro",
 			},
 			plugins: [
+				starlightLlmsTxt(),
 				starlightBlog({
 					authors: {
 						maxime: {

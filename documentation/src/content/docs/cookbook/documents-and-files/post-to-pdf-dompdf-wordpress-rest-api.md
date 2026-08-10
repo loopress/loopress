@@ -38,7 +38,7 @@ class PostPdf
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="' . sanitize_title($post->post_title) . '.pdf"');
         header('Cache-Control: public, max-age=3600');
-        echo $dompdf->output(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw PDF binary, not HTML
+        echo $dompdf->output();
         exit;
     }
 
