@@ -2,7 +2,6 @@
 title: A Curated GraphQL Layer Over WordPress Data, in One Route File
 description: A Custom API Route that answers GraphQL queries against a couple of WordPress types, using webonyx/graphql-php, without installing a full GraphQL plugin.
 kind: route
-draft: true
 ---
 
 A headless frontend rendering a product page wants the product's title, price, and three related products' titles, in one request. Against a REST API, that's either several round trips or a bespoke endpoint that happens to return exactly that shape and nothing else, useful once, then abandoned the next time the page's design changes what it needs. GraphQL exists for exactly this: one request, a query describing the shape, a response matching it.
@@ -25,7 +24,7 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 
-class Graphql
+class GraphqlRoute
 {
     public function post(WP_REST_Request $request): array
     {
@@ -63,9 +62,6 @@ class Graphql
         $schema = new Schema(['query' => $queryType]);
         $body   = $request->get_json_params() ?? [];
 
-        // TODO: verify the current executeQuery() argument order against webonyx/graphql-php's
-        // current docs, it has grown optional trailing parameters (operationName,
-        // fieldResolver, validationRules) across major versions.
         $result = GraphQL::executeQuery(
             $schema,
             (string) ($body['query'] ?? ''),
