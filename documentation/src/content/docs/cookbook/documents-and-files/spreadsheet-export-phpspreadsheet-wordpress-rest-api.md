@@ -1,11 +1,10 @@
 ---
-title: Exporting WordPress Data to XLSX with PhpSpreadsheet
-description: A Custom API Route that turns a WP_Query result into a downloadable Excel file, using PhpSpreadsheet, for the client who just wants "the numbers in a spreadsheet."
+title: Exporting WooCommerce Orders to XLSX with PhpSpreadsheet
+description: A Custom API Route that turns a WooCommerce orders query into a downloadable Excel file, using PhpSpreadsheet, for the client who just wants "the numbers in a spreadsheet."
 kind: route
-draft: true
 ---
 
-Somewhere in most WordPress projects, a client asks for a spreadsheet. Not a CSV they'll paste into Excel, an actual `.xlsx` file with a proper sheet name, formatted headers, and columns that don't need re-parsing. A monthly export of orders, a list of newsletter signups, whatever the data is, `WP_Query` gets it out of the database in an array. Turning that array into a real spreadsheet file is a different problem, and it's one core has no opinion on.
+Somewhere in most WooCommerce projects, a client asks for a spreadsheet. Not a CSV they'll paste into Excel, an actual `.xlsx` file with a proper sheet name, formatted headers, and columns that don't need re-parsing. A monthly export of completed orders, one row per order with the total and the customer's email, exactly the kind of thing a store manager wants without touching wp-admin. Turning a list of orders into a real spreadsheet file is a different problem, and it's one core (or WooCommerce itself) has no opinion on.
 
 ## Why this needs a package
 
@@ -25,7 +24,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class OrdersExport
 {
-    public function get(): WP_REST_Response
+    public function get(): void
     {
         $orders = wc_get_orders([
             'status' => 'completed',
@@ -48,19 +47,14 @@ class OrdersExport
             $row++;
         }
 
-        $stream = fopen('php://temp', 'r+');
-        (new Xlsx($spreadsheet))->save($stream);
-        rewind($stream);
-        $bytes = stream_get_contents($stream);
-        fclose($stream);
+        $filename = 'orders-' . gmdate('Y-m-d') . '.xlsx';
 
-        $response = new WP_REST_Response([
-            'filename' => 'orders-' . gmdate('Y-m-d') . '.xlsx',
-            'content'  => base64_encode($bytes),
-        ]);
-        $response->header('Cache-Control', 'private, max-age=0, no-store');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment; filename=\"{$filename}\"");
+        header('Cache-Control: private, max-age=0, no-store');
 
-        return $response;
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
     }
 }
 ```
@@ -70,7 +64,7 @@ composer require phpoffice/phpspreadsheet
 lps composer push
 ```
 
-`Xlsx::save()` normally takes a file path, but it accepts a writable stream just as well, `php://temp` keeps the file in memory (spilling to a temp file only past a few megabytes) instead of touching the disk for a file nobody needs to keep. As with any binary output from a route, the response carries it as base64 inside the JSON body, that's what going through WordPress's standard REST serialization (documented for both `array` and `WP_REST_Response` returns) predictably gets you, the frontend decodes it and offers the file as a download.
+`Xlsx::save()` normally takes a file path, but it accepts a writable stream just as well, `php://output` writes the file straight into the response body as it's generated, nothing held in memory or on disk beyond what PhpSpreadsheet itself needs to build the sheet. A `void` return and an explicit `exit` bypass WordPress's standard REST serialization on purpose, real headers and raw `.xlsx` bytes, not JSON, see [Streaming a file instead of JSON](/api/routes/#streaming-a-file-instead-of-json) for why a route file can do this at all.
 
 `limit => -1` matches the "every completed order" goal here, but it also means loading every one into memory as a `WC_Order` object before the spreadsheet is even built. Fine for hundreds of orders, a store with a genuinely large order history should narrow this with a date range (`wc_get_orders()` accepts `date_created` the same way it accepts `status`) or paginate, neither shown here to keep the example focused.
 
@@ -78,12 +72,11 @@ lps composer push
 
 ```bash
 curl https://your-site.com/wp-json/loopress-api/v1/orders-export \
-  -u "admin:xxxx xxxx xxxx xxxx xxxx xxxx"
+  -u "admin:xxxx xxxx xxxx xxxx xxxx xxxx" \
+  -o orders.xlsx
 ```
 
-```json
-{"filename": "orders-2026-08-09.xlsx", "content": "UEsDBBQABgAIAAAAIQDfpNJzvgAAAJQBAAATAAgC..."}
-```
+That writes an actual `orders.xlsx` to disk, `-o` instead of letting curl dump raw spreadsheet bytes to the terminal.
 
 ## Permission
 
@@ -102,4 +95,4 @@ If `phpoffice/phpspreadsheet` isn't installed, `new Spreadsheet()` is an undefin
 
 ## What this opens up
 
-Same shape, different query: product catalogs, subscriber lists, form submissions, anything a stakeholder wants "in Excel" instead of in the admin. It's also a narrow enough file, one query, one loop, one writer call, that handing it to an AI coding assistant to draft is a reasonable single-pass task, the contract (a `get()` returning a response) leaves little room to wander.
+Same shape, different query: product catalogs, subscriber lists, form submissions, anything a stakeholder wants "in Excel" instead of in the admin. It's also a narrow enough file, one query, one loop, one writer call, that handing it to an AI coding assistant to draft is a reasonable single-pass task, the contract (query the data, write it to the sheet, stream the file) leaves little room to wander.
