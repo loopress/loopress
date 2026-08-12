@@ -6,7 +6,7 @@ by a single CLI. Configuration as code, version control, reproducible environmen
 clicking through wp-admin and hoping staging matches production.
 
 [loopress.dev](https://loopress.dev) · [Documentation](https://docs.loopress.dev) ·
-[Security policy](./SECURITY.md)
+[Security policy](./SECURITY.md) · [Status](https://claude.loopress.dev)
 
 ## What's in this repo
 
