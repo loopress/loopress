@@ -14,6 +14,12 @@ function joinedOutput(logs: {log: {mock: {calls: unknown[][]}}}): string {
   return logs.log.mock.calls.map(([line]) => line).join('\n')
 }
 
+// Matches logEnvironment's `  ${marker} ${name.padEnd(15)} ${url}${arrow}` format exactly,
+// so tests don't have to hand-count padding spaces.
+function envLine(marker: '·', name: string, url: string, arrow = ''): string {
+  return `  ${marker} ${name.padEnd(15)} ${url}${arrow}`
+}
+
 describe('project list', () => {
   beforeEach(() => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
@@ -40,10 +46,11 @@ describe('project list', () => {
 
     await cmd.run()
 
-    const output = joinedOutput(logs)
-    expect(output).toContain('Acme')
-    expect(output).toContain('production')
-    expect(output).toContain('https://acme.test')
+    // Exact match (not toContain): the marker glyph, padding, and separator are all part of
+    // the contract, not just the substrings we happen to check.
+    expect(logs.log).toHaveBeenCalledWith('○ Acme')
+    expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test'))
+    expect(logs.log).toHaveBeenCalledWith('')
     expect(configManager.listEnvironments).toHaveBeenCalledWith('acme')
   })
 
@@ -55,7 +62,7 @@ describe('project list', () => {
 
     await cmd.run()
 
-    expect(joinedOutput(logs)).toContain('[current]')
+    expect(logs.log).toHaveBeenCalledWith('● Acme [current]')
   })
 
   it('does not add the [current] tag for a non-current project', async () => {
@@ -67,6 +74,7 @@ describe('project list', () => {
     await cmd.run()
 
     expect(joinedOutput(logs)).not.toContain('[current]')
+    expect(logs.log).toHaveBeenCalledWith('○ Acme')
   })
 
   it('marks the current environment with an arrow', async () => {
@@ -80,7 +88,7 @@ describe('project list', () => {
 
     await cmd.run()
 
-    expect(joinedOutput(logs)).toContain('←')
+    expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test', ' ←'))
   })
 
   it('does not add the arrow for a non-current environment', async () => {
@@ -95,6 +103,7 @@ describe('project list', () => {
     await cmd.run()
 
     expect(joinedOutput(logs)).not.toContain('←')
+    expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test'))
   })
 
   it('lists every environment for a project with several', async () => {

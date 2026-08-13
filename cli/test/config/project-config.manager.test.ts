@@ -127,6 +127,13 @@ describe('ProjectConfigManager', () => {
       expect(manager.readConfig().projects).toEqual({})
     })
 
+    it('drops a project entry that is exactly null', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: {acme: null}}))
+      expect(() => manager.readConfig()).not.toThrow()
+      expect(manager.readConfig().projects).toEqual({})
+    })
+
     it('treats a null projects field as no projects', () => {
       manager.ensureConfigDir()
       writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: null}))
@@ -169,6 +176,16 @@ describe('ProjectConfigManager', () => {
     it('returns null for an unknown project', () => {
       expect(manager.getProject('unknown')).toBeNull()
     })
+
+    it('does not set currentProject when the first project added has no environments', () => {
+      manager.setProject('id-acme', {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'acme'})
+
+      // Same reasoning as the removeProject/removeEnvironment raw-file checks above: a `{id,
+      // env: undefined}` pointer is indistinguishable from `null` once read back through
+      // readConfig()'s sanitization, since JSON.stringify drops the undefined env first.
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      expect(raw.currentProject).toBeNull()
+    })
   })
 
   describe('findProjectByApiId', () => {
@@ -195,9 +212,48 @@ describe('ProjectConfigManager', () => {
     })
   })
 
+  describe('setProjectApiId', () => {
+    it('stores the apiProjectId on the project', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.setProjectApiId('id-acme', 'api-1')
+      expect(manager.getProject('id-acme')).toEqual({...makeProject('acme'), apiProjectId: 'api-1'})
+    })
+
+    it('does nothing for an unknown project', () => {
+      expect(() => { manager.setProjectApiId('ghost', 'api-1'); }).not.toThrow()
+      expect(manager.getProject('ghost')).toBeNull()
+    })
+  })
+
+  describe('setEnvironmentApiId', () => {
+    it('stores the apiEnvironmentId on the environment', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironmentApiId('id-acme', 'production', 'api-env-1')
+      expect(manager.getEnvironment('id-acme', 'production')).toEqual({
+        ...makeEnv('production'),
+        apiEnvironmentId: 'api-env-1',
+      })
+    })
+
+    it('does nothing for an unknown project', () => {
+      expect(() => { manager.setEnvironmentApiId('ghost', 'production', 'api-env-1'); }).not.toThrow()
+      expect(manager.getProject('ghost')).toBeNull()
+    })
+
+    it('does nothing for an unknown environment on a known project', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironmentApiId('id-acme', 'ghost-env', 'api-env-1')
+      expect(manager.getEnvironment('id-acme', 'production')).toEqual(makeEnv('production'))
+    })
+  })
+
   describe('createProjectId', () => {
     it('slugifies the given name', () => {
       expect(manager.createProjectId('My Cool Project')).toBe('my-cool-project')
+    })
+
+    it('falls back to "project" when the name has nothing sluggable in it', () => {
+      expect(manager.createProjectId('!!!')).toBe('project')
     })
 
     it('appends a numeric suffix when the slug is already taken', () => {
@@ -278,8 +334,34 @@ describe('ProjectConfigManager', () => {
       manager.setProject('id-beta', {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'beta'})
       manager.setCurrent('id-acme', 'production')
       manager.removeProject('id-acme')
-      expect(manager.readConfig().currentProject).toBeNull()
       expect(manager.getProject('id-beta')).not.toBeNull()
+      // Read the raw file rather than manager.getCurrentProject()/readConfig(): a `{id, env:
+      // undefined}` pointer round-trips through JSON.stringify indistinguishably from `null`
+      // once env is dropped, so only the raw JSON tells "correctly set to null" apart from
+      // "incorrectly set to a pointer with no env".
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      expect(raw.currentProject).toBeNull()
+    })
+
+    it('does not crash removing a project when nothing is currently active', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.setProject('id-beta', makeProject('beta'))
+      manager.removeEnvironment('id-acme', 'production') // id-acme was current; losing its last env nulls currentProject
+      expect(manager.readConfig().currentProject).toBeNull()
+
+      expect(() => { manager.removeProject('id-beta'); }).not.toThrow()
+      expect(manager.getProject('id-beta')).toBeNull()
+    })
+
+    it('does not touch currentProject when removing an unrelated project, even if a different project would sort first', () => {
+      manager.setProject('id-beta', makeProject('beta')) // inserted first; would be picked as "next" if the guard were skipped
+      manager.setProject('id-acme', makeProject('acme'))
+      manager.setProject('id-gamma', makeProject('gamma'))
+      manager.setCurrent('id-acme', 'production')
+
+      manager.removeProject('id-gamma')
+
+      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
     })
   })
 
@@ -402,6 +484,35 @@ describe('ProjectConfigManager', () => {
       manager.removeEnvironment('id-acme', 'staging')
       expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
     })
+
+    it('leaves currentProject untouched when removing a non-current environment, even if a different remaining one would sort first', () => {
+      manager.setProject('id-acme', makeProject('acme', 'staging')) // 'staging' inserted first
+      manager.setEnvironment('id-acme', 'production', makeEnv('production'))
+      manager.setEnvironment('id-acme', 'review', makeEnv('review'))
+      manager.setCurrent('id-acme', 'production') // current env is 'production', not the first-inserted one
+
+      manager.removeEnvironment('id-acme', 'review')
+
+      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+    })
+
+    it('does not crash removing an environment when nothing is currently active', () => {
+      const project: ProjectConfig = {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'acme'}
+      manager.setProject('id-acme', project) // no environments, so setProject never sets a currentProject
+      expect(manager.readConfig().currentProject).toBeNull()
+
+      expect(() => { manager.removeEnvironment('id-acme', 'anything'); }).not.toThrow()
+    })
+
+    it('sets currentProject to null (not a pointer with a missing env) when the active project loses its last environment', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.removeEnvironment('id-acme', 'production')
+
+      // See the analogous removeProject test above for why the raw file, not readConfig(), is
+      // what actually distinguishes "null" from "a pointer whose env got dropped by JSON.stringify".
+      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      expect(raw.currentProject).toBeNull()
+    })
   })
 
   describe('listEnvironments', () => {
@@ -476,6 +587,26 @@ describe('ProjectConfigManager', () => {
         JSON.stringify({currentProject: null, projects: {}, telemetry: {disabled: true}}),
       )
       expect(manager.readConfig().telemetry).toEqual({disabled: true})
+    })
+
+    it('drops a telemetry field that is exactly null', () => {
+      manager.ensureConfigDir()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: null, projects: {}, telemetry: null}))
+      expect(() => manager.readConfig()).not.toThrow()
+      expect(manager.readConfig().telemetry).toBeUndefined()
+    })
+  })
+
+  describe('requireConfigDir (via getConfigFilePath)', () => {
+    it('throws when used before setConfigDir()', () => {
+      const bareManager = new ProjectConfigManager()
+      expect(() => bareManager.getConfigFilePath()).toThrow('ProjectConfigManager used before setConfigDir() was called')
+    })
+
+    it('uses the configDir provided via setConfigDir()', () => {
+      const bareManager = new ProjectConfigManager()
+      bareManager.setConfigDir(tmpDir)
+      expect(bareManager.getConfigFilePath()).toBe(join(tmpDir, 'config.json'))
     })
   })
 

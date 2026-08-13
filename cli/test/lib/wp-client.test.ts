@@ -3,7 +3,7 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {formatWpError, WpClient} from '../../src/lib/wp-client.js'
+import {formatWpError, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
 
 describe('WpClient', () => {
   let server: Server | undefined
@@ -13,20 +13,21 @@ describe('WpClient', () => {
     server = undefined
   })
 
-  async function serve(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<WpClient> {
+  async function serve(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<{client: WpClient; siteUrl: string}> {
     server = createServer(handler)
     await new Promise<void>((resolve) => {
       server!.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
-    return new WpClient(`http://127.0.0.1:${port}`, 'user:pass')
+    const siteUrl = `http://127.0.0.1:${port}`
+    return {client: new WpClient(siteUrl, 'user:pass'), siteUrl}
   }
 
   it('GETs a wp-json path with basic auth and parses the JSON response', async () => {
     let seenUrl = ''
     let seenAuth = ''
     let seenMethod = ''
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       seenUrl = req.url ?? ''
       seenAuth = req.headers.authorization ?? ''
       seenMethod = req.method ?? ''
@@ -45,7 +46,7 @@ describe('WpClient', () => {
   it('POSTs a JSON body', async () => {
     let seenBody = ''
     let seenMethod = ''
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       seenMethod = req.method ?? ''
       let raw = ''
       req.on('data', (chunk: Uint8Array) => {
@@ -68,7 +69,7 @@ describe('WpClient', () => {
   it('DELETEs a path', async () => {
     let seenMethod = ''
     let seenUrl = ''
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       seenMethod = req.method ?? ''
       seenUrl = req.url ?? ''
       res.writeHead(200, {'Content-Type': 'application/json'})
@@ -83,7 +84,7 @@ describe('WpClient', () => {
   })
 
   it('tolerates an empty response body', async () => {
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       res.writeHead(200)
       res.end()
     })
@@ -92,7 +93,7 @@ describe('WpClient', () => {
   })
 
   it('applies a per-request timeout when one is passed', async () => {
-    const client = await serve(() => {
+    const {client} = await serve(() => {
       // accept the request, never respond
     })
 
@@ -102,7 +103,7 @@ describe('WpClient', () => {
   })
 
   it('maps a 401 to a friendly credentials error', async () => {
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       res.writeHead(401)
       res.end('{}')
     })
@@ -111,7 +112,7 @@ describe('WpClient', () => {
   })
 
   it('maps a 404 with no error body to a friendly missing-plugin error', async () => {
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       res.writeHead(404)
       res.end('{}')
     })
@@ -120,7 +121,7 @@ describe('WpClient', () => {
   })
 
   it("surfaces the server's own error message on a 404 instead of the generic missing-plugin one", async () => {
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       res.writeHead(404, {'Content-Type': 'application/json'})
       res.end(JSON.stringify({error: 'composer.lock not found'}))
     })
@@ -129,16 +130,20 @@ describe('WpClient', () => {
   })
 
   it('maps other HTTP errors to a generic message with the status code', async () => {
-    const client = await serve((req, res) => {
+    const {client, siteUrl} = await serve((req, res) => {
       res.writeHead(500)
       res.end('{}')
     })
 
-    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Request failed \(500\)/)
+    // Exact match on the whole message: proves the URL formatWpError() is given is really the
+    // full `${siteUrl}/wp-json/${path}` it was called with, not an empty/placeholder string.
+    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(
+      `Request failed (500) on ${siteUrl}/wp-json/loopress/v1/plugins.`,
+    )
   })
 
   it("surfaces the server's own error message alongside the status code", async () => {
-    const client = await serve((req, res) => {
+    const {client} = await serve((req, res) => {
       res.writeHead(500, {'Content-Type': 'application/json'})
       res.end(JSON.stringify({error: 'Multiple snippet plugins are active at once.'}))
     })
@@ -178,8 +183,10 @@ describe('formatWpError', () => {
   it("includes the server's own {error} message for other status codes", () => {
     const body = JSON.stringify({error: 'Multiple snippet plugins are active at once.'})
     const message = formatWpError({response: {body, statusCode: 500}}, url)
-    expect(message).toContain('Request failed (500)')
-    expect(message).toContain('Multiple snippet plugins are active at once.')
+    // Exact match: with no {output} field, the message must be exactly the summary alone, not
+    // "summary\nundefined" (which a broken `summary || detail` check would also produce, since
+    // both toContain() checks below would still pass against that longer, buggy string).
+    expect(message).toBe(`Request failed (500) on ${url}: Multiple snippet plugins are active at once.`)
   })
 
   // Regression coverage: ComposerController::sync() (and others) pair a short, generic
@@ -199,6 +206,13 @@ describe('formatWpError', () => {
     const body = JSON.stringify({output: 'Some raw tool output with no summary.'})
     const message = formatWpError({response: {body, statusCode: 500}}, url)
     expect(message).toContain('Some raw tool output with no summary.')
+  })
+
+  it('trims leading/trailing whitespace from the {output} field before including it', () => {
+    const body = JSON.stringify({error: 'Sync failed.', output: '  actual detail  '})
+    const message = formatWpError({response: {body, statusCode: 500}}, url)
+    // Exact match: an untrimmed {output} would leave the padding spaces around "actual detail".
+    expect(message).toBe(`Request failed (500) on ${url}: Sync failed.\nactual detail`)
   })
 
   it("includes the server's own {message} field when there is no {error} field", () => {
@@ -257,5 +271,51 @@ describe('formatWpError', () => {
   it('falls back to the generic message when the response has no body at all (not even an empty one)', () => {
     const message = formatWpError({response: {statusCode: 500}}, url)
     expect(message).toBe(`Request failed (500) on ${url}.`)
+  })
+})
+
+describe('isNotFoundError', () => {
+  it('is true for a cause with a 404 statusCode', () => {
+    expect(isNotFoundError(new Error('x', {cause: {response: {statusCode: 404}}}))).toBe(true)
+  })
+
+  it('is false for a cause with a different statusCode', () => {
+    expect(isNotFoundError(new Error('x', {cause: {response: {statusCode: 500}}}))).toBe(false)
+  })
+
+  it('is false, not a throw, when the error has no cause at all', () => {
+    expect(isNotFoundError(new Error('x'))).toBe(false)
+  })
+
+  it('is false, not a throw, when the cause has no response', () => {
+    expect(isNotFoundError(new Error('x', {cause: {}}))).toBe(false)
+  })
+
+  it('is false, not a throw, when the thrown value itself is null or undefined', () => {
+    expect(isNotFoundError(null)).toBe(false)
+    expect(isNotFoundError(undefined)).toBe(false)
+  })
+})
+
+describe('isTimeoutError', () => {
+  it('is true for a cause named TimeoutError', () => {
+    expect(isTimeoutError(new Error('x', {cause: {name: 'TimeoutError'}}))).toBe(true)
+  })
+
+  it('is false for a cause with a different name', () => {
+    expect(isTimeoutError(new Error('x', {cause: {name: 'HTTPError'}}))).toBe(false)
+  })
+
+  it('is false, not a throw, when the error has no cause at all', () => {
+    expect(isTimeoutError(new Error('x'))).toBe(false)
+  })
+
+  it('is false, not a throw, when the cause has no name', () => {
+    expect(isTimeoutError(new Error('x', {cause: {}}))).toBe(false)
+  })
+
+  it('is false, not a throw, when the thrown value itself is null or undefined', () => {
+    expect(isTimeoutError(null)).toBe(false)
+    expect(isTimeoutError(undefined)).toBe(false)
   })
 })
