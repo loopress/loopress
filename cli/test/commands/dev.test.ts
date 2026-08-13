@@ -31,7 +31,7 @@ function fakeWatcher() {
       return watcher
     }),
   }
-  return {emit: (event: ChokidarEvent, path: string) => { handlers.get(event)?.(path); }, watcher}
+  return {emit(event: ChokidarEvent, path: string) { handlers.get(event)?.(path); }, watcher}
 }
 
 type DevWithPushBatch = {
@@ -140,8 +140,8 @@ describe('dev', () => {
       const cmd = make()
       const {log} = silenceLogs(cmd)
       const changes = new Map([
-        ['plugins', ['loopress.json']], // not in `targets` above
         ['pages', ['pages/home.html']],
+        ['plugins', ['loopress.json']], // not in `targets` above
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 

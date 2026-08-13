@@ -157,7 +157,7 @@ describe('status', () => {
       const getCurrentEnv = vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production', 'https://acme.com'))
 
       const cmd = make()
-      const {log, warn} = silenceLogs(cmd)
+      const {warn} = silenceLogs(cmd)
       await cmd.run()
 
       expect(getCurrentEnv).not.toHaveBeenCalled()
