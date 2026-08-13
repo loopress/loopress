@@ -20,14 +20,14 @@ class TestComposerPull extends ComposerPull {
 function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {
   const cmd = new TestComposerPull([], fakeOclifConfig)
   cmd.setup({dryRun, localConfig, siteConfig: makeEnv('production', 'https://acme.com')})
-  silenceLogs(cmd)
+  const {log} = silenceLogs(cmd)
   const get = vi.fn(async (path: string) =>
     path === 'loopress/v1/composer/json'
       ? Promise.resolve({composerJson: '{"name": "demo/site"}'})
       : Promise.resolve({composerLock: '{"packages": []}'}),
   )
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
-  return {cmd, get}
+  return {cmd, get, log}
 }
 
 describe('composer pull', () => {
@@ -43,14 +43,17 @@ describe('composer pull', () => {
   })
 
   it('writes composer.json and composer.lock from the API response', async () => {
-    const {cmd, get} = make(false)
+    const {cmd, get, log} = make(false)
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(get).toHaveBeenCalledWith('loopress/v1/composer/json')
     expect(get).toHaveBeenCalledWith('loopress/v1/composer/lock')
     expect(readFileSync(join(dir, 'composer.json'), 'utf8')).toBe('{"name": "demo/site"}')
     expect(readFileSync(join(dir, 'composer.lock'), 'utf8')).toBe('{"packages": []}')
+    expect(log).toHaveBeenCalledWith('Pulling composer.json and composer.lock from https://acme.com')
+    expect(log).toHaveBeenCalledWith('Wrote composer.json and composer.lock')
+    expect(result).toEqual({status: 'success', wroteLock: true})
   })
 
   it('respects rootDir from loopress.json', async () => {
@@ -63,13 +66,15 @@ describe('composer pull', () => {
   })
 
   it('writes nothing on dry-run', async () => {
-    const {cmd, get} = make(true)
+    const {cmd, get, log} = make(true)
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(get).toHaveBeenCalledTimes(2)
     expect(existsSync(join(dir, 'composer.json'))).toBe(false)
     expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
+    expect(log).toHaveBeenCalledWith('[dry-run] Would write composer.json and composer.lock')
+    expect(result).toEqual({status: 'dry-run', wroteLock: true})
   })
 
   it('writes composer.json alone when the site has no composer.lock yet, instead of failing', async () => {
@@ -84,11 +89,12 @@ describe('composer pull', () => {
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(readFileSync(join(dir, 'composer.json'), 'utf8')).toBe('{"name": "demo/site"}')
     expect(existsSync(join(dir, 'composer.lock'))).toBe(false)
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('no composer.lock on this site yet'))
+    expect(result).toEqual({status: 'success', wroteLock: false})
   })
 
   // Regression coverage: the dry-run message only distinguished "would write both files" from
@@ -107,13 +113,30 @@ describe('composer pull', () => {
     )
     ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
     // Exact match, not a substring check: the fixed "Pulling composer.json and composer.lock
     // from..." banner logged unconditionally above also contains "and composer.lock", so only
     // an exact match on this specific line proves the dry-run message itself doesn't.
     expect(logs.log).toHaveBeenCalledWith('[dry-run] Would write composer.json')
     expect(existsSync(join(dir, 'composer.json'))).toBe(false)
+    expect(result).toEqual({status: 'dry-run', wroteLock: false})
+  })
+
+  it('rethrows a non-404 error even when its body happens to match the missing-lock shape', async () => {
+    const {cmd} = make(false)
+    // isMissingComposerLock must check isNotFoundError() first: a 500 whose body coincidentally
+    // parses to the same {"error": "composer.lock not found"} shape must still be surfaced as a
+    // real failure, not silently swallowed as "no lock yet".
+    const serverError = new Error('server error', {
+      cause: {response: {body: JSON.stringify({error: 'composer.lock not found'}), statusCode: 500}},
+    })
+    const get = vi.fn(async (path: string) =>
+      path === 'loopress/v1/composer/json' ? Promise.resolve({composerJson: '{"name": "demo/site"}'}) : Promise.reject(serverError),
+    )
+    ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+
+    await expect(cmd.run()).rejects.toThrow('server error')
   })
 
   // Regression coverage: a bare 404 also covers the route being absent (plugin not installed,

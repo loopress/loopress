@@ -60,7 +60,7 @@ export function createListrMock() {
           try {
             await t.task(ctx, fakeTask)
           } catch (error) {
-            if (options?.exitOnError) throw error
+            if (options?.exitOnError !== false) throw error
           } finally {
             this.outputs.push(fakeTask.output)
           }

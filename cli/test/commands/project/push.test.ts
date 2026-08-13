@@ -126,6 +126,8 @@ describe('project push', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
+    expect(get).toHaveBeenCalledWith('projects')
+    expect(confirm).not.toHaveBeenCalled()
     expect(post).toHaveBeenNthCalledWith(1, 'projects', {name: 'acme'})
     expect(post).toHaveBeenNthCalledWith(2, 'projects/api-project-1/environments', {
       name: 'production',
@@ -137,7 +139,7 @@ describe('project push', () => {
     })
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'production', 'api-env-1')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
   })
 
   it('reuses existing api ids and only pushes credentials when already pushed', async () => {
@@ -192,7 +194,7 @@ describe('project push', () => {
 
     expect(setProjectApiId).not.toHaveBeenCalledWith('id-acme', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-beta', 'api-project-2')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 0 environments'))
+    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 0 environments to your Loopress account')
   })
 
   it('does not push credentials when the environment has no token', async () => {
@@ -221,12 +223,13 @@ describe('project push', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(confirm).toHaveBeenCalledWith(
-      expect.objectContaining({message: expect.stringContaining('A project named "Acme" already exists')}),
-    )
+    expect(confirm).toHaveBeenCalledWith({
+      default: true,
+      message: expect.stringContaining('A project named "Acme" already exists'),
+    })
     expect(post).not.toHaveBeenCalledWith('projects', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 0 environments'))
+    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 0 environments to your Loopress account')
   })
 
   it('creates a new project when the user declines linking to an existing match', async () => {
@@ -417,7 +420,7 @@ describe('project push', () => {
     expect(setEnvironmentApiId).toHaveBeenCalledTimes(1)
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'staging', 'api-env-2')
     expect(outputsOf(0)).toEqual(['Failed to push "production": quota exceeded', 'Created on the API'])
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
   })
 
   it('warns with the project and environment name when pushing credentials fails', async () => {
@@ -449,6 +452,124 @@ describe('project push', () => {
     await cmd.run()
 
     expect(listrInstances).toHaveLength(0)
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
+  })
+
+  it('throws and reports the failure when the API creates a project without returning an id', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    post.mockResolvedValueOnce({})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(outputsOf(0)).toEqual(['Failed to push project "acme": No API project id resolved for "acme" (action: create)'])
+  })
+
+  it('throws and reports the failure when the API creates an environment without returning an id', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      linkedProject('id-acme', 'acme', 'api-project-1', true),
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {...makeListedEnv('production', 'https://acme.com'), token: 'admin:pass'},
+    ])
+    post.mockResolvedValueOnce({})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(outputsOf(0)).toEqual([
+      'Failed to push "production": No API environment id resolved for "production" (action: create)',
+    ])
+  })
+
+  it('does not upgrade a new project\'s environment plan to synced even if it already carries an api environment id', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'stale-env-id', token: 'admin:pass'},
+    ])
+    post.mockResolvedValueOnce({id: 'api-project-1'}).mockResolvedValueOnce({id: 'api-env-1'})
+    vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
+    vi.spyOn(configManager, 'setEnvironmentApiId').mockImplementation(() => {})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(titlesOf(1)).toEqual(['Create environment "production" on "acme"'])
+  })
+
+  it('creates an environment without prompting when no API environment shares its name', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      linkedProject('id-acme', 'acme', 'api-project-1', true),
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {...makeListedEnv('production', 'https://acme.com'), token: 'admin:pass'},
+    ])
+    get.mockResolvedValue([
+      {environments: [{id: 'api-env-1', name: 'staging'}], id: 'api-project-1', name: 'acme', slug: 'acme'},
+    ])
+    post.mockResolvedValueOnce({id: 'api-env-2'})
+    vi.spyOn(configManager, 'setEnvironmentApiId').mockImplementation(() => {})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(titlesOf(0)).toEqual(['Create environment "production" on "acme"'])
+  })
+
+  it('creates a new project without prompting when no existing project shares its slug', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([])
+    get.mockResolvedValue([{environments: [], id: 'api-project-other', name: 'Other', slug: 'other'}])
+    post.mockResolvedValueOnce({id: 'api-project-1'})
+    vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(post).toHaveBeenCalledWith('projects', {name: 'acme'})
+  })
+
+  it('does not attempt to link or create environments for a project that failed to get an api id', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'acme', true)])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {...makeListedEnv('production', 'https://acme.com'), token: 'admin:pass'},
+    ])
+    post.mockRejectedValueOnce(new Error('Free plan is limited to 3 projects.'))
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(listrInstances).toHaveLength(1)
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('does not push credentials for an environment that failed to be created on the API', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      linkedProject('id-acme', 'acme', 'api-project-1', true),
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {...makeListedEnv('production', 'https://acme.com'), token: 'admin:pass'},
+      {...makeListedEnv('staging', 'https://staging.acme.com'), token: 'admin:pass'},
+    ])
+    post.mockRejectedValueOnce(new Error('quota exceeded')).mockResolvedValueOnce({id: 'api-env-2'})
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(put).toHaveBeenCalledTimes(1)
+    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-2/credentials', {
+      password: 'pass',
+      username: 'admin',
+    })
   })
 })
