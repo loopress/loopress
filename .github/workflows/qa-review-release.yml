@@ -1,0 +1,94 @@
+name: 🔍 QA review (release)
+
+# Manually triggered: a developer approving the changesets "Version Packages" PR
+# (branch changeset-release/main -> main) is the trigger itself, not a gate that
+# runs automatically and then waits. Every other event on that PR is ignored.
+on:
+  pull_request_review:
+    types: [submitted]
+  # TEMPORARY, for testing only: lets you run this against any PR by number
+  # without needing a real approval on changeset-release/main first.
+  # TODO: remove this workflow_dispatch block (and the workflow_dispatch branches
+  # of the `if`/"Resolve PR context" step below) once testing is done.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "TEST ONLY: PR number to review (bypasses the approval + changeset-release/main checks)"
+        required: true
+        type: string
+
+concurrency: qa-review-release-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+
+jobs:
+  qa-review:
+    name: Claude QA review
+    runs-on: ubuntu-latest
+    # Only the changesets release PR, only on an actual approval, and only when
+    # it lives in this repo (changeset-release/main never exists on a fork).
+    # Manual workflow_dispatch runs (testing only) skip all of those checks.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.review.state == 'approved' &&
+       github.event.pull_request.head.ref == 'changeset-release/main' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Resolve PR context
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            NUMBER="${{ github.event.inputs.pr_number }}"
+            SHA=$(gh pr view "$NUMBER" --repo "${{ github.repository }}" --json headRefOid --jq .headRefOid)
+          else
+            NUMBER="${{ github.event.pull_request.number }}"
+            SHA="${{ github.event.pull_request.head.sha }}"
+          fi
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Claude QA review
+        uses: anthropics/claude-code-action@4c2558197b423d014cf4438abf8c877c546ddc4e # v1.0.193
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ steps.pr.outputs.number }}
+
+            This is the automated "Version Packages" release PR opened by
+            changesets (branch changeset-release/main -> main). It was just
+            manually approved by a developer (@${{ github.event.review.user.login || github.actor }}),
+            which is what triggered this QA review.
+
+            The PR branch is already checked out in the current working directory.
+
+            Do a release-readiness QA review, not a full line-by-line code review
+            (the underlying changes were already reviewed in their original PRs):
+
+            - Compare CHANGELOG.md entries against the actual diffs of the commits
+              being released, and flag any entry that doesn't match the real change,
+              or any change that looks like it's missing a changeset entry entirely.
+            - Check that semver bumps look right for what changed (e.g. a breaking
+              change should not be a patch bump).
+            - @loopress/cli and @loopress/mcp are a fixed group in
+              .changeset/config.json, so they must always land on the same version.
+              Flag it if they don't.
+            - If wordpress-plugin/package.json was bumped, sanity check its
+              CHANGELOG.md entry the same way.
+
+            Use `gh pr comment` to post a single top-level summary comment with your
+            findings. If everything checks out, say so explicitly (e.g. "QA review
+            passed, no issues found"). Only post a GitHub PR comment, don't submit
+            review text as chat messages, and don't post inline comments.
+          claude_args: |
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
