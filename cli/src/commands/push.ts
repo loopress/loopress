@@ -2,6 +2,7 @@ import {confirm} from '@inquirer/prompts'
 
 import {LoopressCommand} from '../lib/base.js'
 import {isInteractive} from '../lib/interactive.js'
+import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
 
@@ -45,7 +46,7 @@ export default class Push extends LoopressCommand {
     }
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} resource${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'resource')} failed to push.`)
     }
 
     this.log('\nAll resources pushed.')

@@ -6,6 +6,7 @@ import {join} from 'node:path'
 import {configManager} from '../config/project-config.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
+import {pluralize} from '../utils/pluralize.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {WpClient} from './wp-client.js'
@@ -106,7 +107,7 @@ export abstract class LoopressCommand extends Command {
   protected async removeOrphanedFiles(dir: string, orphans: string[], reason: string): Promise<void> {
     if (orphans.length === 0) return
 
-    const description = `${orphans.length} local file${orphans.length === 1 ? '' : 's'} ${reason}: ${orphans.join(', ')}`
+    const description = `${pluralize(orphans.length, 'local file')} ${reason}: ${orphans.join(', ')}`
 
     if (!this.yes && isInteractive()) {
       const isProceed = await confirm({default: true, message: `Remove ${description}?`})

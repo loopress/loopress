@@ -5,6 +5,7 @@ import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {type EnvironmentConfig} from '../../types/config.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type ApiEnvironment = {
   createdAt: string
@@ -62,7 +63,7 @@ export default class Pull extends Command {
     }
 
     this.log(
-      `\n✓ Pulled ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} from your Loopress account`,
+      `\n✓ Pulled ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} from your Loopress account`,
     )
   }
 
@@ -99,6 +100,6 @@ export default class Pull extends Command {
     })
 
     const envCount = apiProject.environments.length
-    if (task) task.output = `Pulled with ${envCount} environment${envCount === 1 ? '' : 's'}`
+    if (task) task.output = `Pulled with ${pluralize(envCount, 'environment')}`
   }
 }

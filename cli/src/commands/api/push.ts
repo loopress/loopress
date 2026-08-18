@@ -1,11 +1,11 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
 import {relative, sep} from 'node:path'
 
 import {authManager} from '../../config/auth.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles as loadDirectoryFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type ApiFile = {
   content: string
@@ -54,23 +54,21 @@ export default class Push extends PushCommand {
     this.log(`API path: ${path}`)
 
     const files = await this.loadFiles(path)
-    this.log(`Found ${files.length} route file${files.length === 1 ? '' : 's'} to push`)
+    this.log(`Found ${pluralize(files.length, 'route file')} to push`)
 
     const pushed: string[] = []
 
-    await new Listr(
-      files.map((file) => ({
-        task: async (_ctx, task) => {
-          await this.pushFile(file, task)
-          pushed.push(file.filename)
-        },
-        title: `Push ${file.filename}`,
-      })),
-      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
+    await this.runPushTasks(
+      files,
+      (file) => file.filename,
+      async (file, task) => {
+        await this.pushFile(file, task)
+        pushed.push(file.filename)
+      },
+    )
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} route file${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'route file')} failed to push.`)
     }
 
     if (this.dryRun) return {pushed, status: 'dry-run'}

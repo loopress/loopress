@@ -2,6 +2,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
 import {isNotFoundError} from '../lib/wp-client.js'
 import {diagnoseWpSite} from '../lib/wp-site-diagnostic.js'
+import {pluralize} from '../utils/pluralize.js'
 
 export default class Doctor extends LoopressCommand {
   static description = 'Diagnose connectivity, plugin and credential problems for the targeted environment'
@@ -54,7 +55,7 @@ export default class Doctor extends LoopressCommand {
 
     this.log('')
     if (failed > 0) {
-      this.error(`${failed} check${failed === 1 ? '' : 's'} failed.`, {exit: 1})
+      this.error(`${pluralize(failed, 'check')} failed.`, {exit: 1})
     }
 
     this.log('All checks passed.')

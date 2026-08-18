@@ -1,10 +1,11 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {readdir, readFile, rm, writeFile} from 'node:fs/promises'
+import {readFile, rm, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {putOrCreate} from '../../lib/put-or-create.js'
+import {readdirTolerant} from '../../lib/readdir-tolerant.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {
   redirectFileBase,
   SEO_REDIRECTS_ENDPOINT,
@@ -42,7 +43,7 @@ export default class Push extends PushCommand {
     await this.pushRedirects(path)
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} SEO item${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'SEO item')} failed to push.`)
     }
 
     if (this.dryRun) return
@@ -52,40 +53,27 @@ export default class Push extends PushCommand {
   }
 
   private async jsonFilesIn(dir: string): Promise<string[]> {
-    try {
-      return (await readdir(dir)).filter((file) => extname(file) === '.json')
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
+    return (await readdirTolerant(dir)).filter((file) => extname(file) === '.json')
   }
 
   private async pushPostMeta(basePath: string): Promise<void> {
     const root = join(basePath, 'post-meta')
-    let postTypeDirs: string[]
-    try {
-      postTypeDirs = (await readdir(root, {withFileTypes: true})).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
-
-      throw error
-    }
+    const postTypeDirs = (await readdirTolerant(root, {withFileTypes: true}))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
 
     for (const postType of postTypeDirs) {
       const dir = join(root, postType)
       const files = await this.jsonFilesIn(dir)
       if (files.length === 0) continue
 
-      this.log(`Found ${files.length} ${postType} post-meta file${files.length === 1 ? '' : 's'} to push`)
+      this.log(`Found ${pluralize(files.length, postType + ' post-meta file')} to push`)
 
-      await new Listr(
-        files.map((file) => ({
-          task: async (_ctx, task) => this.pushPostMetaFile(postType, join(dir, file), task),
-          title: `Push ${file}`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
+      await this.runPushTasks(
+        files,
+        (file) => file,
+        async (file, task) => this.pushPostMetaFile(postType, join(dir, file), task),
+      )
     }
   }
 
@@ -116,22 +104,17 @@ export default class Push extends PushCommand {
       const redirect = JSON.parse(await readFile(filePath, 'utf8')) as SeoRedirect
       const payload = {headerCode: redirect.headerCode, sources: redirect.sources, status: redirect.status, urlTo: redirect.urlTo}
 
-      if (redirect.id) {
-        try {
-          await this.wp.put(seoRedirectEndpoint(redirect.id), payload)
-          if (task) task.output = `Pushed: redirect #${redirect.id}`
+      // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
+      // falls back to POST instead of failing, adopting whatever id the site assigns.
+      const {body, created} = await putOrCreate<SeoRedirect>(this.wp, {
+        id: redirect.id ?? null,
+        payload,
+        postEndpoint: SEO_REDIRECTS_ENDPOINT,
+        putEndpoint: (id) => seoRedirectEndpoint(id),
+      })
 
-          return
-        } catch (error) {
-          // The id recorded locally doesn't exist on this site (e.g. a fresh install): create it
-          // instead of failing, and adopt whatever id the site assigns (same fallback as snippet push).
-          if (!isNotFoundError(error)) throw error
-        }
-      }
-
-      const created = await this.wp.post<SeoRedirect>(SEO_REDIRECTS_ENDPOINT, payload)
-      await this.renameToCanonical(filePath, created)
-      if (task) task.output = `Pushed: redirect #${created.id}`
+      if (created) await this.renameToCanonical(filePath, body)
+      if (task) task.output = `Pushed: redirect #${created ? body.id : redirect.id}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${filePath}: ${(error as Error).message}`, error, task)
     }
@@ -142,15 +125,13 @@ export default class Push extends PushCommand {
     const files = await this.jsonFilesIn(dir)
     if (files.length === 0) return
 
-    this.log(`Found ${files.length} redirect${files.length === 1 ? '' : 's'} to push`)
+    this.log(`Found ${pluralize(files.length, 'redirect')} to push`)
 
-    await new Listr(
-      files.map((file) => ({
-        task: async (_ctx, task) => this.pushRedirectFile(join(dir, file), task),
-        title: `Push ${file}`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
+    await this.runPushTasks(
+      files,
+      (file) => file,
+      async (file, task) => this.pushRedirectFile(join(dir, file), task),
+    )
   }
 
   private async pushSettings(basePath: string): Promise<void> {

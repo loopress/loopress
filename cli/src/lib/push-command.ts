@@ -1,5 +1,6 @@
 import {confirm} from '@inquirer/prompts'
 import got from 'got'
+import {Listr} from 'listr2'
 
 import {authManager} from '../config/auth.manager.js'
 import {API_URL} from './api-client.js'
@@ -72,5 +73,24 @@ export abstract class PushCommand extends LoopressCommand {
 
     this.failedCount++
     throw error
+  }
+
+  // Shared shape of every resource's push list: sequential (`concurrent: false` avoids
+  // clobbering `failedCount` and interleaving WordPress writes), and a failing item never
+  // stops its siblings (`exitOnError: false`) so `failedCount` reflects every failure, not
+  // just the first. `label` feeds the "Push <label>" task title; `task` does the actual work
+  // and reports its own failure through `reportTaskFailure`.
+  protected async runPushTasks<T>(
+    items: T[],
+    label: (item: T) => string,
+    task: (item: T, task?: {output: string}) => Promise<void>,
+  ): Promise<void> {
+    await new Listr(
+      items.map((item) => ({
+        task: async (_ctx, taskCtx) => task(item, taskCtx),
+        title: `Push ${label(item)}`,
+      })),
+      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
+    ).run()
   }
 }

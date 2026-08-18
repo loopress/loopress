@@ -6,6 +6,7 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 export default class Pull extends LoopressCommand {
@@ -40,10 +41,10 @@ export default class Pull extends LoopressCommand {
     })
 
     if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${withId.length} form${withId.length === 1 ? '' : 's'} to ${path}`)
+      this.log(`[dry-run] Would pull ${pluralize(withId.length, 'form')} to ${path}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
         )
       }
 
@@ -68,9 +69,9 @@ export default class Pull extends LoopressCommand {
 
     await this.removeOrphanedFiles(path, orphans, `in ${path} no longer present on WordPress`)
 
-    this.log(`Pulled ${withId.length} form${withId.length === 1 ? '' : 's'} to ${path}`)
+    this.log(`Pulled ${pluralize(withId.length, 'form')} to ${path}`)
     if (skipped > 0) {
-      this.warn(`${skipped} form${skipped === 1 ? '' : 's'} skipped because they have no id`)
+      this.warn(`${pluralize(skipped, 'form')} skipped because they have no id`)
     }
   }
 }

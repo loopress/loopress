@@ -1,4 +1,5 @@
 import {LoopressCommand} from '../../lib/base.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type ApiFile = {
   content: string
@@ -18,7 +19,7 @@ export default class List extends LoopressCommand {
       return files
     }
 
-    this.log(`Found ${files.length} route file${files.length === 1 ? '' : 's'}:`)
+    this.log(`Found ${pluralize(files.length, 'route file')}:`)
     this.log('')
 
     for (const file of files) {

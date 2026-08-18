@@ -4,6 +4,7 @@ import {PushCommand} from '../../lib/push-command.js'
 import {type WpNativePlugin} from '../../types/plugin.js'
 import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {diffPlugins, parseInstalledPlugins, type PluginDiff} from '../../utils/plugins.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type PushResult = {
   activated: string[]
@@ -64,7 +65,7 @@ export default class Push extends PushCommand {
     await this.applyPluginChanges(toInstall, toActivate)
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} plugin${this.failedCount === 1 ? '' : 's'} failed to install or activate.`)
+      this.error(`${pluralize(this.failedCount, 'plugin')} failed to install or activate.`)
     }
 
     await this.recordSuccess()

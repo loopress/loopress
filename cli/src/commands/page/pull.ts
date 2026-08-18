@@ -6,6 +6,7 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {getPageContent, getPageId, getPageTitle, PAGE_ENDPOINT, PAGE_LIST_QUERY, pageFileBase, pickPageMeta} from '../../utils/page-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type PulledPage = {
   id: number
@@ -56,10 +57,10 @@ export default class Pull extends LoopressCommand {
     const pulled = withId.map((page) => ({id: getPageId(page)!, title: getPageTitle(page)}))
 
     if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${withId.length} page${withId.length === 1 ? '' : 's'} to ${path}`)
+      this.log(`[dry-run] Would pull ${pluralize(withId.length, 'page')} to ${path}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
         )
       }
 
@@ -89,9 +90,9 @@ export default class Pull extends LoopressCommand {
 
     await this.removeOrphanedFiles(path, orphans, `in ${path} no longer present on WordPress`)
 
-    this.log(`Pulled ${withId.length} page${withId.length === 1 ? '' : 's'} to ${path}`)
+    this.log(`Pulled ${pluralize(withId.length, 'page')} to ${path}`)
     if (skipped > 0) {
-      this.warn(`${skipped} page${skipped === 1 ? '' : 's'} skipped because they have no id`)
+      this.warn(`${pluralize(skipped, 'page')} skipped because they have no id`)
     }
 
     return {orphans, pulled, skipped, status: 'success'}

@@ -1,11 +1,12 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {readdir, readFile, rename, writeFile} from 'node:fs/promises'
+import {readFile, rename, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {putOrCreate} from '../../lib/put-or-create.js'
+import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getPageId, getPageTitle, PAGE_ENDPOINT, pageFileBase} from '../../utils/page-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type LocalPage = {
   content: string
@@ -48,23 +49,21 @@ export default class Push extends PushCommand {
     this.log(`Pages path: ${path}`)
 
     const pages = await this.loadFiles(path)
-    this.log(`Found ${pages.length} page${pages.length === 1 ? '' : 's'} to push`)
+    this.log(`Found ${pluralize(pages.length, 'page')} to push`)
 
     const pushed: PushedPage[] = []
 
-    await new Listr(
-      pages.map((page) => ({
-        task: async (_ctx, task) => {
-          const id = await this.pushPage(page, task)
-          pushed.push({id, title: getPageTitle(page.meta)})
-        },
-        title: `Push ${getPageTitle(page.meta)}`,
-      })),
-      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
+    await this.runPushTasks(
+      pages,
+      (page) => getPageTitle(page.meta),
+      async (page, task) => {
+        const id = await this.pushPage(page, task)
+        pushed.push({id, title: getPageTitle(page.meta)})
+      },
+    )
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} page${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'page')} failed to push.`)
     }
 
     if (this.dryRun) return {pushed, status: 'dry-run'}
@@ -72,13 +71,6 @@ export default class Push extends PushCommand {
     await this.recordSuccess()
     this.log('All pages pushed.')
     return {pushed, status: 'success'}
-  }
-
-  private async createPage(page: LocalPage, payload: Record<string, unknown>, title: string): Promise<null | number> {
-    const created = await this.wp.post<Record<string, unknown>>(PAGE_ENDPOINT, payload)
-    const id = getPageId(created)
-    if (id !== null) await this.ensureCanonicalFilename(page, id, title)
-    return id
   }
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `page pull` whenever it
@@ -104,14 +96,7 @@ export default class Push extends PushCommand {
   // corrupted or hand-broken sidecar must only skip that page, not abort loading the rest of
   // the directory, same principle as commands/form/push.ts.
   private async loadFiles(dir: string): Promise<LocalPage[]> {
-    let files: string[]
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
+    const files = await readdirTolerant(dir)
 
     const pages: LocalPage[] = []
     for (const file of files) {
@@ -150,8 +135,6 @@ export default class Push extends PushCommand {
     return pages
   }
 
-  // PUT-then-404-fallback-POST, same dance as commands/form/push.ts: pages are id-based.
-  //
   // ponytail: `parent` round-trips as the source site's numeric page id untouched, so pushing
   // to a site where that id belongs to a different page (or nothing) silently mis-parents or
   // orphans the page. No id-remapping across sites here; fine for same-hierarchy environments,
@@ -167,33 +150,26 @@ export default class Push extends PushCommand {
     try {
       const id = getPageId(page.meta)
       const payload = {...page.meta, content: page.content}
+      // WordPress core rejects any POST that still carries a (now stale) `id` field with a
+      // 400 "Cannot create existing post", regardless of whether that id actually exists.
+      const postPayload: Record<string, unknown> = {...payload}
+      delete postPayload.id
 
-      const resultId =
-        id === null ? await this.createPage(page, payload, title) : await this.updateOrCreatePage(page, id, payload, title)
+      const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
+        id,
+        payload,
+        postEndpoint: PAGE_ENDPOINT,
+        postPayload,
+        putEndpoint: (pageId) => `${PAGE_ENDPOINT}/${pageId}`,
+      })
+
+      const resultId = created ? getPageId(body) : id
+      if (resultId !== null) await this.ensureCanonicalFilename(page, resultId, title)
 
       if (task) task.output = `Pushed: ${title}`
       return resultId
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${title}: ${(error as Error).message}`, error, task)
-    }
-  }
-
-  private async updateOrCreatePage(page: LocalPage, id: number, payload: Record<string, unknown>, title: string): Promise<null | number> {
-    try {
-      await this.wp.put(`${PAGE_ENDPOINT}/${id}`, payload)
-      await this.ensureCanonicalFilename(page, id, title)
-      return id
-    } catch (error) {
-      // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
-      // it instead of failing, and adopt whatever id the site assigns. WordPress core
-      // rejects any POST that still carries a (now stale) `id` field with a 400 "Cannot
-      // create existing post", regardless of whether that id actually exists, so it must
-      // be stripped before falling back to create.
-      if (!isNotFoundError(error)) throw error
-
-      const newPayload: Record<string, unknown> = {...payload}
-      delete newPayload.id
-      return this.createPage(page, newPayload, title)
     }
   }
 }
