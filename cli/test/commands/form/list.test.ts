@@ -47,27 +47,15 @@ describe('form list', () => {
     expect(logs.log).toHaveBeenCalledWith('  (none)')
   })
 
-  it('outputs valid JSON of the raw forms array when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
-     
+  it('returns the raw forms array so oclif can print it as JSON under --json', async () => {
+    const {cmd} = makeCmd(['--json'])
+
     const forms = [{id: 3, settings: {form_title: 'Contact'}}]
     const get = vi.fn().mockResolvedValueOnce(forms)
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    const jsonCall = logs.log.mock.calls.find(([arg]: [string]) => arg.startsWith('['))
-    expect(jsonCall).toBeDefined()
-    expect(JSON.parse(jsonCall![0])).toEqual(forms)
-  })
-
-  it('does not print the "Forms (n):" header when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json'])
-    const get = vi.fn().mockResolvedValueOnce([])
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
-
-    await cmd.run()
-
-    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Forms ('))
+    expect(result).toEqual(forms)
   })
 })

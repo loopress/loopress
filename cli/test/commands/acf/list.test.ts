@@ -24,16 +24,14 @@ describe('acf list', () => {
     expect(logs.log).toHaveBeenCalledWith('  group_1. One')
   })
 
-  it('outputs valid JSON grouped by type when --json is passed', async () => {
-    const {cmd, logs} = makeCmd(['--json', '--type', 'field-groups'])
+  it('returns the objects grouped by type so oclif can print them as JSON under --json', async () => {
+    const {cmd} = makeCmd(['--json', '--type', 'field-groups'])
     const get = vi.fn().mockResolvedValueOnce([{key: 'group_1', title: 'One'}])
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    const jsonCall = logs.log.mock.calls.find(([arg]: [string]) => arg.startsWith('{'))
-    expect(jsonCall).toBeDefined()
-    expect(JSON.parse(jsonCall![0])).toEqual({'field-groups': [{key: 'group_1', title: 'One'}]})
+    expect(result).toEqual({'field-groups': [{key: 'group_1', title: 'One'}]})
   })
 
   it('prints "(none)" for a type with no objects', async () => {
