@@ -97,13 +97,15 @@ List ACF field groups, post types, taxonomies, and options pages from WordPress
 
 ```
 USAGE
-  $ lps acf list [--env <value>] [-j] [--type field-groups|post-types|taxonomies|options-pages...]
+  $ lps acf list [--json] [--env <value>] [--type field-groups|post-types|taxonomies|options-pages...]
 
 FLAGS
-  -j, --json              Output in JSON format
-      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
-      --type=<option>...  Limit to specific ACF object types
-                          <options: field-groups|post-types|taxonomies|options-pages>
+  --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+  --type=<option>...  Limit to specific ACF object types
+                      <options: field-groups|post-types|taxonomies|options-pages>
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   List ACF field groups, post types, taxonomies, and options pages from WordPress
@@ -410,11 +412,13 @@ List forms from WordPress
 
 ```
 USAGE
-  $ lps form list [--env <value>] [-j]
+  $ lps form list [--json] [--env <value>]
 
 FLAGS
-  -j, --json         Output in JSON format
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   List forms from WordPress
@@ -865,12 +869,14 @@ List posts with SEO meta, and redirects if supported by the active SEO plugin, o
 
 ```
 USAGE
-  $ lps seo list [--env <value>] [-j] [--post-type <value>...]
+  $ lps seo list [--json] [--env <value>] [--post-type <value>...]
 
 FLAGS
-  -j, --json                  Output in JSON format
-      --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
-      --post-type=<value>...  Limit to specific post types
+  --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
+  --post-type=<value>...  Limit to specific post types
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   List posts with SEO meta, and redirects if supported by the active SEO plugin, on WordPress

@@ -45,17 +45,15 @@ describe('seo list', () => {
     expect(logs.log).toHaveBeenCalledWith('redirects: Redirects are not supported by the active SEO plugin.')
   })
 
-  it('outputs valid JSON when --json is passed', async () => {
+  it('returns postMeta and redirects so oclif can print them as JSON under --json', async () => {
     const posts = [{meta: {}, slug: 'about', title: 'About'}]
-    const {cmd, logs} = makeCmd(['--json', '--post-type', 'page'])
+    const {cmd} = makeCmd(['--json', '--post-type', 'page'])
     const get = vi.fn().mockResolvedValueOnce(posts).mockResolvedValueOnce([])
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    const jsonCall = logs.log.mock.calls.find(([arg]: [string]) => arg.startsWith('{'))
-    expect(jsonCall).toBeDefined()
-    expect(JSON.parse(jsonCall![0])).toEqual({postMeta: {page: posts}, redirects: []})
+    expect(result).toEqual({postMeta: {page: posts}, redirects: [], redirectsUnsupported: undefined})
   })
 
   it('prints "(none)" for a post type with no posts', async () => {

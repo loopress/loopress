@@ -3,15 +3,21 @@ import {Flags} from '@oclif/core'
 import {LoopressCommand} from '../../lib/base.js'
 import {DEFAULT_POST_TYPES, SEO_REDIRECTS_ENDPOINT, type SeoPostMeta, seoPostMetaEndpoint, type SeoRedirect} from '../../utils/seo-format.js'
 
+type ListResult = {
+  postMeta: Record<string, SeoPostMeta[]>
+  redirects: SeoRedirect[] | undefined
+  redirectsUnsupported: string | undefined
+}
+
 export default class List extends LoopressCommand {
   static description = 'List posts with SEO meta, and redirects if supported by the active SEO plugin, on WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps seo list', '$ lps seo list --post-type post']
   static flags = {
-    json: Flags.boolean({char: 'j', description: 'Output in JSON format'}),
     'post-type': Flags.string({description: 'Limit to specific post types', multiple: true}),
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<ListResult> {
     const {flags} = await this.parse(List)
     const postTypes = flags['post-type'] && flags['post-type'].length > 0 ? flags['post-type'] : [...DEFAULT_POST_TYPES]
 
@@ -21,11 +27,6 @@ export default class List extends LoopressCommand {
     }
 
     const {redirects, unsupportedReason} = await this.fetchRedirects()
-
-    if (flags.json) {
-      this.log(JSON.stringify({postMeta: byType, redirects: redirects ?? undefined, redirectsUnsupported: unsupportedReason}, null, 2))
-      return
-    }
 
     for (const postType of postTypes) {
       const posts = byType[postType]
@@ -46,18 +47,19 @@ export default class List extends LoopressCommand {
 
     if (unsupportedReason) {
       this.log(`redirects: ${unsupportedReason}`)
-      return
+      return {postMeta: byType, redirects: undefined, redirectsUnsupported: unsupportedReason}
     }
 
     this.log(`redirects (${redirects!.length}):`)
-    if (redirects!.length === 0) {
+    if (redirects!.length > 0) {
+      for (const redirect of redirects!) {
+        this.log(`  ${redirect.id}. [${redirect.status}] ${redirect.headerCode} -> ${redirect.urlTo}`)
+      }
+    } else {
       this.log('  (none)')
-      return
     }
 
-    for (const redirect of redirects!) {
-      this.log(`  ${redirect.id}. [${redirect.status}] ${redirect.headerCode} -> ${redirect.urlTo}`)
-    }
+    return {postMeta: byType, redirects: redirects!, redirectsUnsupported: undefined}
   }
 
   // Redirects are only supported by some SeoProvider backends (RankMath, not Yoast); reported
