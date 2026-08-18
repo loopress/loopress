@@ -1,12 +1,10 @@
 import {Args, Flags} from '@oclif/core'
-import {Listr} from 'listr2'
-import {mkdir, writeFile} from 'node:fs/promises'
+import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
-import {pluralize} from '../../utils/pluralize.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
@@ -49,35 +47,16 @@ export default class Pull extends LoopressCommand {
       key: basenameKey,
     })
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${withKey.length} ${type} to ${dir}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-        )
-      }
+    await this.pullDirectory(dir, withKey, orphans, {
+      dryRunMessage: `Would pull ${withKey.length} ${type} to ${dir}`,
+      orphanReason: `in ${dir} no longer present on WordPress`,
+      pulledMessage: `Pulled ${withKey.length} ${type} to ${dir}`,
+      title: (object) => getAcfKey(object)!,
+      write: async (object, writeDir) => writeFile(join(writeDir, `${getAcfKey(object)!}.json`), JSON.stringify(object, null, 2) + '\n'),
+    })
 
-      return
-    }
+    if (this.dryRun) return
 
-    if (withKey.length > 0) await mkdir(dir, {recursive: true})
-
-    await new Listr(
-      withKey.map((object) => {
-        const key = getAcfKey(object)!
-        return {
-          async task(_ctx, task) {
-            await writeFile(join(dir, `${key}.json`), JSON.stringify(object, null, 2) + '\n')
-            task.output = `Pulled: ${key}`
-          },
-          title: `Pull ${key}`,
-        }
-      }),
-    ).run()
-
-    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
-
-    this.log(`Pulled ${withKey.length} ${type} to ${dir}`)
     if (skipped > 0) {
       this.warn(`${skipped} ${type} skipped because they have no key`)
     }

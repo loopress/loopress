@@ -1,6 +1,5 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {mkdir, writeFile} from 'node:fs/promises'
+import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -40,36 +39,20 @@ export default class Pull extends LoopressCommand {
       key: numericPrefixKey,
     })
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${pluralize(withId.length, 'form')} to ${path}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
-        )
-      }
-
-      return
-    }
-
-    if (withId.length > 0) await mkdir(path, {recursive: true})
-
-    await new Listr(
-      withId.map((form) => {
+    await this.pullDirectory(path, withId, orphans, {
+      dryRunMessage: `Would pull ${pluralize(withId.length, 'form')} to ${path}`,
+      orphanReason: `in ${path} no longer present on WordPress`,
+      pulledMessage: `Pulled ${pluralize(withId.length, 'form')} to ${path}`,
+      title: (form) => getFormTitle(form),
+      async write(form, writeDir) {
         const id = getFormId(form)!
         const title = getFormTitle(form)
-        return {
-          async task(_ctx, task) {
-            await writeFile(join(path, `${id}-${toSlug(title, 'untitled')}.json`), JSON.stringify(form, null, 2) + '\n')
-            task.output = `Pulled: ${title}`
-          },
-          title: `Pull ${title}`,
-        }
-      }),
-    ).run()
+        await writeFile(join(writeDir, `${id}-${toSlug(title, 'untitled')}.json`), JSON.stringify(form, null, 2) + '\n')
+      },
+    })
 
-    await this.removeOrphanedFiles(path, orphans, `in ${path} no longer present on WordPress`)
+    if (this.dryRun) return
 
-    this.log(`Pulled ${pluralize(withId.length, 'form')} to ${path}`)
     if (skipped > 0) {
       this.warn(`${pluralize(skipped, 'form')} skipped because they have no id`)
     }
