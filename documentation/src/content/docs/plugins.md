@@ -87,8 +87,8 @@ lps plugin push
 
 Before making any change, the command prints a diff:
 
-- **To install** — plugins in the manifest that are not on the site
-- **To activate** — plugins installed but not yet active
+- **To install**: plugins in the manifest that are not on the site
+- **To activate**: plugins installed but not yet active
 
 Missing plugins are installed and activated automatically.
 

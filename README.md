@@ -16,6 +16,7 @@ marketing site, and the docs all live and version together here.
 | Package | What it is |
 | --- | --- |
 | [`cli/`](./cli) | `@loopress/cli`, the `lps` command. Talks to the WordPress plugin's REST API to pull/push everything. |
+| [`mcp/`](./mcp) | `@loopress/mcp`, the `lps-mcp` MCP server. Exposes CLI operations as tool calls for AI agents. |
 | [`wordpress-plugin/`](./wordpress-plugin) | The WordPress plugin (`loopress`) the CLI talks to. Ships as two editions, Light (wordpress.org) and Full (loopress.dev only), from one codebase. |
 | [`website/`](./website) | The loopress.dev marketing site (Astro + React). |
 | [`documentation/`](./documentation) | The docs site (Astro + Starlight) at docs.loopress.dev. |

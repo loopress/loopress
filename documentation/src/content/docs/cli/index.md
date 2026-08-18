@@ -26,6 +26,7 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | | `lps project remove` | Remove one or more WordPress projects or environments |
 | | `lps project push` | Push locally configured projects, environments and credentials to your Loopress account |
 | | `lps project pull` | Pull projects and environments from your Loopress account that aren't configured locally yet |
+| | `lps project rotate` | Rotate the WordPress application password for a project |
 | **Telemetry** | `lps telemetry enable` | Enable error reporting to Sentry |
 | | `lps telemetry disable` | Disable error reporting to Sentry |
 
@@ -41,6 +42,8 @@ Each of these syncs one kind of WordPress data as files in Git. See its own page
 - [API Routes](/api/): custom REST API endpoints
 - [Plugins](/plugins/): installed WordPress.org plugins manifest
 - [Composer](/composer/): PHP dependencies, without SSH
+
+Connecting an AI agent instead of a human? See the [MCP server](/cli/mcp/).
 
 ## Quick start
 
@@ -59,7 +62,7 @@ git add snippets/ && git commit -m "update snippet"
 lps snippet push
 ```
 
-→ [Full 3-minute setup guide](/getting-started/)
+→ [Full CLI installation and setup guide](/cli/getting-started/)
 
 ## Authentication
 
