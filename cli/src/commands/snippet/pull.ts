@@ -5,6 +5,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {buildMetaFile, buildSnippetFile, normalizeSnippet, SNIPPETS_ENDPOINT, type SnippetType} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -65,10 +66,10 @@ export default class Pull extends LoopressCommand {
     const pulled = pullable.map((snippet) => ({id: snippet.id, name: snippet.name}))
 
     if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to ${path}`)
+      this.log(`[dry-run] Would pull ${pluralize(snippets.length, 'snippet')} to ${path}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
         )
       }
 
@@ -93,9 +94,9 @@ export default class Pull extends LoopressCommand {
 
     await this.removeOrphanedFiles(path, orphans, 'whose snippet no longer exists on WordPress')
 
-    this.log(`Pulled ${pullable.length} snippet${pullable.length === 1 ? '' : 's'} to ${path}`)
+    this.log(`Pulled ${pluralize(pullable.length, 'snippet')} to ${path}`)
     if (skipped > 0) {
-      this.warn(`${skipped} snippet${skipped === 1 ? '' : 's'} skipped because they have no name`)
+      this.warn(`${pluralize(skipped, 'snippet')} skipped because they have no name`)
     }
 
     return {orphans, pulled, skipped, status: 'success'}

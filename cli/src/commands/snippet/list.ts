@@ -1,4 +1,5 @@
 import {LoopressCommand} from '../../lib/base.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {type NormalizedSnippet, normalizeSnippet, SNIPPETS_ENDPOINT} from '../../utils/snippet-format.js'
 
 export default class List extends LoopressCommand {
@@ -15,7 +16,7 @@ export default class List extends LoopressCommand {
       return snippets
     }
 
-    this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'}:`)
+    this.log(`Found ${pluralize(snippets.length, 'snippet')}:`)
     this.log('')
 
     for (const snippet of snippets) {

@@ -1,11 +1,12 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {readdir, readFile, rename} from 'node:fs/promises'
+import {readFile, rename} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {putOrCreate} from '../../lib/put-or-create.js'
+import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 export default class Push extends PushCommand {
@@ -31,30 +32,22 @@ export default class Push extends PushCommand {
     this.log(`Forms path: ${path}`)
 
     const files = await this.loadFiles(path)
-    this.log(`Found ${files.length} form${files.length === 1 ? '' : 's'} to push`)
+    this.log(`Found ${pluralize(files.length, 'form')} to push`)
 
-    await new Listr(
-      files.map(({data, filePath}) => ({
-        task: async (_ctx, task) => this.pushForm(filePath, data, task),
-        title: `Push ${getFormTitle(data)}`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
+    await this.runPushTasks(
+      files,
+      ({data}) => getFormTitle(data),
+      async ({data, filePath}, task) => this.pushForm(filePath, data, task),
+    )
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} form${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
     }
 
     if (this.dryRun) return
 
     await this.recordSuccess()
     this.log('All forms pushed.')
-  }
-
-  private async createForm(filePath: string, data: Record<string, unknown>, title: string): Promise<void> {
-    const created = await this.wp.post<Record<string, unknown>>(FORM_ENDPOINT, data)
-    const newId = getFormId(created)
-    if (newId !== null) await this.ensureCanonicalFilename(filePath, newId, title)
   }
 
   // Renames the local file to the `<id>-<slug>.json` convention used by `form pull`
@@ -70,14 +63,7 @@ export default class Push extends PushCommand {
   // form, not abort loading the rest of the directory, same principle as loadObjects() in
   // commands/acf/push.ts.
   private async loadFiles(dir: string): Promise<Array<{data: Record<string, unknown>; filePath: string}>> {
-    let files: string[]
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
+    const files = await readdirTolerant(dir)
 
     const forms: Array<{data: Record<string, unknown>; filePath: string}> = []
     for (const file of files) {
@@ -103,8 +89,6 @@ export default class Push extends PushCommand {
     return forms
   }
 
-  // PUT-then-404-fallback-POST is the same dance as commands/snippet/push.ts, forms are
-  // id-based like snippets, not key-based like ACF.
   private async pushForm(filePath: string, data: Record<string, unknown>, task?: {output: string}): Promise<void> {
     const title = getFormTitle(data)
 
@@ -115,21 +99,15 @@ export default class Push extends PushCommand {
 
     try {
       const id = getFormId(data)
+      const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
+        id,
+        payload: data,
+        postEndpoint: FORM_ENDPOINT,
+        putEndpoint: (formId) => `${FORM_ENDPOINT}/${formId}`,
+      })
 
-      if (id === null) {
-        await this.createForm(filePath, data, title)
-      } else {
-        try {
-          await this.wp.put(`${FORM_ENDPOINT}/${id}`, data)
-          await this.ensureCanonicalFilename(filePath, id, title)
-        } catch (error) {
-          // The id recorded locally doesn't exist on this site (e.g. a fresh install): create
-          // it instead of failing, and adopt whatever id the site assigns.
-          if (!isNotFoundError(error)) throw error
-
-          await this.createForm(filePath, data, title)
-        }
-      }
+      const canonicalId = created ? getFormId(body) : id
+      if (canonicalId !== null) await this.ensureCanonicalFilename(filePath, canonicalId, title)
 
       if (task) task.output = `Pushed: ${title}`
     } catch (error) {

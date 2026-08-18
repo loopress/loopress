@@ -5,6 +5,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {
   DEFAULT_POST_TYPES,
   redirectFileBase,
@@ -57,7 +58,7 @@ export default class Pull extends LoopressCommand {
       this.log(`[dry-run] Would pull ${remote.length} ${postType} post-meta file(s) to ${dir}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
         )
       }
 
@@ -104,7 +105,7 @@ export default class Pull extends LoopressCommand {
       this.log(`[dry-run] Would pull ${remote.length} redirect(s) to ${dir}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
         )
       }
 

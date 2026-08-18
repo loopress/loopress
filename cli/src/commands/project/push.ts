@@ -8,6 +8,7 @@ import {ApiClient} from '../../lib/api-client.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 type ApiEnvironment = {
@@ -82,7 +83,7 @@ export default class Push extends Command {
     await this.pushAllCredentials(api, projectPlans, envPlansByProject)
 
     this.log(
-      `\n✓ Pushed ${projectCount} project${projectCount === 1 ? '' : 's'}, ${environmentCount} environment${environmentCount === 1 ? '' : 's'} to your Loopress account`,
+      `\n✓ Pushed ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} to your Loopress account`,
     )
   }
 

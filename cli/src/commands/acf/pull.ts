@@ -6,6 +6,7 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
@@ -52,7 +53,7 @@ export default class Pull extends LoopressCommand {
       this.log(`[dry-run] Would pull ${withKey.length} ${type} to ${dir}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
         )
       }
 

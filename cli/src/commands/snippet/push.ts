@@ -1,13 +1,13 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
 import {readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {putOrCreate} from '../../lib/put-or-create.js'
 import {type LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {type Snippet} from '../../types/snippet.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -45,23 +45,21 @@ export default class Push extends PushCommand {
     this.log(`Snippets path: ${path}`)
 
     const snippets = await this.loadSnippets(path)
-    this.log(`Found ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to push`)
+    this.log(`Found ${pluralize(snippets.length, 'snippet')} to push`)
 
     const pushed: PushedSnippet[] = []
 
-    await new Listr(
-      snippets.map((snippet) => ({
-        task: async (_ctx, task) => {
-          const id = await this.pushSnippet(snippet, task)
-          pushed.push({id, name: snippet.name})
-        },
-        title: `Push ${snippet.name}`,
-      })),
-      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
+    await this.runPushTasks(
+      snippets,
+      (snippet) => snippet.name,
+      async (snippet, task) => {
+        const id = await this.pushSnippet(snippet, task)
+        pushed.push({id, name: snippet.name})
+      },
+    )
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} snippet${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'snippet')} failed to push.`)
     }
 
     if (this.dryRun) return {pushed, status: 'dry-run'}
@@ -125,27 +123,23 @@ export default class Push extends PushCommand {
 
     try {
       const payload = this.toPayload(snippet)
+
+      // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
+      // falls back to POST instead of failing, adopting whatever id the site assigns.
+      const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
+        id: snippet.id ?? null,
+        payload,
+        postEndpoint: SNIPPETS_ENDPOINT,
+        putEndpoint: (id) => `${SNIPPETS_ENDPOINT}/${id}`,
+      })
+
       let {id} = snippet
-
-      if (snippet.id) {
-        try {
-          await this.wp.put(`${SNIPPETS_ENDPOINT}/${snippet.id}`, payload)
-          await this.ensureCanonicalFilename(snippet, snippet.id, snippet.name)
-        } catch (error) {
-          // The id recorded locally doesn't exist on this site (e.g. a fresh install): create it
-          // instead of failing, and adopt whatever id the site assigns.
-          if (!isNotFoundError(error)) throw error
-
-          const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
-          const created = normalizeSnippet(response)
-          id = created.id
-          await this.ensureCanonicalFilename(snippet, created.id, created.name)
-        }
+      if (created) {
+        const createdSnippet = normalizeSnippet(body)
+        id = createdSnippet.id
+        await this.ensureCanonicalFilename(snippet, createdSnippet.id, createdSnippet.name)
       } else {
-        const response = await this.wp.post<Record<string, unknown>>(SNIPPETS_ENDPOINT, payload)
-        const created = normalizeSnippet(response)
-        id = created.id
-        await this.ensureCanonicalFilename(snippet, created.id, created.name)
+        await this.ensureCanonicalFilename(snippet, snippet.id!, snippet.name)
       }
 
       if (task) task.output = `Pushed: ${snippet.name}`

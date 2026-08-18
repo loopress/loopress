@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type ApiFile = {
   content: string
@@ -52,10 +53,10 @@ export default class Pull extends LoopressCommand {
     const pulled = files.map((file) => file.filename)
 
     if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${files.length} route file${files.length === 1 ? '' : 's'} to ${path}`)
+      this.log(`[dry-run] Would pull ${pluralize(files.length, 'route file')} to ${path}`)
       if (orphans.length > 0) {
         this.log(
-          `[dry-run] Would remove ${orphans.length} local file${orphans.length === 1 ? '' : 's'} whose route no longer exists on WordPress: ${orphans.join(', ')}`,
+          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} whose route no longer exists on WordPress: ${orphans.join(', ')}`,
         )
       }
 
@@ -82,7 +83,7 @@ export default class Pull extends LoopressCommand {
 
     await this.removeOrphanedFiles(path, orphans, 'whose route no longer exists on WordPress')
 
-    this.log(`Pulled ${files.length} route file${files.length === 1 ? '' : 's'} to ${path}`)
+    this.log(`Pulled ${pluralize(files.length, 'route file')} to ${path}`)
 
     return {orphans, pulled, status: 'success'}
   }

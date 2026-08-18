@@ -7,6 +7,7 @@ import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
 import {type Snippet} from '../../types/snippet.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
+import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 // Publishes to the Loopress api (not a WordPress site), so this does not extend
@@ -66,7 +67,7 @@ export default class Publish extends Command {
       this.error((error as Error).message)
     }
 
-    this.log(`Published ${snippets.length} snippet${snippets.length === 1 ? '' : 's'} to your Loopress account.`)
+    this.log(`Published ${pluralize(snippets.length, 'snippet')} to your Loopress account.`)
   }
 
   private toPayload(snippet: Snippet): Record<string, unknown> {

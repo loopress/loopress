@@ -6,6 +6,7 @@ import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles} from '../../lib/load-files.js'
 import {readLocalConfig} from '../../utils/loopress-config.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 type ApiRouteFile = {
   code: string
@@ -74,6 +75,6 @@ export default class Publish extends Command {
       this.error((error as Error).message)
     }
 
-    this.log(`Published ${files.length} route${files.length === 1 ? '' : 's'} to your Loopress account.`)
+    this.log(`Published ${pluralize(files.length, 'route')} to your Loopress account.`)
   }
 }

@@ -1,10 +1,10 @@
 import {Args, Flags} from '@oclif/core'
-import {Listr} from 'listr2'
 import {join} from 'node:path'
 
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 export default class Push extends PushCommand {
   static args = {
@@ -33,7 +33,7 @@ export default class Push extends PushCommand {
     }
 
     if (this.failedCount > 0) {
-      this.error(`${this.failedCount} ACF object${this.failedCount === 1 ? '' : 's'} failed to push.`)
+      this.error(`${pluralize(this.failedCount, 'ACF object')} failed to push.`)
     }
 
     if (this.dryRun) return
@@ -84,12 +84,10 @@ export default class Push extends PushCommand {
 
     this.log(`Found ${objects.length} ${type} to push`)
 
-    await new Listr(
-      objects.map((object) => ({
-        task: async (_ctx, task) => this.pushObject(type, object, task),
-        title: `Push ${getAcfKey(object) ?? '(unknown)'}`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
+    await this.runPushTasks(
+      objects,
+      (object) => getAcfKey(object) ?? '(unknown)',
+      async (object, task) => this.pushObject(type, object, task),
+    )
   }
 }
