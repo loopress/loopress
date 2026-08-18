@@ -103,6 +103,7 @@ export default defineConfig({
 										{ label: "Getting Started", slug: "cli/getting-started" },
 										{ label: "Init", slug: "cli/init" },
 										{ label: "Doctor", slug: "cli/doctor" },
+										{ label: "MCP Server", slug: "cli/mcp" },
 									],
 								},
 								{
