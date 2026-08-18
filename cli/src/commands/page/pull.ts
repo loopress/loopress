@@ -1,6 +1,5 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {mkdir, writeFile} from 'node:fs/promises'
+import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -56,41 +55,22 @@ export default class Pull extends LoopressCommand {
 
     const pulled = withId.map((page) => ({id: getPageId(page)!, title: getPageTitle(page)}))
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${pluralize(withId.length, 'page')} to ${path}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${path} no longer present on WordPress: ${orphans.join(', ')}`,
-        )
-      }
+    await this.pullDirectory(path, withId, orphans, {
+      dryRunMessage: `Would pull ${pluralize(withId.length, 'page')} to ${path}`,
+      orphanReason: `in ${path} no longer present on WordPress`,
+      pulledMessage: `Pulled ${pluralize(withId.length, 'page')} to ${path}`,
+      title: (page) => getPageTitle(page),
+      async write(page, writeDir) {
+        const base = pageFileBase(getPageId(page)!, getPageTitle(page))
+        // `content` lives entirely in the `.html` file; the `.json` sidecar keeps only the
+        // fields WordPress actually accepts back on write, see pickPageMeta.
+        await writeFile(join(writeDir, `${base}.html`), getPageContent(page))
+        await writeFile(join(writeDir, `${base}.json`), JSON.stringify(pickPageMeta(page), null, 2) + '\n')
+      },
+    })
 
-      return {orphans, pulled, skipped, status: 'dry-run'}
-    }
+    if (this.dryRun) return {orphans, pulled, skipped, status: 'dry-run'}
 
-    if (withId.length > 0) await mkdir(path, {recursive: true})
-
-    await new Listr(
-      withId.map((page) => {
-        const id = getPageId(page)!
-        const title = getPageTitle(page)
-        return {
-          async task(_ctx, task) {
-            const base = pageFileBase(id, title)
-            // `content` lives entirely in the `.html` file; the `.json` sidecar keeps only the
-            // fields WordPress actually accepts back on write, see pickPageMeta.
-            await writeFile(join(path, `${base}.html`), getPageContent(page))
-            await writeFile(join(path, `${base}.json`), JSON.stringify(pickPageMeta(page), null, 2) + '\n')
-            task.output = `Pulled: ${title}`
-          },
-          title: `Pull ${title}`,
-        }
-      }),
-      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
-
-    await this.removeOrphanedFiles(path, orphans, `in ${path} no longer present on WordPress`)
-
-    this.log(`Pulled ${pluralize(withId.length, 'page')} to ${path}`)
     if (skipped > 0) {
       this.warn(`${pluralize(skipped, 'page')} skipped because they have no id`)
     }

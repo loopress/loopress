@@ -1,6 +1,7 @@
 import {confirm} from '@inquirer/prompts'
 import {Command, Flags} from '@oclif/core'
-import {rm} from 'node:fs/promises'
+import {Listr} from 'listr2'
+import {mkdir, rm} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
@@ -98,6 +99,54 @@ export abstract class LoopressCommand extends Command {
     } catch {
       // swallowed: see comment above
     }
+  }
+
+  // Shared shape of every resource's directory pull: write each item, then reconcile local
+  // files against the remote list (see removeOrphanedFiles above). `dryRunMessage` and
+  // `pulledMessage` are fully-formed by the caller (label pluralization varies per resource,
+  // e.g. ACF's `type` is a fixed category name, never pluralized), the "[dry-run] Would "
+  // prefix and the orphans notice are the only wording this method owns.
+  protected async pullDirectory<T>(
+    dir: string,
+    items: T[],
+    orphans: string[],
+    options: {
+      // Defaults to false (create only when there's something to write, acf/form/page's
+      // behavior); snippet pull sets this to true, its directory is created unconditionally
+      // even with nothing to pull.
+      alwaysCreateDir?: boolean
+      dryRunMessage: string
+      orphanReason: string
+      pulledMessage: string
+      title: (item: T) => string
+      write: (item: T, dir: string) => Promise<void>
+    },
+  ): Promise<void> {
+    if (this.dryRun) {
+      this.log(`[dry-run] ${options.dryRunMessage}`)
+      if (orphans.length > 0) {
+        this.log(`[dry-run] Would remove ${pluralize(orphans.length, 'local file')} ${options.orphanReason}: ${orphans.join(', ')}`)
+      }
+
+      return
+    }
+
+    if (options.alwaysCreateDir === true || items.length > 0) await mkdir(dir, {recursive: true})
+
+    await new Listr(
+      items.map((item) => ({
+        async task(_ctx, task) {
+          await options.write(item, dir)
+          task.output = `Pulled: ${options.title(item)}`
+        },
+        title: `Pull ${options.title(item)}`,
+      })),
+      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
+    ).run()
+
+    await this.removeOrphanedFiles(dir, orphans, options.orphanReason)
+
+    this.log(options.pulledMessage)
   }
 
   // Orphan cleanup shared by every pull command (see Push Deletion Rules in the product docs):

@@ -1,6 +1,5 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
-import {mkdir, writeFile} from 'node:fs/promises'
+import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
@@ -65,36 +64,22 @@ export default class Pull extends LoopressCommand {
 
     const pulled = pullable.map((snippet) => ({id: snippet.id, name: snippet.name}))
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${pluralize(snippets.length, 'snippet')} to ${path}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} whose snippet no longer exists on WordPress: ${orphans.join(', ')}`,
-        )
-      }
+    await this.pullDirectory(path, pullable, orphans, {
+      alwaysCreateDir: true,
+      dryRunMessage: `Would pull ${pluralize(snippets.length, 'snippet')} to ${path}`,
+      orphanReason: 'whose snippet no longer exists on WordPress',
+      pulledMessage: `Pulled ${pluralize(pullable.length, 'snippet')} to ${path}`,
+      title: (snippet) => snippet.name,
+      async write(snippet, writeDir) {
+        const ext = EXTENSIONS[snippet.type]
+        const base = `${snippet.id}-${toSlug(snippet.name)}`
+        await writeFile(join(writeDir, `${base}.${ext}`), buildSnippetFile(snippet))
+        await writeFile(join(writeDir, `${base}.json`), buildMetaFile(snippet))
+      },
+    })
 
-      return {orphans, pulled, skipped, status: 'dry-run'}
-    }
+    if (this.dryRun) return {orphans, pulled, skipped, status: 'dry-run'}
 
-    await mkdir(path, {recursive: true})
-
-    await new Listr(
-      pullable.map((snippet) => ({
-        async task(_ctx, task) {
-          const ext = EXTENSIONS[snippet.type]
-          const base = `${snippet.id}-${toSlug(snippet.name)}`
-          await writeFile(join(path, `${base}.${ext}`), buildSnippetFile(snippet))
-          await writeFile(join(path, `${base}.json`), buildMetaFile(snippet))
-          task.output = `Pulled: ${snippet.name}`
-        },
-        title: `Pull ${snippet.name}`,
-      })),
-      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
-
-    await this.removeOrphanedFiles(path, orphans, 'whose snippet no longer exists on WordPress')
-
-    this.log(`Pulled ${pluralize(pullable.length, 'snippet')} to ${path}`)
     if (skipped > 0) {
       this.warn(`${pluralize(skipped, 'snippet')} skipped because they have no name`)
     }

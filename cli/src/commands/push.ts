@@ -1,7 +1,5 @@
-import {confirm} from '@inquirer/prompts'
-
 import {LoopressCommand} from '../lib/base.js'
-import {isInteractive} from '../lib/interactive.js'
+import {guardProductionPush} from '../lib/guard-production-push.js'
 import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
@@ -61,19 +59,9 @@ export default class Push extends LoopressCommand {
     return argv
   }
 
-  // Mirrors PushCommand.guardProductionPush (lib/push-command.ts): pushing to an environment
-  // named "production" needs explicit intent, asked once here rather than once per delegated
-  // command.
+  // Guards once here (shared with PushCommand, lib/push-command.ts) rather than once per
+  // delegated command.
   private async guardProductionPush(): Promise<void> {
-    if (this.siteConfig.name.toLowerCase() !== 'production' || this.dryRun || this.yes) return
-
-    if (!isInteractive()) {
-      this.error('Target environment is "production". Pass --yes to confirm the push in a non-interactive run.')
-    }
-
-    const isProceed = await confirm({default: true, message: `Push to production (${this.siteConfig.url})?`})
-    if (!isProceed) {
-      this.error('Aborted.')
-    }
+    await guardProductionPush({dryRun: this.dryRun, error: (message) => this.error(message), siteConfig: this.siteConfig, yes: this.yes})
   }
 }

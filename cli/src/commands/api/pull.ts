@@ -1,5 +1,4 @@
 import {Args} from '@oclif/core'
-import {Listr} from 'listr2'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
 
@@ -52,38 +51,23 @@ export default class Pull extends LoopressCommand {
 
     const pulled = files.map((file) => file.filename)
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${pluralize(files.length, 'route file')} to ${path}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} whose route no longer exists on WordPress: ${orphans.join(', ')}`,
-        )
-      }
+    await this.pullDirectory(path, files, orphans, {
+      alwaysCreateDir: true,
+      dryRunMessage: `Would pull ${pluralize(files.length, 'route file')} to ${path}`,
+      orphanReason: 'whose route no longer exists on WordPress',
+      pulledMessage: `Pulled ${pluralize(files.length, 'route file')} to ${path}`,
+      title: (file) => file.filename,
+      async write(file, writeDir) {
+        const filePath = join(writeDir, `${file.filename}.php`)
+        // filename can contain '/' (a path-param route, e.g. invoice-pdf/[order_id]):
+        // writeFile() doesn't create parent directories on its own the way mkdir()'s
+        // recursive option does above for the top-level path.
+        await mkdir(dirname(filePath), {recursive: true})
+        await writeFile(filePath, file.content)
+      },
+    })
 
-      return {orphans, pulled, status: 'dry-run'}
-    }
-
-    await mkdir(path, {recursive: true})
-
-    await new Listr(
-      files.map((file) => ({
-        async task(_ctx, task) {
-          const filePath = join(path, `${file.filename}.php`)
-          // filename can contain '/' (a path-param route, e.g. invoice-pdf/[order_id]):
-          // writeFile() doesn't create parent directories on its own the way mkdir()'s
-          // recursive option does above for the top-level path.
-          await mkdir(dirname(filePath), {recursive: true})
-          await writeFile(filePath, file.content)
-          task.output = `Pulled: ${file.filename}`
-        },
-        title: `Pull ${file.filename}`,
-      })),
-      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
-
-    await this.removeOrphanedFiles(path, orphans, 'whose route no longer exists on WordPress')
-
-    this.log(`Pulled ${pluralize(files.length, 'route file')} to ${path}`)
+    if (this.dryRun) return {orphans, pulled, status: 'dry-run'}
 
     return {orphans, pulled, status: 'success'}
   }

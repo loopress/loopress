@@ -1,11 +1,9 @@
 import {Args, Flags} from '@oclif/core'
-import {Listr} from 'listr2'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
-import {pluralize} from '../../utils/pluralize.js'
 import {
   DEFAULT_POST_TYPES,
   redirectFileBase,
@@ -54,32 +52,13 @@ export default class Pull extends LoopressCommand {
       key: basenameKey,
     })
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${remote.length} ${postType} post-meta file(s) to ${dir}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-        )
-      }
-
-      return
-    }
-
-    if (remote.length > 0) await mkdir(dir, {recursive: true})
-
-    await new Listr(
-      remote.map((post) => ({
-        async task(_ctx, task) {
-          await writeFile(join(dir, `${post.slug}.json`), JSON.stringify(post, null, 2) + '\n')
-          task.output = `Pulled: ${post.slug}`
-        },
-        title: `Pull ${post.slug}`,
-      })),
-    ).run()
-
-    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
-
-    this.log(`Pulled ${remote.length} ${postType} post-meta file(s) to ${dir}`)
+    await this.pullDirectory(dir, remote, orphans, {
+      dryRunMessage: `Would pull ${remote.length} ${postType} post-meta file(s) to ${dir}`,
+      orphanReason: `in ${dir} no longer present on WordPress`,
+      pulledMessage: `Pulled ${remote.length} ${postType} post-meta file(s) to ${dir}`,
+      title: (post) => post.slug,
+      write: async (post, writeDir) => writeFile(join(writeDir, `${post.slug}.json`), JSON.stringify(post, null, 2) + '\n'),
+    })
   }
 
   // Redirects are only supported by some SeoProvider backends (RankMath, not Yoast). Unlike
@@ -101,32 +80,14 @@ export default class Pull extends LoopressCommand {
       key: numericPrefixKey,
     })
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would pull ${remote.length} redirect(s) to ${dir}`)
-      if (orphans.length > 0) {
-        this.log(
-          `[dry-run] Would remove ${pluralize(orphans.length, 'local file')} in ${dir} no longer present on WordPress: ${orphans.join(', ')}`,
-        )
-      }
-
-      return
-    }
-
-    if (remote.length > 0) await mkdir(dir, {recursive: true})
-
-    await new Listr(
-      remote.map((redirect) => ({
-        async task(_ctx, task) {
-          await writeFile(join(dir, `${redirectFileBase(redirect)}.json`), JSON.stringify(redirect, null, 2) + '\n')
-          task.output = `Pulled: redirect #${redirect.id}`
-        },
-        title: `Pull redirect #${redirect.id}`,
-      })),
-    ).run()
-
-    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
-
-    this.log(`Pulled ${remote.length} redirect(s) to ${dir}`)
+    await this.pullDirectory(dir, remote, orphans, {
+      dryRunMessage: `Would pull ${remote.length} redirect(s) to ${dir}`,
+      orphanReason: `in ${dir} no longer present on WordPress`,
+      pulledMessage: `Pulled ${remote.length} redirect(s) to ${dir}`,
+      title: (redirect) => `redirect #${redirect.id}`,
+      write: async (redirect, writeDir) =>
+        writeFile(join(writeDir, `${redirectFileBase(redirect)}.json`), JSON.stringify(redirect, null, 2) + '\n'),
+    })
   }
 
   private async pullSettings(basePath: string): Promise<void> {

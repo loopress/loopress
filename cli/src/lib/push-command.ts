@@ -1,11 +1,10 @@
-import {confirm} from '@inquirer/prompts'
 import got from 'got'
 import {Listr} from 'listr2'
 
 import {authManager} from '../config/auth.manager.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
-import {isInteractive} from './interactive.js'
+import {guardProductionPush} from './guard-production-push.js'
 
 export abstract class PushCommand extends LoopressCommand {
   protected failedCount = 0
@@ -21,21 +20,16 @@ export abstract class PushCommand extends LoopressCommand {
     return super.catch(err)
   }
 
-  // Pushing to an environment named "production" needs explicit intent: a TTY confirmation
-  // (Enter accepts), or --yes in scripts and CI. Dry runs are exempt, they change nothing.
   protected async guardProductionPush(): Promise<void> {
-    if (this.siteConfig.name.toLowerCase() !== 'production' || this.dryRun || this.yes) return
-
-    if (!isInteractive()) {
-      this.refusedByGuard = true
-      this.error('Target environment is "production". Pass --yes to confirm the push in a non-interactive run.')
-    }
-
-    const isProceed = await confirm({default: true, message: `Push to production (${this.siteConfig.url})?`})
-    if (!isProceed) {
-      this.refusedByGuard = true
-      this.error('Aborted.')
-    }
+    await guardProductionPush({
+      dryRun: this.dryRun,
+      error: (message) => this.error(message),
+      onRefuse: () => {
+        this.refusedByGuard = true
+      },
+      siteConfig: this.siteConfig,
+      yes: this.yes,
+    })
   }
 
   async init(): Promise<void> {
