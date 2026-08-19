@@ -1,5 +1,17 @@
 # @loopress/cli
 
+## 0.22.0
+
+### Minor Changes
+
+- 672395e: Add `lps push`, a top-level command that pushes plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets to WordPress in one run instead of calling each resource's `push` command separately. Production pushes are confirmed once up front rather than once per resource.
+- 3bfe6a8: `lps acf list`, `lps form list`, and `lps seo list` now use the same `--json` mechanism as every other command instead of a one-off `-j`/`--json` flag. **Breaking**: the `-j` short flag is removed from these three commands, use `--json` instead.
+
+### Patch Changes
+
+- b2fcf46: Internal refactoring: extract a shared `pullDirectory` helper for the write-then-reconcile-orphans loop duplicated across `acf`/`api`/`form`/`page`/`seo`/`snippet` pull commands, and a shared `guardProductionPush` helper for the production-push confirmation duplicated between `PushCommand` and the top-level `lps push`. No visible behavior change.
+- cb993db: Internal refactoring: extract shared helpers for the id-based PUT-then-create-on-404 push dance (`form`, `page`, `seo` redirects, `snippet`), the Listr push-task loop, ENOENT-tolerant directory listing, and count pluralization, previously duplicated across each resource's `push`/`pull` command. No visible behavior change.
+
 ## 0.21.0
 
 ### Minor Changes
