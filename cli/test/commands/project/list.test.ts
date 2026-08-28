@@ -138,4 +138,34 @@ describe('project list', () => {
     expect(configManager.listEnvironments).toHaveBeenCalledWith('acme')
     expect(configManager.listEnvironments).toHaveBeenCalledWith('globex')
   })
+
+  it('returns the projects and environments so oclif can print them as JSON under --json, without leaking tokens', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([
+      {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: true, name: 'Acme'},
+    ])
+    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
+      {addedAt: '2024-01-01', isCurrent: true, name: 'production', token: 'super-secret-app-password', url: 'https://acme.test'},
+    ])
+    const {cmd} = make()
+
+    const result = await cmd.run()
+
+    expect(result).toEqual([
+      {
+        environments: [{isCurrent: true, name: 'production', url: 'https://acme.test'}],
+        id: 'acme',
+        isCurrent: true,
+        name: 'Acme',
+      },
+    ])
+    expect(JSON.stringify(result)).not.toContain('super-secret-app-password')
+  })
+
+  it('returns an empty array when there are no projects', async () => {
+    const {cmd} = make()
+
+    const result = await cmd.run()
+
+    expect(result).toEqual([])
+  })
 })

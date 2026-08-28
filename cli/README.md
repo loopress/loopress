@@ -733,7 +733,10 @@ List configured WordPress projects
 
 ```
 USAGE
-  $ lps project list
+  $ lps project list [--json]
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   List configured WordPress projects
