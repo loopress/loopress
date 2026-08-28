@@ -2,8 +2,8 @@
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
 agent can pull and push snippets, pages, API routes, ACF objects, SEO settings, forms, plugins
-and Composer dependencies on a WordPress site, plus check project status. Ships as the `lps-mcp`
-binary.
+and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
+project status. Ships as the `lps-mcp` binary.
 
 It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
 `PATH` with `--json`, and parses its stdout. No direct dependency on `@loopress/cli`.
@@ -68,6 +68,8 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `plugin_pull` | No | `env?` | Pull installed plugins from WordPress into `loopress.json` |
 | `composer_push` | Yes | `env?`, `confirmToken?` | Push `composer.json`/`composer.lock` and run `composer install` on WordPress |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
+| `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
+| `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 
 `env` overrides the globally active environment for that call. `path` overrides the directory
@@ -100,7 +102,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 620s for `composer_push`) |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push`) |
 | `ExecError` | The `lps` process failed outside the two cases above |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
