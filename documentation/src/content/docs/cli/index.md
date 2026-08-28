@@ -18,6 +18,7 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | **Setup** | `lps init` | Create a `loopress.json` config file interactively |
 | | `lps status` | Show which project and environment commands will target |
 | | `lps doctor` | Diagnose connectivity, plugin and credential problems |
+| | `lps validate` | Check local tracked files are well formed and push-ready, without contacting WordPress |
 | | `lps dev` | Watch snippets, pages, API routes and plugins, pushing each change to the `local` environment automatically |
 | | `lps push` | Push plugins, composer, ACF, API routes, forms, pages, SEO, and snippets to WordPress in one command |
 | | `lps pull` | Pull plugins, composer, ACF, API routes, forms, pages, SEO, and snippets from WordPress in one command |
