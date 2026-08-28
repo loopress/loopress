@@ -79,6 +79,7 @@ report.
 * [`lps project remove`](#lps-project-remove)
 * [`lps project rotate`](#lps-project-rotate)
 * [`lps project switch`](#lps-project-switch)
+* [`lps pull`](#lps-pull)
 * [`lps push`](#lps-push)
 * [`lps seo list`](#lps-seo-list)
 * [`lps seo pull [PATH]`](#lps-seo-pull-path)
@@ -836,6 +837,32 @@ EXAMPLES
 ```
 
 _See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/project/switch.ts)_
+
+## `lps pull`
+
+Pull all content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, from WordPress
+
+```
+USAGE
+  $ lps pull [--env <value>] [-d] [-y]
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Pull all content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, from WordPress
+
+EXAMPLES
+  $ lps pull
+
+  $ lps pull --env staging
+
+  $ lps pull --dry-run
+```
+
+_See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/pull.ts)_
 
 ## `lps push`
 
