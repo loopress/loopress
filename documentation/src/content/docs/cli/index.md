@@ -21,6 +21,7 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | | `lps dev` | Watch snippets, pages, API routes and plugins, pushing each change to the `local` environment automatically |
 | | `lps push` | Push plugins, composer, ACF, API routes, forms, pages, SEO, and snippets to WordPress in one command |
 | | `lps pull` | Pull plugins, composer, ACF, API routes, forms, pages, SEO, and snippets from WordPress in one command |
+| | `lps promote` | Copy every tracked resource from one environment to another (`lps pull` from the source, then `lps push` to the target) |
 | **Project** | `lps project config` | Add or update a WordPress project environment |
 | | `lps project list` | List configured WordPress projects |
 | | `lps project switch` | Switch the active project and environment |

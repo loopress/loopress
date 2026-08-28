@@ -79,6 +79,7 @@ report.
 * [`lps project remove`](#lps-project-remove)
 * [`lps project rotate`](#lps-project-rotate)
 * [`lps project switch`](#lps-project-switch)
+* [`lps promote FROM TO`](#lps-promote-from-to)
 * [`lps pull`](#lps-pull)
 * [`lps push`](#lps-push)
 * [`lps seo list`](#lps-seo-list)
@@ -840,6 +841,34 @@ EXAMPLES
 ```
 
 _See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/project/switch.ts)_
+
+## `lps promote FROM TO`
+
+Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked files are overwritten with <from> in the process.
+
+```
+USAGE
+  $ lps promote FROM TO [-d] [-y]
+
+ARGUMENTS
+  FROM  Environment to copy the configuration from
+  TO    Environment to copy the configuration to
+
+FLAGS
+  -d, --dry-run  Show what would change without making changes
+  -y, --yes      Answer yes to confirmation prompts
+
+DESCRIPTION
+  Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked
+  files are overwritten with <from> in the process.
+
+EXAMPLES
+  $ lps promote staging production
+
+  $ lps promote production staging --dry-run
+```
+
+_See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/promote.ts)_
 
 ## `lps pull`
 
