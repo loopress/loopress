@@ -1,8 +1,9 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, pages, API routes, plugins and Composer dependencies on a
-WordPress site, plus check project status. Ships as the `lps-mcp` binary.
+agent can pull and push snippets, pages, API routes, ACF objects, SEO settings, forms, plugins
+and Composer dependencies on a WordPress site, plus check project status. Ships as the `lps-mcp`
+binary.
 
 It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
 `PATH` with `--json`, and parses its stdout. No direct dependency on `@loopress/cli`.
@@ -54,6 +55,15 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `api_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local custom API route files to WordPress |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress |
+| `acf_push` | Yes | `env?`, `path?`, `type?`, `confirmToken?` | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
+| `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
+| `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |
+| `seo_push` | Yes | `env?`, `path?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
+| `seo_pull` | No | `env?`, `path?`, `postType?` | Pull SEO settings, post meta and redirects from WordPress into local files |
+| `seo_list` | No | `env?`, `postType?` | List posts with SEO meta, and redirects if supported, on WordPress |
+| `form_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local form files to WordPress |
+| `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
+| `form_list` | No | `env?` | List forms currently on WordPress |
 | `plugin_push` | Yes | `env?`, `confirmToken?` | Install/activate WordPress.org plugins to match `loopress.json` |
 | `plugin_pull` | No | `env?` | Pull installed plugins from WordPress into `loopress.json` |
 | `composer_push` | Yes | `env?`, `confirmToken?` | Push `composer.json`/`composer.lock` and run `composer install` on WordPress |
@@ -61,7 +71,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 
 `env` overrides the globally active environment for that call. `path` overrides the directory
-configured in `loopress.json` for that feature.
+configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
+arrays that scope the operation to specific object types, matching the CLI's `--type` and
+`--post-type` flags.
 
 ## Confirmation handshake
 

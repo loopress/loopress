@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, pages, API routes, plugins and Composer dependencies on a WordPress site, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, pages, API routes, ACF objects, SEO settings, forms, plugins and Composer dependencies on a WordPress site, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool shells out to the `lps` binary already on your `PATH`, the same one used by the [CLI](/cli/).
 
@@ -52,13 +52,22 @@ The server communicates over stdio from the directory your client launches it in
 | `api_push` | Yes | Push local custom API route files to WordPress |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress |
+| `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
+| `acf_pull` | No | Pull ACF objects from WordPress into local files |
+| `acf_list` | No | List ACF objects currently on WordPress |
+| `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress |
+| `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
+| `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
+| `form_push` | Yes | Push local form files to WordPress |
+| `form_pull` | No | Pull forms from WordPress into local files |
+| `form_list` | No | List forms currently on WordPress |
 | `plugin_push` | Yes | Install/activate WordPress.org plugins to match `loopress.json` |
 | `plugin_pull` | No | Pull installed plugins from WordPress into `loopress.json` |
 | `composer_push` | Yes | Push `composer.json`/`composer.lock` and run `composer install` on WordPress |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
 | `project_status` | No | Show which project and environment the other tools will target |
 
-Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`.
+Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags.
 
 ## Confirming changes
 
