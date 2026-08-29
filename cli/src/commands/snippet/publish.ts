@@ -1,12 +1,10 @@
 import {Args, Command} from '@oclif/core'
 import {join} from 'node:path'
 
-import {authManager} from '../../config/auth.manager.js'
-import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
+import {resolveLinkedProject} from '../../lib/resolve-linked-project.js'
 import {type Snippet} from '../../types/snippet.js'
-import {readLocalConfig} from '../../utils/loopress-config.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -27,25 +25,7 @@ export default class Publish extends Command {
   async run(): Promise<void> {
     const {args} = await this.parse(Publish)
 
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
-    if (!token) {
-      this.error('Not logged in. Run `lps login` first.')
-    }
-
-    const localConfig = await readLocalConfig()
-    const projectId = localConfig.projectId ?? configManager.getCurrentProject()?.id
-    if (!projectId) {
-      this.error('No project configured. Run `lps project config` first.')
-    }
-
-    const project = configManager.getProject(projectId)
-    if (!project) {
-      this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
-    }
-
-    if (!project.apiProjectId) {
-      this.error(`Project "${project.name}" is not linked to your Loopress account yet. Run \`lps project push\` first.`)
-    }
+    const {apiProjectId, localConfig, token} = await resolveLinkedProject((message) => this.error(message))
 
     const path = args.path ?? join(localConfig.rootDir ?? '.', localConfig.snippetsDir ?? 'snippets')
 
@@ -60,7 +40,7 @@ export default class Publish extends Command {
 
     const api = new ApiClient(token)
     try {
-      await api.post(`projects/${project.apiProjectId}/snippets/publish`, {
+      await api.post(`projects/${apiProjectId}/snippets/publish`, {
         snippets: snippets.map((snippet) => this.toPayload(snippet)),
       })
     } catch (error) {

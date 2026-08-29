@@ -14,128 +14,30 @@ use Loopress\Seo\Exception\RedirectsUnavailableException;
 //
 // Post-level SEO data (title, description, robots, canonical, social, and per-post schema
 // blocks) is all stored as postmeta prefixed `rank_math_`. Rather than hardcoding the list of
-// known keys (long, and grows whenever RankMath ships a new field or schema type), this class
-// syncs every `rank_math_*` postmeta key generically: whatever RankMath itself writes is what
-// gets read and written back, with no allowlist to keep in sync with RankMath's own releases.
-class RankMathService implements SeoRedirectProvider
+// known keys (long, and grows whenever RankMath ships a new field or schema type), the generic
+// `rank_math_*` sync in AbstractSeoService reads and writes back whatever RankMath itself
+// writes, with no allowlist to keep in sync with RankMath's own releases. Only the redirects
+// half below is RankMath-specific.
+class RankMathService extends AbstractSeoService implements SeoRedirectProvider
 {
-    private const META_PREFIX = 'rank_math_';
-    private const OPTION_TITLES = 'rank-math-options-titles';
-
     public function isActive(): bool
     {
         return defined('RANK_MATH_VERSION');
     }
 
-    // ── Post meta (titles, descriptions, robots, social, per-post schema...) ──────────────
-
-    /** @return array<int, array<string, mixed>> */
-    public function listPostMeta(string $postType): array
+    protected function metaPrefix(): string
     {
-        $posts = get_posts([
-            'post_status'    => 'publish',
-            'post_type'      => $postType,
-            'posts_per_page' => -1,
-        ]);
-
-        return array_map(fn(\WP_Post $post): array => $this->exportPost($post), $posts);
+        return 'rank_math_';
     }
 
-    /** @return array<string, mixed>|null */
-    public function getPostMeta(string $postType, string $slug): ?array
+    protected function optionTitles(): string
     {
-        $post = $this->findPost($postType, $slug);
-
-        return $post === null ? null : $this->exportPost($post);
+        return 'rank-math-options-titles';
     }
 
-    /**
-     * The post must already exist: RankMath data has no meaning without a host post, and
-     * unlike ACF field groups or redirects this integration never creates content on its own.
-     *
-     * @param array<string, mixed> $meta
-     * @return array<string, mixed>
-     */
-    public function upsertPostMeta(string $postType, string $slug, array $meta): array
+    protected function providerLabel(): string
     {
-        $post = $this->findPost($postType, $slug);
-        if ($post === null) {
-            throw new \RuntimeException(esc_html(
-                "No published \"{$postType}\" post with slug \"{$slug}\" was found. RankMath data syncs onto existing content, it does not create posts."
-            ));
-        }
-
-        $existingKeys = array_keys($this->rankMathMeta($post->ID));
-        // Bounded to this provider's own prefix, symmetrically with the deletion loop below:
-        // without this, any key in the request body would be written as post meta, including
-        // one belonging to another plugin (ACF, FluentCRM, etc.) on the same post.
-        $incomingKeys = array_values(array_filter(
-            array_keys($meta),
-            fn(string $key): bool => str_starts_with($key, self::META_PREFIX)
-        ));
-
-        foreach ($incomingKeys as $key) {
-            update_post_meta($post->ID, $key, $meta[$key]);
-        }
-
-        foreach (array_diff($existingKeys, $incomingKeys) as $removedKey) {
-            delete_post_meta($post->ID, $removedKey);
-        }
-
-        return $this->exportPost($post);
-    }
-
-    private function findPost(string $postType, string $slug): ?\WP_Post
-    {
-        $post = get_page_by_path($slug, OBJECT, $postType);
-
-        return $post instanceof \WP_Post ? $post : null;
-    }
-
-    /** @return array<string, mixed> */
-    private function exportPost(\WP_Post $post): array
-    {
-        return [
-            'meta'  => $this->rankMathMeta($post->ID),
-            'slug'  => $post->post_name,
-            'title' => $post->post_title,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function rankMathMeta(int $postId): array
-    {
-        $meta = [];
-        foreach (get_post_meta($postId) as $key => $values) {
-            if (!str_starts_with($key, self::META_PREFIX)) {
-                continue;
-            }
-
-            $meta[$key] = count($values) === 1 ? $values[0] : $values;
-        }
-
-        return $meta;
-    }
-
-    // ── Site-wide Titles & Meta settings (includes per-post-type schema defaults) ─────────
-
-    /** @return array<string, mixed> */
-    public function getSettings(): array
-    {
-        $settings = get_option(self::OPTION_TITLES, []);
-
-        return is_array($settings) ? $settings : [];
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    public function updateSettings(array $data): array
-    {
-        update_option(self::OPTION_TITLES, $data);
-
-        return $this->getSettings();
+        return 'RankMath';
     }
 
     // ── Redirects ───────────────────────────────────────────────────────────────────────
