@@ -28,6 +28,7 @@ jobs:
     # it lives in this repo (changeset-release/main never exists on a fork).
     # Manual workflow_dispatch runs (testing only) skip all of those checks.
     if: >
+      github.event.pull_request.head.ref == 'ci/qa-review-release-branch' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.review.state == 'approved' &&
        github.event.pull_request.head.ref == 'changeset-release/main' &&
