@@ -92,6 +92,7 @@ report.
 * [`lps status`](#lps-status)
 * [`lps telemetry disable`](#lps-telemetry-disable)
 * [`lps telemetry enable`](#lps-telemetry-enable)
+* [`lps validate`](#lps-validate)
 
 ## `lps acf list`
 
@@ -1167,4 +1168,24 @@ EXAMPLES
 ```
 
 _See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/telemetry/enable.ts)_
+
+## `lps validate`
+
+Check local tracked files are well formed and push-ready, without contacting WordPress
+
+```
+USAGE
+  $ lps validate [--json]
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Check local tracked files are well formed and push-ready, without contacting WordPress
+
+EXAMPLES
+  $ lps validate
+```
+
+_See code: [src/commands/validate.ts](https://github.com/loopress/loopress/blob/v0.21.0/src/commands/validate.ts)_
 <!-- commandsstop -->
