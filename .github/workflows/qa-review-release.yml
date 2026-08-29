@@ -4,8 +4,9 @@ name: 🔍 QA review (release)
 # (branch changeset-release/main -> main) is the trigger itself, not a gate that
 # runs automatically and then waits. Every other event on that PR is ignored.
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+  # pull_request_review:
+  #   types: [submitted]
   # TEMPORARY, for testing only: lets you run this against any PR by number
   # without needing a real approval on changeset-release/main first.
   # TODO: remove this workflow_dispatch block (and the workflow_dispatch branches
