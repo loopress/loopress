@@ -5,6 +5,7 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 import {registerProjectResources} from './resources/project.js'
 import {registerAcfTools} from './tools/acf.js'
 import {registerApiTools} from './tools/api.js'
+import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
 import {registerFormTools} from './tools/form.js'
 import {registerPageTools} from './tools/page.js'
@@ -23,6 +24,7 @@ registerSeoTools(server)
 registerFormTools(server)
 registerPluginTools(server)
 registerComposerTools(server)
+registerBulkTools(server)
 registerStatusTools(server)
 registerProjectResources(server)
 
