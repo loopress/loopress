@@ -96,4 +96,5 @@ jobs:
             passed, no issues found"). Only post a GitHub PR comment, don't submit
             review text as chat messages, and don't post inline comments.
           claude_args: |
+            --model claude-sonnet-5
             --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
