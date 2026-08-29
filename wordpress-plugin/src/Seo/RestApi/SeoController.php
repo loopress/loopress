@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Seo\RestApi;
 
+use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Seo\Exception\NoActiveSeoPluginException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
@@ -13,7 +14,16 @@ use WP_REST_Response;
 
 class SeoController
 {
+    use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
+
+    // Every handler maps the same service exceptions the same way (redirect handlers add
+    // RedirectsUnavailableException => 400); \RuntimeException => 500 is applied by the trait.
+    private const POST_META_STATUSES = [NoActiveSeoPluginException::class => 409];
+    private const REDIRECT_STATUSES  = [
+        RedirectsUnavailableException::class => 400,
+        NoActiveSeoPluginException::class    => 409,
+    ];
 
     public function __construct(private SeoService $seoService) {}
 
@@ -86,13 +96,13 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        try {
-            return new WP_REST_Response($this->seoService->listPostMeta((string) $request->get_param('type')), 200);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response(
+                $this->seoService->listPostMeta((string) $request->get_param('type')),
+                200,
+            ),
+            self::POST_META_STATUSES,
+        );
     }
 
     public function get_post_meta(WP_REST_Request $request): WP_REST_Response
@@ -101,17 +111,13 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $post = $this->seoService->getPostMeta((string) $request->get_param('type'), (string) $request->get_param('slug'));
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        return $post === null
-            ? new WP_REST_Response(['error' => 'Post not found'], 404)
-            : new WP_REST_Response($post, 200);
+            return $post === null
+                ? new WP_REST_Response(['error' => 'Post not found'], 404)
+                : new WP_REST_Response($post, 200);
+        }, self::POST_META_STATUSES);
     }
 
     public function upsert_post_meta(WP_REST_Request $request): WP_REST_Response
@@ -128,15 +134,13 @@ class SeoController
             return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and a "meta" object.'], 400);
         }
 
-        try {
-            $post = $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
-
-        return new WP_REST_Response($post, 200);
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response(
+                $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta),
+                200,
+            ),
+            self::POST_META_STATUSES,
+        );
     }
 
     // ── settings ────────────────────────────────────────────────────────────
@@ -147,13 +151,10 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        try {
-            return new WP_REST_Response($this->seoService->getSettings(), 200);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->getSettings(), 200),
+            self::POST_META_STATUSES,
+        );
     }
 
     public function update_settings(WP_REST_Request $request): WP_REST_Response
@@ -167,13 +168,10 @@ class SeoController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        try {
-            return new WP_REST_Response($this->seoService->updateSettings($data), 200);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->updateSettings($data), 200),
+            self::POST_META_STATUSES,
+        );
     }
 
     // ── redirects ───────────────────────────────────────────────────────────
@@ -184,15 +182,10 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        try {
-            return new WP_REST_Response($this->seoService->listRedirections(), 200);
-        } catch (RedirectsUnavailableException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 400);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->listRedirections(), 200),
+            self::REDIRECT_STATUSES,
+        );
     }
 
     public function get_redirect(WP_REST_Request $request): WP_REST_Response
@@ -201,19 +194,13 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $redirect = $this->seoService->getRedirection((int) $request->get_param('id'));
-        } catch (RedirectsUnavailableException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 400);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        return $redirect === null
-            ? new WP_REST_Response(['error' => 'Redirect not found'], 404)
-            : new WP_REST_Response($redirect, 200);
+            return $redirect === null
+                ? new WP_REST_Response(['error' => 'Redirect not found'], 404)
+                : new WP_REST_Response($redirect, 200);
+        }, self::REDIRECT_STATUSES);
     }
 
     public function create_redirect(WP_REST_Request $request): WP_REST_Response
@@ -227,17 +214,10 @@ class SeoController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        try {
-            $redirect = $this->seoService->createRedirection($data);
-        } catch (RedirectsUnavailableException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 400);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
-
-        return new WP_REST_Response($redirect, 201);
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->createRedirection($data), 201),
+            self::REDIRECT_STATUSES,
+        );
     }
 
     public function update_redirect(WP_REST_Request $request): WP_REST_Response
@@ -248,19 +228,13 @@ class SeoController
 
         $data = $request->get_json_params();
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request, $data): WP_REST_Response {
             $redirect = $this->seoService->updateRedirection((int) $request->get_param('id'), $data);
-        } catch (RedirectsUnavailableException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 400);
-        } catch (NoActiveSeoPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        return $redirect === null
-            ? new WP_REST_Response(['error' => 'Redirect not found'], 404)
-            : new WP_REST_Response($redirect, 200);
+            return $redirect === null
+                ? new WP_REST_Response(['error' => 'Redirect not found'], 404)
+                : new WP_REST_Response($redirect, 200);
+        }, self::REDIRECT_STATUSES);
     }
 
     private function inactiveResponse(): WP_REST_Response

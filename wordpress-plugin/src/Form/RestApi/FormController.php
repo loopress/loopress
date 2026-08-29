@@ -6,13 +6,17 @@ namespace Loopress\Form\RestApi;
 
 use Loopress\Form\Exception\NoActiveFormPluginException;
 use Loopress\Form\Service\FormService;
+use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class FormController
 {
+    use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
+
+    private const STATUSES = [NoActiveFormPluginException::class => 409];
 
     public function __construct(private FormService $formService) {}
 
@@ -56,43 +60,34 @@ class FormController
     public function list_forms(): WP_REST_Response
     {
         if (!$this->formService->isActive()) {
-            return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
+            return $this->inactiveResponse();
         }
 
-        try {
-            return new WP_REST_Response($this->formService->list(), 200);
-        } catch (NoActiveFormPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->formService->list(), 200),
+            self::STATUSES,
+        );
     }
 
     public function get_form(WP_REST_Request $request): WP_REST_Response
     {
         if (!$this->formService->isActive()) {
-            return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
+            return $this->inactiveResponse();
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $form = $this->formService->get((int) $request->get_param('id'));
-        } catch (NoActiveFormPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if ($form === null) {
-            return new WP_REST_Response(['error' => 'Form not found'], 404);
-        }
-
-        return new WP_REST_Response($form, 200);
+            return $form === null
+                ? new WP_REST_Response(['error' => 'Form not found'], 404)
+                : new WP_REST_Response($form, 200);
+        }, self::STATUSES);
     }
 
     public function create_form(WP_REST_Request $request): WP_REST_Response
     {
         if (!$this->formService->isActive()) {
-            return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
+            return $this->inactiveResponse();
         }
 
         $data = $request->get_json_params();
@@ -100,21 +95,16 @@ class FormController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        try {
-            $form = $this->formService->create($data);
-        } catch (NoActiveFormPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
-
-        return new WP_REST_Response($form, 201);
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->formService->create($data), 201),
+            self::STATUSES,
+        );
     }
 
     public function update_form(WP_REST_Request $request): WP_REST_Response
     {
         if (!$this->formService->isActive()) {
-            return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
+            return $this->inactiveResponse();
         }
 
         $data = $request->get_json_params();
@@ -122,40 +112,33 @@ class FormController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request, $data): WP_REST_Response {
             $form = $this->formService->update((int) $request->get_param('id'), $data);
-        } catch (NoActiveFormPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if ($form === null) {
-            return new WP_REST_Response(['error' => 'Form not found'], 404);
-        }
-
-        return new WP_REST_Response($form, 200);
+            return $form === null
+                ? new WP_REST_Response(['error' => 'Form not found'], 404)
+                : new WP_REST_Response($form, 200);
+        }, self::STATUSES);
     }
 
     public function delete_form(WP_REST_Request $request): WP_REST_Response
     {
         if (!$this->formService->isActive()) {
-            return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
+            return $this->inactiveResponse();
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $deleted = $this->formService->delete((int) $request->get_param('id'));
-        } catch (NoActiveFormPluginException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if (!$deleted) {
-            return new WP_REST_Response(['error' => 'Form not found'], 404);
-        }
+            return $deleted
+                ? new WP_REST_Response(null, 204)
+                : new WP_REST_Response(['error' => 'Form not found'], 404);
+        }, self::STATUSES);
+    }
 
-        return new WP_REST_Response(null, 204);
+    private function inactiveResponse(): WP_REST_Response
+    {
+        return new WP_REST_Response(['error' => 'No supported form plugin is active'], 409);
     }
 
     /** @return array<string, mixed> */
