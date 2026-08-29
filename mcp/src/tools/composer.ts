@@ -1,13 +1,10 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
-import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
-
-const envFlag = z.string().optional().describe('Target environment by name, overriding the globally active one')
-const confirmTokenFlag = z.string().optional().describe('Token from a prior preview call of this same tool, to apply it for real')
 
 // The server-side `composer install` triggered by `lps composer push` can legitimately run for
 // minutes (see cli's own COMPOSER_SYNC_TIMEOUT_MS in commands/composer/push.ts); the default
@@ -19,7 +16,7 @@ export function registerComposerTools(server: McpServer): void {
     'composer_push',
     {
       description:
-        'Push composer.json/composer.lock to WordPress and run composer install there. Without confirmToken, returns a dry-run preview and a confirmToken instead of making any change; call again with that confirmToken to apply it.',
+        'Push composer.json/composer.lock to WordPress and run composer install there.' + PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag},
     },
     async ({confirmToken, env}) =>
