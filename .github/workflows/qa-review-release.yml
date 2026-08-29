@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude QA review
-        uses: anthropics/claude-code-action@4c2558197b423d014cf4438abf8c877c546ddc4e # v1.0.193
+        uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Pass the built-in token so the action skips the OIDC -> GitHub App
