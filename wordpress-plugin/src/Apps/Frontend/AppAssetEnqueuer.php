@@ -47,6 +47,10 @@ class AppAssetEnqueuer
             wp_localize_script($firstHandle, 'loopressApp_' . str_replace('-', '_', $name), [
                 'name'      => $name,
                 'mount'     => $record['mountSelector'] ?? null,
+                // Absolute URL the bundle is served from. Lets an app resolve a public/ asset
+                // referenced from rendered markup (`base + 'icons.svg'`) without hardcoding
+                // the path, for the cases the bundler's own base handling does not cover.
+                'base'      => esc_url_raw($base),
                 'buildId'   => $buildId,
                 'restUrl'   => esc_url_raw(rest_url()),
                 'restNonce' => wp_create_nonce('wp_rest'),
