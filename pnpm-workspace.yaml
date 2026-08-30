@@ -6,6 +6,7 @@ packages:
   - "mcp"
   - "website"
   - "wordpress-plugin"
+  - "!cli/demo/**"
 allowBuilds:
   '@parcel/watcher': true
   core-js: true
