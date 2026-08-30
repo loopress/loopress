@@ -1,5 +1,21 @@
 # @loopress/cli
 
+## 0.22.0
+
+### Minor Changes
+
+- 1c3e617: Add `lps promote <from> <to>`, which copies every tracked resource from one environment to another by running `lps pull` from `<from>` then `lps push` to `<to>` in one step. It confirms once up front (local tracked files are overwritten with `<from>` in the process, and the prompt calls out production targets), forwards `--dry-run` to both halves, and stops before pushing if the pull fails.
+- 14874f8: Add `lps pull`, a top-level command that pulls plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets from WordPress in one run instead of calling each resource's `pull` command separately. It's the counterpart of `lps push`. `composer` is pulled before `plugins` so plugin detection sees the fresh `composer.json`, and `--yes` is forwarded only to the resource pulls that prompt before deleting orphaned local files.
+- 672395e: Add `lps push`, a top-level command that pushes plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets to WordPress in one run instead of calling each resource's `push` command separately. Production pushes are confirmed once up front rather than once per resource.
+- 74cb1ab: Add `lps validate`, an offline check that the local tracked files are push-ready: every resource JSON parses and is an object, snippet sidecars use a known `type` and an integer `id`, API route files are non-empty, `loopress.json` points at a configured project, and `composer.json` is well formed. It contacts nothing, prints one line per problem, exits non-zero when any is found, and supports `--json`. Handy as a pre-commit or CI gate before `lps push`.
+- 50fae55: `lps project list` now supports `--json`, like every other `list` command.
+- 3bfe6a8: `lps acf list`, `lps form list`, and `lps seo list` now use the same `--json` mechanism as every other command instead of a one-off `-j`/`--json` flag. **Breaking**: the `-j` short flag is removed from these three commands, use `--json` instead.
+
+### Patch Changes
+
+- b2fcf46: Internal refactoring: extract a shared `pullDirectory` helper for the write-then-reconcile-orphans loop duplicated across `acf`/`api`/`form`/`page`/`seo`/`snippet` pull commands, and a shared `guardProductionPush` helper for the production-push confirmation duplicated between `PushCommand` and the top-level `lps push`. No visible behavior change.
+- cb993db: Internal refactoring: extract shared helpers for the id-based PUT-then-create-on-404 push dance (`form`, `page`, `seo` redirects, `snippet`), the Listr push-task loop, ENOENT-tolerant directory listing, and count pluralization, previously duplicated across each resource's `push`/`pull` command. No visible behavior change.
+
 ## 0.21.0
 
 ### Minor Changes
