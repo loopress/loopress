@@ -84,6 +84,17 @@ export interface ApiNamespace {
     namespace: string;
 }
 
+// Mirrors AppsController::list_apps() in the plugin.
+export interface RemoteApp {
+    name: string;
+    buildId: string | null;
+    routing: string | null;
+    deployedAt: string | null;
+    fileCount: number;
+    totalBytes: number;
+    committed: boolean;
+}
+
 export type SnippetType = 'php' | 'js' | 'css' | 'html' | 'text';
 export type SnippetLocation = 'admin' | 'body' | 'everywhere' | 'footer' | 'frontend' | 'header' | 'once';
 
