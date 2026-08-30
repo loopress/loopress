@@ -5,6 +5,7 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 import {registerProjectResources} from './resources/project.js'
 import {registerAcfTools} from './tools/acf.js'
 import {registerApiTools} from './tools/api.js'
+import {registerAppTools} from './tools/app.js'
 import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
 import {registerFormTools} from './tools/form.js'
@@ -19,6 +20,7 @@ const server = new McpServer({name: 'loopress', version: '0.1.0'})
 registerSnippetTools(server)
 registerPageTools(server)
 registerApiTools(server)
+registerAppTools(server)
 registerAcfTools(server)
 registerSeoTools(server)
 registerFormTools(server)

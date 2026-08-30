@@ -21,6 +21,7 @@ const FEATURES = [
   {dir: 'forms', key: 'formDir', label: 'Forms'},
   {dir: 'pages', key: 'pageDir', label: 'Pages'},
   {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
+  {dir: 'apps', key: 'appsDir', label: 'Single-page apps'},
 ] as const
 
 export default class Init extends Command {
