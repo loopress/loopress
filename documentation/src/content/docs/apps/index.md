@@ -69,13 +69,14 @@ The shortcode exposes a small config object on the page, named `loopressApp_<nam
 {
   name: 'search',
   mount: '#loopress-app-search',
+  base: 'https://example.com/wp-content/loopress/apps/search/',
   buildId: '9f2a1c7b4e10',
   restUrl: 'https://example.com/wp-json/',
   restNonce: 'a1b2c3d4e5',
 }
 ```
 
-Pair it with a [custom API route](/api/) for the search endpoint itself.
+`base` is the absolute URL the bundle is served from: use it to resolve a `public/` asset referenced from rendered markup (`base + 'icon.svg'`) that the bundler does not rewrite. Pair `restUrl` / `restNonce` with a [custom API route](/api/) for the search endpoint itself.
 
 ## Pages
 

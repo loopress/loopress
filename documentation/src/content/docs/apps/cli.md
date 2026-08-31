@@ -3,9 +3,19 @@ title: Apps CLI
 description: Push, pull, list and remove single-page app bundles from the command line.
 ---
 
+:::note
+Every command below talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site first.
+:::
+
 The `app` command group syncs built single-page app bundles between a local `apps/` directory and WordPress. Each subdirectory of `apps/` is one app: a `loopress.app.json` plus a built `dist/` folder.
 
-This is a [Loopress Full](/wordpress-plugin/) feature.
+## The local directory
+
+`push` and `pull` operate on one local directory, resolved the same way:
+
+1. The `path` argument, if given (`pull` only)
+2. The `appsDir` key in the project's `loopress.json`, if set
+3. `./apps`, the default
 
 ## Typical workflow
 
@@ -21,30 +31,57 @@ lps app push search
 
 ## Commands
 
-### `lps app push [name]`
+### `lps app push`
 
 Upload the built bundle for one app, or every app in the directory when `name` is omitted. Builds a manifest of `dist/` (sha256 per file), asks the site which files it already has, uploads only the differences, then commits the new build in one step. The front end keeps serving the old build until that commit lands.
 
+```bash
+lps app push [name]
+```
+
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `name` | every app in `appsDir` | push only this app |
+| `name` | every app in `appsDir` | Push only this app |
 
 | Flag | Description |
 |------|-------------|
-| `--dry-run` / `-d` | Show what would be uploaded without touching the site |
-| `--yes` / `-y` | Skip the production confirmation prompt |
+| `--dry-run` / `-d` | List what would be uploaded and committed without touching the site |
+| `--yes` / `-y` | Skip the confirmation prompt shown when the target environment is named `production` |
+| `--json` | Print the result as JSON (`{ pushed: [{ name, buildId, uploaded }], status }`) |
 
-### `lps app pull [path]`
+Pushing never deletes anything on WordPress. A build that fails to upload or commit leaves the previous build serving.
 
-Download every committed app into `apps/<name>/dist/`, writing a `loopress.app.json` alongside. Local app directories no longer present on the site are removed (confirmed in a terminal, reported in CI).
+### `lps app pull`
+
+Download every committed app into `apps/<name>/dist/`, writing a `loopress.app.json` alongside.
+
+```bash
+lps app pull [path]
+```
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./apps` (or `loopress.json`'s `appsDir`) | local directory to write into |
+| `path` | `./apps` (or `loopress.json`'s `appsDir`) | Local directory to write into |
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` / `-d` | Show what would be written and removed without touching the filesystem |
+| `--yes` / `-y` | Skip the confirmation asked before removing local app directories |
+| `--json` | Print the result as JSON (`{ pulled, orphans, status }`) |
+
+Local app directories (a folder with a `loopress.app.json`) whose app no longer exists on the site are removed on pull, so the directory mirrors what is deployed. In a terminal the list is shown and confirmed first; in scripts and CI they are removed with a warning.
 
 ### `lps app list`
 
-Print the apps currently deployed, with their build id, file count and total size.
+Print the apps currently deployed, with their build id, file count and total size. An app that was uploaded but never committed is flagged.
+
+```bash
+lps app list
+```
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output the raw apps array instead of formatted text |
 
 ```
 Apps (1):
@@ -54,9 +91,23 @@ Apps (1):
      Deployed: 2026-08-30T12:00:00+00:00
 ```
 
-### `lps app remove <name>`
+### `lps app remove`
 
-Delete an app's bundle from `wp-content/loopress/apps/` and unregister its shortcode. Local files are left untouched. Prompts for confirmation in a terminal; pass `--yes` in scripts.
+Delete an app's bundle from `wp-content/loopress/apps/` and unregister its shortcode. Local files are left untouched.
+
+```bash
+lps app remove <name>
+```
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `name` | _(required)_ | The app to remove from WordPress |
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` / `-d` | Report what would be deleted without touching the site |
+| `--yes` / `-y` | Skip the confirmation prompt (and the extra one shown for a `production` environment) |
+| `--json` | Print the result as JSON (`{ name, deleted, status }`) |
 
 ## File format
 
