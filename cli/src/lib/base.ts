@@ -188,6 +188,11 @@ export abstract class LoopressCommand extends Command {
     return join(this.rootDir, this.localConfig.apiDir ?? 'api')
   }
 
+  protected resolveAppsPath(override?: string): string {
+    if (override) return override
+    return join(this.rootDir, this.localConfig.appsDir ?? 'apps')
+  }
+
   protected resolveFormPath(override?: string): string {
     if (override) return override
     return join(this.rootDir, this.localConfig.formDir ?? 'forms')

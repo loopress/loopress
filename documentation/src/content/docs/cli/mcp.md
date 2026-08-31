@@ -52,6 +52,10 @@ The server communicates over stdio from the directory your client launches it in
 | `api_push` | Yes | Push local custom API route files to WordPress |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress |
+| `app_push` | Yes | Push built single-page app bundles to WordPress |
+| `app_pull` | No | Pull single-page app bundles from WordPress into local files |
+| `app_list` | No | List single-page apps currently deployed to WordPress |
+| `app_remove` | Yes | Remove a single-page app from WordPress |
 | `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |
