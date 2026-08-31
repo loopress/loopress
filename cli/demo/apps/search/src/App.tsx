@@ -4,6 +4,13 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
 
+// Loopress exposes the deployed bundle's absolute URL; public/ files referenced from
+// rendered markup can't go through the bundler, so build their URL from it. Falls back to
+// Vite's dev base when the global is absent (npm run dev).
+const assetBase =
+  (globalThis as { loopressApp_search?: { base?: string } }).loopressApp_search?.base ??
+  import.meta.env.BASE_URL
+
 function App() {
   const [count, setCount] = useState(0)
 
@@ -35,7 +42,7 @@ function App() {
       <section id="next-steps">
         <div id="docs">
           <svg className="icon" role="presentation" aria-hidden="true">
-            <use href={`${import.meta.env.BASE_URL}icons.svg#documentation-icon`}></use>
+            <use href={`${assetBase}icons.svg#documentation-icon`}></use>
           </svg>
           <h2>Documentation</h2>
           <p>Your questions, answered</p>
@@ -56,7 +63,7 @@ function App() {
         </div>
         <div id="social">
           <svg className="icon" role="presentation" aria-hidden="true">
-            <use href={`${import.meta.env.BASE_URL}icons.svg#social-icon`}></use>
+            <use href={`${assetBase}icons.svg#social-icon`}></use>
           </svg>
           <h2>Connect with us</h2>
           <p>Join the Vite community</p>
@@ -68,7 +75,7 @@ function App() {
                   role="presentation"
                   aria-hidden="true"
                 >
-                  <use href={`${import.meta.env.BASE_URL}icons.svg#github-icon`}></use>
+                  <use href={`${assetBase}icons.svg#github-icon`}></use>
                 </svg>
                 GitHub
               </a>
@@ -80,7 +87,7 @@ function App() {
                   role="presentation"
                   aria-hidden="true"
                 >
-                  <use href={`${import.meta.env.BASE_URL}icons.svg#discord-icon`}></use>
+                  <use href={`${assetBase}icons.svg#discord-icon`}></use>
                 </svg>
                 Discord
               </a>
@@ -92,7 +99,7 @@ function App() {
                   role="presentation"
                   aria-hidden="true"
                 >
-                  <use href={`${import.meta.env.BASE_URL}icons.svg#x-icon`}></use>
+                  <use href={`${assetBase}icons.svg#x-icon`}></use>
                 </svg>
                 X.com
               </a>
@@ -104,7 +111,7 @@ function App() {
                   role="presentation"
                   aria-hidden="true"
                 >
-                  <use href={`${import.meta.env.BASE_URL}icons.svg#bluesky-icon`}></use>
+                  <use href={`${assetBase}icons.svg#bluesky-icon`}></use>
                 </svg>
                 Bluesky
               </a>
