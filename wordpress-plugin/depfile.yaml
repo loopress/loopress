@@ -48,6 +48,10 @@ deptrac:
         - type: classNameRegex
           value: '#^Loopress\\Snippets\\.+$#'
         - type: classNameRegex
+          value: '#^Loopress\\Api\\.+$#'
+        - type: classNameRegex
+          value: '#^Loopress\\Apps\\.+$#'
+        - type: classNameRegex
           value: '#^Loopress\\Form\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\Sentry\\.+$#'

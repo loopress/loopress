@@ -76,6 +76,9 @@
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Snippets/RestApi/*</exclude-pattern>
+        <!-- AppShortcode::render()'s trailing $content and $tag complete the do_shortcode
+             callback contract; this shortcode reads neither. Mirrors psalm.xml. -->
+        <exclude-pattern>src/Apps/Frontend/AppShortcode.php</exclude-pattern>
         <!-- FakeWpdb's methods mirror wpdb's real signature (e.g. the trailing $output
              format argument), even where a given method doesn't need every parameter. -->
         <exclude-pattern>tests/Stubs/*</exclude-pattern>

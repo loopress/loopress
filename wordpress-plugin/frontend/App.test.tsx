@@ -30,6 +30,9 @@ function stubQuietEndpoints() {
         if (path === '/api-files') {
             return [];
         }
+        if (path === '/apps') {
+            return [];
+        }
         return {};
     });
 }
@@ -149,6 +152,48 @@ describe('App', () => {
 
         expect(await screen.findByText('hello-world.php')).toBeInTheDocument();
         expect(screen.getByText('loopress-api/v1/hello-world')).toBeInTheDocument();
+    });
+
+    test('renders an Apps tab that lists deployed single-page apps', async () => {
+        apiFetchMock.mockImplementation(async (path: string) => {
+            if (path === '/apps') {
+                return [
+                    {
+                        name: 'search',
+                        buildId: '9f2a1c7b4e10',
+                        routing: 'hash',
+                        deployedAt: '2026-08-30T12:00:00+00:00',
+                        fileCount: 3,
+                        totalBytes: 2048,
+                        committed: true,
+                    },
+                ];
+            }
+            if (path === '/composer/diagnostics') {
+                return { php_version: '8.2.29', platform_php: '8.2.29', issues: [] };
+            }
+            if (path === '/composer/audit') {
+                return { advisories: {}, abandoned: {} };
+            }
+            if (path === '/composer/installed' || path === '/composer/outdated') {
+                return [];
+            }
+            if (path.startsWith('/snippets/migration/')) {
+                return { sourceActive: false, destinationActive: false, snippets: [] };
+            }
+            return {};
+        });
+
+        await renderApp(null);
+
+        await screen.findByRole('heading', { name: 'Loopress Full' });
+
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('tab', { name: 'Apps' }));
+
+        expect(await screen.findByText('search')).toBeInTheDocument();
+        expect(screen.getByText('9f2a1c7b4e10')).toBeInTheDocument();
+        expect(screen.getByText('[loopress_app name="search"]')).toBeInTheDocument();
     });
 
     test('reflects the active outer tab in the URL hash', async () => {

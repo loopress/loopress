@@ -76,8 +76,9 @@ use Loopress\Plugin;
 // artifact must not contain any reference to these Plus features, even inactive ones.
 // Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
 // capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
-// the auth/capability checks in front of it; Api follows the same rule.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Form', 'Settings'] as $loopressPlusFeature) {
+// the auth/capability checks in front of it; Api and Apps follow the same rule (a bundled
+// SPA runs on the site's own origin in every visitor's browser).
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Apps', 'Form', 'Settings'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));

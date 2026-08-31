@@ -8,6 +8,7 @@ import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
 import { ApiRoutes } from './api-routes/ApiRoutes';
+import { AppsPanel } from './apps/AppsPanel';
 import { UpdateNotice } from './update/UpdateNotice';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
@@ -17,6 +18,7 @@ const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
     { name: 'snippets', title: 'Snippets' },
     { name: 'api', title: 'API' },
+    { name: 'apps', title: 'Apps' },
     { name: 'diagnostics', title: 'Diagnostics' },
     { name: 'settings', title: 'Settings' },
 ];
@@ -78,6 +80,8 @@ export default function App() {
                             <SnippetMigrationPanel />
                         ) : tab.name === 'api' ? (
                             <ApiRoutes />
+                        ) : tab.name === 'apps' ? (
+                            <AppsPanel />
                         ) : tab.name === 'settings' ? (
                             <SettingsPanel />
                         ) : (

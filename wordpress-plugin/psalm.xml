@@ -44,6 +44,9 @@
                      don't call this directly, but RouteLoader::applyHeaders() is invoked by WP core
                      via add_filter('rest_pre_serve_request', ...), same untraceable-by-Psalm shape. -->
                 <directory name="src/Api/RestApi" />
+                <!-- AppsController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above. -->
+                <directory name="src/Apps/RestApi" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -64,6 +67,10 @@
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
                 <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
                 <referencedMethod name="Loopress\Api\Infrastructure\ApiDirectory::__construct" />
+                <referencedMethod name="Loopress\Apps\Module\AppsModule::__construct" />
+                <referencedMethod name="Loopress\Apps\Frontend\AppShortcode::__construct" />
+                <referencedMethod name="Loopress\Apps\Frontend\AppAssetEnqueuer::__construct" />
+                <referencedMethod name="Loopress\Apps\Infrastructure\AppsDirectory::__construct" />
                 <!-- Same untraceable-by-Psalm shape as the DI-container constructors above, but a
                      different reflective caller: RouteLoader::permissionAttributeFor() reads this
                      via ReflectionAttribute::newInstance(), never a literal `new Permission(...)`. -->
@@ -82,6 +89,9 @@
                      filter signature (served, result, request, server), unused here but required
                      to keep positional args aligned with the ones actually needed. -->
                 <directory name="src/Api/RestApi" />
+                <!-- AppShortcode::render()'s $content and $tag complete the do_shortcode callback
+                     signature; this shortcode reads neither. -->
+                <directory name="src/Apps/Frontend" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -104,6 +114,11 @@
             <errorLevel type="suppress">
                 <file name="src/RestCache/Module/RestCacheModule.php" />
                 <file name="src/Api/RestApi/RouteLoader.php" />
+                <!-- render() is the [loopress_app] shortcode callback and filterModuleType() a
+                     script_loader_tag filter; WordPress consumes both return values through a
+                     hook chain Psalm can't trace to a caller. -->
+                <file name="src/Apps/Frontend/AppShortcode.php" />
+                <file name="src/Apps/Frontend/AppAssetEnqueuer.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 
@@ -126,6 +141,7 @@
                 <file name="src/Sentry/Feature.php" />
                 <file name="src/Settings/Feature.php" />
                 <file name="src/Api/Feature.php" />
+                <file name="src/Apps/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>
