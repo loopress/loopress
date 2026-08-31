@@ -127,6 +127,10 @@ class AppsController
         $name = (string) $request->get_param('name');
         $path = (string) $request->get_param('path');
 
+        if (!AppsDirectory::isValidAppName($name) || !AppsDirectory::isValidAssetPath($path)) {
+            return new WP_REST_Response(['error' => "Unsafe or unsupported asset path: {$name}/{$path}"], 400);
+        }
+
         $contents = $this->directory->readAsset($name, $path);
         if ($contents === null) {
             return new WP_REST_Response(['error' => "Asset not found: {$name}/{$path}"], 404);

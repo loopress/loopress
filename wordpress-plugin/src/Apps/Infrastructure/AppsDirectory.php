@@ -160,16 +160,24 @@ class AppsDirectory
 
     public function readAsset(string $name, string $relPath): ?string
     {
-        if (!self::isValidAssetPath($relPath)) {
-            return null;
-        }
-        $path = $this->assetPath($name, $relPath);
-        if (!is_file($path)) {
+        if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath)) {
             return null;
         }
 
-        // Local file under our own working directory, not a remote URL.
-        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        // Canonicalise, then confirm the file physically resolves to something inside the
+        // apps root before touching it: neither the name nor the path is trusted to be
+        // traversal-free just because it matched a pattern.
+        $root = realpath($this->path);
+        $real = realpath($this->assetPath($name, $relPath));
+        if ($root === false || $real === false) {
+            return null;
+        }
+        if (!is_file($real) || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+
+        // Local file confirmed inside wp-content/loopress/apps/, not a remote URL.
+        $contents = file_get_contents($real); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
         return $contents !== false ? $contents : null;
     }
@@ -191,7 +199,7 @@ class AppsDirectory
 
     public function removeAsset(string $name, string $relPath): void
     {
-        if (!self::isValidAssetPath($relPath)) {
+        if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath)) {
             return;
         }
         $path = $this->assetPath($name, $relPath);

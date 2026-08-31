@@ -142,13 +142,6 @@ export default defineConfig({
 												{ label: "Admin UI", slug: "api/admin-ui" },
 											],
 										},
-										{
-											label: "Single-page apps",
-											items: [
-												{ label: "Overview", slug: "apps" },
-												{ label: "CLI", slug: "apps/cli" },
-											],
-										},
 									],
 								},
 								{

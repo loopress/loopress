@@ -142,6 +142,15 @@ class AppsControllerTest extends TestCase
         $this->assertSame(self::b64('body{}'), $response->data['content']);
     }
 
+    public function test_get_asset_rejects_a_traversal_attempt_in_the_app_name(): void
+    {
+        $this->directory->expects($this->never())->method('readAsset');
+
+        $response = $this->controller->get_asset(new WP_REST_Request(['name' => '../etc', 'path' => 'assets/x.js']));
+
+        $this->assertSame(400, $response->status);
+    }
+
     // ── put_asset ───────────────────────────────────────────────────────────
 
     public function test_put_asset_rejects_an_invalid_app_name(): void

@@ -136,6 +136,16 @@ class AppsDirectoryTest extends TestCase
         $this->assertNull($dir->readAsset('search', '../escape.css'));
     }
 
+    public function test_readAsset_rejects_a_traversal_attempt_hidden_in_the_app_name(): void
+    {
+        $dir = new AppsDirectory();
+        $dir->writeAsset('search', 'assets/x.css', 'body{}');
+
+        $this->assertNull($dir->readAsset('..', 'assets/x.css'));
+        $this->assertNull($dir->readAsset('../search', 'assets/x.css'));
+        $this->assertNull($dir->readAsset('search/../..', 'assets/x.css'));
+    }
+
     public function test_removeAsset_and_deleteApp(): void
     {
         $dir = new AppsDirectory();
