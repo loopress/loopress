@@ -55,6 +55,10 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `api_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local custom API route files to WordPress |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress |
+| `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
+| `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
+| `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |
+| `app_remove` | Yes | `env?`, `name`, `confirmToken?` | Remove a single-page app from WordPress |
 | `acf_push` | Yes | `env?`, `path?`, `type?`, `confirmToken?` | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |

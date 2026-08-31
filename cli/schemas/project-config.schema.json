@@ -44,6 +44,11 @@
       "description": "Directory where custom API route files are read from and written to, relative to rootDir.",
       "default": "api"
     },
+    "appsDir": {
+      "type": "string",
+      "description": "Directory where single-page app bundles are read from and written to, relative to rootDir. Each subdirectory is one app: a loopress.app.json plus a built dist/ folder.",
+      "default": "apps"
+    },
     "projectId": {
       "type": "string",
       "description": "Project identifier from the global Loopress config. When set, takes precedence over the currently active project in the global config."
