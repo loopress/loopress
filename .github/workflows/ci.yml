@@ -302,3 +302,11 @@ jobs:
           #   echo "::error::Loopress Light artifact JS bundle references Composer/Packagist"
           #   exit 1
           # fi
+          # The bundled vendor/ sits under the public webroot once installed. build-flavor.cjs
+          # drops an .htaccess denying direct HTTP access (installed.json/installed.php leak the
+          # dependency tree otherwise); assert wp-scripts plugin-zip actually shipped it, since
+          # npm-packlist has stripped dotfiles from zips before.
+          if [ ! -f /tmp/loopress-light-check/loopress-light/vendor/.htaccess ]; then
+            echo "::error::Loopress Light artifact is missing vendor/.htaccess (direct vendor access not blocked)"
+            exit 1
+          fi
