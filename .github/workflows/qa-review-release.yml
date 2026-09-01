@@ -64,7 +64,7 @@ jobs:
           # The service-account key is scoped to "all workspaces", so it's
           # identity-linked and the API needs the workspace id per request.
           # wrkspc_... id: console -> Espaces de travail -> open the workspace.
-          ANTHROPIC_CUSTOM_HEADERS: "anthropic-workspace-id: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}"
+          ANTHROPIC_CUSTOM_HEADERS: "anthropic-workspace-id: wrkspc_01JvEP4qAJWv3B4z1HjSMu8K"
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # TEMP debug: prints the real API error (401 / 404 model / credits).
