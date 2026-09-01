@@ -62,6 +62,9 @@ jobs:
         uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # TEMP debug: prints the real API error (401 / 404 model / credits).
+          # Remove once the workflow works, it can leak secrets into logs.
+          show_full_output: true
           # Pass the built-in token so the action skips the OIDC -> GitHub App
           # token exchange, which requires the Claude GitHub App installed on
           # the repo (github.com/apps/claude).
