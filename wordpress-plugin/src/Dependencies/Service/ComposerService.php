@@ -189,7 +189,7 @@ class ComposerService
             $url      = content_url('loopress/vendor/composer/installed.json');
             $response = $this->httpClient->sendRequest(new Request('GET', $url));
             $exposed  = $response->getStatusCode() === 200;
-        } catch (ClientExceptionInterface) {
+        } catch (ClientExceptionInterface) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
             // Network failure: don't report a false positive, just retry at the next cache expiry.
         }
 
