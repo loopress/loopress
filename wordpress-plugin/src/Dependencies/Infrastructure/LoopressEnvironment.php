@@ -41,6 +41,7 @@ class LoopressEnvironment
         }
 
         $this->ensureLibDir();
+        $this->ensureVendorDir();
 
         if (!file_exists($this->loopressDir . 'composer.json')) {
             $this->writeComposerJson([
@@ -119,6 +120,43 @@ class LoopressEnvironment
             file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
         }
     }
+
+    // wp-content/loopress/ sits under the public webroot, so vendor/ needs the same defence as
+    // the plugin's own bundled vendor/ (see wordpress-plugin/scripts/build-flavor.cjs): without
+    // this, vendor/composer/installed.json hands the full dependency tree to anyone who requests
+    // it. Written up front (before the first `composer install` even runs) so the directory is
+    // never briefly unprotected. Apache/LiteSpeed only, same caveat as AppsDirectory::HTACCESS:
+    // nginx ignores .htaccess and needs an equivalent server-block rule; ComposerService's
+    // diagnostics check verifies from the outside whether this actually took effect.
+    private function ensureVendorDir(): void
+    {
+        $vendorDir = $this->loopressDir . 'vendor/';
+        if (!is_dir($vendorDir)) {
+            wp_mkdir_p($vendorDir);
+        }
+
+        $indexFile = $vendorDir . 'index.php';
+        if (!file_exists($indexFile)) {
+            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        }
+
+        $htaccess = $vendorDir . '.htaccess';
+        if (!file_exists($htaccess)) {
+            file_put_contents($htaccess, self::VENDOR_HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        }
+    }
+
+    private const VENDOR_HTACCESS = <<<'HTACCESS'
+        # Loopress: bundled Composer dependencies, not meant to be reached over HTTP.
+        <IfModule mod_authz_core.c>
+          Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+          Order allow,deny
+          Deny from all
+        </IfModule>
+
+        HTACCESS;
 
     public function getAutoloadPath(): ?string
     {

@@ -146,6 +146,17 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertFileExists($libDir . 'index.php');
     }
 
+    public function test_ensureInitialized_creates_the_vendor_directory_denying_http_access(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+
+        $vendorDir = $env->getLoopressDir() . 'vendor/';
+        $this->assertDirectoryExists($vendorDir);
+        $this->assertFileExists($vendorDir . 'index.php');
+        $this->assertStringContainsString('Require all denied', (string) file_get_contents($vendorDir . '.htaccess')); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+    }
+
     public function test_ensureInitialized_migrates_a_composer_json_missing_the_lib_autoload_entry(): void
     {
         $env = new LoopressEnvironment();

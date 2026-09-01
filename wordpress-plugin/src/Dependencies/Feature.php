@@ -9,6 +9,7 @@ use Loopress\Contract\Module;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Dependencies\Module\ComposerModule;
+use Loopress\Dependencies\Service\ComposerService;
 use Loopress\Infrastructure\WpHttpClient;
 use Psr\Container\ContainerInterface;
 
@@ -43,6 +44,7 @@ class Feature implements FeatureProvider
             // 10s timeout the direct wp_remote_get() call used before US-18.
             self::HTTP_CLIENT => factory(static fn(): WpHttpClient => new WpHttpClient(10)),
             PackagistClient::class => autowire()->constructorParameter('httpClient', get(self::HTTP_CLIENT)),
+            ComposerService::class => autowire()->constructorParameter('httpClient', get(self::HTTP_CLIENT)),
         ];
     }
 

@@ -34,29 +34,37 @@ export function DiagnosticsBanner() {
 
     return (
         <div style={{ maxWidth: 600, marginBottom: 20 }}>
-            {diagnostics.issues.map((issue) => (
-                <Notice key={issue.code} status="warning" isDismissible={false}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                        <div>
-                            <strong>Platform issue detected</strong>
-                            <p style={{ margin: '4px 0 0', fontSize: 13 }}>{issue.message}</p>
-                            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666' }}>
-                                Running PHP {diagnostics.php_version}
-                                {diagnostics.platform_php ? ` (composer.json declares ${diagnostics.platform_php})` : ''}
-                            </p>
+            {diagnostics.issues.map((issue) => {
+                const isPlatformIssue = issue.code === 'platform_php_missing' || issue.code === 'platform_php_mismatch';
+
+                return (
+                    <Notice key={issue.code} status="warning" isDismissible={false}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                            <div>
+                                <strong>{isPlatformIssue ? 'Platform issue detected' : 'Diagnostics issue detected'}</strong>
+                                <p style={{ margin: '4px 0 0', fontSize: 13 }}>{issue.message}</p>
+                                {isPlatformIssue && (
+                                    <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666' }}>
+                                        Running PHP {diagnostics.php_version}
+                                        {diagnostics.platform_php ? ` (composer.json declares ${diagnostics.platform_php})` : ''}
+                                    </p>
+                                )}
+                            </div>
+                            {isPlatformIssue && (
+                                <Button
+                                    variant="secondary"
+                                    size="small"
+                                    disabled={fixing}
+                                    onClick={() => fixPlatform()}
+                                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                                >
+                                    {fixing ? <><Spinner /> Fixing…</> : `Set to PHP ${diagnostics.php_version}`}
+                                </Button>
+                            )}
                         </div>
-                        <Button
-                            variant="secondary"
-                            size="small"
-                            disabled={fixing}
-                            onClick={() => fixPlatform()}
-                            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                        >
-                            {fixing ? <><Spinner /> Fixing…</> : `Set to PHP ${diagnostics.php_version}`}
-                        </Button>
-                    </div>
-                </Notice>
-            ))}
+                    </Notice>
+                );
+            })}
         </div>
     );
 }

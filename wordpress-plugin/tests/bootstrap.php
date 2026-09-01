@@ -18,6 +18,12 @@ if (!defined('MINUTE_IN_SECONDS')) {
     define('MINUTE_IN_SECONDS', 60);
 }
 
+// Same reasoning as HOUR_IN_SECONDS above; ComposerService's vendor-exposure check caches
+// against it.
+if (!defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 24 * 60 * 60);
+}
+
 // Normally defined in loopress.php (outside src/, not autoloaded); UpdateController compares
 // against it at real test runtime too, same reasoning as HOUR_IN_SECONDS above.
 if (!defined('LOOPRESS_VERSION')) {
