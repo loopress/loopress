@@ -1,5 +1,10 @@
 // A tiny hand-written "search feature" SPA. No build step: it is already the built output
 // `lps app push` ships. Mounts on the element the [loopress_app] shortcode renders.
+//
+// `loopress.app.json` pins `mountSelector` to a fixed id, so this never has to read the
+// name-derived `window.loopressApp_<name>` global: the demo script pushes under a unique,
+// timestamped app name (see demos/apps-in-a-page.demo.ts) so re-runs can never collide with
+// or delete an app someone else deployed, but the mount point stays constant either way.
 const ITEMS = [
   { title: "Reproducible WordPress environments", tag: "guide" },
   { title: "Sync ACF field groups as JSON", tag: "acf" },
@@ -11,8 +16,7 @@ const ITEMS = [
   { title: "GitHub Actions and GitLab CI configs", tag: "ci" },
 ];
 
-const cfg = window.loopressApp_search ?? {};
-const root = document.querySelector(cfg.mount || "#loopress-app-search");
+const root = document.querySelector("#loopress-demo-search");
 
 root.innerHTML = `
   <div class="sa">
