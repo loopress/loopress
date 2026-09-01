@@ -12,7 +12,6 @@ concurrency: qa-review-release-${{ github.event.pull_request.number }}
 permissions:
   contents: read
   pull-requests: write
-  id-token: write # OIDC exchange for the Claude GitHub App token
 
 jobs:
   qa-review:
@@ -31,6 +30,10 @@ jobs:
       - uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Bypasses the Claude App's OIDC path, which refuses to run while the
+          # workflow file differs from main. Drop this line once merged to main
+          # to have comments posted as the Claude app instead of github-actions.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true # TEMP: real API errors in the log, remove when green
           prompt: |
             REPO: ${{ github.repository }}
