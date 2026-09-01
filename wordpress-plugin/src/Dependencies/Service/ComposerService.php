@@ -7,13 +7,19 @@ namespace Loopress\Dependencies\Service;
 use Loopress\Dependencies\Infrastructure\ComposerRunner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
+use Nyholm\Psr7\Request;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
 
 class ComposerService
 {
+    private const VENDOR_EXPOSURE_CACHE_KEY = 'loopress_vendor_publicly_accessible';
+
     public function __construct(
         private LoopressEnvironment $environment,
         private ComposerRunner $composerRunner,
         private PackagistClient $packagistClient,
+        private ClientInterface $httpClient,
     ) {}
 
     public function getVersions(string $package): ?array
@@ -152,11 +158,44 @@ class ComposerService
             ];
         }
 
+        if ($this->isVendorPubliclyAccessible()) {
+            $issues[] = [
+                'code'    => 'vendor_publicly_accessible',
+                'message' => 'vendor/ is reachable over HTTP: dependency names and versions are exposed, and any bundled PHP file can be requested directly. The .htaccess written alongside it is not being enforced by this webserver (likely nginx, or AllowOverride disabled); add an equivalent server-level rule denying access to wp-content/loopress/vendor/.',
+            ];
+        }
+
         return [
             'php_version'  => $phpVersion,
             'platform_php' => $platformPhp,
             'issues'       => $issues,
         ];
+    }
+
+    // LoopressEnvironment::ensureVendorDir() writes a .htaccess denying access to vendor/, but
+    // .htaccess only works where the webserver actually reads it (Apache/LiteSpeed with
+    // AllowOverride enabled); nginx ignores it outright. Verify from the outside, over a real
+    // HTTP request, instead of assuming the file on disk is being honoured. Cached: this is a
+    // network round-trip on every diagnostics load otherwise.
+    private function isVendorPubliclyAccessible(): bool
+    {
+        $cached = get_transient(self::VENDOR_EXPOSURE_CACHE_KEY);
+        if (is_array($cached) && array_key_exists('exposed', $cached)) {
+            return $cached['exposed'];
+        }
+
+        $exposed = false;
+        try {
+            $url      = content_url('loopress/vendor/composer/installed.json');
+            $response = $this->httpClient->sendRequest(new Request('GET', $url));
+            $exposed  = $response->getStatusCode() === 200;
+        } catch (ClientExceptionInterface) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+            // Network failure: don't report a false positive, just retry at the next cache expiry.
+        }
+
+        set_transient(self::VENDOR_EXPOSURE_CACHE_KEY, ['exposed' => $exposed], DAY_IN_SECONDS);
+
+        return $exposed;
     }
 
     public function getOutdated(): array

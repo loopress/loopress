@@ -7,6 +7,7 @@ define('ABSPATH', '/var/www/html/');
 define('WP_CONTENT_DIR', '/var/www/html/wp-content');
 define('MINUTE_IN_SECONDS', 60);
 define('HOUR_IN_SECONDS', 60 * 60);
+define('DAY_IN_SECONDS', 24 * 60 * 60);
 define('OBJECT', 'OBJECT');
 define('ARRAY_A', 'ARRAY_A');
 

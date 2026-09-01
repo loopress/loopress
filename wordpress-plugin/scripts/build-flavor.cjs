@@ -177,6 +177,30 @@ if (require.main === module) {
   }
   run('composer', ['install', '--no-dev', '--no-interaction', '--prefer-dist', '--optimize-autoloader'], stageDir)
 
+  // 5b. Block direct HTTP access to the bundled vendor/. wp-content/ is under the public
+  // webroot, so without this vendor/composer/installed.json and installed.php hand the full
+  // dependency tree and exact versions to anyone who requests them (CVE targeting), and the
+  // other vendor PHP files are reachable too. Nothing in a --no-dev tree is meant to be
+  // served to a browser (every file is require()d server-side), so deny the whole subtree.
+  // Apache/LiteSpeed only; nginx ignores .htaccess and needs an equivalent server-block
+  // rule. Same defence as src/Apps/Infrastructure/AppsDirectory.
+  const vendorDir = path.join(stageDir, 'vendor')
+  fs.writeFileSync(
+    path.join(vendorDir, '.htaccess'),
+    [
+      '# Loopress: bundled Composer dependencies, not meant to be reached over HTTP.',
+      '<IfModule mod_authz_core.c>',
+      '  Require all denied',
+      '</IfModule>',
+      '<IfModule !mod_authz_core.c>',
+      '  Order allow,deny',
+      '  Deny from all',
+      '</IfModule>',
+      '',
+    ].join('\n'),
+  )
+  fs.writeFileSync(path.join(vendorDir, 'index.php'), '<?php\n// Silence is golden.\n')
+
   // 6. Frontend: built in the real project (real node_modules), then copied into the
   // stage. The light entry point never imports frontend/dependencies/, so its bundle
   // carries no Composer UI code. Both editions' entry files are named index.tsx (in

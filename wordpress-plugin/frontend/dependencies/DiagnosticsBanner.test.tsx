@@ -75,6 +75,24 @@ describe('DiagnosticsBanner', () => {
         expect(button).not.toBeDisabled();
     });
 
+    test('renders a non-platform issue without the PHP fix button', () => {
+        const data: Diagnostics = {
+            php_version: '8.2.29',
+            platform_php: '8.2.29',
+            issues: [
+                {
+                    code: 'vendor_publicly_accessible',
+                    message: 'vendor/ is reachable over HTTP.',
+                },
+            ],
+        };
+
+        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
+        expect(screen.getByText(/Diagnostics issue detected/i)).toBeInTheDocument();
+        expect(screen.getByText(/vendor\/ is reachable over HTTP/i)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Set to PHP/i })).not.toBeInTheDocument();
+    });
+
     test('renders multiple issues', () => {
         const data: Diagnostics = {
             php_version: '8.2.29',

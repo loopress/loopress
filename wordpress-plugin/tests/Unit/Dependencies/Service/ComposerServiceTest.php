@@ -10,6 +10,8 @@ use Loopress\Dependencies\Infrastructure\ComposerRunner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Dependencies\Service\ComposerService;
+use Loopress\Tests\Stubs\FakeHttpClient;
+use Nyholm\Psr7\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -18,6 +20,7 @@ class ComposerServiceTest extends TestCase
     private LoopressEnvironment&MockObject $environment;
     private ComposerRunner&MockObject $runner;
     private PackagistClient&MockObject $packagist;
+    private FakeHttpClient $httpClient;
     private ComposerService $service;
 
     protected function setUp(): void
@@ -28,11 +31,20 @@ class ComposerServiceTest extends TestCase
         $this->environment    = $this->createMock(LoopressEnvironment::class);
         $this->runner   = $this->createMock(ComposerRunner::class);
         $this->packagist = $this->createMock(PackagistClient::class);
+        $this->httpClient = new FakeHttpClient();
+
+        // Default: vendor/ not publicly reachable. getDiagnostics() tests that don't care
+        // about the exposure check override this via Functions\when()/willReturn().
+        $this->httpClient->willReturn(new Response(404));
+        Functions\when('get_transient')->justReturn(false);
+        Functions\when('set_transient')->justReturn(true);
+        Functions\when('content_url')->justReturn('https://example.test/wp-content/loopress/vendor/composer/installed.json');
 
         $this->service = new ComposerService(
             $this->environment,
             $this->runner,
             $this->packagist,
+            $this->httpClient,
         );
     }
 
@@ -233,6 +245,19 @@ class ComposerServiceTest extends TestCase
         $this->assertCount(1, $result['issues']);
         $this->assertSame('platform_php_missing', $result['issues'][0]['code']);
         $this->assertNull($result['platform_php']);
+    }
+
+    public function test_getDiagnostics_reports_vendor_publicly_accessible(): void
+    {
+        $this->environment->method('readComposerJson')->willReturn([
+            'config' => ['platform' => ['php' => PHP_VERSION]],
+        ]);
+        $this->httpClient->willReturn(new Response(200, [], '{"packages":[]}'));
+
+        $result = $this->service->getDiagnostics();
+
+        $this->assertCount(1, $result['issues']);
+        $this->assertSame('vendor_publicly_accessible', $result['issues'][0]['code']);
     }
 
     // ── fixPlatform ──────────────────────────────────────────────────────────
