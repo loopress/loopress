@@ -60,6 +60,11 @@ jobs:
 
       - name: Claude QA review
         uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
+        env:
+          # The service-account key is scoped to "all workspaces", so it's
+          # identity-linked and the API needs the workspace id per request.
+          # wrkspc_... id: console -> Espaces de travail -> open the workspace.
+          ANTHROPIC_CUSTOM_HEADERS: "anthropic-workspace-id: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}"
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # TEMP debug: prints the real API error (401 / 404 model / credits).
