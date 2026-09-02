@@ -47,7 +47,9 @@ cat > "$FAKE_HOME/.config/loopress/config.json" <<JSON
 }
 JSON
 
-echo "export DEMO_PROJECT='$PROJECT'"
-echo "export HOME='$FAKE_HOME'"
-echo "export XDG_CONFIG_HOME='$FAKE_HOME/.config'"
-echo "export PATH='$FAKE_HOME/bin:$PATH'"
+# %q-quote every value: the caller runs this through `eval`, so an odd character in $PATH
+# or the repo path must not be able to break out of the assignment.
+printf 'export DEMO_PROJECT=%q\n' "$PROJECT"
+printf 'export HOME=%q\n' "$FAKE_HOME"
+printf 'export XDG_CONFIG_HOME=%q\n' "$FAKE_HOME/.config"
+printf 'export PATH=%q\n' "$FAKE_HOME/bin:$PATH"

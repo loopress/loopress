@@ -22,7 +22,8 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:80"
+      # loopback only: this is a throwaway site with hardcoded admin/admin credentials.
+      - "127.0.0.1:8080:80"
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress

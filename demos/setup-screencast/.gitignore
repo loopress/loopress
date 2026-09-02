@@ -1,6 +1,5 @@
 out/
 site/
 state/
-venv/
+node_modules/
 bin-agg
-__pycache__/

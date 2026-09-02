@@ -1,6 +1,6 @@
 ---
 title: Ship a Vue or React App Into a WordPress Page
-description: Single-page apps let you version-control a built Vue, React or Svelte bundle alongside the rest of your WordPress config, ship it over the REST API, and mount it in a page with a shortcode. No plugin, no FTP.
+description: Single-page apps let you version-control a built Vue, React or Svelte bundle alongside the rest of your WordPress config, ship it over the REST API, and mount it in a page with a shortcode. No custom plugin, no FTP.
 date: 2026-08-31
 draft: true
 authors:
@@ -32,7 +32,7 @@ The app was the work. Getting its output onto the site, versioned, cache-busted,
 
 With [Loopress Full](/wordpress-plugin/), a single-page app is a directory in your repo:
 
-```
+```text
 apps/
   search/
     loopress.app.json      # a few optional settings, all with defaults
@@ -53,7 +53,7 @@ lps app push search
 
 Mount it in any page, post, or template with a shortcode:
 
-```
+```text
 [loopress_app name="search"]
 ```
 
@@ -94,7 +94,7 @@ lps app push search                 # to staging
 lps app push search --env production --yes
 ```
 
-`pull` writes each deployed app back to `apps/<name>/dist/` and removes local app directories whose app no longer exists on the site, so the folder mirrors what is live. `push` never deletes anything on WordPress: a build that fails to upload leaves the previous one serving.
+`pull` writes each deployed app back to `apps/<name>/dist/` and removes local app directories whose app no longer exists on the site, so the folder mirrors what is live. `push` never removes the build that is currently serving: a build that fails to upload leaves the previous one live, and the one older generation is only pruned once the new build has landed.
 
 ## The constraints, up front
 

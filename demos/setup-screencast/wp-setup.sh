@@ -9,11 +9,11 @@ dc up -d
 
 echo "wp-setup: waiting for WordPress to answer..."
 for i in $(seq 1 60); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' "$WP_URL/wp-login.php" || true)
-  [ "$code" = "200" ] && break
+  code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 "$WP_URL/wp-login.php" || true)
+  [[ "$code" == "200" ]] && break
   sleep 2
 done
-[ "${code:-}" = "200" ] || { echo "wp-setup: WordPress never came up ($code)"; exit 1; }
+[[ "${code:-}" == "200" ]] || { echo "wp-setup: WordPress never came up ($code)"; exit 1; }
 
 # Core install (no-op if already installed).
 if ! dc exec -T wpcli wp core is-installed >/dev/null 2>&1; then

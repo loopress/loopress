@@ -12,73 +12,18 @@ cd "$ROOT"
 H=814                        # common pane height
 GAPCAP=${GAPCAP:-1.4}
 WEBM=${WEBM:-0}              # WEBM=1 also encodes the vp9 .webm (slow, ~2-3 min)
-PYBIN="${PY:-python3}"
+NODE="${NODE:-node}"
 
-if [ -x "$ROOT/bin-agg" ]; then AGG="$ROOT/bin-agg"; else AGG="agg"; fi
+if [[ -x "$ROOT/bin-agg" ]]; then AGG="$ROOT/bin-agg"; else AGG="agg"; fi
 
 cast="$OUT/term.cast"
 mapfile -t clips < <(ls -tr "$OUT"/video/*.webm)      # oldest first: [0] authorize, [1] plugin page
-[ "${#clips[@]}" -ge 2 ] || { echo "expected 2 browser clips in $OUT/video, got ${#clips[@]}"; exit 1; }
+[[ "${#clips[@]}" -ge 2 ]] || { echo "expected 2 browser clips in $OUT/video, got ${#clips[@]}"; exit 1; }
 mkdir -p "$OUT/final"
 
-# 1. Reshape the cast timing. Emit: final terminal duration, the compressed "Opening
-#    WordPress..." time, and the compressed "Loopress Full installed and activated" time.
-read TERM_DUR AUTH_AT INSTALL_AT < <($PYBIN - "$cast" "$OUT/term.capped.cast" "$GAPCAP" <<'PY'
-import json, sys
-src, dst, cap = sys.argv[1], sys.argv[2], float(sys.argv[3])
-F_PRE, F_POST, F_NPM = 0.55, 0.6, 0.22
-lines = [l for l in open(src) if l.strip()]
-hdr, ev = lines[0], [json.loads(l) for l in lines[1:]]
-
-def find(sub, after=0.0):
-    for t, _, d in ev:
-        if t >= after and sub in d:
-            return t
-    return None
-
-# Keep real time for the whole browser-auth wait: from "Opening WordPress..." until the CLI
-# gets the callback back. Everything before (npm, prompts) and after (the install log) is sped up.
-t_open = find("Opening WordPress in your browser")
-t_back = find("Downloading the latest Loopress Full") or find("configured") or (t_open + 16)
-lo, hi = t_open - 0.5, t_back + 0.5
-
-npm_lo = find("npm install -g @loopress/cli")
-npm_hi = find("packages in ", after=npm_lo or 0.0)
-t_installed = find("Loopress Full installed and activated")
-
-out, prev_raw, acc, comp_open, comp_installed = [], 0.0, 0.0, None, None
-for t, typ, data in ev:
-    dt = t - prev_raw
-    prev_raw = t
-    protected = lo <= t <= hi
-    if not protected and dt > cap:
-        dt = cap
-    if protected and dt > 16:
-        dt = 16          # bound a pathologically slow browser-auth stretch (loaded machine)
-    if protected:
-        speed = 1.0
-    elif npm_lo is not None and npm_hi is not None and npm_lo <= t <= npm_hi:
-        speed = F_NPM
-    elif t <= lo:
-        speed = F_PRE
-    else:
-        speed = F_POST
-    acc += dt * speed
-    nt = round(acc, 6)
-    if comp_open is None and "Opening WordPress in your browser" in data:
-        comp_open = nt
-    if comp_installed is None and t_installed is not None and t >= t_installed:
-        comp_installed = nt
-    out.append([nt, typ, data])
-
-# Drop the "exit" the shell echoes when it gets EOF: keep everything up to the last prompt.
-last_prompt = max((i for i, e in enumerate(out) if "site$ " in e[2]), default=len(out) - 1)
-out = out[:last_prompt + 1]
-
-open(dst, "w").write(hdr + "".join(json.dumps(e) + "\n" for e in out))
-print(f"{out[-1][0]:.3f} {comp_open:.3f} {(comp_installed or out[-1][0]):.3f}")
-PY
-)
+# 1. Reshape the cast timing (see timing.mjs). Emit: final terminal duration, the compressed
+#    "Opening WordPress..." time, and the compressed "Loopress Full installed" time.
+read TERM_DUR AUTH_AT INSTALL_AT < <("$NODE" "$ROOT/timing.mjs" reshape "$cast" "$OUT/term.capped.cast" "$GAPCAP")
 echo "term=${TERM_DUR}s  auth hand-off=${AUTH_AT}s  plugin installed=${INSTALL_AT}s"
 
 # 2. Terminal cast -> gif -> mp4  (agg's idle-time-limit stays high; timing is already shaped)
@@ -101,16 +46,7 @@ D1=$(dur "$OUT/b1.mp4"); D2=$(dur "$OUT/b2.mp4")
 
 # Browser timeline: placeholder(AUTH_AT) -> clip1 -> freeze until the plugin is installed
 # -> clip2 -> freeze to the end. Terminal side is frozen to the same total.
-read GAP1 BROWSER_DUR FINAL TAIL_B TAIL_T DIM_A DIM_B < <($PYBIN -c "
-auth,d1,d2,inst,term = $AUTH_AT,$D1,$D2,$INSTALL_AT,$TERM_DUR
-gap1 = max(0.3, inst - auth - d1)
-bdur = auth + d1 + gap1 + d2
-final = max(term, bdur)
-# dim the browser pane once the terminal takes over; start it a touch before the freeze
-dim_a = max(auth, auth + d1 - 0.5)
-dim_b = auth + d1 + gap1
-print(f'{gap1:.3f} {bdur:.3f} {final:.3f} {final-bdur:.3f} {final-term:.3f} {dim_a:.3f} {dim_b:.3f}')
-")
+read GAP1 BROWSER_DUR FINAL TAIL_B TAIL_T DIM_A DIM_B < <("$NODE" "$ROOT/timing.mjs" layout "$AUTH_AT" "$D1" "$D2" "$INSTALL_AT" "$TERM_DUR")
 echo "gap1=${GAP1}s  browser total=${BROWSER_DUR}s  final=${FINAL}s  dim=${DIM_A}..${DIM_B}s"
 
 ffmpeg -y -loglevel error \
@@ -142,21 +78,21 @@ ffmpeg -y -loglevel error -i "$OUT/L.mp4" -i "$OUT/R.mp4" -filter_complex "
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$OUT/final/setup.mp4"
 
 ffmpeg -y -loglevel error -i "$OUT/final/setup.mp4" \
-  -vf "select=gte(n\,$($PYBIN -c "print(int(($AUTH_AT+7)*30))"))" -vframes 1 "$OUT/final/setup.poster.jpg"
+  -vf "select=gte(n\,$("$NODE" "$ROOT/timing.mjs" poster "$AUTH_AT"))" -vframes 1 "$OUT/final/setup.poster.jpg"
 
 # 4b. Mobile: browser under the terminal, portrait, 1080 wide.
-if [ "${MOBILE:-1}" = 1 ]; then
+if [[ "${MOBILE:-1}" == 1 ]]; then
   ffmpeg -y -loglevel error -i "$OUT/L.mp4" -i "$OUT/R.mp4" -filter_complex "
     [0:v]scale=1080:-2:flags=lanczos,setsar=1[t];
     [1:v]scale=1080:-2:flags=lanczos,setsar=1[b];
     [t][b]vstack=inputs=2,pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1[v]" \
     -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$OUT/final/setup-mobile.mp4"
   ffmpeg -y -loglevel error -i "$OUT/final/setup-mobile.mp4" \
-    -vf "select=gte(n\,$($PYBIN -c "print(int(($AUTH_AT+7)*30))"))" -vframes 1 "$OUT/final/setup-mobile.poster.jpg"
+    -vf "select=gte(n\,$("$NODE" "$ROOT/timing.mjs" poster "$AUTH_AT"))" -vframes 1 "$OUT/final/setup-mobile.poster.jpg"
 fi
 
 rm -f "$OUT/final/setup.webm"
-if [ "$WEBM" = 1 ]; then
+if [[ "$WEBM" == 1 ]]; then
   echo "encoding vp9 webm (slow)..."
   ffmpeg -y -loglevel error -i "$OUT/final/setup.mp4" \
     -c:v libvpx-vp9 -b:v 0 -crf 34 -deadline good -cpu-used 4 -row-mt 1 -an "$OUT/final/setup.webm"
