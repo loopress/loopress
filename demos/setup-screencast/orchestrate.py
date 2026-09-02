@@ -131,10 +131,12 @@ def main():
     child.expect("Removing the temporary admin account", timeout=30)
     child.expect(r"lps project switch", timeout=20)         # closing hint -> command done
 
-    time.sleep(1.0)
-    child.send("\r")
-    type_line(child, "exit")
-    child.expect(pexpect.EOF, timeout=15)
+    time.sleep(1.5)                                         # let the closing hint be the last frame
+    child.sendcontrol("d")                                  # EOF: bash exits (no typed "exit")
+    try:
+        child.expect(pexpect.EOF, timeout=15)
+    except pexpect.TIMEOUT:
+        child.close(force=True)
 
     # 5. Now that Loopress Full is installed, show its admin page in the browser.
     print("[orchestrator] opening the Loopress plugin page...", file=sys.stderr)

@@ -70,6 +70,11 @@ for t, typ, data in ev:
     if comp_installed is None and t_installed is not None and t >= t_installed:
         comp_installed = nt
     out.append([nt, typ, data])
+
+# Drop the "exit" the shell echoes when it gets EOF: keep everything up to the last prompt.
+last_prompt = max((i for i, e in enumerate(out) if "site$ " in e[2]), default=len(out) - 1)
+out = out[:last_prompt + 1]
+
 open(dst, "w").write(hdr + "".join(json.dumps(e) + "\n" for e in out))
 print(f"{out[-1][0]:.3f} {comp_open:.3f} {(comp_installed or out[-1][0]):.3f}")
 PY
@@ -88,7 +93,7 @@ ffmpeg -y -loglevel error -i "$OUT/term.gif" \
 ffmpeg -y -loglevel error -i "${clips[0]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b1.mp4"
 # skip the plugin-page clip's blank first moment (the page still loading)
-ffmpeg -y -loglevel error -ss 1.2 -i "${clips[1]}" \
+ffmpeg -y -loglevel error -ss 0.6 -i "${clips[1]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b2.mp4"
 dur() { ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"; }
 BW=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$OUT/b1.mp4")

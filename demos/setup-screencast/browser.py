@@ -5,9 +5,9 @@ on the "Authorize application" page, moves a fake cursor to the app-name field t
 approve button, approves it, holds the success message, and lands back on the wp-admin
 dashboard - all before the CLI installs the plugin.
 
-`plugin_page()` is called afterwards, once the CLI has installed Loopress Full: it opens the
-plugin's admin page (`admin.php?page=loopress`), pointing the cursor at the new Loopress
-menu and the plugin card. It reuses the wp-admin session `run()` saved, so no login flashes.
+`plugin_page()` is called afterwards, once the CLI has installed Loopress Full: it refreshes
+the dashboard so the new Loopress menu appears, then clicks that menu with the cursor to
+reach the plugin's admin page. It reuses the wp-admin session `run()` saved.
 
 Each call records its own webm into `video_dir`.
 """
@@ -170,24 +170,42 @@ def run(auth_url: str, video_dir: str) -> str:
         return video.path() if video else ""
 
 
+MENU_LINK = "#toplevel_page_loopress > a"
+
+
 def plugin_page(video_dir: str) -> str:
-    """Open the Loopress Full admin page (top-level menu slug 'loopress')."""
+    """Called once the CLI has installed Loopress Full: refresh the dashboard so its new
+    menu shows up, then click through to the plugin's admin page with the cursor."""
     with sync_playwright() as p:
         browser = _launch(p)
         ctx = _context(browser, video_dir, storage_state=_state_file(video_dir))
         page = ctx.new_page()
 
-        page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
-        _login(page)  # fallback only: the saved session should land us straight in
-        if "page=loopress" not in page.url:
+        # Back on the dashboard (session reused), then refresh now that the install is
+        # done - the new "Loopress" menu appears in the sidebar.
+        page.goto(f"{WP_URL}/wp-admin/", wait_until="domcontentloaded")
+        _login(page)  # fallback only
+        time.sleep(0.4)
+        page.reload(wait_until="domcontentloaded")
+        try:
+            page.wait_for_selector(MENU_LINK, timeout=15000)
+        except Exception:
+            pass
+        time.sleep(0.6)
+
+        # Navigate to the plugin's page with the mouse: cursor to the Loopress menu, click.
+        _point_at(page, MENU_LINK, settle=0.2, click=True)
+        try:
+            page.click(MENU_LINK)
+            page.wait_for_url("**page=loopress**", timeout=15000)
+        except Exception:
             page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
         try:
             page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
             pass
         time.sleep(0.5)
-        _point_at(page, "#toplevel_page_loopress", settle=0.5)   # the new Loopress menu
-        _point_at(page, "#wpbody-content h1", settle=0.7)        # the "Loopress Full" card
+        _point_at(page, "#wpbody-content h1", settle=0.7)   # the "Loopress Full" card
         time.sleep(0.5)
 
         video = page.video
