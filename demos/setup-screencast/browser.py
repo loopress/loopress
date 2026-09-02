@@ -24,33 +24,33 @@ WP_PASS = os.environ.get("WP_ADMIN_PASS", "admin")
 LAUNCH_ARGS = ["--no-sandbox", "--disable-dev-shm-usage", "--force-color-profile=srgb"]
 
 # A fake pointer that glides toward the element we're about to act on. Playwright's real
-# mouse leaves no visible cursor in a headless recording, so we draw our own.
-_CURSOR_INIT_JS = r"""
-() => {
-  if (document.getElementById('__lps_cur')) return;
-  const c = document.createElement('div');
-  c.id = '__lps_cur';
-  c.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
-    + '<path d="M4 2l5.5 15.5 2.3-6.2 6.2-2.3L4 2z" fill="#ffffff" stroke="#1e1e2e" '
-    + 'stroke-width="1.5" stroke-linejoin="round"/></svg>';
-  Object.assign(c.style, {
-    position: 'fixed', left: '48%', top: '58%', zIndex: '2147483647', pointerEvents: 'none',
-    transition: 'left .33s cubic-bezier(.35,0,.25,1), top .33s cubic-bezier(.35,0,.25,1)',
-    filter: 'drop-shadow(0 2px 5px rgba(0,0,0,.45))', willChange: 'left, top',
-  });
-  document.body.appendChild(c);
-}
-"""
-
+# mouse leaves no visible cursor in a headless recording, so we draw our own. On first use
+# it pops in right next to the target (no long travel from the centre of the page).
 _CURSOR_MOVE_JS = r"""
 (sel) => {
-  const c = document.getElementById('__lps_cur');
   const el = document.querySelector(sel);
-  if (!c || !el) return;
+  if (!el) return;
   el.scrollIntoView({block: 'center', inline: 'center'});
   const r = el.getBoundingClientRect();
-  c.style.left = (r.left + r.width / 2) + 'px';
-  c.style.top = (r.top + r.height * 0.55) + 'px';
+  const x = r.left + r.width / 2, y = r.top + r.height * 0.55;
+  let c = document.getElementById('__lps_cur');
+  if (!c) {
+    c = document.createElement('div');
+    c.id = '__lps_cur';
+    c.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
+      + '<path d="M4 2l5.5 15.5 2.3-6.2 6.2-2.3L4 2z" fill="#ffffff" stroke="#1e1e2e" '
+      + 'stroke-width="1.5" stroke-linejoin="round"/></svg>';
+    Object.assign(c.style, {
+      position: 'fixed', zIndex: '2147483647', pointerEvents: 'none',
+      transition: 'none', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,.45))', willChange: 'left, top',
+      left: (x - 34) + 'px', top: (y - 20) + 'px',
+    });
+    document.body.appendChild(c);
+    c.getBoundingClientRect();  // reflow so the move below animates
+    c.style.transition = 'left .2s cubic-bezier(.35,0,.25,1), top .2s cubic-bezier(.35,0,.25,1)';
+  }
+  c.style.left = x + 'px';
+  c.style.top = y + 'px';
 }
 """
 
@@ -73,15 +73,14 @@ _CURSOR_CLICK_JS = r"""
 """
 
 
-def _point_at(page, selector, settle=0.5, click=False):
-    """Glide the fake cursor to `selector`; optionally play a click ripple there."""
+def _point_at(page, selector, settle=0.4, click=False):
+    """Show / glide the fake cursor to `selector`; optionally play a click ripple there."""
     try:
-        page.evaluate(_CURSOR_INIT_JS)
         page.evaluate(_CURSOR_MOVE_JS, selector)
-        time.sleep(0.4)           # let the CSS glide finish
+        time.sleep(0.24)          # short glide
         if click:
             page.evaluate(_CURSOR_CLICK_JS)
-            time.sleep(0.2)
+            time.sleep(0.16)
         time.sleep(settle)
     except Exception:
         pass
@@ -153,10 +152,9 @@ def run(auth_url: str, video_dir: str) -> str:
 
         # Back on the wp-admin dashboard, before the CLI installs the plugin. The CLI is
         # parked on its "Install it now?" prompt while this runs, so keep it short:
-        # domcontentloaded is enough to show the dashboard, and the small hold below is
-        # the "slight delay" between landing here and the terminal answering yes.
+        # domcontentloaded is enough to show the dashboard, then hand focus back fast.
         page.goto(f"{WP_URL}/wp-admin/", wait_until="domcontentloaded")
-        time.sleep(0.5)
+        time.sleep(0.25)
 
         # Keep the wp-admin session so plugin_page() doesn't have to log in again.
         try:

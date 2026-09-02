@@ -106,8 +106,8 @@ auth,d1,d2,inst,term = $AUTH_AT,$D1,$D2,$INSTALL_AT,$TERM_DUR
 gap1 = max(0.3, inst - auth - d1)
 bdur = auth + d1 + gap1 + d2
 final = max(term, bdur)
-# while the browser is frozen and the terminal drives the install, dim the browser pane
-dim_a = auth + d1
+# dim the browser pane once the terminal takes over; start it a touch before the freeze
+dim_a = max(auth, auth + d1 - 0.5)
 dim_b = auth + d1 + gap1
 print(f'{gap1:.3f} {bdur:.3f} {final:.3f} {final-bdur:.3f} {final-term:.3f} {dim_a:.3f} {dim_b:.3f}')
 ")
