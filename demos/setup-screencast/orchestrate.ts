@@ -31,6 +31,11 @@ const COLS = 100
 const ROWS = 22
 
 const NPM_PREFIX = join(STATE, 'npm-global')
+// A download cache that survives resetState(): with HOME on the wiped state dir, npm's own
+// ~/.npm is cold every run, so `npm install -g` becomes a ~20s silent fetch that the cast
+// reshaper crushes to one capped gap. A persistent cache keeps the install as quick as it
+// was before HOME was isolated, without npm touching anything of the user's.
+const NPM_CACHE = join(BASE, '.npm-cache')
 const REAL_PATH = env.PATH ?? '/usr/bin:/bin'
 
 // A fresh, curated environment for the recorded shell: HOME is always the throwaway state
@@ -40,6 +45,7 @@ const SHELL_ENV: Record<string, string> = {
   HOME: STATE,
   PATH: `${join(NPM_PREFIX, 'bin')}:${REAL_PATH}`,
   npm_config_prefix: NPM_PREFIX,
+  npm_config_cache: NPM_CACHE,
   npm_config_fund: 'false',
   npm_config_audit: 'false',
   npm_config_progress: 'false',
@@ -92,8 +98,10 @@ class Term {
     })
   }
 
-  // Type keystrokes one at a time so the tty echo looks like real typing.
-  async typeLine(text: string, cps = 55): Promise<void> {
+  // Type keystrokes one at a time so the tty echo looks like real typing. ~16 cps reads as a
+  // person at the keyboard (it also matches what the old pexpect version emitted in practice:
+  // its nominal 55 was swamped by per-keystroke sleep + send overhead).
+  async typeLine(text: string, cps = 16): Promise<void> {
     for (const ch of text) {
       this.pty.write(ch)
       await sleep(1 / cps)

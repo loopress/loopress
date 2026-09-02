@@ -138,10 +138,11 @@ export async function runAuthorize(authUrl: string, videoDir: string): Promise<s
   await page.waitForURL(`**${WP_HOST}/**`, {timeout: 20_000})
   await login(page)
 
-  // The "Authorize application" consent screen: cursor to the app name, then the button.
+  // The "Authorize application" consent screen: let it register, then cursor to the app
+  // name and the button.
   await page.waitForSelector('#approve', {timeout: 20_000})
   await page.waitForLoadState('networkidle')
-  await sleep(0.4)
+  await sleep(0.9)
   await pointAt(page, '#app_name', {settle: 0.3})
   await pointAt(page, '#approve', {settle: 0.2, click: true})
   await page.click('#approve')
@@ -153,7 +154,7 @@ export async function runAuthorize(authUrl: string, videoDir: string): Promise<s
   } catch {
     // the callback hop can settle without a networkidle event
   }
-  await sleep(2.0) // hold the success message
+  await sleep(3.0) // hold the success message
 
   // Back on the wp-admin dashboard, before the CLI installs the plugin. The CLI is parked on
   // its "Install it now?" prompt while this runs, so keep it short: domcontentloaded is

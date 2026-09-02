@@ -59,6 +59,14 @@ echo "== node deps (node-pty + playwright) =="
 npm install --no-fund --no-audit --silent
 npx --yes playwright install chromium >/dev/null   # fallback browser for browser.ts
 
+# Warm .npm-cache so the recorded `npm install -g @loopress/cli` is quick from the first
+# take (orchestrate.ts points npm's cache here; the run's HOME is a wiped throwaway dir).
+echo "== warm npm cache =="
+tmp="$(mktemp -d)"
+npm install -g @loopress/cli --prefix "$tmp" --cache "$PWD/.npm-cache" \
+  --no-fund --no-audit --silent >/dev/null 2>&1 || true
+rm -rf "$tmp"
+
 [[ "$OS" == Darwin ]] || { [[ "$(id -u)" == 0 ]] && id demo >/dev/null 2>&1 && chown -R demo:demo "$(pwd)"; }
 
 echo
