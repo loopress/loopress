@@ -85,7 +85,8 @@ ffmpeg -y -loglevel error -i "$OUT/term.gif" \
 # 3. Normalise both browser clips to the pane height.
 ffmpeg -y -loglevel error -i "${clips[0]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b1.mp4"
-ffmpeg -y -loglevel error -i "${clips[1]}" \
+# skip the plugin-page clip's blank first moment (the page still loading)
+ffmpeg -y -loglevel error -ss 1.4 -i "${clips[1]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b2.mp4"
 dur() { ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"; }
 BW=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$OUT/b1.mp4")
@@ -112,18 +113,36 @@ ffmpeg -y -loglevel error \
     [pre][c1][c2]concat=n=3:v=1:a=0[v]" \
   -map "[v]" -c:v libx264 -crf 20 "$OUT/browser.side.mp4"
 
-# 4. Side by side, labelled, scaled to a sane width.
-ffmpeg -y -loglevel error -i "$OUT/term.mp4" -i "$OUT/browser.side.mp4" -filter_complex "
+# 4. Labelled panes (terminal padded to the full length, browser as built).
+ffmpeg -y -loglevel error -i "$OUT/term.mp4" -filter_complex "
   [0:v]tpad=stop_duration=${TAIL_T}:stop_mode=clone,
        pad=iw:ih+42:0:42:color=0x11111b,
-       drawtext=text='Terminal':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[l];
-  [1:v]pad=iw:ih+42:0:42:color=0x11111b,
-       drawtext=text='Browser / WordPress':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[r];
-  [l][r]hstack=inputs=2,scale=w=1600:h='2*round(1.1*1600*ih/iw/2)':flags=lanczos,pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1[v]" \
+       drawtext=text='Terminal':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[v]" \
+  -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/L.mp4"
+ffmpeg -y -loglevel error -i "$OUT/browser.side.mp4" -filter_complex "
+  [0:v]pad=iw:ih+42:0:42:color=0x11111b,
+       drawtext=text='Browser / WordPress':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[v]" \
+  -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/R.mp4"
+
+# 4a. Desktop: side by side, 10% taller than the natural aspect.
+ffmpeg -y -loglevel error -i "$OUT/L.mp4" -i "$OUT/R.mp4" -filter_complex "
+  [0:v][1:v]hstack=inputs=2,scale=w=1600:h='2*round(1.1*1600*ih/iw/2)':flags=lanczos,
+  pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1[v]" \
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$OUT/final/setup.mp4"
 
 ffmpeg -y -loglevel error -i "$OUT/final/setup.mp4" \
   -vf "select=gte(n\,$($PYBIN -c "print(int(($AUTH_AT+7)*30))"))" -vframes 1 "$OUT/final/setup.poster.jpg"
+
+# 4b. Mobile: browser under the terminal, portrait, 1080 wide.
+if [ "${MOBILE:-1}" = 1 ]; then
+  ffmpeg -y -loglevel error -i "$OUT/L.mp4" -i "$OUT/R.mp4" -filter_complex "
+    [0:v]scale=1080:-2:flags=lanczos,setsar=1[t];
+    [1:v]scale=1080:-2:flags=lanczos,setsar=1[b];
+    [t][b]vstack=inputs=2,pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1[v]" \
+    -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$OUT/final/setup-mobile.mp4"
+  ffmpeg -y -loglevel error -i "$OUT/final/setup-mobile.mp4" \
+    -vf "select=gte(n\,$($PYBIN -c "print(int(($AUTH_AT+7)*30))"))" -vframes 1 "$OUT/final/setup-mobile.poster.jpg"
+fi
 
 rm -f "$OUT/final/setup.webm"
 if [ "$WEBM" = 1 ]; then

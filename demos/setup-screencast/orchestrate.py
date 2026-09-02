@@ -52,6 +52,11 @@ ENV = {
 def reset_state():
     for d in (SITE, STATE, VIDEO_DIR):
         shutil.rmtree(d, ignore_errors=True)
+    for f in (os.path.join(OUT, "wp-state.json"),):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
     os.makedirs(SITE, exist_ok=True)
     os.makedirs(os.path.join(STATE, ".config", "loopress"), exist_ok=True)
     os.makedirs(os.path.join(NPM_PREFIX, "bin"), exist_ok=True)

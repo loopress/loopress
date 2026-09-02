@@ -23,8 +23,9 @@ WEBM=1 ./record.sh  # also encode the vp9 .webm (~+2-3 min)
 
 Output:
 
-- `out/final/setup.mp4` - the clip (h264)
-- `out/final/setup.poster.jpg` - a poster frame
+- `out/final/setup.mp4` - desktop clip, side by side (h264)
+- `out/final/setup-mobile.mp4` - portrait, browser under the terminal (`MOBILE=0` to skip)
+- `out/final/setup*.poster.jpg` - poster frames
 - `out/final/setup.webm` - only with `WEBM=1`
 
 First run pulls the `wordpress` + `mariadb` + `wordpress:cli` images (~2 min extra, once).

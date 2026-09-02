@@ -5,7 +5,8 @@ on the "Authorize application" page, approves it, and lets WordPress relay the c
 back to the CLI's local callback server.
 
 `plugin_page()` is called afterwards, once the CLI has installed Loopress Full: it opens the
-plugin's admin page (`admin.php?page=loopress`) so the clip ends on the installed plugin.
+plugin's admin page (`admin.php?page=loopress`) so the clip ends on the installed plugin. It
+reuses the wp-admin session `run()` saved, so that clip does not flash the login screen.
 
 Each call records its own webm into `video_dir`.
 """
@@ -33,13 +34,20 @@ def _launch(p):
     return p.chromium.launch(headless=True, args=LAUNCH_ARGS)
 
 
-def _context(browser, video_dir):
-    return browser.new_context(
+def _state_file(video_dir):
+    return os.path.join(os.path.dirname(os.path.normpath(video_dir)), "wp-state.json")
+
+
+def _context(browser, video_dir, storage_state=None):
+    kw = dict(
         viewport={"width": 1280, "height": 800},
         device_scale_factor=1,
         record_video_dir=video_dir,
         record_video_size={"width": 1280, "height": 800},
     )
+    if storage_state and os.path.exists(storage_state):
+        kw["storage_state"] = storage_state
+    return browser.new_context(**kw)
 
 
 def _login(page):
@@ -77,6 +85,12 @@ def run(auth_url: str, video_dir: str) -> str:
             pass
         time.sleep(2.5)
 
+        # Keep the wp-admin session so plugin_page() doesn't have to log in again.
+        try:
+            ctx.storage_state(path=_state_file(video_dir))
+        except Exception:
+            pass
+
         video = page.video
         ctx.close()
         browser.close()
@@ -87,11 +101,11 @@ def plugin_page(video_dir: str) -> str:
     """Open the Loopress Full admin page (top-level menu slug 'loopress')."""
     with sync_playwright() as p:
         browser = _launch(p)
-        ctx = _context(browser, video_dir)
+        ctx = _context(browser, video_dir, storage_state=_state_file(video_dir))
         page = ctx.new_page()
 
         page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
-        _login(page)
+        _login(page)  # fallback only: the saved session should land us straight on the page
         if "page=loopress" not in page.url:
             page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
 

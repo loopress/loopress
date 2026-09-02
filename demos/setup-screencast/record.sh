@@ -6,14 +6,16 @@
 #   WEBM=1 ./record.sh       # also encode the vp9 .webm (~+2-3 min)
 set -euo pipefail
 cd "$(dirname "$0")"
+source ./lib.sh
 t0=$(date +%s)
 
+# wp-setup / reset-wp need docker (root on a shared box); run / build must not be root (Chrome).
 bash wp-setup.sh
 bash reset-wp.sh
 echo "=== recording ==="
-bash run.sh
+"${RUN_AS[@]}" bash run.sh
 echo "=== stitching ==="
-bash build.sh
+"${RUN_AS[@]}" bash build.sh
 
 echo
 echo "done in $(( $(date +%s) - t0 ))s  ->  $(pwd)/out/final/setup.mp4"
