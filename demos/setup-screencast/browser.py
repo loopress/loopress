@@ -2,12 +2,12 @@
 
 `run()` drives the WordPress Application-Password authorization: logs into wp-admin, lands
 on the "Authorize application" page, moves a fake cursor to the app-name field then the
-approve button, approves it, and holds the success message.
+approve button, approves it, holds the success message, and lands back on the wp-admin
+dashboard - all before the CLI installs the plugin.
 
-`plugin_page()` is called afterwards, once the CLI has installed Loopress Full: it lands
-back on the wp-admin dashboard, then opens the plugin's admin page (`admin.php?page=loopress`),
-pointing the cursor at the new Loopress menu and the plugin card. It reuses the wp-admin
-session `run()` saved, so no login screen flashes.
+`plugin_page()` is called afterwards, once the CLI has installed Loopress Full: it opens the
+plugin's admin page (`admin.php?page=loopress`), pointing the cursor at the new Loopress
+menu and the plugin card. It reuses the wp-admin session `run()` saved, so no login flashes.
 
 Each call records its own webm into `video_dir`.
 """
@@ -35,7 +35,7 @@ _CURSOR_INIT_JS = r"""
     + 'stroke-width="1.5" stroke-linejoin="round"/></svg>';
   Object.assign(c.style, {
     position: 'fixed', left: '48%', top: '58%', zIndex: '2147483647', pointerEvents: 'none',
-    transition: 'left .55s cubic-bezier(.35,0,.25,1), top .55s cubic-bezier(.35,0,.25,1)',
+    transition: 'left .33s cubic-bezier(.35,0,.25,1), top .33s cubic-bezier(.35,0,.25,1)',
     filter: 'drop-shadow(0 2px 5px rgba(0,0,0,.45))', willChange: 'left, top',
   });
   document.body.appendChild(c);
@@ -63,25 +63,25 @@ _CURSOR_CLICK_JS = r"""
   Object.assign(rip.style, {
     position: 'fixed', left: (x - 7) + 'px', top: (y - 7) + 'px', width: '14px', height: '14px',
     borderRadius: '50%', border: '2px solid #89b4fa', zIndex: '2147483646', pointerEvents: 'none',
-    transform: 'scale(1)', opacity: '0.9', transition: 'transform .45s ease-out, opacity .45s ease-out',
+    transform: 'scale(1)', opacity: '0.9', transition: 'transform .3s ease-out, opacity .3s ease-out',
   });
   document.body.appendChild(rip);
-  requestAnimationFrame(() => { rip.style.transform = 'scale(3.4)'; rip.style.opacity = '0'; });
-  setTimeout(() => rip.remove(), 550);
-  c.animate([{transform: 'scale(1)'}, {transform: 'scale(.82)'}, {transform: 'scale(1)'}], {duration: 240});
+  requestAnimationFrame(() => { rip.style.transform = 'scale(3.2)'; rip.style.opacity = '0'; });
+  setTimeout(() => rip.remove(), 360);
+  c.animate([{transform: 'scale(1)'}, {transform: 'scale(.82)'}, {transform: 'scale(1)'}], {duration: 170});
 }
 """
 
 
-def _point_at(page, selector, settle=0.9, click=False):
+def _point_at(page, selector, settle=0.5, click=False):
     """Glide the fake cursor to `selector`; optionally play a click ripple there."""
     try:
         page.evaluate(_CURSOR_INIT_JS)
         page.evaluate(_CURSOR_MOVE_JS, selector)
-        time.sleep(0.65)          # let the CSS glide finish
+        time.sleep(0.4)           # let the CSS glide finish
         if click:
             page.evaluate(_CURSOR_CLICK_JS)
-            time.sleep(0.35)
+            time.sleep(0.2)
         time.sleep(settle)
     except Exception:
         pass
@@ -138,9 +138,9 @@ def run(auth_url: str, video_dir: str) -> str:
         # The "Authorize application" consent screen: cursor to the app name, then the button.
         page.wait_for_selector("#approve", timeout=20000)
         page.wait_for_load_state("networkidle")
-        time.sleep(0.8)
-        _point_at(page, "#app_name", settle=0.7)
-        _point_at(page, "#approve", settle=0.4, click=True)
+        time.sleep(0.4)
+        _point_at(page, "#app_name", settle=0.3)
+        _point_at(page, "#approve", settle=0.2, click=True)
         page.click("#approve")
 
         # WordPress -> api.loopress.dev/auth/wp-callback -> auto-POST to the CLI's
@@ -151,9 +151,17 @@ def run(auth_url: str, video_dir: str) -> str:
             pass
         time.sleep(2.0)  # hold the success message
 
+        # Back on the wp-admin dashboard, before the CLI installs the plugin. The CLI is
+        # parked on its "Install it now?" prompt while this runs; PROT_CAP in build.sh
+        # keeps that short stretch from inflating the terminal side.
+        page.goto(f"{WP_URL}/wp-admin/", wait_until="domcontentloaded")
+        try:
+            page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            pass
+        time.sleep(1.3)
+
         # Keep the wp-admin session so plugin_page() doesn't have to log in again.
-        # (Landing back on the dashboard happens at the start of plugin_page(), which runs
-        # after the install, so the CLI isn't left waiting on this browser during it.)
         try:
             ctx.storage_state(path=_state_file(video_dir))
         except Exception:
@@ -172,27 +180,18 @@ def plugin_page(video_dir: str) -> str:
         ctx = _context(browser, video_dir, storage_state=_state_file(video_dir))
         page = ctx.new_page()
 
-        # First, back on the wp-admin dashboard (the "return to WordPress home" beat).
-        page.goto(f"{WP_URL}/wp-admin/", wait_until="domcontentloaded")
-        _login(page)  # fallback only: the saved session should land us straight in
-        try:
-            page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            pass
-        time.sleep(1.6)
-
-        # Then the plugin's own page.
         page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
+        _login(page)  # fallback only: the saved session should land us straight in
         if "page=loopress" not in page.url:
             page.goto(f"{WP_URL}/wp-admin/admin.php?page=loopress", wait_until="domcontentloaded")
         try:
             page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
             pass
-        time.sleep(0.9)
-        _point_at(page, "#toplevel_page_loopress", settle=0.9)   # the new Loopress menu
-        _point_at(page, "#wpbody-content h1", settle=1.1)        # the "Loopress Full" card
-        time.sleep(0.8)
+        time.sleep(0.5)
+        _point_at(page, "#toplevel_page_loopress", settle=0.5)   # the new Loopress menu
+        _point_at(page, "#wpbody-content h1", settle=0.7)        # the "Loopress Full" card
+        time.sleep(0.5)
 
         video = page.video
         ctx.close()

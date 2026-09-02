@@ -67,7 +67,7 @@ def reset_state():
         fh.write('{"telemetry":{"disabled":true},"projects":{}}\n')
 
 
-def type_line(child, text, cps=28):
+def type_line(child, text, cps=55):
     """Send keystrokes one at a time so the tty echo looks like real typing."""
     for ch in text:
         child.send(ch)
@@ -87,27 +87,27 @@ def main():
     child.logfile_read = sys.stdout
 
     child.expect_exact("site$ ", timeout=20)
-    time.sleep(0.8)
+    time.sleep(0.5)
 
     # 1. Install the CLI from npm (into the isolated prefix set in ENV).
     type_line(child, "npm install -g @loopress/cli")
     child.expect_exact("site$ ", timeout=240)
-    time.sleep(1.2)
+    time.sleep(0.7)
 
     # 2. lps project config -- connect a WordPress environment.
     type_line(child, "lps project config")
 
     child.expect("Project name", timeout=20)
-    time.sleep(0.8); type_line(child, "Demo Site")
+    time.sleep(0.4); type_line(child, "Demo Site")
 
     child.expect("Environment", timeout=15)
-    time.sleep(0.9); child.send("\r")                       # select: local (default)
+    time.sleep(0.4); child.send("\r")                       # select: local (default)
 
     child.expect("WordPress URL", timeout=15)
-    time.sleep(0.8); type_line(child, WP_URL)
+    time.sleep(0.4); type_line(child, WP_URL)
 
     child.expect("authenticate", timeout=15)
-    time.sleep(0.9); child.send("\r")                       # Authorize in my browser (recommended)
+    time.sleep(0.4); child.send("\r")                       # Authorize in my browser (recommended)
 
     child.expect(r"visit:[\r\n]+(https?://\S+)", timeout=30)
     auth_url = child.match.group(1).strip()
@@ -121,7 +121,7 @@ def main():
     child.expect("configured", timeout=30)
     child.expect("Loopress Full was not detected", timeout=30)
     child.expect(r"\(Y/n\)", timeout=8)
-    time.sleep(0.8); child.send("\r")                       # install it now? yes
+    time.sleep(0.4); child.send("\r")                       # install it now? yes
 
     child.expect("Downloading the latest Loopress Full release", timeout=20)
     idx = child.expect(["Loopress Full installed and activated",
@@ -131,7 +131,7 @@ def main():
     child.expect("Removing the temporary admin account", timeout=30)
     child.expect(r"lps project switch", timeout=20)         # closing hint -> command done
 
-    time.sleep(1.5)
+    time.sleep(1.0)
     child.send("\r")
     type_line(child, "exit")
     child.expect(pexpect.EOF, timeout=15)
