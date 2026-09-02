@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Superseded PR pushes cancel their in-flight run; pushes to main never cancel
+# each other (github.ref is refs/heads/main there), so every merged commit keeps
+# a full CI result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # None of these jobs need to write to the repo or any GitHub API beyond reading it;
 # the default GITHUB_TOKEN permissions are broader than that.
 permissions:
