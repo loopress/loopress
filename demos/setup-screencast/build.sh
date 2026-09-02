@@ -53,6 +53,8 @@ for t, typ, data in ev:
     protected = lo <= t <= hi
     if not protected and dt > cap:
         dt = cap
+    if protected and dt > 16:
+        dt = 16          # bound a pathologically slow browser-auth stretch (loaded machine)
     if protected:
         speed = 1.0
     elif npm_lo is not None and npm_hi is not None and npm_lo <= t <= npm_hi:
@@ -86,7 +88,7 @@ ffmpeg -y -loglevel error -i "$OUT/term.gif" \
 ffmpeg -y -loglevel error -i "${clips[0]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b1.mp4"
 # skip the plugin-page clip's blank first moment (the page still loading)
-ffmpeg -y -loglevel error -ss 1.4 -i "${clips[1]}" \
+ffmpeg -y -loglevel error -ss 2.0 -i "${clips[1]}" \
   -vf "scale=-2:${H}:flags=lanczos,setsar=1,fps=30,format=yuv420p" -c:v libx264 -crf 20 "$OUT/b2.mp4"
 dur() { ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"; }
 BW=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$OUT/b1.mp4")

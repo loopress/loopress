@@ -38,7 +38,7 @@ First run pulls the `wordpress` + `mariadb` + `wordpress:cli` images (~2 min ext
 | `wp-setup.sh` | brings the stack up, installs WP core, permalinks, `WP_ENVIRONMENT_TYPE=local`, wp-content perms |
 | `reset-wp.sh` | removes any `loopress*` plugin + leftover temp admins between takes |
 | `run.sh` -> `orchestrate.py` | drives `lps project config` in a PTY, answers prompts, records `out/term.cast` |
-| `browser.py` | Playwright: logs into wp-admin, approves the consent screen, records `out/video/*.webm` |
+| `browser.py` | Playwright: logs into wp-admin, approves the consent screen (a fake cursor points at each element), then opens the installed plugin's page; records `out/video/*.webm` |
 | `build.sh` | shapes the cast timing, renders it with `agg`, composites the two panes with ffmpeg |
 | `compose.yml`, `uploads.ini` | the WordPress stack (`upload_max_filesize` bumped so the plugin zip fits) |
 | `lib.sh` | shared paths / `docker compose` wrapper / Chrome-needs-non-root handling |
@@ -48,6 +48,8 @@ First run pulls the `wordpress` + `mariadb` + `wordpress:cli` images (~2 min ext
 - `F_PRE` / `F_POST` / `F_NPM` - playback speed of the pre-auth part, the closing part, and
   the `npm install` stretch (default 0.22, i.e. ~5x).
 - `GAPCAP` - cap on idle gaps outside the browser window.
+- `PROT_CAP` (16s, in `build.sh`) - bounds the real-time authorization window so a slow / loaded
+  machine cannot inflate the terminal side.
 - `--rows` / `--font-size` on the `agg` line - terminal pane proportions.
 - The real-time (un-sped) window is `["Opening WordPress..." .. "Downloading the latest..."]`
   so the two panes stay in sync across the authorization.
