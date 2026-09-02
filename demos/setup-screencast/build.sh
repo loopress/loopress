@@ -96,14 +96,17 @@ D1=$(dur "$OUT/b1.mp4"); D2=$(dur "$OUT/b2.mp4")
 
 # Browser timeline: placeholder(AUTH_AT) -> clip1 -> freeze until the plugin is installed
 # -> clip2 -> freeze to the end. Terminal side is frozen to the same total.
-read GAP1 BROWSER_DUR FINAL TAIL_B TAIL_T < <($PYBIN -c "
+read GAP1 BROWSER_DUR FINAL TAIL_B TAIL_T DIM_A DIM_B < <($PYBIN -c "
 auth,d1,d2,inst,term = $AUTH_AT,$D1,$D2,$INSTALL_AT,$TERM_DUR
 gap1 = max(0.3, inst - auth - d1)
 bdur = auth + d1 + gap1 + d2
 final = max(term, bdur)
-print(f'{gap1:.3f} {bdur:.3f} {final:.3f} {final-bdur:.3f} {final-term:.3f}')
+# while the browser is frozen and the terminal drives the install, dim the browser pane
+dim_a = auth + d1
+dim_b = auth + d1 + gap1
+print(f'{gap1:.3f} {bdur:.3f} {final:.3f} {final-bdur:.3f} {final-term:.3f} {dim_a:.3f} {dim_b:.3f}')
 ")
-echo "gap1=${GAP1}s  browser total=${BROWSER_DUR}s  final=${FINAL}s"
+echo "gap1=${GAP1}s  browser total=${BROWSER_DUR}s  final=${FINAL}s  dim=${DIM_A}..${DIM_B}s"
 
 ffmpeg -y -loglevel error \
   -f lavfi -t "$AUTH_AT" -i "color=c=0x282a36:s=${BW}x${H}:r=30" \
@@ -123,6 +126,7 @@ ffmpeg -y -loglevel error -i "$OUT/term.mp4" -filter_complex "
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/L.mp4"
 ffmpeg -y -loglevel error -i "$OUT/browser.side.mp4" -filter_complex "
   [0:v]pad=iw:ih+42:0:42:color=0x11111b,
+       drawbox=x=0:y=42:w=iw:h=ih-42:color=black@0.32:t=fill:enable='between(t,${DIM_A},${DIM_B})',
        drawtext=text='Browser / WordPress':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[v]" \
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/R.mp4"
 

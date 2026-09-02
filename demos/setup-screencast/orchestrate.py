@@ -121,7 +121,7 @@ def main():
     child.expect("configured", timeout=30)
     child.expect("Loopress Full was not detected", timeout=30)
     child.expect(r"\(Y/n\)", timeout=8)
-    time.sleep(0.4); child.send("\r")                       # install it now? yes
+    time.sleep(0.2); child.send("\r")                       # install it now? yes
 
     child.expect("Downloading the latest Loopress Full release", timeout=20)
     idx = child.expect(["Loopress Full installed and activated",

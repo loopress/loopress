@@ -152,14 +152,11 @@ def run(auth_url: str, video_dir: str) -> str:
         time.sleep(2.0)  # hold the success message
 
         # Back on the wp-admin dashboard, before the CLI installs the plugin. The CLI is
-        # parked on its "Install it now?" prompt while this runs; PROT_CAP in build.sh
-        # keeps that short stretch from inflating the terminal side.
+        # parked on its "Install it now?" prompt while this runs, so keep it short:
+        # domcontentloaded is enough to show the dashboard, and the small hold below is
+        # the "slight delay" between landing here and the terminal answering yes.
         page.goto(f"{WP_URL}/wp-admin/", wait_until="domcontentloaded")
-        try:
-            page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            pass
-        time.sleep(1.3)
+        time.sleep(0.5)
 
         # Keep the wp-admin session so plugin_page() doesn't have to log in again.
         try:
