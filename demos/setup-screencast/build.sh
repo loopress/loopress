@@ -131,7 +131,7 @@ ffmpeg -y -loglevel error -i "$OUT/term.mp4" -filter_complex "
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/L.mp4"
 ffmpeg -y -loglevel error -i "$OUT/browser.side.mp4" -filter_complex "
   [0:v]pad=iw:ih+42:0:42:color=0x11111b,
-       drawbox=x=0:y=42:w=iw:h=ih-42:color=black@0.32:t=fill:enable='between(t,${DIM_A},${DIM_B})',
+       drawbox=x=0:y=42:w=iw:h=ih-42:color=black@0.5:t=fill:enable='between(t,${DIM_A},${DIM_B})',
        drawtext=text='Browser / WordPress':x=18:y=11:fontsize=20:fontcolor=0xa6adc8:font=monospace,setsar=1[v]" \
   -map "[v]" -r 30 -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/R.mp4"
 
