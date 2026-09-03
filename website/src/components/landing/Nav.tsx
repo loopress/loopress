@@ -23,6 +23,9 @@ export function Nav() {
           </span>
         </a>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
+          <a href="/#demo" className="transition-colors hover:text-foreground">
+            Demo
+          </a>
           <a href="/#problem" className="transition-colors hover:text-foreground">
             Problem
           </a>
@@ -58,7 +61,7 @@ export function Nav() {
             href="https://console.loopress.dev"
             className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Join the Alpha
+            Get started
           </a>
         </div>
       </div>

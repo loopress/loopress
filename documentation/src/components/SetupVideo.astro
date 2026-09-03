@@ -1,0 +1,43 @@
+---
+import setupDesktop from "@loopress/assets/setup-desktop.mp4";
+import setupMobile from "@loopress/assets/setup-mobile.mp4";
+---
+
+<div class="setup-video">
+	<video class="desktop" controls playsinline preload="metadata" src={setupDesktop}>
+		<p>
+			Your browser doesn't support HTML5 video.
+			<a href={setupDesktop}>Download the video</a> instead.
+		</p>
+	</video>
+	<video class="mobile" controls playsinline preload="metadata" src={setupMobile}>
+		<p>
+			Your browser doesn't support HTML5 video.
+			<a href={setupMobile}>Download the video</a> instead.
+		</p>
+	</video>
+</div>
+
+<style>
+	.setup-video video {
+		width: 100%;
+		height: auto;
+		border-radius: 0.5rem;
+	}
+	.setup-video .desktop {
+		display: none;
+	}
+	.setup-video .mobile {
+		display: block;
+		max-width: 22rem;
+		margin-inline: auto;
+	}
+	@media (min-width: 768px) {
+		.setup-video .desktop {
+			display: block;
+		}
+		.setup-video .mobile {
+			display: none;
+		}
+	}
+</style>
