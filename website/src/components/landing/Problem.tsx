@@ -8,7 +8,7 @@ export function Problem() {
   return (
     <section id="problem" className="border-b border-border/60">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-        <SectionLabel>01 · The Problem</SectionLabel>
+        <SectionLabel>02 · The Problem</SectionLabel>
         <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
           WordPress wasn't built for modern development workflows.
         </h2>

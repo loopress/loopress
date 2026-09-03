@@ -11,8 +11,8 @@ modern-minimal
 - Marketing pages (`index`): Workbench — terminal/diff/code content is the page's
   real evidence, not decoration standing in for it. Hero is a left-biased split
   diptych (7/5): pitch on the left, the terminal demo panel on the right, no
-  centred-everything axis. Each section carries a numbered eyebrow (`01 · The
-  Problem` … `07 · Pricing`) that mirrors the nav's anchor labels — kept
+  centred-everything axis. Each section carries a numbered eyebrow (`01 · Demo`
+  … `08 · Pricing`) that mirrors the nav's anchor labels — kept
   deliberately as a wayfinding device tying scroll position to the nav, not the
   decorative default the anti-pattern usually describes.
 - Content pages (`faq`, `privacy`, `terms`, `brand-assets`, `contact`): Long
@@ -52,6 +52,11 @@ Existing Tailwind v4 default scale, used via utility classes. No raw pixel value
   dot. Both transform/opacity only.
 - Reduced-motion: browser/Tailwind defaults apply; primitives are subtle enough
   to not need a bespoke override.
+- The `Demo` section's setup screencast is muted and loops, no added window
+  chrome. It plays only while at least 70% in view (IntersectionObserver) and a
+  click toggles play/pause. It swaps a landscape cut for a portrait one at the
+  `md` breakpoint (CSS toggle, both `<video>` tags present). Under
+  `prefers-reduced-motion: reduce` it never auto-starts; the click still works.
 
 ## Microinteractions stance
 - Silent success on the newsletter form (no celebratory toast) — already correct.

@@ -2,6 +2,7 @@
 import Layout from "@/layouts/Layout.astro";
 import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/Hero";
+import { Demo } from "@/components/landing/Demo";
 import { Problem } from "@/components/landing/Problem";
 import { Solution } from "@/components/landing/Solution";
 import { Features } from "@/components/landing/Features";
@@ -44,6 +45,7 @@ const structuredData = {
     <Nav client:load />
     <main>
       <Hero />
+      <Demo client:visible />
       <Problem />
       <Solution />
       <Features />

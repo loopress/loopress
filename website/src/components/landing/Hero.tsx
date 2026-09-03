@@ -1,5 +1,4 @@
 import { TerminalOnboarding } from "./TerminalOnboarding";
-import { WorkflowDiagram } from "./WorkflowDiagram";
 
 export function Hero() {
   return (
@@ -40,7 +39,7 @@ export function Hero() {
                 href="https://console.loopress.dev"
                 className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
-                Join the Alpha
+                Get started
                 <span className="ml-2 text-base">→</span>
               </a>
               <a
@@ -55,10 +54,6 @@ export function Hero() {
           <div className="min-w-0">
             <TerminalOnboarding />
           </div>
-        </div>
-
-        <div className="relative mt-24">
-          <WorkflowDiagram />
         </div>
       </div>
     </section>
