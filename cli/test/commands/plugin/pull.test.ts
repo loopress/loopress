@@ -46,16 +46,15 @@ describe('plugin pull', () => {
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('fetches wp/v2/plugins and writes the installed plugins to loopress.json', async () => {
+  it('pins every installed plugin to the version running on the site', async () => {
     const {cmd, get, logs} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
+    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
 
     expect(get).toHaveBeenCalledWith('wp/v2/plugins')
-    expect(logs.log).toHaveBeenCalledWith('Pulling plugins from https://acme.com')
     const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({akismet: 'latest'})
+    expect(written.plugins).toEqual({akismet: '5.3.3'})
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 plugins to loopress.json')
   })
 
@@ -64,172 +63,72 @@ describe('plugin pull', () => {
     get.mockResolvedValue([
       nativePlugin({plugin: 'loopress/loopress.php'}),
       nativePlugin({plugin: 'loopress-full/loopress-full.php'}),
-      nativePlugin({plugin: 'loopress-light/loopress-light.php'}),
-      nativePlugin({plugin: 'akismet/akismet.php'}),
+      nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
     ])
 
     await cmd.run()
 
     const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({akismet: 'latest'})
+    expect(written.plugins).toEqual({akismet: '5.3.3'})
   })
 
-  it('excludes Composer-managed plugins from loopress.json and warns which ones were skipped', async () => {
-    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/woocommerce': '^3.0'}}))
+  it('bails out and warns when the project uses a composer.json', async () => {
+    writeFileSync(join(dir, 'composer.json'), '{}')
     const {cmd, get, logs} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'}), nativePlugin({plugin: 'akismet/akismet.php'})])
 
-    await cmd.run()
+    const result = await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({akismet: 'latest'})
-    expect(logs.log).toHaveBeenCalledWith('Skipping 1 Composer-managed plugin: woocommerce')
-  })
-
-  it('pluralizes the Composer-managed skip message for more than one plugin', async () => {
-    writeFileSync(
-      join(dir, 'composer.json'),
-      JSON.stringify({require: {'wpackagist-plugin/acf': '^6.0', 'wpackagist-plugin/woocommerce': '^3.0'}}),
-    )
-    const {cmd, get, logs} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'}), nativePlugin({plugin: 'acf/acf.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('Skipping 2 Composer-managed plugins: woocommerce, acf')
-  })
-
-  it('does not log a "Skipping" line when nothing is Composer-managed', async () => {
-    const {cmd, get, logs} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Skipping'))
+    expect(get).not.toHaveBeenCalled()
+    expect(result.status).toBe('composer-managed')
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps composer pull'))
+    expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
   })
 
   it('merges with the existing manifest, preserving plugins no longer reported by the site', async () => {
-    const {cmd, get} = make(false, {plugins: {'gravity-forms': 'latest'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
+    const {cmd, get} = make(false, {plugins: {'gravity-forms': '2.8.0'}})
+    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
 
     const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({akismet: 'latest', 'gravity-forms': 'latest'})
+    expect(written.plugins).toEqual({akismet: '5.3.3', 'gravity-forms': '2.8.0'})
   })
 
-  it('reports the newly added plugin under "+ Added" on a real run', async () => {
-    const {cmd, get, logs} = make(false, {plugins: {'gravity-forms': 'latest'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
+  it('reports a version change under "~ Updated" on a real run', async () => {
+    const {cmd, get, logs} = make(false, {plugins: {woocommerce: '9.4.2'}})
+    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php', version: '9.5.0'})])
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith('  + Added: akismet')
-  })
-
-  it('does not log an "Added" line when nothing new was pulled', async () => {
-    const {cmd, get, logs} = make(false, {plugins: {akismet: 'latest'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Added'))
-  })
-
-  it('comma-separates more than one newly added plugin under "+ Added" on a real run', async () => {
-    const {cmd, get, logs} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'}), nativePlugin({plugin: 'woocommerce/woocommerce.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('  + Added: akismet, woocommerce')
-  })
-
-  it('does not log a "+" line on dry-run when nothing was added', async () => {
-    const {cmd, get, logs} = make(true, {plugins: {akismet: 'latest'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('+'))
-  })
-
-  it('comma-separates more than one newly added plugin under "+" on a dry run', async () => {
-    const {cmd, get, logs} = make(true)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'}), nativePlugin({plugin: 'woocommerce/woocommerce.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('  + akismet, woocommerce')
-  })
-
-  it('reports a version pinned locally changing back to "latest" under "~ Updated" on a real run', async () => {
-    const {cmd, get, logs} = make(false, {plugins: {woocommerce: '8.9.1'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('  ~ Updated: woocommerce 8.9.1 → latest')
+    expect(logs.log).toHaveBeenCalledWith('  ~ Updated: woocommerce 9.4.2 → 9.5.0')
     const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({woocommerce: 'latest'})
+    expect(written.plugins).toEqual({woocommerce: '9.5.0'})
   })
 
   it('returns the added/merged/updated/status result shape on a real run', async () => {
-    const {cmd, get} = make(false, {plugins: {woocommerce: '8.9.1'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'}), nativePlugin({plugin: 'akismet/akismet.php'})])
+    const {cmd, get} = make(false, {plugins: {woocommerce: '9.4.2'}})
+    get.mockResolvedValue([
+      nativePlugin({plugin: 'woocommerce/woocommerce.php', version: '9.4.2'}),
+      nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
+    ])
 
     const result = await cmd.run()
 
     expect(result).toEqual({
       added: ['akismet'],
-      merged: {akismet: 'latest', woocommerce: 'latest'},
+      merged: {akismet: '5.3.3', woocommerce: '9.4.2'},
       status: 'success',
-      updated: [{from: '8.9.1', slug: 'woocommerce', to: 'latest'}],
+      updated: [],
     })
   })
 
   it('writes nothing to loopress.json on a dry run', async () => {
     const {cmd, get, logs} = make(true)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php'})])
+    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
 
     expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
     expect(logs.log).toHaveBeenCalledWith('[dry-run] Would write 1 plugins to loopress.json')
-  })
-
-  it('reports added/updated plugins with dry-run-specific wording, without writing anything', async () => {
-    const {cmd, get, logs} = make(true, {plugins: {woocommerce: '8.9.1'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'}), nativePlugin({plugin: 'akismet/akismet.php'})])
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('  + akismet')
-    expect(logs.log).toHaveBeenCalledWith('  ~ woocommerce (8.9.1 → latest)')
-    expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
-  })
-
-  it('returns the added/merged/updated/status result shape on a dry run', async () => {
-    const {cmd, get} = make(true, {plugins: {woocommerce: '8.9.1'}})
-    get.mockResolvedValue([nativePlugin({plugin: 'woocommerce/woocommerce.php'})])
-
-    const result = await cmd.run()
-
-    expect(result).toEqual({
-      added: [],
-      merged: {woocommerce: 'latest'},
-      status: 'dry-run',
-      updated: [{from: '8.9.1', slug: 'woocommerce', to: 'latest'}],
-    })
-  })
-
-  it('treats a plugin reported as inactive by the site the same as an active one (only status matters for install/activate, not pull)', async () => {
-    const {cmd, get} = make(false)
-    get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', status: 'inactive'})])
-
-    await cmd.run()
-
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({akismet: 'latest'})
   })
 })

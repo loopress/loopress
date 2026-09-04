@@ -34,58 +34,59 @@ describe('plugin add', () => {
     rmSync(tmpDir, {force: true, recursive: true})
   })
 
-  it('adds a new plugin and writes loopress.json', async () => {
+  it('adds a new plugin pinned to "latest" by default', async () => {
     const {cmd, logs} = make(['woocommerce'])
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith('Added woocommerce')
+    expect(logs.log).toHaveBeenCalledWith('Added woocommerce (latest). Run `lps plugin push` to apply.')
     const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({woocommerce: 'latest'})
   })
 
+  it('pins an exact version with --version', async () => {
+    const {cmd} = make(['woocommerce', '--version', '9.4.2'])
+
+    await cmd.run()
+
+    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    expect(written.plugins).toEqual({woocommerce: '9.4.2'})
+  })
+
   it('preserves existing plugins when adding a new one', async () => {
-    const {cmd} = make(['woocommerce'], {plugins: {acf: 'latest'}})
+    const {cmd} = make(['woocommerce'], {plugins: {acf: '6.3.0'}})
 
     await cmd.run()
 
     const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
-    expect(written.plugins).toEqual({acf: 'latest', woocommerce: 'latest'})
+    expect(written.plugins).toEqual({acf: '6.3.0', woocommerce: 'latest'})
   })
 
-  it('updates a plugin pinned to a specific version back to "latest"', async () => {
-    const {cmd, logs} = make(['woocommerce'], {plugins: {woocommerce: '8.9.1'}})
+  it('updates the pinned version of a plugin already present', async () => {
+    const {cmd, logs} = make(['woocommerce', '--version', '9.5.0'], {plugins: {woocommerce: '9.4.2'}})
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith('Updated woocommerce')
+    expect(logs.log).toHaveBeenCalledWith('Updated woocommerce (9.5.0). Run `lps plugin push` to apply.')
     const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
-    expect(written.plugins.woocommerce).toBe('latest')
+    expect(written.plugins.woocommerce).toBe('9.5.0')
   })
 
-  it('is a no-op when the plugin is already pinned to "latest"', async () => {
+  it('is a no-op when the plugin is already pinned to the same value', async () => {
     const {cmd, logs} = make(['woocommerce'], {plugins: {woocommerce: 'latest'}})
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith('woocommerce is already in loopress.json, nothing to do.')
+    expect(logs.log).toHaveBeenCalledWith('woocommerce is already pinned to latest in loopress.json, nothing to do.')
     await expect(readFile(join(tmpDir, 'loopress.json'), 'utf8')).rejects.toThrow()
   })
 
-  it('does not write the file on a dry run when adding a new plugin', async () => {
+  it('does not write the file on a dry run', async () => {
     const {cmd, logs} = make(['woocommerce'], {}, true)
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith('[dry-run] Would add woocommerce in loopress.json')
+    expect(logs.log).toHaveBeenCalledWith('[dry-run] Would add woocommerce (latest) in loopress.json')
     await expect(readFile(join(tmpDir, 'loopress.json'), 'utf8')).rejects.toThrow()
-  })
-
-  it('reports "update" (not "add") on a dry run for a plugin already present with a pinned version', async () => {
-    const {cmd, logs} = make(['woocommerce'], {plugins: {woocommerce: '8.9.1'}}, true)
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('[dry-run] Would update woocommerce in loopress.json')
   })
 })

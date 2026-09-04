@@ -114,6 +114,9 @@
       "snippet": {
         "description": "Manage WordPress code snippets"
       },
+      "theme": {
+        "description": "Manage WordPress.org themes tracked in loopress.json (versions only, never switches the active theme)"
+      },
       "telemetry": {
         "description": "Manage error reporting preferences"
       }

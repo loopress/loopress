@@ -1,15 +1,17 @@
+import {existsSync} from 'node:fs'
+import {join} from 'node:path'
+
 import {LoopressCommand} from '../../lib/base.js'
 import {type WpNativePlugin} from '../../types/plugin.js'
-import {getComposerManagedSlugs, readComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest, type MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
 
 type PullResult = MergeResult & {
-  status: 'dry-run' | 'success'
+  status: 'composer-managed' | 'dry-run' | 'success'
 }
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull installed plugins from WordPress into loopress.json'
+  static description = 'Pull installed plugins from WordPress into loopress.json, pinned to their live versions'
   static enableJsonFlag = true
   static examples = ['$ lps plugin pull', '$ lps plugin pull --dry-run']
   static flags = {
@@ -19,19 +21,20 @@ export default class Pull extends LoopressCommand {
   async run(): Promise<PullResult> {
     const {url} = this.siteConfig
 
+    if (existsSync(join(process.cwd(), this.rootDir, 'composer.json'))) {
+      this.warn('This project has a composer.json, which is authoritative for plugins. Run `lps composer pull` instead.')
+      return {added: [], merged: this.localConfig.plugins ?? {}, status: 'composer-managed', updated: []}
+    }
+
     this.log(`Pulling plugins from ${url}`)
 
     const raw = await this.wp.get<WpNativePlugin[]>('wp/v2/plugins')
     const installed = parseInstalledPlugins(raw)
 
-    const composerJson = await readComposerJson()
-    const composerSlugs = composerJson ? getComposerManagedSlugs(composerJson) : []
-
-    const incoming: Record<string, string> = Object.fromEntries(
-      installed.filter((p) => !composerSlugs.includes(p.slug)).map((p) => [p.slug, 'latest']),
-    )
-
-    this.logSkippedComposerManaged(installed.filter((p) => composerSlugs.includes(p.slug)).map((p) => p.slug))
+    // Pin every plugin to the version actually running on the site. A later `plugin push`
+    // installs exactly this set via Composer + WPackagist; drift only surfaces when the pinned
+    // version and the live version disagree.
+    const incoming: Record<string, string> = Object.fromEntries(installed.map((p) => [p.slug, p.version]))
 
     const {added, merged, updated} = mergePluginManifest(this.localConfig.plugins ?? {}, incoming)
 
@@ -50,11 +53,5 @@ export default class Pull extends LoopressCommand {
     for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
 
     return {added, merged, status: 'success', updated}
-  }
-
-  private logSkippedComposerManaged(found: string[]): void {
-    if (found.length > 0) {
-      this.log(`Skipping ${found.length} Composer-managed ${found.length === 1 ? 'plugin' : 'plugins'}: ${found.join(', ')}`)
-    }
   }
 }

@@ -20,9 +20,87 @@ class LoopressEnvironment
         $this->filesystem  = new Filesystem();
     }
 
+    // The server runs Composer with --working-dir set to wp-content/loopress/, so installer-paths
+    // climb one level out of it to land plugins/themes in their usual wp-content/ locations.
+    private const WPACKAGIST_URL   = 'https://wpackagist.org';
+    private const INSTALLERS       = 'composer/installers';
+    private const INSTALLER_PATHS  = [
+        '../plugins/{$name}/' => ['type:wordpress-plugin'],
+        '../themes/{$name}/'  => ['type:wordpress-theme'],
+    ];
+
     public function getLoopressDir(): string
     {
         return $this->loopressDir;
+    }
+
+    // Merges the WPackagist + composer/installers scaffold into a composer.json array, leaving
+    // everything else untouched. Returns the same array unchanged when nothing was missing, so
+    // callers can cheaply detect whether a rewrite is needed.
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    public function applyScaffold(array $json): array
+    {
+        $repositories = $json['repositories'] ?? [];
+        $hasWpackagist = false;
+        foreach ((array) $repositories as $repo) {
+            if (is_array($repo) && ($repo['url'] ?? null) === self::WPACKAGIST_URL) {
+                $hasWpackagist = true;
+                break;
+            }
+        }
+
+        if (!$hasWpackagist) {
+            $repositories[]        = ['type' => 'composer', 'url' => self::WPACKAGIST_URL];
+            $json['repositories']  = $repositories;
+        }
+
+        if (($json['require'][self::INSTALLERS] ?? null) === null) {
+            $json['require'][self::INSTALLERS] = '^2.0';
+        }
+
+        if (($json['extra']['installer-paths'] ?? null) !== self::INSTALLER_PATHS) {
+            $json['extra']['installer-paths'] = self::INSTALLER_PATHS;
+        }
+
+        // composer/installers is itself a Composer plugin; Composer 2.2+ refuses to run any
+        // plugin that isn't explicitly trusted when running non-interactively, which every
+        // server-side sync does.
+        if (($json['config']['allow-plugins'][self::INSTALLERS] ?? null) !== true) {
+            $json['config']['allow-plugins'][self::INSTALLERS] = true;
+        }
+
+        return $json;
+    }
+
+    // `wpackagist-plugin/foo` -> wp-content/plugins/foo, `wpackagist-theme/bar` -> wp-content/themes/bar.
+    public function managedPackageDir(string $vendorName): ?string
+    {
+        if (str_starts_with($vendorName, 'wpackagist-plugin/')) {
+            return WP_CONTENT_DIR . '/plugins/' . substr($vendorName, strlen('wpackagist-plugin/'));
+        }
+
+        if (str_starts_with($vendorName, 'wpackagist-theme/')) {
+            return WP_CONTENT_DIR . '/themes/' . substr($vendorName, strlen('wpackagist-theme/'));
+        }
+
+        return null;
+    }
+
+    public function managedDirExists(string $vendorName): bool
+    {
+        $dir = $this->managedPackageDir($vendorName);
+        return $dir !== null && is_dir($dir);
+    }
+
+    public function removeManagedDir(string $vendorName): void
+    {
+        $dir = $this->managedPackageDir($vendorName);
+        if ($dir !== null && is_dir($dir)) {
+            $this->filesystem->remove($dir);
+        }
     }
 
     // Idempotent per instance: runs its filesystem checks at most once per request,
@@ -44,7 +122,7 @@ class LoopressEnvironment
         $this->ensureVendorDir();
 
         if (!file_exists($this->loopressDir . 'composer.json')) {
-            $this->writeComposerJson([
+            $this->writeComposerJson($this->applyScaffold([
                 'name'        => 'loopress/site-dependencies',
                 'description' => 'Site-wide dependencies managed by Loopress Full',
                 'version'     => '0.0.0',
@@ -53,7 +131,7 @@ class LoopressEnvironment
                     'vendor-dir' => 'vendor',
                     'platform'   => ['php' => PHP_VERSION],
                 ],
-            ]);
+            ]));
             return;
         }
 
@@ -64,6 +142,17 @@ class LoopressEnvironment
         // packages whose requirements exceed the actual server version.
         if (($json['config']['platform']['php'] ?? null) !== PHP_VERSION) {
             $json['config']['platform']['php'] = PHP_VERSION;
+            $needsRewrite = true;
+        }
+
+        // Migrate a composer.json created before Loopress managed WordPress.org plugins/themes
+        // through it: add the WPackagist repository, composer/installers, the installer-paths
+        // that land plugins/themes in wp-content/, and the plugin-trust entry Composer 2.2+
+        // needs to run composer/installers non-interactively. Same "flag, don't run" reasoning
+        // as the autoload migration below: the caller with a ComposerRunner reinstalls.
+        $scaffolded = $this->applyScaffold($json);
+        if ($scaffolded !== $json) {
+            $json         = $scaffolded;
             $needsRewrite = true;
         }
 

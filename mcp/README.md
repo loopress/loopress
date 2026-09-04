@@ -68,9 +68,14 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `form_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local form files to WordPress |
 | `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
 | `form_list` | No | `env?` | List forms currently on WordPress |
-| `plugin_push` | Yes | `env?`, `confirmToken?` | Install/activate WordPress.org plugins to match `loopress.json` |
-| `plugin_pull` | No | `env?` | Pull installed plugins from WordPress into `loopress.json` |
-| `composer_push` | Yes | `env?`, `confirmToken?` | Push `composer.json`/`composer.lock` and run `composer install` on WordPress |
+| `plugin_push` | Yes | `env?`, `force?`, `prune?`, `confirmToken?` | Install/pin/activate WordPress.org plugins to match `loopress.json`, via Composer + WPackagist |
+| `plugin_pull` | No | `env?` | Pull installed plugins from WordPress into `loopress.json`, pinned to their live versions |
+| `plugin_status` | No | `env?` | Report drift between the plugins on WordPress and `loopress.json` |
+| `plugin_audit` | No | — | Check `loopress.json` plugins for known vulnerabilities and health issues |
+| `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
+| `theme_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |
+| `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json`/`composer.lock` and run Composer on WordPress |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
 | `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |
@@ -106,7 +111,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push`) |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push` / `plugin_push` / `theme_push`) |
 | `ExecError` | The `lps` process failed outside the two cases above |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |

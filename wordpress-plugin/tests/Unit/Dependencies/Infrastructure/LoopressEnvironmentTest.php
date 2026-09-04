@@ -245,6 +245,74 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
     }
 
+    // ── WPackagist scaffold (plugin/theme lockfile) ─────────────────────────
+
+    public function test_ensureInitialized_scaffolds_wpackagist_repo_and_installers_on_a_new_site(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+
+        $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $json['repositories']);
+        $this->assertSame('^2.0', $json['require']['composer/installers']);
+        $this->assertArrayHasKey('../plugins/{$name}/', $json['extra']['installer-paths']);
+        $this->assertArrayHasKey('../themes/{$name}/', $json['extra']['installer-paths']);
+        $this->assertTrue($json['config']['allow-plugins']['composer/installers']);
+    }
+
+    public function test_ensureInitialized_migrates_a_composer_json_missing_the_wpackagist_scaffold(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
+        unset($json['require']['composer/installers']);
+        $this->writeLegacyComposerJson($env, $json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+        $migrated = $env2->readComposerJson();
+
+        $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $migrated['repositories']);
+        $this->assertSame('^2.0', $migrated['require']['composer/installers']);
+        $this->assertTrue($migrated['config']['allow-plugins']['composer/installers']);
+    }
+
+    public function test_applyScaffold_is_idempotent(): void
+    {
+        $env  = new LoopressEnvironment();
+        $once = $env->applyScaffold(['name' => 'x']);
+        $this->assertSame($once, $env->applyScaffold($once));
+    }
+
+    public function test_applyScaffold_keeps_an_existing_wpackagist_repository(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold([
+            'repositories' => [['type' => 'composer', 'url' => 'https://wpackagist.org']],
+        ]);
+        $this->assertCount(1, $result['repositories']);
+    }
+
+    public function test_managedPackageDir_maps_wpackagist_names_to_wp_content_dirs(): void
+    {
+        $env = new LoopressEnvironment();
+        $this->assertSame(WP_CONTENT_DIR . '/plugins/woocommerce', $env->managedPackageDir('wpackagist-plugin/woocommerce'));
+        $this->assertSame(WP_CONTENT_DIR . '/themes/generatepress', $env->managedPackageDir('wpackagist-theme/generatepress'));
+        $this->assertNull($env->managedPackageDir('monolog/monolog'));
+    }
+
+    public function test_removeManagedDir_deletes_an_existing_plugin_folder(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+
+        $this->assertTrue($env->managedDirExists('wpackagist-plugin/acme'));
+        $env->removeManagedDir('wpackagist-plugin/acme');
+        $this->assertFalse($env->managedDirExists('wpackagist-plugin/acme'));
+    }
+
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void
     {
         $env = new LoopressEnvironment();
