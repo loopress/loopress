@@ -8,6 +8,7 @@ interface Props {
   canonical?: string;
   ogTitle?: string;
   ogDescription?: string;
+  ogImage?: string;
   structuredData?: object;
 }
 
@@ -17,8 +18,12 @@ const {
   canonical,
   ogTitle = "Loopress - Make WordPress reproducible",
   ogDescription = "Modern development workflows for WordPress. Configuration as code, version control, reproducible environments.",
+  ogImage = "/og-image.png",
   structuredData,
 } = Astro.props;
+
+const ogUrl = canonical ?? Astro.url.href;
+const ogImageUrl = new URL(ogImage, Astro.site ?? Astro.url).href;
 
 const orgSchema = {
   "@context": "https://schema.org",
@@ -57,7 +62,16 @@ const orgSchema = {
     <meta property="og:title" content={ogTitle} />
     <meta property="og:description" content={ogDescription} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={ogUrl} />
+    <meta property="og:site_name" content="Loopress" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogTitle} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={ogDescription} />
+    <meta name="twitter:image" content={ogImageUrl} />
     {canonical && <link rel="canonical" href={canonical} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
