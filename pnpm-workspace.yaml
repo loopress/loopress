@@ -15,34 +15,23 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   yarn: true
-minimumReleaseAgeExclude:
-  - path-to-regexp@6.3.0
-  - minimatch@3.1.3 || 3.1.4
-  - serialize-javascript@7.0.3 || 7.0.5
-  - uuid@11.1.1
-  - qs@6.15.2
-  - markdown-it@14.1.2
-  - '@opentelemetry/core@2.8.0'
-  - linkify-it@5.0.1 || 5.0.2
-  - adm-zip@0.6.0
-  - fast-uri@3.1.5
-  - js-yaml@3.15.1 || 4.3.1
-  - nanoid@3.3.17
 overrides:
   '@opentelemetry/core@<2.8.0': ^2.8.0
-  adm-zip@<0.6.0: ^0.6.0
-  fast-uri@>=3.0.0 <3.1.5: ^3.1.5
-  js-yaml@>=3.0.0 <3.15.1: ^3.15.1
-  js-yaml@>=4.0.0 <4.3.1: ^4.3.1
   linkify-it@<=5.0.0: ^5.0.1
   linkify-it@<=5.0.1: ^5.0.2
-  markdown-it@<=14.1.1: ^14.1.2
+  markdown-it@<=14.1.1: ^14.2.0
   minimatch@<3.1.3: ^3.1.3
   minimatch@<3.1.4: ^3.1.4
-  nanoid@<3.3.17: ^3.3.17
-  nanoid@<3.3.18: ^3.3.18
   path-to-regexp@>=4.0.0 <6.3.0: ^6.3.0
+  qs@>=2.2.5 <6.16.0: ^6.16.0
   qs@>=6.11.1 <=6.15.1: ^6.15.2
+  qs@>=6.14.2 <=6.15.3: ^6.16.0
+  # starlight-blog@0.29.0 pins satteri@^0.9.3, but the rest of the Astro toolchain
+  # (@astrojs/markdown-satteri) resolves satteri 0.10.x. The native @bruits/satteri
+  # binding is hoisted to a single copy, so the 0.9.5 JS ends up calling the 0.10.x
+  # native (u32 parseOptions vs object features) and RSS/excerpt builds crash with
+  # "Failed to convert napi value Object into rust type `u32`". Force one version.
+  satteri@<0.10.0: 0.10.5
   serialize-javascript@<=7.0.2: ^7.0.3
   serialize-javascript@>=5.0.0 <7.0.5: ^7.0.5
   uuid@<11.1.1: ^11.1.1
