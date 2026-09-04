@@ -19,6 +19,6 @@
     "@wordpress/e2e-test-utils-playwright": "^1.54.0"
   },
   "dependencies": {
-    "jscpd": "^5.1.1"
+    "jscpd": "^5.1.2"
   }
 }
