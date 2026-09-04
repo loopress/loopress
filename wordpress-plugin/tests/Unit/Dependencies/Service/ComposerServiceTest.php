@@ -437,18 +437,44 @@ class ComposerServiceTest extends TestCase
         $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, false);
     }
 
-    public function test_sync_removes_unmanaged_folder_when_forced(): void
+    public function test_sync_stages_unmanaged_folder_when_forced_and_discards_it_on_success(): void
     {
         $this->stubScaffoldIdentity();
         $this->environment->method('readComposerJson')->willReturn(['require' => []]);
         $this->environment->method('readComposerLock')->willReturn(null);
         $this->environment->method('managedDirExists')->willReturn(true);
         $this->environment->method('readComposerJsonRaw')->willReturn('{}');
+        $this->environment->method('stageManagedDir')->with('wpackagist-plugin/woocommerce')->willReturn('/staging/woocommerce-abc');
 
-        $this->environment->expects($this->once())->method('removeManagedDir')->with('wpackagist-plugin/woocommerce');
+        $this->environment->expects($this->never())->method('restoreStagedDir');
+        $this->environment->expects($this->once())->method('discardStagedDir')->with('/staging/woocommerce-abc');
         $this->runner->method('run')->willReturn(['exit_code' => 0, 'output' => 'ok']);
 
         $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, true);
+    }
+
+    // Regression coverage: removeManagedDir() used to delete a force-takeover's original folder
+    // outright, before Composer ever ran; a failed run then left the site with neither the old
+    // files nor the new ones. The takeover now stages (moves) the folder instead, so a failure
+    // can restore it, same as composer.json/composer.lock already do.
+    public function test_sync_restores_a_staged_folder_when_the_forced_takeover_fails(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(true);
+        $this->environment->method('stageManagedDir')->with('wpackagist-plugin/woocommerce')->willReturn('/staging/woocommerce-abc');
+
+        $this->environment->expects($this->once())->method('restoreStagedDir')->with('wpackagist-plugin/woocommerce', '/staging/woocommerce-abc');
+        $this->environment->expects($this->never())->method('discardStagedDir');
+        $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
+
+        try {
+            $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, true);
+            $this->fail('Expected RuntimeException');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Install failed.', $e->getMessage());
+        }
     }
 
     public function test_sync_restores_previous_manifests_on_failure(): void

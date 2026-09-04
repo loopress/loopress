@@ -15,6 +15,15 @@ describe('isExactVersion', () => {
       expect(isExactVersion(v), v).toBe(false)
     }
   })
+
+  it('rejects a prerelease suffix on fewer than 3 numeric segments', () => {
+    // compare-versions' own validate() (which compareVersions() defers to) can't order these,
+    // so accepting them here would let isDowngrade() silently treat a real downgrade as
+    // unorderable and skip the --force gate.
+    for (const v of ['9-beta', '0.9-beta', '6.0-RC.2']) {
+      expect(isExactVersion(v), v).toBe(false)
+    }
+  })
 })
 
 describe('compareVersions', () => {

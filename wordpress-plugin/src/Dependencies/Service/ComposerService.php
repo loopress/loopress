@@ -293,7 +293,7 @@ class ComposerService
         $previousLock = $this->environment->readComposerLock();
 
         $rendered = $this->renderComposerJson($previousJson, $intent);
-        $this->handleCollisions($rendered['require'] ?? [], $previousLock, $force);
+        $staged   = $this->handleCollisions($rendered['require'] ?? [], $previousLock, $force);
 
         $previousLockedNames = $this->lockedPackageNames($previousLock);
 
@@ -320,7 +320,17 @@ class ComposerService
                 $this->environment->deleteComposerLock();
             }
 
+            // A force-takeover's original directory was moved aside, not deleted, precisely so
+            // a Composer run that never finished replacing it can get it back.
+            foreach ($staged as $vendorName => $stagedPath) {
+                $this->environment->restoreStagedDir($vendorName, $stagedPath);
+            }
+
             throw new \RuntimeException(esc_html($result['output']));
+        }
+
+        foreach ($staged as $stagedPath) {
+            $this->environment->discardStagedDir($stagedPath);
         }
 
         $newLock = $this->environment->readComposerLock();
@@ -401,11 +411,13 @@ class ComposerService
 
     /**
      * @param array<string, string> $newRequire
+     * @return array<string, string> vendorName => staged directory path, one per force-takeover
      */
-    private function handleCollisions(array $newRequire, ?string $previousLock, bool $force): void
+    private function handleCollisions(array $newRequire, ?string $previousLock, bool $force): array
     {
         $lockedNames = $this->lockedPackageNames($previousLock);
         $collisions  = [];
+        $staged      = [];
 
         foreach (array_keys($newRequire) as $name) {
             $name = (string) $name;
@@ -418,7 +430,11 @@ class ComposerService
             }
 
             if ($force) {
-                $this->environment->removeManagedDir($name);
+                $stagedPath = $this->environment->stageManagedDir($name);
+                if ($stagedPath !== null) {
+                    $staged[$name] = $stagedPath;
+                }
+
                 continue;
             }
 
@@ -431,9 +447,13 @@ class ComposerService
             ];
         }
 
+        // $collisions and $staged are never both non-empty: every match in the loop above goes
+        // to one or the other depending on the single $force flag for this whole call.
         if ($collisions !== []) {
             throw new UnmanagedPackageException($collisions);
         }
+
+        return $staged;
     }
 
     /** @return list<string> */

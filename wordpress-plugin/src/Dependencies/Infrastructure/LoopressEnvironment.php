@@ -125,11 +125,65 @@ class LoopressEnvironment
         return $dir !== null && is_dir($dir);
     }
 
-    public function removeManagedDir(string $vendorName): void
+    // A force-takeover moves the existing directory here instead of deleting it outright, so a
+    // Composer run that's supposed to replace it but fails (network blip, a version that
+    // doesn't exist, the in-process class-loading collision applyScaffold() works around
+    // above) doesn't leave the site with neither the old files nor the new ones. Lives under
+    // wp-content/loopress/, not wp-content/plugins|themes/, so WordPress's plugin/theme header
+    // scan never picks up a staged copy while it's in flight.
+    private function stagingDir(): string
+    {
+        $dir = $this->loopressDir . 'staging/';
+        if (!is_dir($dir)) {
+            wp_mkdir_p($dir);
+        }
+
+        $htaccess = $dir . '.htaccess';
+        if (!file_exists($htaccess)) {
+            file_put_contents($htaccess, self::VENDOR_HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        }
+
+        return $dir;
+    }
+
+    public function stageManagedDir(string $vendorName): ?string
     {
         $dir = $this->managedPackageDir($vendorName);
-        if ($dir !== null && is_dir($dir)) {
+        if ($dir === null || !is_dir($dir)) {
+            return null;
+        }
+
+        $staged = $this->stagingDir() . basename($dir) . '-' . uniqid();
+        $this->filesystem->rename($dir, $staged);
+
+        return $staged;
+    }
+
+    // Moves a staged directory back to its live path. A failed Composer run may have gotten
+    // as far as creating a partial extraction at that path before it errored out, so that's
+    // cleared first, the rename below would otherwise collide with it.
+    public function restoreStagedDir(string $vendorName, string $stagedPath): void
+    {
+        if (!is_dir($stagedPath)) {
+            return;
+        }
+
+        $dir = $this->managedPackageDir($vendorName);
+        if ($dir === null) {
+            return;
+        }
+
+        if (is_dir($dir)) {
             $this->filesystem->remove($dir);
+        }
+
+        $this->filesystem->rename($stagedPath, $dir);
+    }
+
+    public function discardStagedDir(string $stagedPath): void
+    {
+        if (is_dir($stagedPath)) {
+            $this->filesystem->remove($stagedPath);
         }
     }
 

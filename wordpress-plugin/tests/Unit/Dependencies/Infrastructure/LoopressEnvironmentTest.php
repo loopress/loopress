@@ -338,15 +338,76 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertNull($env->managedPackageDir('monolog/monolog'));
     }
 
-    public function test_removeManagedDir_deletes_an_existing_plugin_folder(): void
+    public function test_stageManagedDir_moves_the_folder_out_of_its_live_path(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+
+        $this->assertNotNull($staged);
+        $this->assertFalse($env->managedDirExists('wpackagist-plugin/acme'));
+        $this->assertFileExists($staged . '/plugin.php');
+    }
+
+    public function test_stageManagedDir_returns_null_when_nothing_is_installed(): void
+    {
+        $env = new LoopressEnvironment();
+        $this->assertNull($env->stageManagedDir('wpackagist-plugin/does-not-exist'));
+    }
+
+    public function test_restoreStagedDir_moves_the_folder_back_with_its_original_content(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
+
+        $this->assertTrue($env->managedDirExists('wpackagist-plugin/acme'));
+        $this->assertFileExists($dir . '/plugin.php');
+
+        // WP_CONTENT_DIR is a shared constant across the whole run (see setUp()); a restored
+        // live directory, unlike a staged one under wp-content/loopress/, isn't swept by
+        // tearDown(), so the next test to mkdir() this same path would collide with it.
+        $this->rrmdir($dir);
+    }
+
+    // A Composer run that fails after partially extracting the replacement can leave a fresh,
+    // incomplete directory at the live path; restoring the original must not collide with it.
+    public function test_restoreStagedDir_clears_a_partial_reinstall_at_the_live_path_first(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // original'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/partial.php', '<?php // half-installed'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
+
+        $this->assertFileExists($dir . '/plugin.php');
+        $this->assertFileDoesNotExist($dir . '/partial.php');
+
+        $this->rrmdir($dir);
+    }
+
+    public function test_discardStagedDir_removes_the_staged_copy(): void
     {
         $env = new LoopressEnvironment();
         $dir = WP_CONTENT_DIR . '/plugins/acme';
         mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
 
-        $this->assertTrue($env->managedDirExists('wpackagist-plugin/acme'));
-        $env->removeManagedDir('wpackagist-plugin/acme');
-        $this->assertFalse($env->managedDirExists('wpackagist-plugin/acme'));
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        $env->discardStagedDir($staged);
+
+        $this->assertDirectoryDoesNotExist($staged);
     }
 
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void

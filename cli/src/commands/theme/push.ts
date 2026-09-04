@@ -1,7 +1,9 @@
+import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
+import {isInteractive} from '../../lib/interactive.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {isDowngrade, parseCollisions, SYNC_TIMEOUT_MS, type SyncResponse} from '../../utils/plugin-sync.js'
@@ -51,8 +53,13 @@ export default class Push extends PushCommand {
 
     // Uninstalling the theme WordPress is currently rendering leaves the site with no active
     // theme, which is a hard fatal. --force does not override this: switch the active theme
-    // on the site first, then the removal is safe.
-    const activeRemoval = diff.toRemove.find((slug) => installed.find((t) => t.slug === slug)?.active)
+    // on the site first, then the removal is safe. A --force takeover of a collision hits the
+    // same fatal: the server moves the existing folder out of the way before reinstalling it,
+    // so the active theme is briefly missing either way, an active collision is just as
+    // dangerous as an active removal.
+    const activeRemoval = [...diff.toRemove, ...diff.collisions.map((c) => c.slug)].find(
+      (slug) => installed.find((t) => t.slug === slug)?.active,
+    )
     if (activeRemoval) {
       this.error(
         `Refusing to uninstall "${activeRemoval}": it is the site's active theme. ` +
@@ -77,12 +84,20 @@ export default class Push extends PushCommand {
 
     if (this.dryRun) return result(diff, 'dry-run', diff.toRemove, true)
 
+    await this.confirmRemovals(diff.toRemove)
+
     const response = await this.sync(manifest, force)
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Themes synced.')
     await this.recordSuccess()
 
     return result(diff, 'success', response.removed ?? diff.toRemove, force)
+  }
+
+  private async confirmRemovals(toRemove: string[]): Promise<void> {
+    if (toRemove.length === 0 || this.yes || !isInteractive()) return
+    const ok = await confirm({default: false, message: `Uninstall ${toRemove.join(', ')} from the site?`})
+    if (!ok) this.error('Aborted.')
   }
 
   private async fetchInstanceLock(): Promise<null | string> {
