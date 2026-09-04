@@ -20,17 +20,17 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@eslint/compat": "2.1.0",
     "@loopress/eslint-config": "workspace:*",
-    "@types/node": "26.4.0",
+    "@types/node": "26.4.1",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10",
     "prettier": "3.9.6",
     "shx": "^0.4.0",
-    "tsx": "4.23.12",
+    "tsx": "4.23.13",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   },
