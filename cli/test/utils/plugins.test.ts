@@ -1,7 +1,12 @@
 import {describe, expect, it} from 'vitest'
 
 import {type InstalledPlugin, type WpNativePlugin} from '../../src/types/plugin.js'
-import {diffPlugins, mergePluginManifest, parseInstalledPlugins} from '../../src/utils/plugins.js'
+import {
+  diffPlugins,
+  lockedWpackagistSlugs,
+  mergePluginManifest,
+  parseInstalledPlugins,
+} from '../../src/utils/plugins.js'
 
 const makePlugin = (slug: string, version: string, active = true): InstalledPlugin => ({
   active,
@@ -96,54 +101,95 @@ describe('plugins', () => {
   })
 
   describe('diffPlugins', () => {
-    it('puts a manifest plugin missing from site into toInstall', () => {
-      const {toInstall, upToDate, toActivate} = diffPlugins({woocommerce: 'latest'}, [])
-      expect(toInstall).toEqual([{slug: 'woocommerce'}])
-      expect(upToDate).toHaveLength(0)
-      expect(toActivate).toHaveLength(0)
+    const managed = (...slugs: string[]) => new Set(slugs)
+
+    it('puts a manifest plugin missing from the site into toInstall with its wanted version', () => {
+      const {toInstall} = diffPlugins({woocommerce: '9.4.2'}, [])
+      expect(toInstall).toEqual([{slug: 'woocommerce', version: '9.4.2'}])
     })
 
-    it('puts an active installed plugin into upToDate', () => {
-      const {upToDate, toInstall, toActivate} = diffPlugins({woocommerce: 'latest'}, [makePlugin('woocommerce', '8.9.1')])
-      expect(upToDate).toEqual(['woocommerce'])
-      expect(toInstall).toHaveLength(0)
-      expect(toActivate).toHaveLength(0)
+    it('puts a managed active plugin at the pinned version into inSync', () => {
+      const {inSync, toPin} = diffPlugins({woocommerce: '9.4.2'}, [makePlugin('woocommerce', '9.4.2')], managed('woocommerce'))
+      expect(inSync).toEqual(['woocommerce'])
+      expect(toPin).toHaveLength(0)
     })
 
-    it('puts an installed-but-inactive plugin into toActivate with its native file id', () => {
-      const {toActivate, upToDate, toInstall} = diffPlugins({woocommerce: 'latest'}, [makePlugin('woocommerce', '8.9.1', false)])
+    it('puts a managed plugin at the wrong version into toPin', () => {
+      const {toPin} = diffPlugins({woocommerce: '9.4.2'}, [makePlugin('woocommerce', '9.5.0')], managed('woocommerce'))
+      expect(toPin).toEqual([{from: '9.5.0', slug: 'woocommerce', to: '9.4.2'}])
+    })
+
+    it('never reports a version mismatch for a "latest" pin', () => {
+      const {toPin, inSync} = diffPlugins({woocommerce: 'latest'}, [makePlugin('woocommerce', '9.5.0')], managed('woocommerce'))
+      expect(toPin).toHaveLength(0)
+      expect(inSync).toEqual(['woocommerce'])
+    })
+
+    it('puts a managed inactive plugin into toActivate with its native file id', () => {
+      const {toActivate} = diffPlugins(
+        {woocommerce: '9.4.2'},
+        [makePlugin('woocommerce', '9.4.2', false)],
+        managed('woocommerce'),
+      )
       expect(toActivate).toEqual([{file: 'woocommerce/woocommerce', slug: 'woocommerce'}])
-      expect(upToDate).toHaveLength(0)
-      expect(toInstall).toHaveLength(0)
     })
 
-    it('ignores installed plugins that are not in the manifest', () => {
-      const {toInstall, upToDate, toActivate} = diffPlugins({}, [makePlugin('woocommerce', '8.9.1')])
-      expect(toInstall).toHaveLength(0)
-      expect(upToDate).toHaveLength(0)
+    it('puts an installed-but-unmanaged manifest plugin into collisions', () => {
+      const {collisions, toPin, toActivate} = diffPlugins({woocommerce: '9.4.2'}, [makePlugin('woocommerce', '9.4.2')])
+      expect(collisions).toEqual([{installedVersion: '9.4.2', slug: 'woocommerce'}])
+      expect(toPin).toHaveLength(0)
       expect(toActivate).toHaveLength(0)
     })
 
-    it('handles mixed install / up-to-date / activate in one call', () => {
-      const manifest = {
-        acf: 'latest',
-        'contact-form-7': 'latest',
-        wpcode: 'latest',
-      }
-      const installed = [makePlugin('acf', '6.0.0'), makePlugin('wpcode', '2.0.0', false)]
-
-      const {toInstall, upToDate, toActivate} = diffPlugins(manifest, installed)
-
-      expect(toInstall).toEqual([{slug: 'contact-form-7'}])
-      expect(upToDate).toEqual(['acf'])
-      expect(toActivate).toEqual([{file: 'wpcode/wpcode', slug: 'wpcode'}])
+    it('puts a managed slug dropped from the manifest into toRemove', () => {
+      const {toRemove} = diffPlugins({}, [makePlugin('redirection', '5.4.2')], managed('redirection'))
+      expect(toRemove).toEqual(['redirection'])
     })
 
-    it('returns all empty arrays for an empty manifest', () => {
-      const result = diffPlugins({}, [makePlugin('woocommerce', '8.9.1')])
-      expect(result.toInstall).toHaveLength(0)
-      expect(result.upToDate).toHaveLength(0)
-      expect(result.toActivate).toHaveLength(0)
+    it('reports an active, unmanaged, unlisted plugin as untrackedActive', () => {
+      const {untrackedActive} = diffPlugins({}, [makePlugin('akismet', '5.3')])
+      expect(untrackedActive).toEqual(['akismet'])
+    })
+
+    it('handles install / pin / activate / remove in one call', () => {
+      const manifest = {acf: '6.3.0', 'contact-form-7': '6.0.5', wpcode: '2.1.0'}
+      const installed = [
+        makePlugin('acf', '6.2.0'),
+        makePlugin('wpcode', '2.1.0', false),
+        makePlugin('redirection', '5.4.2'),
+      ]
+      const {toInstall, toPin, toActivate, toRemove} = diffPlugins(
+        manifest,
+        installed,
+        managed('acf', 'wpcode', 'redirection'),
+      )
+      expect(toInstall).toEqual([{slug: 'contact-form-7', version: '6.0.5'}])
+      expect(toPin).toEqual([{from: '6.2.0', slug: 'acf', to: '6.3.0'}])
+      expect(toActivate).toEqual([{file: 'wpcode/wpcode', slug: 'wpcode'}])
+      expect(toRemove).toEqual(['redirection'])
+    })
+  })
+
+  describe('lockedWpackagistSlugs', () => {
+    const lock = JSON.stringify({
+      packages: [
+        {name: 'wpackagist-plugin/woocommerce', version: '9.4.2'},
+        {name: 'wpackagist-theme/generatepress', version: '3.4.0'},
+        {name: 'composer/installers', version: '2.3.0'},
+      ],
+    })
+
+    it('extracts plugin slugs', () => {
+      expect([...lockedWpackagistSlugs(lock, 'plugin')]).toEqual(['woocommerce'])
+    })
+
+    it('extracts theme slugs', () => {
+      expect([...lockedWpackagistSlugs(lock, 'theme')]).toEqual(['generatepress'])
+    })
+
+    it('returns an empty set for a null or unparseable lock', () => {
+      expect(lockedWpackagistSlugs(null, 'plugin').size).toBe(0)
+      expect(lockedWpackagistSlugs('{not json', 'plugin').size).toBe(0)
     })
   })
 })

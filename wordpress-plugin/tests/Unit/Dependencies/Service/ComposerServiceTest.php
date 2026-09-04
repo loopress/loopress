@@ -375,57 +375,120 @@ class ComposerServiceTest extends TestCase
 
     // ── sync ──────────────────────────────────────────────────────────────────
 
-    public function test_sync_rejects_invalid_json(): void
+    /** applyScaffold is exercised directly in LoopressEnvironmentTest; here it's the identity. */
+    private function stubScaffoldIdentity(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->service->sync('{not json', null);
+        $this->environment->method('applyScaffold')->willReturnArgument(0);
     }
 
-    public function test_sync_writes_manifests_and_runs_install_when_lock_provided(): void
+    public function test_sync_renders_plugins_into_wpackagist_requires_and_maps_latest(): void
     {
-        $this->environment->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
-        $this->environment->method('readComposerLock')->willReturn('{"old": "lock"}');
-
-        $this->environment->expects($this->once())
-            ->method('writeComposerJson')
-            ->with(['name' => 'new/manifest']);
-        $this->environment->expects($this->once())
-            ->method('writeComposerLock')
-            ->with('{"new": "lock"}');
-
-        $this->runner->method('run')
-            ->with(['install'])
-            ->willReturn(['exit_code' => 0, 'output' => 'Installed.']);
-
-        $output = $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
-        $this->assertSame('Installed.', $output);
-    }
-
-    public function test_sync_runs_update_when_no_lock_provided(): void
-    {
-        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn([
+            'require' => ['wpackagist-plugin/old' => '1.0.0', 'monolog/monolog' => '^3.0'],
+        ]);
         $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(false);
+        $this->environment->method('readComposerJsonRaw')->willReturn('{}');
 
-        $this->runner->method('run')
-            ->with(['update'])
-            ->willReturn(['exit_code' => 0, 'output' => 'Updated.']);
+        $written = null;
+        $this->environment->method('writeComposerJson')
+            ->willReturnCallback(function (array $json) use (&$written): void {
+                $written = $json;
+            });
 
-        $output = $this->service->sync('{"name": "new/manifest"}', null);
-        $this->assertSame('Updated.', $output);
+        $this->runner->method('run')->with(['update'])->willReturn(['exit_code' => 0, 'output' => 'ok']);
+
+        $this->service->sync(['plugins' => ['woocommerce' => '9.4.2', 'wordpress-seo' => 'latest']], null, false);
+
+        // plugins section replaces every wpackagist-plugin/*; libraries untouched (no section).
+        $this->assertSame('9.4.2', $written['require']['wpackagist-plugin/woocommerce']);
+        $this->assertSame('*', $written['require']['wpackagist-plugin/wordpress-seo']);
+        $this->assertArrayNotHasKey('wpackagist-plugin/old', $written['require']);
+        $this->assertSame('^3.0', $written['require']['monolog/monolog']);
+    }
+
+    public function test_sync_runs_install_when_lock_provided_and_reports_removed(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('managedDirExists')->willReturn(false);
+        $this->environment->method('readComposerJsonRaw')->willReturn('{}');
+        $this->environment->method('readComposerLock')->willReturnOnConsecutiveCalls(
+            '{"packages":[{"name":"wpackagist-plugin/gone"}]}', // previous
+            '{"packages":[]}',                                  // after install
+        );
+
+        $this->runner->method('run')->with(['install'])->willReturn(['exit_code' => 0, 'output' => 'ok']);
+
+        $result = $this->service->sync(['plugins' => []], '{"packages":[]}', false);
+        $this->assertSame(['wpackagist-plugin/gone'], $result['removed']);
+    }
+
+    public function test_sync_throws_unmanaged_when_folder_exists_and_not_forced(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(true);
+        $this->environment->method('managedPackageDir')->willReturn('/wp-content/plugins/woocommerce');
+
+        $this->expectException(\Loopress\Dependencies\Exception\UnmanagedPackageException::class);
+        $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, false);
+    }
+
+    public function test_sync_stages_unmanaged_folder_when_forced_and_discards_it_on_success(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(true);
+        $this->environment->method('readComposerJsonRaw')->willReturn('{}');
+        $this->environment->method('stageManagedDir')->with('wpackagist-plugin/woocommerce')->willReturn('/staging/woocommerce-abc');
+
+        $this->environment->expects($this->never())->method('restoreStagedDir');
+        $this->environment->expects($this->once())->method('discardStagedDir')->with('/staging/woocommerce-abc');
+        $this->runner->method('run')->willReturn(['exit_code' => 0, 'output' => 'ok']);
+
+        $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, true);
+    }
+
+    // Regression coverage: removeManagedDir() used to delete a force-takeover's original folder
+    // outright, before Composer ever ran; a failed run then left the site with neither the old
+    // files nor the new ones. The takeover now stages (moves) the folder instead, so a failure
+    // can restore it, same as composer.json/composer.lock already do.
+    public function test_sync_restores_a_staged_folder_when_the_forced_takeover_fails(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(true);
+        $this->environment->method('stageManagedDir')->with('wpackagist-plugin/woocommerce')->willReturn('/staging/woocommerce-abc');
+
+        $this->environment->expects($this->once())->method('restoreStagedDir')->with('wpackagist-plugin/woocommerce', '/staging/woocommerce-abc');
+        $this->environment->expects($this->never())->method('discardStagedDir');
+        $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
+
+        try {
+            $this->service->sync(['plugins' => ['woocommerce' => '9.4.2']], null, true);
+            $this->fail('Expected RuntimeException');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Install failed.', $e->getMessage());
+        }
     }
 
     public function test_sync_restores_previous_manifests_on_failure(): void
     {
-        $this->environment->method('readComposerJson')->willReturn(['name' => 'old/manifest']);
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
         $this->environment->method('readComposerLock')->willReturn('{"old": "lock"}');
+        $this->environment->method('managedDirExists')->willReturn(false);
 
-        // First write: the incoming manifest. Second write: the rollback.
         $writtenJson = [];
         $this->environment->method('writeComposerJson')
             ->willReturnCallback(function (array $json) use (&$writtenJson): void {
                 $writtenJson[] = $json;
             });
-
         $writtenLock = [];
         $this->environment->method('writeComposerLock')
             ->willReturnCallback(function (string $lock) use (&$writtenLock): void {
@@ -435,25 +498,27 @@ class ComposerServiceTest extends TestCase
         $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
 
         try {
-            $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
+            $this->service->sync(['plugins' => []], '{"new": "lock"}', false);
             $this->fail('Expected RuntimeException');
         } catch (\RuntimeException $e) {
             $this->assertSame('Install failed.', $e->getMessage());
         }
 
-        $this->assertSame([['name' => 'new/manifest'], ['name' => 'old/manifest']], $writtenJson);
+        $this->assertCount(2, $writtenJson); // rendered, then rollback
         $this->assertSame(['{"new": "lock"}', '{"old": "lock"}'], $writtenLock);
     }
 
     public function test_sync_deletes_written_lock_on_failure_when_none_existed_before(): void
     {
-        $this->environment->method('readComposerJson')->willReturn([]);
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
         $this->environment->method('readComposerLock')->willReturn(null);
+        $this->environment->method('managedDirExists')->willReturn(false);
 
         $this->environment->expects($this->once())->method('deleteComposerLock');
         $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
 
         $this->expectException(\RuntimeException::class);
-        $this->service->sync('{"name": "new/manifest"}', '{"new": "lock"}');
+        $this->service->sync(['plugins' => []], '{"new": "lock"}', false);
     }
 }

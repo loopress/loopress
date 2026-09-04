@@ -6,6 +6,7 @@ namespace Loopress\Dependencies\RestApi;
 
 use Composer\Semver\VersionParser;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
+use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Service\ComposerService;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -100,15 +101,22 @@ class ComposerController
             'callback'            => [$this, 'sync'],
             'permission_callback' => $this->permissionCallback(),
             'args'                => [
-                'composerJson' => [
+                'intent' => [
                     'required' => true,
-                    'type'     => 'string',
+                    'type'     => 'object',
+                    // Which libraries / WordPress.org plugins / themes at which versions. The
+                    // plugin renders composer.json from this; the CLI never sends the file.
                 ],
-                'composerLock' => [
+                'lock' => [
                     'required' => false,
                     // Nullable: the CLI sends an explicit `null` (not an omitted key) when the
                     // project has no composer.lock yet, so the server can resolve versions freely.
                     'type'     => ['string', 'null'],
+                ],
+                'force' => [
+                    'required' => false,
+                    'type'     => 'boolean',
+                    'default'  => false,
                 ],
             ],
         ]);
@@ -240,12 +248,34 @@ class ComposerController
 
     public function sync(WP_REST_Request $request): WP_REST_Response
     {
-        $composerJson = $request->get_param('composerJson');
-        $composerLock = $request->get_param('composerLock');
+        $intent = $request->get_param('intent');
+        $lock   = $request->get_param('lock');
+        $force  = (bool) $request->get_param('force');
+
+        if (!is_array($intent)) {
+            return new WP_REST_Response(['error' => 'Invalid intent: expected an object.'], 400);
+        }
+
+        // Each section, when present, must be a slug => version-string map. Without this a
+        // scalar reaches ComposerService::applyWpackagistSection(?array $section) and fatals
+        // instead of returning a clean 400.
+        foreach (['libraries', 'plugins', 'themes'] as $section) {
+            if (isset($intent[$section]) && !self::isStringMap($intent[$section])) {
+                return new WP_REST_Response(
+                    ['error' => "Invalid intent.{$section}: expected an object of slug => version."],
+                    400,
+                );
+            }
+        }
 
         try {
-            $output = $this->composerService->sync($composerJson, $composerLock);
-            return new WP_REST_Response(['message' => 'composer install completed.', 'output' => $output], 200);
+            $result = $this->composerService->sync($intent, $lock, $force);
+            return new WP_REST_Response($result, 200);
+        } catch (UnmanagedPackageException $e) {
+            return new WP_REST_Response(
+                ['error' => 'unmanaged_plugins_present', 'collisions' => $e->collisions],
+                422,
+            );
         } catch (\InvalidArgumentException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 400);
         } catch (ConcurrentOperationException $e) {
@@ -253,6 +283,21 @@ class ComposerController
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Sync failed.', 'output' => $e->getMessage()], 500);
         }
+    }
+
+    private static function isStringMap(mixed $value): bool
+    {
+        if (!is_array($value)) {
+            return false;
+        }
+
+        foreach ($value as $key => $item) {
+            if (!is_string($key) || !is_string($item)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array<string, mixed> */

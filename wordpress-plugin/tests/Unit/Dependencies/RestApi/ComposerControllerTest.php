@@ -142,9 +142,56 @@ class ComposerControllerTest extends TestCase
     {
         $this->composerService->method('sync')
             ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
-        $request  = new WP_REST_Request(['composerJson' => '{}']);
+        $request  = new WP_REST_Request(['intent' => ['plugins' => []]]);
         $response = $this->controller->sync($request);
         $this->assertSame(409, $response->status);
+    }
+
+    public function test_sync_returns_400_when_intent_is_not_an_object(): void
+    {
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => 'nope']));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_400_when_plugins_section_is_a_scalar(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => 'woocommerce']]));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_400_when_themes_section_is_a_list(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['themes' => ['generatepress']]]));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_400_when_a_library_version_is_not_a_string(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['libraries' => ['monolog/monolog' => 3]]]));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_422_on_unmanaged_package_collision(): void
+    {
+        $collisions = [['slug' => 'woocommerce', 'type' => 'plugin', 'path' => '/x', 'installedVersion' => '']];
+        $this->composerService->method('sync')
+            ->willThrowException(new \Loopress\Dependencies\Exception\UnmanagedPackageException($collisions));
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => ['woocommerce' => '9.4.2']]]));
+        $this->assertSame(422, $response->status);
+        $this->assertSame('unmanaged_plugins_present', $response->data['error']);
+        $this->assertSame($collisions, $response->data['collisions']);
+    }
+
+    public function test_sync_returns_200_with_service_result(): void
+    {
+        $result = ['message' => 'ok', 'output' => '...', 'composerJson' => '{}', 'composerLock' => null, 'removed' => []];
+        $this->composerService->method('sync')->willReturn($result);
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => []]]));
+        $this->assertSame(200, $response->status);
+        $this->assertSame($result, $response->data);
     }
 
     // ── get_json ─────────────────────────────────────────────────────────────

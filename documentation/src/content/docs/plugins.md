@@ -1,130 +1,100 @@
 ---
 title: Plugins
-description: Sync installed WordPress plugins across environments with a manifest in Git.
+description: Pin WordPress.org plugin versions in a lockfile and install the identical set on any environment, via Composer and WPackagist.
 ---
 
-The `plugins` command group lets you track installed WordPress plugins as a manifest in `loopress.json`. Once committed, any environment can be brought to the same set of installed, active plugins with a single command.
+The `plugin` command group tracks WordPress.org plugins as a lockfile in `loopress.json`. Loopress installs them on the site by running **Composer with the [WPackagist](https://wpackagist.org/) repository** inside WordPress, with no SSH and no need for a `composer.json` in your repo. Entries pinned to an exact version install identically on every environment. `latest` entries are re-resolved by Composer on each push, so environments pushed at different times can land on different versions.
 
-## How it works
+This is a [Loopress Full](/wordpress-plugin/) feature.
 
-Loopress stores managed plugins under the `plugins` key in `loopress.json`:
+## The lockfile
 
 ```json
 {
   "plugins": {
-    "woocommerce": "latest",
-    "contact-form-7": "latest"
+    "woocommerce": "9.4.2",
+    "wordpress-seo": "latest"
   }
 }
 ```
 
-The keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Installs and activations go through WordPress's own `wp/v2/plugins` REST API, which only ever installs the current stable release, so there is no version to pin, the value is always `"latest"`.
+Keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Each value is either:
 
-Need a specific, reproducible version instead? Manage that plugin through Composer and [wpackagist](https://wpackagist.org/) - see the [`composer` command group](/composer/cli/). Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
+- an **exact version** to pin (`"9.4.2"`), installed on every push and reported as drift if the site diverges, or
+- `"latest"`, which updates that plugin to the newest release on every push. Because it re-resolves each time, it is not reproducible across environments.
+
+**Removing an entry uninstalls the plugin** on the next push (shown in the plan, with a confirmation prompt).
+
+### Where the Composer files live
+
+For a `loopress.json`-only project, the generated `composer.json` / `composer.lock` stay **on the site** (`wp-content/loopress/`), not in your repo. Exact-version pins in `loopress.json` reproduce identically on every environment; `latest` pins are resolved per push and do not.
+
+If your repo has a `composer.json` (from `lps composer init`), that file is authoritative for plugins and themes instead, and the `plugin` / `theme` commands defer to `lps composer`. See the [`composer` command group](/composer/cli/).
 
 ## Commands
 
 ### `lps plugin add`
 
-Add a WordPress.org plugin to `loopress.json`.
-
 ```bash
-lps plugin add <slug>
+lps plugin add woocommerce                 # pins "latest"
+lps plugin add woocommerce --version 9.4.2 # pins an exact version
 ```
-
-| Argument | Description |
-|----------|-------------|
-| `slug` | WordPress.org plugin slug (e.g. `woocommerce`) |
 
 | Flag | Description |
 |------|-------------|
+| `--version` | Exact version to pin (default `"latest"`) |
 | `--dry-run` / `-d` | Show what would be written without touching `loopress.json` |
-
-```bash
-lps plugin add woocommerce
-lps plugin add contact-form-7 --dry-run
-```
-
-Need to manage a Composer package instead? See the [`composer` command group](/composer/cli/) - Composer-managed plugins are automatically skipped by `plugin pull`/`plugin push`.
-
----
 
 ### `lps plugin pull`
 
-Snapshot the plugins currently installed on WordPress into `loopress.json`.
-
-```bash
-lps plugin pull
-```
-
-| Flag | Description |
-|------|-------------|
-| `--dry-run` / `-d` | Show what would be written without making changes |
-
-Loopress merges the remote state into the existing manifest; new plugins are added.
-
-**Example output:**
+Snapshot the installed plugins into `loopress.json`, each **pinned to the version running on the site**.
 
 ```console
 Pulling plugins from https://example.com
 Wrote 4 plugins to loopress.json
-  + Added: contact-form-7, yoast-seo
+  + Added: contact-form-7
+  ~ Updated: woocommerce 9.4.2 → 9.5.0
 ```
-
----
 
 ### `lps plugin push`
 
-Sync the plugins on WordPress to match `loopress.json`.
-
-```bash
-lps plugin push
-```
+Install the manifest on the site via Composer + WPackagist.
 
 | Flag | Description |
 |------|-------------|
-| `--dry-run` / `-d` | Show what would change without making any changes |
+| `--force` | Allow downgrades, and let Loopress take over a plugin installed by hand (replaces its files) |
+| `--prune` | Deactivate plugins that are active on the site but absent from `loopress.json` |
+| `--dry-run` / `-d` | Show the plan without making changes |
 
-Before making any change, the command prints a diff:
-
-- **To install**: plugins in the manifest that are not on the site
-- **To activate**: plugins installed but not yet active
-
-Missing plugins are installed and activated automatically.
-
-**Example output:**
+The plan lists what will be installed, re-pinned, activated, taken over, or uninstalled:
 
 ```console
 Pushing plugins to https://example.com
 
 To install (1):
-  + contact-form-7
-
-Installing contact-form-7...
-  ✓ contact-form-7 installed and activated
+  + contact-form-7 6.0.5
+To re-pin (1):
+  ~ woocommerce 9.5.0 to 9.4.2
 ```
 
-## Typical workflow
+**Downgrades** are refused without `--force`: reinstalling older plugin files does not undo database migrations the newer version ran. **Plugins installed outside Loopress** are refused without `--force`, because Composer can't cleanly install over an unmanaged folder.
 
-```bash
-# 1. Capture the current state from your reference environment
-lps project switch   # select production
-lps plugin pull
+### `lps plugin status`
 
-# 2. Commit the manifest
-git add loopress.json && git commit -m "chore: track managed plugins"
+Compare the site against `loopress.json` and exit non-zero on drift (usable in CI):
 
-# 3. Apply to another environment
-lps project switch   # select staging
-lps plugin push
+```console
+Not installed: contact-form-7
+Version drift: woocommerce is 9.5.0, loopress.json pins 9.4.2
+Active but untracked: hello-dolly
 ```
 
-## Dry run
+### `lps plugin audit`
 
-All three commands accept `--dry-run` (`-d`). Use it to preview changes before committing:
+Check every pinned plugin against a WordPress vulnerability database ([wpvulnerability.net](https://www.wpvulnerability.net/)) and the WordPress.org plugin API for health signals (removed from the directory, PHP requirement, abandonment). Exits non-zero when a known vulnerability affects a pinned version.
 
-```bash
-lps plugin pull --dry-run
-lps plugin push --dry-run
-lps plugin add yoast-seo --dry-run
-```
+## Limits
+
+- **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` writes them into `loopress.json` (delete those lines by hand), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
+- **No rollback of database migrations.** A downgrade replaces files only.
+- **Multisite** plugin pinning is not supported yet.

@@ -245,6 +245,171 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
     }
 
+    // ── WPackagist scaffold (plugin/theme lockfile) ─────────────────────────
+
+    public function test_ensureInitialized_scaffolds_wpackagist_repo_on_a_new_site(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+
+        $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $json['repositories']);
+        $this->assertArrayHasKey('../plugins/{$name}/', $json['extra']['installer-paths']);
+        $this->assertArrayHasKey('../themes/{$name}/', $json['extra']['installer-paths']);
+        $this->assertTrue($json['config']['allow-plugins']['composer/installers']);
+
+        // composer/installers itself is only required once something actually needs it (a
+        // wpackagist-* package): requiring it unconditionally installed it, and in-process
+        // `include`d it as a Composer plugin, on *every* site, even one with no plugins/themes
+        // ever pushed. See LoopressEnvironment::applyScaffold().
+        $this->assertArrayNotHasKey('composer/installers', $json['require'] ?? []);
+    }
+
+    public function test_ensureInitialized_migrates_a_composer_json_missing_the_wpackagist_scaffold(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
+        $this->writeLegacyComposerJson($env, $json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+        $migrated = $env2->readComposerJson();
+
+        $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $migrated['repositories']);
+        $this->assertTrue($migrated['config']['allow-plugins']['composer/installers']);
+        $this->assertArrayNotHasKey('composer/installers', $migrated['require'] ?? []);
+    }
+
+    public function test_ensureInitialized_migration_keeps_installers_required_when_a_wpackagist_package_is_already_present(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
+        $json['require']['wpackagist-plugin/woocommerce'] = '9.4.2';
+        $this->writeLegacyComposerJson($env, $json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+        $migrated = $env2->readComposerJson();
+
+        $this->assertSame('^2.0', $migrated['require']['composer/installers']);
+    }
+
+    public function test_applyScaffold_is_idempotent(): void
+    {
+        $env  = new LoopressEnvironment();
+        $once = $env->applyScaffold(['name' => 'x']);
+        $this->assertSame($once, $env->applyScaffold($once));
+    }
+
+    public function test_applyScaffold_does_not_require_installers_without_a_wpackagist_package(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold(['require' => ['monolog/monolog' => '^3.0']]);
+
+        $this->assertArrayNotHasKey('composer/installers', $result['require']);
+    }
+
+    public function test_applyScaffold_requires_installers_when_a_wpackagist_package_is_present(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold(['require' => ['wpackagist-plugin/woocommerce' => '9.4.2']]);
+
+        $this->assertSame('^2.0', $result['require']['composer/installers']);
+    }
+
+    public function test_applyScaffold_keeps_an_existing_wpackagist_repository(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold([
+            'repositories' => [['type' => 'composer', 'url' => 'https://wpackagist.org']],
+        ]);
+        $this->assertCount(1, $result['repositories']);
+    }
+
+    public function test_managedPackageDir_maps_wpackagist_names_to_wp_content_dirs(): void
+    {
+        $env = new LoopressEnvironment();
+        $this->assertSame(WP_CONTENT_DIR . '/plugins/woocommerce', $env->managedPackageDir('wpackagist-plugin/woocommerce'));
+        $this->assertSame(WP_CONTENT_DIR . '/themes/generatepress', $env->managedPackageDir('wpackagist-theme/generatepress'));
+        $this->assertNull($env->managedPackageDir('monolog/monolog'));
+    }
+
+    public function test_stageManagedDir_moves_the_folder_out_of_its_live_path(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+
+        $this->assertNotNull($staged);
+        $this->assertFalse($env->managedDirExists('wpackagist-plugin/acme'));
+        $this->assertFileExists($staged . '/plugin.php');
+    }
+
+    public function test_stageManagedDir_returns_null_when_nothing_is_installed(): void
+    {
+        $env = new LoopressEnvironment();
+        $this->assertNull($env->stageManagedDir('wpackagist-plugin/does-not-exist'));
+    }
+
+    public function test_restoreStagedDir_moves_the_folder_back_with_its_original_content(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
+
+        $this->assertTrue($env->managedDirExists('wpackagist-plugin/acme'));
+        $this->assertFileExists($dir . '/plugin.php');
+
+        // WP_CONTENT_DIR is a shared constant across the whole run (see setUp()); a restored
+        // live directory, unlike a staged one under wp-content/loopress/, isn't swept by
+        // tearDown(), so the next test to mkdir() this same path would collide with it.
+        $this->rrmdir($dir);
+    }
+
+    // A Composer run that fails after partially extracting the replacement can leave a fresh,
+    // incomplete directory at the live path; restoring the original must not collide with it.
+    public function test_restoreStagedDir_clears_a_partial_reinstall_at_the_live_path_first(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/plugin.php', '<?php // original'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        file_put_contents($dir . '/partial.php', '<?php // half-installed'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+        $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
+
+        $this->assertFileExists($dir . '/plugin.php');
+        $this->assertFileDoesNotExist($dir . '/partial.php');
+
+        $this->rrmdir($dir);
+    }
+
+    public function test_discardStagedDir_removes_the_staged_copy(): void
+    {
+        $env = new LoopressEnvironment();
+        $dir = WP_CONTENT_DIR . '/plugins/acme';
+        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+
+        $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+        $env->discardStagedDir($staged);
+
+        $this->assertDirectoryDoesNotExist($staged);
+    }
+
     public function test_ensureInitialized_fixes_mismatched_platform_php(): void
     {
         $env = new LoopressEnvironment();

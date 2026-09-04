@@ -17,6 +17,7 @@
     "@oclif/plugin-warn-if-update-available": "^3.2.0",
     "@sentry/node": "^10.73.0",
     "chokidar": "^5.0.0",
+    "compare-versions": "^6.1.1",
     "glob": "13.0.6",
     "got": "^15.1.0",
     "listr2": "^11.1.0",
@@ -113,6 +114,9 @@
       },
       "snippet": {
         "description": "Manage WordPress code snippets"
+      },
+      "theme": {
+        "description": "Manage WordPress.org themes tracked in loopress.json (versions only, never switches the active theme)"
       },
       "telemetry": {
         "description": "Manage error reporting preferences"

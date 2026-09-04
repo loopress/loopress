@@ -8,6 +8,8 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+const OK = {composerJson: '{}', composerLock: null, message: 'ok', output: '', removed: []}
+
 class TestComposerPush extends ComposerPush {
   deployments: string[] = []
 
@@ -22,11 +24,11 @@ class TestComposerPush extends ComposerPush {
   }
 }
 
-function make(dryRun: boolean) {
-  const cmd = new TestComposerPush([], fakeOclifConfig)
+function make(dryRun: boolean, argv: string[] = []) {
+  const cmd = new TestComposerPush(argv, fakeOclifConfig)
   cmd.setup({dryRun, siteConfig: makeEnv('production', 'https://acme.com')})
   const logs = silenceLogs(cmd)
-  const post = vi.fn().mockResolvedValue(null)
+  const post = vi.fn().mockResolvedValue(OK)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {post}
   return {cmd, logs, post}
 }
@@ -45,7 +47,6 @@ describe('composer push', () => {
 
   it('fails when there is no composer.json', async () => {
     const {cmd} = make(false)
-
     await expect(cmd.run()).rejects.toThrow(/No composer\.json found/)
   })
 
@@ -60,8 +61,18 @@ describe('composer push', () => {
     expect(logs.log).toHaveBeenCalledWith('Pushing composer.json (1 package) to https://acme.com')
   })
 
-  it('pushes composer.json and composer.lock then records the deployment', async () => {
-    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '^5.3'}}))
+  it('splits the require map into libraries / plugins / themes intent namespaces', async () => {
+    writeFileSync(
+      join(dir, 'composer.json'),
+      JSON.stringify({
+        require: {
+          'composer/installers': '^2.0',
+          'monolog/monolog': '^3.0',
+          'wpackagist-plugin/akismet': '^5.3',
+          'wpackagist-theme/generatepress': '3.4.0',
+        },
+      }),
+    )
     writeFileSync(join(dir, 'composer.lock'), '{"packages": []}')
     const {cmd, post} = make(false)
 
@@ -70,8 +81,13 @@ describe('composer push', () => {
     expect(post).toHaveBeenCalledWith(
       'loopress/v1/composer/sync',
       {
-        composerJson: JSON.stringify({require: {'wpackagist-plugin/akismet': '^5.3'}}),
-        composerLock: '{"packages": []}',
+        force: false,
+        intent: {
+          libraries: {'monolog/monolog': '^3.0'},
+          plugins: {akismet: '^5.3'},
+          themes: {generatepress: '3.4.0'},
+        },
+        lock: '{"packages": []}',
       },
       {timeoutMs: 600_000},
     )
@@ -87,29 +103,35 @@ describe('composer push', () => {
     expect(logs.warn).toHaveBeenCalledWith('No composer.lock found. The server will resolve versions freely.')
     expect(post).toHaveBeenCalledWith(
       'loopress/v1/composer/sync',
-      expect.objectContaining({composerLock: null}),
+      expect.objectContaining({lock: null}),
       expect.anything(),
     )
   })
 
-  it('logs a wait message before calling the server', async () => {
-    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
-    const {cmd, logs} = make(false)
-
-    await cmd.run()
-
-    expect(logs.log).toHaveBeenCalledWith('Running composer install on the server, this can take a few minutes...')
-  })
-
-  it('explains that the install may still be running when the sync call times out', async () => {
+  it('explains the run may still be in progress when the sync call times out', async () => {
     writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
     const {cmd, post} = make(false)
     post.mockRejectedValue(
-      new Error('Request timed out after 600s on https://acme.com/wp-json/loopress/v1/composer/sync. Is the site reachable?', {
-        cause: {name: 'TimeoutError'},
+      new Error('Request timed out after 600s. Is the site reachable?', {cause: {name: 'TimeoutError'}}),
+    )
+
+    await expect(cmd.run()).rejects.toThrow(/may still be in progress/)
+  })
+
+  it('tells the user to use --force when the server reports an unmanaged-package collision', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/woocommerce': '9.4.2'}}))
+    const {cmd, post} = make(false)
+    post.mockRejectedValue(
+      new Error('rejected', {
+        cause: {
+          response: {
+            body: JSON.stringify({collisions: [{slug: 'woocommerce'}], error: 'unmanaged_plugins_present'}),
+            statusCode: 422,
+          },
+        },
       }),
     )
 
-    await expect(cmd.run()).rejects.toThrow(/may still be running on the server/)
+    await expect(cmd.run()).rejects.toThrow(/--force/)
   })
 })

@@ -48,7 +48,7 @@
     },
     "scripts": {
         "test": "phpunit",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "psalm": "./vendor/bin/psalm --no-cache",
         "cs": "phpcs",
         "cs:fix": "phpcbf",

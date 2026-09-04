@@ -20,9 +20,171 @@ class LoopressEnvironment
         $this->filesystem  = new Filesystem();
     }
 
+    // The server runs Composer with --working-dir set to wp-content/loopress/, so installer-paths
+    // climb one level out of it to land plugins/themes in their usual wp-content/ locations.
+    private const WPACKAGIST_URL   = 'https://wpackagist.org';
+    private const INSTALLERS       = 'composer/installers';
+    private const INSTALLER_PATHS  = [
+        '../plugins/{$name}/' => ['type:wordpress-plugin'],
+        '../themes/{$name}/'  => ['type:wordpress-theme'],
+    ];
+
     public function getLoopressDir(): string
     {
         return $this->loopressDir;
+    }
+
+    // Merges the WPackagist + composer/installers scaffold into a composer.json array, leaving
+    // everything else untouched. Returns the same array unchanged when nothing was missing, so
+    // callers can cheaply detect whether a rewrite is needed.
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    public function applyScaffold(array $json): array
+    {
+        $repositories = $json['repositories'] ?? [];
+        $hasWpackagist = false;
+        foreach ((array) $repositories as $repo) {
+            if (is_array($repo) && ($repo['url'] ?? null) === self::WPACKAGIST_URL) {
+                $hasWpackagist = true;
+                break;
+            }
+        }
+
+        if (!$hasWpackagist) {
+            $repositories[]        = ['type' => 'composer', 'url' => self::WPACKAGIST_URL];
+            $json['repositories']  = $repositories;
+        }
+
+        // Only require composer/installers when `require` actually needs it: a wpackagist-*
+        // package, or a caller that already required it directly. Requiring it unconditionally
+        // installed (and in-process `include`d, as a Composer plugin) composer/installers on
+        // every single push, even a plain-library one with no plugins/themes involved.
+        if (self::requireNeedsInstallers($json['require'] ?? []) && ($json['require'][self::INSTALLERS] ?? null) === null) {
+            $json['require'][self::INSTALLERS] = '^2.0';
+        }
+
+        // Merge, don't replace: a client-supplied composer.json (via `lps composer push`) may
+        // carry installer-paths for other package types, and those must survive. Our own two
+        // entries win on their keys.
+        $installerPaths = $json['extra']['installer-paths'] ?? [];
+        $mergedPaths    = array_merge((array) $installerPaths, self::INSTALLER_PATHS);
+        if ($installerPaths !== $mergedPaths) {
+            $json['extra']['installer-paths'] = $mergedPaths;
+        }
+
+        // composer/installers is itself a Composer plugin; Composer 2.2+ refuses to run any
+        // plugin that isn't explicitly trusted when running non-interactively, which every
+        // server-side sync does.
+        if (($json['config']['allow-plugins'][self::INSTALLERS] ?? null) !== true) {
+            $json['config']['allow-plugins'][self::INSTALLERS] = true;
+        }
+
+        return $json;
+    }
+
+    /** @param array<string, mixed> $requireMap */
+    private static function requireNeedsInstallers(array $requireMap): bool
+    {
+        foreach (array_keys($requireMap) as $name) {
+            $name = (string) $name;
+            if ($name === self::INSTALLERS || str_starts_with($name, 'wpackagist-')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // `wpackagist-plugin/foo` -> wp-content/plugins/foo, `wpackagist-theme/bar` -> wp-content/themes/bar.
+    // The slug is client-supplied (it comes straight from the sync intent), so it is validated
+    // as a single safe path segment before it is appended: a traversal slug like `../../foo`
+    // must not steer removeManagedDir() outside wp-content/plugins/ or wp-content/themes/.
+    public function managedPackageDir(string $vendorName): ?string
+    {
+        foreach (['wpackagist-plugin/' => '/plugins/', 'wpackagist-theme/' => '/themes/'] as $prefix => $subdir) {
+            if (!str_starts_with($vendorName, $prefix)) {
+                continue;
+            }
+
+            $slug = substr($vendorName, strlen($prefix));
+            if ($slug === '' || $slug !== basename($slug) || str_contains($slug, '\\') || str_starts_with($slug, '.')) {
+                return null;
+            }
+
+            return WP_CONTENT_DIR . $subdir . $slug;
+        }
+
+        return null;
+    }
+
+    public function managedDirExists(string $vendorName): bool
+    {
+        $dir = $this->managedPackageDir($vendorName);
+        return $dir !== null && is_dir($dir);
+    }
+
+    // A force-takeover moves the existing directory here instead of deleting it outright, so a
+    // Composer run that's supposed to replace it but fails (network blip, a version that
+    // doesn't exist, the in-process class-loading collision applyScaffold() works around
+    // above) doesn't leave the site with neither the old files nor the new ones. Lives under
+    // wp-content/loopress/, not wp-content/plugins|themes/, so WordPress's plugin/theme header
+    // scan never picks up a staged copy while it's in flight.
+    private function stagingDir(): string
+    {
+        $dir = $this->loopressDir . 'staging/';
+        if (!is_dir($dir)) {
+            wp_mkdir_p($dir);
+        }
+
+        $htaccess = $dir . '.htaccess';
+        if (!file_exists($htaccess)) {
+            file_put_contents($htaccess, self::VENDOR_HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        }
+
+        return $dir;
+    }
+
+    public function stageManagedDir(string $vendorName): ?string
+    {
+        $dir = $this->managedPackageDir($vendorName);
+        if ($dir === null || !is_dir($dir)) {
+            return null;
+        }
+
+        $staged = $this->stagingDir() . basename($dir) . '-' . uniqid();
+        $this->filesystem->rename($dir, $staged);
+
+        return $staged;
+    }
+
+    // Moves a staged directory back to its live path. A failed Composer run may have gotten
+    // as far as creating a partial extraction at that path before it errored out, so that's
+    // cleared first, the rename below would otherwise collide with it.
+    public function restoreStagedDir(string $vendorName, string $stagedPath): void
+    {
+        if (!is_dir($stagedPath)) {
+            return;
+        }
+
+        $dir = $this->managedPackageDir($vendorName);
+        if ($dir === null) {
+            return;
+        }
+
+        if (is_dir($dir)) {
+            $this->filesystem->remove($dir);
+        }
+
+        $this->filesystem->rename($stagedPath, $dir);
+    }
+
+    public function discardStagedDir(string $stagedPath): void
+    {
+        if (is_dir($stagedPath)) {
+            $this->filesystem->remove($stagedPath);
+        }
     }
 
     // Idempotent per instance: runs its filesystem checks at most once per request,
@@ -44,7 +206,7 @@ class LoopressEnvironment
         $this->ensureVendorDir();
 
         if (!file_exists($this->loopressDir . 'composer.json')) {
-            $this->writeComposerJson([
+            $this->writeComposerJson($this->applyScaffold([
                 'name'        => 'loopress/site-dependencies',
                 'description' => 'Site-wide dependencies managed by Loopress Full',
                 'version'     => '0.0.0',
@@ -53,7 +215,7 @@ class LoopressEnvironment
                     'vendor-dir' => 'vendor',
                     'platform'   => ['php' => PHP_VERSION],
                 ],
-            ]);
+            ]));
             return;
         }
 
@@ -64,6 +226,17 @@ class LoopressEnvironment
         // packages whose requirements exceed the actual server version.
         if (($json['config']['platform']['php'] ?? null) !== PHP_VERSION) {
             $json['config']['platform']['php'] = PHP_VERSION;
+            $needsRewrite = true;
+        }
+
+        // Migrate a composer.json created before Loopress managed WordPress.org plugins/themes
+        // through it: add the WPackagist repository, composer/installers, the installer-paths
+        // that land plugins/themes in wp-content/, and the plugin-trust entry Composer 2.2+
+        // needs to run composer/installers non-interactively. Same "flag, don't run" reasoning
+        // as the autoload migration below: the caller with a ComposerRunner reinstalls.
+        $scaffolded = $this->applyScaffold($json);
+        if ($scaffolded !== $json) {
+            $json         = $scaffolded;
             $needsRewrite = true;
         }
 

@@ -65,9 +65,14 @@ The server communicates over stdio from the directory your client launches it in
 | `form_push` | Yes | Push local form files to WordPress |
 | `form_pull` | No | Pull forms from WordPress into local files |
 | `form_list` | No | List forms currently on WordPress |
-| `plugin_push` | Yes | Install/activate WordPress.org plugins to match `loopress.json` |
-| `plugin_pull` | No | Pull installed plugins from WordPress into `loopress.json` |
-| `composer_push` | Yes | Push `composer.json`/`composer.lock` and run `composer install` on WordPress |
+| `plugin_push` | Yes | Install/pin/activate WordPress.org plugins to match `loopress.json`, via Composer + WPackagist |
+| `plugin_pull` | No | Pull installed plugins from WordPress into `loopress.json`, pinned to their live versions |
+| `plugin_status` | No | Report drift between the plugins on WordPress and `loopress.json` |
+| `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
+| `theme_push` | Yes | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
+| `theme_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_status` | No | Report version drift between the themes on WordPress and `loopress.json` |
+| `composer_push` | Yes | Push `composer.json`/`composer.lock` and run Composer on WordPress |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |
 | `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull` |

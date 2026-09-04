@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Dependencies\Service;
 
+use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Infrastructure\ComposerRunner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
@@ -275,23 +276,39 @@ class ComposerService
         return $this->environment->readComposerLock();
     }
 
-    public function sync(string $composerJson, ?string $composerLock): string
+    /**
+     * Apply a sync intent (which libraries / WordPress.org plugins / themes at which versions)
+     * to the site's composer.json and run Composer. The plugin, not the CLI, owns the shape of
+     * composer.json: the CLI never sends a file, only the intent, so an old or hand-rolled CLI
+     * can't push a composer.json that installs into the wrong place.
+     *
+     * @param array{libraries?: array<string, string>, plugins?: array<string, string>, themes?: array<string, string>} $intent
+     * @return array{message: string, output: string, composerJson: string, composerLock: ?string, removed: list<string>}
+     */
+    public function sync(array $intent, ?string $lock, bool $force): array
     {
-        $decoded = json_decode($composerJson, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \InvalidArgumentException('Invalid composer.json: ' . esc_html(json_last_error_msg()));
-        }
+        $this->ensureInitialized();
 
         $previousJson = $this->environment->readComposerJson();
         $previousLock = $this->environment->readComposerLock();
 
-        $this->environment->writeComposerJson($decoded);
+        $rendered = $this->renderComposerJson($previousJson, $intent);
+        $staged   = $this->handleCollisions($rendered['require'] ?? [], $previousLock, $force);
 
-        if ($composerLock !== null) {
-            $this->environment->writeComposerLock($composerLock);
+        $previousLockedNames = $this->lockedPackageNames($previousLock);
+
+        $this->environment->writeComposerJson($rendered);
+        if ($lock !== null) {
+            $this->environment->writeComposerLock($lock);
         }
 
-        $result = $this->composerRunner->run($composerLock !== null ? ['install'] : ['update']);
+        // A client HTTP timeout must not kill Composer mid-run and leave vendor/ or the lock
+        // half-written; let it finish even if the CLI already gave up on the response.
+        if (function_exists('ignore_user_abort')) {
+            ignore_user_abort(true);
+        }
+
+        $result = $this->composerRunner->run($lock !== null ? ['install'] : ['update']);
 
         if ($result['exit_code'] !== 0) {
             // Restore the previous manifests so a failed sync doesn't leave the site
@@ -299,13 +316,165 @@ class ComposerService
             $this->environment->writeComposerJson($previousJson);
             if ($previousLock !== null) {
                 $this->environment->writeComposerLock($previousLock);
-            } elseif ($composerLock !== null) {
+            } elseif ($lock !== null) {
                 $this->environment->deleteComposerLock();
+            }
+
+            // A force-takeover's original directory was moved aside, not deleted, precisely so
+            // a Composer run that never finished replacing it can get it back.
+            foreach ($staged as $vendorName => $stagedPath) {
+                $this->environment->restoreStagedDir($vendorName, $stagedPath);
             }
 
             throw new \RuntimeException(esc_html($result['output']));
         }
 
-        return $result['output'];
+        foreach ($staged as $stagedPath) {
+            $this->environment->discardStagedDir($stagedPath);
+        }
+
+        $newLock = $this->environment->readComposerLock();
+        $removed = array_values(array_diff($previousLockedNames, $this->lockedPackageNames($newLock)));
+
+        return [
+            'message'      => 'Composer run completed.',
+            'output'       => $result['output'],
+            'composerJson' => $this->environment->readComposerJsonRaw() ?? '',
+            'composerLock' => $newLock,
+            'removed'      => $removed,
+        ];
+    }
+
+    /**
+     * Rebuild composer.json from the plugin-owned scaffold plus the intent. Each intent section
+     * is authoritative for its namespace: a present `plugins` replaces every wpackagist-plugin/*
+     * require, a present `libraries` replaces every non-wpackagist require, an omitted section
+     * leaves that namespace as it was. `latest` is a friendly alias for the `*` constraint.
+     *
+     * @param array<string, mixed> $current
+     * @param array{libraries?: array<string, string>, plugins?: array<string, string>, themes?: array<string, string>} $intent
+     * @return array<string, mixed>
+     */
+    private function renderComposerJson(array $current, array $intent): array
+    {
+        $require = $current['require'] ?? [];
+
+        if (isset($intent['libraries'])) {
+            foreach (array_keys($require) as $name) {
+                $name = (string) $name;
+                if ($name !== 'composer/installers' && !str_starts_with($name, 'wpackagist-')) {
+                    unset($require[$name]);
+                }
+            }
+            foreach ($intent['libraries'] as $name => $constraint) {
+                $require[(string) $name] = (string) $constraint;
+            }
+        }
+
+        $require = $this->applyWpackagistSection($require, $intent['plugins'] ?? null, 'wpackagist-plugin/');
+        $require = $this->applyWpackagistSection($require, $intent['themes'] ?? null, 'wpackagist-theme/');
+
+        ksort($require);
+
+        // applyScaffold() only requires composer/installers when this final map actually needs
+        // it (a wpackagist-* package, or a caller that already required it directly); called
+        // with the pre-intent require it used to add composer/installers to *every* push, even
+        // a libraries-only one, see LoopressEnvironment::applyScaffold().
+        $current['require'] = $require;
+
+        return $this->environment->applyScaffold($current);
+    }
+
+    /**
+     * @param array<string, string> $requireMap
+     * @param array<string, string>|null $section
+     * @return array<string, string>
+     */
+    private function applyWpackagistSection(array $requireMap, ?array $section, string $prefix): array
+    {
+        if ($section === null) {
+            return $requireMap;
+        }
+
+        foreach (array_keys($requireMap) as $name) {
+            if (str_starts_with((string) $name, $prefix)) {
+                unset($requireMap[$name]);
+            }
+        }
+
+        foreach ($section as $slug => $version) {
+            $requireMap[$prefix . $slug] = $version === 'latest' ? '*' : (string) $version;
+        }
+
+        return $requireMap;
+    }
+
+    /**
+     * @param array<string, string> $newRequire
+     * @return array<string, string> vendorName => staged directory path, one per force-takeover
+     */
+    private function handleCollisions(array $newRequire, ?string $previousLock, bool $force): array
+    {
+        $lockedNames = $this->lockedPackageNames($previousLock);
+        $collisions  = [];
+        $staged      = [];
+
+        foreach (array_keys($newRequire) as $name) {
+            $name = (string) $name;
+            if (!str_starts_with($name, 'wpackagist-')) {
+                continue;
+            }
+
+            if (in_array($name, $lockedNames, true) || !$this->environment->managedDirExists($name)) {
+                continue;
+            }
+
+            if ($force) {
+                $stagedPath = $this->environment->stageManagedDir($name);
+                if ($stagedPath !== null) {
+                    $staged[$name] = $stagedPath;
+                }
+
+                continue;
+            }
+
+            $slug         = substr($name, (int) strpos($name, '/') + 1);
+            $collisions[] = [
+                'slug'             => $slug,
+                'type'             => str_starts_with($name, 'wpackagist-theme/') ? 'theme' : 'plugin',
+                'path'             => (string) $this->environment->managedPackageDir($name),
+                'installedVersion' => '',
+            ];
+        }
+
+        // $collisions and $staged are never both non-empty: every match in the loop above goes
+        // to one or the other depending on the single $force flag for this whole call.
+        if ($collisions !== []) {
+            throw new UnmanagedPackageException($collisions);
+        }
+
+        return $staged;
+    }
+
+    /** @return list<string> */
+    private function lockedPackageNames(?string $lock): array
+    {
+        if ($lock === null) {
+            return [];
+        }
+
+        $data = json_decode($lock, true);
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $names = [];
+        foreach (array_merge($data['packages'] ?? [], $data['packages-dev'] ?? []) as $package) {
+            if (is_array($package) && isset($package['name'])) {
+                $names[] = (string) $package['name'];
+            }
+        }
+
+        return $names;
     }
 }

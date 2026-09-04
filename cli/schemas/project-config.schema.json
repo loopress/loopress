@@ -55,15 +55,28 @@
     },
     "plugins": {
       "type": "object",
-      "description": "WordPress.org plugins managed by Loopress. Keys are plugin slugs; values are written as \"latest\" since installs go through WordPress's native plugin API, which only installs the current version. Older files may still have a pinned version string here from before this was the case; it is read but no longer acted on.",
+      "description": "WordPress.org plugins managed by Loopress, installed via Composer + WPackagist on the site. Keys are plugin slugs. A value is either an exact version to pin (e.g. \"9.4.2\") or \"latest\" to track the newest release on every push. Removing an entry uninstalls the plugin on the next push. Ignored when a composer.json exists in rootDir (that file becomes authoritative).",
       "additionalProperties": {
         "type": "string",
-        "examples": ["latest"]
+        "examples": ["9.4.2", "latest"]
       },
       "examples": [
         {
-          "woocommerce": "latest",
-          "contact-form-7": "latest"
+          "woocommerce": "9.4.2",
+          "wordpress-seo": "latest"
+        }
+      ]
+    },
+    "themes": {
+      "type": "object",
+      "description": "WordPress.org themes managed by Loopress, installed via Composer + WPackagist on the site. Keys are theme slugs; values are an exact version or \"latest\". Loopress manages installed theme versions only, it never switches the active theme. Ignored when a composer.json exists in rootDir.",
+      "additionalProperties": {
+        "type": "string",
+        "examples": ["3.4.0", "latest"]
+      },
+      "examples": [
+        {
+          "generatepress": "3.4.0"
         }
       ]
     }
