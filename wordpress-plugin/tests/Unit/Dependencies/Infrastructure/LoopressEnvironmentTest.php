@@ -247,17 +247,22 @@ class LoopressEnvironmentTest extends TestCase
 
     // ── WPackagist scaffold (plugin/theme lockfile) ─────────────────────────
 
-    public function test_ensureInitialized_scaffolds_wpackagist_repo_and_installers_on_a_new_site(): void
+    public function test_ensureInitialized_scaffolds_wpackagist_repo_on_a_new_site(): void
     {
         $env = new LoopressEnvironment();
         $env->ensureInitialized();
         $json = $env->readComposerJson();
 
         $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $json['repositories']);
-        $this->assertSame('^2.0', $json['require']['composer/installers']);
         $this->assertArrayHasKey('../plugins/{$name}/', $json['extra']['installer-paths']);
         $this->assertArrayHasKey('../themes/{$name}/', $json['extra']['installer-paths']);
         $this->assertTrue($json['config']['allow-plugins']['composer/installers']);
+
+        // composer/installers itself is only required once something actually needs it (a
+        // wpackagist-* package): requiring it unconditionally installed it, and in-process
+        // `include`d it as a Composer plugin, on *every* site, even one with no plugins/themes
+        // ever pushed. See LoopressEnvironment::applyScaffold().
+        $this->assertArrayNotHasKey('composer/installers', $json['require'] ?? []);
     }
 
     public function test_ensureInitialized_migrates_a_composer_json_missing_the_wpackagist_scaffold(): void
@@ -266,7 +271,6 @@ class LoopressEnvironmentTest extends TestCase
         $env->ensureInitialized();
         $json = $env->readComposerJson();
         unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
-        unset($json['require']['composer/installers']);
         $this->writeLegacyComposerJson($env, $json);
 
         $env2 = new LoopressEnvironment();
@@ -274,8 +278,24 @@ class LoopressEnvironmentTest extends TestCase
         $migrated = $env2->readComposerJson();
 
         $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $migrated['repositories']);
-        $this->assertSame('^2.0', $migrated['require']['composer/installers']);
         $this->assertTrue($migrated['config']['allow-plugins']['composer/installers']);
+        $this->assertArrayNotHasKey('composer/installers', $migrated['require'] ?? []);
+    }
+
+    public function test_ensureInitialized_migration_keeps_installers_required_when_a_wpackagist_package_is_already_present(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->ensureInitialized();
+        $json = $env->readComposerJson();
+        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
+        $json['require']['wpackagist-plugin/woocommerce'] = '9.4.2';
+        $this->writeLegacyComposerJson($env, $json);
+
+        $env2 = new LoopressEnvironment();
+        $env2->ensureInitialized();
+        $migrated = $env2->readComposerJson();
+
+        $this->assertSame('^2.0', $migrated['require']['composer/installers']);
     }
 
     public function test_applyScaffold_is_idempotent(): void
@@ -283,6 +303,22 @@ class LoopressEnvironmentTest extends TestCase
         $env  = new LoopressEnvironment();
         $once = $env->applyScaffold(['name' => 'x']);
         $this->assertSame($once, $env->applyScaffold($once));
+    }
+
+    public function test_applyScaffold_does_not_require_installers_without_a_wpackagist_package(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold(['require' => ['monolog/monolog' => '^3.0']]);
+
+        $this->assertArrayNotHasKey('composer/installers', $result['require']);
+    }
+
+    public function test_applyScaffold_requires_installers_when_a_wpackagist_package_is_present(): void
+    {
+        $env = new LoopressEnvironment();
+        $result = $env->applyScaffold(['require' => ['wpackagist-plugin/woocommerce' => '9.4.2']]);
+
+        $this->assertSame('^2.0', $result['require']['composer/installers']);
     }
 
     public function test_applyScaffold_keeps_an_existing_wpackagist_repository(): void

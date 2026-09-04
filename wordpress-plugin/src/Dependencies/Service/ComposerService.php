@@ -347,8 +347,7 @@ class ComposerService
      */
     private function renderComposerJson(array $current, array $intent): array
     {
-        $json    = $this->environment->applyScaffold($current);
-        $require = $json['require'] ?? [];
+        $require = $current['require'] ?? [];
 
         if (isset($intent['libraries'])) {
             foreach (array_keys($require) as $name) {
@@ -366,9 +365,14 @@ class ComposerService
         $require = $this->applyWpackagistSection($require, $intent['themes'] ?? null, 'wpackagist-theme/');
 
         ksort($require);
-        $json['require'] = $require;
 
-        return $json;
+        // applyScaffold() only requires composer/installers when this final map actually needs
+        // it (a wpackagist-* package, or a caller that already required it directly); called
+        // with the pre-intent require it used to add composer/installers to *every* push, even
+        // a libraries-only one, see LoopressEnvironment::applyScaffold().
+        $current['require'] = $require;
+
+        return $this->environment->applyScaffold($current);
     }
 
     /**

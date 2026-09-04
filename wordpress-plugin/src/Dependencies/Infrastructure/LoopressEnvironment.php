@@ -57,7 +57,11 @@ class LoopressEnvironment
             $json['repositories']  = $repositories;
         }
 
-        if (($json['require'][self::INSTALLERS] ?? null) === null) {
+        // Only require composer/installers when `require` actually needs it: a wpackagist-*
+        // package, or a caller that already required it directly. Requiring it unconditionally
+        // installed (and in-process `include`d, as a Composer plugin) composer/installers on
+        // every single push, even a plain-library one with no plugins/themes involved.
+        if (self::requireNeedsInstallers($json['require'] ?? []) && ($json['require'][self::INSTALLERS] ?? null) === null) {
             $json['require'][self::INSTALLERS] = '^2.0';
         }
 
@@ -78,6 +82,19 @@ class LoopressEnvironment
         }
 
         return $json;
+    }
+
+    /** @param array<string, mixed> $requireMap */
+    private static function requireNeedsInstallers(array $requireMap): bool
+    {
+        foreach (array_keys($requireMap) as $name) {
+            $name = (string) $name;
+            if ($name === self::INSTALLERS || str_starts_with($name, 'wpackagist-')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // `wpackagist-plugin/foo` -> wp-content/plugins/foo, `wpackagist-theme/bar` -> wp-content/themes/bar.
