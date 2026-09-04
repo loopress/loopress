@@ -43,15 +43,32 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing themes to ${this.siteConfig.url}`)
     const raw = await this.wp.get<WpNativeTheme[]>('wp/v2/themes')
+    const installed = parseInstalledThemes(raw)
     const managed = lockedWpackagistSlugs(await this.fetchInstanceLock(), 'theme')
-    const diff = diffThemes(manifest, parseInstalledThemes(raw), managed)
+    const diff = diffThemes(manifest, installed, managed)
 
     this.guardForce(diff, force)
 
-    if (isNoop(diff)) {
+    // Uninstalling the theme WordPress is currently rendering leaves the site with no active
+    // theme, which is a hard fatal. --force does not override this: switch the active theme
+    // on the site first, then the removal is safe.
+    const activeRemoval = diff.toRemove.find((slug) => installed.find((t) => t.slug === slug)?.active)
+    if (activeRemoval) {
+      this.error(
+        `Refusing to uninstall "${activeRemoval}": it is the site's active theme. ` +
+          'Switch the site to another theme, then re-run to remove it.',
+      )
+    }
+
+    // A "latest" pin never shows as drift, but its newest upstream release may have moved, so
+    // a push must still run `composer update` to pick it up.
+    const hasLatestPin = Object.values(manifest).includes('latest')
+    if (!hasLatestPin && isNoop(diff)) {
       this.log('Everything is already in sync.')
       return {...IN_SYNC}
     }
+
+    if (isNoop(diff)) this.log('Refreshing themes pinned to "latest" to their newest releases.')
 
     for (const a of diff.toInstall) this.log(`  + ${a.slug} ${a.version}`)
     for (const p of diff.toPin) this.log(`  ~ ${p.slug} ${p.from} to ${p.to}`)

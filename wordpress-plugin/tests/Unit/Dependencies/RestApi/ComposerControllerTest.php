@@ -153,6 +153,27 @@ class ComposerControllerTest extends TestCase
         $this->assertSame(400, $response->status);
     }
 
+    public function test_sync_returns_400_when_plugins_section_is_a_scalar(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => 'woocommerce']]));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_400_when_themes_section_is_a_list(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['themes' => ['generatepress']]]));
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_sync_returns_400_when_a_library_version_is_not_a_string(): void
+    {
+        $this->composerService->expects($this->never())->method('sync');
+        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['libraries' => ['monolog/monolog' => 3]]]));
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_sync_returns_422_on_unmanaged_package_collision(): void
     {
         $collisions = [['slug' => 'woocommerce', 'type' => 'plugin', 'path' => '/x', 'installedVersion' => '']];

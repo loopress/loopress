@@ -1,6 +1,7 @@
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {compareVersions} from '../../utils/version.js'
 
 type Advisory = {
   cve?: string
@@ -74,15 +75,23 @@ export default class Audit extends LoopressCommand {
   }
 
   private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'>>> {
+    let body: {data?: {vulnerability?: unknown[]}}
     try {
-      const body = await got(`${WPVULN_BASE}/${encodeURIComponent(slug)}/`, {
+      body = await got(`${WPVULN_BASE}/${encodeURIComponent(slug)}/`, {
         timeout: {request: 10_000},
       }).json<{data?: {vulnerability?: unknown[]}}>()
-      const list = Array.isArray(body?.data?.vulnerability) ? body.data.vulnerability : []
-      return list.map((raw) => normalizeAdvisory(raw as Record<string, unknown>))
-    } catch {
-      return []
+    } catch (error) {
+      // Never swallow this into an empty list: a clean audit must mean "no advisories found",
+      // not "the advisory service was unreachable". Fail the command instead.
+      throw new Error(
+        `Could not reach the vulnerability database (wpvulnerability.net) for "${slug}": ${(error as Error).message}. ` +
+          'Audit aborted so a service outage is not reported as a clean result.',
+        {cause: error},
+      )
     }
+
+    const list = Array.isArray(body?.data?.vulnerability) ? body.data.vulnerability : []
+    return list.map((raw) => normalizeAdvisory(raw as Record<string, unknown>))
   }
 
   private report(advisories: Advisory[], health: HealthNote[], count: number): AuditResult {
@@ -139,22 +148,12 @@ function extractFixedIn(raw: Record<string, unknown>): string | undefined {
   return undefined
 }
 
-// If we know the fix version, a pin below it is affected. If we don't, report it (safer).
+// If we know the fix version, a pin below it is affected. If we can't compare (odd version
+// strings), report it anyway: a false positive is safer than hiding an advisory.
 function affects(pinned: string, fixedIn: string | undefined): boolean {
   if (!fixedIn) return true
-  return compareVersions(pinned, fixedIn) < 0
-}
-
-function compareVersions(a: string, b: string): number {
-  const seg = (v: string): number[] => v.split(/[.\-+]/).map((n) => Number(n) || 0)
-  const x = seg(a)
-  const y = seg(b)
-  for (let i = 0; i < Math.max(x.length, y.length); i++) {
-    const diff = (x[i] ?? 0) - (y[i] ?? 0)
-    if (diff !== 0) return diff
-  }
-
-  return 0
+  const order = compareVersions(pinned, fixedIn)
+  return order === null || order < 0
 }
 
 function describeHealth(slug: string, pinned: string, info: Record<string, unknown>): HealthNote[] {
@@ -168,7 +167,8 @@ function describeHealth(slug: string, pinned: string, info: Record<string, unkno
   if (requiresPhp) notes.push({message: `requires PHP ${requiresPhp}`, slug})
 
   const latest = typeof info.version === 'string' ? info.version : null
-  if (latest && pinned !== 'latest' && compareVersions(pinned, latest) < 0) {
+  const behindLatest = latest ? compareVersions(pinned, latest) : null
+  if (latest && pinned !== 'latest' && behindLatest !== null && behindLatest < 0) {
     notes.push({message: `pinned to ${pinned}, latest is ${latest}`, slug})
   }
 

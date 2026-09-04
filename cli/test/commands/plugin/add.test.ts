@@ -53,6 +53,13 @@ describe('plugin add', () => {
     expect(written.plugins).toEqual({woocommerce: '9.4.2'})
   })
 
+  it('rejects a Composer constraint passed to --version', async () => {
+    const {cmd} = make(['woocommerce', '--version', '^9.4'])
+
+    await expect(cmd.run()).rejects.toThrow(/exact version/)
+    await expect(readFile(join(tmpDir, 'loopress.json'), 'utf8')).rejects.toThrow()
+  })
+
   it('preserves existing plugins when adding a new one', async () => {
     const {cmd} = make(['woocommerce'], {plugins: {acf: '6.3.0'}})
 

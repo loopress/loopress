@@ -129,4 +129,30 @@ describe('plugin push', () => {
     expect(result.status).toBe('dry-run')
     expect(result.installed).toEqual(['akismet'])
   })
+
+  it('re-activates a plugin it deactivated for a forced takeover', async () => {
+    const {cmd, get, put} = make({plugins: {woocommerce: '9.4.2'}}, ['--force'])
+    get.mockImplementation(async (path: string) =>
+      path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('woocommerce', '9.4.2', 'active')],
+    )
+
+    const result = await cmd.run()
+
+    expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'inactive'})
+    expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'active'})
+    expect(result.activated).toContain('woocommerce')
+  })
+
+  it('restores the plugins it deactivated when the sync fails', async () => {
+    const {cmd, get, post, put} = make({plugins: {woocommerce: '9.4.2'}}, ['--force'])
+    get.mockImplementation(async (path: string) =>
+      path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('woocommerce', '9.4.2', 'active')],
+    )
+    post.mockRejectedValue(new Error('composer blew up'))
+
+    await expect(cmd.run()).rejects.toThrow(/composer blew up/)
+
+    expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'inactive'})
+    expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'active'})
+  })
 })

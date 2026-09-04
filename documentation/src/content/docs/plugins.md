@@ -3,7 +3,7 @@ title: Plugins
 description: Pin WordPress.org plugin versions in a lockfile and install the identical set on any environment, via Composer and WPackagist.
 ---
 
-The `plugin` command group tracks WordPress.org plugins as a lockfile in `loopress.json`. Loopress installs them on the site by running **Composer with the [WPackagist](https://wpackagist.org/) repository** inside WordPress, so every environment ends up with the same plugins at the same versions, with no SSH and no need for a `composer.json` in your repo.
+The `plugin` command group tracks WordPress.org plugins as a lockfile in `loopress.json`. Loopress installs them on the site by running **Composer with the [WPackagist](https://wpackagist.org/) repository** inside WordPress, with no SSH and no need for a `composer.json` in your repo. Entries pinned to an exact version install identically on every environment. `latest` entries are re-resolved by Composer on each push, so environments pushed at different times can land on different versions.
 
 This is a [Loopress Full](/wordpress-plugin/) feature.
 
@@ -21,13 +21,13 @@ This is a [Loopress Full](/wordpress-plugin/) feature.
 Keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Each value is either:
 
 - an **exact version** to pin (`"9.4.2"`), installed on every push and reported as drift if the site diverges, or
-- `"latest"`, which updates that plugin to the newest release on every push.
+- `"latest"`, which updates that plugin to the newest release on every push. Because it re-resolves each time, it is not reproducible across environments.
 
 **Removing an entry uninstalls the plugin** on the next push (shown in the plan, with a confirmation prompt).
 
 ### Where the Composer files live
 
-For a `loopress.json`-only project, the generated `composer.json` / `composer.lock` stay **on the site** (`wp-content/loopress/`), not in your repo. Reproducibility comes from `loopress.json` alone.
+For a `loopress.json`-only project, the generated `composer.json` / `composer.lock` stay **on the site** (`wp-content/loopress/`), not in your repo. Exact-version pins in `loopress.json` reproduce identically on every environment; `latest` pins are resolved per push and do not.
 
 If your repo has a `composer.json` (from `lps composer init`), that file is authoritative for plugins and themes instead, and the `plugin` / `theme` commands defer to `lps composer`. See the [`composer` command group](/composer/cli/).
 
@@ -95,6 +95,6 @@ Check every pinned plugin against a WordPress vulnerability database ([wpvulnera
 
 ## Limits
 
-- **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist: `plugin pull` sees them in the live list, `plugin status` marks them untracked, and Loopress never touches them.
+- **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` writes them into `loopress.json` (delete those lines by hand), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
 - **No rollback of database migrations.** A downgrade replaces files only.
 - **Multisite** plugin pinning is not supported yet.

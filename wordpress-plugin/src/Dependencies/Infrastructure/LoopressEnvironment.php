@@ -61,8 +61,13 @@ class LoopressEnvironment
             $json['require'][self::INSTALLERS] = '^2.0';
         }
 
-        if (($json['extra']['installer-paths'] ?? null) !== self::INSTALLER_PATHS) {
-            $json['extra']['installer-paths'] = self::INSTALLER_PATHS;
+        // Merge, don't replace: a client-supplied composer.json (via `lps composer push`) may
+        // carry installer-paths for other package types, and those must survive. Our own two
+        // entries win on their keys.
+        $installerPaths = $json['extra']['installer-paths'] ?? [];
+        $mergedPaths    = array_merge((array) $installerPaths, self::INSTALLER_PATHS);
+        if ($installerPaths !== $mergedPaths) {
+            $json['extra']['installer-paths'] = $mergedPaths;
         }
 
         // composer/installers is itself a Composer plugin; Composer 2.2+ refuses to run any
@@ -76,14 +81,22 @@ class LoopressEnvironment
     }
 
     // `wpackagist-plugin/foo` -> wp-content/plugins/foo, `wpackagist-theme/bar` -> wp-content/themes/bar.
+    // The slug is client-supplied (it comes straight from the sync intent), so it is validated
+    // as a single safe path segment before it is appended: a traversal slug like `../../foo`
+    // must not steer removeManagedDir() outside wp-content/plugins/ or wp-content/themes/.
     public function managedPackageDir(string $vendorName): ?string
     {
-        if (str_starts_with($vendorName, 'wpackagist-plugin/')) {
-            return WP_CONTENT_DIR . '/plugins/' . substr($vendorName, strlen('wpackagist-plugin/'));
-        }
+        foreach (['wpackagist-plugin/' => '/plugins/', 'wpackagist-theme/' => '/themes/'] as $prefix => $subdir) {
+            if (!str_starts_with($vendorName, $prefix)) {
+                continue;
+            }
 
-        if (str_starts_with($vendorName, 'wpackagist-theme/')) {
-            return WP_CONTENT_DIR . '/themes/' . substr($vendorName, strlen('wpackagist-theme/'));
+            $slug = substr($vendorName, strlen($prefix));
+            if ($slug === '' || $slug !== basename($slug) || str_contains($slug, '\\') || str_starts_with($slug, '.')) {
+                return null;
+            }
+
+            return WP_CONTENT_DIR . $subdir . $slug;
         }
 
         return null;

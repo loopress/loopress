@@ -2,6 +2,7 @@ import {Args, Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
+import {isExactVersion} from '../../utils/version.js'
 
 export default class Add extends LoopressCommand {
   static args = {
@@ -19,6 +20,11 @@ export default class Add extends LoopressCommand {
     const {args, flags} = await this.parse(Add)
     const {slug} = args
     const version = flags.version ?? 'latest'
+
+    if (version !== 'latest' && !isExactVersion(version)) {
+      this.error(`--version must be an exact version like 3.4.0, not a Composer constraint. Got "${version}".`)
+    }
+
     const existing = this.localConfig.themes ?? {}
 
     if (existing[slug] === version) {

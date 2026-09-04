@@ -3,6 +3,8 @@
 // WPackagist inside WordPress; the CLI only ever sends intent (which slugs at which versions),
 // never a composer.json, so the plugin stays the single authority on that file's shape.
 
+import {compareVersions} from './version.js'
+
 // A cold `composer update` on a fresh site easily exceeds the global 30s WpClient timeout.
 export const SYNC_TIMEOUT_MS = 600_000
 
@@ -55,18 +57,9 @@ export function parseCollisions(error: unknown): Collision[] | null {
   return null
 }
 
-// ponytail: naive numeric-segment compare, no prerelease ordering. Only gates whether a
-// version change needs --force; a wrong call just means the user passes --force for a
-// sidegrade that was fine anyway.
+// Only gates whether a version change needs --force. Unorderable inputs ("latest", a
+// constraint) count as "not a downgrade" so they don't block the push.
 export function isDowngrade(from: string, to: string): boolean {
-  const seg = (v: string): number[] => v.split(/[.\-+]/).map((n) => Number(n) || 0)
-  const a = seg(to)
-  const b = seg(from)
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    const x = a[i] ?? 0
-    const y = b[i] ?? 0
-    if (x !== y) return x < y
-  }
-
-  return false
+  const order = compareVersions(to, from)
+  return order !== null && order < 0
 }

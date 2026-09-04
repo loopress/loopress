@@ -61,11 +61,15 @@ export default class Push extends PushCommand {
     this.guardForce(diff, force)
 
     const toPrune = prune ? diff.untrackedActive : []
-    if (isNoop(diff, toPrune)) {
+    // A "latest" pin never shows as drift, but its newest upstream release may have moved
+    // since the last push, so a push must still run `composer update` to pick it up.
+    const hasLatestPin = Object.values(manifest).includes('latest')
+    if (!hasLatestPin && isNoop(diff, toPrune)) {
       this.log('Everything is already in sync.')
       return {...IN_SYNC}
     }
 
+    if (isNoop(diff, toPrune)) this.log('Refreshing plugins pinned to "latest" to their newest releases.')
     logPlan(this, diff, toPrune, force)
 
     if (this.dryRun) {
@@ -73,24 +77,46 @@ export default class Push extends PushCommand {
     }
 
     await this.confirmRemovals(diff.toRemove)
-    await this.deactivateEndangered(installed, diff, force)
+    const deactivated = await this.deactivateEndangered(installed, diff, force)
+    // Plugins that must end up active: the ones we deactivated for the file swap (minus any
+    // being uninstalled) plus the ones the manifest wants active but that are inactive today.
+    const toReactivate = [...deactivated.filter((p) => !diff.toRemove.includes(p.slug)), ...diff.toActivate]
 
-    const response = await this.sync(manifest, force)
+    let response: SyncResponse
+    try {
+      response = await this.sync(manifest, force)
+    } catch (error) {
+      // The file swap never happened, so restore the plugins we defensively deactivated
+      // instead of leaving the site with them switched off.
+      await this.activate(deactivated.filter((p) => !diff.toRemove.includes(p.slug)))
+      throw error
+    }
 
     if (toPrune.length > 0) {
       await this.deactivate(installed.filter((p) => toPrune.includes(p.slug)))
     }
+
+    await this.activate(toReactivate)
 
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Plugins synced.')
     await this.recordSuccess()
 
     return this.result(diff, {
+      activated: toReactivate.map((p) => p.slug),
       includeCollisions: force,
       pruned: toPrune,
       removed: response.removed ?? diff.toRemove,
       status: 'success',
     })
+  }
+
+  private async activate(plugins: Array<{file: string; slug: string}>): Promise<void> {
+    for (const plugin of plugins) {
+      this.log(`  ⊙ activating ${plugin.slug}`)
+
+      await this.wp.put(`wp/v2/plugins/${plugin.file}`, {status: 'active'})
+    }
   }
 
   private async confirmRemovals(toRemove: string[]): Promise<void> {
@@ -102,16 +128,24 @@ export default class Push extends PushCommand {
   private async deactivate(plugins: InstalledPlugin[]): Promise<void> {
     for (const plugin of plugins) {
       this.log(`  ⊘ deactivating ${plugin.slug}`)
-       
+
       await this.wp.put(`wp/v2/plugins/${plugin.file}`, {status: 'inactive'})
     }
   }
 
-  // Deactivate anything whose folder is about to be deleted or replaced, so the site does not
-  // fatal in the window between removal and Composer finishing the install.
-  private async deactivateEndangered(installed: InstalledPlugin[], diff: PluginDiff, force: boolean): Promise<void> {
-    const endangered = new Set([...diff.toRemove, ...(force ? diff.collisions.map((c) => c.slug) : [])])
-    await this.deactivate(installed.filter((p) => p.active && endangered.has(p.slug)))
+  // Deactivate anything whose folder is about to be deleted or replaced (removed, re-pinned to
+  // a new version, or taken over with --force), so the site does not fatal in the window
+  // between removal and Composer finishing the install. Returns the plugins it switched off so
+  // the caller can switch the still-wanted ones back on.
+  private async deactivateEndangered(installed: InstalledPlugin[], diff: PluginDiff, force: boolean): Promise<InstalledPlugin[]> {
+    const endangered = new Set([
+      ...diff.toRemove,
+      ...diff.toPin.map((p) => p.slug),
+      ...(force ? diff.collisions.map((c) => c.slug) : []),
+    ])
+    const victims = installed.filter((p) => p.active && endangered.has(p.slug))
+    await this.deactivate(victims)
+    return victims
   }
 
   // The site's live composer.lock tells us which plugins Loopress already manages, so the plan
@@ -151,11 +185,11 @@ export default class Push extends PushCommand {
 
   private result(
     diff: PluginDiff,
-    opts: {includeCollisions: boolean; pruned: string[]; removed: string[]; status: PushResult['status']},
+    opts: {activated?: string[]; includeCollisions: boolean; pruned: string[]; removed: string[]; status: PushResult['status']},
   ): PushResult {
     const collisionSlugs = opts.includeCollisions ? diff.collisions.map((c) => c.slug) : []
     return {
-      activated: diff.toActivate.map((a) => a.slug),
+      activated: opts.activated ?? diff.toActivate.map((a) => a.slug),
       installed: [...diff.toInstall.map((a) => a.slug), ...collisionSlugs],
       pinned: diff.toPin.map((p) => p.slug),
       pruned: opts.pruned,

@@ -256,6 +256,18 @@ class ComposerController
             return new WP_REST_Response(['error' => 'Invalid intent: expected an object.'], 400);
         }
 
+        // Each section, when present, must be a slug => version-string map. Without this a
+        // scalar reaches ComposerService::applyWpackagistSection(?array $section) and fatals
+        // instead of returning a clean 400.
+        foreach (['libraries', 'plugins', 'themes'] as $section) {
+            if (isset($intent[$section]) && !self::isStringMap($intent[$section])) {
+                return new WP_REST_Response(
+                    ['error' => "Invalid intent.{$section}: expected an object of slug => version."],
+                    400,
+                );
+            }
+        }
+
         try {
             $result = $this->composerService->sync($intent, $lock, $force);
             return new WP_REST_Response($result, 200);
@@ -271,6 +283,21 @@ class ComposerController
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Sync failed.', 'output' => $e->getMessage()], 500);
         }
+    }
+
+    private static function isStringMap(mixed $value): bool
+    {
+        if (!is_array($value)) {
+            return false;
+        }
+
+        foreach ($value as $key => $item) {
+            if (!is_string($key) || !is_string($item)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array<string, mixed> */

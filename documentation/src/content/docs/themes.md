@@ -3,7 +3,7 @@ title: Themes
 description: Pin WordPress.org theme versions in a lockfile and install the identical set on any environment, via Composer and WPackagist.
 ---
 
-The `theme` command group works exactly like [`plugin`](/plugins/): it tracks WordPress.org themes as a lockfile in `loopress.json` and installs them on the site through Composer + [WPackagist](https://wpackagist.org/).
+The `theme` command group works exactly like [`plugin`](/plugins/): it tracks WordPress.org themes as a lockfile in `loopress.json` and installs them on the site through Composer + [WPackagist](https://wpackagist.org/). As with plugins, only exact-version pins reproduce identically across environments; a `"latest"` entry is re-resolved on each push.
 
 This is a [Loopress Full](/wordpress-plugin/) feature.
 
