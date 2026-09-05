@@ -12,4 +12,14 @@ enum SnippetType: string
     case Css  = 'css';
     case Html = 'html';
     case Text = 'text';
+
+    /** Canonical location used when a provider's stored location doesn't map to one it knows. */
+    public function defaultLocation(): string
+    {
+        return match ($this) { // phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- PHPCompatibility predates PHP 8.1 enums and misreads $this as outside object context here; this is an ordinary enum instance method.
+            self::Css                        => 'header',
+            self::Html, self::Js, self::Text => 'footer',
+            self::Php                        => 'everywhere',
+        };
+    }
 }

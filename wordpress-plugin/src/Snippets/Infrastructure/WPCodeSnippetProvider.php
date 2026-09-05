@@ -168,7 +168,7 @@ class WPCodeSnippetProvider implements SnippetProvider
             active: $post->post_status === 'publish',
             description: $note ? $note : '',
             tags: is_wp_error($terms) ? [] : $terms,
-            location: self::LOCATION_TO_CANONICAL[$locationTerm] ?? $this->defaultLocationForType($type),
+            location: self::LOCATION_TO_CANONICAL[$locationTerm] ?? $type->defaultLocation(),
             insertMethod: '0' === $autoInsert ? 'shortcode' : 'auto',
             priority: '' === $priority ? 10 : (int) $priority,
             shortcodeAttributes: is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
@@ -243,14 +243,5 @@ class WPCodeSnippetProvider implements SnippetProvider
             : 'header, body, footer';
 
         throw new UnsupportedLocationException(esc_html("WPCode does not support the \"{$location}\" location for {$type->value} snippets. Use one of: {$allowed}."));
-    }
-
-    private function defaultLocationForType(SnippetType $type): string
-    {
-        return match ($type) {
-            SnippetType::Css                              => 'header',
-            SnippetType::Html, SnippetType::Js, SnippetType::Text => 'footer',
-            SnippetType::Php                              => 'everywhere',
-        };
     }
 }

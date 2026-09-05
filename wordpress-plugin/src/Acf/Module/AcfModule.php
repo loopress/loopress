@@ -10,12 +10,7 @@ use Loopress\Contract\Module;
 
 class AcfModule implements Module
 {
-    private AcfService $service;
-
-    public function __construct()
-    {
-        $this->service = new AcfService();
-    }
+    public function __construct(private AcfService $service) {}
 
     public function boot(): void
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Apps\Infrastructure;
 
+use Loopress\Infrastructure\DirectoryGuard;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -85,15 +86,8 @@ class AppsDirectory
             wp_mkdir_p($this->path);
         }
 
-        $indexFile = $this->path . 'index.php';
-        if (!file_exists($indexFile)) {
-            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
-
-        $htaccess = $this->path . '.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess, self::HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
+        DirectoryGuard::writeIndexIfMissing($this->path);
+        DirectoryGuard::writeHtaccessIfMissing($this->path, self::HTACCESS);
     }
 
     private const HTACCESS = <<<'HTACCESS'

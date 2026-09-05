@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Api\Infrastructure;
 
+use Loopress\Infrastructure\DirectoryGuard;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -47,12 +48,9 @@ class ApiDirectory
             wp_mkdir_p($this->path);
         }
 
-        $indexFile = $this->path . 'index.php';
-        if (!file_exists($indexFile)) {
-            // Trivial static content, no concurrent-write concern unlike write() below: a
-            // plain write is fine here, no need for dumpFile()'s atomic rename.
-            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
+        // Trivial static content, no concurrent-write concern unlike write() below: a plain
+        // write is fine here, no need for dumpFile()'s atomic rename.
+        DirectoryGuard::writeIndexIfMissing($this->path);
     }
 
     /**

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Loopress\Seo\Contract;
 
-interface SeoProvider
-{
-    public function isActive(): bool;
+use Loopress\Contract\ActivatableProvider;
 
+interface SeoProvider extends ActivatableProvider
+{
     /** @return array<int, array<string, mixed>> */
     public function listPostMeta(string $postType): array;
 
