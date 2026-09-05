@@ -93,6 +93,19 @@ class RouteLoader
         $this->prepare();
 
         foreach ($this->directory->listSlugs() as $slug) {
+            // Cheap pre-check before paying for a require + reflection pass: 'init' fires on
+            // every request to the whole site (see the class docblock), not just REST ones, so
+            // this loop runs on every front-end page load too, for every api/ file, whether or
+            // not it has anything to do with cron. A genuine #[Cron] usage always spells the
+            // class name "Cron" literally somewhere in the file (the attribute itself, a `use
+            // ... as` alias, or a fully-qualified reference all do), so this can only ever
+            // produce a false positive (an unrelated file that happens to mention "Cron"),
+            // never a false negative that would silently skip a real cron job.
+            $content = $this->directory->read($slug);
+            if ($content === null || !str_contains($content, 'Cron')) {
+                continue;
+            }
+
             $instance = $this->resolveInstance($slug);
             if ($instance === null) {
                 continue;
