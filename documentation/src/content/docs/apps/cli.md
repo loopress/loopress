@@ -9,6 +9,8 @@ Every command below talks to REST endpoints provided by [Loopress Full](/wordpre
 
 The `app` command group syncs built single-page app bundles between a local `apps/` directory and WordPress. Each subdirectory of `apps/` is one app: a `loopress.app.json` plus a built `dist/` folder.
 
+These commands are separate from the aggregate `lps push` / `lps pull` / `lps promote`, which do not sync apps: a build has to run first, so you deploy apps explicitly with `lps app push`.
+
 ## The local directory
 
 `push` and `pull` operate on one local directory, resolved the same way:

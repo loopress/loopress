@@ -9,7 +9,7 @@ This is a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress
 
 ## Pages
 
-- [CLI](/composer/cli/): the `lps composer push/pull` commands
+- [CLI](/composer/cli/): the `lps composer init/push/pull` commands
 - [Admin UI](/composer/admin-ui/): search, install, remove and update packages from the WordPress admin
 - [Security Audit](/composer/audit/): known CVEs and abandoned packages among your installed dependencies
 - [Platform Diagnostics](/composer/diagnostics/): catches PHP version mismatches before they break an install

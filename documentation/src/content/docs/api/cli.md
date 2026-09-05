@@ -102,7 +102,7 @@ lps api list
 
 | Flag | Description |
 |------|-------------|
-| `--json` / `-j` | Output raw JSON (filename and full file content per route) instead of formatted text |
+| `--json` | Output raw JSON (filename and full file content per route) instead of formatted text |
 
 **Example output:**
 

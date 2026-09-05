@@ -42,6 +42,8 @@ lps snippet pull [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
+Local files following the `<id>-<slug>` naming whose id is no longer on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. Snippets with no name are skipped with a warning.
+
 **Example:**
 
 ```bash
@@ -57,6 +59,8 @@ Upload `.php` files from a local directory to WordPress.
 - If the sidecar `.json` contains an `id`, that snippet is updated by ID.
 - If that id doesn't exist on the target site (e.g. a fresh WordPress install), a new snippet is created instead and the local sidecar is updated with the assigned id.
 - Otherwise, a new snippet is created.
+
+After a push, local files that don't already follow the `<id>-<slug>` naming (a hand-created `demo.php`, or a stale slug after a rename) are renamed on disk to match, the same convention `lps snippet pull` writes.
 
 ```bash
 lps snippet push [path]
@@ -88,20 +92,20 @@ lps snippet list
 
 | Flag | Description |
 |------|-------------|
-| `--json` / `-j` | Output raw JSON instead of formatted text |
+| `--json` | Output raw JSON instead of formatted text |
 
 **Example output:**
 
 ```
 Found 3 snippets:
 
-  1. price-formatter
-     Active: ✓
-     Tags: cli-import
+  42. Price Formatter
+     Active: yes
+     Tags: woocommerce, formatting
      Description: Formats WooCommerce prices
 
-  2. redirect-homepage
-     Active: ✗
+  17. Redirect Homepage
+     Active: no
 ```
 
 ---

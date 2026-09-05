@@ -11,6 +11,22 @@ The `composer` command group lets you synchronize your Composer setup with a Wor
 
 ## Commands
 
+### `lps composer init`
+
+Create a `composer.json` in your project, wired to the [WPackagist](https://wpackagist.org/) repository so you can require WordPress.org plugins and themes as Composer packages. Run it once, at the path resolved from `rootDir` in `loopress.json`.
+
+```bash
+lps composer init
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` / `-d` | Show where the file would be written without creating it |
+
+Once a `composer.json` exists in the repo it is authoritative for plugins and themes: `lps plugin` and `lps theme` then defer to `lps composer`, see [Where the Composer files live](/plugins/#where-the-composer-files-live). If the file already exists, `lps composer init` asks before overwriting, and does nothing in a non-interactive terminal.
+
+---
+
 ### `lps composer push`
 
 Upload `composer.json` and `composer.lock` to WordPress and run `composer install` on the server.
@@ -40,7 +56,7 @@ composer install completed on the server.
 
 ### `lps composer pull`
 
-Download the current `composer.lock` from the WordPress server to your local directory.
+Download `composer.json` from the WordPress server, plus `composer.lock` when the server has one, to your local directory.
 
 ```bash
 lps composer pull
@@ -50,7 +66,7 @@ lps composer pull
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-The file is written to the path resolved from `rootDir` in `loopress.json` (defaults to the current directory).
+The files are written to the path resolved from `rootDir` in `loopress.json` (defaults to the current directory). A site that has never had dependencies pushed has no `composer.lock` yet, so only `composer.json` is written in that case.
 
 ---
 
