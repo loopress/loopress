@@ -85,7 +85,7 @@ lps acf list
 | Flag | Description |
 |------|-------------|
 | `--type` | Limit to specific object types: `field-groups`, `post-types`, `taxonomies`, `options-pages`. Repeatable. |
-| `--json` / `-j` | Output raw JSON instead of formatted text |
+| `--json` | Output raw JSON instead of formatted text |
 
 **Example output:**
 

@@ -29,3 +29,7 @@ This is a [Loopress Full](/wordpress-plugin/) feature.
 `--force` allows downgrades and lets Loopress take over a theme installed by hand. The same limits as [plugins](/plugins/#limits) apply: WordPress.org themes only, no rollback of database migrations, no multisite.
 
 If your repo has a `composer.json`, it is authoritative and these commands defer to [`lps composer`](/composer/cli/).
+
+:::note
+The aggregate `lps push`, `lps pull` and `lps promote` commands do not include themes. Run `lps theme push` / `lps theme pull` explicitly.
+:::

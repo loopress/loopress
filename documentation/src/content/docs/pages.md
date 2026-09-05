@@ -82,7 +82,7 @@ lps page list
 
 | Flag | Description |
 |------|-------------|
-| `--json` / `-j` | Output raw JSON instead of formatted text |
+| `--json` | Output raw JSON instead of formatted text |
 
 **Example output:**
 

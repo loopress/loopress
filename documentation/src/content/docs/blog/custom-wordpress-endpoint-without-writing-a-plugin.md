@@ -75,7 +75,7 @@ Save it as `api/featured-products.php` and deploy:
 lps api push
 ```
 
-The conventions do all the wiring you saw above. The filename is the route. The class name is the filename in PascalCase. Each public method named after an HTTP verb (`get`, `post`, `put`, `patch`, `delete`) becomes that verb's handler. No registration code, no plugin header, no hook.
+The conventions do all the wiring you saw above. The filename is the route. Each file declares exactly one class, named however you like (`FeaturedProducts` here, but `Handler` or anything else works the same), and each public method named after an HTTP verb (`get`, `post`, `put`, `patch`, `delete`) becomes that verb's handler. No registration code, no plugin header, no hook.
 
 ## Now call it
 
