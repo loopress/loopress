@@ -723,6 +723,26 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(true); // no "no public HTTP verb method" failure recorded: update_option got []
     }
 
+    public function test_registerCronJobs_never_requires_a_file_that_never_mentions_cron(): void
+    {
+        // Regression for the 'init'-hook fast path: 'init' fires on every request to the whole
+        // site, not just REST ones, so registerCronJobs() must never pay for a require + reflect
+        // pass over a file that has nothing to do with cron. The fixture increments a global
+        // counter as a side effect of merely being require()d, so this fails loudly (counter
+        // > 0) if the fast path regresses and the file gets required anyway.
+        $GLOBALS['test_loader_plain_file_required'] = 0;
+        $this->directory->write(
+            'test-loader-plain-file',
+            "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\n\$GLOBALS['test_loader_plain_file_required'] = (\$GLOBALS['test_loader_plain_file_required'] ?? 0) + 1;\nfinal class TestLoaderPlainFile\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->registerCronJobs();
+
+        $this->assertSame(0, $GLOBALS['test_loader_plain_file_required']);
+        unset($GLOBALS['test_loader_plain_file_required']);
+    }
+
     // ── applyHeaders ─────────────────────────────────────────────────────────
 
     public function test_applyHeaders_ignores_requests_to_unrelated_routes(): void
