@@ -1,5 +1,16 @@
 # @loopress/wordpress-plugin
 
+## 2026.9.0
+
+### Minor Changes
+
+- e505f00: Add single-page app hosting (Loopress Full only). A built SPA bundle uploaded over the REST API lands in `wp-content/loopress/apps/<name>/`: assets are PUT one at a time (per-file size cap, only changed files sent), then one POST `/commit` flips the `loopress_apps` option so the front end serves the new build atomically. The `[loopress_app name="..."]` shortcode enqueues the build's content-hashed entry files and prints the mount point the SPA attaches to. Files from the immediately previous build are kept one generation so an in-flight visitor does not 404 on a lazy chunk. Hash routing only; static assets only (`.php` and other server-executable extensions are rejected). A read-only "Apps" tab in the plugin admin lists what has been deployed.
+- d213206: Add Composer-backed plugin/theme installs (Loopress Full only). `POST /loopress/v1/composer/sync` takes `{ intent, lock, force }`, renders a plugin-owned `composer.json` from the intent (libraries + WPackagist plugins/themes), runs Composer against the WPackagist repository, and returns the effective `composer.json`, `composer.lock`, and the list of removed packages. It returns 422 (`unmanaged_plugins_present`) when the intent references a plugin/theme folder installed by hand, unless `force` is set. `LoopressEnvironment` scaffolds and migrates the site `composer.json` with the WPackagist repository, `composer/installers`, and the installer-paths that place plugins/themes under `wp-content/`.
+
+### Patch Changes
+
+- eb79278: Fixed `wp-content/loopress/vendor/` (the site-wide Composer dependencies managed by the Dependencies feature) being fully reachable over HTTP: unlike the plugin's own bundled `vendor/`, it had no `.htaccess` or anti-listing `index.php` at all, exposing `vendor/composer/installed.json` (the full dependency tree and exact versions) to anyone who requested it. It now gets the same deny-all `.htaccess` written on first use. Since `.htaccess` only works where the webserver actually reads it (nginx ignores it outright, and some Apache hosts disable `AllowOverride`), the Composer diagnostics panel now also makes a live HTTP check against that file and surfaces a `vendor_publicly_accessible` warning if it's still reachable.
+
 ## 2026.8.1
 
 ### Patch Changes
