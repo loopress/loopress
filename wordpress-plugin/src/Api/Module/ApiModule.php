@@ -24,5 +24,12 @@ class ApiModule implements Module
             $this->namespaceController->register_routes();
             $this->routeLoader->loadAndRegister();
         });
+
+        // Separate from the rest_api_init pass above: a #[Cron] method's add_action binding has
+        // to be in place before WP-Cron actually fires the event, and a wp-cron.php
+        // pseudo-request never triggers rest_api_init (see RouteLoader::registerCronJobs()).
+        add_action('init', function () {
+            $this->routeLoader->registerCronJobs();
+        });
     }
 }

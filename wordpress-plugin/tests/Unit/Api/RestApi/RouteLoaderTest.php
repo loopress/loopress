@@ -641,6 +641,88 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(true); // reaching this line means the ParseError was caught, not fatal
     }
 
+    // ── registerCronJobs ─────────────────────────────────────────────────────
+
+    public function test_registerCronJobs_binds_and_schedules_a_cron_method(): void
+    {
+        $this->directory->write(
+            'test-loader-cron-only',
+            "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\nuse Loopress\\Api\\Attribute\\Cron;\nfinal class TestLoaderCronOnly\n{\n    #[Cron('hourly')]\n    public function cleanup(): void {}\n}\n",
+        );
+
+        Functions\expect('add_action')->once()->with('loopress_api_cron_test-loader-cron-only_cleanup', \Mockery::type(\Closure::class));
+        Functions\expect('wp_next_scheduled')->once()->with('loopress_api_cron_test-loader-cron-only_cleanup')->andReturn(false);
+        Functions\expect('wp_schedule_event')->once()->with(\Mockery::type('int'), 'hourly', 'loopress_api_cron_test-loader-cron-only_cleanup')->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->registerCronJobs();
+
+        $this->assertTrue(true); // Mockery verifies the expectations above in tearDown
+    }
+
+    public function test_registerCronJobs_does_not_reschedule_an_already_scheduled_event(): void
+    {
+        $this->directory->write(
+            'test-loader-cron-scheduled',
+            "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\nuse Loopress\\Api\\Attribute\\Cron;\nfinal class TestLoaderCronScheduled\n{\n    #[Cron('daily')]\n    public function cleanup(): void {}\n}\n",
+        );
+
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('wp_next_scheduled')->justReturn(12345);
+        Functions\expect('wp_schedule_event')->never();
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->registerCronJobs();
+
+        $this->assertTrue(true); // Mockery verifies wp_schedule_event was never called in tearDown
+    }
+
+    public function test_registerCronJobs_and_loadAndRegister_share_one_require_of_the_same_file(): void
+    {
+        // Regression for the resolveInstance() cache: registerCronJobs() (init) and
+        // loadAndRegister() (rest_api_init) can both run against the same slug in one request.
+        // Without caching, the second pass's own class_exists() check would misread the first
+        // pass's require_once as an external collision and skip registering the REST route.
+        $this->directory->write(
+            'test-loader-cron-and-route',
+            "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\nuse Loopress\\Api\\Attribute\\Cron;\nfinal class TestLoaderCronAndRoute\n{\n    public function get(): array { return []; }\n    #[Cron('daily')]\n    public function cleanup(): void {}\n}\n",
+        );
+
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('wp_next_scheduled')->justReturn(false);
+        Functions\when('wp_schedule_event')->justReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('update_option')->justReturn(true);
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(ApiNamespace::DEFAULT, '/test\-loader\-cron\-and\-route', \Mockery::type('array'))
+            ->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        // 'init' fires before 'rest_api_init' on a real request: same order here.
+        $loader->registerCronJobs();
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies register_rest_route was still called once in tearDown
+    }
+
+    public function test_loadAndRegister_registers_no_route_but_does_not_fail_a_cron_only_file(): void
+    {
+        $this->directory->write(
+            'test-loader-cron-file-only',
+            "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\nuse Loopress\\Api\\Attribute\\Cron;\nfinal class TestLoaderCronFileOnly\n{\n    #[Cron('daily')]\n    public function cleanup(): void {}\n}\n",
+        );
+
+        Functions\expect('register_rest_route')->never();
+        Functions\when('add_filter')->justReturn(true);
+        Functions\expect('update_option')->once()->with(ApiDirectory::LOAD_ERRORS_OPTION, [], false)->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // no "no public HTTP verb method" failure recorded: update_option got []
+    }
+
     // ── applyHeaders ─────────────────────────────────────────────────────────
 
     public function test_applyHeaders_ignores_requests_to_unrelated_routes(): void

@@ -113,6 +113,16 @@ jobs:
           docker exec "$CONTAINER" wp plugin delete loopress loopress-full loopress-light --allow-root || true
           docker cp wordpress-plugin/loopress-full.zip "$CONTAINER":/tmp/loopress-full.zip
           docker exec "$CONTAINER" wp plugin install /tmp/loopress-full.zip --activate --allow-root
+          # ApiModule and AppsModule both hook wp-content/loopress directory creation to a
+          # plain 'init' action (deliberately, e.g. AppsModule.php's ensureExists() also runs
+          # here so a Git-based deploy that never calls `lps app push` still gets its guard
+          # files), which fires on every WP bootstrap, including the wp-cli calls above, all
+          # run via 'docker exec' with no '-u', i.e. as root. That recreates wp-content/loopress
+          # owned by root right when this plugin gets activated, even though loopress/setup-ci
+          # already chowned wp-content once before this step. This is the last root-run command
+          # before Playwright starts sending real HTTP traffic, served by Apache as www-data, so
+          # fix ownership here, after it, rather than patching the (correct) plugin behavior.
+          docker exec "$CONTAINER" chown -R www-data:www-data /var/www/html/wp-content
 
       - name: Extract app password
         id: wp-creds
