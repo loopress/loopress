@@ -19,6 +19,7 @@ const makePlugin = (slug: string, version: string, active = true): InstalledPlug
 const makeNative = (plugin: string, overrides: Partial<WpNativePlugin> = {}): WpNativePlugin => ({
   name: plugin,
   plugin,
+  plugin_uri: '',
   status: 'active',
   version: '1.0.0',
   ...overrides,
@@ -76,6 +77,13 @@ describe('plugins', () => {
     it('derives the slug from a single-file plugin id with no folder', () => {
       const [plugin] = parseInstalledPlugins([makeNative('hello')])
       expect(plugin.slug).toBe('hello')
+    })
+
+    it('prefers the WordPress.org slug from plugin_uri when a single-file id disagrees with it', () => {
+      const [plugin] = parseInstalledPlugins([
+        makeNative('hello', {plugin_uri: 'https://wordpress.org/plugins/hello-dolly/'}),
+      ])
+      expect(plugin.slug).toBe('hello-dolly')
     })
 
     it('treats "inactive" status as not active and everything else as active', () => {

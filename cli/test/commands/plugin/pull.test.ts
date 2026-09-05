@@ -19,7 +19,7 @@ type PullInternals = {
 }
 
 function nativePlugin(overrides: Partial<WpNativePlugin> & {plugin: string}): WpNativePlugin {
-  return {name: overrides.plugin, status: 'active', version: '1.0.0', ...overrides}
+  return {name: overrides.plugin, plugin_uri: '', status: 'active', version: '1.0.0', ...overrides}
 }
 
 describe('plugin pull', () => {

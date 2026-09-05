@@ -47,8 +47,15 @@ export function mergePluginManifest(existing: PluginManifest, incoming: PluginMa
 // folder name (or the bare id itself for a single-file plugin). Composer + composer/installers
 // installs a WPackagist plugin into `wp-content/plugins/<slug>/`, so folder name and slug stay
 // aligned for anything Loopress manages.
-function slugFromPluginFile(file: string): string {
-  return file.split('/', 1)[0]
+//
+// A single-file plugin's bare id isn't always its real slug though: Hello Dolly ships as
+// `hello.php` but its WordPress.org (and WPackagist) slug is `hello-dolly`. When that happens,
+// trust the plugin's own `Plugin URI` header over the guessed id.
+const WP_ORG_PLUGIN_URI = /^https?:\/\/wordpress\.org\/plugins\/([^/]+)\/?$/
+
+function slugFromPluginFile(file: string, pluginUri: string): string {
+  if (file.includes('/')) return file.split('/', 1)[0]
+  return WP_ORG_PLUGIN_URI.exec(pluginUri)?.[1] ?? file
 }
 
 export function parseInstalledPlugins(raw: WpNativePlugin[]): InstalledPlugin[] {
@@ -57,7 +64,7 @@ export function parseInstalledPlugins(raw: WpNativePlugin[]): InstalledPlugin[] 
       active: item.status !== 'inactive',
       file: item.plugin,
       name: item.name,
-      slug: slugFromPluginFile(item.plugin),
+      slug: slugFromPluginFile(item.plugin, item.plugin_uri),
       version: item.version,
     }))
     .filter((plugin) => !LOOPRESS_PLUGIN_SLUGS.has(plugin.slug))

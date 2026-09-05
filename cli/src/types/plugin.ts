@@ -10,6 +10,7 @@ export type InstalledPlugin = {
 export type WpNativePlugin = {
   name: string
   plugin: string
+  plugin_uri: string
   status: 'active' | 'inactive' | 'network-active'
   version: string
 }
