@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Loopress\Acf\RestApi;
 
 use Loopress\Acf\Service\AcfService;
+use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class AcfController
 {
+    use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
 
     /** URL-friendly slug (used in the route) => ACF's own internal post type constant. */
@@ -62,11 +64,9 @@ class AcfController
             return new WP_REST_Response(['error' => 'ACF is not active'], 400);
         }
 
-        try {
-            return new WP_REST_Response($this->acfService->list($this->postType($request)), 200);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->list($this->postType($request)), 200)
+        );
     }
 
     public function get_object(WP_REST_Request $request): WP_REST_Response
@@ -75,17 +75,15 @@ class AcfController
             return new WP_REST_Response(['error' => 'ACF is not active'], 400);
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $object = $this->acfService->get($this->postType($request), (string) $request->get_param('key'));
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if ($object === null) {
-            return new WP_REST_Response(['error' => 'ACF object not found'], 404);
-        }
+            if ($object === null) {
+                return new WP_REST_Response(['error' => 'ACF object not found'], 404);
+            }
 
-        return new WP_REST_Response($object, 200);
+            return new WP_REST_Response($object, 200);
+        });
     }
 
     public function upsert_object(WP_REST_Request $request): WP_REST_Response
@@ -99,13 +97,9 @@ class AcfController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        try {
-            $object = $this->acfService->upsert($this->postType($request), $data);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
-
-        return new WP_REST_Response($object, 200);
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->upsert($this->postType($request), $data), 200)
+        );
     }
 
     public function delete_object(WP_REST_Request $request): WP_REST_Response
@@ -114,17 +108,15 @@ class AcfController
             return new WP_REST_Response(['error' => 'ACF is not active'], 400);
         }
 
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $deleted = $this->acfService->delete($this->postType($request), (string) $request->get_param('key'));
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if (!$deleted) {
-            return new WP_REST_Response(['error' => 'ACF object not found'], 404);
-        }
+            if (!$deleted) {
+                return new WP_REST_Response(['error' => 'ACF object not found'], 404);
+            }
 
-        return new WP_REST_Response(null, 204);
+            return new WP_REST_Response(null, 204);
+        });
     }
 
     private function postType(WP_REST_Request $request): string

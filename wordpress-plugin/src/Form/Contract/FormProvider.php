@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Form\Contract;
 
+use Loopress\Contract\ActivatableProvider;
+
 /**
  * One implementation per WordPress form-builder plugin (WPForms today, others later, same
  * shape as Loopress\Snippets\Contract\SnippetProvider for Code Snippets/WPCode). Deliberately
@@ -13,10 +15,8 @@ namespace Loopress\Form\Contract;
  * Form 7's shortcode-tag template), so each provider passes its own plugin's native shape
  * through untouched, same reasoning as AcfService for ACF's own export format.
  */
-interface FormProvider
+interface FormProvider extends ActivatableProvider
 {
-    public function isActive(): bool;
-
     /** @return array<int, array<string, mixed>> */
     public function list(): array;
 

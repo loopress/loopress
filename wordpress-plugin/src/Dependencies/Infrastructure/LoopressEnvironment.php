@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Dependencies\Infrastructure;
 
+use Loopress\Infrastructure\DirectoryGuard;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -138,10 +139,7 @@ class LoopressEnvironment
             wp_mkdir_p($dir);
         }
 
-        $htaccess = $dir . '.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess, self::VENDOR_HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
+        DirectoryGuard::writeHtaccessIfMissing($dir, self::VENDOR_HTACCESS);
 
         return $dir;
     }
@@ -288,10 +286,7 @@ class LoopressEnvironment
             wp_mkdir_p($libDir);
         }
 
-        $indexFile = $libDir . 'index.php';
-        if (!file_exists($indexFile)) {
-            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
+        DirectoryGuard::writeIndexIfMissing($libDir);
     }
 
     // wp-content/loopress/ sits under the public webroot, so vendor/ needs the same defence as
@@ -308,15 +303,8 @@ class LoopressEnvironment
             wp_mkdir_p($vendorDir);
         }
 
-        $indexFile = $vendorDir . 'index.php';
-        if (!file_exists($indexFile)) {
-            file_put_contents($indexFile, "<?php\n// Silence is golden.\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
-
-        $htaccess = $vendorDir . '.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess, self::VENDOR_HTACCESS); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        }
+        DirectoryGuard::writeIndexIfMissing($vendorDir);
+        DirectoryGuard::writeHtaccessIfMissing($vendorDir, self::VENDOR_HTACCESS);
     }
 
     private const VENDOR_HTACCESS = <<<'HTACCESS'
@@ -390,19 +378,17 @@ class LoopressEnvironment
 
     public function readComposerJsonRaw(): ?string
     {
-        $path = $this->loopressDir . 'composer.json';
-        if (!file_exists($path)) {
-            return null;
-        }
-
-        // Local file under our own working directory, not a remote URL: wp_remote_get() doesn't apply here.
-        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-        return $contents !== false ? $contents : null;
+        return $this->readLoopressFile('composer.json');
     }
 
     public function readComposerLock(): ?string
     {
-        $path = $this->loopressDir . 'composer.lock';
+        return $this->readLoopressFile('composer.lock');
+    }
+
+    private function readLoopressFile(string $filename): ?string
+    {
+        $path = $this->loopressDir . $filename;
         if (!file_exists($path)) {
             return null;
         }

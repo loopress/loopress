@@ -8,12 +8,14 @@ use Composer\Semver\VersionParser;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Service\ComposerService;
+use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
 class ComposerController
 {
+    use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
 
     public function __construct(private ComposerService $composerService) {}
@@ -124,17 +126,15 @@ class ComposerController
 
     public function get_versions(WP_REST_Request $request): WP_REST_Response
     {
-        try {
+        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
             $versions = $this->composerService->getVersions($request->get_param('package'));
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
 
-        if ($versions === null) {
-            return new WP_REST_Response(['error' => 'Package not found'], 404);
-        }
+            if ($versions === null) {
+                return new WP_REST_Response(['error' => 'Package not found'], 404);
+            }
 
-        return new WP_REST_Response($versions);
+            return new WP_REST_Response($versions);
+        });
     }
 
     public function get_installed(WP_REST_Request $request): WP_REST_Response
@@ -190,24 +190,18 @@ class ComposerController
 
     public function get_outdated(WP_REST_Request $request): WP_REST_Response
     {
-        try {
-            return new WP_REST_Response($this->composerService->getOutdated(), 200);
-        } catch (ConcurrentOperationException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->composerService->getOutdated(), 200),
+            [ConcurrentOperationException::class => 409],
+        );
     }
 
     public function get_audit(WP_REST_Request $request): WP_REST_Response
     {
-        try {
-            return new WP_REST_Response($this->composerService->audit(), 200);
-        } catch (ConcurrentOperationException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 409);
-        } catch (\RuntimeException $e) {
-            return new WP_REST_Response(['error' => $e->getMessage()], 500);
-        }
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->composerService->audit(), 200),
+            [ConcurrentOperationException::class => 409],
+        );
     }
 
     public function fix_platform(WP_REST_Request $request): WP_REST_Response

@@ -150,7 +150,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             active: (bool) ($data['active'] ?? false),
             description: (string) ($data['desc'] ?? ''),
             tags: is_array($data['tags'] ?? null) ? $data['tags'] : [],
-            location: self::SCOPE_TO_LOCATION[$scope] ?? $this->defaultLocationForType($type),
+            location: self::SCOPE_TO_LOCATION[$scope] ?? $type->defaultLocation(),
             insertMethod: 'auto',
             priority: isset($data['priority']) ? (int) $data['priority'] : 10,
             shortcodeAttributes: [],
@@ -170,15 +170,6 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
         }
 
         return SnippetType::Php;
-    }
-
-    private function defaultLocationForType(SnippetType $type): string
-    {
-        return match ($type) {
-            SnippetType::Css                              => 'header',
-            SnippetType::Html, SnippetType::Js, SnippetType::Text => 'footer',
-            SnippetType::Php                              => 'everywhere',
-        };
     }
 
     private function scopeFromTypeAndLocation(SnippetType $type, string $location): string

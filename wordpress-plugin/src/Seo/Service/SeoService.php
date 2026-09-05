@@ -8,50 +8,43 @@ use Loopress\Seo\Contract\SeoProvider;
 use Loopress\Seo\Contract\SeoRedirectProvider;
 use Loopress\Seo\Exception\NoActiveSeoPluginException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
+use Loopress\Service\AbstractSingleProviderService;
 
-class SeoService
+class SeoService extends AbstractSingleProviderService
 {
-    /** @var SeoProvider[] */
-    private array $providers;
-
     public function __construct(SeoProvider ...$providers)
     {
-        $this->providers = $providers;
-    }
-
-    public function isActive(): bool
-    {
-        return $this->activeProviders() !== [];
+        parent::__construct(...$providers);
     }
 
     /** @return array<int, array<string, mixed>> */
     public function listPostMeta(string $postType): array
     {
-        return $this->requireActiveProvider()->listPostMeta($postType);
+        return $this->activeSeoProvider()->listPostMeta($postType);
     }
 
     /** @return array<string, mixed>|null */
     public function getPostMeta(string $postType, string $slug): ?array
     {
-        return $this->requireActiveProvider()->getPostMeta($postType, $slug);
+        return $this->activeSeoProvider()->getPostMeta($postType, $slug);
     }
 
     /** @param array<string, mixed> $meta @return array<string, mixed> */
     public function upsertPostMeta(string $postType, string $slug, array $meta): array
     {
-        return $this->requireActiveProvider()->upsertPostMeta($postType, $slug, $meta);
+        return $this->activeSeoProvider()->upsertPostMeta($postType, $slug, $meta);
     }
 
     /** @return array<string, mixed> */
     public function getSettings(): array
     {
-        return $this->requireActiveProvider()->getSettings();
+        return $this->activeSeoProvider()->getSettings();
     }
 
     /** @param array<string, mixed> $data @return array<string, mixed> */
     public function updateSettings(array $data): array
     {
-        return $this->requireActiveProvider()->updateSettings($data);
+        return $this->activeSeoProvider()->updateSettings($data);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -78,30 +71,16 @@ class SeoService
         return $this->requireRedirectProvider()->updateRedirection($id, $data);
     }
 
-    /** @return SeoProvider[] */
-    private function activeProviders(): array
+    // requireActiveProvider() is typed ActivatableProvider at the base-class level (shared by
+    // every AbstractSingleProviderService); this constructor only ever handed it SeoProvider
+    // instances, so the narrowing below is always correct, just not something PHP's type
+    // system tracks across the base class on its own.
+    private function activeSeoProvider(): SeoProvider
     {
-        return array_values(array_filter(
-            $this->providers,
-            static fn(SeoProvider $provider): bool => $provider->isActive(),
-        ));
-    }
+        /** @var SeoProvider $provider */
+        $provider = $this->requireActiveProvider();
 
-    // Requires exactly one active SEO plugin, same reasoning as SnippetService: if two are
-    // active at once, syncing would silently land in whichever one happens to win, with no
-    // way for the user to know which storage is authoritative.
-    private function requireActiveProvider(): SeoProvider
-    {
-        $active = $this->activeProviders();
-
-        if (count($active) > 1) {
-            throw new NoActiveSeoPluginException(
-                'Multiple SEO plugins are active at once (RankMath and Yoast SEO). Loopress cannot tell ' .
-                'which one is authoritative for your SEO data. Deactivate all but one and try again.',
-            );
-        }
-
-        return $active[0] ?? throw new NoActiveSeoPluginException('No supported SEO plugin is active.');
+        return $provider;
     }
 
     // Mirrors ACF options pages requiring ACF PRO: not every SeoProvider supports redirects
@@ -109,12 +88,25 @@ class SeoService
     // nothing for a provider that was never going to support the request.
     private function requireRedirectProvider(): SeoRedirectProvider
     {
-        $provider = $this->requireActiveProvider();
+        $provider = $this->activeSeoProvider();
 
         if (!$provider instanceof SeoRedirectProvider) {
             throw new RedirectsUnavailableException('Redirects are not supported by the active SEO plugin.');
         }
 
         return $provider;
+    }
+
+    protected function multipleActiveException(): \RuntimeException
+    {
+        return new NoActiveSeoPluginException(
+            'Multiple SEO plugins are active at once (RankMath and Yoast SEO). Loopress cannot tell ' .
+            'which one is authoritative for your SEO data. Deactivate all but one and try again.',
+        );
+    }
+
+    protected function noneActiveException(): \RuntimeException
+    {
+        return new NoActiveSeoPluginException('No supported SEO plugin is active.');
     }
 }

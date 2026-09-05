@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Contract;
 
-interface SnippetProvider
-{
-    public function isActive(): bool;
+use Loopress\Contract\ActivatableProvider;
 
+interface SnippetProvider extends ActivatableProvider
+{
     /** @return array<int, SnippetData> */
     public function getSnippets(): array;
 

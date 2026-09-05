@@ -85,20 +85,10 @@ class ComposerService
     /** @return array<string, string> package name to exact locked version */
     private function getLockedVersions(): array
     {
-        $lock = $this->environment->readComposerLock();
-        if ($lock === null) {
-            return [];
-        }
-
-        $data = json_decode($lock, true);
-        if (!is_array($data)) {
-            return [];
-        }
-
         $versions = [];
-        foreach (array_merge($data['packages'] ?? [], $data['packages-dev'] ?? []) as $package) {
-            if (is_array($package) && isset($package['name'], $package['version'])) {
-                $versions[(string) $package['name']] = (string) $package['version'];
+        foreach ($this->parseLockedPackages($this->environment->readComposerLock()) as $name => $version) {
+            if ($version !== null) {
+                $versions[$name] = $version;
             }
         }
 
@@ -207,16 +197,7 @@ class ComposerService
             throw new \RuntimeException(esc_html($result['output']));
         }
 
-        // Strip any non-JSON preamble Composer may emit before the object.
-        $raw   = $result['output'];
-        $start = strpos($raw, '{');
-        $json  = $start !== false ? substr($raw, $start) : '{}';
-        $data  = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('Failed to parse composer outdated output: ' . esc_html(json_last_error_msg()));
-        }
-
+        $data      = $this->parseJsonOutput($result['output'], 'outdated');
         $installed = $data['installed'] ?? [];
 
         $outdated = array_filter(
@@ -240,22 +221,32 @@ class ComposerService
             throw new \RuntimeException(esc_html($result['output']));
         }
 
-        // Strip any non-JSON preamble Composer may emit before the object.
-        $raw   = $result['output'];
-        $start = strpos($raw, '{');
-        $json  = $start !== false ? substr($raw, $start) : '{}';
-        $data  = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException('Failed to parse composer audit output: ' . esc_html(json_last_error_msg()));
-        }
-
-        $data = $data ?? [];
+        $data = $this->parseJsonOutput($result['output'], 'audit');
 
         return [
             'advisories' => $data['advisories'] ?? [],
             'abandoned'  => $data['abandoned'] ?? [],
         ];
+    }
+
+    /**
+     * Composer's JSON-format commands (`outdated`, `audit`) sometimes emit a non-JSON preamble
+     * (a deprecation notice, a warning) before the actual object; this strips it and decodes
+     * what's left.
+     *
+     * @return array<string, mixed>
+     */
+    private function parseJsonOutput(string $raw, string $context): array
+    {
+        $start = strpos($raw, '{');
+        $json  = $start !== false ? substr($raw, $start) : '{}';
+        $data  = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \RuntimeException("Failed to parse composer {$context} output: " . esc_html(json_last_error_msg()));
+        }
+
+        return $data ?? [];
     }
 
     public function fixPlatform(): void
@@ -459,6 +450,17 @@ class ComposerService
     /** @return list<string> */
     private function lockedPackageNames(?string $lock): array
     {
+        return array_keys($this->parseLockedPackages($lock));
+    }
+
+    /**
+     * Package name to locked version, or null when the lock entry has no version (lets
+     * lockedPackageNames() still count it as locked without inventing a fake version for it).
+     *
+     * @return array<string, string|null>
+     */
+    private function parseLockedPackages(?string $lock): array
+    {
         if ($lock === null) {
             return [];
         }
@@ -468,13 +470,13 @@ class ComposerService
             return [];
         }
 
-        $names = [];
+        $versions = [];
         foreach (array_merge($data['packages'] ?? [], $data['packages-dev'] ?? []) as $package) {
             if (is_array($package) && isset($package['name'])) {
-                $names[] = (string) $package['name'];
+                $versions[(string) $package['name']] = isset($package['version']) ? (string) $package['version'] : null;
             }
         }
 
-        return $names;
+        return $versions;
     }
 }
