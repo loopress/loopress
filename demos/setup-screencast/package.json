@@ -1,0 +1,14 @@
+{
+  "name": "loopress-setup-screencast",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained tooling for the Loopress onboarding screencast. Installed on its own with npm (see setup.sh); not part of the pnpm workspace.",
+  "scripts": {
+    "record": "bash record.sh"
+  },
+  "dependencies": {
+    "@playwright/test": "1.62.1",
+    "node-pty": "1.0.0"
+  }
+}
