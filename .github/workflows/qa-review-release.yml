@@ -5,9 +5,6 @@ name: 🔍 QA review (release)
 on:
   pull_request_review:
     types: [submitted]
-#  pull_request: # TEMP (testing on ci/qa-review-release-branch): remove when done
-
-concurrency: qa-review-release-${{ github.event.pull_request.number }}
 
 permissions:
   contents: read
@@ -22,6 +19,11 @@ jobs:
     if: >
       (github.event.review.state == 'approved' &&
        github.event.pull_request.head.ref == 'changeset-release/main')
+    # Job-level (not workflow-level): a skipped run (comment-only review,
+    # wrong branch) never enters the group, so it can't cancel a real one.
+    concurrency:
+      group: qa-review-release-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -129,6 +131,17 @@ jobs:
             echo "WP_APP_PASSWORD=$APP_PW"
           } >> "$GITHUB_ENV"
 
+      - name: Install rtk
+        run: |
+          set -euo pipefail
+          curl -sSL -o rtk.tar.gz \
+            https://github.com/rtk-ai/rtk/releases/download/v0.42.3/rtk-x86_64-unknown-linux-musl.tar.gz
+          echo "5df764a633709cb85d248258d085d24ec95faa8bca0e6835a93cd57cadc4eb9e  rtk.tar.gz" | sha256sum -c -
+          tar -xzf rtk.tar.gz
+          sudo mv rtk /usr/local/bin/rtk
+          sudo chmod +x /usr/local/bin/rtk
+          rtk --version
+
       - uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
         env:
           WP_PATH: ${{ env.WP_PATH }}
@@ -142,7 +155,6 @@ jobs:
           # workflow file differs from main. Drop this line once merged to main
           # to have comments posted as the Claude app instead of github-actions.
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          show_full_output: true # TEMP: real API errors in the log, remove when green
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -152,8 +164,16 @@ jobs:
             You are doing a release-readiness QA pass, in two parts.
 
             ## 1. Changelog / semver review
-            - Compare CHANGELOG.md entries against the actual commit diffs; flag
-              any that don't match, or a change with no changeset entry.
+            This PR's own diff is just the version bumps and CHANGELOG.md
+            edits (the changeset bot already merged the real feature commits
+            into main earlier), so diffing the PR itself shows nothing
+            useful. For each package whose CHANGELOG.md changed here, find
+            its previous release tag (tags look like `wordpress-plugin@2026.8.1`
+            or `@loopress/cli@0.22.0`, e.g. `git tag -l '<package>@*' --sort=-creatordate | head`)
+            and diff from that tag to main, scoped to that package's
+            directory, to see the commits this release actually contains.
+            - Compare CHANGELOG.md entries against those commits; flag any
+              that don't match, or a change with no changeset entry.
             - Check semver bumps fit the changes (no breaking change as a patch).
             - @loopress/cli and @loopress/mcp are a fixed group in
               .changeset/config.json: flag it if their versions differ.
@@ -188,6 +208,11 @@ jobs:
               and confirm the endpoints respond sanely.
             - Load the plugin's wp-admin pages and confirm they render.
             - Fresh reinstall + uninstall the zip, re-checking the debug log.
+
+            Keep exploration tight: prefer `--stat` before full diffs, grep
+            debug.log for `fatal|warning|error` instead of catting the whole
+            file, and don't run unbounded `git log` over the full repo
+            history.
 
             ## Output
             Post ONE top-level summary comment with `gh pr comment` covering
