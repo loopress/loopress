@@ -75,6 +75,9 @@
                      different reflective caller: RouteLoader::permissionAttributeFor() reads this
                      via ReflectionAttribute::newInstance(), never a literal `new Permission(...)`. -->
                 <referencedMethod name="Loopress\Api\Attribute\Permission::__construct" />
+                <!-- Same reflective-attribute shape as Permission::__construct above:
+                     RouteLoader::cronMethodsFor() reads this via ReflectionAttribute::newInstance(). -->
+                <referencedMethod name="Loopress\Api\Attribute\Cron::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>

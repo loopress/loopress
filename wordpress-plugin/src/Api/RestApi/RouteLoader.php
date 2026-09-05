@@ -446,7 +446,9 @@ class RouteLoader
 
         $content = $this->directory->read($slug);
         if ($content === null) {
-            return $this->instances[$slug] = null; // gone between listSlugs() and here (e.g. deleted concurrently); nothing to load
+            // gone between listSlugs() and here (e.g. deleted concurrently); nothing to load
+            $this->instances[$slug] = null;
+            return null;
         }
 
         // Discovering the class never requires the file: a file with the wrong number of
@@ -456,7 +458,8 @@ class RouteLoader
         if (count($classes) !== 1) {
             $found = $classes === [] ? 'none' : implode(', ', $classes);
             $this->fail($slug, "expected exactly one class declaration, found {$found}");
-            return $this->instances[$slug] = null;
+            $this->instances[$slug] = null;
+            return null;
         }
 
         $className = $classes[0];
@@ -467,7 +470,8 @@ class RouteLoader
         // class, which this now detects regardless of what either is named.
         if (class_exists($className, false)) {
             $this->fail($slug, "class {$className} is already declared");
-            return $this->instances[$slug] = null;
+            $this->instances[$slug] = null;
+            return null;
         }
 
         // FileWriter::withGuard() only injects the ABSPATH guard for files that went through
@@ -496,10 +500,12 @@ class RouteLoader
             // unusual but not impossible) could still leave it missing: none of these may ever
             // fatal the request.
             $this->fail($slug, 'failed to load: ' . $e->getMessage());
-            return $this->instances[$slug] = null;
+            $this->instances[$slug] = null;
+            return null;
         }
 
-        return $this->instances[$slug] = $instance;
+        $this->instances[$slug] = $instance;
+        return $instance;
     }
 
     // Every loadFile() failure branch goes through here, never $this->log() directly: it's

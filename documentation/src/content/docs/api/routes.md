@@ -114,6 +114,49 @@ class Item
 }
 ```
 
+## Scheduled tasks with `#[Cron]`
+
+A route file's class can also run on a recurring schedule, independent of any HTTP verb. Mark a public method with `#[Cron(recurrence)]`:
+
+```php
+use Loopress\Api\Attribute\Cron;
+
+class InvoiceCleanup
+{
+    #[Cron('daily')]
+    public function cleanup(): void
+    {
+        // ...
+    }
+}
+```
+
+`recurrence` is any WordPress schedule name: the built-in `hourly`, `twicedaily`, and `daily`, or a custom one your own code registers via the [`cron_schedules`](https://developer.wordpress.org/reference/hooks/cron_schedules/) filter.
+
+The event is scheduled the first time the method is seen, and left alone after that: WordPress's own [`wp_next_scheduled()`](https://developer.wordpress.org/reference/functions/wp_next_scheduled/) check means it's only ever scheduled once. Changing `#[Cron('daily')]` to `#[Cron('hourly')]` later doesn't reschedule the already-running event, clear it yourself first with [`wp_clear_scheduled_hook()`](https://developer.wordpress.org/reference/functions/wp_clear_scheduled_hook/) if you need the new recurrence to take effect immediately.
+
+A class can mix verb methods and `#[Cron]` methods freely, or have only `#[Cron]` methods and no route at all:
+
+```php
+class InvoiceCleanup
+{
+    #[Cron('hourly')]
+    public function purgeExpired(): void
+    {
+        // no get()/post()/etc.: this file registers no REST route, only the cron job
+    }
+}
+```
+
+Same fail-closed behavior as `permission()` and `headers()`: a throwing `#[Cron]` method is caught and logged, it never breaks any other scheduled task or route.
+
+By default the WordPress action bound to the job is `loopress_api_cron_{slug}_{method}` (slashes in a nested slug become underscores), pass `hook` to `#[Cron]` to name it yourself, useful if another part of your code needs to `do_action()` the same job on demand:
+
+```php
+#[Cron('daily', hook: 'acme_invoice_cleanup')]
+public function cleanup(): void { /* ... */ }
+```
+
 ## Handling the request
 
 Each verb method receives the standard [`WP_REST_Request`](https://developer.wordpress.org/reference/classes/wp_rest_request/) object as its first argument. Declare the parameter if you need it, omit it if you don't, both signatures work:

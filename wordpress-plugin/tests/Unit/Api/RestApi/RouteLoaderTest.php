@@ -650,7 +650,7 @@ class RouteLoaderTest extends TestCase
             "<?php\nnamespace Loopress\\Tests\\Unit\\Api\\RestApi;\nuse Loopress\\Api\\Attribute\\Cron;\nfinal class TestLoaderCronOnly\n{\n    #[Cron('hourly')]\n    public function cleanup(): void {}\n}\n",
         );
 
-        Functions\expect('add_action')->once()->with('loopress_api_cron_test-loader-cron-only_cleanup', \Mockery::type('array'));
+        Functions\expect('add_action')->once()->with('loopress_api_cron_test-loader-cron-only_cleanup', \Mockery::type(\Closure::class));
         Functions\expect('wp_next_scheduled')->once()->with('loopress_api_cron_test-loader-cron-only_cleanup')->andReturn(false);
         Functions\expect('wp_schedule_event')->once()->with(\Mockery::type('int'), 'hourly', 'loopress_api_cron_test-loader-cron-only_cleanup')->andReturn(true);
 
