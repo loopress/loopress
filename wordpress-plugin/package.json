@@ -29,14 +29,14 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/react": "~19.2.18",
-    "@types/react-dom": "~19.2.6",
+    "@types/react-dom": "~19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "@wordpress/components": "^40.0.0",
     "@wordpress/element": "^8.6.0",
     "@wordpress/scripts": "34.2.0",
-    "happy-dom": "^20.13.2",
+    "happy-dom": "^20.14.0",
     "typescript": "^6.0.3",
     "url-loader": "^4.1.1",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   }
 }

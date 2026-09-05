@@ -14,7 +14,7 @@
   },
   "packageManager": "pnpm@11.25.0+sha512.5cde925b4f075f725eb71fbae18a42ffe784524789f19b61c731cb8721ec28aaee160e01a8d5af4fedb2a42cdbf300efe23db356b0d4a17b4d63e11f8ab7c956",
   "devDependencies": {
-    "@changesets/cli": "^2.31.1",
+    "@changesets/cli": "^3.0.1",
     "@playwright/test": "^1.62.1",
     "@wordpress/e2e-test-utils-playwright": "^1.54.0"
   },

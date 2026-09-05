@@ -12,14 +12,14 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.7.1",
-    "@oclif/core": "^4.14.0",
-    "@oclif/plugin-help": "^6.3.0",
-    "@oclif/plugin-warn-if-update-available": "^3.2.0",
+    "@oclif/core": "^5.0.0",
+    "@oclif/plugin-help": "^7.0.0",
+    "@oclif/plugin-warn-if-update-available": "^4.0.0",
     "@sentry/node": "^10.73.0",
     "chokidar": "^5.0.0",
     "compare-versions": "^6.1.1",
     "glob": "13.0.6",
-    "got": "^15.1.0",
+    "got": "^16.0.0",
     "listr2": "^11.1.0",
     "open": "^11.0.2",
     "playwright-core": "^1.62.1",
@@ -27,25 +27,25 @@
     "write-file-atomic": "^8.0.0"
   },
   "devDependencies": {
-    "@eslint/compat": "2.1.0",
+    "@eslint/compat": "2.1.1",
     "@oclif/prettier-config": "^0.2.1",
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "26.4.1",
     "@types/write-file-atomic": "^4.0.3",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "5.0.0",
     "eslint": "^10.9.1",
     "eslint-config-oclif": "^7.1.7",
     "eslint-config-prettier": "^10",
     "eslint-plugin-sonarjs": "^4.2.0",
     "json-schema-to-typescript": "^16.0.0",
-    "oclif": "^4.24.0",
+    "oclif": "^5.0.1",
     "prettier": "3.9.6",
     "shx": "^0.4.0",
     "ts-node": "10.9.2",
     "tsx": "4.23.13",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
