@@ -1,5 +1,5 @@
 === Loopress Light ===
-Contributors: jean-smaug
+Contributors: jeansmaug
 Tags: acf, seo, advanced custom fields, sync, git
 Requires at least: 6.2
 Tested up to: 7.0

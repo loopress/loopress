@@ -1,5 +1,5 @@
 === Loopress Full ===
-Contributors: jean-smaug
+Contributors: jeansmaug
 Tags: composer, dependency, package manager, code snippets, developer tools
 Requires at least: 6.2
 Tested up to: 7.0
