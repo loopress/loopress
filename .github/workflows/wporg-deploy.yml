@@ -1,0 +1,79 @@
+name: 🚀 Deploy Loopress Light to WordPress.org
+
+# Manual only. The WordPress.org guidelines ask plugins not to commit to SVN on
+# every push, so the directory deploy is triggered by hand when a release is
+# worth shipping there, separately from the GitHub release in release.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to deploy (defaults to wordpress-plugin/package.json)
+        required: false
+      dry_run:
+        description: Build and diff against SVN without committing
+        type: boolean
+        default: false
+
+concurrency: wporg-deploy
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to WordPress.org SVN
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
+
+      # Same as the release job: re-derive readme.txt "Stable tag" from package.json
+      # so it always matches VERSION below (the deploy action refuses a mismatch).
+      - name: Sync plugin version header
+        working-directory: wordpress-plugin
+        run: pnpm run version
+
+      - name: Resolve version
+        id: version
+        run: |
+          V="${{ inputs.version }}"
+          [ -n "$V" ] || V=$(jq -r '.version' wordpress-plugin/package.json)
+          echo "value=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Build the Loopress Light edition zip
+        working-directory: wordpress-plugin
+        run: pnpm run pack:light
+
+      - name: Unzip build for SVN
+        run: unzip -q wordpress-plugin/loopress-light.zip -d /tmp/wporg
+
+      - name: Deploy to WordPress.org
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # v2.3.0
+        with:
+          dry-run: ${{ inputs.dry_run }}
+        env:
+          SVN_USERNAME: ${{ secrets.WPORG_SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WPORG_SVN_PASSWORD }}
+          SLUG: loopress-light
+          VERSION: ${{ steps.version.outputs.value }}
+          BUILD_DIR: /tmp/wporg/loopress-light
+          ASSETS_DIR: wordpress-plugin/.wordpress-org
