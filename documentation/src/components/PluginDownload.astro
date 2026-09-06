@@ -8,23 +8,44 @@ interface Props {
 
 const { edition = 'light' } = Astro.props;
 
-const meta =
-  edition === 'full'
-    ? { zip: 'loopress-full.zip', label: 'Download loopress-full.zip' }
-    : { zip: 'loopress-light.zip', label: 'Download loopress-light.zip' };
-
 const version = pkg.version;
 const encodedTag = `wordpress-plugin%40${version}`;
-const downloadUrl = `https://github.com/loopress/loopress/releases/download/${encodedTag}/${meta.zip}`;
-const releaseUrl = `https://github.com/loopress/loopress/releases/tag/${encodedTag}`;
+
+// Loopress Light is on the WordPress.org directory; Loopress Full is a GitHub release asset.
+const buttons =
+  edition === 'full'
+    ? {
+        primary: {
+          href: `https://github.com/loopress/loopress/releases/download/${encodedTag}/loopress-full.zip`,
+          icon: 'download',
+          label: 'Download loopress-full.zip',
+        },
+        secondary: {
+          href: `https://github.com/loopress/loopress/releases/tag/${encodedTag}`,
+          icon: 'github',
+          label: `v${version} release notes`,
+        },
+      }
+    : {
+        primary: {
+          href: 'https://wordpress.org/plugins/loopress-light/',
+          icon: 'external',
+          label: 'Loopress Light on WordPress.org',
+        },
+        secondary: {
+          href: 'https://downloads.wordpress.org/plugin/loopress-light.zip',
+          icon: 'download',
+          label: 'Download loopress-light.zip',
+        },
+      };
 ---
 
 <div class="plugin-download">
-  <LinkButton href={downloadUrl} icon="download" variant="primary">
-    {meta.label}
+  <LinkButton href={buttons.primary.href} icon={buttons.primary.icon} variant="primary">
+    {buttons.primary.label}
   </LinkButton>
-  <LinkButton href={releaseUrl} icon="github" variant="minimal">
-    v{version} release notes
+  <LinkButton href={buttons.secondary.href} icon={buttons.secondary.icon} variant="minimal">
+    {buttons.secondary.label}
   </LinkButton>
 </div>
 
