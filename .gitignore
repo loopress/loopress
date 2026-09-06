@@ -5,9 +5,12 @@ node_modules
 .env
 **/.env
 dist
+# the demo SPA fixture ships its built output on purpose (it is what `lps app push` sends)
+!/demos/fixtures/search-app/dist/
 tmp
 .vercel
 playwright-report
 blob-report
 test-results
+demos/.out
 

@@ -51,6 +51,20 @@ export function Features() {
 
           <FeatureCard
             tag="04"
+            title="Single-page apps"
+            description={
+              <>
+                Ship a built Vue, React or Svelte bundle into any page with a shortcode.{" "}
+                <Code>lps app push</Code> uploads only the files that changed, then swaps the live
+                build in one atomic commit. Hash routing, static assets, no server config.
+              </>
+            }
+          >
+            <AppBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="05"
             title="Plugin Lockfile"
             description={
               <>
@@ -65,7 +79,7 @@ export function Features() {
           </FeatureCard>
 
           <FeatureCard
-            tag="05"
+            tag="06"
             title="Composer without SSH"
             description="Search and install any Packagist package from the WordPress admin, no terminal, no SSH. Every install is checked: known CVEs flagged, PHP version mismatches caught before they break anything."
             cta={{ label: "Download Loopress Full", href: pluginDownloadUrl }}
@@ -74,7 +88,7 @@ export function Features() {
           </FeatureCard>
 
           <FeatureCard
-            tag="06"
+            tag="07"
             title="Official CI configs"
             description={
               <>
@@ -233,6 +247,27 @@ function ApiBlock() {
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
         <Line c="muted">$ lps api push</Line>
         <Line c="success">✓ Deployed: /loopress-api/v1/webhook-handler</Line>
+      </div>
+    </div>
+  );
+}
+
+function AppBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        apps/search/
+      </div>
+      <pre className="px-3 py-3">
+        {`  dist/
+    index.html
+    assets/index-9a597e0d.js
+    assets/index-51910369.css`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps app push search</Line>
+        <Line c="success">✓ search deployed · build 9f2a1c7b</Line>
+        <Line c="muted">[loopress_app name="search"]</Line>
       </div>
     </div>
   );
