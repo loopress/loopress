@@ -6,8 +6,11 @@ name: 🚀 Deploy Loopress Light to WordPress.org
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Git ref to deploy (tag/branch/SHA, e.g. wordpress-plugin@2026.8.1). Defaults to this run's ref."
+        required: false
       version:
-        description: Version to deploy (defaults to wordpress-plugin/package.json)
+        description: Override the published version. Defaults to the checked-out package.json version.
         required: false
       dry_run:
         description: Build and diff against SVN without committing
@@ -26,6 +29,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -46,18 +51,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
-      # Same as the release job: re-derive readme.txt "Stable tag" from package.json
-      # so it always matches VERSION below (the deploy action refuses a mismatch).
-      - name: Sync plugin version header
-        working-directory: wordpress-plugin
-        run: pnpm run version
-
+      # Resolve the version to publish, then write it into package.json so the next
+      # step (sync-version.js) propagates it into loopress.php and both readme.txt.
+      # No commit: this is a throwaway checkout. With the `version` input empty this
+      # is a no-op rewrite of the value already there.
       - name: Resolve version
         id: version
         run: |
           V="${{ inputs.version }}"
           [ -n "$V" ] || V=$(jq -r '.version' wordpress-plugin/package.json)
+          tmp=$(mktemp)
+          jq --arg v "$V" '.version = $v' wordpress-plugin/package.json > "$tmp"
+          mv "$tmp" wordpress-plugin/package.json
           echo "value=$V" >> "$GITHUB_OUTPUT"
+
+      # Re-derive readme.txt "Stable tag" and the plugin Version header from
+      # package.json so they always match VERSION below (the deploy action refuses
+      # a mismatch between the tag and the packaged readme.txt).
+      - name: Sync plugin version header
+        working-directory: wordpress-plugin
+        run: pnpm run version
 
       - name: Build the Loopress Light edition zip
         working-directory: wordpress-plugin
