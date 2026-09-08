@@ -34,7 +34,6 @@ class GithubReleaseCheckerTest extends TestCase
     /** @param array<int, array<string, string>> $releases */
     private function stubReleasesResponse(array $releases): void
     {
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
         $this->httpClient->willReturn(new Response(200, [], json_encode($releases)));
     }
 

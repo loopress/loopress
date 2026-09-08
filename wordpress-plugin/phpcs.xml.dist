@@ -94,14 +94,27 @@
         <exclude-pattern>tests/Stubs/*</exclude-pattern>
     </rule>
 
-    <!-- tests/InfectionPatchworkBridge.php is a `file://` stream wrapper that keeps Infection's
-         mutant substitution working under brain/monkey (Patchwork). A stream wrapper has to
-         implement the raw filesystem primitives (fopen/fread/mkdir/rename/stat...), carry the
-         exact PHP method signatures even where a parameter is unused, and silence stat() on a
-         missing path. None of the WP_Filesystem / error-handling guidance applies to it. -->
+    <!-- The unit tests run with no WordPress loaded, so WP_Filesystem does not exist and
+         wp_json_encode() is unavailable: test fixtures set up and tear down temp directories
+         with plain mkdir()/file_put_contents()/unlink() and build payloads with json_encode(),
+         and base64 in a test is a transport encoding for a fixture, never obfuscation. None of
+         these sniffs has a real target under tests/, so they're scoped off the whole directory
+         rather than suppressed line by line (this also covers tests/InfectionPatchworkBridge.php,
+         a file:// stream wrapper that has to call the raw filesystem primitives directly). -->
     <rule ref="WordPress.WP.AlternativeFunctions">
-        <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
+        <exclude-pattern>tests/*</exclude-pattern>
     </rule>
+    <rule ref="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- tests/InfectionPatchworkBridge.php is a file:// stream wrapper (keeps Infection's mutant
+         substitution working under brain/monkey's Patchwork). It has to carry the exact PHP
+         stream-wrapper method signatures even where a parameter is unused, silence stat() on a
+         missing path, and swap PHP's error handler around a delegated call. -->
     <rule ref="WordPress.PHP.NoSilencedErrors">
         <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
     </rule>

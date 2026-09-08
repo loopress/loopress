@@ -31,7 +31,7 @@ class RouteLoaderTest extends TestCase
         Monkey\setUp();
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-route-loader-test-' . uniqid();
-        mkdir($this->tmpDir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($this->tmpDir, 0755, true);
         if (!defined('WP_CONTENT_DIR')) {
             define('WP_CONTENT_DIR', $this->tmpDir);
         }
@@ -63,10 +63,10 @@ class RouteLoaderTest extends TestCase
             }
 
             $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            is_dir($path) ? $this->rrmdir($path) : unlink($path);
         }
 
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        rmdir($dir);
     }
 
     // ── endpointsFor / hasPublicMethod (pure logic, no I/O) ─────────────────
@@ -605,7 +605,7 @@ class RouteLoaderTest extends TestCase
     public function test_loadAndRegister_requires_the_users_own_vendor_autoload_when_present(): void
     {
         $autoloadPath = $this->tmpDir . '/user-vendor-autoload.php';
-        file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        file_put_contents(
             $autoloadPath,
             "<?php\nfunction loopress_test_user_vendor_autoload_marker(): bool { return true; }\n",
         );
@@ -626,7 +626,7 @@ class RouteLoaderTest extends TestCase
     public function test_loadAndRegister_survives_a_broken_user_vendor_autoload(): void
     {
         $autoloadPath = $this->tmpDir . '/broken-vendor-autoload.php';
-        file_put_contents($autoloadPath, "<?php\nfinal class LoopressTestBrokenVendorAutoload\n{\n    public function get( {\n"); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- missing closing paren
+        file_put_contents($autoloadPath, "<?php\nfinal class LoopressTestBrokenVendorAutoload\n{\n    public function get( {\n");
 
         $environment = $this->createMock(LoopressEnvironment::class);
         $environment->method('getAutoloadPath')->willReturn($autoloadPath);

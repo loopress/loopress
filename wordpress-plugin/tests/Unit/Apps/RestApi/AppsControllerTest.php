@@ -44,7 +44,7 @@ class AppsControllerTest extends TestCase
     // base64 is the asset transport encoding these endpoints speak, not obfuscation.
     private static function b64(string $raw): string
     {
-        return base64_encode($raw); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+        return base64_encode($raw);
     }
 
     /** @return array<string, mixed> */

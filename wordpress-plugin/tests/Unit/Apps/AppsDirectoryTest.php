@@ -16,7 +16,7 @@ class AppsDirectoryTest extends TestCase
         parent::setUp();
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-apps-test-' . uniqid();
-        mkdir($this->tmpDir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($this->tmpDir, 0755, true);
 
         if (!defined('WP_CONTENT_DIR')) {
             define('WP_CONTENT_DIR', $this->tmpDir);
@@ -40,9 +40,9 @@ class AppsDirectoryTest extends TestCase
                 continue;
             }
             $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            is_dir($path) ? $this->rrmdir($path) : unlink($path);
         }
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        rmdir($dir);
     }
 
     // ── isValidAppName ──────────────────────────────────────────────────────
@@ -100,7 +100,6 @@ class AppsDirectoryTest extends TestCase
         $root = WP_CONTENT_DIR . '/loopress/apps/';
         $this->assertDirectoryExists($root);
         $this->assertFileExists($root . 'index.php');
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local fixture file in a unit test, not an HTTP call.
         $this->assertStringContainsString('php_flag engine off', (string) file_get_contents($root . '.htaccess'));
     }
 
@@ -165,7 +164,7 @@ class AppsDirectoryTest extends TestCase
         $dir = new AppsDirectory();
         $dir->writeAsset('search', 'a.js', '1');
         $dir->writeAsset('customer-portal', 'a.js', '1');
-        mkdir(WP_CONTENT_DIR . '/loopress/apps/.hidden'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir(WP_CONTENT_DIR . '/loopress/apps/.hidden');
 
         $this->assertSame(['customer-portal', 'search'], $dir->listAppNames());
     }

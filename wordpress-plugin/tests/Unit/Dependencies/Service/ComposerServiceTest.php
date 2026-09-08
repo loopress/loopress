@@ -125,7 +125,7 @@ class ComposerServiceTest extends TestCase
         ]);
         // wp_json_encode() isn't available in this unit test (WordPress isn't loaded); this is
         // just building a fixture string, not runtime plugin code.
-        $this->environment->method('readComposerLock')->willReturn(json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+        $this->environment->method('readComposerLock')->willReturn(json_encode([
             'packages' => [
                 ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.1'],
             ],
@@ -323,7 +323,7 @@ class ComposerServiceTest extends TestCase
             ->with(['outdated'], ['--direct' => true, '--format' => 'json'])
             ->willReturn([
                 'exit_code' => 0,
-                'output'    => json_encode([ // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+                'output'    => json_encode([
                     'installed' => [
                         ['name' => 'guzzlehttp/guzzle', 'version' => '7.8.0', 'latest' => '7.9.0'],
                         ['name' => 'monolog/monolog', 'version' => '3.0.0', 'latest' => '3.0.0'],
