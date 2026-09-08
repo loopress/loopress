@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Snippets\RestApi;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\RestApi\SnippetMigrationController;
@@ -181,5 +182,83 @@ class SnippetMigrationControllerTest extends TestCase
         $response = $this->controller->migrate($request);
 
         $this->assertSame(500, $response->status);
+    }
+
+    public function test_migrate_coerces_incoming_ids_to_integers_before_handing_them_to_the_service(): void
+    {
+        $this->wpCodeToCodeSnippets->method('isReady')->willReturn(true);
+        $this->wpCodeToCodeSnippets->expects($this->once())
+            ->method('migrate')
+            ->with([12, 7])
+            ->willReturn([]);
+
+        $request = new WP_REST_Request(['direction' => 'wpcode-to-code-snippets', 'ids' => ['12', '7']]);
+        $this->controller->migrate($request);
+    }
+
+    // ── register_routes ─────────────────────────────────────────────────────
+
+    /** @return array{namespace: string, route: string, args: array<mixed>} */
+    private function capturedRoute(): array
+    {
+        $captured = null;
+        Functions\when('register_rest_route')->alias(
+            static function (string $restNamespace, string $route, array $args) use (&$captured): bool {
+                $captured = ['namespace' => $restNamespace, 'route' => $route, 'args' => $args];
+
+                return true;
+            },
+        );
+
+        $this->controller->register_routes();
+
+        $this->assertIsArray($captured);
+
+        return $captured;
+    }
+
+    public function test_register_routes_registers_a_single_direction_scoped_route(): void
+    {
+        $route = $this->capturedRoute();
+
+        $this->assertSame('loopress/v1', $route['namespace']);
+        $this->assertSame(
+            '/snippets/migration/(?P<direction>wpcode-to-code-snippets|code-snippets-to-wpcode)',
+            $route['route'],
+        );
+        $this->assertSame(
+            [['GET', 'get_migration_status'], ['POST', 'migrate']],
+            array_map(fn(array $e): array => [$e['methods'], $e['callback'][1]], $route['args']),
+        );
+        foreach ($route['args'] as $endpoint) {
+            $this->assertSame($this->controller, $endpoint['callback'][0]);
+            $this->assertIsCallable($endpoint['permission_callback']);
+        }
+    }
+
+    public function test_register_routes_only_declares_an_ids_arg_on_the_post_endpoint(): void
+    {
+        $route = $this->capturedRoute();
+
+        $this->assertArrayNotHasKey('args', $route['args'][0]);
+        $this->assertSame(['ids'], array_keys($route['args'][1]['args']));
+
+        $ids = $route['args'][1]['args']['ids'];
+        $this->assertTrue($ids['required']);
+        $this->assertSame('array', $ids['type']);
+        $this->assertSame(['type' => 'integer'], $ids['items']);
+        $this->assertTrue($ids['validate_callback']([1, 2, 3]));
+        $this->assertFalse($ids['validate_callback']([]));
+        $this->assertFalse($ids['validate_callback']([1, -2]));
+    }
+
+    public function test_get_migration_status_defaults_to_the_wpcode_to_code_snippets_service_for_an_unknown_direction(): void
+    {
+        $this->codeSnippetsToWpCode->expects($this->never())->method('sourceActive');
+        $this->wpCodeToCodeSnippets->method('sourceActive')->willReturn(true);
+        $this->wpCodeToCodeSnippets->method('destinationActive')->willReturn(false);
+        $this->wpCodeToCodeSnippets->method('getMigratableSnippets')->willReturn([]);
+
+        $this->controller->get_migration_status(new WP_REST_Request(['direction' => 'something-else']));
     }
 }

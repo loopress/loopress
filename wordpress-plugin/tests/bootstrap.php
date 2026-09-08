@@ -3,6 +3,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+// Under Infection, keep the mutant visible to tests that pull in brain/monkey (Patchwork).
+// No-op outside a mutation run. See the class docblock for the full story.
+require_once __DIR__ . '/InfectionPatchworkBridge.php';
+\Loopress\Tests\InfectionPatchworkBridge::install();
+
 require_once __DIR__ . '/Stubs/WpRestStubs.php';
 
 // WordPress core time constant. GithubReleaseChecker's CACHE_TTL class constant references
