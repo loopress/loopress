@@ -143,6 +143,7 @@ export default defineConfig({
 												{ label: "Admin UI", slug: "api/admin-ui" },
 											],
 										},
+										{ label: "Hooks", slug: "hooks" },
 										{
 											label: "Single-page apps",
 											items: [

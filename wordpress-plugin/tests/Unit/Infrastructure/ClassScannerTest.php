@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Tests\Unit\Api\Infrastructure;
+namespace Loopress\Tests\Unit\Infrastructure;
 
-use Loopress\Api\Infrastructure\ClassScanner;
+use Loopress\Infrastructure\ClassScanner;
 use PHPUnit\Framework\TestCase;
 
 class ClassScannerTest extends TestCase

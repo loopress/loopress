@@ -293,6 +293,36 @@ const apiProvider: ResourceStateProvider = {
   title: 'API routes',
 }
 
+// ---- Hooks ------------------------------------------------------------------------------
+
+// The value is the file's text, compared verbatim (line diff on change), same shape as
+// apiProvider above: a hook file is just PHP text, no server-side normalization to undo.
+const hookProvider: ResourceStateProvider = {
+  dirKind: 'hooks',
+  async local(dir, onWarn) {
+    const files = await loadFiles<{content: string; filename: string}>(dir, {
+      extension: '.php',
+      onSkip: onWarn,
+      parse: (raw, filePath) => ({
+        content: raw,
+        filename: relative(dir, filePath).slice(0, -'.php'.length).split(sep).join('/'),
+      }),
+      recursive: true,
+    })
+    const state: ResourceState = new Map()
+    for (const file of files) state.set(file.filename, file.content)
+    return state
+  },
+  async remote(wp) {
+    const files = await wp.get<Array<{content: string; filename: string}>>('loopress/v1/hook-files')
+    const state: ResourceState = new Map()
+    for (const file of files) state.set(file.filename, file.content)
+    return state
+  },
+  resource: 'hook',
+  title: 'Hooks',
+}
+
 // ---- SEO --------------------------------------------------------------------------------
 
 function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
@@ -377,6 +407,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   formProvider,
   acfProvider,
   apiProvider,
+  hookProvider,
   seoProvider,
 ]
 

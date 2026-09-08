@@ -2,15 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Api\Infrastructure;
+namespace Loopress\Infrastructure;
 
 /**
  * Finds the class(es) a PHP source string declares, without ever require()ing or eval()ing
  * it: token_get_all() only lexes, so this is safe to run on untrusted/unverified content
- * (RouteLoader, before deciding whether a file is safe to require; ApiFilesController, before
- * a file is even written to disk). Replaces the old "kebab-case filename -> PascalCase class"
- * naming convention (see the plugin's "Convention de fichier" doc): the class name is now
- * whatever the developer actually wrote, discovered by reading the file itself.
+ * (RouteLoader/HookLoader, before deciding whether a file is safe to require; ApiFilesController/
+ * HookFilesController, before a file is even written to disk). Replaces the old "kebab-case
+ * filename -> PascalCase class" naming convention (see the plugin's "Convention de fichier"
+ * doc): the class name is now whatever the developer actually wrote, discovered by reading the
+ * file itself. Shared between Api and Hooks (both need the identical one-class-per-file
+ * discovery), lives outside both Full-only feature directories same as DirectoryGuard: nothing
+ * here is specific to either.
  */
 final class ClassScanner
 {

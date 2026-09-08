@@ -15,7 +15,7 @@ export function registerBulkTools(server: McpServer): void {
     'push_all',
     {
       description:
-        'Push every local resource (plugins, composer, ACF, API routes, forms, pages, SEO, snippets) to WordPress in one run, the equivalent of `lps push`.' +
+        'Push every local resource (plugins, composer, ACF, API routes, hooks, forms, pages, SEO, snippets) to WordPress in one run, the equivalent of `lps push`.' +
         PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag},
     },
@@ -29,7 +29,7 @@ export function registerBulkTools(server: McpServer): void {
     'pull_all',
     {
       description:
-        'Pull every resource (plugins, composer, ACF, API routes, forms, pages, SEO, snippets) from WordPress into local files in one run, the equivalent of `lps pull`.',
+        'Pull every resource (plugins, composer, ACF, API routes, hooks, forms, pages, SEO, snippets) from WordPress into local files in one run, the equivalent of `lps pull`.',
       inputSchema: {env: envFlag},
     },
     async ({env}) =>

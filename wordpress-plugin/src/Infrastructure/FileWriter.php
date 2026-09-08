@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Loopress\Api\Infrastructure;
+namespace Loopress\Infrastructure;
 
 /**
- * Injects/removes the ABSPATH guard that protects a deployed api/ file from direct HTTP
- * access (wp-content/ is under the public webroot). A regex locates the real declare() line
- * as written (tolerant to spacing), str_replace does the actual insertion/removal on that
- * exact text so the logic itself stays simple.
+ * Injects/removes the ABSPATH guard that protects a deployed api/ or hooks/ file from direct
+ * HTTP access (wp-content/ is under the public webroot). A regex locates the real declare()
+ * line as written (tolerant to spacing), str_replace does the actual insertion/removal on that
+ * exact text so the logic itself stays simple. Shared between Api and Hooks, lives outside both
+ * Full-only feature directories same as DirectoryGuard/ClassScanner: nothing here is specific
+ * to either.
  */
 class FileWriter
 {

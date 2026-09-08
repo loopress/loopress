@@ -1,8 +1,8 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, pages, API routes, ACF objects, SEO settings, forms, plugins
-and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
+agent can pull and push snippets, pages, API routes, hooks, ACF objects, SEO settings, forms,
+plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
 project status. Ships as the `lps-mcp` binary.
 
 It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
@@ -55,6 +55,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `api_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local custom API route files to WordPress |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress |
+| `hook_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local hook files to WordPress |
+| `hook_pull` | No | `env?`, `path?` | Pull hook files from WordPress |
+| `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |

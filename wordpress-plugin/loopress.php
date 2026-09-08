@@ -77,8 +77,10 @@ use Loopress\Plugin;
 // Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
 // capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
 // the auth/capability checks in front of it; Api and Apps follow the same rule (a bundled
-// SPA runs on the site's own origin in every visitor's browser).
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Apps', 'Form', 'Settings'] as $loopressPlusFeature) {
+// SPA runs on the site's own origin in every visitor's browser). Hooks is the same rule again,
+// if anything more directly: it binds arbitrary developer PHP straight into WP core's own
+// action/filter hooks, unconditionally, for every visitor.
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Form', 'Settings'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));

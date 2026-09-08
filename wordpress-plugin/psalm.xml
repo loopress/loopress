@@ -47,6 +47,11 @@
                 <!-- AppsController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Apps/RestApi" />
+                <!-- HookFilesController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above; HookLoader's own constructor is built
+                     exclusively through the PHP-DI container, same untraceable-by-Psalm shape as
+                     RouteLoader's below. -->
+                <directory name="src/Hooks/RestApi" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -77,7 +82,14 @@
                 <referencedMethod name="Loopress\Api\Attribute\Permission::__construct" />
                 <!-- Same reflective-attribute shape as Permission::__construct above:
                      RouteLoader::cronMethodsFor() reads this via ReflectionAttribute::newInstance(). -->
-                <referencedMethod name="Loopress\Api\Attribute\Cron::__construct" />
+                <referencedMethod name="Loopress\Hooks\Module\HooksModule::__construct" />
+                <referencedMethod name="Loopress\Hooks\Infrastructure\HooksDirectory::__construct" />
+                <!-- Same reflective-attribute shape as Permission::__construct above:
+                     HookLoader::actionMethodsFor()/filterMethodsFor()/cronMethodsFor() read these
+                     via ReflectionAttribute::newInstance(). -->
+                <referencedMethod name="Loopress\Hooks\Attribute\Action::__construct" />
+                <referencedMethod name="Loopress\Hooks\Attribute\Filter::__construct" />
+                <referencedMethod name="Loopress\Hooks\Attribute\Cron::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
@@ -144,6 +156,7 @@
                 <file name="src/Sentry/Feature.php" />
                 <file name="src/Settings/Feature.php" />
                 <file name="src/Api/Feature.php" />
+                <file name="src/Hooks/Feature.php" />
                 <file name="src/Apps/Feature.php" />
             </errorLevel>
         </UnusedClass>
