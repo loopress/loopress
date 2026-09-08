@@ -41,8 +41,8 @@ export function Nav() {
           <a href="/#integrations" className="transition-colors hover:text-foreground">
             Integrations
           </a>
-          <a href="/#vision" className="transition-colors hover:text-foreground">
-            Vision
+          <a href="/#agencies" className="transition-colors hover:text-foreground">
+            Agencies
           </a>
           <a href="https://docs.loopress.dev" className="transition-colors hover:text-foreground">
             Docs
@@ -57,12 +57,6 @@ export function Nav() {
           >
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
-          <a
-            href="https://console.loopress.dev"
-            className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Get started
-          </a>
         </div>
       </div>
     </header>

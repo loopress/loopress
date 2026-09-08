@@ -8,7 +8,7 @@ import { Solution } from "@/components/landing/Solution";
 import { Features } from "@/components/landing/Features";
 import { Security } from "@/components/landing/Security";
 import { Integrations } from "@/components/landing/Integrations";
-import { Vision } from "@/components/landing/Vision";
+import { Agencies } from "@/components/landing/Agencies";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 
@@ -21,7 +21,7 @@ const structuredData = {
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Web",
   description:
-    "Modern development workflows for WordPress. Configuration as code, version control, reproducible environments.",
+    "The Git layer for WordPress. A versioned file describes the desired state of a site's code and critical config, Loopress diffs it against the live site and reconciles. It never touches the content.",
   url: "https://loopress.dev",
   author: { "@id": "https://loopress.dev/#organization" },
   offers: {
@@ -34,11 +34,11 @@ const structuredData = {
 ---
 
 <Layout
-  title="Loopress - Make WordPress reproducible"
-  description="Modern development workflows for WordPress. Configuration as code, version control, reproducible environments. Join the alpha."
+  title="Loopress - The Git layer for WordPress"
+  description="Clone, edit and push the code and critical config of your existing WordPress sites. A versioned file describes the desired state, Loopress reconciles it with the live site. Never the content. Join the alpha."
   canonical="https://loopress.dev/"
-  ogTitle="Loopress - Make WordPress reproducible"
-  ogDescription="Loopress brings Git, Composer and reproducible environments to WordPress."
+  ogTitle="Loopress - The Git layer for WordPress"
+  ogDescription="A real Git workflow, clone, edit, push, over the theme and critical config of your existing WordPress sites. No rewrite, no risk to the content."
   structuredData={structuredData}
 >
   <div class="min-h-screen bg-background text-foreground">
@@ -51,7 +51,7 @@ const structuredData = {
       <Features />
       <Security />
       <Integrations />
-      <Vision />
+      <Agencies />
       <FinalCTA client:load />
     </main>
     <Footer />

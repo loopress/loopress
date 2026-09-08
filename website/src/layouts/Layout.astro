@@ -13,11 +13,11 @@ interface Props {
 }
 
 const {
-  title = "Loopress - Make WordPress reproducible",
-  description = "Loopress brings modern development workflows to WordPress. Version configuration, manage dependencies, review changes, deploy with confidence.",
+  title = "Loopress - The Git layer for WordPress",
+  description = "Clone, edit and push the code and critical config of your existing WordPress sites. A versioned file describes the desired state, Loopress reconciles it with the live site. Never the content.",
   canonical,
-  ogTitle = "Loopress - Make WordPress reproducible",
-  ogDescription = "Modern development workflows for WordPress. Configuration as code, version control, reproducible environments.",
+  ogTitle = "Loopress - The Git layer for WordPress",
+  ogDescription = "A real Git workflow, clone, edit, push, over the theme and critical config of your existing WordPress sites. No rewrite, no risk to the content.",
   ogImage = "/og-image.png",
   structuredData,
 } = Astro.props;
@@ -116,5 +116,37 @@ const orgSchema = {
   <body>
     <slot />
     <Analytics />
+    <script>
+      // Delegated link tracking: any outbound link, or any in-page anchor jump, is
+      // reported to Vercel Analytics as a custom event. No per-link markup needed.
+      // ponytail: fire-and-forget, no sendBeacon flush; fine for analytics, revisit
+      // if outbound events start looking under-counted.
+      import { track } from "@vercel/analytics";
+
+      document.addEventListener(
+        "click",
+        (event) => {
+          const link = event.target.closest && event.target.closest("a[href]");
+          if (!link) return;
+
+          let url;
+          try {
+            url = new URL(link.href, location.href);
+          } catch {
+            return;
+          }
+
+          const outbound = url.origin !== location.origin;
+          if (!outbound && !url.hash) return; // ignore same-page full navigations
+
+          track(outbound ? "outbound_click" : "anchor_click", {
+            href: outbound ? url.href : url.hash,
+            text: (link.textContent || "").trim().slice(0, 60),
+            path: location.pathname,
+          });
+        },
+        { capture: true },
+      );
+    </script>
   </body>
 </html>

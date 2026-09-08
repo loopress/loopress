@@ -53,8 +53,8 @@ export function Demo() {
           Wire Loopress into a WordPress project in under a minute.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          Install the CLI, authorize in the browser, and start syncing. No SSH, no manual plugin
-          upload.
+          Install the CLI, authorize in the browser, and pull your first resource to a file. No SSH,
+          no manual plugin upload.
         </p>
 
         <div className="mt-12 overflow-hidden rounded-xl border border-border/80 bg-background/60">

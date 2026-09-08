@@ -18,6 +18,12 @@ export function TerminalOnboarding() {
           <div className="text-muted-foreground">$ lps init</div>
           <div className="text-success-ink">✓ loopress.json created, ready to commit</div>
         </div>
+        <div>
+          <div className="text-muted-foreground">$ lps pull</div>
+          <div className="text-success-ink">
+            ✓ plugins, ACF, API routes, snippets pulled to files
+          </div>
+        </div>
       </div>
     </div>
   );

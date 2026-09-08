@@ -9,7 +9,11 @@ const FAQS = [
     items: [
       {
         q: "What is Loopress?",
-        a: "Loopress is a developer toolbox for WordPress. It ships as a CLI and a WordPress plugin that work together to bring version control, reproducible environments, and modern workflows to WordPress projects.",
+        a: "Loopress is the Git layer for WordPress. A versioned file describes the desired state of a site's code and critical config, a hook, a plugin version, a Composer dependency, an API route, an app bundle. Loopress diffs that file against the live site and reconciles it. It ships as a CLI and a WordPress plugin that work together, and it never touches your content or database.",
+      },
+      {
+        q: "Does Loopress version my content?",
+        a: "No, by design. Posts, pages, editorial content and the database are out of scope. Versioning content is what sank the last serious attempt at Git for WordPress (VersionPress). Loopress stays on code and critical config, where a diff and a rollback are actually safe.",
       },
       {
         q: "Is it free?",
@@ -17,7 +21,7 @@ const FAQS = [
       },
       {
         q: "Who is Loopress for?",
-        a: "Developers and agencies who build and maintain WordPress sites and want to manage their projects like modern applications: Git, lockfiles, and reproducible installs.",
+        a: "Agencies and freelancers who maintain existing WordPress sites they did not necessarily build, and want a real Git workflow over them: clone, diff, push, roll back. It works on the stock wp-content layout, no restructuring required.",
       },
     ],
   },
@@ -32,6 +36,23 @@ const FAQS = [
         q: "How is Loopress different from staging/DB-sync plugins like WP Staging or Duplicator?",
         a: "Those tools move a site as a point-in-time snapshot: you pick what to include by hand and push it as one operation, with no diff against the last sync. Loopress tracks changes continuously and pushes only what changed, the same way Git does for code.",
       },
+      {
+        q: "Isn't this what VersionPress tried to do?",
+        a: "VersionPress aimed at Git-based version control for WordPress including the database and content, and never left developer preview before being archived. The concept of WordPress plus Git drew real interest; versioning content is most likely what made it unworkable. Loopress takes the opposite constraint: code and critical config only, never content, so there is no serialized-data merge to get wrong.",
+      },
+    ],
+  },
+  {
+    section: "Hooks and Snippets",
+    items: [
+      {
+        q: "What are Hooks?",
+        a: "Hooks let you declare WordPress actions and filters as PHP 8 classes with attributes, versioned as files. Loopress loads and wires each file onto native add_action / add_filter, with no admin paste box and no runtime of its own. It is in active development.",
+      },
+      {
+        q: "Should I use Snippets or Hooks?",
+        a: "Use Snippets to pull what already lives in Code Snippets or WPCode into Git, for a one-off edit or as a migration step. For behavior you intend to keep, Hooks is the durable home: it is a plain file in your repo, wired through native WordPress primitives. The Snippets commands are not going anywhere; they interoperate with the plugins you already run.",
+      },
     ],
   },
   {
@@ -39,7 +60,7 @@ const FAQS = [
     items: [
       {
         q: "What does the CLI do?",
-        a: "The CLI lets you pull snippets from WordPress as local .php files, push them back after editing, and manage plugin versions through a loopress.json lockfile, similar to how npm manages packages.",
+        a: "lps pull writes the live state of a site's resources to local files (plugins, Composer, ACF, API routes, forms, pages, SEO, snippets); you commit and review them in Git; lps push reconciles the site with what the files say. Individual resource commands (lps plugin, lps api, lps app, and so on) do the same for one resource at a time.",
       },
       {
         q: "How do I authenticate?",
@@ -115,7 +136,7 @@ const FAQS = [
 
 <Layout
   title="FAQ - Loopress"
-  description="Frequently asked questions about Loopress, the CLI and WordPress plugin for modern development workflows."
+  description="Frequently asked questions about Loopress, the Git layer for WordPress: the CLI, the WordPress plugin, and the reconcile loop."
   canonical="https://loopress.dev/faq"
 >
   <div class="min-h-screen bg-background text-foreground">
