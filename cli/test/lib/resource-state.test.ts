@@ -87,51 +87,6 @@ describe('resource-state providers', () => {
     })
   })
 
-  describe('page', () => {
-    const pageProvider = provider('page')
-
-    it('compares only the raw form of title/excerpt, not the rendered HTML', async () => {
-      const remote = fakeWp({
-        'wp/v2/pages?context=edit': [
-          {
-            content: {raw: '<!-- wp:paragraph --><p>Hi</p>', rendered: '<p>Hi</p>'},
-            excerpt: {raw: 'An intro', rendered: '<p>An intro</p>'},
-            id: 12,
-            slug: 'about',
-            title: {raw: 'About', rendered: 'About &amp; more'},
-          },
-        ],
-      })
-
-      writeFileSync(join(dir, '12-about.html'), '<!-- wp:paragraph --><p>Hi</p>')
-      writeFileSync(
-        join(dir, '12-about.json'),
-        JSON.stringify({
-          excerpt: {raw: 'An intro', rendered: 'STALE'},
-          id: 12,
-          slug: 'about',
-          title: {raw: 'About', rendered: 'STALE'},
-        }),
-      )
-
-      const diff = compareStates(await pageProvider.remote(remote, noWarn), await pageProvider.local(dir, noWarn), labels)
-
-      expect(isEmptyDiff(diff)).toBe(true)
-    })
-
-    it('flags a changed page body', async () => {
-      const remote = fakeWp({
-        'wp/v2/pages?context=edit': [{content: {raw: 'old'}, id: 1, slug: 'p', title: {raw: 'P'}}],
-      })
-      writeFileSync(join(dir, '1-p.html'), 'new')
-      writeFileSync(join(dir, '1-p.json'), JSON.stringify({id: 1, slug: 'p', title: {raw: 'P'}}))
-
-      const diff = compareStates(await pageProvider.remote(remote, noWarn), await pageProvider.local(dir, noWarn), labels)
-
-      expect(diff.changed.map((change) => change.id)).toEqual(['1'])
-    })
-  })
-
   describe('api', () => {
     const apiProvider = provider('api')
 

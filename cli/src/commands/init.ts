@@ -19,7 +19,6 @@ const FEATURES = [
   {dir: 'acf', key: 'acfDir', label: 'ACF'},
   {dir: 'seo', key: 'seoDir', label: 'SEO'},
   {dir: 'forms', key: 'formDir', label: 'Forms'},
-  {dir: 'pages', key: 'pageDir', label: 'Pages'},
   {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
   {dir: 'hooks', key: 'hooksDir', label: 'Hooks (actions, filters, cron)'},
   {dir: 'apps', key: 'appsDir', label: 'Single-page apps'},

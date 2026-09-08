@@ -19,7 +19,7 @@ export type OrphanMatcher = {
 }
 
 // Same shape as load-files.ts's own walker, kept separate rather than shared: this one
-// filters against a list of extensions (page/snippet pull need more than one), that one
+// filters against a list of extensions (snippet pull needs more than one), that one
 // against a single extension, and reconciling the two would cost more than the ~15 duplicated
 // lines it would save.
 async function walk(dir: string, extensions: string[]): Promise<string[]> {

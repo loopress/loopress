@@ -1,7 +1,7 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, pages, API routes, hooks, ACF objects, SEO settings, forms,
+agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms,
 plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
 project status. Ships as the `lps-mcp` binary.
 
@@ -49,9 +49,6 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `snippet_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local snippet files to WordPress |
 | `snippet_pull` | No | `env?`, `path?` | Pull snippets from WordPress into local files |
 | `snippet_list` | No | `env?` | List snippets currently on WordPress |
-| `page_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local page files to WordPress |
-| `page_pull` | No | `env?`, `path?` | Pull pages from WordPress into local files |
-| `page_list` | No | `env?` | List pages currently on WordPress |
 | `api_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local custom API route files to WordPress |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress |

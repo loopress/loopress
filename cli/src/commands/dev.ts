@@ -14,7 +14,7 @@ export default class Dev extends Command {
   static description =
     'Watch project files and push changes to the local WordPress instance as they happen. Always targets the "local" environment, run `lps snippet push` etc. directly for any other environment.'
 
-  static examples = ['$ lps dev', '$ lps dev --only=snippets,pages', '$ lps dev --skip=plugins']
+  static examples = ['$ lps dev', '$ lps dev --only=snippets,api', '$ lps dev --skip=plugins']
   static flags = {
     only: Flags.string({description: `Only watch these resource types (comma-separated): ${RESOURCE_TYPES.join(', ')}`}),
     skip: Flags.string({description: `Skip these resource types (comma-separated): ${RESOURCE_TYPES.join(', ')}`}),

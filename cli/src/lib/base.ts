@@ -112,7 +112,7 @@ export abstract class LoopressCommand extends Command {
     items: T[],
     orphans: string[],
     options: {
-      // Defaults to false (create only when there's something to write, acf/form/page's
+      // Defaults to false (create only when there's something to write, acf/form's
       // behavior); snippet pull sets this to true, its directory is created unconditionally
       // even with nothing to pull.
       alwaysCreateDir?: boolean
@@ -197,10 +197,6 @@ export abstract class LoopressCommand extends Command {
 
   protected resolveHooksPath(override?: string): string {
     return resolveResourceDir('hooks', this.localConfig, override)
-  }
-
-  protected resolvePagePath(override?: string): string {
-    return resolveResourceDir('page', this.localConfig, override)
   }
 
   protected resolveSeoPath(override?: string): string {

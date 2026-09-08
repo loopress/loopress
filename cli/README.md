@@ -71,13 +71,13 @@ report.
 * [`lps form pull [PATH]`](#lps-form-pull-path)
 * [`lps form push [PATH]`](#lps-form-push-path)
 * [`lps help [COMMAND]`](#lps-help-command)
+* [`lps hook diff [PATH]`](#lps-hook-diff-path)
+* [`lps hook list`](#lps-hook-list)
+* [`lps hook pull [PATH]`](#lps-hook-pull-path)
+* [`lps hook push [PATH]`](#lps-hook-push-path)
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
-* [`lps page diff [PATH]`](#lps-page-diff-path)
-* [`lps page list`](#lps-page-list)
-* [`lps page pull [PATH]`](#lps-page-pull-path)
-* [`lps page push [PATH]`](#lps-page-push-path)
 * [`lps plugin add SLUG`](#lps-plugin-add-slug)
 * [`lps plugin audit`](#lps-plugin-audit)
 * [`lps plugin pull`](#lps-plugin-pull)
@@ -563,8 +563,8 @@ USAGE
   $ lps dev [--only <value>] [--skip <value>]
 
 FLAGS
-  --only=<value>  Only watch these resource types (comma-separated): snippets, pages, api, plugins
-  --skip=<value>  Skip these resource types (comma-separated): snippets, pages, api, plugins
+  --only=<value>  Only watch these resource types (comma-separated): snippets, api, plugins
+  --skip=<value>  Skip these resource types (comma-separated): snippets, api, plugins
 
 DESCRIPTION
   Watch project files and push changes to the local WordPress instance as they happen. Always targets the "local"
@@ -573,7 +573,7 @@ DESCRIPTION
 EXAMPLES
   $ lps dev
 
-  $ lps dev --only=snippets,pages
+  $ lps dev --only=snippets,api
 
   $ lps dev --skip=plugins
 ```
@@ -582,27 +582,27 @@ _See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/v0.23
 
 ## `lps diff`
 
-Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers snippets, pages, forms, ACF, API routes, SEO, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.
+Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, Hooks, SEO, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.
 
 ```
 USAGE
   $ lps diff [--json] [--env <value>] [--against <value>] [--only
-    snippet|page|form|acf|api|seo|composer...] [--skip snippet|page|form|acf|api|seo|composer...]
+    snippet|form|acf|api|hook|seo|composer...] [--skip snippet|form|acf|api|hook|seo|composer...]
 
 FLAGS
   --against=<value>   Compare the primary environment against this second environment instead of against local files
   --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
   --only=<option>...  Only compare these resources
-                      <options: snippet|page|form|acf|api|seo|composer>
+                      <options: snippet|form|acf|api|hook|seo|composer>
   --skip=<option>...  Compare every resource except these
-                      <options: snippet|page|form|acf|api|seo|composer>
+                      <options: snippet|form|acf|api|hook|seo|composer>
 
 GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
   Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers
-  snippets, pages, forms, ACF, API routes, SEO, and Composer. Plugins and themes have their own `lps plugin status` /
+  snippets, forms, ACF, API routes, Hooks, SEO, and Composer. Plugins and themes have their own `lps plugin status` /
   `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI
   drift gate.
 
@@ -767,6 +767,120 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/7.0.0/src/commands/help.ts)_
 
+## `lps hook diff [PATH]`
+
+Show what differs in hook files between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps hook diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to hooks directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in hook files between your local files and a WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps hook diff
+
+  $ lps hook diff --env staging
+
+  $ lps hook diff --env staging --against production
+```
+
+_See code: [src/commands/hook/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/hook/diff.ts)_
+
+## `lps hook list`
+
+List hook files (actions, filters, cron) from WordPress
+
+```
+USAGE
+  $ lps hook list [--json] [--env <value>]
+
+FLAGS
+  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  List hook files (actions, filters, cron) from WordPress
+
+EXAMPLES
+  $ lps hook list
+```
+
+_See code: [src/commands/hook/list.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/hook/list.ts)_
+
+## `lps hook pull [PATH]`
+
+Pull hook files (actions, filters, cron) from WordPress
+
+```
+USAGE
+  $ lps hook pull [PATH] [--json] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to hooks directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Pull hook files (actions, filters, cron) from WordPress
+
+EXAMPLES
+  $ lps hook pull
+
+  $ lps hook pull --path ./hooks
+```
+
+_See code: [src/commands/hook/pull.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/hook/pull.ts)_
+
+## `lps hook push [PATH]`
+
+Push hook files (actions, filters, cron) to WordPress
+
+```
+USAGE
+  $ lps hook push [PATH] [--json] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to hooks directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Push hook files (actions, filters, cron) to WordPress
+
+EXAMPLES
+  $ lps hook push
+
+  $ lps hook push --path ./hooks
+```
+
+_See code: [src/commands/hook/push.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/hook/push.ts)_
+
 ## `lps init`
 
 Initialize a loopress.json config file in the current directory
@@ -817,116 +931,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/logout.ts)_
-
-## `lps page diff [PATH]`
-
-Show what differs in pages between your local files and a WordPress environment, or between two environments
-
-```
-USAGE
-  $ lps page diff [PATH] [--json] [--env <value>] [--against <value>]
-
-ARGUMENTS
-  [PATH]  Path to pages directory (overrides project config)
-
-FLAGS
-  --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Show what differs in pages between your local files and a WordPress environment, or between two environments
-
-EXAMPLES
-  $ lps page diff
-
-  $ lps page diff --env staging
-
-  $ lps page diff --env staging --against production
-```
-
-_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/page/diff.ts)_
-
-## `lps page list`
-
-List pages from WordPress
-
-```
-USAGE
-  $ lps page list [--json] [--env <value>]
-
-FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  List pages from WordPress
-
-EXAMPLES
-  $ lps page list
-```
-
-_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/page/list.ts)_
-
-## `lps page pull [PATH]`
-
-Pull pages from WordPress
-
-```
-USAGE
-  $ lps page pull [PATH] [--json] [--env <value>] [-d] [-y]
-
-ARGUMENTS
-  [PATH]  Path to pages directory (overrides project config)
-
-FLAGS
-  -d, --dry-run      Show what would change without making changes
-  -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Pull pages from WordPress
-
-EXAMPLES
-  $ lps page pull
-```
-
-_See code: [src/commands/page/pull.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/page/pull.ts)_
-
-## `lps page push [PATH]`
-
-Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.
-
-```
-USAGE
-  $ lps page push [PATH] [--json] [--env <value>] [-d] [-y]
-
-ARGUMENTS
-  [PATH]  Path to pages directory (overrides project config)
-
-FLAGS
-  -d, --dry-run      Show what would change without making changes
-  -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Push pages to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.
-
-EXAMPLES
-  $ lps page push
-```
-
-_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/page/push.ts)_
 
 ## `lps plugin add SLUG`
 
@@ -1221,7 +1225,7 @@ _See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/v
 
 ## `lps pull`
 
-Pull all content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, from WordPress
+Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, from WordPress
 
 ```
 USAGE
@@ -1233,7 +1237,7 @@ FLAGS
       --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
-  Pull all content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, from WordPress
+  Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, from WordPress
 
 EXAMPLES
   $ lps pull
@@ -1247,7 +1251,7 @@ _See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/v0.2
 
 ## `lps push`
 
-Push all local content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, to WordPress
+Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, to WordPress
 
 ```
 USAGE
@@ -1259,7 +1263,7 @@ FLAGS
       --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
 DESCRIPTION
-  Push all local content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, to WordPress
+  Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, to WordPress
 
 EXAMPLES
   $ lps push

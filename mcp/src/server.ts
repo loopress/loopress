@@ -10,7 +10,6 @@ import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
 import {registerFormTools} from './tools/form.js'
 import {registerHookTools} from './tools/hooks.js'
-import {registerPageTools} from './tools/page.js'
 import {registerPluginTools} from './tools/plugin.js'
 import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
@@ -20,7 +19,6 @@ import {registerThemeTools} from './tools/theme.js'
 const server = new McpServer({name: 'loopress', version: '0.1.0'})
 
 registerSnippetTools(server)
-registerPageTools(server)
 registerApiTools(server)
 registerHookTools(server)
 registerAppTools(server)

@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, pages, API routes, hooks, ACF objects, SEO settings, forms, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool shells out to the `lps` binary already on your `PATH`, the same one used by the [CLI](/cli/).
 
@@ -46,9 +46,6 @@ The server communicates over stdio from the directory your client launches it in
 | `snippet_push` | Yes | Push local snippet files to WordPress |
 | `snippet_pull` | No | Pull snippets from WordPress into local files |
 | `snippet_list` | No | List snippets currently on WordPress |
-| `page_push` | Yes | Push local page files to WordPress |
-| `page_pull` | No | Pull pages from WordPress into local files |
-| `page_list` | No | List pages currently on WordPress |
 | `api_push` | Yes | Push local custom API route files to WordPress |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress |
