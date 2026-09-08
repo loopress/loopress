@@ -9,11 +9,15 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+// The command resolves local files under localConfig.rootDir; tests point it at an absolute
+// temp dir instead of process.chdir(), which Stryker's worker-thread pool disallows.
+let dir: string
+
 class TestDiff extends Diff {
   setup(siteConfig: EnvironmentConfig) {
     this.siteConfig = siteConfig
     this.projectId = 'id-acme'
-    this.localConfig = {}
+    this.localConfig = {rootDir: dir}
   }
 }
 
@@ -25,25 +29,19 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>) {
   return {cmd, logs}
 }
 
-function writeSnippet(dir: string, base: string, code: string, meta: Record<string, unknown>): void {
-  writeFileSync(join(dir, `${base}.php`), code)
-  writeFileSync(join(dir, `${base}.json`), JSON.stringify(meta))
+function writeSnippet(targetDir: string, base: string, code: string, meta: Record<string, unknown>): void {
+  writeFileSync(join(targetDir, `${base}.php`), code)
+  writeFileSync(join(targetDir, `${base}.json`), JSON.stringify(meta))
 }
 
 describe('snippet diff', () => {
-  let dir: string
-  let cwd: string
-
   beforeEach(() => {
     vi.clearAllMocks()
-    cwd = process.cwd()
     dir = mkdtempSync(join(tmpdir(), 'lps-snippet-diff-'))
-    process.chdir(dir)
     process.exitCode = 0
   })
 
   afterEach(() => {
-    process.chdir(cwd)
     rmSync(dir, {force: true, recursive: true})
     process.exitCode = 0
   })
@@ -76,7 +74,7 @@ describe('snippet diff', () => {
   it('honours the [PATH] argument', async () => {
     mkdirSync(join(dir, 'elsewhere'))
     writeSnippet(join(dir, 'elsewhere'), '5-a', '<?php\n\nreturn 3;', {active: true, id: 5, name: 'A', type: 'php'})
-    const {cmd} = make(['elsewhere'], vi.fn(async () => []))
+    const {cmd} = make([join(dir, 'elsewhere')], vi.fn(async () => []))
 
     const result = await cmd.run()
 

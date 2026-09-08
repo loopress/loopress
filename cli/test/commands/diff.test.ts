@@ -9,11 +9,15 @@ import {type EnvironmentConfig} from '../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
+// The command resolves local files under localConfig.rootDir; tests point it at an absolute
+// temp dir instead of process.chdir(), which Stryker's worker-thread pool disallows.
+let dir: string
+
 class TestDiff extends Diff {
-  setup(siteConfig: EnvironmentConfig, rootDir?: string) {
+  setup(siteConfig: EnvironmentConfig) {
     this.siteConfig = siteConfig
     this.projectId = 'id-acme'
-    this.localConfig = rootDir === undefined ? {} : {rootDir}
+    this.localConfig = {rootDir: dir}
   }
 }
 
@@ -34,23 +38,18 @@ function baselineGet(composerJson = '{}') {
   })
 }
 
-function make(argv: string[], get: ReturnType<typeof vi.fn>, rootDir?: string) {
+function make(argv: string[], get: ReturnType<typeof vi.fn>) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
-  cmd.setup(makeEnv('staging', 'https://staging.acme.com'), rootDir)
+  cmd.setup(makeEnv('staging', 'https://staging.acme.com'))
   const logs = silenceLogs(cmd)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get}
   return {cmd, logs}
 }
 
 describe('diff', () => {
-  let dir: string
-  let cwd: string
-
   beforeEach(() => {
     vi.clearAllMocks()
-    cwd = process.cwd()
     dir = mkdtempSync(join(tmpdir(), 'lps-diff-cmd-'))
-    process.chdir(dir)
     writeFileSync(join(dir, 'composer.json'), '{}')
     // SEO settings always exist server-side; a clean baseline needs the local counterpart.
     mkdirSync(join(dir, 'seo'))
@@ -59,7 +58,6 @@ describe('diff', () => {
   })
 
   afterEach(() => {
-    process.chdir(cwd)
     rmSync(dir, {force: true, recursive: true})
     process.exitCode = 0
   })
@@ -121,8 +119,8 @@ describe('diff', () => {
   it('reads local Composer files from an absolute rootDir instead of prefixing the cwd', async () => {
     // cwd is elsewhere; rootDir is the absolute project dir. join() would look under
     // <cwd>/<dir> and wrongly report composer.json as remote-only.
-    process.chdir(tmpdir())
-    const {cmd} = make([], baselineGet(), dir)
+    vi.spyOn(process, 'cwd').mockReturnValue(tmpdir())
+    const {cmd} = make([], baselineGet())
 
     const result = await cmd.run()
 
