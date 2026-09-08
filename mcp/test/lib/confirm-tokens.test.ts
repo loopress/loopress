@@ -39,7 +39,7 @@ describe('confirm-tokens', () => {
   it('rejects a token consumed for a different tool than it was issued for', () => {
     const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'])
 
-    const consumed = consumeConfirmation('page_push', confirmToken)
+    const consumed = consumeConfirmation('form_push', confirmToken)
 
     expect(consumed.ok).toBe(false)
     if (!consumed.ok) expect(consumed.error.name).toBe('INVALID_CONFIRM_TOKEN')
@@ -68,7 +68,7 @@ describe('confirm-tokens', () => {
     const {confirmToken: stale} = createConfirmation('snippet_push', ['snippet', 'push'])
 
     vi.advanceTimersByTime(5 * 60 * 1000 + 1)
-    createConfirmation('page_push', ['page', 'push'])
+    createConfirmation('form_push', ['form', 'push'])
 
     // The stale entry is gone from the store entirely (not just logically expired): consuming
     // it now looks unknown, the same as a token that was never issued.

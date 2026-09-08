@@ -7,7 +7,7 @@ import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, resourc
 
 describe('resolveResourceTypes', () => {
   it('defaults to every resource type when neither --only nor --skip is given', () => {
-    expect(resolveResourceTypes()).toEqual(['snippets', 'pages', 'api', 'plugins'])
+    expect(resolveResourceTypes()).toEqual(['snippets', 'api', 'plugins'])
   })
 
   it('narrows to --only', () => {
@@ -15,7 +15,7 @@ describe('resolveResourceTypes', () => {
   })
 
   it('removes --skip from the default set', () => {
-    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'pages', 'api'])
+    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'api'])
   })
 
   it('applies --skip on top of --only', () => {
@@ -36,12 +36,11 @@ describe('buildWatchTargets', () => {
 
   it('only includes directory-backed types that exist on disk', () => {
     mkdirSync(join(dir, 'snippets'))
-    mkdirSync(join(dir, 'pages'))
     // no api/ dir created
 
-    const targets = buildWatchTargets(['snippets', 'pages', 'api'], {}, dir)
+    const targets = buildWatchTargets(['snippets', 'api'], {}, dir)
 
-    expect(targets.map((t) => t.type)).toEqual(['snippets', 'pages'])
+    expect(targets.map((t) => t.type)).toEqual(['snippets'])
   })
 
   it('resolves directories relative to rootDir and honors custom dir names', () => {
@@ -84,7 +83,7 @@ describe('resourceTypeForPath', () => {
   })
 
   it('returns undefined for a path outside every target', () => {
-    expect(resourceTypeForPath('/proj/pages/home.html', targets)).toBeUndefined()
+    expect(resourceTypeForPath('/proj/api/ping.php', targets)).toBeUndefined()
   })
 })
 

@@ -198,7 +198,7 @@ jobs:
             - Confirm activation is clean: no fatals/notices in debug.log,
               `wp plugin list` shows loopress-full active.
             - CLI round trip: for each feature this release touches (snippet,
-              acf, seo, app, page, form, api, composer), run its `lps <feature>
+              acf, seo, app, form, api, composer), run its `lps <feature>
               list` / `pull` / `push --env local` against the live site and
               confirm it works end to end. Install any companion plugin a
               feature needs yourself with `wp plugin install <slug> --activate`

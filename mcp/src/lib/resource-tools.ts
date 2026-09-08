@@ -26,7 +26,7 @@ type ResourceToolsSpec = {
 }
 
 // Registers push/pull/list for a directory-backed resource whose three tools differ only in
-// wording (api, form, page, snippet). push runs through the confirmToken handshake; pull and
+// wording (api, form, snippet). push runs through the confirmToken handshake; pull and
 // list are plain reads; list takes no path. Resources with an extra flag (acf's `type`, seo's
 // `post-type`) register their tools directly instead.
 export function registerResourceTools(server: McpServer, {descriptions, pathNoun, resource}: ResourceToolsSpec): void {

@@ -13,13 +13,12 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'api:push', label: 'API routes'},
   {commandId: 'hook:push', label: 'hooks'},
   {commandId: 'form:push', label: 'forms'},
-  {commandId: 'page:push', label: 'pages'},
   {commandId: 'seo:push', label: 'SEO'},
   {commandId: 'snippet:push', label: 'snippets'},
 ]
 
 export default class Push extends LoopressCommand {
-  static description = 'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, and snippets, to WordPress'
+  static description = 'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, to WordPress'
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -53,7 +52,7 @@ export default class Push extends LoopressCommand {
 
   // Every delegated push always gets --yes: either this command's own guard already confirmed
   // production once above, or the target isn't production and there's nothing to confirm.
-  // Without this, each of the 8 delegated commands would re-run its own production guard.
+  // Without this, each delegated command would re-run its own production guard.
   private buildArgv(): string[] {
     const argv = ['--env', this.siteConfig.name, '--yes']
     if (this.dryRun) argv.push('--dry-run')

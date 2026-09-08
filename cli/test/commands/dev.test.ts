@@ -111,7 +111,7 @@ describe('dev', () => {
   describe('pushBatch', () => {
     const targets: WatchTarget[] = [
       {commandId: 'snippet:push', path: join('snippets'), type: 'snippets'},
-      {commandId: 'page:push', path: join('pages'), type: 'pages'},
+      {commandId: 'api:push', path: join('api'), type: 'api'},
     ]
 
     it('pushes each changed type to local, sequentially', async () => {
@@ -120,18 +120,18 @@ describe('dev', () => {
       const cmd = make()
       const {log} = silenceLogs(cmd)
       const changes = new Map([
-        ['pages', ['pages/home.html']],
+        ['api', ['api/ping.php']],
         ['snippets', ['snippets/hello.php', 'snippets/world.php']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
-      expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'page:push', ['--env', 'local'])
+      expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'api:push', ['--env', 'local'])
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'snippet:push', ['--env', 'local'])
       // Exact match on the joined path list, not a substring: proves the ", " separator between
       // multiple changed files, not just that both filenames appear somewhere in the message.
       expect(log).toHaveBeenCalledWith('\n→ snippets changed (hello.php, world.php), pushing to local...')
       expect(log).toHaveBeenCalledWith('✓ snippets synced')
-      expect(log).toHaveBeenCalledWith('✓ pages synced')
+      expect(log).toHaveBeenCalledWith('✓ api synced')
     })
 
     it('skips a changed type that has no matching watch target', async () => {
@@ -140,13 +140,13 @@ describe('dev', () => {
       const cmd = make()
       const {log} = silenceLogs(cmd)
       const changes = new Map([
-        ['pages', ['pages/home.html']],
+        ['api', ['api/ping.php']],
         ['plugins', ['loopress.json']], // not in `targets` above
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
-      expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('page:push', ['--env', 'local'])
+      expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('api:push', ['--env', 'local'])
       expect(log).not.toHaveBeenCalledWith(expect.stringContaining('plugins'))
     })
 
@@ -156,12 +156,12 @@ describe('dev', () => {
       const cmd = make()
       const {log} = silenceLogs(cmd)
       const changes = new Map([
-        ['pages', ['pages/home.html']],
+        ['api', ['api/ping.php']],
         ['snippets', ['snippets/hello.php']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
-      expect(log).toHaveBeenCalledWith('✗ pages failed: boom')
+      expect(log).toHaveBeenCalledWith('✗ api failed: boom')
       expect(log).toHaveBeenCalledWith('✓ snippets synced')
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
     })
@@ -211,18 +211,18 @@ describe('dev', () => {
       const cmd = make()
       silenceLogs(cmd)
 
-      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag(' snippets , pages ', 'only')
+      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag(' snippets , api ', 'only')
 
-      expect(parsed).toEqual(['snippets', 'pages'])
+      expect(parsed).toEqual(['snippets', 'api'])
     })
 
     it('drops empty segments left by consecutive or trailing commas', () => {
       const cmd = make()
       silenceLogs(cmd)
 
-      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('snippets,,pages,', 'only')
+      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('snippets,,api,', 'only')
 
-      expect(parsed).toEqual(['snippets', 'pages'])
+      expect(parsed).toEqual(['snippets', 'api'])
     })
 
     it('reports the flag name and the full list of valid types in the error', () => {
@@ -230,7 +230,7 @@ describe('dev', () => {
       silenceLogs(cmd)
 
       expect(() => (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('bogus', 'skip')).toThrow(
-        'Unknown resource type "bogus" in --skip. Valid types: snippets, pages, api, plugins',
+        'Unknown resource type "bogus" in --skip. Valid types: snippets, api, plugins',
       )
     })
   })

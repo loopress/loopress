@@ -3,9 +3,9 @@ import {join, sep} from 'node:path'
 
 import {type LoopressLocalConfig} from '../utils/loopress-config.js'
 
-export type ResourceType = 'api' | 'pages' | 'plugins' | 'snippets'
+export type ResourceType = 'api' | 'plugins' | 'snippets'
 
-export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'pages', 'api', 'plugins']
+export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'api', 'plugins']
 
 export type WatchTarget = {
   commandId: string
@@ -28,7 +28,6 @@ export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLo
   const rootDir = join(cwd, localConfig.rootDir ?? '.')
   const candidates: Record<ResourceType, WatchTarget> = {
     api: {commandId: 'api:push', path: join(rootDir, localConfig.apiDir ?? 'api'), type: 'api'},
-    pages: {commandId: 'page:push', path: join(rootDir, localConfig.pageDir ?? 'pages'), type: 'pages'},
     plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},
     snippets: {commandId: 'snippet:push', path: join(rootDir, localConfig.snippetsDir ?? 'snippets'), type: 'snippets'},
   }

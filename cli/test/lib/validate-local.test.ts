@@ -32,8 +32,6 @@ describe('validateLocal', () => {
   })
 
   it('passes a well formed tree', async () => {
-    write('pages/2-home.html', '<p>hi</p>')
-    write('pages/2-home.json', JSON.stringify({title: 'Home'}))
     write('forms/5-contact.json', JSON.stringify({id: 5, title: 'Contact'}))
     write('snippets/7-x.php', '<?php echo 1;')
     write('snippets/7-x.json', JSON.stringify({id: 7, type: 'php'}))

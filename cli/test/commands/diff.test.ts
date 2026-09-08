@@ -112,7 +112,7 @@ describe('diff', () => {
 
     expect(result.resources.snippet.error).toBe('boom')
     expect(result.drift).toBe(false)
-    expect(result.resources.page.added).toEqual([]) // the other resources still ran
+    expect(result.resources.form.added).toEqual([]) // the other resources still ran
     expect(process.exitCode).toBe(2) // 2 = inconclusive, distinct from 1 = drift
   })
 

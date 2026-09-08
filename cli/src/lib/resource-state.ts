@@ -1,9 +1,8 @@
 import {readFile} from 'node:fs/promises'
-import {basename, extname, join, relative, sep} from 'node:path'
+import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
-import {getPageContent, PAGE_ENDPOINT, pickPageMeta} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
@@ -17,7 +16,6 @@ import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/
 import {type ResourceState} from './diff-state.js'
 import {loadFiles} from './load-files.js'
 import {loadSnippets} from './load-snippets.js'
-import {readdirTolerant} from './readdir-tolerant.js'
 import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 
 // A resource `lps diff` knows how to compare. `remote` reads and normalizes the live state
@@ -121,72 +119,6 @@ const snippetProvider: ResourceStateProvider = {
   },
   resource: 'snippet',
   title: 'Snippets',
-}
-
-// ---- pages --------------------------------------------------------------------------------
-
-// `title` and `excerpt` come back from `?context=edit` as `{raw, rendered, protected}`;
-// `rendered` is derived and can change without the source changing, so only `raw` is compared
-// (which is also all `page push` meaningfully round-trips).
-function rawOf(value: unknown): string {
-  if (typeof value === 'string') return value
-  if (value && typeof value === 'object') {
-    const {raw} = value as Record<string, unknown>
-    if (typeof raw === 'string') return raw
-  }
-
-  return ''
-}
-
-function canonicalPage(meta: Record<string, unknown>, content: string): Record<string, unknown> {
-  const canonical: Record<string, unknown> = {...meta, content}
-  if ('title' in canonical) canonical.title = rawOf(canonical.title)
-  if ('excerpt' in canonical) canonical.excerpt = rawOf(canonical.excerpt)
-  return canonical
-}
-
-const pageProvider: ResourceStateProvider = {
-  dirKind: 'page',
-  async local(dir, onWarn) {
-    const files = await readdirTolerant(dir)
-    const state: ResourceState = new Map()
-    for (const file of files) {
-      if (extname(file) !== '.html') continue
-
-      const base = basename(file, '.html')
-      const metaPath = join(dir, `${base}.json`)
-      let meta: Record<string, unknown> = {}
-      try {
-        meta = readJson(await readFile(metaPath, 'utf8'))
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          onWarn(`Skipping "${metaPath}": ${(error as Error).message}`)
-          continue
-        }
-      }
-
-      const content = await readFile(join(dir, file), 'utf8')
-      const rawId = Number(meta.id)
-      const id = Number.isSafeInteger(rawId) && rawId > 0 ? String(rawId) : `local:${base}`
-      state.set(id, canonicalPage(meta, content))
-    }
-
-    return state
-  },
-  async remote(wp) {
-    // getAll walks every page; `page pull` does the same, so the two stay in lockstep.
-    const raw = await wp.getAll<Record<string, unknown>>(`${PAGE_ENDPOINT}?context=edit`)
-    const state: ResourceState = new Map()
-    for (const page of raw) {
-      const rawId = Number(page.id)
-      if (!Number.isSafeInteger(rawId) || rawId <= 0) continue
-      state.set(String(rawId), canonicalPage(pickPageMeta(page), getPageContent(page)))
-    }
-
-    return state
-  },
-  resource: 'page',
-  title: 'Pages',
 }
 
 // ---- forms -------------------------------------------------------------------------------
@@ -403,7 +335,6 @@ const seoProvider: ResourceStateProvider = {
 
 export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   snippetProvider,
-  pageProvider,
   formProvider,
   acfProvider,
   apiProvider,

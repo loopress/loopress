@@ -3,7 +3,7 @@ import microdiff from 'microdiff'
 import {isDeepStrictEqual} from 'node:util'
 
 // One resource's comparable state: identity -> canonical value. The value is whatever the
-// resource's provider decides is worth comparing (a normalized object for snippets/pages, the
+// resource's provider decides is worth comparing (a normalized object for snippets, the
 // raw plugin object for forms/ACF, a file's text for API routes), projected identically from
 // both sides so a deep-equal check is meaningful.
 export type ResourceState = Map<string, unknown>
@@ -18,7 +18,7 @@ export type FieldChange = {
 
 export type StateChange = {
   // Structured per-leaf changes, present for object values (absent for text values like an API
-  // route file or a page body, which only get `patch`).
+  // route file or a hook file, which only get `patch`).
   fields?: FieldChange[]
   id: string
   // Human-readable rendering of the change, ready to print (a per-field list for objects, a
@@ -49,7 +49,7 @@ function ensureTrailingNewline(text: string): string {
   return text.endsWith('\n') ? text : `${text}\n`
 }
 
-// Two strings (an API route file, a page body, composer.json): a real line diff. Only the
+// Two strings (an API route file, a hook file, composer.json): a real line diff. Only the
 // `Index:` / `===` preamble createTwoFilesPatch emits is dropped; the `--- <left>` / `+++
 // <right>` lines are kept so each hunk still states its own direction.
 function renderTextChange(id: string, left: string, right: string, labels: {left: string; right: string}): string {
