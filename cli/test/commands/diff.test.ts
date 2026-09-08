@@ -10,10 +10,10 @@ import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
 class TestDiff extends Diff {
-  setup(siteConfig: EnvironmentConfig) {
+  setup(siteConfig: EnvironmentConfig, rootDir?: string) {
     this.siteConfig = siteConfig
     this.projectId = 'id-acme'
-    this.localConfig = {}
+    this.localConfig = rootDir === undefined ? {} : {rootDir}
   }
 }
 
@@ -34,9 +34,9 @@ function baselineGet(composerJson = '{}') {
   })
 }
 
-function make(argv: string[], get: ReturnType<typeof vi.fn>) {
+function make(argv: string[], get: ReturnType<typeof vi.fn>, rootDir?: string) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
-  cmd.setup(makeEnv('staging', 'https://staging.acme.com'))
+  cmd.setup(makeEnv('staging', 'https://staging.acme.com'), rootDir)
   const logs = silenceLogs(cmd)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
   return {cmd, logs}
@@ -89,7 +89,7 @@ describe('diff', () => {
     expect(process.exitCode).toBe(1)
   })
 
-  it('isolates a failing resource without turning it into drift', async () => {
+  it('isolates a failing resource but still exits non-zero so a CI gate never passes on it', async () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/snippets') throw new Error('boom')
       if (path === 'loopress/v1/seo/settings') return {}
@@ -103,7 +103,20 @@ describe('diff', () => {
 
     expect(result.resources.snippet.error).toBe('boom')
     expect(result.drift).toBe(false)
-    expect(process.exitCode).not.toBe(1)
+    expect(result.resources.page.added).toEqual([]) // the other resources still ran
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('reads local Composer files from an absolute rootDir instead of prefixing the cwd', async () => {
+    // cwd is elsewhere; rootDir is the absolute project dir. join() would look under
+    // <cwd>/<dir> and wrongly report composer.json as remote-only.
+    process.chdir(tmpdir())
+    const {cmd} = make([], baselineGet(), dir)
+
+    const result = await cmd.run()
+
+    expect(result.resources.composer.removed).toEqual([])
+    expect(result.resources.composer.error).toBeUndefined()
   })
 
   it('stays silent on stdout in --json mode', async () => {

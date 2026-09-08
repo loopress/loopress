@@ -1,5 +1,5 @@
 import {Flags, ux} from '@oclif/core'
-import {join} from 'node:path'
+import {resolve} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
@@ -63,16 +63,21 @@ export default class Diff extends LoopressCommand {
 
     const resources: Record<string, ResourceDiffJson> = {}
     let drift = false
+    let failed = false
 
     for (const target of this.buildTargets(againstWp)) {
       const outcome = await this.diffResource(target, {left: leftLabel, right: rightLabel})
       resources[target.resource] = outcome.json
       if (outcome.drift) drift = true
+      if (outcome.json.error !== undefined) failed = true
     }
 
-    this.out(drift ? c('yellow', '\nDrift detected.') : c('green', '\nNo drift. Everything is in sync.'))
+    if (failed) this.out(c('red', '\nSome resources could not be compared; this run is inconclusive.'))
+    else this.out(drift ? c('yellow', '\nDrift detected.') : c('green', '\nNo drift. Everything is in sync.'))
 
-    if (drift) process.exitCode = 1
+    // A resource that failed to fetch is not "no drift": a CI gate must not pass on a
+    // comparison that never ran.
+    if (drift || failed) process.exitCode = 1
 
     return {drift, left: leftLabel, resources, right: rightLabel}
   }
@@ -91,10 +96,14 @@ export default class Diff extends LoopressCommand {
       title: provider.title,
     }))
 
+    // resolve(), not join(): an absolute `rootDir` in loopress.json must stay absolute rather
+    // than being prefixed with the cwd, so Composer is read from the same place as the
+    // file-backed resources.
+    const localRoot = resolve(process.cwd(), this.rootDir)
     targets.push({
       left: async () => composerRemoteState(this.wp),
       resource: 'composer',
-      right: againstWp ? async () => composerRemoteState(againstWp) : async () => composerLocalState(join(process.cwd(), this.rootDir)),
+      right: againstWp ? async () => composerRemoteState(againstWp) : async () => composerLocalState(localRoot),
       title: 'Composer',
     })
 

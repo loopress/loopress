@@ -159,6 +159,10 @@ const pageProvider: ResourceStateProvider = {
     return state
   },
   async remote(wp) {
+    // Reuses PAGE_LIST_QUERY (per_page=100, no paging loop) on purpose: `page pull` writes
+    // local files with the same cap, so diffing against a paginated fetch here would report
+    // every page past the first 100 as remote-only drift even right after a pull. Real
+    // pagination is a change that has to land in `page pull` first.
     const raw = await wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}&context=edit`)
     const state: ResourceState = new Map()
     for (const page of raw) {
