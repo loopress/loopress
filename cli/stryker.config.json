@@ -9,5 +9,6 @@
   "reporters": ["html", "json", "clear-text", "progress"],
   "mutate": ["src/**/*.ts", "!src/**/*.generated.ts"],
   "coverageAnalysis": "perTest",
-  "ignoreStatic": true
+  "ignoreStatic": true,
+  "thresholds": {"break": 50}
 }
