@@ -1,21 +1,7 @@
-import {Args} from '@oclif/core'
+import {resourceDiffCommand} from '../../lib/diff-command.js'
 
-import {DiffCommand, type DiffJson} from '../../lib/diff-command.js'
-import {getResourceStateProvider} from '../../lib/resource-state.js'
-
-export default class Diff extends DiffCommand {
-  static args = {
-    path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
-  }
-
-  static description = 'Show what differs in snippets between your local files and a WordPress environment, or between two environments'
-  static enableJsonFlag = true
-  static examples = ['$ lps snippet diff', '$ lps snippet diff --env staging', '$ lps snippet diff --env staging --against production']
-  static flags = {...DiffCommand.againstFlag}
-
-  async run(): Promise<DiffJson> {
-    const {args, flags} = await this.parse(Diff)
-    const sides = this.resolveSides(flags.against)
-    return this.report([this.providerTarget(getResourceStateProvider('snippet'), sides, args.path)], sides)
-  }
-}
+export default resourceDiffCommand('snippet', {
+  description:
+    'Show what differs in snippets between your local files and a WordPress environment, or between two environments',
+  pathNoun: 'snippets directory',
+})

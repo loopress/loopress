@@ -1,11 +1,11 @@
-import {Flags, ux} from '@oclif/core'
+import {Args, Flags, ux} from '@oclif/core'
 import {resolve} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
-import {composerLocalState, composerRemoteState, type ResourceStateProvider} from './resource-state.js'
+import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
 
 const c = ux.colorize
@@ -140,6 +140,10 @@ export abstract class DiffCommand extends LoopressCommand {
     }
   }
 
+  // Every `lps diff` variant resolves to this structured report (narrowing oclif's
+  // `run(): Promise<any>`), so tests and callers get a typed result off `.run()`.
+  abstract run(): Promise<DiffJson>
+
   // Fetches and compares one target. No output (so targets can run concurrently); `report`
   // renders `stateDiff` afterwards in a fixed order.
   private async computeResource(
@@ -193,6 +197,34 @@ export abstract class DiffCommand extends LoopressCommand {
 
     return new WpClient(env.url, env.token)
   }
+}
+
+// Builds the `lps <resource> diff` command class for one directory-backed resource. They differ
+// only in wording and which provider they target, so the whole body lives here.
+export function resourceDiffCommand(resource: string, options: {description: string; pathNoun: string}): typeof DiffCommand {
+  class ResourceDiff extends DiffCommand {
+    static args = {
+      path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
+    }
+
+    static description = options.description
+    static enableJsonFlag = true
+    static examples = [
+      `$ lps ${resource} diff`,
+      `$ lps ${resource} diff --env staging`,
+      `$ lps ${resource} diff --env staging --against production`,
+    ]
+
+    static flags = {...DiffCommand.againstFlag}
+
+    async run(): Promise<DiffJson> {
+      const {args, flags} = await this.parse(ResourceDiff)
+      const sides = this.resolveSides(flags.against)
+      return this.report([this.providerTarget(getResourceStateProvider(resource), sides, args.path)], sides)
+    }
+  }
+
+  return ResourceDiff
 }
 
 // Indents an already-formatted change block (a per-field list or a header-less unified diff)
