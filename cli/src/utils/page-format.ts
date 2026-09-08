@@ -1,12 +1,10 @@
 import {toSlug} from './to-slug.js'
 
 // WordPress core's own REST endpoint (`wp/v2/pages`), unlike acf/form/seo/snippet there is no
-// Loopress-plugin controller behind this one, same principle as `wp/v2/plugins` in plugin push/pull.
+// Loopress-plugin controller behind this one, same principle as `wp/v2/plugins` in plugin
+// push/pull. It caps a single response at 100 items, so callers fetch it through
+// `WpClient.getAll` to walk every page.
 export const PAGE_ENDPOINT = 'wp/v2/pages'
-
-// ponytail: fixed cap, not a paged loop; fine for typical page counts, revisit with real
-// pagination (X-WP-TotalPages) if a site ever has more than 100 pages.
-export const PAGE_LIST_QUERY = 'per_page=100'
 
 export function getPageId(data: Record<string, unknown>): null | number {
   const id = Number(data.id)

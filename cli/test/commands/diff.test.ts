@@ -38,7 +38,7 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>, rootDir?: string) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
   cmd.setup(makeEnv('staging', 'https://staging.acme.com'), rootDir)
   const logs = silenceLogs(cmd)
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get}
   return {cmd, logs}
 }
 
@@ -89,6 +89,17 @@ describe('diff', () => {
     expect(process.exitCode).toBe(1)
   })
 
+  it('prints a tally line', async () => {
+    mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
+    writeFileSync(join(dir, 'snippets', '9-x.json'), JSON.stringify({active: true, id: 9, name: 'X', type: 'php'}))
+
+    const {cmd, logs} = make([], baselineGet())
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('compared: 0 changed, 1 added, 0 removed'))
+  })
+
   it('isolates a failing resource but still exits non-zero so a CI gate never passes on it', async () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/snippets') throw new Error('boom')
@@ -104,7 +115,7 @@ describe('diff', () => {
     expect(result.resources.snippet.error).toBe('boom')
     expect(result.drift).toBe(false)
     expect(result.resources.page.added).toEqual([]) // the other resources still ran
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(2) // 2 = inconclusive, distinct from 1 = drift
   })
 
   it('reads local Composer files from an absolute rootDir instead of prefixing the cwd', async () => {

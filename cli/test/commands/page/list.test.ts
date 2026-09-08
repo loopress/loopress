@@ -3,7 +3,7 @@ import {describe, expect, it, vi} from 'vitest'
 import List from '../../../src/commands/page/list.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
-type ListWithWpClient = {wpClient: {get: ReturnType<typeof vi.fn>}}
+type ListWithWpClient = {wpClient: {get: ReturnType<typeof vi.fn>; getAll: ReturnType<typeof vi.fn>}}
 
 function makeCmd(argv: string[]) {
   const cmd = new List(argv, fakeOclifConfig)
@@ -15,17 +15,17 @@ describe('page list', () => {
   it('fetches the capped, unpaginated page list endpoint', async () => {
     const {cmd} = makeCmd([])
     const get = vi.fn().mockResolvedValueOnce([])
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get, getAll: get}
 
     await cmd.run()
 
-    expect(get).toHaveBeenCalledWith('wp/v2/pages?per_page=100')
+    expect(get).toHaveBeenCalledWith('wp/v2/pages')
   })
 
   it('prints id and title in the default (human-readable) output', async () => {
     const {cmd, logs} = makeCmd([])
     const get = vi.fn().mockResolvedValueOnce([{id: 2, title: {rendered: 'Sample Page'}}])
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get, getAll: get}
 
     await cmd.run()
 
@@ -37,7 +37,7 @@ describe('page list', () => {
     const {cmd} = makeCmd(['--json'])
     const pages = [{id: 2, title: {rendered: 'Sample Page'}}]
     const get = vi.fn().mockResolvedValueOnce(pages)
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get, getAll: get}
 
     const result = await cmd.run()
 
@@ -47,7 +47,7 @@ describe('page list', () => {
   it('prints "(none)" when there are no pages', async () => {
     const {cmd, logs} = makeCmd([])
     const get = vi.fn().mockResolvedValueOnce([])
-    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get, getAll: get}
 
     await cmd.run()
 

@@ -8,7 +8,18 @@ import {isDeepStrictEqual} from 'node:util'
 // both sides so a deep-equal check is meaningful.
 export type ResourceState = Map<string, unknown>
 
+export type FieldChange = {
+  from?: unknown
+  kind: 'added' | 'changed' | 'removed'
+  // Dot path to the leaf that changed, e.g. `settings.notifications.1.email`.
+  path: string
+  to?: unknown
+}
+
 export type StateChange = {
+  // Structured per-leaf changes, present for object values (absent for text values like an API
+  // route file or a page body, which only get `patch`).
+  fields?: FieldChange[]
   id: string
   // Human-readable rendering of the change, ready to print (a per-field list for objects, a
   // header-less unified diff for text).
@@ -51,22 +62,37 @@ function renderTextChange(id: string, left: string, right: string, labels: {left
 // Two objects: microdiff walks them structurally and returns one entry per changed leaf, so
 // key ordering never matters and a big nested blob (a WPForms definition, an ACF group)
 // reduces to just the fields that moved.
-function renderObjectChange(left: Record<string, unknown>, right: Record<string, unknown>): string {
-  return microdiff(left, right, {cyclesFix: false})
+function objectFieldChanges(left: Record<string, unknown>, right: Record<string, unknown>): FieldChange[] {
+  return microdiff(left, right, {cyclesFix: false}).map((change) => {
+    const path = change.path.join('.')
+    if (change.type === 'CREATE') return {kind: 'added', path, to: change.value}
+    if (change.type === 'REMOVE') return {from: change.oldValue, kind: 'removed', path}
+    return {from: change.oldValue, kind: 'changed', path, to: change.value}
+  })
+}
+
+function renderFieldChanges(changes: FieldChange[]): string {
+  return changes
     .map((change) => {
-      const path = change.path.join('.')
-      if (change.type === 'CREATE') return `+ ${path}: ${formatValue(change.value)}`
-      if (change.type === 'REMOVE') return `- ${path}: ${formatValue(change.oldValue)}`
-      return `~ ${path}: ${formatValue(change.oldValue)} → ${formatValue(change.value)}`
+      if (change.kind === 'added') return `+ ${change.path}: ${formatValue(change.to)}`
+      if (change.kind === 'removed') return `- ${change.path}: ${formatValue(change.from)}`
+      return `~ ${change.path}: ${formatValue(change.from)} → ${formatValue(change.to)}`
     })
     .join('\n')
 }
 
-function renderChange(id: string, left: unknown, right: unknown, labels: {left: string; right: string}): string {
-  if (typeof left === 'string' && typeof right === 'string') return renderTextChange(id, left, right, labels)
-  if (isRecord(left) && isRecord(right)) return renderObjectChange(left, right)
+function changeFor(id: string, left: unknown, right: unknown, labels: {left: string; right: string}): StateChange {
+  if (typeof left === 'string' && typeof right === 'string') {
+    return {id, patch: renderTextChange(id, left, right, labels)}
+  }
+
+  if (isRecord(left) && isRecord(right)) {
+    const fields = objectFieldChanges(left, right)
+    return {fields, id, patch: renderFieldChanges(fields)}
+  }
+
   // Type mismatch between the two sides (e.g. a field that was a string and is now an object).
-  return `~ ${formatValue(left)} → ${formatValue(right)}`
+  return {id, patch: `~ ${formatValue(left)} → ${formatValue(right)}`}
 }
 
 // `left` is the reference, `right` is the subject. For `lps diff` with no env-vs-env args
@@ -89,7 +115,7 @@ export function compareStates(left: ResourceState, right: ResourceState, labels:
     const rightValue = right.get(id)
     if (isDeepStrictEqual(leftValue, rightValue)) continue
 
-    diff.changed.push({id, patch: renderChange(id, leftValue, rightValue, labels)})
+    diff.changed.push(changeFor(id, leftValue, rightValue, labels))
   }
 
   diff.added.sort((a, b) => a.localeCompare(b))

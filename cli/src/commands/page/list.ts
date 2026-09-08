@@ -1,5 +1,5 @@
 import {LoopressCommand} from '../../lib/base.js'
-import {getPageId, getPageTitle, PAGE_ENDPOINT, PAGE_LIST_QUERY} from '../../utils/page-format.js'
+import {getPageId, getPageTitle, PAGE_ENDPOINT} from '../../utils/page-format.js'
 
 export default class List extends LoopressCommand {
   static description = 'List pages from WordPress'
@@ -7,7 +7,7 @@ export default class List extends LoopressCommand {
   static examples = ['$ lps page list']
 
   async run(): Promise<Array<Record<string, unknown>>> {
-    const pages = await this.wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}`)
+    const pages = await this.wp.getAll<Record<string, unknown>>(PAGE_ENDPOINT)
 
     this.log(`Pages (${pages.length}):`)
     if (pages.length === 0) {

@@ -4,7 +4,7 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
-import {getPageContent, getPageId, getPageTitle, PAGE_ENDPOINT, PAGE_LIST_QUERY, pageFileBase, pickPageMeta} from '../../utils/page-format.js'
+import {getPageContent, getPageId, getPageTitle, PAGE_ENDPOINT, pageFileBase, pickPageMeta} from '../../utils/page-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type PulledPage = {
@@ -42,7 +42,8 @@ export default class Pull extends LoopressCommand {
 
     // context=edit returns title/content/excerpt as raw editable source instead of rendered
     // HTML, needed for the file to be a faithful, re-pushable copy (requires edit_pages).
-    const remoteList = await this.wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}&context=edit`)
+    // getAll walks every page of results, not just the first 100.
+    const remoteList = await this.wp.getAll<Record<string, unknown>>(`${PAGE_ENDPOINT}?context=edit`)
     const withId = remoteList.filter((page) => getPageId(page) !== null)
     const skipped = remoteList.length - withId.length
 

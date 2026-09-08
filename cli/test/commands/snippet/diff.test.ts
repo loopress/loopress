@@ -21,7 +21,7 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
   cmd.setup(makeEnv('staging', 'https://staging.acme.com'))
   const logs = silenceLogs(cmd)
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get}
   return {cmd, logs}
 }
 
@@ -87,6 +87,13 @@ describe('snippet diff', () => {
     const {cmd} = make(['--against', 'staging'], vi.fn(async () => []))
 
     await expect(cmd.run()).rejects.toThrow('must be a different environment')
+  })
+
+  it('rejects a [PATH] argument combined with --against', async () => {
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(makeEnv('production', 'https://acme.com'))
+    const {cmd} = make(['./local-snippets', '--against', 'production'], vi.fn(async () => []))
+
+    await expect(cmd.run()).rejects.toThrow('cannot be combined with --against')
   })
 
   it('sets the right label to the --against environment', async () => {

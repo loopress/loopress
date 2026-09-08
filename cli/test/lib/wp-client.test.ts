@@ -129,6 +129,55 @@ describe('WpClient', () => {
     await expect(client.get('loopress/v1/composer/lock')).rejects.toThrow(/composer\.lock not found/)
   })
 
+  describe('getAll', () => {
+    const fullPage = Array.from({length: 100}, (_, i) => ({id: i}))
+    const pageOf = (req: IncomingMessage): number => Number(new URL(req.url ?? '', 'https://x').searchParams.get('page'))
+
+    it('walks every page and concatenates the results, stopping on the first short page', async () => {
+      const seenUrls: string[] = []
+      const {client} = await serve((req, res) => {
+        seenUrls.push(req.url ?? '')
+        const body = pageOf(req) === 1 ? fullPage : [{id: 100}, {id: 101}]
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify(body))
+      })
+
+      const all = await client.getAll<{id: number}>('wp/v2/pages?context=edit')
+
+      expect(all).toHaveLength(102)
+      expect(seenUrls).toEqual([
+        '/wp-json/wp/v2/pages?context=edit&per_page=100&page=1',
+        '/wp-json/wp/v2/pages?context=edit&per_page=100&page=2',
+      ])
+    })
+
+    it("stops on WordPress core's 400 rest_post_invalid_page_number past the last page", async () => {
+      const {client} = await serve((req, res) => {
+        if (pageOf(req) > 1) {
+          res.writeHead(400, {'Content-Type': 'application/json'})
+          res.end(JSON.stringify({code: 'rest_post_invalid_page_number', data: {status: 400}}))
+          return
+        }
+
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify(fullPage))
+      })
+
+      const all = await client.getAll<{id: number}>('wp/v2/pages')
+
+      expect(all).toHaveLength(100)
+    })
+
+    it('rethrows a non-pagination error', async () => {
+      const {client} = await serve((req, res) => {
+        res.writeHead(500)
+        res.end('{}')
+      })
+
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(500\)/)
+    })
+  })
+
   it('maps other HTTP errors to a generic message with the status code', async () => {
     const {client, siteUrl} = await serve((req, res) => {
       res.writeHead(500)

@@ -11,7 +11,7 @@ export default class Diff extends DiffCommand {
   static description = [
     'Show what differs between your local tracked files and a WordPress environment, or between two environments.',
     'Covers snippets, pages, forms, ACF, API routes, SEO, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`.',
-    'Exits non-zero when anything differs, so it doubles as a CI drift gate.',
+    'Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.',
   ].join(' ')
 
   static enableJsonFlag = true

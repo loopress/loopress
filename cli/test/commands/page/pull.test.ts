@@ -21,7 +21,7 @@ type PullInternals = {
   localConfig: LoopressLocalConfig
   removeOrphanedFiles(dir: string, orphans: string[], reason: string): Promise<void>
   siteConfig: EnvironmentConfig
-  wpClient: {get: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; getAll: ReturnType<typeof vi.fn>}
 }
 
 // The same matcher `page pull` wires in run(): both the `<id>-<slug>.html` and
@@ -88,7 +88,7 @@ describe('page pull', () => {
       internals.siteConfig = makeEnv('production', 'https://acme.com')
       const logs = silenceLogs(cmd)
       const get = vi.fn()
-      internals.wpClient = {get}
+      internals.wpClient = {get, getAll: get}
       return {cmd, get, internals, logs}
     }
 
@@ -107,7 +107,7 @@ describe('page pull', () => {
 
       await cmd.run()
 
-      expect(get).toHaveBeenCalledWith('wp/v2/pages?per_page=100&context=edit')
+      expect(get).toHaveBeenCalledWith('wp/v2/pages?context=edit')
       expect(logs.log).toHaveBeenCalledWith('Pulling pages from https://acme.com')
       expect(logs.log).toHaveBeenCalledWith(`Pages path: ${dir}`)
     })
