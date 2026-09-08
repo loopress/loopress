@@ -19,12 +19,13 @@ function notFound(body?: string): Error {
   return new Error('Not Found', {cause: {response: {body, statusCode: 404}}})
 }
 
-// A stand-in for WpClient: every GET resolves to whatever `responses` maps the path to, or an
-// empty list so providers that query endpoints this test doesn't care about stay silent.
+// A stand-in for WpClient: every GET (paged or not) resolves to whatever `responses` maps the
+// path to, or an empty list so providers that query endpoints this test doesn't care about
+// stay silent. `getAll` here is a single lookup, not a real page walk (see wp-client.test.ts
+// for the pagination itself).
 function fakeWp(responses: Record<string, unknown>): WpClient {
-  return {
-    get: vi.fn(async (path: string) => (Object.hasOwn(responses, path) ? responses[path] : [])),
-  } as unknown as WpClient
+  const lookup = vi.fn(async (path: string) => (Object.hasOwn(responses, path) ? responses[path] : []))
+  return {get: lookup, getAll: lookup} as unknown as WpClient
 }
 
 function provider(resource: string): ResourceStateProvider {
@@ -91,7 +92,7 @@ describe('resource-state providers', () => {
 
     it('compares only the raw form of title/excerpt, not the rendered HTML', async () => {
       const remote = fakeWp({
-        'wp/v2/pages?per_page=100&context=edit': [
+        'wp/v2/pages?context=edit': [
           {
             content: {raw: '<!-- wp:paragraph --><p>Hi</p>', rendered: '<p>Hi</p>'},
             excerpt: {raw: 'An intro', rendered: '<p>An intro</p>'},
@@ -120,7 +121,7 @@ describe('resource-state providers', () => {
 
     it('flags a changed page body', async () => {
       const remote = fakeWp({
-        'wp/v2/pages?per_page=100&context=edit': [{content: {raw: 'old'}, id: 1, slug: 'p', title: {raw: 'P'}}],
+        'wp/v2/pages?context=edit': [{content: {raw: 'old'}, id: 1, slug: 'p', title: {raw: 'P'}}],
       })
       writeFileSync(join(dir, '1-p.html'), 'new')
       writeFileSync(join(dir, '1-p.json'), JSON.stringify({id: 1, slug: 'p', title: {raw: 'P'}}))
@@ -164,6 +165,23 @@ describe('resource-state providers', () => {
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
+
+    it('ignores the modified / modified_gmt save timestamps', async () => {
+      const remote = fakeWp({'loopress/v1/forms': [{id: 7, modified: '2026-02-02', modified_gmt: '2026-02-02', settings: {form_title: 'C'}}]})
+      writeFileSync(join(dir, '7-c.json'), JSON.stringify({id: 7, modified: '1999-01-01', modified_gmt: '1999-01-01', settings: {form_title: 'C'}}))
+
+      const diff = compareStates(await formProvider.remote(remote, noWarn), await formProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('keys a local file with no id by its filename', async () => {
+      writeFileSync(join(dir, 'draft.json'), JSON.stringify({settings: {form_title: 'Draft'}}))
+
+      const state = await formProvider.local(dir, noWarn)
+
+      expect([...state.keys()]).toEqual(['local:draft'])
+    })
   })
 
   describe('acf', () => {
@@ -179,6 +197,16 @@ describe('resource-state providers', () => {
       expect([...state.keys()]).toEqual(['field-groups/group_1'])
 
       const diff = compareStates(state, await acfProvider.local(dir, noWarn), labels)
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('ignores the modified timestamp ACF stamps on every save', async () => {
+      const remote = fakeWp({'loopress/v1/acf/field-groups': [{key: 'group_1', modified: 1_700_000_000, title: 'Hero'}]})
+      mkdirSync(join(dir, 'field-groups'))
+      writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', modified: 1, title: 'Hero'}))
+
+      const diff = compareStates(await acfProvider.remote(remote, noWarn), await acfProvider.local(dir, noWarn), labels)
+
       expect(isEmptyDiff(diff)).toBe(true)
     })
   })

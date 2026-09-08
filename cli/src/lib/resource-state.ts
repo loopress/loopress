@@ -3,7 +3,7 @@ import {basename, extname, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
-import {getPageContent, PAGE_ENDPOINT, PAGE_LIST_QUERY, pickPageMeta} from '../utils/page-format.js'
+import {getPageContent, PAGE_ENDPOINT, pickPageMeta} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
@@ -41,6 +41,21 @@ function readJson(raw: string): Record<string, unknown> {
 
   return parsed as Record<string, unknown>
 }
+
+// Removes top-level keys that the server rewrites without the tracked configuration itself
+// changing (save timestamps, hit counters), so a `diff` between two independently-configured
+// environments reports real differences only. Top-level only: a nested user field that happens
+// to share a name is never touched.
+function omit(object: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key)))
+}
+
+// ACF's export JSON carries `modified` (a unix timestamp bumped on every save in wp-admin).
+const ACF_VOLATILE_KEYS = ['modified'] as const
+// A WPForms form is a WP post; `modified`/`modified_gmt` move on every edit.
+const FORM_VOLATILE_KEYS = ['modified', 'modified_gmt'] as const
+// A RankMath redirect's `hits` is a live visit counter.
+const REDIRECT_VOLATILE_KEYS = ['hits'] as const
 
 // ---- snippets -------------------------------------------------------------------------------
 
@@ -159,11 +174,8 @@ const pageProvider: ResourceStateProvider = {
     return state
   },
   async remote(wp) {
-    // Reuses PAGE_LIST_QUERY (per_page=100, no paging loop) on purpose: `page pull` writes
-    // local files with the same cap, so diffing against a paginated fetch here would report
-    // every page past the first 100 as remote-only drift even right after a pull. Real
-    // pagination is a change that has to land in `page pull` first.
-    const raw = await wp.get<Array<Record<string, unknown>>>(`${PAGE_ENDPOINT}?${PAGE_LIST_QUERY}&context=edit`)
+    // getAll walks every page; `page pull` does the same, so the two stay in lockstep.
+    const raw = await wp.getAll<Record<string, unknown>>(`${PAGE_ENDPOINT}?context=edit`)
     const state: ResourceState = new Map()
     for (const page of raw) {
       const rawId = Number(page.id)
@@ -179,17 +191,21 @@ const pageProvider: ResourceStateProvider = {
 
 // ---- forms -------------------------------------------------------------------------------
 
-// The form plugin's own JSON (WPForms today) round-trips untouched through pull/push, so the
-// whole object is the compared value, same "deliberately loose" stance as form-format.ts.
+// The form plugin's own JSON (WPForms today) round-trips untouched through pull/push, so
+// (minus save timestamps) the whole object is the compared value, same "deliberately loose"
+// stance as form-format.ts.
 const formProvider: ResourceStateProvider = {
   dirKind: 'form',
   async local(dir, onWarn) {
-    const objects = await loadFiles<Record<string, unknown>>(dir, {extension: '.json', onSkip: onWarn, parse: readJson})
+    const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse: (raw, filePath) => ({file: basename(filePath, '.json'), value: readJson(raw)}),
+    })
     const state: ResourceState = new Map()
-    let unidentified = 0
-    for (const object of objects) {
-      const formId = getFormId(object)
-      state.set(formId === null ? `local:unidentified-${unidentified++}` : String(formId), object)
+    for (const {file, value} of entries) {
+      const formId = getFormId(value)
+      state.set(formId === null ? `local:${file}` : String(formId), omit(value, FORM_VOLATILE_KEYS))
     }
 
     return state
@@ -199,7 +215,7 @@ const formProvider: ResourceStateProvider = {
     const state: ResourceState = new Map()
     for (const form of raw) {
       const formId = getFormId(form)
-      if (formId !== null) state.set(String(formId), form)
+      if (formId !== null) state.set(String(formId), omit(form, FORM_VOLATILE_KEYS))
     }
 
     return state
@@ -211,8 +227,9 @@ const formProvider: ResourceStateProvider = {
 // ---- ACF --------------------------------------------------------------------------------
 
 // ACF's export JSON is large, deeply nested, and versioned by ACF itself; `key` is the stable
-// identity and the whole object round-trips untouched, so it is all compared. Ids are
-// namespaced by object type (`field-groups/group_x`) since keys are only unique within a type.
+// identity and the whole object (minus the `modified` timestamp) round-trips untouched, so it
+// is all compared. Ids are namespaced by object type (`field-groups/group_x`) since keys are
+// only unique within a type.
 const acfProvider: ResourceStateProvider = {
   dirKind: 'acf',
   async local(dir, onWarn) {
@@ -225,7 +242,7 @@ const acfProvider: ResourceStateProvider = {
       })
       for (const object of objects) {
         const key = getAcfKey(object)
-        if (key !== null) state.set(`${type}/${key}`, object)
+        if (key !== null) state.set(`${type}/${key}`, omit(object, ACF_VOLATILE_KEYS))
       }
     }
 
@@ -237,7 +254,7 @@ const acfProvider: ResourceStateProvider = {
       const raw = await wp.get<Array<Record<string, unknown>>>(acfEndpoint(type))
       for (const object of raw) {
         const key = getAcfKey(object)
-        if (key !== null) state.set(`${type}/${key}`, object)
+        if (key !== null) state.set(`${type}/${key}`, omit(object, ACF_VOLATILE_KEYS))
       }
     }
 
@@ -278,12 +295,8 @@ const apiProvider: ResourceStateProvider = {
 
 // ---- SEO --------------------------------------------------------------------------------
 
-// `hits` is a live counter, not configuration: it drifts on every visit and `seo pull` snapshots
-// whatever it was at pull time, so comparing it would always report drift. Dropped from both sides.
 function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
-  const rest = {...redirect}
-  delete rest.hits
-  return rest
+  return omit(redirect, REDIRECT_VOLATILE_KEYS)
 }
 
 const seoProvider: ResourceStateProvider = {
@@ -291,6 +304,9 @@ const seoProvider: ResourceStateProvider = {
   async local(dir, onWarn) {
     const state: ResourceState = new Map()
 
+    // The provider settings blob (Yoast / RankMath) is compared whole. If a real payload turns
+    // out to carry install-specific noise (a plugin version, a license hash), add those keys
+    // to an omit() list here, the e2e round-trip is what will surface them.
     const settingsPath = join(dir, 'settings.json')
     try {
       const settings = readJson(await readFile(settingsPath, 'utf8'))
@@ -303,11 +319,14 @@ const seoProvider: ResourceStateProvider = {
 
     for (const postType of DEFAULT_POST_TYPES) {
       const metaDir = join(dir, 'post-meta', postType)
-      const objects = await loadFiles<Record<string, unknown>>(metaDir, {extension: '.json', onSkip: onWarn, parse: readJson})
-      let unidentified = 0
-      for (const object of objects) {
-        const slug = typeof object.slug === 'string' && object.slug !== '' ? object.slug : `local:unidentified-${unidentified++}`
-        state.set(`post-meta/${postType}/${slug}`, object)
+      const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(metaDir, {
+        extension: '.json',
+        onSkip: onWarn,
+        parse: (raw, filePath) => ({file: basename(filePath, '.json'), value: readJson(raw)}),
+      })
+      for (const {file, value} of entries) {
+        const slug = typeof value.slug === 'string' && value.slug !== '' ? value.slug : `local:${file}`
+        state.set(`post-meta/${postType}/${slug}`, value)
       }
     }
 
@@ -360,6 +379,12 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   apiProvider,
   seoProvider,
 ]
+
+export function getResourceStateProvider(resource: string): ResourceStateProvider {
+  const provider = RESOURCE_STATE_PROVIDERS.find((candidate) => candidate.resource === resource)
+  if (!provider) throw new Error(`No resource-state provider for "${resource}"`)
+  return provider
+}
 
 // ---- Composer ---------------------------------------------------------------------------
 

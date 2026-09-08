@@ -31,6 +31,32 @@ export class WpClient {
     return this.request<T>('get', path, undefined, options)
   }
 
+  // Fetches every page of a paginated WP REST collection by walking `?page=N`, stopping on the
+  // first short page or on WordPress core's 400 "rest_post_invalid_page_number" past the last
+  // one. `path` may already carry query params. Use for `wp/v2/*` list endpoints, which cap at
+  // 100 items per request.
+  async getAll<T>(path: string, options?: RequestOptions & {perPage?: number}): Promise<T[]> {
+    const perPage = options?.perPage ?? 100
+    const separator = path.includes('?') ? '&' : '?'
+    const all: T[] = []
+
+    for (let page = 1; ; page += 1) {
+      let batch: T[]
+      try {
+        batch = await this.get<T[]>(`${path}${separator}per_page=${perPage}&page=${page}`, options)
+      } catch (error) {
+        if (isInvalidPageNumber(error)) break
+        throw error
+      }
+
+      if (!Array.isArray(batch) || batch.length === 0) break
+      all.push(...batch)
+      if (batch.length < perPage) break
+    }
+
+    return all
+  }
+
   async post<T = unknown>(path: string, json?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
     return this.request<T>('post', path, json, options)
   }
@@ -84,6 +110,19 @@ export function isApplicative404(error: unknown, marker: string): boolean {
 export function isTimeoutError(error: unknown): boolean {
   const cause = (error as {cause?: {name?: string}})?.cause
   return cause?.name === 'TimeoutError'
+}
+
+// WordPress core answers 400 with this `code` when `?page=N` is past the last page of a
+// collection, which is how `WpClient.getAll` knows it has walked them all.
+export function isInvalidPageNumber(error: unknown): boolean {
+  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
+  if (!body) return false
+
+  try {
+    return (JSON.parse(body) as {code?: unknown}).code === 'rest_post_invalid_page_number'
+  } catch {
+    return false
+  }
 }
 
 export function formatWpError(error: unknown, url: string, timeoutMs: number = REQUEST_TIMEOUT_MS): string {

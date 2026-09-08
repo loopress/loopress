@@ -70,6 +70,22 @@ describe('compareStates', () => {
     expect(diff.changed[0].patch).toBe('~ settings.notifications.1.email: "a@x.com" → "b@x.com"')
   })
 
+  it('exposes object changes as a structured fields list, but not text changes', () => {
+    const objectDiff = compareStates(
+      state({snippet: {active: true, priority: 10, tags: ['a']}}),
+      state({snippet: {active: true, name: 'X', priority: 20}}),
+      labels,
+    )
+    expect(objectDiff.changed[0].fields).toEqual([
+      {from: 10, kind: 'changed', path: 'priority', to: 20},
+      {from: ['a'], kind: 'removed', path: 'tags'},
+      {kind: 'added', path: 'name', to: 'X'},
+    ])
+
+    const textDiff = compareStates(state({'route.php': 'a\n'}), state({'route.php': 'b\n'}), labels)
+    expect(textDiff.changed[0].fields).toBeUndefined()
+  })
+
   it('truncates very long values in an object change', () => {
     const diff = compareStates(state({a: {blob: 'x'}}), state({a: {blob: 'y'.repeat(500)}}), labels)
 
