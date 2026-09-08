@@ -94,6 +94,24 @@
         <exclude-pattern>tests/Stubs/*</exclude-pattern>
     </rule>
 
+    <!-- tests/InfectionPatchworkBridge.php is a `file://` stream wrapper that keeps Infection's
+         mutant substitution working under brain/monkey (Patchwork). A stream wrapper has to
+         implement the raw filesystem primitives (fopen/fread/mkdir/rename/stat...), carry the
+         exact PHP method signatures even where a parameter is unused, and silence stat() on a
+         missing path. None of the WP_Filesystem / error-handling guidance applies to it. -->
+    <rule ref="WordPress.WP.AlternativeFunctions">
+        <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.NoSilencedErrors">
+        <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler">
+        <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
+    </rule>
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
+    </rule>
+
     <!-- Only RankMathServiceTest substitutes the global $wpdb with a FakeWpdb double, the
          same swap-the-global approach WordPress core's own test suite uses, to unit-test
          redirects SQL without a real database. -->
