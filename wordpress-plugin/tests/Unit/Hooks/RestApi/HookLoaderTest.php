@@ -229,8 +229,12 @@ class HookLoaderTest extends TestCase
 
     public function test_loadAndRegister_does_not_reschedule_an_already_scheduled_cron_job(): void
     {
+        // Distinct slug (and class) from test_loadAndRegister_schedules_a_cron_job: both write
+        // one file per process at a path that stays fixed (WP_CONTENT_DIR is define()d once),
+        // and HookLoader require_once's it. Reusing the slug means whichever test runs second
+        // gets a no-op require_once, its class never loads, and it fails order-dependently.
         $this->directory->write(
-            'cleanup',
+            'cleanup-scheduled',
             "<?php\nnamespace Loopress\\Tests\\Unit\\Hooks\\RestApi;\nuse Loopress\\Hooks\\Attribute\\Cron;\nfinal class TestLoaderCleanupScheduled\n{\n    #[Cron('daily')]\n    public function run(): void {}\n}\n",
         );
 
