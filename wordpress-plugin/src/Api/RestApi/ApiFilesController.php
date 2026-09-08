@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\Infrastructure\ApiDirectory;
-use Loopress\Api\Infrastructure\ClassScanner;
-use Loopress\Api\Infrastructure\FileWriter;
+use Loopress\Infrastructure\ClassScanner;
+use Loopress\Infrastructure\FileWriter;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;

@@ -22,6 +22,7 @@ const ALL_COMMAND_IDS = [
   'composer:push',
   'acf:push',
   'api:push',
+  'hook:push',
   'form:push',
   'page:push',
   'seo:push',

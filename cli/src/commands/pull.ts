@@ -14,6 +14,7 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'plugin:pull', label: 'plugins'},
   {commandId: 'acf:pull', label: 'ACF', supportsYes: true},
   {commandId: 'api:pull', label: 'API routes', supportsYes: true},
+  {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
   {commandId: 'page:pull', label: 'pages', supportsYes: true},
   {commandId: 'seo:pull', label: 'SEO', supportsYes: true},
@@ -21,7 +22,7 @@ const PULL_TARGETS: PullTarget[] = [
 ]
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull all content, plugins, composer dependencies, ACF, API routes, forms, pages, SEO, and snippets, from WordPress'
+  static description = 'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, and snippets, from WordPress'
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,

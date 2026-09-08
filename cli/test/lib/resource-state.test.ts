@@ -153,6 +153,27 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('hook', () => {
+    const hookProvider = provider('hook')
+
+    it('keys hook files by their path-relative name, including nested folders', async () => {
+      const remote = fakeWp({
+        'loopress/v1/hook-files': [
+          {content: 'a', filename: 'cleanup-cron'},
+          {content: 'b', filename: 'content/filters'},
+        ],
+      })
+
+      writeFileSync(join(dir, 'cleanup-cron.php'), 'a')
+      mkdirSync(join(dir, 'content'))
+      writeFileSync(join(dir, 'content', 'filters.php'), 'b')
+
+      const diff = compareStates(await hookProvider.remote(remote, noWarn), await hookProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+  })
+
   describe('form', () => {
     const formProvider = provider('form')
 

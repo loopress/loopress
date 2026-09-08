@@ -44,6 +44,11 @@
       "description": "Directory where custom API route files are read from and written to, relative to rootDir.",
       "default": "api"
     },
+    "hooksDir": {
+      "type": "string",
+      "description": "Directory where hook files (WordPress actions, filters, and scheduled tasks) are read from and written to, relative to rootDir.",
+      "default": "hooks"
+    },
     "appsDir": {
       "type": "string",
       "description": "Directory where single-page app bundles are read from and written to, relative to rootDir. Each subdirectory is one app: a loopress.app.json plus a built dist/ folder.",

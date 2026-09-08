@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\ApiNamespace;
-use Loopress\Api\Attribute\Cron;
 use Loopress\Api\Attribute\Permission;
 use Loopress\Api\Infrastructure\ApiDirectory;
-use Loopress\Api\Infrastructure\ClassScanner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use Loopress\Infrastructure\ClassScanner;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 
@@ -17,9 +16,9 @@ use WP_REST_Request;
  * Scans wp-content/loopress/api/*.php, requires each file, and registers what its class
  * declares: one WP REST route under ApiNamespace::current() (loopress-api/v1 by default, not
  * loopress/v1, to avoid colliding with ApiFilesController's own management endpoint) per public
- * HTTP-verb method (loadAndRegister(), on rest_api_init), and one WP-Cron event per #[Cron]
- * method (registerCronJobs(), on init: a wp-cron.php pseudo-request never fires rest_api_init,
- * so the callback has to be add_action()-bound from a hook that runs on every request).
+ * HTTP-verb method (loadAndRegister(), on rest_api_init). Scheduled/hook-only registration
+ * (formerly this class's own #[Cron] support) now lives in Hooks\RestApi\HookLoader, a
+ * dedicated hooks/ directory: see that class for #[Action]/#[Filter]/#[Cron].
  *
  * The class to instantiate is whatever the file actually declares, discovered by
  * ClassScanner::declaredClasses() (PHP's own tokenizer, never require()d to find out): there
@@ -43,17 +42,11 @@ class RouteLoader
     // match any request, with nothing pointing at why.
     private const DYNAMIC_SEGMENT_PATTERN = '/^\[([A-Za-z_]\w*)\]$/';
 
-    /** @var array<string, string> slug => failure reason, accumulated over this request's passes (loadAndRegister() and/or registerCronJobs()). */
+    /** @var array<string, string> slug => failure reason, accumulated over loadAndRegister(). */
     private array $errors = [];
 
     // slug => instance, or null if it failed to load. A fresh RouteLoader is built each request
-    // (see Feature::definitions()), so this never survives across requests; within one request
-    // it makes resolveInstance() safe to call from both loadAndRegister() (rest_api_init) and
-    // registerCronJobs() (init), which can both run against the same slug: a second require_once
-    // of an already-loaded file is a no-op, but the class_exists() collision check inside
-    // resolveInstance() can't tell "already loaded by our own other pass this request" apart
-    // from a genuine collision, so it only runs once per slug and the second caller gets the
-    // cached result instead.
+    // (see Feature::definitions()), so this never survives across requests.
     /** @var array<string, object|null> */
     private array $instances = [];
 
@@ -67,64 +60,12 @@ class RouteLoader
             $this->loadFile($slug);
         }
 
-        // Reflects every failure found so far this request, including one registerCronJobs()
-        // (on init, which runs before rest_api_init) already recorded for the same slug: not
-        // reset to $this->errors = [] first, a fresh RouteLoader per request already starts
-        // empty, and resetting here would wipe that earlier finding right before the admin UI
-        // (ApiFilesController::list_files(), itself a REST request) reads it back. autoload:
-        // false, this is only ever read from there, never on a hot path.
         update_option(ApiDirectory::LOAD_ERRORS_OPTION, $this->errors, false);
 
         // Single dispatch-level hook for every file's headers(), rather than one hook per
         // file: needed even for a plain response, but especially for the OPTIONS preflight
         // WP core answers automatically without ever invoking the file's own verb method.
         add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
-    }
-
-    /**
-     * Binds every #[Cron] method's add_action so it's in place before WP-Cron actually fires
-     * the event, and schedules the event itself the first time it's seen. Hooked on 'init', not
-     * rest_api_init: a wp-cron.php pseudo-request is a full WP bootstrap (fires 'init' like any
-     * other request) but never routes to the REST API, so a hook only bound from
-     * loadAndRegister() would never be in place when the scheduled event actually runs.
-     */
-    public function registerCronJobs(): void
-    {
-        $this->prepare();
-
-        foreach ($this->directory->listSlugs() as $slug) {
-            // Cheap pre-check before paying for a require + reflection pass: 'init' fires on
-            // every request to the whole site (see the class docblock), not just REST ones, so
-            // this loop runs on every front-end page load too, for every api/ file, whether or
-            // not it has anything to do with cron. A genuine #[Cron] usage always spells the
-            // class name "Cron" literally somewhere in the file (the attribute itself, a `use
-            // ... as` alias, or a fully-qualified reference all do), so this can only ever
-            // produce a false positive (an unrelated file that happens to mention "Cron"),
-            // never a false negative that would silently skip a real cron job.
-            $content = $this->directory->read($slug);
-            if ($content === null || !str_contains($content, 'Cron')) {
-                continue;
-            }
-
-            $instance = $this->resolveInstance($slug);
-            if ($instance === null) {
-                continue;
-            }
-
-            try {
-                $cronMethods = $this->cronMethodsFor($instance);
-            } catch (\Throwable $e) {
-                // Same fail-closed reasoning as loadFile()'s own try/catch around
-                // endpointsFor(): a throwing attribute (or a reflection failure) must skip this
-                // file's cron jobs, never take down every other file's.
-                $this->log("api/{$slug}.php: failed to read #[Cron] methods: " . $e->getMessage());
-                continue;
-            }
-
-            foreach ($cronMethods as [$method, $attribute]) {
-                $this->registerCron($instance, $slug, $method, $attribute);
-            }
-        }
     }
 
     private function prepare(): void
@@ -143,62 +84,6 @@ class RouteLoader
         // wide. That's implementation-detail coupling, not a guarantee: Api owns requiring
         // its own dependency here instead of relying on another feature's side effect.
         $this->requireUserAutoload();
-    }
-
-    // Bound unconditionally on every pass: add_action() is cheap and idempotent from WP's own
-    // side (the same callback registered twice is deduped by core), so there's no state worth
-    // tracking here to avoid a second call. wp_schedule_event() is the side that actually
-    // persists (the `cron` option), hence the wp_next_scheduled() guard.
-    private function registerCron(object $instance, string $slug, string $method, Cron $attribute): void
-    {
-        $hook = $attribute->hook ?? 'loopress_api_cron_' . str_replace('/', '_', $slug) . '_' . $method;
-
-        add_action($hook, $this->wrapCronCallback($instance, $method));
-
-        if (wp_next_scheduled($hook)) {
-            return;
-        }
-
-        // $wp_error left at its default (false): wp_schedule_event() then only ever returns
-        // bool, never WP_Error, so there's nothing beyond this to report.
-        if (wp_schedule_event(time(), $attribute->recurrence, $hook) === false) {
-            $this->log("api/{$slug}.php: failed to schedule cron '{$hook}', unknown recurrence '{$attribute->recurrence}'?");
-        }
-    }
-
-    // A throw here would run during a real WP-Cron pseudo-request (wp-cron.php's do_action()
-    // call), same fail-closed reasoning as wrapCallableMethod() and applyHeaders() above: never
-    // let one scheduled job's bug take down whatever else WP-Cron is running in that pass.
-    private function wrapCronCallback(object $instance, string $method): callable
-    {
-        return function () use ($instance, $method): void {
-            // Same is_callable() guard as wrapCallableMethod() above: narrows the array literal
-            // to a valid callable for PHPStan, cronMethodsFor() already only found public
-            // methods so this is always true in practice.
-            if (!is_callable([$instance, $method])) {
-                return;
-            }
-
-            try {
-                call_user_func([$instance, $method]);
-            } catch (\Throwable $e) {
-                $this->log("{$method}() threw during a scheduled cron run: " . $e->getMessage());
-            }
-        };
-    }
-
-    /** @return array<int, array{0: string, 1: Cron}> public method name + its #[Cron] attribute, in declaration order. */
-    private function cronMethodsFor(object $instance): array
-    {
-        $found = [];
-        foreach ((new \ReflectionClass($instance))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(Cron::class);
-            if ($attributes !== []) {
-                $found[] = [$method->getName(), $attributes[0]->newInstance()];
-            }
-        }
-
-        return $found;
     }
 
     // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture
@@ -423,34 +308,28 @@ class RouteLoader
 
         try {
             $endpoints = $this->endpointsFor($instance);
-            $hasCron   = $this->cronMethodsFor($instance) !== [];
         } catch (\Throwable $e) {
-            // Covers a throwing #[Permission] or #[Cron] attribute constructor the same way the
+            // Covers a throwing #[Permission] attribute constructor the same way the
             // require/instantiate try/catch in resolveInstance() covers a parse error: never
             // fatal rest_api_init for every other file over one file's bad attribute.
             $this->fail($slug, 'failed to load: ' . $e->getMessage());
             return;
         }
 
-        if ($endpoints === [] && !$hasCron) {
+        if ($endpoints === []) {
             // Every other failure branch already logs (collision, parse error, both in
             // resolveInstance()); this one didn't, so a typo'd verb method (Get() instead of
             // get(), or an accidentally-private one) failed in total silence, indistinguishable
-            // from "this file intentionally has no routes yet." A cron-only file (no verb
-            // methods, one or more #[Cron] methods) is not an error: registerCronJobs() is what
-            // registers those, this method only handles the REST side.
-            $this->fail($slug, 'no public HTTP verb method found (get/post/put/patch/delete) and no #[Cron] method, nothing registered');
+            // from "this file intentionally has no routes yet."
+            $this->fail($slug, 'no public HTTP verb method found (get/post/put/patch/delete)');
             return;
         }
 
-        if ($endpoints !== []) {
-            register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
-        }
+        register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
     }
 
-    // Requires and instantiates a slug's class at most once per request, whichever of
-    // loadAndRegister() or registerCronJobs() gets there first: see $this->instances above for
-    // why a second attempt must reuse that result instead of re-running this.
+    // Requires and instantiates a slug's class at most once per request: see $this->instances
+    // above for why a second attempt must reuse that result instead of re-running this.
     private function resolveInstance(string $slug): ?object
     {
         if (array_key_exists($slug, $this->instances)) {
