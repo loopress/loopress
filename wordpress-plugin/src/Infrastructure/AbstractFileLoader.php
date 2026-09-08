@@ -21,28 +21,33 @@ abstract class AbstractFileLoader
     /** @var array<string, object|null> */
     private array $instances = [];
 
+    // The scanned directory, typed to its concrete subclass by each loader so PHP-DI
+    // autowires the right one.
     abstract protected function directory(): AbstractFilesDirectory;
 
-    // Absolute path to the developer's own Composer autoloader, or null if they have none.
+    // Absolute path to the developer's own vendor autoloader, or null if they have none. A
+    // seam rather than a stored dependency because the object that knows it lives in the Plus
+    // layer, which the Shared layer this class sits in must not import.
     abstract protected function userAutoloadPath(): ?string;
-
-    // The path prefix in every log line and load-error key; 'api', 'hooks', … .
-    abstract protected function slugLabel(): string;
-
-    // The option this pass's failures are written to; ApiDirectory::LOAD_ERRORS_OPTION, … .
-    abstract protected function loadErrorsOption(): string;
-
-    // The CLI command that injects the ABSPATH guard, named in resolveInstance()'s
-    // "deployed outside …?" hint. Defaults to "lps <label> push"; HookLoader overrides
-    // because its verb is singular ("lps hook push", not "lps hooks push").
-    protected function pushCommand(): string
-    {
-        return "lps {$this->slugLabel()} push";
-    }
 
     // Resolves each slug and registers whatever it declares. Runs inside a single WP hook,
     // never fatals for one bad file.
     abstract protected function loadFile(string $slug): void;
+
+    // The path prefix in every log line and load-error key: 'api', 'hooks', … , taken straight
+    // from the directory this loader was handed.
+    private function label(): string
+    {
+        return $this->directory()::SUBDIR;
+    }
+
+    // The CLI command that injects the ABSPATH guard, named in resolveInstance()'s "deployed
+    // outside …?" hint. Defaults to "lps <label> push"; HookLoader overrides because its verb
+    // is singular ("lps hook push", not "lps hooks push").
+    protected function pushCommand(): string
+    {
+        return "lps {$this->label()} push";
+    }
 
     public function loadAndRegister(): void
     {
@@ -52,7 +57,7 @@ abstract class AbstractFileLoader
             $this->loadFile($slug);
         }
 
-        update_option($this->loadErrorsOption(), $this->errors, false);
+        update_option($this->directory()::LOAD_ERRORS_OPTION, $this->errors, false);
 
         $this->afterRegister();
     }
@@ -134,7 +139,7 @@ abstract class AbstractFileLoader
         // direct HTTP request to the raw file is at risk, refusing to register would punish
         // availability for a risk that isn't this file's fault.
         if (!str_contains($content, "defined('ABSPATH')")) {
-            $this->log("{$this->slugLabel()}/{$slug}.php: no ABSPATH guard detected, deployed outside {$this->pushCommand()}? File may be directly reachable over HTTP.");
+            $this->log("{$this->label()}/{$slug}.php: no ABSPATH guard detected, deployed outside {$this->pushCommand()}? File may be directly reachable over HTTP.");
         }
 
         try {
@@ -162,12 +167,12 @@ abstract class AbstractFileLoader
     // ABSPATH-guard warning above) are deliberately not routed through this.
     protected function fail(string $slug, string $reason): void
     {
-        $this->log("{$this->slugLabel()}/{$slug}.php: {$reason}");
+        $this->log("{$this->label()}/{$slug}.php: {$reason}");
         $this->errors[$slug] = $reason;
     }
 
     protected function log(string $message): void
     {
-        error_log("Loopress {$this->slugLabel()}/: " . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        error_log("Loopress {$this->label()}/: " . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }

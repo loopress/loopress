@@ -52,16 +52,6 @@ class RouteLoader extends AbstractFileLoader
         return $this->environment->getAutoloadPath();
     }
 
-    protected function slugLabel(): string
-    {
-        return 'api';
-    }
-
-    protected function loadErrorsOption(): string
-    {
-        return ApiDirectory::LOAD_ERRORS_OPTION;
-    }
-
     protected function prepare(): void
     {
         // Repairs the anti-listing index.php regardless of how api/*.php files actually got
@@ -71,12 +61,12 @@ class RouteLoader extends AbstractFileLoader
         $this->directory->ensureExists();
 
         // Deliberate, not incidental: without this, a route file's `use` of the developer's
-        // own Composer packages (installed via the separate Composer feature, delivered to
-        // wp-content/loopress/vendor/) only happens to resolve today because the Dependencies
-        // feature's ComposerModule is booted earlier in the same request for an unrelated
-        // reason (its own diagnostics banner) and leaves the autoloader registered process-
-        // wide. That's implementation-detail coupling, not a guarantee: Api owns requiring
-        // its own dependency here instead of relying on another feature's side effect.
+        // own third-party packages (installed by the separate dependency-management feature,
+        // delivered to wp-content/loopress/vendor/) only happens to resolve today because
+        // that feature's module is booted earlier in the same request for an unrelated reason
+        // (its own diagnostics banner) and leaves the autoloader registered process-wide.
+        // That's implementation-detail coupling, not a guarantee: Api owns requiring its own
+        // dependency here instead of relying on another feature's side effect.
         $this->requireUserAutoload();
     }
 

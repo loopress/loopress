@@ -13,13 +13,15 @@ use WP_REST_Response;
  * an AbstractFilesDirectory with its guard stripped, PUT validates and writes one file
  * (declare(strict_types=1) enforced by FileWriter, `php -l` syntax check, exactly one class,
  * no name collision). Distinct from whatever the pushed file itself exposes at boot (see the
- * matching loader). Concrete subclasses pick the route path, the filename pattern and the
- * label used in error strings.
+ * matching loader). Concrete subclasses pick only the route path and the filename pattern;
+ * the 'api'/'hooks' label and the load-errors option come from the injected directory.
  */
 abstract class AbstractFilesController
 {
     use RequiresManageOptionsCapability;
 
+    // The files directory, typed to its concrete subclass by each controller so PHP-DI
+    // autowires the right one.
     abstract protected function directory(): AbstractFilesDirectory;
 
     /**
@@ -29,20 +31,19 @@ abstract class AbstractFilesController
      */
     abstract protected function routePath(): string;
 
-    // The path prefix in every "…already declared by <label>/<slug>.php" message and the
-    // tempnam() prefix in checkSyntax(); 'api', 'hooks', …
-    abstract protected function slugLabel(): string;
-
-    // The option resolveInstance()'s boot-time failures are written to, read back here to
-    // annotate list_files(); ApiDirectory::LOAD_ERRORS_OPTION, HooksDirectory::… .
-    abstract protected function loadErrorsOption(): string;
-
     // A slash-separated path of segments, no path traversal (no '.' anywhere), extension
     // never taken from the client. Returned rather than a const so a subclass can't ship an
     // empty pattern by omission, and so the static analysers don't lint a placeholder regex
     // on the base.
     /** @return non-empty-string a PCRE pattern for preg_match() */
     abstract protected static function filenamePattern(): string;
+
+    // The path prefix in every "…already declared by <label>/<slug>.php" message and the
+    // tempnam() prefix in checkSyntax(): 'api', 'hooks', … , from the injected directory.
+    private function label(): string
+    {
+        return $this->directory()::SUBDIR;
+    }
 
     public function register_routes(): void
     {
@@ -90,7 +91,7 @@ abstract class AbstractFilesController
         // every pass: a file present here failed to load at the *last* boot, not necessarily
         // still today, which is exactly why no separate "resolved" flag is needed, a clean
         // reload next boot just drops it.
-        $loadErrors = get_option($this->loadErrorsOption(), []);
+        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
         $loadErrors = is_array($loadErrors) ? $loadErrors : [];
 
         $files = [];
@@ -119,7 +120,7 @@ abstract class AbstractFilesController
         // register_routes()'s validate_callback already rejects the request before WP ever
         // calls this method, but that enforcement is invisible to static analysis: nothing in
         // this function's own body ties $filename back to the pattern, and $filename reaches a
-        // filesystem path a few lines down (directory()->filePath()/write()). A direct check
+        // filesystem path a few lines down (directory->filePath()/write()). A direct check
         // on the raw value here, not just the indirect validate_callback registration, is what
         // actually clears that path-injection finding.
         if (!static::isValidFilename($filename)) {
@@ -200,7 +201,7 @@ abstract class AbstractFilesController
 
             $existingClasses = array_map('strtolower', ClassScanner::declaredClasses($existingContent));
             if (in_array($normalizedClassName, $existingClasses, true)) {
-                return "Class {$className} is already declared by {$this->slugLabel()}/{$slug}.php";
+                return "Class {$className} is already declared by {$this->label()}/{$slug}.php";
             }
         }
 
@@ -242,7 +243,7 @@ abstract class AbstractFilesController
             return ['status' => 'unavailable', 'message' => null];
         }
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'loopress-' . $this->slugLabel() . '-');
+        $tmpFile = tempnam(sys_get_temp_dir(), 'loopress-' . $this->label() . '-');
         if ($tmpFile === false) {
             return ['status' => 'unavailable', 'message' => null];
         }

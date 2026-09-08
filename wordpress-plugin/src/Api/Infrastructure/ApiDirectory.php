@@ -13,6 +13,8 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class ApiDirectory extends AbstractFilesDirectory
 {
+    public const SUBDIR = 'api';
+
     // Written by RouteLoader at the end of every loadAndRegister() pass (autoload: false,
     // it's only ever read from the plugin's own admin UI / the CLI, never on the hot path),
     // overwritten in full each time so a file that failed last boot and loads clean this time
@@ -20,6 +22,4 @@ class ApiDirectory extends AbstractFilesDirectory
     // list_files() to annotate the "API Routes" view with per-file load failures (see US-5 in
     // the plugin's "Extensions proposées (2e vague)" doc).
     public const LOAD_ERRORS_OPTION = 'loopress_api_load_errors';
-
-    protected const SUBDIR = 'api';
 }

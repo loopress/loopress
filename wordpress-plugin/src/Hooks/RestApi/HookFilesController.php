@@ -29,16 +29,6 @@ class HookFilesController extends AbstractFilesController
         return '/hook-files';
     }
 
-    protected function slugLabel(): string
-    {
-        return 'hooks';
-    }
-
-    protected function loadErrorsOption(): string
-    {
-        return HooksDirectory::LOAD_ERRORS_OPTION;
-    }
-
     // Slash-separated lowercase kebab-case segments. No bracketed dynamic-segment alternative
     // like ApiFilesController's own pattern: a hook slug is never a URL path, so there's
     // nothing for a segment like '[order_id]' to mean here.

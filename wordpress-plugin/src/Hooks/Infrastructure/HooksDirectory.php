@@ -13,10 +13,10 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class HooksDirectory extends AbstractFilesDirectory
 {
+    public const SUBDIR = 'hooks';
+
     // Same reasoning as ApiDirectory::LOAD_ERRORS_OPTION: written by HookLoader at the end of
     // every loadAndRegister() pass, overwritten in full each time, read by HookFilesController
     // to annotate the CLI/admin view with per-file load failures.
     public const LOAD_ERRORS_OPTION = 'loopress_hooks_load_errors';
-
-    protected const SUBDIR = 'hooks';
 }

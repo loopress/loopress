@@ -28,16 +28,6 @@ class ApiFilesController extends AbstractFilesController
         return '/api-files';
     }
 
-    protected function slugLabel(): string
-    {
-        return 'api';
-    }
-
-    protected function loadErrorsOption(): string
-    {
-        return ApiDirectory::LOAD_ERRORS_OPTION;
-    }
-
     // A slash-separated path of segments, each either lowercase kebab-case or a bracketed
     // dynamic segment name (e.g. 'invoice-pdf/[order_id]'). The bracket alternative's first
     // char is restricted the same way as RouteLoader::DYNAMIC_SEGMENT_PATTERN: a leading digit

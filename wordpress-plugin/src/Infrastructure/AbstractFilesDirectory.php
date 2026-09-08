@@ -15,8 +15,12 @@ use Symfony\Component\Filesystem\Filesystem;
  */
 abstract class AbstractFilesDirectory
 {
-    // Each concrete directory overrides this with 'api', 'hooks', etc.
-    protected const SUBDIR = '';
+    // Each concrete directory overrides both: SUBDIR is the wp-content/loopress/ folder name
+    // and doubles as the 'api'/'hooks' label the loader and controller stamp on log lines,
+    // route error strings and the tempnam() prefix. LOAD_ERRORS_OPTION is where the loader
+    // records this boot's per-file failures for the controller to read back.
+    public const SUBDIR = '';
+    public const LOAD_ERRORS_OPTION = '';
 
     private string $path;
     private Filesystem $filesystem;

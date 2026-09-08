@@ -51,16 +51,8 @@ class HookLoader extends AbstractFileLoader
         return $this->environment->getAutoloadPath();
     }
 
-    protected function slugLabel(): string
-    {
-        return 'hooks';
-    }
-
-    protected function loadErrorsOption(): string
-    {
-        return HooksDirectory::LOAD_ERRORS_OPTION;
-    }
-
+    // "lps hook push", not the "lps <label> push" default: the CLI verb is singular even
+    // though the directory/label is "hooks".
     protected function pushCommand(): string
     {
         return 'lps hook push';
