@@ -18,7 +18,7 @@ class LoopressEnvironmentTest extends TestCase
         Monkey\setUp();
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-test-' . uniqid();
-        mkdir($this->tmpDir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($this->tmpDir, 0755, true);
 
         // Make WP_CONTENT_DIR point to our temp dir so LoopressEnvironment uses it
         if (!defined('WP_CONTENT_DIR')) {
@@ -43,7 +43,7 @@ class LoopressEnvironmentTest extends TestCase
     // by code that never knew about this key, not by anything currently in this class.
     private function writeLegacyComposerJson(LoopressEnvironment $env, array $json): void
     {
-        file_put_contents($env->getLoopressDir() . 'composer.json', json_encode($json, JSON_PRETTY_PRINT)); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.WP.AlternativeFunctions.json_encode_json_encode
+        file_put_contents($env->getLoopressDir() . 'composer.json', json_encode($json, JSON_PRETTY_PRINT));
     }
 
     private function rrmdir(string $dir): void
@@ -56,9 +56,9 @@ class LoopressEnvironmentTest extends TestCase
 				continue;
             }
             $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            is_dir($path) ? $this->rrmdir($path) : unlink($path);
         }
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        rmdir($dir);
     }
 
     // ── getLoopressDir ─────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ class LoopressEnvironmentTest extends TestCase
         $vendorDir = $env->getLoopressDir() . 'vendor/';
         $this->assertDirectoryExists($vendorDir);
         $this->assertFileExists($vendorDir . 'index.php');
-        $this->assertStringContainsString('Require all denied', (string) file_get_contents($vendorDir . '.htaccess')); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $this->assertStringContainsString('Require all denied', (string) file_get_contents($vendorDir . '.htaccess'));
     }
 
     public function test_ensureInitialized_migrates_a_composer_json_missing_the_lib_autoload_entry(): void
@@ -342,8 +342,8 @@ class LoopressEnvironmentTest extends TestCase
     {
         $env = new LoopressEnvironment();
         $dir = WP_CONTENT_DIR . '/plugins/acme';
-        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        mkdir($dir, 0755, true);
+        file_put_contents($dir . '/plugin.php', '<?php // acme');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
 
@@ -362,8 +362,8 @@ class LoopressEnvironmentTest extends TestCase
     {
         $env = new LoopressEnvironment();
         $dir = WP_CONTENT_DIR . '/plugins/acme';
-        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($dir . '/plugin.php', '<?php // acme'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        mkdir($dir, 0755, true);
+        file_put_contents($dir . '/plugin.php', '<?php // acme');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
         $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
@@ -383,12 +383,12 @@ class LoopressEnvironmentTest extends TestCase
     {
         $env = new LoopressEnvironment();
         $dir = WP_CONTENT_DIR . '/plugins/acme';
-        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($dir . '/plugin.php', '<?php // original'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        mkdir($dir, 0755, true);
+        file_put_contents($dir . '/plugin.php', '<?php // original');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
-        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($dir . '/partial.php', '<?php // half-installed'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        mkdir($dir, 0755, true);
+        file_put_contents($dir . '/partial.php', '<?php // half-installed');
 
         $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
 
@@ -402,7 +402,7 @@ class LoopressEnvironmentTest extends TestCase
     {
         $env = new LoopressEnvironment();
         $dir = WP_CONTENT_DIR . '/plugins/acme';
-        mkdir($dir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($dir, 0755, true);
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
         $env->discardStagedDir($staged);
@@ -476,7 +476,7 @@ class LoopressEnvironmentTest extends TestCase
     public function test_write_and_read_roundtrip(): void
     {
         $env = new LoopressEnvironment();
-        mkdir($env->getLoopressDir(), 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($env->getLoopressDir(), 0755, true);
 
         $data = ['name' => 'test/package', 'require' => ['vendor/pkg' => '^1.0']];
         $env->writeComposerJson($data);
@@ -502,7 +502,7 @@ class LoopressEnvironmentTest extends TestCase
 
         $raw = $env->readComposerJsonRaw();
         $this->assertIsString($raw);
-        $this->assertSame('test/package', json_decode($raw, true)['name']); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode
+        $this->assertSame('test/package', json_decode($raw, true)['name']);
     }
 
     // ── getAutoloadPath ───────────────────────────────────────────────────────
@@ -517,8 +517,8 @@ class LoopressEnvironmentTest extends TestCase
     {
         $env    = new LoopressEnvironment();
         $loopressDir  = $env->getLoopressDir();
-        mkdir($loopressDir . 'vendor', 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-        file_put_contents($loopressDir . 'vendor/autoload.php', '<?php'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        mkdir($loopressDir . 'vendor', 0755, true);
+        file_put_contents($loopressDir . 'vendor/autoload.php', '<?php');
 
         $this->assertSame($loopressDir . 'vendor/autoload.php', $env->getAutoloadPath());
     }

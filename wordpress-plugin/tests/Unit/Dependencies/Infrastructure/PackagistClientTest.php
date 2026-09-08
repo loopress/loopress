@@ -34,7 +34,6 @@ class PackagistClientTest extends TestCase
     /** @param array<string, array<string, mixed>> $versions */
     private function stubPackageResponse(array $versions): void
     {
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
         $body = json_encode(['package' => ['versions' => $versions]]);
         $this->httpClient->willReturn(new Response(200, [], $body));
     }

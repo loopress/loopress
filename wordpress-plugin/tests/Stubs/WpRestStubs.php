@@ -136,7 +136,7 @@ if (!function_exists('wp_mkdir_p')) {
     {
         // This *is* the fake implementation of wp_mkdir_p() for tests; there's no
         // WP_Filesystem to defer to since WordPress itself isn't loaded here.
-        return mkdir($path, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        return mkdir($path, 0755, true);
     }
 }
 

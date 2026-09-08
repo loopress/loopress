@@ -16,7 +16,7 @@ class ApiDirectoryTest extends TestCase
         parent::setUp();
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-api-test-' . uniqid();
-        mkdir($this->tmpDir, 0755, true); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+        mkdir($this->tmpDir, 0755, true);
 
         if (!defined('WP_CONTENT_DIR')) {
             define('WP_CONTENT_DIR', $this->tmpDir);
@@ -42,10 +42,10 @@ class ApiDirectoryTest extends TestCase
             }
 
             $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            is_dir($path) ? $this->rrmdir($path) : unlink($path);
         }
 
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        rmdir($dir);
     }
 
     private function apiPath(): string
@@ -76,11 +76,11 @@ class ApiDirectoryTest extends TestCase
     {
         $dir = new ApiDirectory();
         $dir->ensureExists();
-        file_put_contents($this->apiPath() . 'index.php', 'custom'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        file_put_contents($this->apiPath() . 'index.php', 'custom');
 
         $dir->ensureExists();
 
-        $this->assertSame('custom', file_get_contents($this->apiPath() . 'index.php')); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $this->assertSame('custom', file_get_contents($this->apiPath() . 'index.php'));
     }
 
     // ── write / read ─────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ class ApiDirectoryTest extends TestCase
     {
         $dir = new ApiDirectory();
         $dir->write('invoice-pdf/[order_id]', '<?php');
-        file_put_contents($dir->filePath('invoice-pdf/index'), '<?php // not a route'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        file_put_contents($dir->filePath('invoice-pdf/index'), '<?php // not a route');
 
         $this->assertSame(['invoice-pdf/[order_id]'], $dir->listSlugs());
     }
