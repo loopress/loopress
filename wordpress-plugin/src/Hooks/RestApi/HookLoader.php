@@ -9,58 +9,61 @@ use Loopress\Hooks\Attribute\Action;
 use Loopress\Hooks\Attribute\Cron;
 use Loopress\Hooks\Attribute\Filter;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
-use Loopress\Infrastructure\ClassScanner;
+use Loopress\Infrastructure\AbstractFileLoader;
+use Loopress\Infrastructure\AbstractFilesDirectory;
 
 /**
  * Scans wp-content/loopress/hooks/*.php, requires each file, and binds what its class
  * declares: one add_action() per public #[Action] method, one add_filter() per public
  * #[Filter] method, one add_action()+wp_schedule_event() per public #[Cron] method (see that
  * attribute's docblock for why it's the same underlying primitive as #[Action], only the
- * trigger differs). Structurally close to Api\RestApi\RouteLoader (same one-class-per-file
- * discovery via ClassScanner, same fail-closed collision/parse-error handling), but registers
- * in a single pass rather than two: RouteLoader needs a separate 'init' pass for #[Cron]
- * because a wp-cron.php pseudo-request never fires 'rest_api_init', but HooksModule::boot()
- * itself already runs on 'plugins_loaded' (see Plugin::__construct(), bound there at priority
- * 1), which *does* fire on every request type, wp-cron.php included, so one pass covers all
- * three attribute kinds here.
+ * trigger differs).
+ *
+ * File scanning, one-class-per-file discovery and collision/parse-error handling live in
+ * AbstractFileLoader; this class only turns a resolved instance into WP hook bindings. It
+ * runs in a single pass (no separate 'init' pass for #[Cron] the way RouteLoader once needed
+ * for its own): HooksModule::boot() already runs on 'plugins_loaded', which fires on every
+ * request type, wp-cron.php included. It deliberately does NOT override prepare() to call
+ * $this->directory->ensureExists(): loadAndRegister() runs on 'plugins_loaded' for every
+ * WP-CLI bootstrap too (core install, plugin activation, any `wp` command run as a different
+ * user than the webserver), and creating the directory there would leave it root-owned,
+ * unwritable to Apache on the next real push. listSlugs() already returns [] for a directory
+ * that doesn't exist yet; HooksDirectory::write() (reached only via a real HTTP request to
+ * hook-files) is the only place the directory actually gets created.
  *
  * Unlike a REST route, a bound action/filter runs unconditionally, for every visitor, with no
- * permission_callback of its own: a throwing callback here can't be left to fatal the request
- * the way an uncaught route handler at least would only break its own endpoint. Every bound
- * callback is therefore wrapped to catch and log rather than propagate (see
- * wrapActionCallback()/wrapFilterCallback()/wrapCronCallback()); a filter additionally fails
- * open, returning the original unfiltered value, rather than risk turning one broken filter
- * into a blank page for every visitor.
+ * permission_callback of its own: every bound callback is wrapped to catch and log rather
+ * than propagate (see wrapActionCallback()/wrapFilterCallback()/wrapCronCallback()); a filter
+ * additionally fails open, returning the original unfiltered value, rather than risk turning
+ * one broken filter into a blank page for every visitor.
  */
-class HookLoader
+class HookLoader extends AbstractFileLoader
 {
-    /** @var array<string, string> slug => failure reason, accumulated over one loadAndRegister() pass. */
-    private array $errors = [];
-
-    /** @var array<string, object|null> slug => instance, or null if it failed to load. */
-    private array $instances = [];
-
     public function __construct(private HooksDirectory $directory, private LoopressEnvironment $environment) {}
 
-    // Deliberately does not call $this->directory->ensureExists() here, unlike RouteLoader::
-    // prepare(): that call is safe for RouteLoader/ApiModule only because it's reached
-    // exclusively through 'rest_api_init', which never fires for a WP-CLI process.
-    // HooksModule::boot() calls loadAndRegister() unconditionally on 'plugins_loaded', which
-    // *does* fire for every WP-CLI bootstrap too (core install, plugin activation, any `wp`
-    // command run as a different user than the webserver); creating the directory there would
-    // leave it root-owned, unwritable to Apache's www-data on the next real push. listSlugs()
-    // already returns [] for a directory that doesn't exist yet, so nothing here needs it to;
-    // HooksDirectory::write() (reached only via a real HTTP request to hook-files, see
-    // HookFilesController::push_file()) is the only place the directory actually gets created.
-    public function loadAndRegister(): void
+    protected function directory(): AbstractFilesDirectory
     {
-        $this->requireUserAutoload();
+        return $this->directory;
+    }
 
-        foreach ($this->directory->listSlugs() as $slug) {
-            $this->loadFile($slug);
-        }
+    protected function userAutoloadPath(): ?string
+    {
+        return $this->environment->getAutoloadPath();
+    }
 
-        update_option(HooksDirectory::LOAD_ERRORS_OPTION, $this->errors, false);
+    protected function slugLabel(): string
+    {
+        return 'hooks';
+    }
+
+    protected function loadErrorsOption(): string
+    {
+        return HooksDirectory::LOAD_ERRORS_OPTION;
+    }
+
+    protected function pushCommand(): string
+    {
+        return 'lps hook push';
     }
 
     /**
@@ -112,23 +115,7 @@ class HookLoader
         return ['actions' => $actions, 'filters' => $filters, 'crons' => $crons];
     }
 
-    private function requireUserAutoload(): void
-    {
-        $autoload = $this->environment->getAutoloadPath();
-        if ($autoload === null) {
-            return;
-        }
-
-        // Never fatal boot for the whole site over a broken user vendor/, same reasoning as
-        // RouteLoader::requireUserAutoload().
-        try {
-            require_once $autoload;
-        } catch (\Throwable $e) {
-            $this->log('failed to load the user vendor autoloader: ' . $e->getMessage());
-        }
-    }
-
-    private function loadFile(string $slug): void
+    protected function loadFile(string $slug): void
     {
         $instance = $this->resolveInstance($slug);
         if ($instance === null) {
@@ -268,8 +255,7 @@ class HookLoader
 
     // Bound unconditionally: add_action() is cheap and idempotent from WP's own side.
     // wp_schedule_event() is the side that actually persists (the `cron` option), hence the
-    // wp_next_scheduled() guard, same as the #[Cron] support this replaces in
-    // Api\RestApi\RouteLoader.
+    // wp_next_scheduled() guard.
     private function registerCron(string $slug, string $hook, string $recurrence, callable $callback): void
     {
         add_action($hook, $callback);
@@ -281,65 +267,5 @@ class HookLoader
         if (wp_schedule_event(time(), $recurrence, $hook) === false) {
             $this->log("hooks/{$slug}.php: failed to schedule cron '{$hook}', unknown recurrence '{$recurrence}'?");
         }
-    }
-
-    // Requires and instantiates a slug's class at most once per request. Same reasoning
-    // throughout as RouteLoader::resolveInstance(): discover the class via ClassScanner
-    // (never require() an unverified file to find out), reject anything but exactly one
-    // class, reject a name collision, warn (don't refuse) on a missing ABSPATH guard.
-    private function resolveInstance(string $slug): ?object
-    {
-        if (array_key_exists($slug, $this->instances)) {
-            return $this->instances[$slug];
-        }
-
-        $content = $this->directory->read($slug);
-        if ($content === null) {
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        $classes = ClassScanner::declaredClasses($content);
-        if (count($classes) !== 1) {
-            $found = $classes === [] ? 'none' : implode(', ', $classes);
-            $this->fail($slug, "expected exactly one class declaration, found {$found}");
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        $className = $classes[0];
-
-        if (class_exists($className, false)) {
-            $this->fail($slug, "class {$className} is already declared");
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        if (!str_contains($content, "defined('ABSPATH')")) {
-            $this->log("hooks/{$slug}.php: no ABSPATH guard detected, deployed outside lps hook push? File may be directly reachable over HTTP.");
-        }
-
-        try {
-            require_once $this->directory->filePath($slug);
-            $instance = new $className();
-        } catch (\Throwable $e) {
-            $this->fail($slug, 'failed to load: ' . $e->getMessage());
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        $this->instances[$slug] = $instance;
-        return $instance;
-    }
-
-    private function fail(string $slug, string $reason): void
-    {
-        $this->log("hooks/{$slug}.php: {$reason}");
-        $this->errors[$slug] = $reason;
-    }
-
-    private function log(string $message): void
-    {
-        error_log('Loopress hooks/: ' . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }

@@ -8,7 +8,8 @@ use Loopress\Api\ApiNamespace;
 use Loopress\Api\Attribute\Permission;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
-use Loopress\Infrastructure\ClassScanner;
+use Loopress\Infrastructure\AbstractFileLoader;
+use Loopress\Infrastructure\AbstractFilesDirectory;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 
@@ -20,14 +21,11 @@ use WP_REST_Request;
  * (formerly this class's own #[Cron] support) now lives in Hooks\RestApi\HookLoader, a
  * dedicated hooks/ directory: see that class for #[Action]/#[Filter]/#[Cron].
  *
- * The class to instantiate is whatever the file actually declares, discovered by
- * ClassScanner::declaredClasses() (PHP's own tokenizer, never require()d to find out): there
- * used to be a "kebab-case filename -> PascalCase class" naming convention instead, dropped
- * because a mismatch between a file's name and the formula's expected class name produced a
- * silent 404, never an error, and was non-trivial enough to get wrong in practice (see the
- * plugin's "Convention de fichier" doc for the incident that triggered this).
+ * File scanning, one-class-per-file discovery, collision/parse-error handling and load-error
+ * bookkeeping all live in AbstractFileLoader; this class only turns a resolved instance into
+ * REST routes.
  */
-class RouteLoader
+class RouteLoader extends AbstractFileLoader
 {
     use RequiresManageOptionsCapability;
 
@@ -42,33 +40,29 @@ class RouteLoader
     // match any request, with nothing pointing at why.
     private const DYNAMIC_SEGMENT_PATTERN = '/^\[([A-Za-z_]\w*)\]$/';
 
-    /** @var array<string, string> slug => failure reason, accumulated over loadAndRegister(). */
-    private array $errors = [];
-
-    // slug => instance, or null if it failed to load. A fresh RouteLoader is built each request
-    // (see Feature::definitions()), so this never survives across requests.
-    /** @var array<string, object|null> */
-    private array $instances = [];
-
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
-    public function loadAndRegister(): void
+    protected function directory(): AbstractFilesDirectory
     {
-        $this->prepare();
-
-        foreach ($this->directory->listSlugs() as $slug) {
-            $this->loadFile($slug);
-        }
-
-        update_option(ApiDirectory::LOAD_ERRORS_OPTION, $this->errors, false);
-
-        // Single dispatch-level hook for every file's headers(), rather than one hook per
-        // file: needed even for a plain response, but especially for the OPTIONS preflight
-        // WP core answers automatically without ever invoking the file's own verb method.
-        add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
+        return $this->directory;
     }
 
-    private function prepare(): void
+    protected function userAutoloadPath(): ?string
+    {
+        return $this->environment->getAutoloadPath();
+    }
+
+    protected function slugLabel(): string
+    {
+        return 'api';
+    }
+
+    protected function loadErrorsOption(): string
+    {
+        return ApiDirectory::LOAD_ERRORS_OPTION;
+    }
+
+    protected function prepare(): void
     {
         // Repairs the anti-listing index.php regardless of how api/*.php files actually got
         // onto the filesystem: ApiDirectory::ensureExists() previously only ran from
@@ -84,6 +78,14 @@ class RouteLoader
         // wide. That's implementation-detail coupling, not a guarantee: Api owns requiring
         // its own dependency here instead of relying on another feature's side effect.
         $this->requireUserAutoload();
+    }
+
+    protected function afterRegister(): void
+    {
+        // Single dispatch-level hook for every file's headers(), rather than one hook per
+        // file: needed even for a plain response, but especially for the OPTIONS preflight
+        // WP core answers automatically without ever invoking the file's own verb method.
+        add_filter('rest_pre_serve_request', [$this, 'applyHeaders'], 10, 3);
     }
 
     // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture
@@ -280,26 +282,7 @@ class RouteLoader
         return $served;
     }
 
-    private function requireUserAutoload(): void
-    {
-        $autoload = $this->environment->getAutoloadPath();
-        if ($autoload === null) {
-            return;
-        }
-
-        // Runs before the per-file loop below: a broken user vendor/ (missing dependency,
-        // corrupted autoloader) must never fatal rest_api_init for the whole site, same
-        // blast-radius principle as loadFile()'s own try/catch, but wider here since an
-        // uncaught failure at this point would take down every route, not just this
-        // developer's own api/ files.
-        try {
-            require_once $autoload;
-        } catch (\Throwable $e) {
-            $this->log('failed to load the user vendor autoloader: ' . $e->getMessage());
-        }
-    }
-
-    private function loadFile(string $slug): void
+    protected function loadFile(string $slug): void
     {
         $instance = $this->resolveInstance($slug);
         if ($instance === null) {
@@ -326,92 +309,5 @@ class RouteLoader
         }
 
         register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
-    }
-
-    // Requires and instantiates a slug's class at most once per request: see $this->instances
-    // above for why a second attempt must reuse that result instead of re-running this.
-    private function resolveInstance(string $slug): ?object
-    {
-        if (array_key_exists($slug, $this->instances)) {
-            return $this->instances[$slug];
-        }
-
-        $content = $this->directory->read($slug);
-        if ($content === null) {
-            // gone between listSlugs() and here (e.g. deleted concurrently); nothing to load
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        // Discovering the class never requires the file: a file with the wrong number of
-        // classes, or one that collides with an already-declared class, must never even be
-        // require()d, let alone instantiated.
-        $classes = ClassScanner::declaredClasses($content);
-        if (count($classes) !== 1) {
-            $found = $classes === [] ? 'none' : implode(', ', $classes);
-            $this->fail($slug, "expected exactly one class declaration, found {$found}");
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        $className = $classes[0];
-
-        // A collision (WP core, another plugin, another api/ file) must never fatal the
-        // whole site's boot. Checked against the name the file actually declares, not a name
-        // computed from its path: two files can only collide if they really do declare the same
-        // class, which this now detects regardless of what either is named.
-        if (class_exists($className, false)) {
-            $this->fail($slug, "class {$className} is already declared");
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        // FileWriter::withGuard() only injects the ABSPATH guard for files that went through
-        // lps api push; `lps api pull` deliberately strips it again for a clean Git repo (see
-        // FileWriter::stripGuard()), so the source-controlled version of every api/ file never
-        // has it. A Git-based deploy (rsync, a deploy hook) that never calls lps api push ships
-        // that guardless version straight to a publicly reachable wp-content/, where the file
-        // is directly requestable over HTTP, bypassing permission_callback entirely. Detecting
-        // this can't be more than a log: the route itself is fine, only a direct HTTP request to
-        // the raw file is at risk, refusing to register would punish availability for a risk
-        // that isn't this route's fault.
-        if (!str_contains($content, "defined('ABSPATH')")) {
-            $this->log("api/{$slug}.php: no ABSPATH guard detected, deployed outside lps api push? File may be directly reachable over HTTP.");
-        }
-
-        try {
-            require_once $this->directory->filePath($slug);
-            $instance = new $className();
-        } catch (\Throwable $e) {
-            // Covers real parse errors too: since PHP 7, a compile error in a required file
-            // throws \ParseError (a \Throwable), catchable here rather than fataling the
-            // whole request the way an uncaught one would (same site-wide blast radius as the
-            // write-time race condition in ApiDirectory::write(), different trigger). $className
-            // is now discovered from the file's own tokens above, so it should always exist
-            // after a clean require, but a conditional declaration (an `if` around the class,
-            // unusual but not impossible) could still leave it missing: none of these may ever
-            // fatal the request.
-            $this->fail($slug, 'failed to load: ' . $e->getMessage());
-            $this->instances[$slug] = null;
-            return null;
-        }
-
-        $this->instances[$slug] = $instance;
-        return $instance;
-    }
-
-    // Every loadFile() failure branch goes through here, never $this->log() directly: it's
-    // both an error-log line (for a developer who checks it) and an entry in the admin-UI
-    // option below (for one who doesn't). The ABSPATH-guard warning above is deliberately not
-    // routed through this: it's informational (the route still registers), not a load failure.
-    private function fail(string $slug, string $reason): void
-    {
-        $this->log("api/{$slug}.php: {$reason}");
-        $this->errors[$slug] = $reason;
-    }
-
-    private function log(string $message): void
-    {
-        error_log('Loopress api/: ' . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }

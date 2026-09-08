@@ -52,6 +52,11 @@
                      exclusively through the PHP-DI container, same untraceable-by-Psalm shape as
                      RouteLoader's below. -->
                 <directory name="src/Hooks/RestApi" />
+                <!-- AbstractFilesController::list_files()/push_file() are the shared base of
+                     ApiFilesController and HookFilesController above: invoked by
+                     register_rest_route() (through each subclass's register_routes()), never a
+                     traceable call. -->
+                <file name="src/Infrastructure/AbstractFilesController.php" />
                 <!-- Built exclusively through the PHP-DI container (ContainerFactory, wired up
                      by Plugin.php and each Feature::definitions()): autowiring and
                      $container->make() call these reflectively, which Psalm can't trace back
@@ -71,7 +76,9 @@
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
                 <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
-                <referencedMethod name="Loopress\Api\Infrastructure\ApiDirectory::__construct" />
+                <!-- ApiDirectory/HooksDirectory no longer declare their own constructor; the
+                     PHP-DI container instantiates them through this inherited base one. -->
+                <referencedMethod name="Loopress\Infrastructure\AbstractFilesDirectory::__construct" />
                 <referencedMethod name="Loopress\Apps\Module\AppsModule::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppShortcode::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppAssetEnqueuer::__construct" />
@@ -83,7 +90,6 @@
                 <!-- Same reflective-attribute shape as Permission::__construct above:
                      RouteLoader::cronMethodsFor() reads this via ReflectionAttribute::newInstance(). -->
                 <referencedMethod name="Loopress\Hooks\Module\HooksModule::__construct" />
-                <referencedMethod name="Loopress\Hooks\Infrastructure\HooksDirectory::__construct" />
                 <!-- Same reflective-attribute shape as Permission::__construct above:
                      HookLoader::actionMethodsFor()/filterMethodsFor()/cronMethodsFor() read these
                      via ReflectionAttribute::newInstance(). -->
