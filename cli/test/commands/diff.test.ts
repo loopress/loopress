@@ -127,6 +127,24 @@ describe('diff', () => {
     expect(logs.log).not.toHaveBeenCalled()
   })
 
+  it('compares only the resources named by --only', async () => {
+    const {cmd} = make(['--only', 'snippet', '--only', 'acf'], baselineGet())
+
+    const result = await cmd.run()
+
+    expect(Object.keys(result.resources).sort((a, b) => a.localeCompare(b))).toEqual(['acf', 'snippet'])
+  })
+
+  it('compares every resource except those named by --skip', async () => {
+    const {cmd} = make(['--skip', 'composer', '--skip', 'seo'], baselineGet())
+
+    const result = await cmd.run()
+
+    expect(Object.keys(result.resources)).not.toContain('composer')
+    expect(Object.keys(result.resources)).not.toContain('seo')
+    expect(Object.keys(result.resources)).toContain('snippet')
+  })
+
   it('rejects --against pointing at the environment already being compared', async () => {
     const {cmd} = make(['--against', 'staging'], baselineGet())
 

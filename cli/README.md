@@ -47,9 +47,11 @@ report.
 # Commands
 
 <!-- commands -->
+* [`lps acf diff [PATH]`](#lps-acf-diff-path)
 * [`lps acf list`](#lps-acf-list)
 * [`lps acf pull [PATH]`](#lps-acf-pull-path)
 * [`lps acf push [PATH]`](#lps-acf-push-path)
+* [`lps api diff [PATH]`](#lps-api-diff-path)
 * [`lps api list`](#lps-api-list)
 * [`lps api publish [PATH]`](#lps-api-publish-path)
 * [`lps api pull [PATH]`](#lps-api-pull-path)
@@ -64,6 +66,7 @@ report.
 * [`lps dev`](#lps-dev)
 * [`lps diff`](#lps-diff)
 * [`lps doctor`](#lps-doctor)
+* [`lps form diff [PATH]`](#lps-form-diff-path)
 * [`lps form list`](#lps-form-list)
 * [`lps form pull [PATH]`](#lps-form-pull-path)
 * [`lps form push [PATH]`](#lps-form-push-path)
@@ -71,6 +74,7 @@ report.
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
+* [`lps page diff [PATH]`](#lps-page-diff-path)
 * [`lps page list`](#lps-page-list)
 * [`lps page pull [PATH]`](#lps-page-pull-path)
 * [`lps page push [PATH]`](#lps-page-push-path)
@@ -89,9 +93,11 @@ report.
 * [`lps promote FROM TO`](#lps-promote-from-to)
 * [`lps pull`](#lps-pull)
 * [`lps push`](#lps-push)
+* [`lps seo diff [PATH]`](#lps-seo-diff-path)
 * [`lps seo list`](#lps-seo-list)
 * [`lps seo pull [PATH]`](#lps-seo-pull-path)
 * [`lps seo push [PATH]`](#lps-seo-push-path)
+* [`lps snippet diff [PATH]`](#lps-snippet-diff-path)
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet publish [PATH]`](#lps-snippet-publish-path)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
@@ -104,6 +110,38 @@ report.
 * [`lps theme push`](#lps-theme-push)
 * [`lps theme status`](#lps-theme-status)
 * [`lps validate`](#lps-validate)
+
+## `lps acf diff [PATH]`
+
+Show what differs in ACF field groups, post types, taxonomies, and options pages between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps acf diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to ACF directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in ACF field groups, post types, taxonomies, and options pages between your local files and a
+  WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps acf diff
+
+  $ lps acf diff --env staging
+
+  $ lps acf diff --env staging --against production
+```
+
+_See code: [src/commands/acf/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/acf/diff.ts)_
 
 ## `lps acf list`
 
@@ -189,6 +227,38 @@ EXAMPLES
 ```
 
 _See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/acf/push.ts)_
+
+## `lps api diff [PATH]`
+
+Show what differs in custom API route files between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps api diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to api directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in custom API route files between your local files and a WordPress environment, or between two
+  environments
+
+EXAMPLES
+  $ lps api diff
+
+  $ lps api diff --env staging
+
+  $ lps api diff --env staging --against production
+```
+
+_See code: [src/commands/api/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/api/diff.ts)_
 
 ## `lps api list`
 
@@ -516,11 +586,16 @@ Show what differs between your local tracked files and a WordPress environment, 
 
 ```
 USAGE
-  $ lps diff [--json] [--env <value>] [--against <value>]
+  $ lps diff [--json] [--env <value>] [--against <value>] [--only
+    snippet|page|form|acf|api|seo|composer...] [--skip snippet|page|form|acf|api|seo|composer...]
 
 FLAGS
-  --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --against=<value>   Compare the primary environment against this second environment instead of against local files
+  --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+  --only=<option>...  Only compare these resources
+                      <options: snippet|page|form|acf|api|seo|composer>
+  --skip=<option>...  Compare every resource except these
+                      <options: snippet|page|form|acf|api|seo|composer>
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -536,6 +611,10 @@ EXAMPLES
   $ lps diff --env staging
 
   $ lps diff --env staging --against production
+
+  $ lps diff --only snippet --only acf
+
+  $ lps diff --skip composer
 ```
 
 _See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/diff.ts)_
@@ -561,6 +640,37 @@ EXAMPLES
 ```
 
 _See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/doctor.ts)_
+
+## `lps form diff [PATH]`
+
+Show what differs in forms between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps form diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to forms directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in forms between your local files and a WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps form diff
+
+  $ lps form diff --env staging
+
+  $ lps form diff --env staging --against production
+```
+
+_See code: [src/commands/form/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/form/diff.ts)_
 
 ## `lps form list`
 
@@ -706,6 +816,37 @@ EXAMPLES
 ```
 
 _See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/logout.ts)_
+
+## `lps page diff [PATH]`
+
+Show what differs in pages between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps page diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to pages directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in pages between your local files and a WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps page diff
+
+  $ lps page diff --env staging
+
+  $ lps page diff --env staging --against production
+```
+
+_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/page/diff.ts)_
 
 ## `lps page list`
 
@@ -1129,6 +1270,38 @@ EXAMPLES
 
 _See code: [src/commands/push.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/push.ts)_
 
+## `lps seo diff [PATH]`
+
+Show what differs in SEO settings, post meta, and redirects between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps seo diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to SEO directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in SEO settings, post meta, and redirects between your local files and a WordPress environment, or
+  between two environments
+
+EXAMPLES
+  $ lps seo diff
+
+  $ lps seo diff --env staging
+
+  $ lps seo diff --env staging --against production
+```
+
+_See code: [src/commands/seo/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/seo/diff.ts)_
+
 ## `lps seo list`
 
 List posts with SEO meta, and redirects if supported by the active SEO plugin, on WordPress
@@ -1208,6 +1381,37 @@ EXAMPLES
 ```
 
 _See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/seo/push.ts)_
+
+## `lps snippet diff [PATH]`
+
+Show what differs in snippets between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps snippet diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to snippets directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in snippets between your local files and a WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps snippet diff
+
+  $ lps snippet diff --env staging
+
+  $ lps snippet diff --env staging --against production
+```
+
+_See code: [src/commands/snippet/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/snippet/diff.ts)_
 
 ## `lps snippet list`
 

@@ -361,6 +361,12 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   seoProvider,
 ]
 
+export function getResourceStateProvider(resource: string): ResourceStateProvider {
+  const provider = RESOURCE_STATE_PROVIDERS.find((candidate) => candidate.resource === resource)
+  if (!provider) throw new Error(`No resource-state provider for "${resource}"`)
+  return provider
+}
+
 // ---- Composer ---------------------------------------------------------------------------
 
 // Composer isn't a directory of items but two files at the project root, so it sits outside
