@@ -1,4 +1,5 @@
 import {createTwoFilesPatch} from 'diff'
+import microdiff from 'microdiff'
 import {isDeepStrictEqual} from 'node:util'
 
 // One resource's comparable state: identity -> canonical value. The value is whatever the
@@ -9,7 +10,8 @@ export type ResourceState = Map<string, unknown>
 
 export type StateChange = {
   id: string
-  // Unified diff of the two values, ready to print. Empty string when the values are equal.
+  // Human-readable rendering of the change, ready to print (a per-field list for objects, a
+  // header-less unified diff for text).
   patch: string
 }
 
@@ -19,37 +21,57 @@ export type StateDiff = {
   removed: string[]
 }
 
-// Recursively sorts object keys so key ordering (which JSON.parse preserves from disk but a
-// fresh API response may differ on) never shows up as a spurious change. Arrays keep their
-// order, it's meaningful.
-function stableStringify(value: unknown): string {
-  return JSON.stringify(sortKeys(value), null, 2)
+const MAX_VALUE_LENGTH = 200
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
-function sortKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((item) => sortKeys(item))
-  if (value && typeof value === 'object') {
-    const source = value as Record<string, unknown>
-    const sorted: Record<string, unknown> = {}
-    for (const key of Object.keys(source).sort((a, b) => a.localeCompare(b))) {
-      sorted[key] = sortKeys(source[key])
-    }
-
-    return sorted
-  }
-
-  return value
+function formatValue(value: unknown): string {
+  const text = JSON.stringify(value) ?? String(value)
+  return text.length > MAX_VALUE_LENGTH ? `${text.slice(0, MAX_VALUE_LENGTH - 1)}…` : text
 }
 
-// A string value (an API route file) is diffed as-is: wrapping it in JSON quotes would turn
-// every real change into one unreadable escaped line.
-function toText(value: unknown): string {
-  return typeof value === 'string' ? value : stableStringify(value)
+// createTwoFilesPatch treats a missing final newline as a "\ No newline at end of file" hunk
+// line, noise when both sides lack it; normalize so only real differences surface.
+function ensureTrailingNewline(text: string): string {
+  return text.endsWith('\n') ? text : `${text}\n`
 }
 
-// `left` is the reference (what things are compared against), `right` is the subject. For
-// `lps diff` with no env-vs-env args that's remote (left) vs local (right), so `added` reads
-// as "present locally, not on the site" and `removed` as "on the site, not locally".
+// Two strings (an API route file, a page body, composer.json): a real line diff. Only the
+// `Index:` / `===` preamble createTwoFilesPatch emits is dropped; the `--- <left>` / `+++
+// <right>` lines are kept so each hunk still states its own direction.
+function renderTextChange(id: string, left: string, right: string, labels: {left: string; right: string}): string {
+  const patch = createTwoFilesPatch(id, id, ensureTrailingNewline(left), ensureTrailingNewline(right), labels.left, labels.right)
+  const lines = patch.split('\n')
+  const start = lines.findIndex((line) => line.startsWith('--- '))
+  return (start === -1 ? lines : lines.slice(start)).join('\n').trimEnd()
+}
+
+// Two objects: microdiff walks them structurally and returns one entry per changed leaf, so
+// key ordering never matters and a big nested blob (a WPForms definition, an ACF group)
+// reduces to just the fields that moved.
+function renderObjectChange(left: Record<string, unknown>, right: Record<string, unknown>): string {
+  return microdiff(left, right, {cyclesFix: false})
+    .map((change) => {
+      const path = change.path.join('.')
+      if (change.type === 'CREATE') return `+ ${path}: ${formatValue(change.value)}`
+      if (change.type === 'REMOVE') return `- ${path}: ${formatValue(change.oldValue)}`
+      return `~ ${path}: ${formatValue(change.oldValue)} → ${formatValue(change.value)}`
+    })
+    .join('\n')
+}
+
+function renderChange(id: string, left: unknown, right: unknown, labels: {left: string; right: string}): string {
+  if (typeof left === 'string' && typeof right === 'string') return renderTextChange(id, left, right, labels)
+  if (isRecord(left) && isRecord(right)) return renderObjectChange(left, right)
+  // Type mismatch between the two sides (e.g. a field that was a string and is now an object).
+  return `~ ${formatValue(left)} → ${formatValue(right)}`
+}
+
+// `left` is the reference, `right` is the subject. For `lps diff` with no env-vs-env args
+// that's remote (left) vs local (right), so `added` reads as "present locally, not on the
+// site" and `removed` as "on the site, not locally".
 export function compareStates(left: ResourceState, right: ResourceState, labels: {left: string; right: string}): StateDiff {
   const diff: StateDiff = {added: [], changed: [], removed: []}
 
@@ -67,22 +89,13 @@ export function compareStates(left: ResourceState, right: ResourceState, labels:
     const rightValue = right.get(id)
     if (isDeepStrictEqual(leftValue, rightValue)) continue
 
-    const leftText = toText(leftValue)
-    const rightText = toText(rightValue)
-    const patch = createTwoFilesPatch(id, id, ensureTrailingNewline(leftText), ensureTrailingNewline(rightText), labels.left, labels.right)
-    diff.changed.push({id, patch})
+    diff.changed.push({id, patch: renderChange(id, leftValue, rightValue, labels)})
   }
 
   diff.added.sort((a, b) => a.localeCompare(b))
   diff.removed.sort((a, b) => a.localeCompare(b))
   diff.changed.sort((a, b) => a.id.localeCompare(b.id))
   return diff
-}
-
-// createTwoFilesPatch treats a missing final newline as a "\ No newline at end of file"
-// hunk line, noise when both sides lack it; normalize so that only real differences surface.
-function ensureTrailingNewline(text: string): string {
-  return text.endsWith('\n') ? text : text + '\n'
 }
 
 export function isEmptyDiff(diff: StateDiff): boolean {

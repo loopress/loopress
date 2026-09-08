@@ -64,6 +64,23 @@ export function isNotFoundError(error: unknown): boolean {
   return cause?.response?.statusCode === 404
 }
 
+// A 404 a Loopress controller raises on purpose, identified by its JSON body's `error` field
+// (e.g. `{"error": "composer.lock not found"}` from ComposerController). Narrower than
+// isNotFoundError: a bare 404 also covers the route being absent because the plugin isn't
+// installed or predates the feature, which callers must still surface normally.
+export function isApplicative404(error: unknown, marker: string): boolean {
+  if (!isNotFoundError(error)) return false
+
+  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
+  if (!body) return false
+
+  try {
+    return (JSON.parse(body) as {error?: unknown}).error === marker
+  } catch {
+    return false
+  }
+}
+
 export function isTimeoutError(error: unknown): boolean {
   const cause = (error as {cause?: {name?: string}})?.cause
   return cause?.name === 'TimeoutError'

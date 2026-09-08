@@ -154,12 +154,11 @@ export default class Diff extends LoopressCommand {
   }
 }
 
-// Drops the two `createTwoFilesPatch` header lines (`--- id` / `+++ id`, redundant with the
-// `~ id` line already printed) and indents the rest so a resource's hunks sit under it.
+// Indents an already-formatted change block (a per-field list or a header-less unified diff)
+// so it sits visually under the `~ id` line.
 function indentPatch(patch: string): string {
   return patch
     .split('\n')
-    .slice(2)
     .map((line) => (line === '' ? line : `    ${line}`))
     .join('\n')
     .trimEnd()

@@ -46,17 +46,38 @@ describe('compareStates', () => {
     expect(diff.changed.map((change) => change.id)).toEqual(['a'])
   })
 
-  it('produces a unified patch carrying both labels for a changed object', () => {
-    const diff = compareStates(state({snippet: {priority: 10}}), state({snippet: {priority: 20}}), labels)
+  it('renders an object change as a per-field list', () => {
+    const diff = compareStates(
+      state({snippet: {name: 'Hero', priority: 10, tags: ['a']}}),
+      state({snippet: {location: 'footer', name: 'Hero', priority: 20}}),
+      labels,
+    )
 
-    const {patch} = diff.changed[0]
-    expect(patch).toContain('staging')
-    expect(patch).toContain('local')
-    expect(patch).toContain('-  "priority": 10')
-    expect(patch).toContain('+  "priority": 20')
+    const lines = diff.changed[0].patch.split('\n')
+    expect(lines).toContain('~ priority: 10 → 20')
+    expect(lines).toContain('- tags: ["a"]')
+    expect(lines).toContain('+ location: "footer"')
+    expect(lines).not.toContain('~ name: "Hero" → "Hero"')
   })
 
-  it('diffs string values as text rather than escaped JSON', () => {
+  it('reports a deeply nested field change by its path', () => {
+    const diff = compareStates(
+      state({form: {settings: {notifications: {1: {email: 'a@x.com'}}}}}),
+      state({form: {settings: {notifications: {1: {email: 'b@x.com'}}}}}),
+      labels,
+    )
+
+    expect(diff.changed[0].patch).toBe('~ settings.notifications.1.email: "a@x.com" → "b@x.com"')
+  })
+
+  it('truncates very long values in an object change', () => {
+    const diff = compareStates(state({a: {blob: 'x'}}), state({a: {blob: 'y'.repeat(500)}}), labels)
+
+    expect(diff.changed[0].patch).toMatch(/…$/)
+    expect(diff.changed[0].patch.length).toBeLessThan(260)
+  })
+
+  it('diffs string values as text rather than escaped JSON, carrying both labels', () => {
     const diff = compareStates(
       state({'route.php': "<?php\ndeclare(strict_types=1);\nreturn 1;\n"}),
       state({'route.php': "<?php\ndeclare(strict_types=1);\nreturn 2;\n"}),
@@ -64,6 +85,8 @@ describe('compareStates', () => {
     )
 
     const {patch} = diff.changed[0]
+    expect(patch).toContain('staging')
+    expect(patch).toContain('local')
     expect(patch).toContain('-return 1;')
     expect(patch).toContain('+return 2;')
     expect(patch).not.toContain(String.raw`\n`)

@@ -18,7 +18,7 @@ import {type ResourceState} from './diff-state.js'
 import {loadFiles} from './load-files.js'
 import {loadSnippets} from './load-snippets.js'
 import {readdirTolerant} from './readdir-tolerant.js'
-import {isNotFoundError, type WpClient} from './wp-client.js'
+import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 
 // A resource `lps diff` knows how to compare. `remote` reads and normalizes the live state
 // from WordPress; `local` reads and normalizes the same shape from the tracked files. Both
@@ -364,20 +364,6 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
 const COMPOSER_JSON_ENDPOINT = 'loopress/v1/composer/json'
 const COMPOSER_LOCK_ENDPOINT = 'loopress/v1/composer/lock'
 
-// A site that never had Composer dependencies pushed legitimately has no composer.lock (the
-// Loopress controller answers 404 with this exact body); any other 404 means the route itself
-// is absent and must surface normally.
-function isMissingComposerLock(error: unknown): boolean {
-  if (!isNotFoundError(error)) return false
-  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
-  if (!body) return false
-  try {
-    return (JSON.parse(body) as {error?: unknown}).error === 'composer.lock not found'
-  } catch {
-    return false
-  }
-}
-
 export async function composerRemoteState(wp: WpClient): Promise<ResourceState> {
   const state: ResourceState = new Map()
 
@@ -388,7 +374,9 @@ export async function composerRemoteState(wp: WpClient): Promise<ResourceState> 
     const {composerLock} = await wp.get<{composerLock: string}>(COMPOSER_LOCK_ENDPOINT)
     state.set('composer.lock', composerLock)
   } catch (error) {
-    if (!isMissingComposerLock(error)) throw error
+    // A site that never pushed Composer dependencies has no lock yet, the same tolerated 404
+    // as `composer pull`.
+    if (!isApplicative404(error, 'composer.lock not found')) throw error
   }
 
   return state

@@ -2,7 +2,7 @@ import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {isApplicative404} from '../../lib/wp-client.js'
 
 type ComposerJsonResponse = {
   composerJson: string
@@ -12,21 +12,12 @@ type ComposerLockResponse = {
   composerLock: string
 }
 
-// Narrower than isNotFoundError(): a bare 404 also covers the route being absent (plugin not
-// installed, or an edition/version predating Composer support), which must still surface the
-// normal "is the plugin installed?" guidance rather than being read as "no lock yet".
+// A site that never had Composer dependencies pushed has no composer.lock yet: the Loopress
+// controller answers that specific 404 with `{"error": "composer.lock not found"}`. Any other
+// 404 (route absent because the plugin isn't installed or predates Composer support) must
+// still surface the normal "is the plugin installed?" guidance instead of being swallowed.
 function isMissingComposerLock(error: unknown): boolean {
-  if (!isNotFoundError(error)) return false
-
-  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
-  if (!body) return false
-
-  try {
-    const parsed = JSON.parse(body) as {error?: unknown}
-    return parsed.error === 'composer.lock not found'
-  } catch {
-    return false
-  }
+  return isApplicative404(error, 'composer.lock not found')
 }
 
 type PullResult = {
