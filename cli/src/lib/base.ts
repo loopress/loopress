@@ -8,6 +8,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
+import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {WpClient} from './wp-client.js'
@@ -179,38 +180,31 @@ export abstract class LoopressCommand extends Command {
   }
 
   protected resolveAcfPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.acfDir ?? 'acf')
+    return resolveResourceDir('acf', this.localConfig, override)
   }
 
   protected resolveApiPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.apiDir ?? 'api')
+    return resolveResourceDir('api', this.localConfig, override)
   }
 
   protected resolveAppsPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.appsDir ?? 'apps')
+    return resolveResourceDir('apps', this.localConfig, override)
   }
 
   protected resolveFormPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.formDir ?? 'forms')
+    return resolveResourceDir('form', this.localConfig, override)
   }
 
   protected resolvePagePath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.pageDir ?? 'pages')
+    return resolveResourceDir('page', this.localConfig, override)
   }
 
   protected resolveSeoPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.seoDir ?? 'seo')
+    return resolveResourceDir('seo', this.localConfig, override)
   }
 
   protected resolveSnippetsPath(override?: string): string {
-    if (override) return override
-    return join(this.rootDir, this.localConfig.snippetsDir ?? 'snippets')
+    return resolveResourceDir('snippets', this.localConfig, override)
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

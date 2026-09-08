@@ -3,7 +3,7 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {formatWpError, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+import {formatWpError, isApplicative404, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
 
 describe('WpClient', () => {
   let server: Server | undefined
@@ -294,6 +294,34 @@ describe('isNotFoundError', () => {
   it('is false, not a throw, when the thrown value itself is null or undefined', () => {
     expect(isNotFoundError(null)).toBe(false)
     expect(isNotFoundError(undefined)).toBe(false)
+  })
+})
+
+describe('isApplicative404', () => {
+  const marker = 'composer.lock not found'
+
+  it('is true for a 404 whose JSON body error matches the marker', () => {
+    const error = new Error('x', {cause: {response: {body: JSON.stringify({error: marker}), statusCode: 404}}})
+    expect(isApplicative404(error, marker)).toBe(true)
+  })
+
+  it('is false for a 404 whose body error is a different marker', () => {
+    const error = new Error('x', {cause: {response: {body: JSON.stringify({error: 'something else'}), statusCode: 404}}})
+    expect(isApplicative404(error, marker)).toBe(false)
+  })
+
+  it('is false for a 404 with no body', () => {
+    expect(isApplicative404(new Error('x', {cause: {response: {statusCode: 404}}}), marker)).toBe(false)
+  })
+
+  it('is false for a 404 with a non-JSON body', () => {
+    const error = new Error('x', {cause: {response: {body: '<html>404</html>', statusCode: 404}}})
+    expect(isApplicative404(error, marker)).toBe(false)
+  })
+
+  it('is false for a non-404 even if the body matches', () => {
+    const error = new Error('x', {cause: {response: {body: JSON.stringify({error: marker}), statusCode: 500}}})
+    expect(isApplicative404(error, marker)).toBe(false)
   })
 })
 

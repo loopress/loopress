@@ -62,6 +62,7 @@ report.
 * [`lps composer pull`](#lps-composer-pull)
 * [`lps composer push`](#lps-composer-push)
 * [`lps dev`](#lps-dev)
+* [`lps diff`](#lps-diff)
 * [`lps doctor`](#lps-doctor)
 * [`lps form list`](#lps-form-list)
 * [`lps form pull [PATH]`](#lps-form-pull-path)
@@ -508,6 +509,36 @@ EXAMPLES
 ```
 
 _See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/dev.ts)_
+
+## `lps diff`
+
+Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers snippets, pages, forms, ACF, API routes, SEO, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`. Exits non-zero when anything differs, so it doubles as a CI drift gate.
+
+```
+USAGE
+  $ lps diff [--json] [--env <value>] [--against <value>]
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers
+  snippets, pages, forms, ACF, API routes, SEO, and Composer. Plugins and themes have their own `lps plugin status` /
+  `lps theme status`. Exits non-zero when anything differs, so it doubles as a CI drift gate.
+
+EXAMPLES
+  $ lps diff
+
+  $ lps diff --env staging
+
+  $ lps diff --env staging --against production
+```
+
+_See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/v0.23.0/src/commands/diff.ts)_
 
 ## `lps doctor`
 
