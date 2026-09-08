@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test'
+import {expect, type Page} from '@playwright/test'
 import type {RequestUtils} from '@wordpress/e2e-test-utils-playwright'
 
 import type {WpCredentials} from './environment.js'
@@ -8,7 +8,9 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   await page.fill('#user_login', wp.username)
   await page.fill('#user_pass', wp.adminPassword)
   await page.click('#wp-submit')
-  await page.waitForLoadState('networkidle')
+  // The admin bar is only rendered once a real wp-admin session is established: a cleaner
+  // "are we in?" signal than a networkidle guess, and it's what gets captured as storage state.
+  await expect(page.locator('#wpadminbar')).toBeVisible()
 }
 
 // RequestUtils.activatePlugin/deactivatePlugin key plugins by a kebab-cased `Plugin Name:`
@@ -43,7 +45,6 @@ export async function setPluginActive(requestUtils: RequestUtils, slug: string, 
 // are only visible on hover in wp-admin's list table styling, hence the explicit hover.
 export async function findWpCodeSnippetRow(page: Page, wp: WpCredentials, name: string) {
   await page.goto(`${wp.url}/wp-admin/admin.php?page=wpcode`)
-  await page.waitForLoadState('networkidle')
 
   const row = page.locator('table.wp-list-table tbody tr', {has: page.getByRole('link', {exact: true, name})})
   await row.hover()
@@ -53,7 +54,7 @@ export async function findWpCodeSnippetRow(page: Page, wp: WpCredentials, name: 
 export async function trashWpCodeSnippet(page: Page, wp: WpCredentials, name: string): Promise<void> {
   const row = await findWpCodeSnippetRow(page, wp, name)
   await row.getByRole('link', {name: 'Trash'}).click()
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState()
 }
 
 // Finds an ACF field group by its exact title in the native admin list table
@@ -61,7 +62,6 @@ export async function trashWpCodeSnippet(page: Page, wp: WpCredentials, name: st
 // visibility, never a hover-revealed row action, so no `.hover()`.
 export async function findAcfFieldGroupRow(page: Page, wp: WpCredentials, title: string) {
   await page.goto(`${wp.url}/wp-admin/edit.php?post_type=acf-field-group`)
-  await page.waitForLoadState('networkidle')
 
   return page.locator('table.wp-list-table tbody tr', {has: page.getByRole('link', {exact: true, name: title})})
 }
