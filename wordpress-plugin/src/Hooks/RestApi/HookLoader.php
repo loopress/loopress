@@ -42,9 +42,18 @@ class HookLoader
 
     public function __construct(private HooksDirectory $directory, private LoopressEnvironment $environment) {}
 
+    // Deliberately does not call $this->directory->ensureExists() here, unlike RouteLoader::
+    // prepare(): that call is safe for RouteLoader/ApiModule only because it's reached
+    // exclusively through 'rest_api_init', which never fires for a WP-CLI process.
+    // HooksModule::boot() calls loadAndRegister() unconditionally on 'plugins_loaded', which
+    // *does* fire for every WP-CLI bootstrap too (core install, plugin activation, any `wp`
+    // command run as a different user than the webserver); creating the directory there would
+    // leave it root-owned, unwritable to Apache's www-data on the next real push. listSlugs()
+    // already returns [] for a directory that doesn't exist yet, so nothing here needs it to;
+    // HooksDirectory::write() (reached only via a real HTTP request to hook-files, see
+    // HookFilesController::push_file()) is the only place the directory actually gets created.
     public function loadAndRegister(): void
     {
-        $this->directory->ensureExists();
         $this->requireUserAutoload();
 
         foreach ($this->directory->listSlugs() as $slug) {

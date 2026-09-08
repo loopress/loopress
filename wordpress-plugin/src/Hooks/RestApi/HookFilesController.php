@@ -30,6 +30,18 @@ class HookFilesController
 
     public function __construct(private HooksDirectory $directory) {}
 
+    // A slug whose last segment is literally "index" would otherwise pass FILENAME_PATTERN,
+    // write successfully, and then vanish from every read: HooksDirectory::listSlugs()
+    // deliberately excludes any file named index.php (the anti-listing guard it writes
+    // itself), matching on the filename alone regardless of directory. Without this, push_file()
+    // would return 200 for a hook that then silently never loads and never appears in
+    // `lps hook list`/`pull`.
+    private static function lastSegmentIsIndex(string $filename): bool
+    {
+        $segments = explode('/', $filename);
+        return end($segments) === 'index';
+    }
+
     public function register_routes(): void
     {
         register_rest_route('loopress/v1', '/hook-files', [
@@ -58,7 +70,7 @@ class HookFilesController
 
     public static function isValidFilename(mixed $value): bool
     {
-        return is_string($value) && preg_match(self::FILENAME_PATTERN, $value) === 1;
+        return is_string($value) && preg_match(self::FILENAME_PATTERN, $value) === 1 && !self::lastSegmentIsIndex($value);
     }
 
     public function list_files(): WP_REST_Response

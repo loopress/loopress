@@ -48,6 +48,32 @@ class FileWriterTest extends TestCase
         FileWriter::withGuard($code);
     }
 
+    // Regression: a semicolon-form namespace declaration must stay the very first statement
+    // after declare(), or PHP fatals ("namespace declaration statement has to be the very
+    // first statement in the script"). Inserting the guard between the two, as a naive
+    // "right after declare()" rule would, produced exactly that.
+    public function test_withGuard_inserts_the_guard_after_a_semicolon_form_namespace_declaration(): void
+    {
+        $code = "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Hooks;\n\nfinal class Hello\n{\n}\n";
+
+        $result = FileWriter::withGuard($code);
+
+        $this->assertStringContainsString(
+            "namespace Acme\\Hooks;\nif (!defined('ABSPATH')) {\n    exit;\n}\n",
+            $result,
+        );
+        $this->assertStringNotContainsString("declare(strict_types=1);\nif (!defined('ABSPATH'))", $result);
+    }
+
+    public function test_withGuard_tolerates_a_comment_between_declare_and_namespace(): void
+    {
+        $code = "<?php\ndeclare(strict_types=1);\n// a comment\nnamespace Acme\\Hooks;\nfinal class Hello {}\n";
+
+        $result = FileWriter::withGuard($code);
+
+        $this->assertStringContainsString("namespace Acme\\Hooks;\nif (!defined('ABSPATH'))", $result);
+    }
+
     // ── stripGuard ───────────────────────────────────────────────────────────
 
     public function test_stripGuard_is_the_exact_inverse_of_withGuard(): void

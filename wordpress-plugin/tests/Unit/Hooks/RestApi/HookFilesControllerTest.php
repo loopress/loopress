@@ -65,6 +65,22 @@ class HookFilesControllerTest extends TestCase
         $this->assertFalse(HookFilesController::isValidFilename(123));
     }
 
+    // Regression: 'index' alone matches FILENAME_PATTERN like any other kebab-case segment,
+    // but HooksDirectory::listSlugs() silently excludes any file named index.php (its own
+    // anti-listing guard), at any depth. Without this, push_file() would 200 a hook that then
+    // never appears in list_files()/listSlugs() and never loads.
+    public function test_isValidFilename_rejects_a_filename_whose_last_segment_is_index(): void
+    {
+        $this->assertFalse(HookFilesController::isValidFilename('index'));
+        $this->assertFalse(HookFilesController::isValidFilename('content/index'));
+    }
+
+    public function test_isValidFilename_accepts_a_filename_that_merely_contains_index(): void
+    {
+        $this->assertTrue(HookFilesController::isValidFilename('index-page-hooks'));
+        $this->assertTrue(HookFilesController::isValidFilename('index/content-filters'));
+    }
+
     // ── list_files ───────────────────────────────────────────────────────────
 
     public function test_list_files_returns_content_with_the_guard_stripped(): void

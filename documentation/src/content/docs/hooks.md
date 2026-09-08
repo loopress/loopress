@@ -13,7 +13,7 @@ Since these files call WordPress functions from a repo where WordPress isn't ins
 
 A hook file is a plain PHP file in your project's `hooks/` directory. Deployed with `lps hook push`, each file's class binds one or more WordPress actions, filters, or cron jobs directly, the same primitive a `functions.php` snippet would use, just version-controlled and pushed like the rest of your project.
 
-Unlike [custom API routes](/api/), a hook has no URL and no permission check of its own: once pushed, it runs automatically whenever WordPress fires the hook it's bound to, for every visitor. Keep that in mind when writing one, a mistake here affects every request, not just calls to one endpoint.
+Unlike [custom API routes](/api/), a hook has no URL and no permission check of its own: once pushed, it runs automatically whenever WordPress fires the hook it's bound to, with no manage_options-style gate in front of it. For `#[Action]`/`#[Filter]` that means every request that fires that specific hook, from `init` (every page) to something narrower like `save_post` (only a save); for `#[Cron]` it means every occurrence of the schedule, in the background, not tied to any visitor at all. Keep that in mind when writing one, a mistake affects everything that hits the hook it's bound to, not just calls to one endpoint.
 
 ## Anatomy of a hook file
 

@@ -59,14 +59,21 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   return {checked, problems, valid: problems.length === 0}
 }
 
+// Recursive: both api/ and hooks/ files can live in a nested path-segment directory
+// (invoice-pdf/[order_id].php, content/filters.php), a non-recursive scan would silently
+// never check those.
 async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: string): Promise<number> {
-  const entries = await readdirTolerant(dir, {withFileTypes: true})
+  const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})
   let checked = 0
 
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith('.php')) continue
     checked += 1
-    const filePath = join(dir, entry.name)
+    // parentPath is the entry's actual containing directory, which only equals `dir` itself
+    // for a top-level file: recursive readdir() nests entry.name to the basename alone, so
+    // join(dir, entry.name) would silently point at the wrong (top-level) path for anything
+    // one level deep or more.
+    const filePath = join(entry.parentPath, entry.name)
     const content = await readFile(filePath, 'utf8')
     if (content.trim() === '') problems.push({file: filePath, message: emptyMessage})
   }

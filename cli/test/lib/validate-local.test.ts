@@ -87,6 +87,35 @@ describe('validateLocal', () => {
     ])
   })
 
+  // Regression: checkPhpDir() used to scan only direct entries, silently skipping a nested
+  // path-param route file (invoice-pdf/[order_id].php) or hook file (content/filters.php).
+  it('flags an empty nested API route file', async () => {
+    write('api/invoice-pdf/[order_id].php', '   \n')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([
+      expect.objectContaining({
+        file: join(dir, 'api', 'invoice-pdf', '[order_id].php'),
+        message: 'API route file is empty',
+      }),
+    ])
+  })
+
+  it('flags an empty hook file, top-level and nested', async () => {
+    write('hooks/cleanup.php', '')
+    write('hooks/content/filters.php', '   \n')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({file: join(dir, 'hooks', 'cleanup.php'), message: 'Hook file is empty'}),
+        expect.objectContaining({file: join(dir, 'hooks', 'content', 'filters.php'), message: 'Hook file is empty'}),
+      ]),
+    )
+  })
+
   it('flags loopress.json that is not valid JSON', async () => {
     write('loopress.json', '{ oops')
 

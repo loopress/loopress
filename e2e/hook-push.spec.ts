@@ -55,9 +55,14 @@ test("pushes a valid hook file even when a sibling file in the same push is reje
 		join(hooksDir, "broken.php"),
 		"<?php\n\ndeclare(strict_types=1);\n\nfinal class Broken\n{\n    public function run(): void\n    {\n        $x = 1\n    }\n}\n",
 	);
+	// Named distinctly from api-routes-sync.spec.ts's own "Good" class: unlike an api/ file
+	// (only ever require()d while handling a REST request), a hooks/ file is require()d on
+	// every single request once pushed (see HookLoader), so its class name is effectively
+	// reserved site-wide, including against unrelated api/ e2e fixtures sharing this same
+	// disposable WordPress instance.
 	writeFileSync(
 		join(hooksDir, "good.php"),
-		"<?php\n\ndeclare(strict_types=1);\n\nuse Loopress\\Hooks\\Attribute\\Action;\n\nfinal class Good\n{\n    #[Action('init')]\n    public function run(): void\n    {\n    }\n}\n",
+		"<?php\n\ndeclare(strict_types=1);\n\nuse Loopress\\Hooks\\Attribute\\Action;\n\nfinal class HookPushGood\n{\n    #[Action('init')]\n    public function run(): void\n    {\n    }\n}\n",
 	);
 
 	const pushResult = await runCli(["hook", "push"]);
