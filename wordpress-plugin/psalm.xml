@@ -75,7 +75,6 @@
                 <referencedMethod name="Loopress\Dependencies\Module\ComposerModule::__construct" />
                 <referencedMethod name="Loopress\Update\Module\UpdateCheckModule::__construct" />
                 <referencedMethod name="Loopress\Snippets\Module\SnippetModule::__construct" />
-                <referencedMethod name="Loopress\Snippets\Service\SnippetMigrationService::__construct" />
                 <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />

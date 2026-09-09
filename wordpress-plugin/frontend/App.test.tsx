@@ -24,9 +24,6 @@ function stubQuietEndpoints() {
         if (path === '/composer/outdated') {
             return [];
         }
-        if (path.startsWith('/snippets/migration/')) {
-            return { sourceActive: false, destinationActive: false, snippets: [] };
-        }
         if (path === '/api-files') {
             return [];
         }
@@ -99,9 +96,6 @@ describe('App', () => {
             if (path === '/composer/audit') {
                 return { advisories: {}, abandoned: {} };
             }
-            if (path.startsWith('/snippets/migration/')) {
-                return { sourceActive: false, destinationActive: false, snippets: [] };
-            }
             return [];
         });
 
@@ -110,17 +104,6 @@ describe('App', () => {
         await waitFor(() => {
             expect(screen.getByText(/Auto-repair failed: vendor\/autoload.php is corrupted/i)).toBeInTheDocument();
         });
-    });
-
-    test('renders a Snippets tab that shows the migration screen', async () => {
-        await renderApp(null);
-
-        await screen.findByRole('heading', { name: 'Loopress Full' });
-
-        const user = userEvent.setup();
-        await user.click(screen.getByRole('tab', { name: 'Snippets' }));
-
-        expect(await screen.findByText('Migrate WPCode → Code Snippets')).toBeInTheDocument();
     });
 
     test('renders an API tab that shows uploaded route files', async () => {
@@ -136,9 +119,6 @@ describe('App', () => {
             }
             if (path === '/composer/installed' || path === '/composer/outdated') {
                 return [];
-            }
-            if (path.startsWith('/snippets/migration/')) {
-                return { sourceActive: false, destinationActive: false, snippets: [] };
             }
             return {};
         });
@@ -178,9 +158,6 @@ describe('App', () => {
             if (path === '/composer/installed' || path === '/composer/outdated') {
                 return [];
             }
-            if (path.startsWith('/snippets/migration/')) {
-                return { sourceActive: false, destinationActive: false, snippets: [] };
-            }
             return {};
         });
 
@@ -207,10 +184,10 @@ describe('App', () => {
     });
 
     test('opens directly on the tab named in the URL hash', async () => {
-        window.location.hash = '#snippets';
+        window.location.hash = '#api';
 
         await renderApp(null);
 
-        expect(await screen.findByText('Migrate WPCode → Code Snippets')).toBeInTheDocument();
+        expect(await screen.findByRole('tab', { name: 'API', selected: true })).toBeInTheDocument();
     });
 });
