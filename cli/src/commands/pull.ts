@@ -17,11 +17,14 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
   {commandId: 'seo:pull', label: 'SEO', supportsYes: true},
+  {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', supportsYes: true},
 ]
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, from WordPress'
+  static description =
+    'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, from WordPress'
+
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,

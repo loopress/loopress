@@ -13,11 +13,12 @@ const ALL_COMMAND_IDS = [
   'hook:pull',
   'form:pull',
   'seo:pull',
+  'option:pull',
   'snippet:pull',
 ]
 
 // The commands that delete orphaned local files and so accept --yes.
-const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'form:pull', 'hook:pull', 'seo:pull', 'snippet:pull'])
+const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'form:pull', 'hook:pull', 'option:pull', 'seo:pull', 'snippet:pull'])
 
 class TestPull extends Pull {
   setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {

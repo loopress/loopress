@@ -3,6 +3,7 @@ import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
+import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
@@ -22,11 +23,15 @@ import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 // from WordPress; `local` reads and normalizes the same shape from the tracked files. Both
 // project to the exact same "canonical" value per item so a deep-equal check reflects real
 // drift, not serialization quirks (key order, a re-added `<?php` tag, a rendered-HTML field
-// that changes on every read). `dirKind` is how the local base directory is resolved.
+// that changes on every read). `dirKind` is how the local base directory is resolved. `dir` is
+// passed to every `remote` call (not just `local`'s) so a provider whose remote endpoint has no
+// notion of "everything" (options: no bulk value listing, by design) can read the locally
+// tracked id set to know what to compare; every other provider's remote endpoint already
+// returns its full inventory and ignores this argument.
 export type ResourceStateProvider = {
   dirKind: ResourceDirKind
   local(dir: string, onWarn: (message: string) => void): Promise<ResourceState>
-  remote(wp: WpClient, onWarn: (message: string) => void): Promise<ResourceState>
+  remote(wp: WpClient, onWarn: (message: string) => void, dir: string): Promise<ResourceState>
   resource: string
   title: string
 }
@@ -328,6 +333,54 @@ const seoProvider: ResourceStateProvider = {
   title: 'SEO',
 }
 
+// ---- Options ------------------------------------------------------------------------------
+
+// Unlike every provider above, remote() has no "everything" endpoint to read: GET /options only
+// lists names, never values (by design, see OptionsController), so both sides compare exactly
+// the locally tracked set, read from `dir` on the remote side too (see ResourceStateProvider's
+// docstring). `readonly` is a local policy flag with no WordPress counterpart, left out of both
+// sides so it can never itself show up as drift.
+const optionsProvider: ResourceStateProvider = {
+  dirKind: 'options',
+  async local(dir, onWarn) {
+    const entries = await loadFiles<{autoload: string; name: string; value: unknown}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse(raw) {
+        const option = parseLocalOption(raw)
+        return {autoload: option.autoload, name: option.name, value: option.value}
+      },
+    })
+
+    const state: ResourceState = new Map()
+    for (const {autoload, name, value} of entries) state.set(name, {autoload, value})
+    return state
+  },
+  async remote(wp, onWarn, dir) {
+    const tracked = await loadFiles<string>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse: (raw) => parseLocalOption(raw).name,
+    })
+
+    const state: ResourceState = new Map()
+    for (const name of tracked) {
+      try {
+        const option = await wp.get<RemoteOption>(optionEndpoint(name))
+        state.set(name, {autoload: option.autoload, value: option.value})
+      } catch (error) {
+        if (!isNotFoundError(error)) throw error
+        // Absent on this environment (never pushed here, or deleted there): left out of the
+        // map, which reads as "removed" on this side, exactly the right signal.
+      }
+    }
+
+    return state
+  },
+  resource: 'option',
+  title: 'Options',
+}
+
 export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   snippetProvider,
   formProvider,
@@ -335,6 +388,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   apiProvider,
   hookProvider,
   seoProvider,
+  optionsProvider,
 ]
 
 export function getResourceStateProvider(resource: string): ResourceStateProvider {

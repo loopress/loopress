@@ -6,7 +6,7 @@ import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.j
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
-// `lps push`/`lps pull` fan out to eight resource commands in sequence, each doing its own
+// `lps push`/`lps pull` fan out to nine resource commands in sequence, each doing its own
 // Listr run over many files, so the default runLps timeout is too tight for a real site.
 const BULK_TIMEOUT_MS = 600_000
 
@@ -15,7 +15,7 @@ export function registerBulkTools(server: McpServer): void {
     'push_all',
     {
       description:
-        'Push every local resource (plugins, composer, ACF, API routes, hooks, forms, SEO, snippets) to WordPress in one run, the equivalent of `lps push`.' +
+        'Push every local resource (plugins, composer, ACF, API routes, hooks, forms, SEO, options, snippets) to WordPress in one run, the equivalent of `lps push`.' +
         PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag},
     },
@@ -29,7 +29,7 @@ export function registerBulkTools(server: McpServer): void {
     'pull_all',
     {
       description:
-        'Pull every resource (plugins, composer, ACF, API routes, hooks, forms, SEO, snippets) from WordPress into local files in one run, the equivalent of `lps pull`.',
+        'Pull every resource (plugins, composer, ACF, API routes, hooks, forms, SEO, options, snippets) from WordPress into local files in one run, the equivalent of `lps pull`.',
       inputSchema: {env: envFlag},
     },
     async ({env}) =>

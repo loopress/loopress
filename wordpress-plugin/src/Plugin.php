@@ -7,6 +7,7 @@ namespace Loopress;
 use Loopress\Acf\Module\AcfModule;
 use Loopress\AdminPage\Module\AdminPageModule;
 use Loopress\Contract\Module;
+use Loopress\Options\Module\OptionsModule;
 use Loopress\RestCache\Module\RestCacheModule;
 use Loopress\Seo\Module\SeoModule;
 
@@ -23,6 +24,7 @@ class Plugin
             AdminPageModule::class,
             AcfModule::class,
             SeoModule::class,
+            OptionsModule::class,
             RestCacheModule::class,
         ]);
 

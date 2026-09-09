@@ -10,6 +10,7 @@ import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
 import {registerFormTools} from './tools/form.js'
 import {registerHookTools} from './tools/hooks.js'
+import {registerOptionTools} from './tools/option.js'
 import {registerPluginTools} from './tools/plugin.js'
 import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
@@ -24,6 +25,7 @@ registerHookTools(server)
 registerAppTools(server)
 registerAcfTools(server)
 registerSeoTools(server)
+registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)
 registerThemeTools(server)

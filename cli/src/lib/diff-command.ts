@@ -71,12 +71,12 @@ export abstract class DiffCommand extends LoopressCommand {
       this.error('A [PATH] argument cannot be combined with --against: --against compares two environments, not local files.')
     }
 
+    const dir = resolveResourceDir(provider.dirKind, this.localConfig, dirOverride)
+
     return {
-      left: async () => provider.remote(this.wp, sides.warn),
+      left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
-      right: sides.againstWp
-        ? async () => provider.remote(sides.againstWp!, sides.warn)
-        : async () => provider.local(resolveResourceDir(provider.dirKind, this.localConfig, dirOverride), sides.warn),
+      right: sides.againstWp ? async () => provider.remote(sides.againstWp!, sides.warn, dir) : async () => provider.local(dir, sides.warn),
       title: provider.title,
     }
   }

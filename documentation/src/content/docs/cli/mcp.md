@@ -62,6 +62,11 @@ The server communicates over stdio from the directory your client launches it in
 | `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress |
 | `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
+| `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
+| `option_pull` | No | Refresh locally tracked options from WordPress |
+| `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |
+| `option_add` | No | Fetch a WordPress option by name and start tracking it locally |
+| `option_remove` | Yes | Stop tracking an option locally and delete it from WordPress |
 | `form_push` | Yes | Push local form files to WordPress |
 | `form_pull` | No | Pull forms from WordPress into local files |
 | `form_list` | No | List forms currently on WordPress |

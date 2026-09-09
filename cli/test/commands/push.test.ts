@@ -25,6 +25,7 @@ const ALL_COMMAND_IDS = [
   'hook:push',
   'form:push',
   'seo:push',
+  'option:push',
   'snippet:push',
 ]
 

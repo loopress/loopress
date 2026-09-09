@@ -59,7 +59,7 @@ describe('resource-state providers', () => {
       writeFileSync(join(dir, '7-do-a-thing.php'), '<?php\n\nreturn 1;')
       writeFileSync(join(dir, '7-do-a-thing.json'), JSON.stringify({active: true, id: 7, location: 'everywhere', name: 'Do a thing', type: 'php'}))
 
-      const diff = compareStates(await snippetProvider.remote(remote, noWarn), await snippetProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await snippetProvider.remote(remote, noWarn, dir), await snippetProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -71,7 +71,7 @@ describe('resource-state providers', () => {
       writeFileSync(join(dir, '3-s.js'), 'x')
       writeFileSync(join(dir, '3-s.json'), JSON.stringify({active: false, description: 'totally different', id: 3, name: 'S', type: 'js'}))
 
-      const diff = compareStates(await snippetProvider.remote(remote, noWarn), await snippetProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await snippetProvider.remote(remote, noWarn, dir), await snippetProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -81,7 +81,7 @@ describe('resource-state providers', () => {
       writeFileSync(join(dir, '7-t.php'), '<?php\n\nreturn 2;')
       writeFileSync(join(dir, '7-t.json'), JSON.stringify({active: true, id: 7, name: 'T', type: 'php'}))
 
-      const diff = compareStates(await snippetProvider.remote(remote, noWarn), await snippetProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await snippetProvider.remote(remote, noWarn, dir), await snippetProvider.local(dir, noWarn), labels)
 
       expect(diff.changed.map((change) => change.id)).toEqual(['7'])
     })
@@ -102,7 +102,7 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'invoice-pdf'))
       writeFileSync(join(dir, 'invoice-pdf', '[order_id].php'), 'b')
 
-      const diff = compareStates(await apiProvider.remote(remote, noWarn), await apiProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await apiProvider.remote(remote, noWarn, dir), await apiProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -123,7 +123,7 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'content'))
       writeFileSync(join(dir, 'content', 'filters.php'), 'b')
 
-      const diff = compareStates(await hookProvider.remote(remote, noWarn), await hookProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await hookProvider.remote(remote, noWarn, dir), await hookProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -137,7 +137,7 @@ describe('resource-state providers', () => {
       const remote = fakeWp({'loopress/v1/forms': [object]})
       writeFileSync(join(dir, '55-contact.json'), JSON.stringify(object))
 
-      const diff = compareStates(await formProvider.remote(remote, noWarn), await formProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await formProvider.remote(remote, noWarn, dir), await formProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -146,7 +146,7 @@ describe('resource-state providers', () => {
       const remote = fakeWp({'loopress/v1/forms': [{id: 7, modified: '2026-02-02', modified_gmt: '2026-02-02', settings: {form_title: 'C'}}]})
       writeFileSync(join(dir, '7-c.json'), JSON.stringify({id: 7, modified: '1999-01-01', modified_gmt: '1999-01-01', settings: {form_title: 'C'}}))
 
-      const diff = compareStates(await formProvider.remote(remote, noWarn), await formProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await formProvider.remote(remote, noWarn, dir), await formProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -168,7 +168,7 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'field-groups'))
       writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', title: 'Hero'}))
 
-      const state = await acfProvider.remote(remote, noWarn)
+      const state = await acfProvider.remote(remote, noWarn, dir)
 
       expect([...state.keys()]).toEqual(['field-groups/group_1'])
 
@@ -181,7 +181,7 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'field-groups'))
       writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', modified: 1, title: 'Hero'}))
 
-      const diff = compareStates(await acfProvider.remote(remote, noWarn), await acfProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await acfProvider.remote(remote, noWarn, dir), await acfProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -200,7 +200,7 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'redirects'))
       writeFileSync(join(dir, 'redirects', '4-new.json'), JSON.stringify({headerCode: 301, hits: 2, id: 4, urlTo: '/new'}))
 
-      const diff = compareStates(await seoProvider.remote(remote, noWarn), await seoProvider.local(dir, noWarn), labels)
+      const diff = compareStates(await seoProvider.remote(remote, noWarn, dir), await seoProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
     })
@@ -215,13 +215,61 @@ describe('resource-state providers', () => {
       } as unknown as WpClient
       const warnings: string[] = []
 
-      const state = await seoProvider.remote(wp, (message) => {
-        warnings.push(message)
-      })
+      const state = await seoProvider.remote(
+        wp,
+        (message) => {
+          warnings.push(message)
+        },
+        dir,
+      )
 
       const keys = [...state.keys()]
       expect(warnings.join('\n')).toContain('redirects')
       expect(keys.filter((key) => key.startsWith('redirects/'))).toHaveLength(0)
+    })
+  })
+
+  describe('option', () => {
+    const optionsProvider = provider('option')
+
+    it('compares only the locally tracked names, fetched by GET /options/{name}', async () => {
+      const remote = fakeWp({
+        'loopress/v1/options/blogname': {autoload: 'yes', name: 'blogname', value: 'New'},
+        // Not tracked locally: never fetched, and must never leak into either state.
+        'loopress/v1/options/untracked_option': {autoload: 'yes', name: 'untracked_option', value: 'ignored'},
+      })
+      writeFileSync(join(dir, 'blogname.json'), JSON.stringify({autoload: 'yes', name: 'blogname', value: 'Old'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(diff.changed.map((change) => change.id)).toEqual(['blogname'])
+    })
+
+    it('ignores the local-only readonly flag, it never shows up as drift', async () => {
+      const remote = fakeWp({'loopress/v1/options/siteurl': {autoload: 'yes', name: 'siteurl', value: 'https://example.com'}})
+      writeFileSync(join(dir, 'siteurl.json'), JSON.stringify({autoload: 'yes', name: 'siteurl', readonly: true, value: 'https://example.com'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    // A tracked option that no longer exists on this environment (never pushed here, or
+    // deleted there) is left out of the remote map entirely, rather than erroring the whole
+    // comparison: it reads as "added" (present locally, not on this site), the same signal a
+    // file that was never pushed anywhere gets.
+    it('treats a 404 for a tracked name as absent on that side, not a failure', async () => {
+      const remote = {
+        async get(path: string) {
+          if (path === 'loopress/v1/options/ghost') throw notFound()
+          throw new Error(`unexpected request: ${path}`)
+        },
+      } as unknown as WpClient
+      writeFileSync(join(dir, 'ghost.json'), JSON.stringify({autoload: 'yes', name: 'ghost', value: 'x'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(diff.added).toEqual(['ghost'])
     })
   })
 })
