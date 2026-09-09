@@ -3,7 +3,7 @@ Contributors: jeansmaug
 Tags: acf, seo, advanced custom fields, sync, git
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 2026.7.16
+Stable tag: 2026.9.0
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
