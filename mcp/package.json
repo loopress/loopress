@@ -25,8 +25,8 @@
   "devDependencies": {
     "@eslint/compat": "2.1.1",
     "@loopress/eslint-config": "workspace:*",
-    "@types/node": "26.4.1",
-    "eslint": "^10.9.1",
+    "@types/node": "26.5.0",
+    "eslint": "^10.10.0",
     "eslint-config-prettier": "^10",
     "prettier": "3.9.6",
     "shx": "^0.4.0",
