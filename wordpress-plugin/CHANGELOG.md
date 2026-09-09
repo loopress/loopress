@@ -1,5 +1,14 @@
 # @loopress/wordpress-plugin
 
+## 2026.9.1
+
+### Patch Changes
+
+- 755b390: Added `hooks/`, a new resource for declaring WordPress actions, filters, and scheduled (cron) tasks as plain PHP files, deployed with `lps hook push`/`pull`/`list` (and `lps push`/`pull`/`diff`, `hook_push`/`hook_pull`/`hook_list` MCP tools). One file, one class, public methods attributed with `#[Action(hook, priority, acceptedArgs)]`, `#[Filter(hook, priority, acceptedArgs)]`, or `#[Cron(recurrence, hook?)]` bind straight to `add_action()`/`add_filter()`/WP-Cron (a `#[Cron]` job is just an action bound to a schedule instead of an existing WordPress event). Unlike a REST route, a bound hook runs unconditionally for every visitor with no permission check of its own, so every callback is wrapped to catch and log rather than propagate; a filter additionally fails open, returning the original value on a throw. Loopress Full only, same as custom API routes.
+- f0fe762: Added `options/`, a new resource for tracking individual WordPress options (`wp_options` rows) directly, agnostic of which plugin owns them: no adapter to write, unlike `seo/` which has to know Yoast's vs RankMath's option names and shape. `lps option list` shows every option name and autoload flag on the site (never values, so browsing stays cheap and never leaks a value by accident), `lps option add <name>` starts tracking one as a local file, and `lps option pull`/`push`/`diff`/`remove` work the tracked set from there (`push` is upsert-only, it never deletes an untracked option). Two safety rails: `active_plugins`/`template`/`stylesheet` are refused outright (already owned by the `plugin`/`theme` resources), and environment-owned or WordPress-generated options (`siteurl`, `home`, `db_version`, `cron`, `rewrite_rules`, `WPLANG`) default to `"readonly": true` in their local file, tracked and diffable but skipped by `push` unless explicitly overridden. Mirrored as `option_push`/`option_pull`/`option_list`/`option_add`/`option_remove` MCP tools.
+- 55b5d6d: Removed the snippet provider migration feature: the **Snippets** admin tab and the `GET`/`POST /loopress/v1/snippets/migration/{direction}` REST routes are gone. Code Snippets and WPCode each ship their own import/export, so moving snippets between them no longer needs a Loopress screen. Snippet sync (`lps snippet pull/push/list` and the `/loopress/v1/snippets` routes) is unchanged.
+- 1da6d44: Internal refactor: deduplicated REST error-response handling (`AcfController`, part of `ComposerController`), the filesystem bootstrap snippets shared by `ApiDirectory`/`AppsDirectory`/`LoopressEnvironment`, `composer.lock`/JSON-output parsing in `ComposerService`, and the "exactly one active provider" arbitration duplicated identically across the SEO/Snippets/Forms services. No behavior change.
+
 ## 2026.9.0
 
 ### Minor Changes
