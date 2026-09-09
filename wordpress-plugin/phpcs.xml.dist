@@ -125,11 +125,12 @@
         <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
     </rule>
 
-    <!-- Only RankMathServiceTest substitutes the global $wpdb with a FakeWpdb double, the
-         same swap-the-global approach WordPress core's own test suite uses, to unit-test
-         redirects SQL without a real database. -->
+    <!-- RankMathServiceTest and OptionsServiceTest substitute the global $wpdb with a fake
+         double, the same swap-the-global approach WordPress core's own test suite uses, to
+         unit-test raw SQL without a real database. -->
     <rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
         <exclude-pattern>tests/Unit/Seo/Service/RankMathServiceTest.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/Options/Service/OptionsServiceTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PHPCompatibilityWP"/>

@@ -14,11 +14,14 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'hook:push', label: 'hooks'},
   {commandId: 'form:push', label: 'forms'},
   {commandId: 'seo:push', label: 'SEO'},
+  {commandId: 'option:push', label: 'options'},
   {commandId: 'snippet:push', label: 'snippets'},
 ]
 
 export default class Push extends LoopressCommand {
-  static description = 'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, and snippets, to WordPress'
+  static description =
+    'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, to WordPress'
+
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,

@@ -224,6 +224,50 @@ describe('resource-state providers', () => {
       expect(keys.filter((key) => key.startsWith('redirects/'))).toHaveLength(0)
     })
   })
+
+  describe('option', () => {
+    const optionsProvider = provider('option')
+
+    it('compares only the locally tracked names, fetched by GET /options/{name}', async () => {
+      const remote = fakeWp({
+        'loopress/v1/options/blogname': {autoload: 'yes', name: 'blogname', value: 'New'},
+        // Not tracked locally: never fetched, and must never leak into either state.
+        'loopress/v1/options/untracked_option': {autoload: 'yes', name: 'untracked_option', value: 'ignored'},
+      })
+      writeFileSync(join(dir, 'blogname.json'), JSON.stringify({autoload: 'yes', name: 'blogname', value: 'Old'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(diff.changed.map((change) => change.id)).toEqual(['blogname'])
+    })
+
+    it('ignores the local-only readonly flag, it never shows up as drift', async () => {
+      const remote = fakeWp({'loopress/v1/options/siteurl': {autoload: 'yes', name: 'siteurl', value: 'https://example.com'}})
+      writeFileSync(join(dir, 'siteurl.json'), JSON.stringify({autoload: 'yes', name: 'siteurl', readonly: true, value: 'https://example.com'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    // A tracked option that no longer exists on this environment (never pushed here, or
+    // deleted there) is left out of the remote map entirely, rather than erroring the whole
+    // comparison: it reads as "added" (present locally, not on this site), the same signal a
+    // file that was never pushed anywhere gets.
+    it('treats a 404 for a tracked name as absent on that side, not a failure', async () => {
+      const remote = {
+        async get(path: string) {
+          if (path === 'loopress/v1/options/ghost') throw notFound()
+          throw new Error(`unexpected request: ${path}`)
+        },
+      } as unknown as WpClient
+      writeFileSync(join(dir, 'ghost.json'), JSON.stringify({autoload: 'yes', name: 'ghost', value: 'x'}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(diff.added).toEqual(['ghost'])
+    })
+  })
 })
 
 describe('composer state', () => {

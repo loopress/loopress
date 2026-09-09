@@ -65,6 +65,11 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `seo_push` | Yes | `env?`, `path?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
 | `seo_pull` | No | `env?`, `path?`, `postType?` | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | `env?`, `postType?` | List posts with SEO meta, and redirects if supported, on WordPress |
+| `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
+| `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
+| `option_list` | No | `env?` | List WordPress option names and autoload flags currently on the site (names only, never values) |
+| `option_add` | No | `env?`, `name` | Fetch a WordPress option by name and start tracking it locally |
+| `option_remove` | Yes | `env?`, `name`, `confirmToken?` | Stop tracking an option locally and delete it from WordPress |
 | `form_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local form files to WordPress |
 | `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
 | `form_list` | No | `env?` | List forms currently on WordPress |
