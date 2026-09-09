@@ -74,6 +74,9 @@ class AppAssetEnqueuer
         return preg_replace('/<script\s/', '<script type="module" ', $tag, 1) ?? $tag;
     }
 
+    /**
+     * @return non-empty-string
+     */
     private function handle(string $name, string $kind, int|string $index): string
     {
         return "loopress-app-{$name}-{$kind}-{$index}";
