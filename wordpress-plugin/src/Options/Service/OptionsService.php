@@ -41,7 +41,29 @@ class OptionsService
         'widget_text', 'wp_attachment_pages_enabled', 'wp_force_deactivated_plugins', 'wp_notes_notify', 'wp_page_for_privacy_policy',
     ];
 
-    /** @return array<int, array{name: string, autoload: string, core: bool, guess: string|null}> */
+    // A second, separately verified batch: real WordPress core options that populate_options()
+    // does not create at install time (they're written later, by other core code paths), each
+    // confirmed by grepping a real install's wp-admin/wp-includes for an add_option()/
+    // update_option()/get_option() call on that literal name (not reconstructed from memory).
+    // Added specifically because source-scanning (below) was misattributing several of these to
+    // "Plugin Check" (a WordPress.org code-quality linter): its own rules reference a long list
+    // of core option names to check other plugins don't misuse them, which makes it, and tools
+    // like it, a predictable source of false attribution for exactly this class of name.
+    private const OTHER_KNOWN_CORE_OPTION_NAMES = [
+        'can_compress_scripts', 'cron', 'finished_updating_comment_type', 'recently_activated', 'recovery_keys',
+        'sidebars_widgets', 'user_count', 'widget_block', 'wp_user_roles', 'WPLANG',
+    ];
+
+    // Scans active plugins' own PHP source (see scanActivePluginSourceForOptions()/phpFilesIn())
+    // for every option the (much cheaper) naming guess left unresolved, to find new guesses:
+    // roughly 1-3s on a real site, every active plugin's tree, once. `confirmed` is set for a
+    // scan hit (real code evidence), never for a naming-only match: a naming guess with no code
+    // evidence for it stays honestly uncertain rather than being upgraded on weaker grounds (an
+    // earlier version tried to also re-scan just the one plugin each naming guess already points
+    // at to upgrade it; dropped, the naming heuristic has not produced a false positive in
+    // testing, so spending a second scan pass just to remove its "?" marker wasn't solving a
+    // real problem).
+    /** @return array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}> */
     public function listOptionNames(): array
     {
         global $wpdb;
@@ -58,19 +80,223 @@ class OptionsService
 
         $pluginPrefixes = $this->activePluginPrefixes();
 
-        return array_map(function (array $row) use ($pluginPrefixes): array {
+        $options = array_map(function (array $row) use ($pluginPrefixes): array {
             $name = (string) $row['option_name'];
-            $core = in_array($name, self::CORE_DEFAULT_OPTION_NAMES, true);
+            $core = in_array($name, self::CORE_DEFAULT_OPTION_NAMES, true)
+                || in_array($name, self::OTHER_KNOWN_CORE_OPTION_NAMES, true);
 
             return [
-                'name'     => $name,
-                'autoload' => (string) $row['autoload'],
-                'core'     => $core,
+                'name'       => $name,
+                'autoload'   => (string) $row['autoload'],
+                'core'       => $core,
                 // Never guessed for a name already confirmed core: pointless, and a plugin slug
                 // could coincidentally prefix-match one, muddying an otherwise certain answer.
-                'guess'    => $core ? null : $this->guessSource($name, $pluginPrefixes),
+                'guess'      => $core ? null : $this->guessSource($name, $pluginPrefixes),
+                'confirmed'  => false,
+                'pluginName' => null,
             ];
         }, $rows);
+
+        return $this->attachPluginNames($this->applySourceScan($options));
+    }
+
+    /**
+     * Translates a guessed slug ("insert-headers-and-footers") into the plugin's declared,
+     * human-readable Name header ("WPCode"): a plain header read on the one guessed plugin's
+     * main file, not a source scan, so it stays cheap regardless of how many options are listed.
+     * Only ever looked up for slugs actually guessed above, never every active plugin.
+     *
+     * @param array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}> $options
+     * @return array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}>
+     */
+    private function attachPluginNames(array $options): array
+    {
+        $guessedSlugs = array_values(array_unique(array_filter(array_map(
+            static fn(array $option): ?string => $option['guess'],
+            $options,
+        ))));
+
+        $names = $this->pluginDisplayNames($guessedSlugs);
+
+        return array_map(static function (array $option) use ($names): array {
+            if ($option['guess'] !== null) {
+                $option['pluginName'] = $names[$option['guess']] ?? null;
+            }
+
+            return $option;
+        }, $options);
+    }
+
+    /**
+     * @param array<int, string> $slugs
+     * @return array<string, string> plugin slug => declared plugin Name (a slug missing its own
+     *         header, or no longer active, is simply absent from the result, decoration only)
+     */
+    private function pluginDisplayNames(array $slugs): array
+    {
+        if ($slugs === [] || !defined('WP_PLUGIN_DIR')) {
+            return [];
+        }
+
+        $entries = $this->activePluginEntries();
+
+        $names = [];
+        foreach ($slugs as $slug) {
+            $entry = $entries[$slug] ?? null;
+            $path = $entry === null ? null : WP_PLUGIN_DIR . '/' . $entry;
+            if ($path === null || !is_file($path)) {
+                continue;
+            }
+
+            // get_file_data() reads just the declared header fields (a small prefix of the
+            // file), the same lightweight mechanism this plugin's own loopress.php uses for its
+            // own Version header, not a full parse or execution of the plugin's code. The header
+            // label really is "Plugin Name:" (WP core's own get_plugin_data() searches for the
+            // same 'Plugin Name' string, "Name" alone never matches).
+            $name = (string) get_file_data($path, ['Name' => 'Plugin Name'])['Name'];
+            if ($name !== '') {
+                $names[$slug] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @param array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}> $options
+     * @return array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}>
+     */
+    private function applySourceScan(array $options): array
+    {
+        // Only what the cheap heuristic above left unresolved: no point re-scanning gigabytes of
+        // plugin source for a name already certain (core) or already guessed by name.
+        $unresolved = array_values(array_map(
+            static fn(array $option): string => $option['name'],
+            array_filter($options, static fn(array $option): bool => !$option['core'] && $option['guess'] === null),
+        ));
+
+        $sourceHits = $this->scanActivePluginSourceForOptions($unresolved);
+
+        return array_map(static function (array $option) use ($sourceHits): array {
+            $hits = $sourceHits[$option['name']] ?? [];
+            // Found in more than one active plugin's code (a linter/scanner referencing a name it
+            // checks for, without owning it, is the common real cause): honestly "don't know"
+            // beats picking one of several candidates or listing all of them as if equally likely.
+            if (count($hits) === 1) {
+                $option['guess']     = $hits[0];
+                // A real scan hit, not just a naming pattern: confirmed outright.
+                $option['confirmed'] = true;
+            }
+
+            return $option;
+        }, $options);
+    }
+
+    /**
+     * One pass per active plugin file (not per option name): each file is read once, then tested
+     * against every still-unresolved option name in memory, rather than re-reading every file
+     * once per name. Matches a quoted PHP string literal ('name' or "name"), not a raw substring,
+     * to avoid a false hit from an unrelated word merely containing the option name.
+     *
+     * Reports every plugin whose source matched, not just one: a plugin checking
+     * `if (get_option('wpseo_titles'))` to detect Yoast, without being Yoast, is a real, common
+     * pattern this can't distinguish from real ownership on its own, so listOptionNames() (the
+     * only caller) treats more than one hit as ambiguous and shows neither, rather than picking
+     * one arbitrarily.
+     *
+     * @param array<int, string> $unresolvedNames
+     * @return array<string, array<int, string>> option name => plugin slugs whose source
+     *         references it
+     */
+    private function scanActivePluginSourceForOptions(array $unresolvedNames): array
+    {
+        if ($unresolvedNames === [] || !defined('WP_PLUGIN_DIR')) {
+            return [];
+        }
+
+        $hits = [];
+        foreach (array_keys($this->activePluginEntries()) as $slug) {
+            $pluginDir = WP_PLUGIN_DIR . '/' . $slug;
+            if (!is_dir($pluginDir)) {
+                continue;
+            }
+
+            foreach ($this->phpFilesIn($pluginDir) as $file) {
+                $content = file_get_contents($file); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                if ($content === false) {
+                    continue;
+                }
+
+                foreach ($unresolvedNames as $name) {
+                    if (self::containsQuotedName($content, $name)) {
+                        $hits[$name][] = $slug;
+                    }
+                }
+            }
+        }
+
+        foreach ($hits as $name => $slugs) {
+            $hits[$name] = array_values(array_unique($slugs));
+        }
+
+        return $hits;
+    }
+
+    private static function containsQuotedName(string $content, string $name): bool
+    {
+        return str_contains($content, "'{$name}'") || str_contains($content, "\"{$name}\"");
+    }
+
+    // Pruned before descending (not filtered after), so traversal never opens these directories
+    // at all: this is most of the win (confirmed live: ~10-17s down to ~1.5-2.5s on a real site,
+    // one active plugin's bundled QA-tool vendor/ alone was 19 of its 20MB). Justified, not
+    // arbitrary: WordPress.org plugins keep third-party code, fixtures, and translation files out
+    // of the PHP that actually calls get_option()/update_option() for the plugin's own options.
+    private const SKIPPED_DIR_NAMES = ['vendor', 'node_modules', 'tests', 'test', 'languages'];
+
+    /** @return \Generator<string> */
+    private function phpFilesIn(string $dir): \Generator
+    {
+        $filter = new \RecursiveCallbackFilterIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            static function (mixed $current): bool {
+                if (!$current instanceof \SplFileInfo) {
+                    return true;
+                }
+
+                return !$current->isDir() || !in_array($current->getFilename(), self::SKIPPED_DIR_NAMES, true);
+            },
+        );
+        $iterator = new \RecursiveIteratorIterator($filter);
+
+        foreach ($iterator as $file) {
+            if ($file instanceof \SplFileInfo && $file->isFile() && $file->getExtension() === 'php') {
+                yield $file->getPathname();
+            }
+        }
+    }
+
+    /** @return array<string, string> plugin slug => active_plugins entry (slug/main-file.php) */
+    private function activePluginEntries(): array
+    {
+        $active = get_option('active_plugins', []);
+        if (!is_array($active)) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($active as $entry) {
+            if (!is_string($entry) || !str_contains($entry, '/')) {
+                continue; // a single-file plugin (e.g. hello.php) has no folder slug
+            }
+
+            $slug = (string) strstr($entry, '/', true);
+            if ($slug !== '') {
+                $entries[$slug] = $entry;
+            }
+        }
+
+        return $entries;
     }
 
     // Below this, a slug's first hyphen-segment ("seo" from "seo-by-rank-math") is too generic to
@@ -89,22 +315,8 @@ class OptionsService
     /** @return array<string, string> option-name prefix (with trailing underscore) => plugin slug */
     private function activePluginPrefixes(): array
     {
-        $active = get_option('active_plugins', []);
-        if (!is_array($active)) {
-            return [];
-        }
-
         $prefixes = [];
-        foreach ($active as $entry) {
-            if (!is_string($entry) || !str_contains($entry, '/')) {
-                continue; // a single-file plugin (e.g. hello.php) has no folder slug to guess from
-            }
-
-            $slug = (string) strstr($entry, '/', true);
-            if ($slug === '') {
-                continue;
-            }
-
+        foreach (array_keys($this->activePluginEntries()) as $slug) {
             $candidates = [$slug];
             $firstSegment = strstr($slug, '-', true);
             if ($firstSegment !== false && strlen($firstSegment) >= self::MIN_GUESS_SEGMENT_LENGTH) {

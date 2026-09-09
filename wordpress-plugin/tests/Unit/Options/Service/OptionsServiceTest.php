@@ -49,8 +49,8 @@ class OptionsServiceTest extends TestCase
 
         $this->assertSame(
             [
-                ['name' => 'blogname', 'autoload' => 'yes', 'core' => true, 'guess' => null],
-                ['name' => 'my_plugin_settings', 'autoload' => 'no', 'core' => false, 'guess' => null],
+                ['name' => 'blogname', 'autoload' => 'yes', 'core' => true, 'guess' => null, 'confirmed' => false, 'pluginName' => null],
+                ['name' => 'my_plugin_settings', 'autoload' => 'no', 'core' => false, 'guess' => null, 'confirmed' => false, 'pluginName' => null],
             ],
             $result,
         );

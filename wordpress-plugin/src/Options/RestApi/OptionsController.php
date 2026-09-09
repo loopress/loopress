@@ -54,7 +54,11 @@ class OptionsController
     // Names+autoload only, values never included: this is a discovery endpoint (skim the site's
     // options to find the one you want to track), not a bulk export. Reading a value is a
     // separate, deliberate call to GET /options/{name}.
-    public function list_options(): WP_REST_Response
+    //
+    // Every call scans active plugins' own PHP source for every option name the (much cheaper)
+    // naming guess left unresolved, to find new guesses (roughly 1-3s on a real site once
+    // vendor/tests/languages are pruned from the scan; see OptionsService::listOptionNames()).
+    public function list_options(WP_REST_Request $request): WP_REST_Response
     {
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response($this->optionsService->listOptionNames(), 200),

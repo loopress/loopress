@@ -76,6 +76,9 @@
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Snippets/RestApi/*</exclude-pattern>
+        <!-- list_options() keeps $request for the register_rest_route() callback contract even
+             though its only remaining use (the removed ?quick_source flag) is gone. -->
+        <exclude-pattern>src/Options/RestApi/*</exclude-pattern>
         <!-- AppShortcode::render()'s trailing $content and $tag complete the do_shortcode
              callback contract; this shortcode reads neither. Mirrors psalm.xml. -->
         <exclude-pattern>src/Apps/Frontend/AppShortcode.php</exclude-pattern>
@@ -131,6 +134,7 @@
     <rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
         <exclude-pattern>tests/Unit/Seo/Service/RankMathServiceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Options/Service/OptionsServiceTest.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/Options/Service/OptionsServiceSourceScanTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PHPCompatibilityWP"/>

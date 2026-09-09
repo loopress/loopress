@@ -38,7 +38,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->method('listOptionNames')->willReturn([['name' => 'blogname', 'autoload' => 'yes']]);
 
-        $response = $this->controller->list_options();
+        $response = $this->controller->list_options(new WP_REST_Request());
 
         $this->assertSame(200, $response->status);
         $this->assertSame([['name' => 'blogname', 'autoload' => 'yes']], $response->data);

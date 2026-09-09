@@ -30,13 +30,19 @@ export type RemoteOption = {
 
 // GET /options row shape: discovery only, never a value (see OptionsController). `core` is a
 // certain fact (matched against WordPress's own install-time defaults); `guess` is a best-effort,
-// possibly-wrong hint (an active plugin's slug whose prefix happens to match), always null once
-// `core` is true. Never conflate the two in the UI.
+// possibly-wrong hint (an active plugin's slug whose prefix happens to match, or a source-scan
+// hit, always run), always null once `core` is true. `confirmed` is only meaningful when `guess`
+// is set: true means the guessed plugin's own source really does reference the name (a real scan
+// hit), still not proof of ownership the way `core` is, but stronger than an unconfirmed naming
+// match. `pluginName` is a plain lookup of `guess` (the slug) against that plugin's own declared
+// Name header, purely a label, it carries no confidence of its own; null whenever `guess` is.
 export type ListedOption = {
   autoload: string
+  confirmed: boolean
   core: boolean
   guess: null | string
   name: string
+  pluginName: null | string
 }
 
 export function isReservedOptionName(name: string): boolean {
