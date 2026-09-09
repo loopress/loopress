@@ -32,7 +32,7 @@
         }
     },
     "require-dev": {
-        "php-stubs/wordpress-stubs": "^6.6",
+        "php-stubs/wordpress-stubs": "^7.1.0",
         "phpunit/phpunit": "^11.0",
         "brain/monkey": "^2.6",
         "phpstan/phpstan": "^2.0",
