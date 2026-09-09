@@ -135,7 +135,7 @@ export default class List extends LoopressCommand {
 
   static flags = {
     'no-core': Flags.boolean({
-      description: 'Hide WordPress-native default options and the CORE column from the output (display only, does not affect --json)',
+      description: 'Exclude WordPress-native default options and the CORE column from the output, including --json',
     }),
   }
 

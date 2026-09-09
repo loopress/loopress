@@ -44,6 +44,22 @@ describe('option-format', () => {
     it('throws when the "name" field is missing', () => {
       expect(() => parseLocalOption(JSON.stringify({value: 'Hello'}))).toThrow('missing a "name" string')
     })
+
+    it('throws when "autoload" is missing or not a string', () => {
+      expect(() => parseLocalOption(JSON.stringify({name: 'blogname', value: 'Hello'}))).toThrow('missing an "autoload" string')
+      expect(() => parseLocalOption(JSON.stringify({autoload: true, name: 'blogname', value: 'Hello'}))).toThrow(
+        'missing an "autoload" string',
+      )
+    })
+
+    it('throws when the "value" field is entirely absent, but allows an explicit null', () => {
+      expect(() => parseLocalOption(JSON.stringify({autoload: 'yes', name: 'blogname'}))).toThrow('missing a "value" field')
+      expect(parseLocalOption(JSON.stringify({autoload: 'yes', name: 'blogname', value: null}))).toEqual({
+        autoload: 'yes',
+        name: 'blogname',
+        value: null,
+      })
+    })
   })
 
   describe('partitionByReadonly', () => {

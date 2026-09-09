@@ -73,9 +73,20 @@ export function parseLocalOption(raw: string): LocalOption {
     throw new Error('not a JSON object')
   }
 
-  const {name} = parsed as {name?: unknown}
+  const {autoload, name, value} = parsed as {autoload?: unknown; name?: unknown; value?: unknown}
   if (typeof name !== 'string' || name === '') {
     throw new Error('missing a "name" string')
+  }
+
+  if (typeof autoload !== 'string') {
+    throw new TypeError('missing an "autoload" string')
+  }
+
+  // `value` itself is deliberately untyped (a WP option can hold any JSON-safe value, including
+  // null); only the key's presence is checked, so a hand-edited file that dropped it entirely is
+  // rejected here rather than silently pushing an `undefined` value to WordPress.
+  if (value === undefined) {
+    throw new Error('missing a "value" field')
   }
 
   return parsed as LocalOption

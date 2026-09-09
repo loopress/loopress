@@ -68,14 +68,20 @@ export default class Remove extends LoopressCommand {
       }
     }
 
+    let deletedRemote = true
     try {
       await this.wp.delete(optionEndpoint(name))
     } catch (error) {
       if (!isNotFoundError(error)) throw error
+      deletedRemote = false
     }
 
     await rm(file, {force: true})
-    this.log(`Removed "${name}" from ${url} and untracked it locally`)
-    return {deletedRemote: true, name, status: 'success'}
+    this.log(
+      deletedRemote
+        ? `Removed "${name}" from ${url} and untracked it locally`
+        : `"${name}" was already absent on ${url}; untracked it locally`,
+    )
+    return {deletedRemote, name, status: 'success'}
   }
 }

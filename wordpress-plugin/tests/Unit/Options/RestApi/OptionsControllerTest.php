@@ -76,6 +76,21 @@ class OptionsControllerTest extends TestCase
         $this->assertSame(400, $response->status);
     }
 
+    // Regression coverage: get_json_params() returns whatever json_decode() produced for the raw
+    // request body, a bare `null` included (an empty body, or a literal "null" body); this must
+    // still resolve to the same clean 400, not an uncaught TypeError from array_key_exists().
+    public function test_update_option_returns_400_when_the_json_body_is_null(): void
+    {
+        $this->optionsService->expects($this->never())->method('updateOption');
+
+        $request = new WP_REST_Request(['name' => 'blogname']);
+        $request->set_json_params(null);
+
+        $response = $this->controller->update_option($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_update_option_returns_200_with_the_updated_option(): void
     {
         $this->optionsService->expects($this->once())

@@ -102,12 +102,13 @@ describe('option remove', () => {
 
   it('tolerates a 404 (already deleted remotely) and still untracks locally', async () => {
     writeFileSync(join(dir, 'blogname.json'), '{}')
-    const {cmd, del} = makeCmd(['blogname', '--path', dir])
+    const {cmd, del, logs} = makeCmd(['blogname', '--path', dir])
     del.mockRejectedValueOnce(new Error('Not Found', {cause: {response: {statusCode: 404}}}))
 
     const result = await cmd.run()
 
     expect(existsSync(join(dir, 'blogname.json'))).toBe(false)
-    expect(result).toMatchObject({deletedRemote: true, status: 'success'})
+    expect(result).toMatchObject({deletedRemote: false, status: 'success'})
+    expect(logs.log).toHaveBeenCalledWith('"blogname" was already absent on https://staging.acme.com; untracked it locally')
   })
 })

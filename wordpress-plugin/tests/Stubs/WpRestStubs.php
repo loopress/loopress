@@ -11,6 +11,8 @@ if (!class_exists('WP_REST_Request')) {
         private array $params = [];
         private string $method = '';
         private array $attributes = [];
+        private mixed $jsonParams = null;
+        private bool $jsonParamsOverridden = false;
 
         /**
          * Accepts either the real WordPress signature (string $method, string $route) or, for
@@ -36,9 +38,18 @@ if (!class_exists('WP_REST_Request')) {
             $this->params[$key] = $value;
         }
 
-        public function get_json_params(): array
+        // Real WP_REST_Request::get_json_params() decodes the raw request body and can return
+        // anything json_decode() produces (null, a scalar, an array), not just an array. Left
+        // unset, it falls back to $params like before, so existing callers are unaffected.
+        public function set_json_params(mixed $value): void
         {
-            return $this->params;
+            $this->jsonParams          = $value;
+            $this->jsonParamsOverridden = true;
+        }
+
+        public function get_json_params(): mixed
+        {
+            return $this->jsonParamsOverridden ? $this->jsonParams : $this->params;
         }
 
         public function get_route(): string

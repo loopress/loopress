@@ -80,7 +80,11 @@ class OptionsController
     public function update_option(WP_REST_Request $request): WP_REST_Response
     {
         $body = $request->get_json_params();
-        if (!array_key_exists('value', $body)) {
+        // get_json_params() returns whatever json_decode() produced: an empty body, a bare
+        // `null`, or any other JSON scalar all decode to something array_key_exists() can't
+        // accept, which throws rather than returning false. is_array() first keeps this a clean
+        // 400 instead of an uncaught TypeError bypassing mapServiceExceptions() below.
+        if (!is_array($body) || !array_key_exists('value', $body)) {
             return new WP_REST_Response(['error' => 'Request body must include a "value".'], 400);
         }
 
