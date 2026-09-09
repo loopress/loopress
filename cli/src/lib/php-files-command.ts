@@ -1,4 +1,4 @@
-import {Args} from '@oclif/core'
+import {Args, type Config} from '@oclif/core'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
@@ -63,6 +63,16 @@ type PullResult = {
   status: 'dry-run' | 'success'
 }
 
+// Each factory hands back a concrete, `new`-able command class. Typing the return as the bare
+// abstract base (`typeof PushCommand`) would make `new X(...)` a type error in the command
+// tests; leaving it to infer the anonymous class trips TS4094 on the class's protected
+// members. A construct signature onto a named instance type (with `run`'s real return) avoids
+// both.
+export type CommandClass<TInstance> = new (argv: string[], config: Config) => TInstance
+export type PushFilesCommand = Omit<PushCommand, 'run'> & {run(): Promise<PushResult>}
+export type PullFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<PullResult>}
+export type ListFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<PhpFile[]>}
+
 // Mirrors wordpress-plugin FileWriter::DECLARE_PATTERN / withGuard(): the server rejects both
 // an absent declare(strict_types=1); and one that appears more than once (it needs a single
 // unambiguous insertion point for the ABSPATH guard). Matching "exactly once" here, not just
@@ -87,7 +97,7 @@ async function loadPhpFiles(command: LoopressCommand, dir: string): Promise<PhpF
   })
 }
 
-export function resourcePushCommand(spec: PhpFilesResource): typeof PushCommand {
+export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFilesCommand> {
   class ResourcePush extends PushCommand {
     static args = pathArg(spec.pathNoun)
     static description = spec.pushDescription
@@ -171,7 +181,7 @@ export function resourcePushCommand(spec: PhpFilesResource): typeof PushCommand 
   return ResourcePush
 }
 
-export function resourcePullCommand(spec: PhpFilesResource): typeof LoopressCommand {
+export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFilesCommand> {
   class ResourcePull extends LoopressCommand {
     static args = pathArg(spec.pathNoun)
     static description = spec.pullDescription
@@ -224,7 +234,7 @@ export function resourcePullCommand(spec: PhpFilesResource): typeof LoopressComm
   return ResourcePull
 }
 
-export function resourceListCommand(spec: PhpFilesResource): typeof LoopressCommand {
+export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFilesCommand> {
   class ResourceList extends LoopressCommand {
     static description = spec.listDescription
     static enableJsonFlag = true
