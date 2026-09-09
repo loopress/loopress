@@ -6,7 +6,6 @@ import { AppShell } from './AppShell';
 import { DiagnosticsBanner } from './dependencies/DiagnosticsBanner';
 import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
-import { SnippetMigrationPanel } from './snippets/SnippetMigrationPanel';
 import { ApiRoutes } from './api-routes/ApiRoutes';
 import { AppsPanel } from './apps/AppsPanel';
 import { UpdateNotice } from './update/UpdateNotice';
@@ -16,7 +15,6 @@ import { useHashTab } from './useHashTab';
 
 const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
-    { name: 'snippets', title: 'Snippets' },
     { name: 'api', title: 'API' },
     { name: 'apps', title: 'Apps' },
     { name: 'diagnostics', title: 'Diagnostics' },
@@ -76,8 +74,6 @@ export default function App() {
                     <div style={{ marginTop: 16 }}>
                         {tab.name === 'dependencies' ? (
                             <DependencyManagement />
-                        ) : tab.name === 'snippets' ? (
-                            <SnippetMigrationPanel />
                         ) : tab.name === 'api' ? (
                             <ApiRoutes />
                         ) : tab.name === 'apps' ? (

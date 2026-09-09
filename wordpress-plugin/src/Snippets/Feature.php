@@ -9,13 +9,10 @@ use Loopress\Contract\Module;
 use Loopress\Snippets\Infrastructure\CodeSnippetsSnippetProvider;
 use Loopress\Snippets\Infrastructure\WPCodeSnippetProvider;
 use Loopress\Snippets\Module\SnippetModule;
-use Loopress\Snippets\Service\SnippetMigrationService;
 use Loopress\Snippets\Service\SnippetService;
 use Psr\Container\ContainerInterface;
 
-use function DI\autowire;
 use function DI\factory;
-use function DI\get;
 
 /**
  * Entry point of the snippet sync feature (Code Snippets / WPCode). Everything under
@@ -27,9 +24,6 @@ use function DI\get;
  */
 class Feature implements FeatureProvider
 {
-    private const MIGRATION_WPCODE_TO_CODE_SNIPPETS = 'loopress.snippets.migration.wpcode_to_code_snippets';
-    private const MIGRATION_CODE_SNIPPETS_TO_WPCODE  = 'loopress.snippets.migration.code_snippets_to_wpcode';
-
     /** @return array<string, mixed> */
     public static function definitions(): array
     {
@@ -40,23 +34,6 @@ class Feature implements FeatureProvider
                 $c->get(WPCodeSnippetProvider::class),
                 $c->get(CodeSnippetsSnippetProvider::class),
             )),
-
-            // Both migration directions need the same two concrete provider types in a
-            // different source/destination order: autowiring SnippetMigrationService by type
-            // alone is ambiguous, so each direction is its own named, explicitly-wired entry,
-            // built directly rather than autowired.
-            self::MIGRATION_WPCODE_TO_CODE_SNIPPETS => factory(static fn(ContainerInterface $c): SnippetMigrationService => new SnippetMigrationService(
-                $c->get(WPCodeSnippetProvider::class),
-                $c->get(CodeSnippetsSnippetProvider::class),
-            )),
-            self::MIGRATION_CODE_SNIPPETS_TO_WPCODE => factory(static fn(ContainerInterface $c): SnippetMigrationService => new SnippetMigrationService(
-                $c->get(CodeSnippetsSnippetProvider::class),
-                $c->get(WPCodeSnippetProvider::class),
-            )),
-
-            SnippetModule::class => autowire()
-                ->constructorParameter('wpCodeToCodeSnippets', get(self::MIGRATION_WPCODE_TO_CODE_SNIPPETS))
-                ->constructorParameter('codeSnippetsToWpCode', get(self::MIGRATION_CODE_SNIPPETS_TO_WPCODE)),
         ];
     }
 

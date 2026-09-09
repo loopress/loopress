@@ -19,7 +19,6 @@ Features:
 * Sync ACF field groups, post types, taxonomies, and options pages with `lps acf pull` / `lps acf push`
 * Sync SEO settings and redirects (Yoast, RankMath) with `lps seo pull` / `lps seo push`
 * Works with Code Snippets and WPCode, no migration needed
-* Migrate snippets between WPCode and Code Snippets, one click at a time
 * Pull snippets from the site as files with `lps snippet pull`, push edits back with `lps snippet push`
 * Install and remove Composer packages from the admin panel
 * Audit installed packages for known security advisories
