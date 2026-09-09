@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, readdirSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test, unwrap, type WpCredentials} from './helpers/environment.js'
@@ -151,6 +151,32 @@ test('never touches a hand-created file with no numeric id prefix while cleaning
   const result = await runCli(['form', 'pull'])
   expect(result.exitCode).toBe(0)
   expect(existsSync(join(formsDir, 'hand-written.json'))).toBe(true)
+})
+
+// Same DiffCommand machinery as `snippet diff` (covered in diff.spec.ts), driven through the
+// form provider and its `<id>-<slug>.json` file layout.
+test('form diff reports no drift after a push + pull, then flags a local edit', async ({projectDir, runCli}) => {
+  const formsDir = join(projectDir, 'forms')
+  writeForm(formsDir, 'diff', `E2E form diff ${Date.now()}`)
+
+  expect((await runCli(['form', 'push'])).exitCode).toBe(0)
+  // Capture the pushed file's `<id>-<slug>.json` name now, while it is the only one; the pull
+  // below repopulates the directory with every form on the shared instance.
+  const fileName = soleJsonFile(formsDir)
+  expect((await runCli(['form', 'pull'])).exitCode).toBe(0)
+
+  const inSync = await runCli(['form', 'diff'])
+  expect(inSync.exitCode, inSync.stdout + inSync.stderr).toBe(0)
+  expect(inSync.stdout).toContain('Everything is in sync')
+
+  const file = join(formsDir, fileName)
+  const form = JSON.parse(readFileSync(file, 'utf8')) as {settings: {form_title: string}}
+  form.settings.form_title = `${form.settings.form_title} (edited)`
+  writeFileSync(file, JSON.stringify(form))
+
+  const drifted = await runCli(['form', 'diff'])
+  expect(drifted.exitCode).toBe(1)
+  expect(drifted.stdout).toContain('Drift detected')
 })
 
 // FormService::requireActiveProvider() only has one real provider today (WPForms), so "multiple

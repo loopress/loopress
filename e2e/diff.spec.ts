@@ -1,7 +1,7 @@
 import {mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {expect, test} from './helpers/environment.js'
+import {expect, test, unwrap} from './helpers/environment.js'
 import {setPluginActive} from './helpers/wp-admin.js'
 
 // Pin the snippet backend so the round-trip is deterministic, same as snippet-sync.spec.ts.
@@ -71,4 +71,44 @@ test('the aggregate `lps diff --only snippet` sees a snippet edit as drift', asy
 
   expect(result.exitCode).toBe(1)
   expect(result.stdout).toContain('Snippets')
+})
+
+// The aggregate `lps diff` compares several resources in one run and ORs their exit codes
+// (0 in sync, 1 drift), so it doubles as a CI drift gate. This drives two providers at once
+// and checks the drift is attributed to the edited one only, not smeared across the report.
+test('the aggregate `lps diff` evaluates every selected resource and isolates drift to the changed one', async ({
+  projectDir,
+  runCli,
+}) => {
+  const stamp = Date.now()
+  const snippetsDir = join(projectDir, 'snippets')
+  const marker = `echo "agg-${stamp}"`
+  writeSnippet(snippetsDir, 'agg-me', `E2E diff agg ${stamp}`, `<?php\n\n${marker};\n`)
+
+  const apiDir = join(projectDir, 'api')
+  mkdirSync(apiDir, {recursive: true})
+  writeFileSync(
+    join(apiDir, `agg-route-${stamp}.php`),
+    `<?php\n\ndeclare(strict_types=1);\n\nfinal class AggRoute${stamp}\n{\n    public function get(): array\n    {\n        return [];\n    }\n}\n`,
+  )
+
+  await runCli(['snippet', 'push'])
+  await runCli(['api', 'push'])
+  await runCli(['snippet', 'pull'])
+  await runCli(['api', 'pull'])
+
+  const inSync = await runCli(['diff', '--only', 'snippet', '--only', 'api'])
+  expect(inSync.exitCode, inSync.stdout + inSync.stderr).toBe(0)
+  expect(inSync.stdout).toContain('Everything is in sync')
+
+  writeFileSync(findByMarker(snippetsDir, marker), `<?php\n\necho "agg-changed-${stamp}";\n`)
+
+  const drifted = await runCli(['diff', '--only', 'snippet', '--only', 'api'])
+  expect(drifted.exitCode).toBe(1)
+  expect(drifted.stdout).toContain('Drift detected')
+  // The API provider still ran and came back clean; only the snippet is flagged. `in sync` is
+  // colour-wrapped (Playwright runs the CLI with FORCE_COLOR), so strip ANSI before matching.
+  const plain = unwrap(drifted.stdout.replaceAll(/\u001b\[[0-9;]*m/g, ''))
+  expect(plain).toContain('API routes in sync')
+  expect(plain).toMatch(/~ \d+/)
 })
