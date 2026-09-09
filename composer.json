@@ -1,0 +1,30 @@
+{
+    "name": "loopress/php-attributes",
+    "description": "PHP attribute classes referenced by Loopress api/ route files and hooks/ files, for editor autocomplete and static analysis. Declarations only, nothing executes.",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://loopress.dev",
+    "keywords": ["loopress", "wordpress", "static-analysis", "attributes"],
+    "support": {
+        "issues": "https://github.com/loopress/loopress/issues",
+        "source": "https://github.com/loopress/loopress"
+    },
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Loopress\\Api\\Attribute\\": "wordpress-plugin/src/Api/Attribute/",
+            "Loopress\\Hooks\\Attribute\\": "wordpress-plugin/src/Hooks/Attribute/"
+        }
+    },
+    "archive": {
+        "exclude": [
+            "/*",
+            "!/composer.json",
+            "!/LICENSE",
+            "!/wordpress-plugin/src/Api/Attribute",
+            "!/wordpress-plugin/src/Hooks/Attribute"
+        ]
+    }
+}

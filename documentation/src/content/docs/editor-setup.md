@@ -77,6 +77,29 @@ vendor/bin/phpstan analyse
 
 This catches a wrong argument type or a misspelled WordPress function before `lps api push` does, and it runs fine in CI since it needs no WordPress installation. The Loopress plugin itself is checked this way at level 9.
 
+## Loopress attribute classes
+
+Route files and hook files also reference a handful of Loopress attribute classes: `#[Permission]` in `api/` files, `#[Action]`, `#[Filter]`, and `#[Cron]` in `hooks/` files. WordPress stubs don't cover these, so `use Loopress\Hooks\Attribute\Action;` stays flagged as undefined until you pull them in.
+
+They ship as their own zero-dependency Composer package, `loopress/php-attributes`. It isn't on Packagist yet, so point Composer at the repository in your project's `composer.json`:
+
+```json
+{
+  "repositories": [
+    { "type": "vcs", "url": "https://github.com/loopress/loopress" }
+  ],
+  "require-dev": {
+    "loopress/php-attributes": "dev-main"
+  }
+}
+```
+
+```bash
+composer update loopress/php-attributes
+```
+
+The package holds only the attribute class declarations, nothing executes and nothing reaches your WordPress site. Once installed they resolve through `vendor/autoload.php` like any other class, so PhpStorm and Intelephense index them automatically and PHPStan picks them up with no extra `bootstrapFiles` line.
+
 ## Stubs for other plugins
 
 The `php-stubs` organization publishes stubs for major plugins too, useful when your route files or snippets call their functions:

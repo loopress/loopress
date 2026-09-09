@@ -8,7 +8,7 @@ Hooks are a [Loopress Full](/wordpress-plugin/) feature, not available in Loopre
 :::
 
 :::tip
-Since these files call WordPress functions from a repo where WordPress isn't installed, set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor.
+Since these files call WordPress functions from a repo where WordPress isn't installed, set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor. The same page covers the [`loopress/php-attributes`](/editor-setup/#loopress-attribute-classes) package, which resolves the `#[Action]`, `#[Filter]`, and `#[Cron]` attributes used below.
 :::
 
 A hook file is a plain PHP file in your project's `hooks/` directory. Deployed with `lps hook push`, each file's class binds one or more WordPress actions, filters, or cron jobs directly, the same primitive a `functions.php` snippet would use, just version-controlled and pushed like the rest of your project.

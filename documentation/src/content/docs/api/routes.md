@@ -10,7 +10,7 @@ Custom API Routes are a [Loopress Full](/wordpress-plugin/) feature, not availab
 A route file is a plain PHP file in your project's `api/` directory. Deployed with [`lps api push`](/api/cli/), each file becomes one REST route on the site. This page is the complete reference for what a route file can do.
 
 :::tip
-Since these files call WordPress functions from a repo where WordPress isn't installed, set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor.
+Since these files call WordPress functions from a repo where WordPress isn't installed, set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor. The same page covers the [`loopress/php-attributes`](/editor-setup/#loopress-attribute-classes) package, which resolves the `#[Permission]` attribute used for authentication below.
 :::
 
 ## Anatomy of a route file
