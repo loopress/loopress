@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@opentelemetry/core@<2.8.0': ^2.8.0
+  csv-parse@<7.0.2: ^7.0.2
   linkify-it@<=5.0.0: ^5.0.1
   linkify-it@<=5.0.1: ^5.0.2
   markdown-it@<=14.1.1: ^14.2.0
@@ -6448,8 +6449,8 @@ packages:
   csv-generate@3.4.3:
     resolution: {integrity: sha512-w/T+rqR0vwvHqWs/1ZyMDWtHHSJaN06klRqJXBEpDJaM/+dZkso0OKh1VcuuYvK3XM53KysVNq8Ko/epCK8wOw==}
 
-  csv-parse@4.16.3:
-    resolution: {integrity: sha512-cO1I/zmz4w2dcKHVvpCr7JVRu8/FymG5OEpmvsZYlccYolPBLoVGKUHgNoc4ZGkFeFlWGEDmMyBM+TTqRdW/wg==}
+  csv-parse@7.0.2:
+    resolution: {integrity: sha512-uKZghv9UmPkMVLYy//KZ9HFAIJsl7wkhoEdIL0+rhuSY9pZQlhaeGEDPIe+/w7eh81MOql8Q/9+inAGWG6ZHYA==}
 
   csv-stringify@5.6.5:
     resolution: {integrity: sha512-PjiQ659aQ+fUTQqSrd1XEDnOr52jh30RBurfzkscaE2tPaFsDH5wOAHJiw8XAHphRknCwMUE9KRayc4K/NbO8A==}
@@ -19701,14 +19702,14 @@ snapshots:
 
   csv-generate@3.4.3: {}
 
-  csv-parse@4.16.3: {}
+  csv-parse@7.0.2: {}
 
   csv-stringify@5.6.5: {}
 
   csv@5.5.3:
     dependencies:
       csv-generate: 3.4.3
-      csv-parse: 4.16.3
+      csv-parse: 7.0.2
       csv-stringify: 5.6.5
       stream-transform: 2.1.3
 
