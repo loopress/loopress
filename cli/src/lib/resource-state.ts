@@ -196,64 +196,59 @@ const acfProvider: ResourceStateProvider = {
   title: 'ACF',
 }
 
-// ---- API routes ------------------------------------------------------------------------
+// ---- PHP file directories (API routes, hooks) -----------------------------------------
 
-// The value is the file's text, compared verbatim (line diff on change).
-const apiProvider: ResourceStateProvider = {
+// api/ and hooks/ are both just a recursive directory of PHP files whose text is compared
+// verbatim (line diff on change), no server-side normalization to undo. Only the directory
+// kind, the endpoint and the labels differ.
+function phpFilesProvider(spec: {
+  dirKind: ResourceDirKind
+  endpoint: string
+  resource: string
+  title: string
+}): ResourceStateProvider {
+  const toState = (files: Array<{content: string; filename: string}>): ResourceState => {
+    const state: ResourceState = new Map()
+    for (const file of files) state.set(file.filename, file.content)
+    return state
+  }
+
+  return {
+    dirKind: spec.dirKind,
+    async local(dir, onWarn) {
+      return toState(
+        await loadFiles<{content: string; filename: string}>(dir, {
+          extension: '.php',
+          onSkip: onWarn,
+          parse: (raw, filePath) => ({
+            content: raw,
+            filename: relative(dir, filePath).slice(0, -'.php'.length).split(sep).join('/'),
+          }),
+          recursive: true,
+        }),
+      )
+    },
+    async remote(wp) {
+      return toState(await wp.get<Array<{content: string; filename: string}>>(spec.endpoint))
+    },
+    resource: spec.resource,
+    title: spec.title,
+  }
+}
+
+const apiProvider = phpFilesProvider({
   dirKind: 'api',
-  async local(dir, onWarn) {
-    const files = await loadFiles<{content: string; filename: string}>(dir, {
-      extension: '.php',
-      onSkip: onWarn,
-      parse: (raw, filePath) => ({
-        content: raw,
-        filename: relative(dir, filePath).slice(0, -'.php'.length).split(sep).join('/'),
-      }),
-      recursive: true,
-    })
-    const state: ResourceState = new Map()
-    for (const file of files) state.set(file.filename, file.content)
-    return state
-  },
-  async remote(wp) {
-    const files = await wp.get<Array<{content: string; filename: string}>>('loopress/v1/api-files')
-    const state: ResourceState = new Map()
-    for (const file of files) state.set(file.filename, file.content)
-    return state
-  },
+  endpoint: 'loopress/v1/api-files',
   resource: 'api',
   title: 'API routes',
-}
+})
 
-// ---- Hooks ------------------------------------------------------------------------------
-
-// The value is the file's text, compared verbatim (line diff on change), same shape as
-// apiProvider above: a hook file is just PHP text, no server-side normalization to undo.
-const hookProvider: ResourceStateProvider = {
+const hookProvider = phpFilesProvider({
   dirKind: 'hooks',
-  async local(dir, onWarn) {
-    const files = await loadFiles<{content: string; filename: string}>(dir, {
-      extension: '.php',
-      onSkip: onWarn,
-      parse: (raw, filePath) => ({
-        content: raw,
-        filename: relative(dir, filePath).slice(0, -'.php'.length).split(sep).join('/'),
-      }),
-      recursive: true,
-    })
-    const state: ResourceState = new Map()
-    for (const file of files) state.set(file.filename, file.content)
-    return state
-  },
-  async remote(wp) {
-    const files = await wp.get<Array<{content: string; filename: string}>>('loopress/v1/hook-files')
-    const state: ResourceState = new Map()
-    for (const file of files) state.set(file.filename, file.content)
-    return state
-  },
+  endpoint: 'loopress/v1/hook-files',
   resource: 'hook',
   title: 'Hooks',
-}
+})
 
 // ---- SEO --------------------------------------------------------------------------------
 

@@ -1,9 +1,8 @@
-import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {isInteractive} from '../../lib/interactive.js'
+import {confirmUninstall} from '../../lib/interactive.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {isDowngrade, parseCollisions, SYNC_TIMEOUT_MS, type SyncResponse} from '../../utils/plugin-sync.js'
@@ -84,7 +83,7 @@ export default class Push extends PushCommand {
 
     if (this.dryRun) return result(diff, 'dry-run', diff.toRemove, true)
 
-    await this.confirmRemovals(diff.toRemove)
+    if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
 
     const response = await this.sync(manifest, force)
     if (response.output.trim()) this.log(response.output.trim())
@@ -92,12 +91,6 @@ export default class Push extends PushCommand {
     await this.recordSuccess()
 
     return result(diff, 'success', response.removed ?? diff.toRemove, force)
-  }
-
-  private async confirmRemovals(toRemove: string[]): Promise<void> {
-    if (toRemove.length === 0 || this.yes || !isInteractive()) return
-    const ok = await confirm({default: false, message: `Uninstall ${toRemove.join(', ')} from the site?`})
-    if (!ok) this.error('Aborted.')
   }
 
   private async fetchInstanceLock(): Promise<null | string> {

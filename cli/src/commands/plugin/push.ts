@@ -1,9 +1,8 @@
-import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {isInteractive} from '../../lib/interactive.js'
+import {confirmUninstall} from '../../lib/interactive.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {type InstalledPlugin, type WpNativePlugin} from '../../types/plugin.js'
@@ -76,7 +75,7 @@ export default class Push extends PushCommand {
       return this.result(diff, {includeCollisions: true, pruned: toPrune, removed: diff.toRemove, status: 'dry-run'})
     }
 
-    await this.confirmRemovals(diff.toRemove)
+    if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
     const deactivated = await this.deactivateEndangered(installed, diff, force)
     // Plugins that must end up active: the ones we deactivated for the file swap (minus any
     // being uninstalled) plus the ones the manifest wants active but that are inactive today.
@@ -117,12 +116,6 @@ export default class Push extends PushCommand {
 
       await this.wp.put(`wp/v2/plugins/${plugin.file}`, {status: 'active'})
     }
-  }
-
-  private async confirmRemovals(toRemove: string[]): Promise<void> {
-    if (toRemove.length === 0 || this.yes || !isInteractive()) return
-    const ok = await confirm({default: false, message: `Uninstall ${toRemove.join(', ')} from the site?`})
-    if (!ok) this.error('Aborted.')
   }
 
   private async deactivate(plugins: InstalledPlugin[]): Promise<void> {
