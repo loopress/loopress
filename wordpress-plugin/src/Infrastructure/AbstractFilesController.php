@@ -74,6 +74,20 @@ abstract class AbstractFilesController
                     ],
                 ],
             ],
+            [
+                'methods'             => 'DELETE',
+                'callback'            => [$this, 'delete_file'],
+                'permission_callback' => $this->permissionCallback(),
+                'args'                => [
+                    // Sent in the query string, not the body: a DELETE has no body in every
+                    // HTTP stack, and a nested slug's '/' and '[]' are safe there (unlike a
+                    // URL path segment, the reason push_file() takes 'filename' in the body).
+                    'filename' => [
+                        'required'          => true,
+                        'validate_callback' => static::isValidFilename(...),
+                    ],
+                ],
+            ],
         ]);
     }
 
@@ -191,6 +205,37 @@ abstract class AbstractFilesController
         }
 
         return new WP_REST_Response($response, 200);
+    }
+
+    // Removes one deployed file. This is the only way to take a route or hook off the server
+    // through the product: the files live under wp-content/, outside the plugin directory, so
+    // deactivating the plugin does not remove them, and before this endpoint a file pushed by
+    // a leaked token could only be cleared over SSH/SFTP (F3).
+    public function delete_file(WP_REST_Request $request): WP_REST_Response
+    {
+        $filename = (string) $request->get_param('filename');
+
+        // Defense in depth, same as push_file(): re-check the raw value here, not only via the
+        // register_routes() validate_callback, so the path that reaches the filesystem a line
+        // down is tied to the pattern in this method's own body.
+        if (!static::isValidFilename($filename)) {
+            return new WP_REST_Response(['error' => 'Invalid filename'], 400);
+        }
+
+        if (!$this->directory()->delete($filename)) {
+            return new WP_REST_Response(['error' => 'File not found'], 404);
+        }
+
+        // Drop any stale boot-time load error for this slug so list_files() stops reporting a
+        // file that no longer exists. The loader rewrites this option in full on its next pass
+        // regardless; this just keeps `lps <resource> list` consistent right after a delete.
+        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
+        if (is_array($loadErrors) && array_key_exists($filename, $loadErrors)) {
+            unset($loadErrors[$filename]);
+            update_option($this->directory()::LOAD_ERRORS_OPTION, $loadErrors, false);
+        }
+
+        return new WP_REST_Response(['filename' => $filename, 'deleted' => true], 200);
     }
 
     // Catches at push time what the loader would otherwise only discover, silently, at the

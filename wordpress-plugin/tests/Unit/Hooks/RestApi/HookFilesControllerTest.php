@@ -279,4 +279,36 @@ class HookFilesControllerTest extends TestCase
 
         $this->assertSame(500, $response->status);
     }
+
+    // ── delete_file ─────────────────────────────────────────────────────────
+
+    public function test_delete_file_removes_the_hook_file_and_returns_200(): void
+    {
+        $this->directory->expects($this->once())->method('delete')->with('content-filters')->willReturn(true);
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content-filters']));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['filename' => 'content-filters', 'deleted' => true], $response->data);
+    }
+
+    public function test_delete_file_returns_404_when_the_hook_file_is_absent(): void
+    {
+        $this->directory->method('delete')->willReturn(false);
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content-filters']));
+
+        $this->assertSame(404, $response->status);
+    }
+
+    // The hooks-only isValidFilename override (last segment "index") must gate DELETE too,
+    // not just PUT.
+    public function test_delete_file_returns_400_for_an_index_slug(): void
+    {
+        $this->directory->expects($this->never())->method('delete');
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content/index']));
+
+        $this->assertSame(400, $response->status);
+    }
 }

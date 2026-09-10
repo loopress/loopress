@@ -46,12 +46,14 @@ The server communicates over stdio from the directory your client launches it in
 | `snippet_push` | Yes | Push local snippet files to WordPress |
 | `snippet_pull` | No | Pull snippets from WordPress into local files |
 | `snippet_list` | No | List snippets currently on WordPress |
-| `api_push` | Yes | Push local custom API route files to WordPress |
+| `api_push` | Yes | Push local custom API route files to WordPress (`prune` also removes server-side files absent locally) |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress |
-| `hook_push` | Yes | Push local hook files to WordPress |
+| `api_rm` | Yes | Remove one custom API route file from WordPress |
+| `hook_push` | Yes | Push local hook files to WordPress (`prune` also removes server-side files absent locally) |
 | `hook_pull` | No | Pull hook files from WordPress |
 | `hook_list` | No | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
+| `hook_rm` | Yes | Remove one hook file (action, filter, cron) from WordPress |
 | `app_push` | Yes | Push built single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |

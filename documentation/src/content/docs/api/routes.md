@@ -402,5 +402,6 @@ Pushed files are stored in `wp-content/loopress/api/`, one `{filename}.php` per 
 - **Direct access is blocked.** `wp-content/` is publicly reachable over HTTP, so on push the plugin injects a standard `ABSPATH` guard right after the `declare` line. A direct browser request to the file exits immediately; the code only runs through the REST API. The guard is stripped again when the CLI pulls or lists files, so your local copies stay exactly as you wrote them.
 - **Directory listing is blocked** by an empty `index.php`.
 - **Writes are atomic.** Files are written to a temp file and renamed, so a REST request arriving mid-push never loads a half-written file.
+- **Removal goes through the product.** Because these files sit outside the plugin directory, deactivating the plugin does not delete them. Use [`lps api rm <slug>`](/api/cli/#lps-api-rm) to remove one, or [`lps api push --prune`](/api/cli/#lps-api-push) to remove every route absent locally. Uninstalling the plugin (deleting it, not just deactivating) removes the whole `wp-content/loopress/` tree, route files included.
 
 You never need to touch this directory: the CLI is the only intended writer, and [`lps api pull`](/api/cli/) reconstructs your local directory from it at any time.

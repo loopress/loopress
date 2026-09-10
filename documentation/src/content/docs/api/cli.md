@@ -77,17 +77,46 @@ lps api push [path]
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
+| `--prune` | After pushing, delete route files on WordPress that have no local counterpart |
+| `--yes` / `-y` | Skip the `--prune` confirmation prompt (required when `--prune` runs in a non-interactive shell) |
 
 What push does, and deliberately does not do:
 
 - **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with a malformed `declare(strict_types=1);` line, zero or more than one class declared, or a class name that collides with WordPress core, another active plugin, or another `api/` file. Invalid PHP syntax is also rejected (returning the parse error) when the server can run the check; where it's unavailable (no PHP CLI binary, `exec` disabled), the push succeeds and a broken file is instead caught later, when `RouteLoader` tries to load it. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
 - **One bad file doesn't block the rest.** Files are pushed one by one; a failure is reported per file and the remaining files still go through. The command exits with an error summarizing how many failed.
-- **Pushing never deletes a route on WordPress**, even if the local file is gone. Only `lps api pull` cleans up, and only locally.
+- **Without `--prune`, pushing never deletes a route on WordPress**, even if the local file is gone. `--prune` opts into removing routes absent locally: it lists them, asks for confirmation, then deletes each. In a non-interactive shell it refuses unless `--yes` is also given, because, unlike `lps api pull`'s local cleanup, a pruned route on the server is not recoverable from your repo.
 
 **Example:**
 
 ```bash
 lps api push ./api
+lps api push --prune        # also remove routes deleted locally
+```
+
+---
+
+### `lps api rm`
+
+Delete one route file from WordPress. This is the only way to take a route off the server through the CLI: route files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them.
+
+```bash
+lps api rm <filename>
+```
+
+| Argument | Description |
+|----------|-------------|
+| `filename` | The route slug without `.php`, e.g. `hello-world` or `invoice-pdf/[order_id]` |
+
+| Flag | Description |
+|------|-------------|
+| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
+| `--dry-run` / `-d` | Show what would be removed without deleting anything |
+
+**Example:**
+
+```bash
+lps api rm legacy-webhook
+lps api rm legacy-webhook --yes   # in CI
 ```
 
 ---

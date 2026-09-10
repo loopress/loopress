@@ -144,4 +144,19 @@ abstract class AbstractFilesDirectory
             throw new \RuntimeException(esc_html("Failed to write {$slug}.php: " . $e->getMessage()));
         }
     }
+
+    // Removes a single deployed file. Returns false when there was nothing to remove, so the
+    // controller can answer 404 rather than a misleading 200. The slug is always a value that
+    // has already passed the controller's filename validation (no '.' segments, extension never
+    // client-supplied), so this only ever resolves inside the resource directory.
+    public function delete(string $slug): bool
+    {
+        $path = $this->filePath($slug);
+        if (!is_file($path)) {
+            return false;
+        }
+
+        $this->filesystem->remove($path);
+        return true;
+    }
 }

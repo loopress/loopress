@@ -1,4 +1,5 @@
-import {Args, type Config} from '@oclif/core'
+import {confirm} from '@inquirer/prompts'
+import {Args, type Config, Flags} from '@oclif/core'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
@@ -9,8 +10,10 @@ import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '.
 import {ApiClient} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
+import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
 import {PushCommand} from './push-command.js'
+import {isApplicative404} from './wp-client.js'
 
 // api/ and hooks/ are the same thing from the CLI's point of view: a recursive directory of
 // PHP files, one file per server-side unit (a REST route, a hook binding), pushed/pulled/
@@ -45,6 +48,7 @@ export type PhpFilesResource = {
   pathNoun: string
   pullDescription: string
   pushDescription: string
+  rmDescription: string
 }
 
 type PhpFile = {
@@ -61,6 +65,7 @@ type RemotePhpFile = {
 }
 
 type PushResult = {
+  pruned: string[]
   pushed: string[]
   status: 'dry-run' | 'success'
 }
@@ -69,6 +74,12 @@ type PullResult = {
   orphans: string[]
   pulled: string[]
   status: 'dry-run' | 'success'
+}
+
+type RmResult = {
+  filename: string
+  removed: boolean
+  status: 'aborted' | 'dry-run' | 'success'
 }
 
 // Each factory hands back a concrete, `new`-able command class. Typing the return as the bare
@@ -80,6 +91,7 @@ export type CommandClass<TInstance> = new (argv: string[], config: Config) => TI
 export type PushFilesCommand = Omit<PushCommand, 'run'> & {run(): Promise<PushResult>}
 export type PullFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<PullResult>}
 export type ListFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RemotePhpFile[]>}
+export type RmFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmResult>}
 
 // Mirrors wordpress-plugin FileWriter::DECLARE_PATTERN / withGuard(): the server rejects both
 // an absent declare(strict_types=1); and one that appears more than once (it needs a single
@@ -110,11 +122,23 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     static args = pathArg(spec.pathNoun)
     static description = spec.pushDescription
     static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} push`, `$ lps ${spec.cliName} push --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`]
-    static flags = {...PushCommand.dryRunFlag, ...PushCommand.yesFlag}
+    static examples = [
+      `$ lps ${spec.cliName} push`,
+      `$ lps ${spec.cliName} push --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`,
+      `$ lps ${spec.cliName} push --prune`,
+    ]
+
+    static flags = {
+      ...PushCommand.dryRunFlag,
+      ...PushCommand.yesFlag,
+      prune: Flags.boolean({
+        default: false,
+        description: `Delete server-side ${spec.noun}s not present locally after pushing`,
+      }),
+    }
 
     async run(): Promise<PushResult> {
-      const {args} = await this.parse(ResourcePush)
+      const {args, flags} = await this.parse(ResourcePush)
       const {url} = this.siteConfig
       const path = resolveResourceDir(spec.dirKind, this.localConfig, args.path)
 
@@ -138,16 +162,61 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         this.error(`${pluralize(this.failedCount, spec.noun)} failed to push.`)
       }
 
-      if (this.dryRun) return {pushed, status: 'dry-run'}
+      const pruned = flags.prune ? await this.prune(new Set(files.map((file) => file.filename))) : []
+
+      if (this.dryRun) return {pruned, pushed, status: 'dry-run'}
 
       await this.recordSuccess()
       await spec.afterPush?.({filenames: pushed, siteConfig: this.siteConfig})
       this.log(`All ${spec.label} pushed.`)
-      return {pushed, status: 'success'}
+      return {pruned, pushed, status: 'success'}
     }
 
     private async loadFiles(path: string): Promise<PhpFile[]> {
       return loadPhpFiles(this, path)
+    }
+
+    // Mirror of `pull`'s local orphan cleanup, aimed at the server: any file on WordPress with
+    // no local counterpart is deleted. Opt-in (`--prune`) because it removes code from a live
+    // site. In a non-TTY without `--yes` it refuses rather than prunes: a stray local path in
+    // CI must not silently wipe production routes, and unlike `pull`'s local deletions these
+    // are not recoverable from the repo.
+    private async prune(localFilenames: Set<string>): Promise<string[]> {
+      const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
+      const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name))
+
+      if (orphans.length === 0) return []
+
+      const summary = `${pluralize(orphans.length, spec.noun)} on ${this.siteConfig.url} not present locally: ${orphans.join(', ')}`
+
+      if (this.dryRun) {
+        this.log(`[dry-run] Would prune ${summary}`)
+        return orphans
+      }
+
+      if (!this.yes) {
+        if (!isInteractive()) {
+          const count = pluralize(orphans.length, `server-side ${spec.noun}`)
+          this.error(`--prune would delete ${count} but stdin is not a TTY. Re-run with --yes to confirm, or without --prune.`)
+        }
+
+        const ok = await confirm({default: false, message: `Prune ${summary}?`})
+        if (!ok) {
+          this.log('Kept the server-side files, nothing pruned.')
+          return []
+        }
+      }
+
+      // Sequential, like runPushTasks: keeps the "Pruned: …" lines ordered and the WordPress
+      // writes serial.
+      const deleted: string[] = []
+      for (const filename of orphans) {
+        await this.wp.delete(`${spec.endpoint}?filename=${encodeURIComponent(filename)}`)
+        this.log(`Pruned: ${filename}`)
+        deleted.push(filename)
+      }
+
+      return deleted
     }
 
     private async pushFile(file: PhpFile, task?: {output: string}): Promise<void> {
@@ -281,6 +350,64 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
   return ResourceList
 }
 
+export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesCommand> {
+  class ResourceRm extends LoopressCommand {
+    static args = {
+      filename: Args.string({
+        description: `The ${spec.noun} to remove, its slug without the .php extension (e.g. "hello" or "invoice-pdf/[order_id]")`,
+        required: true,
+      }),
+    }
+
+    static description = spec.rmDescription
+    static enableJsonFlag = true
+    static examples = [`$ lps ${spec.cliName} rm hello`, `$ lps ${spec.cliName} rm hello --yes`]
+    static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
+
+    async run(): Promise<RmResult> {
+      const {args} = await this.parse(ResourceRm)
+      const {filename} = args
+      const {url} = this.siteConfig
+
+      if (!spec.filenamePattern.test(filename)) {
+        this.error(`Invalid filename "${filename}": ${spec.invalidFilenameHint}`)
+      }
+
+      if (this.dryRun) {
+        this.log(`[dry-run] Would remove ${filename} from ${url}`)
+        return {filename, removed: false, status: 'dry-run'}
+      }
+
+      if (!this.yes) {
+        if (!isInteractive()) {
+          this.error(`Removing ${filename} needs confirmation. Re-run with --yes.`)
+        }
+
+        const ok = await confirm({default: false, message: `Remove ${filename} from ${url}?`})
+        if (!ok) {
+          this.log('Aborted.')
+          return {filename, removed: false, status: 'aborted'}
+        }
+      }
+
+      try {
+        await this.wp.delete(`${spec.endpoint}?filename=${encodeURIComponent(filename)}`)
+      } catch (error) {
+        if (isApplicative404(error, 'File not found')) {
+          this.error(`${filename} is not on ${url}.`)
+        }
+
+        throw error
+      }
+
+      this.log(`Removed ${filename} from ${url}`)
+      return {filename, removed: true, status: 'success'}
+    }
+  }
+
+  return ResourceRm
+}
+
 export const API_FILES_RESOURCE: PhpFilesResource = {
   // Best-effort report of the current route list to the Loopress cloud, purely for console
   // visibility (US-18): the routes are already live on WordPress by this point, so this can
@@ -313,6 +440,7 @@ export const API_FILES_RESOURCE: PhpFilesResource = {
   pathNoun: 'api directory',
   pullDescription: 'Pull custom API route files from WordPress',
   pushDescription: 'Push custom API route files to WordPress',
+  rmDescription: 'Remove a custom API route file from WordPress',
 }
 
 export const HOOK_FILES_RESOURCE: PhpFilesResource = {
@@ -333,4 +461,5 @@ export const HOOK_FILES_RESOURCE: PhpFilesResource = {
   pathNoun: 'hooks directory',
   pullDescription: 'Pull hook files (actions, filters, cron) from WordPress',
   pushDescription: 'Push hook files (actions, filters, cron) to WordPress',
+  rmDescription: 'Remove a hook file (action, filter, cron) from WordPress',
 }

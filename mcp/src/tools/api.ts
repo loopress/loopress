@@ -8,8 +8,11 @@ export function registerApiTools(server: McpServer): void {
       list: 'List custom API route files currently on WordPress.',
       pull: 'Pull custom API route files from WordPress.',
       push: 'Push local custom API route files to WordPress.',
+      rm: 'Remove one custom API route file from WordPress.',
     },
     pathNoun: 'api directory',
     resource: 'api',
+    supportsPrune: true,
+    supportsRm: true,
   })
 }
