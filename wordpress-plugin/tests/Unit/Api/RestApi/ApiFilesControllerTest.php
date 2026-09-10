@@ -23,6 +23,8 @@ class ApiFilesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->directory = $this->createMock(ApiDirectory::class);
+        // Real default cap: an unstubbed mock int-return would be 0 and reject every push.
+        $this->directory->method('maxFileBytes')->willReturn(512 * 1024);
         $this->controller = new ApiFilesController($this->directory);
         // list_files() reads RouteLoader's boot-time load-error option (US-5); no errors by
         // default, overridden per-test below where the error-badge behavior is under test.
@@ -129,6 +131,32 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_file_returns_413_when_content_exceeds_the_size_cap(): void
+    {
+        $this->directory = $this->createMock(ApiDirectory::class);
+        $this->directory->method('maxFileBytes')->willReturn(100);
+        $this->directory->expects($this->never())->method('write');
+        $controller = new ApiFilesController($this->directory);
+
+        $request  = new WP_REST_Request(['filename' => 'big', 'content' => str_repeat('x', 200)]);
+        $response = $controller->push_file($request);
+
+        $this->assertSame(413, $response->status);
+        $this->assertStringContainsString('over the 100 byte limit', $response->data['error']);
+    }
+
+    // A 5 MB blob of "//x\n" is valid PHP and would previously reach token_get_all() / `php -l`,
+    // where the memory it needs is an uncatchable E_ERROR (500), not a clean rejection (F20).
+    public function test_push_file_returns_413_for_pathological_large_content_instead_of_fataling(): void
+    {
+        $this->directory->expects($this->never())->method('write');
+
+        $request  = new WP_REST_Request(['filename' => 'huge', 'content' => str_repeat("//x\n", 5 * 256 * 1024)]);
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(413, $response->status);
     }
 
     public function test_push_file_writes_the_guarded_content(): void

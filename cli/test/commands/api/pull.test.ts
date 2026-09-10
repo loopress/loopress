@@ -147,6 +147,25 @@ describe('api pull', () => {
       expect(result).toEqual({orphans: [], pulled: ['hello', 'invoice-pdf/[order_id]'], status: 'success'})
     })
 
+    it('skips a file the server would not read back and leaves any local copy untouched', async () => {
+      const {cmd, get, logs} = make(false, [dir])
+      writeFileSync(join(dir, 'too-big.php'), '<?php // existing local copy')
+      get.mockResolvedValue([
+        {content: '<?php echo 1;', filename: 'hello'},
+        {error: 'file is 900000 bytes, over the 524288 byte limit', filename: 'too-big'},
+      ])
+
+      const result = await cmd.run()
+
+      expect(readFileSync(join(dir, 'hello.php'), 'utf8')).toBe('<?php echo 1;')
+      // not overwritten, not deleted as an orphan
+      expect(readFileSync(join(dir, 'too-big.php'), 'utf8')).toBe('<?php // existing local copy')
+      expect(logs.warn).toHaveBeenCalledWith(
+        'Skipped too-big: file is 900000 bytes, over the 524288 byte limit',
+      )
+      expect(result).toEqual({orphans: [], pulled: ['hello'], status: 'success'})
+    })
+
     it('uses the singular "route file" wording for exactly one file', async () => {
       const {cmd, get, logs} = make(false, [dir])
       get.mockResolvedValue([{content: '<?php', filename: 'hello'}])

@@ -50,6 +50,7 @@ Several structural requirements are enforced at push time, with a clear error if
 - The file must declare exactly one class. `lps api push` rejects zero or several immediately, before anything is written; put code shared between several route files in [`lib/`](#sharing-code-between-route-files-and-snippets) instead of a second class in the same file.
 - The class name must not already be taken by another `api/` file, WordPress core, or another active plugin. `lps api push` checks all three and rejects the push immediately if any collide.
 - Every path segment must match the kebab-case pattern, or be a dynamic segment (see below). The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+- Each file must be at most 512 KB. A single-class route file is never legitimately near that; the cap keeps an oversized file from exhausting memory when the plugin tokenises and loads it. Raise it with the `loopress_max_file_bytes` filter (`add_filter('loopress_max_file_bytes', fn($bytes, $subdir) => $subdir === 'api' ? 1024 * 1024 : $bytes, 10, 2)`) if you genuinely need to.
 
 ## Dynamic path segments
 
@@ -382,6 +383,7 @@ A single bad route file can never take down the site or the rest of its REST API
 - A parse error or fatal error while loading the file
 - A file that doesn't declare exactly one class (zero, or more than one)
 - A class name that is already taken by WordPress core, another plugin, or another route file
+- A file over the 512 KB size limit, or a whole `api/` directory over 8 MB total (a last-resort guard against a runaway directory; both are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters). A file skipped this way is not returned by `lps api pull`.
 
 Every other route file keeps working, and so does everything else on the site. A throwing `permission()` is a different, narrower failure mode, not a load failure: the file still loads and the route stays registered, only the individual request that hit the throw is denied, see [Authentication and permissions](#authentication-and-permissions).
 

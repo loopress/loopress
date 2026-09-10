@@ -52,6 +52,14 @@ type PhpFile = {
   filename: string
 }
 
+// What the server returns from a list/pull: `content` is absent when the server declined to
+// read the file back (e.g. it is over the size limit, LP-SEC-02), in which case `error` says why.
+type RemotePhpFile = {
+  content?: string
+  error?: string
+  filename: string
+}
+
 type PushResult = {
   pushed: string[]
   status: 'dry-run' | 'success'
@@ -71,7 +79,7 @@ type PullResult = {
 export type CommandClass<TInstance> = new (argv: string[], config: Config) => TInstance
 export type PushFilesCommand = Omit<PushCommand, 'run'> & {run(): Promise<PushResult>}
 export type PullFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<PullResult>}
-export type ListFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<PhpFile[]>}
+export type ListFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RemotePhpFile[]>}
 
 // Mirrors wordpress-plugin FileWriter::DECLARE_PATTERN / withGuard(): the server rejects both
 // an absent declare(strict_types=1); and one that appears more than once (it needs a single
@@ -197,23 +205,34 @@ export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFi
       this.log(`Pulling ${spec.label} from ${url}`)
       this.log(`${spec.pathLabel} path: ${path}`)
 
-      const files = await this.wp.get<PhpFile[]>(spec.endpoint)
+      const files = await this.wp.get<RemotePhpFile[]>(spec.endpoint)
+
+      // A file the server would not read back (over the size limit, see LP-SEC-02) arrives
+      // with no content: report it and leave any local copy untouched rather than overwriting
+      // it with nothing.
+      const unreadable = files.filter((file) => typeof file.content !== 'string')
+      for (const file of unreadable) {
+        this.warn(`Skipped ${file.filename}: ${file.error ?? 'the server did not return its content'}`)
+      }
+
+      const readable = files.filter((file): file is RemotePhpFile & {content: string} => typeof file.content === 'string')
 
       // A `<filename>.php` no longer present remotely was deleted on WordPress (push stays
-      // additive-only, but pull already cleans up locally, same as `snippet pull`).
+      // additive-only, but pull already cleans up locally, same as `snippet pull`). The
+      // unreadable ones still exist remotely, so keep them out of the orphan set.
       const orphans = await findOrphanedFiles(path, new Set(files.map((file) => file.filename)), {
         extensions: ['.php'],
         key: basenameKey,
         recursive: true,
       })
 
-      const pulled = files.map((file) => file.filename)
+      const pulled = readable.map((file) => file.filename)
 
-      await this.pullDirectory(path, files, orphans, {
+      await this.pullDirectory(path, readable, orphans, {
         alwaysCreateDir: true,
-        dryRunMessage: `Would pull ${pluralize(files.length, spec.noun)} to ${path}`,
+        dryRunMessage: `Would pull ${pluralize(readable.length, spec.noun)} to ${path}`,
         orphanReason: spec.orphanReason,
-        pulledMessage: `Pulled ${pluralize(files.length, spec.noun)} to ${path}`,
+        pulledMessage: `Pulled ${pluralize(readable.length, spec.noun)} to ${path}`,
         title: (file) => file.filename,
         async write(file, writeDir) {
           const filePath = join(writeDir, `${file.filename}.php`)
@@ -240,8 +259,8 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
     static enableJsonFlag = true
     static examples = [`$ lps ${spec.cliName} list`]
 
-    async run(): Promise<PhpFile[]> {
-      const files = await this.wp.get<PhpFile[]>(spec.endpoint)
+    async run(): Promise<RemotePhpFile[]> {
+      const files = await this.wp.get<RemotePhpFile[]>(spec.endpoint)
 
       if (files.length === 0) {
         this.log(spec.emptyListMessage)
@@ -252,7 +271,7 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
       this.log('')
 
       for (const file of files) {
-        this.log(`  ${file.filename}`)
+        this.log(file.error ? `  ${file.filename}  (${file.error})` : `  ${file.filename}`)
       }
 
       return files

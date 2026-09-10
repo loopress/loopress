@@ -50,7 +50,17 @@ class FileWriter
     // syntactically invalid file that fatals on require, not merely a misplaced guard.
     private static function insertionPointAfter(string $code, int $declareEnd): int
     {
-        if (preg_match(self::NAMESPACE_PATTERN, $code, $namespaceMatch, 0, $declareEnd) === 1) {
+        $matched = preg_match(self::NAMESPACE_PATTERN, $code, $namespaceMatch, 0, $declareEnd);
+
+        // preg_match() returns false (not 0) when it bails on pcre.backtrack_limit /
+        // pcre.recursion_limit. The caller's size cap keeps input well under that, but if it
+        // ever happens, fail the push with a clear message rather than guessing at a guard
+        // position in a string the regex engine couldn't finish scanning.
+        if ($matched === false) {
+            throw new \InvalidArgumentException('File could not be parsed for guard insertion (too large or too deeply nested).');
+        }
+
+        if ($matched === 1) {
             return $declareEnd + strlen($namespaceMatch[0]);
         }
 
