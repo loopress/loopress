@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Options\RestApi;
 
 use Brain\Monkey;
+use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\RestApi\OptionsController;
 use Loopress\Options\Service\OptionsService;
@@ -154,5 +155,29 @@ class OptionsControllerTest extends TestCase
         $response = $this->controller->delete_option(new WP_REST_Request(['name' => 'template']));
 
         $this->assertSame(409, $response->status);
+    }
+
+    // ── protected option (F10/F11) ─────────────────────────────────────────
+
+    public function test_get_option_returns_403_for_a_secret_looking_name(): void
+    {
+        $this->optionsService->method('getOption')->willThrowException(
+            new ProtectedOptionException('"some_api_key" looks like a stored secret.'),
+        );
+
+        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'some_api_key']));
+
+        $this->assertSame(403, $response->status);
+    }
+
+    public function test_update_option_returns_403_for_a_protected_core_option(): void
+    {
+        $this->optionsService->method('updateOption')->willThrowException(
+            new ProtectedOptionException('"default_role" is a protected option.'),
+        );
+
+        $response = $this->controller->update_option(new WP_REST_Request(['name' => 'default_role', 'value' => 'administrator']));
+
+        $this->assertSame(403, $response->status);
     }
 }

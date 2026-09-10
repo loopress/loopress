@@ -9,11 +9,29 @@ export function optionEndpoint(name: string): string {
 // the right command, instead of a round trip just to hit the server's 409.
 export const RESERVED_OPTION_NAMES = ['active_plugins', 'stylesheet', 'template'] as const
 
-// Options WordPress core owns or regenerates itself: legitimate to track for visibility (`diff`
-// still shows drift), but never something `push` should overwrite by default. siteurl/home in
+// Options WordPress core owns or regenerates itself, plus the ones OptionsService::
+// DENY_WRITE_NAMES refuses server-side (behaviour-changing core options: default_role,
+// users_can_register, mailserver_*, ...). Legitimate to track for visibility (`diff` still
+// shows drift), but never something `push` should overwrite by default. siteurl/home in
 // particular: pushing a value copied from another environment would repoint the target site's
-// own URLs, potentially locking out wp-admin.
-export const READONLY_BY_DEFAULT_OPTION_NAMES = ['siteurl', 'home', 'db_version', 'cron', 'rewrite_rules', 'WPLANG'] as const
+// own URLs, potentially locking out wp-admin. Flip `readonly` in the file to push one anyway;
+// for the server-denied names that then needs the `loopress_option_writable` filter too.
+export const READONLY_BY_DEFAULT_OPTION_NAMES = [
+  'siteurl',
+  'home',
+  'db_version',
+  'initial_db_version',
+  'cron',
+  'rewrite_rules',
+  'WPLANG',
+  'default_role',
+  'users_can_register',
+  'uninstall_plugins',
+  'mailserver_url',
+  'mailserver_login',
+  'mailserver_pass',
+  'mailserver_port',
+] as const
 
 export type LocalOption = {
   autoload: string
