@@ -22,6 +22,19 @@ abstract class AbstractFilesDirectory
     public const SUBDIR = '';
     public const LOAD_ERRORS_OPTION = '';
 
+    // Per-file ceiling. One single-class PHP route/hook file has no business being anywhere
+    // near this; the point is that nothing hands token_get_all() / `php -l` / require() an
+    // arbitrarily large blob (memory exhaustion is an uncatchable E_ERROR, see LP-SEC-02).
+    // Enforced at push time (AbstractFilesController) and again at load time
+    // (AbstractFileLoader), so a file planted straight on disk, outside the CLI, is bounded too.
+    public const MAX_FILE_BYTES = 512 * 1024;
+
+    // Last-resort guard for the whole directory: even with every file under MAX_FILE_BYTES,
+    // hundreds of near-limit files would still cumulatively exhaust memory at boot. Generous
+    // on purpose. A normal site never approaches it; a directory that does has almost
+    // certainly been mass-populated by something other than `lps <resource> push`.
+    public const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
+
     private string $path;
     private Filesystem $filesystem;
 
@@ -34,6 +47,31 @@ abstract class AbstractFilesDirectory
     public function filePath(string $slug): string
     {
         return $this->path . $slug . '.php';
+    }
+
+    // Filterable, and passed the subdir so a filter can differ between api/ and hooks/.
+    public function maxFileBytes(): int
+    {
+        return (int) apply_filters('loopress_max_file_bytes', self::MAX_FILE_BYTES, static::SUBDIR);
+    }
+
+    public function maxTotalBytes(): int
+    {
+        return (int) apply_filters('loopress_max_files_total_bytes', self::MAX_TOTAL_BYTES, static::SUBDIR);
+    }
+
+    // Size of a slug's file on disk in bytes, or null if it can't be determined (missing,
+    // unreadable). Kept here so the size checks in the loader and the controller both go
+    // through one place rather than each reaching for @filesize() on a path they build.
+    public function fileSize(string $slug): ?int
+    {
+        $path = $this->filePath($slug);
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $size = @filesize($path); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- a race with deletion is expected here, not a bug
+        return $size === false ? null : $size;
     }
 
     // Directory listing is blocked by an empty index.php (defense in depth); it doesn't

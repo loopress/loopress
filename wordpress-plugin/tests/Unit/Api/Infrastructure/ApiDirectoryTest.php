@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Api\Infrastructure;
 
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +16,11 @@ class ApiDirectoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Monkey\setUp();
+
+        // Default: filters are a passthrough, so maxFileBytes()/maxTotalBytes() return their
+        // constants. The size-limit tests below override this.
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-api-test-' . uniqid();
         mkdir($this->tmpDir, 0755, true);
@@ -27,6 +34,7 @@ class ApiDirectoryTest extends TestCase
     {
         $this->rrmdir(WP_CONTENT_DIR . '/loopress');
         $this->rrmdir($this->tmpDir);
+        Monkey\tearDown();
         parent::tearDown();
     }
 
@@ -109,6 +117,42 @@ class ApiDirectoryTest extends TestCase
         $dir->ensureExists();
 
         $this->assertNull($dir->read('missing'));
+    }
+
+    // ── size limits ──────────────────────────────────────────────────────────
+
+    public function test_maxFileBytes_and_maxTotalBytes_default_to_the_constants(): void
+    {
+        $dir = new ApiDirectory();
+
+        $this->assertSame(512 * 1024, $dir->maxFileBytes());
+        $this->assertSame(8 * 1024 * 1024, $dir->maxTotalBytes());
+    }
+
+    public function test_maxFileBytes_is_filterable(): void
+    {
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null): mixed => $hook === 'loopress_max_file_bytes' ? 4096 : $value,
+        );
+        $dir = new ApiDirectory();
+
+        $this->assertSame(4096, $dir->maxFileBytes());
+    }
+
+    public function test_fileSize_returns_the_byte_count_of_an_existing_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', 'abcde');
+
+        $this->assertSame(5, $dir->fileSize('hello'));
+    }
+
+    public function test_fileSize_returns_null_for_a_missing_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->ensureExists();
+
+        $this->assertNull($dir->fileSize('missing'));
     }
 
     // ── listSlugs ────────────────────────────────────────────────────────────

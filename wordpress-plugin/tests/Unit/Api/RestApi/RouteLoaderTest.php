@@ -41,6 +41,8 @@ class RouteLoaderTest extends TestCase
         $this->environment = $this->createMock(LoopressEnvironment::class);
         $this->environment->method('getAutoloadPath')->willReturn(null);
         Functions\when('get_option')->justReturn(ApiNamespace::DEFAULT);
+        // Size limits pass through to their constants unless a test overrides this.
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
     }
 
     protected function tearDown(): void
@@ -544,6 +546,73 @@ class RouteLoaderTest extends TestCase
         $loader->loadAndRegister();
 
         $this->assertTrue(true);
+    }
+
+    // ── loadAndRegister: size limits (LP-SEC-02) ───────────────────────────
+
+    public function test_loadAndRegister_skips_a_file_over_the_per_file_byte_limit_and_still_loads_the_rest(): void
+    {
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null): mixed => $hook === 'loopress_max_file_bytes' ? 200 : $value,
+        );
+
+        $this->directory->write('test-loader-size-ok', "<?php\nfinal class SizeOk\n{\n    public function get(): array { return []; }\n}\n");
+        $this->directory->write(
+            'test-loader-size-toobig',
+            "<?php\n// " . str_repeat('x', 400) . "\nfinal class SizeTooBig\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        Functions\when('add_filter')->justReturn(true);
+        Functions\expect('register_rest_route')->once()->andReturn(true); // only 'ok'
+        Functions\expect('update_option')
+            ->once()
+            ->with(
+                ApiDirectory::LOAD_ERRORS_OPTION,
+                \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
+                    && array_key_exists('test-loader-size-toobig', $errors)
+                    && !array_key_exists('test-loader-size-ok', $errors)
+                    && str_contains((string) $errors['test-loader-size-toobig'], 'over the 200 byte limit')),
+                false,
+            )
+            ->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the expectations in tearDown
+    }
+
+    public function test_loadAndRegister_stops_loading_once_the_directory_exceeds_its_total_byte_budget(): void
+    {
+        // Tiny total budget so two ordinary files trip it. Which one loses depends on
+        // directory iteration order (not guaranteed), so this only asserts one file
+        // registered and exactly one was recorded as skipped.
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null): mixed => $hook === 'loopress_max_files_total_bytes' ? 150 : $value,
+        );
+
+        $body = "<?php\nfinal class %s\n{\n    public function get(): array { return []; }\n}\n";
+        $this->directory->write('test-loader-budget-a', sprintf($body, 'BudgetOne'));
+        $this->directory->write('test-loader-budget-b', sprintf($body, 'BudgetTwo'));
+
+        Functions\when('add_filter')->justReturn(true);
+        Functions\expect('register_rest_route')->once()->andReturn(true);
+        Functions\expect('update_option')
+            ->once()
+            ->with(
+                ApiDirectory::LOAD_ERRORS_OPTION,
+                \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
+                    && count($errors) === 1
+                    && in_array(array_key_first($errors), ['test-loader-budget-a', 'test-loader-budget-b'], true)
+                    && str_contains((string) reset($errors), 'total budget')),
+                false,
+            )
+            ->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the expectations in tearDown
     }
 
     // ── loadAndRegister: boot-time load-error reporting (US-5) ──────────────

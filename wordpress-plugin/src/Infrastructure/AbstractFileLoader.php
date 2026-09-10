@@ -53,7 +53,21 @@ abstract class AbstractFileLoader
     {
         $this->prepare();
 
+        // Cumulative byte budget across the whole directory: a per-file cap alone still lets
+        // a large enough pile of near-limit files exhaust memory when every one is read,
+        // tokenised and required in a single request. Files past the budget are skipped and
+        // recorded like any other load failure (below), not silently dropped.
+        $budget = $this->directory()->maxTotalBytes();
+        $used   = 0;
+
         foreach ($this->directory()->listSlugs() as $slug) {
+            $size = $this->directory()->fileSize($slug) ?? 0;
+            if ($used + $size > $budget) {
+                $this->fail($slug, "skipped: the {$this->label()}/ directory is over its {$budget} byte total budget");
+                continue;
+            }
+
+            $used += $size;
             $this->loadFile($slug);
         }
 
@@ -102,6 +116,17 @@ abstract class AbstractFileLoader
     {
         if (array_key_exists($slug, $this->instances)) {
             return $this->instances[$slug];
+        }
+
+        // Bounds token_get_all() / require() below: an oversized file (grown over time, or
+        // deployed straight to disk outside the CLI, which never saw the push-time cap) breaks
+        // only itself here, it does not take rest_api_init / plugins_loaded down with it.
+        $maxBytes = $this->directory()->maxFileBytes();
+        $size     = $this->directory()->fileSize($slug);
+        if ($size !== null && $size > $maxBytes) {
+            $this->fail($slug, "file is {$size} bytes, over the {$maxBytes} byte limit, skipped");
+            $this->instances[$slug] = null;
+            return null;
         }
 
         $content = $this->directory()->read($slug);

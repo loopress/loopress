@@ -94,8 +94,16 @@ abstract class AbstractFilesController
         $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
         $loadErrors = is_array($loadErrors) ? $loadErrors : [];
 
-        $files = [];
+        $maxBytes = $this->directory()->maxFileBytes();
+        $files    = [];
         foreach ($this->directory()->listSlugs() as $slug) {
+            $size = $this->directory()->fileSize($slug);
+            if ($size !== null && $size > $maxBytes) {
+                // Same file the loader skips: don't read it back either, and surface why.
+                $files[] = ['filename' => $slug, 'error' => "file is {$size} bytes, over the {$maxBytes} byte limit"];
+                continue;
+            }
+
             $content = $this->directory()->read($slug);
             if ($content === null) {
                 continue;
@@ -125,6 +133,20 @@ abstract class AbstractFilesController
         // actually clears that path-injection finding.
         if (!static::isValidFilename($filename)) {
             return new WP_REST_Response(['error' => 'Invalid filename'], 400);
+        }
+
+        // Before anything reads $content into a tokeniser (ClassScanner) or `php -l`: an
+        // oversized blob would otherwise exhaust memory, an uncatchable E_ERROR that 500s
+        // the request instead of failing it cleanly (LP-SEC-02 / F19 / F20).
+        $maxBytes = $this->directory()->maxFileBytes();
+        if (strlen($content) > $maxBytes) {
+            return new WP_REST_Response([
+                'error' => sprintf(
+                    'File is %d bytes, over the %d byte limit. Split it, or raise the loopress_max_file_bytes filter.',
+                    strlen($content),
+                    $maxBytes,
+                ),
+            ], 413);
         }
 
         try {
@@ -188,10 +210,18 @@ abstract class AbstractFilesController
         // recased its own class (e.g. `Hello` -> `HELLO`) as a collision with WP core/another
         // plugin, since its lowercased form no longer strictly matches $previousClasses below.
         $normalizedClassName = strtolower($className);
+        $maxBytes            = $this->directory()->maxFileBytes();
 
         foreach ($this->directory()->listSlugs() as $slug) {
             if ($slug === $filename) {
                 continue; // re-pushing the same file is an update, never a collision with itself
+            }
+
+            $size = $this->directory()->fileSize($slug);
+            if ($size !== null && $size > $maxBytes) {
+                // The loader skips this file, so it declares nothing at runtime: don't
+                // tokenise it here just to check for a collision that can't happen.
+                continue;
             }
 
             $existingContent = $this->directory()->read($slug);

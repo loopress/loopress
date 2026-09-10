@@ -154,7 +154,7 @@ lps hook push [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
 
-Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class, same validation as `lps api push` (syntax check, ABSPATH guard, class-name collision detection).
+Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class, same validation as `lps api push` (syntax check, ABSPATH guard, class-name collision detection). Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
 
 ---
 

@@ -23,6 +23,8 @@ class HookFilesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->directory = $this->createMock(HooksDirectory::class);
+        // Real default cap: an unstubbed mock int-return would be 0 and reject every push.
+        $this->directory->method('maxFileBytes')->willReturn(512 * 1024);
         $this->controller = new HookFilesController($this->directory);
         // list_files() reads HookLoader's boot-time load-error option; no errors by default,
         // overridden per-test below where the error-badge behavior is under test.
