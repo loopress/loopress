@@ -29,7 +29,7 @@ Once a `composer.json` exists in the repo it is authoritative for plugins and th
 
 ### `lps composer push`
 
-Upload `composer.json` and `composer.lock` to WordPress and run `composer install` on the server.
+Upload `composer.json` to WordPress and run Composer on the server to resolve and install the dependencies.
 
 ```bash
 lps composer push
@@ -39,17 +39,23 @@ lps composer push
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be sent without making any changes |
 
-If a `composer.lock` is present, the server runs a reproducible install. If no lock file is found, the server resolves versions freely and a warning is shown.
+The server always resolves `composer.json` itself, against its own Packagist and WPackagist repositories. It never installs from an uploaded `composer.lock`: a hand-crafted lock could point package downloads at arbitrary hosts, so the plugin stays the sole authority on where dependencies come from. Pin exact versions in `composer.json` if you need a specific build.
 
-The command waits for the server-side `composer install` to finish, up to 10 minutes. A cold install with many packages can take a while: this is expected. If the call does time out, the install may still be running on the server, so check the site before retrying.
+If a local `composer.lock` is present it is still sent, but only so the server can report which of your pinned versions its own resolution moved. The command prints that drift and tells you to run `lps composer pull` to bring the server-resolved `composer.lock` back down.
+
+The command waits for the server-side Composer run to finish, up to 10 minutes. A cold run with many packages can take a while: this is expected. If the call does time out, Composer may still be running on the server, so check the site before retrying.
 
 **Example output:**
 
 ```console
 Pushing composer.json (3 packages) to https://example.com
-  + composer.lock included (reproducible install)
-Running composer install on the server, this can take a few minutes...
-composer install completed on the server.
+  + composer.lock sent for drift comparison (the server resolves versions from composer.json)
+Running Composer on the server, this can take a few minutes...
+Composer run completed on the server.
+
+The server resolved 1 package to a different version than your local composer.lock:
+  monolog/monolog: 3.5.0 -> 3.7.0
+Run `lps composer pull` to update your local composer.json and composer.lock.
 ```
 
 ---

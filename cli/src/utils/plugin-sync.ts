@@ -22,9 +22,22 @@ export type SyncPayload = {
   lock: null | string
 }
 
+// One package whose version the server resolved differently from the local composer.lock the
+// CLI sent. Informational only: the server always resolves composer.json itself and never
+// installs from the lock the CLI uploads (that would let a crafted lock pull code from
+// arbitrary hosts). `from`/`to` are null when the package was absent locally / removed on the
+// server.
+export type LockDriftEntry = {
+  from: null | string
+  name: string
+  to: null | string
+}
+
 export type SyncResponse = {
   composerJson: string
   composerLock: string
+  // Present since the server stopped installing from the uploaded lock; older servers omit it.
+  lockDrift?: LockDriftEntry[]
   message: string
   output: string
   // Packages `composer update` uninstalled because they left the intent, e.g. "wpackagist-plugin/redirection".

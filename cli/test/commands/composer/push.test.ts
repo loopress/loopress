@@ -94,18 +94,48 @@ describe('composer push', () => {
     expect(cmd.deployments).toEqual(['success'])
   })
 
-  it('warns when composer.lock is missing and sends null', async () => {
+  it('sends lock: null when composer.lock is missing', async () => {
     writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
-    const {cmd, logs, post} = make(false)
+    const {cmd, post} = make(false)
 
     await cmd.run()
 
-    expect(logs.warn).toHaveBeenCalledWith('No composer.lock found. The server will resolve versions freely.')
     expect(post).toHaveBeenCalledWith(
       'loopress/v1/composer/sync',
       expect.objectContaining({lock: null}),
       expect.anything(),
     )
+  })
+
+  it('reports lock drift when the server resolved different versions than the local lock', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'monolog/monolog': '^3.0'}}))
+    writeFileSync(join(dir, 'composer.lock'), '{"packages":[{"name":"monolog/monolog","version":"3.5.0"}]}')
+    const {cmd, logs, post} = make(false)
+    post.mockResolvedValue({
+      ...OK,
+      lockDrift: [
+        {from: '3.5.0', name: 'monolog/monolog', to: '3.7.0'},
+        {from: '1.0.0', name: 'psr/log', to: null},
+      ],
+    })
+
+    const result = await cmd.run()
+
+    expect(result.lockDrift).toHaveLength(2)
+    expect(logs.log).toHaveBeenCalledWith('  monolog/monolog: 3.5.0 -> 3.7.0')
+    expect(logs.log).toHaveBeenCalledWith('  psr/log: 1.0.0 -> (removed)')
+    expect(logs.log).toHaveBeenCalledWith('Run `lps composer pull` to update your local composer.json and composer.lock.')
+  })
+
+  it('says nothing about drift when the server reports none', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    writeFileSync(join(dir, 'composer.lock'), '{"packages":[]}')
+    const {cmd, logs, post} = make(false)
+    post.mockResolvedValue({...OK, lockDrift: []})
+
+    await cmd.run()
+
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('different version'))
   })
 
   it('explains the run may still be in progress when the sync call times out', async () => {

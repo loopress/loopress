@@ -79,6 +79,22 @@ class ComposerControllerTest extends TestCase
         $this->assertTrue($validate('1.0.0-beta1@dev'));
     }
 
+    // ── lock arg (advisory, size-capped) ─────────────────────────────────────
+
+    public function test_lock_arg_accepts_null_and_a_normal_sized_lock(): void
+    {
+        $this->assertTrue(ComposerController::validateLockArg(null));
+        $this->assertTrue(ComposerController::validateLockArg('{"packages":[]}'));
+        $this->assertTrue(ComposerController::validateLockArg(str_repeat('x', 5 * 1024 * 1024)));
+    }
+
+    public function test_lock_arg_rejects_an_oversized_lock_and_non_strings(): void
+    {
+        $this->assertFalse(ComposerController::validateLockArg(str_repeat('x', 5 * 1024 * 1024 + 1)));
+        $this->assertFalse(ComposerController::validateLockArg(123));
+        $this->assertFalse(ComposerController::validateLockArg(['packages' => []]));
+    }
+
     // ── get_versions ─────────────────────────────────────────────────────────
 
     public function test_get_versions_returns_404_when_package_not_found(): void

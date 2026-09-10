@@ -6,10 +6,17 @@ import {join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {isTimeoutError} from '../../lib/wp-client.js'
 import {type ComposerJson} from '../../utils/composer.js'
-import {parseCollisions, SYNC_TIMEOUT_MS, type SyncIntent, type SyncResponse} from '../../utils/plugin-sync.js'
+import {
+  type LockDriftEntry,
+  parseCollisions,
+  SYNC_TIMEOUT_MS,
+  type SyncIntent,
+  type SyncResponse,
+} from '../../utils/plugin-sync.js'
 
 type PushResult = {
   hasLock: boolean
+  lockDrift: LockDriftEntry[]
   packageCount: number
   status: 'dry-run' | 'success'
 }
@@ -34,7 +41,7 @@ function toIntent(require: Record<string, string>): SyncIntent {
 }
 
 export default class ComposerPush extends PushCommand {
-  static description = 'Push composer.json (and composer.lock, if present) to WordPress and run Composer'
+  static description = 'Push composer.json to WordPress and run Composer to resolve and install dependencies'
   static enableJsonFlag = true
   static examples = ['$ lps composer push', '$ lps composer push --dry-run']
   static flags = {
@@ -61,13 +68,16 @@ export default class ComposerPush extends PushCommand {
     const intent = toIntent(require)
 
     const hasLock = existsSync(composerLockPath)
+    // The server resolves composer.json itself; it never installs from this lock (a crafted
+    // lock could point package downloads at arbitrary hosts). It is sent only so the server
+    // can report which pinned versions its own resolution moved. `lps composer pull` brings
+    // the resolved lock back.
     const lock = hasLock ? await readFile(composerLockPath, 'utf8') : null
 
     this.log(`Pushing composer.json (${packageCount} ${packageCount === 1 ? 'package' : 'packages'}) to ${url}`)
-    if (lock) this.log('  + composer.lock included (reproducible install)')
-    else this.warn('No composer.lock found. The server will resolve versions freely.')
+    if (lock) this.log('  + composer.lock sent for drift comparison (the server resolves versions from composer.json)')
 
-    if (this.dryRun) return {hasLock, packageCount, status: 'dry-run'}
+    if (this.dryRun) return {hasLock, lockDrift: [], packageCount, status: 'dry-run'}
 
     this.log('Running Composer on the server, this can take a few minutes...')
 
@@ -92,8 +102,29 @@ export default class ComposerPush extends PushCommand {
 
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Composer run completed on the server.')
+
+    const lockDrift = response.lockDrift ?? []
+    this.reportLockDrift(lockDrift)
+
     await this.recordSuccess()
 
-    return {hasLock, packageCount, status: 'success'}
+    return {hasLock, lockDrift, packageCount, status: 'success'}
+  }
+
+  // The server resolves composer.json from scratch and never installs from the uploaded lock,
+  // so a project that committed a lock can see versions move. Spell out exactly what changed
+  // and point at `lps composer pull` to bring the resolved lock back locally.
+  private reportLockDrift(lockDrift: LockDriftEntry[]): void {
+    if (lockDrift.length === 0) return
+
+    this.log('')
+    this.log(
+      `The server resolved ${lockDrift.length} ${lockDrift.length === 1 ? 'package' : 'packages'} to a different version than your local composer.lock:`,
+    )
+    for (const {from, name, to} of lockDrift) {
+      this.log(`  ${name}: ${from ?? '(absent)'} -> ${to ?? '(removed)'}`)
+    }
+
+    this.log('Run `lps composer pull` to update your local composer.json and composer.lock.')
   }
 }
