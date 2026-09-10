@@ -16,6 +16,11 @@ if (!file_exists($autoload)) {
 
 require_once $autoload;
 
+// Removes everything under wp-content/loopress/: api/ and hooks/ files, the built apps/,
+// the Composer environment (composer.json, composer.lock, vendor/), lib/, and any caches.
+// Deliberately a clean slate: nothing Loopress ever wrote should survive uninstalling it
+// (F3, incident response). A site that wants to keep its Composer dependencies or built
+// apps should pull them out before removing the plugin.
 $loopress_dir = WP_CONTENT_DIR . '/loopress/';
 
 if (is_dir($loopress_dir)) {

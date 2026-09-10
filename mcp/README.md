@@ -49,12 +49,14 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `snippet_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local snippet files to WordPress |
 | `snippet_pull` | No | `env?`, `path?` | Pull snippets from WordPress into local files |
 | `snippet_list` | No | `env?` | List snippets currently on WordPress |
-| `api_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local custom API route files to WordPress |
+| `api_push` | Yes | `env?`, `path?`, `prune?`, `confirmToken?` | Push local custom API route files to WordPress (`prune` also deletes server-side files not present locally) |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress |
-| `hook_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local hook files to WordPress |
+| `api_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one custom API route file from WordPress |
+| `hook_push` | Yes | `env?`, `path?`, `prune?`, `confirmToken?` | Push local hook files to WordPress (`prune` also deletes server-side files not present locally) |
 | `hook_pull` | No | `env?`, `path?` | Pull hook files from WordPress |
 | `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
+| `hook_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |
 | `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |

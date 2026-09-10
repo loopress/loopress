@@ -155,6 +155,35 @@ class ApiDirectoryTest extends TestCase
         $this->assertNull($dir->fileSize('missing'));
     }
 
+    // ── delete ───────────────────────────────────────────────────────────────
+
+    public function test_delete_removes_an_existing_file_and_returns_true(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php');
+        $this->assertTrue(is_file($dir->filePath('hello')));
+
+        $this->assertTrue($dir->delete('hello'));
+        $this->assertFalse(is_file($dir->filePath('hello')));
+    }
+
+    public function test_delete_returns_false_for_a_missing_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->ensureExists();
+
+        $this->assertFalse($dir->delete('never-there'));
+    }
+
+    public function test_delete_removes_a_nested_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('invoice-pdf/[order_id]', '<?php');
+
+        $this->assertTrue($dir->delete('invoice-pdf/[order_id]'));
+        $this->assertSame([], $dir->listSlugs());
+    }
+
     // ── listSlugs ────────────────────────────────────────────────────────────
 
     public function test_listSlugs_returns_empty_array_when_directory_missing(): void

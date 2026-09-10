@@ -4,7 +4,15 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/api/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
+
+const {confirm} = vi.hoisted(() => ({confirm: vi.fn()}))
+vi.mock('@inquirer/prompts', () => ({confirm}))
+
+const interactive = vi.hoisted(() => ({value: true}))
+vi.mock('../../../src/lib/interactive.js', () => ({isInteractive: () => interactive.value}))
 
 type ApiFile = {
   content: string
@@ -16,6 +24,13 @@ type PushWithPushFile = {
   failedCount: number
   pushFile(file: ApiFile, task?: {output: string}): Promise<void>
   wpClient: {put: ReturnType<typeof vi.fn>}
+}
+type PushWithPrune = {
+  dryRun: boolean
+  prune(localFilenames: Set<string>): Promise<string[]>
+  siteConfig: EnvironmentConfig
+  wpClient: {delete: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>}
+  yes: boolean
 }
 
 async function loadFiles(path: string): Promise<ApiFile[]> {
@@ -229,6 +244,91 @@ describe('api push', () => {
 
       expect(put).not.toHaveBeenCalled()
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
+  })
+
+  describe('prune', () => {
+    function makePrune({dryRun = false, yes = false} = {}) {
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+      const internals = cmd as unknown as PushWithPrune
+      internals.dryRun = dryRun
+      internals.yes = yes
+      internals.siteConfig = makeEnv('production', 'https://acme.com')
+      const get = vi.fn()
+      const del = vi.fn().mockResolvedValue({deleted: true})
+      internals.wpClient = {delete: del, get}
+      return {cmd: internals, del, get, logs}
+    }
+
+    beforeEach(() => {
+      confirm.mockReset()
+      interactive.value = true
+    })
+
+    it('deletes every server-side file with no local counterpart, after confirmation', async () => {
+      confirm.mockResolvedValue(true)
+      const {cmd, del, get} = makePrune()
+      get.mockResolvedValue([{filename: 'keep'}, {filename: 'stale-a'}, {filename: 'stale-b'}])
+
+      const pruned = await cmd.prune(new Set(['keep']))
+
+      expect(get).toHaveBeenCalledWith('loopress/v1/api-files')
+      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale-a')
+      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale-b')
+      expect(del).not.toHaveBeenCalledWith('loopress/v1/api-files?filename=keep')
+      expect(pruned).toEqual(['stale-a', 'stale-b'])
+    })
+
+    it('does nothing when every server-side file is present locally', async () => {
+      const {cmd, del, get} = makePrune()
+      get.mockResolvedValue([{filename: 'keep'}])
+
+      const pruned = await cmd.prune(new Set(['keep']))
+
+      expect(del).not.toHaveBeenCalled()
+      expect(pruned).toEqual([])
+    })
+
+    it('keeps the server-side files when the confirmation is declined', async () => {
+      confirm.mockResolvedValue(false)
+      const {cmd, del, get} = makePrune()
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      const pruned = await cmd.prune(new Set())
+
+      expect(del).not.toHaveBeenCalled()
+      expect(pruned).toEqual([])
+    })
+
+    it('refuses to prune in a non-TTY without --yes', async () => {
+      interactive.value = false
+      const {cmd, del, get} = makePrune()
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      await expect(cmd.prune(new Set())).rejects.toThrow(/--prune would delete .* not a TTY/s)
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('prunes without prompting when --yes is set', async () => {
+      const {cmd, del, get} = makePrune({yes: true})
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      await cmd.prune(new Set())
+
+      expect(confirm).not.toHaveBeenCalled()
+      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale')
+    })
+
+    it('reports what it would prune on --dry-run without deleting anything', async () => {
+      const {cmd, del, get, logs} = makePrune({dryRun: true})
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      const pruned = await cmd.prune(new Set())
+
+      expect(del).not.toHaveBeenCalled()
+      expect(pruned).toEqual(['stale'])
+      expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\[dry-run\] Would prune .*stale/))
     })
   })
 })

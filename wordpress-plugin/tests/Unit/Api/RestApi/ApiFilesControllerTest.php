@@ -347,4 +347,59 @@ class ApiFilesControllerTest extends TestCase
 
         $this->assertSame(500, $response->status);
     }
+
+    // ── delete_file ─────────────────────────────────────────────────────────
+
+    public function test_delete_file_removes_the_file_and_returns_200(): void
+    {
+        $this->directory->expects($this->once())->method('delete')->with('hello')->willReturn(true);
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['filename' => 'hello', 'deleted' => true], $response->data);
+    }
+
+    public function test_delete_file_returns_404_when_the_file_is_absent(): void
+    {
+        $this->directory->method('delete')->with('gone')->willReturn(false);
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'gone']));
+
+        $this->assertSame(404, $response->status);
+    }
+
+    public function test_delete_file_returns_400_for_an_invalid_filename_without_touching_the_directory(): void
+    {
+        $this->directory->expects($this->never())->method('delete');
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => '../../wp-config']));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_delete_file_clears_a_stale_load_error_entry_for_the_removed_slug(): void
+    {
+        $this->directory->method('delete')->willReturn(true);
+        Functions\when('get_option')->justReturn(['hello' => 'expected exactly one class declaration, found none', 'other' => 'boom']);
+        Functions\expect('update_option')
+            ->once()
+            ->with('loopress_api_load_errors', ['other' => 'boom'], false)
+            ->andReturn(true);
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_delete_file_does_not_write_the_option_when_there_is_no_stale_entry(): void
+    {
+        $this->directory->method('delete')->willReturn(true);
+        Functions\when('get_option')->justReturn(['other' => 'boom']);
+        Functions\expect('update_option')->never();
+
+        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+
+        $this->assertSame(200, $response->status);
+    }
 }

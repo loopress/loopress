@@ -153,8 +153,31 @@ lps hook push [path]
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
+| `--prune` | After pushing, delete hook files on WordPress that have no local counterpart (confirmation prompt; needs `--yes` in a non-interactive shell) |
+| `--yes` / `-y` | Skip the `--prune` confirmation prompt |
 
 Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class, same validation as `lps api push` (syntax check, ABSPATH guard, class-name collision detection). Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
+
+Without `--prune`, pushing never removes a hook file from the server.
+
+---
+
+### `lps hook rm`
+
+Delete one hook file from WordPress. Hook files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them; `rm` is the way to take one off the server through the CLI.
+
+```bash
+lps hook rm <filename>
+```
+
+| Argument | Description |
+|----------|-------------|
+| `filename` | The hook slug without `.php`, e.g. `content-filters` or `content/filters` |
+
+| Flag | Description |
+|------|-------------|
+| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
+| `--dry-run` / `-d` | Show what would be removed without deleting anything |
 
 ---
 
