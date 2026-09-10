@@ -44,21 +44,7 @@ class ComposerRunner
         }
 
         try {
-            $command  = array_shift($args);
-            $inputDef = ['command' => $command];
-
-            // require/remove pass package names; update passes none.
-            if (!empty($args)) {
-                $inputDef['packages'] = $args;
-            }
-
-            $inputDef['--working-dir']    = $this->environment->getLoopressDir();
-            $inputDef['--no-interaction'] = true;
-            $inputDef['--no-ansi']        = true;
-
-            foreach ($extraOptions as $key => $value) {
-                $inputDef[$key] = $value;
-            }
+            $inputDef = $this->buildInputDef($args, $extraOptions);
 
             $output = new BufferedOutput();
             $app    = new Application();
@@ -73,6 +59,41 @@ class ComposerRunner
             flock($lockHandle, LOCK_UN);
             fclose($lockHandle); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
         }
+    }
+
+    /**
+     * Build the ArrayInput definition for a Composer command. Split out from run() so the fixed
+     * hardening flags below are unit-testable without spinning up a real Composer\Application.
+     *
+     * @param string[] $args first element is the command, the rest are package arguments
+     * @param array<string, mixed> $extraOptions
+     * @return array<string, mixed>
+     */
+    private function buildInputDef(array $args, array $extraOptions): array
+    {
+        $args     = array_values($args);
+        $command  = array_shift($args);
+        $inputDef = ['command' => $command];
+
+        // require/remove pass package names; update passes none.
+        if (!empty($args)) {
+            $inputDef['packages'] = $args;
+        }
+
+        $inputDef['--working-dir']    = $this->environment->getLoopressDir();
+        $inputDef['--no-interaction'] = true;
+        $inputDef['--no-ansi']        = true;
+        // Never run Composer scripts or event handlers. A dependency's post-install / post-update
+        // hook, or a transitive composer-plugin, must not get code execution on the server just
+        // because a package was installed. The plugin's own composer.json defines no scripts;
+        // this is defence in depth for the sync / require paths (F17, F22).
+        $inputDef['--no-scripts']     = true;
+
+        foreach ($extraOptions as $key => $value) {
+            $inputDef[$key] = $value;
+        }
+
+        return $inputDef;
     }
 
     /** @return resource */

@@ -9,9 +9,9 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 const forceFlag = z.boolean().optional().describe('Allow downgrades and take over plugins/themes installed outside Loopress')
 
-// The server-side `composer install` triggered by `lps composer push` can legitimately run for
-// minutes (see cli's own COMPOSER_SYNC_TIMEOUT_MS in commands/composer/push.ts); the default
-// runLps timeout would kill it long before that ceiling is reached.
+// The server-side Composer run triggered by `lps composer push` can legitimately run for
+// minutes (see cli's own SYNC_TIMEOUT_MS in utils/plugin-sync.ts); the default runLps timeout
+// would kill it long before that ceiling is reached.
 const COMPOSER_PUSH_TIMEOUT_MS = 620_000
 
 export function registerComposerTools(server: McpServer): void {
@@ -19,7 +19,8 @@ export function registerComposerTools(server: McpServer): void {
     'composer_push',
     {
       description:
-        'Push composer.json/composer.lock to WordPress and run composer install there.' + PREVIEW_SUFFIX,
+        'Push composer.json to WordPress and run Composer there to resolve and install dependencies.' +
+        PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, force: forceFlag},
     },
     async ({confirmToken, env, force}) => {

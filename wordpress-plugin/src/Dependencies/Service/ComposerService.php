@@ -273,10 +273,18 @@ class ComposerService
      * composer.json: the CLI never sends a file, only the intent, so an old or hand-rolled CLI
      * can't push a composer.json that installs into the wrong place.
      *
+     * The client's composer.lock ($clientLock) is advisory only. It is never written to disk and
+     * never handed to Composer: `composer install` would replay it verbatim, fetching every
+     * packages[].dist.url it names (server-side request forgery) and regenerating
+     * vendor/composer/autoload_files.php from attacker-hosted archives, which the plugin then
+     * require()s on every request (remote code execution). Composer always resolves the
+     * plugin-rendered composer.json against its own repositories instead. $clientLock is only
+     * parsed, after the fact, to report which locked versions the server resolution moved.
+     *
      * @param array{libraries?: array<string, string>, plugins?: array<string, string>, themes?: array<string, string>} $intent
-     * @return array{message: string, output: string, composerJson: string, composerLock: ?string, removed: list<string>}
+     * @return array{message: string, output: string, composerJson: string, composerLock: ?string, removed: list<string>, lockDrift: list<array{name: string, from: ?string, to: ?string}>}
      */
-    public function sync(array $intent, ?string $lock, bool $force): array
+    public function sync(array $intent, ?string $clientLock, bool $force): array
     {
         $this->ensureInitialized();
 
@@ -289,9 +297,6 @@ class ComposerService
         $previousLockedNames = $this->lockedPackageNames($previousLock);
 
         $this->environment->writeComposerJson($rendered);
-        if ($lock !== null) {
-            $this->environment->writeComposerLock($lock);
-        }
 
         // A client HTTP timeout must not kill Composer mid-run and leave vendor/ or the lock
         // half-written; let it finish even if the CLI already gave up on the response.
@@ -299,7 +304,9 @@ class ComposerService
             ignore_user_abort(true);
         }
 
-        $result = $this->composerRunner->run($lock !== null ? ['install'] : ['update']);
+        // Always `update`, never `install`: resolve the plugin-owned composer.json from
+        // scratch rather than replaying a client-supplied lock (see the method docblock).
+        $result = $this->composerRunner->run(['update']);
 
         if ($result['exit_code'] !== 0) {
             // Restore the previous manifests so a failed sync doesn't leave the site
@@ -307,7 +314,9 @@ class ComposerService
             $this->environment->writeComposerJson($previousJson);
             if ($previousLock !== null) {
                 $this->environment->writeComposerLock($previousLock);
-            } elseif ($lock !== null) {
+            } else {
+                // `composer update` on a lockless project just wrote a fresh composer.lock;
+                // drop it so a failed sync leaves no lock for a never-installed dependency set.
                 $this->environment->deleteComposerLock();
             }
 
@@ -333,7 +342,42 @@ class ComposerService
             'composerJson' => $this->environment->readComposerJsonRaw() ?? '',
             'composerLock' => $newLock,
             'removed'      => $removed,
+            'lockDrift'    => $this->computeLockDrift($clientLock, $newLock),
         ];
+    }
+
+    /**
+     * Compare the versions the client's local composer.lock had pinned against the versions the
+     * server actually resolved, so `lps composer push` can tell the developer their local lock
+     * is now stale. Purely informational: the client lock never drove the install.
+     *
+     * @return list<array{name: string, from: ?string, to: ?string}>
+     */
+    private function computeLockDrift(?string $clientLock, ?string $resolvedLock): array
+    {
+        if ($clientLock === null) {
+            return [];
+        }
+
+        $client   = $this->parseLockedPackages($clientLock);
+        $resolved = $this->parseLockedPackages($resolvedLock);
+
+        $drift = [];
+        foreach ($resolved as $name => $version) {
+            $before = $client[$name] ?? null;
+            if ($before !== $version) {
+                $drift[] = ['name' => (string) $name, 'from' => $before, 'to' => $version];
+            }
+        }
+        foreach ($client as $name => $version) {
+            if (!array_key_exists($name, $resolved)) {
+                $drift[] = ['name' => (string) $name, 'from' => $version, 'to' => null];
+            }
+        }
+
+        usort($drift, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+
+        return $drift;
     }
 
     /**

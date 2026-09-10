@@ -18,6 +18,12 @@ class ComposerController
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
 
+    // The client composer.lock is advisory (the server resolves composer.json itself, it never
+    // installs from this), but sync() still parses it for the drift report, so bound it: a
+    // multi-megabyte "lock" string is only a memory sink. A real composer.lock for a large
+    // project is well under this.
+    private const MAX_LOCK_BYTES = 5 * 1024 * 1024;
+
     public function __construct(private ComposerService $composerService) {}
 
     public function register_routes(): void
@@ -112,8 +118,10 @@ class ComposerController
                 'lock' => [
                     'required' => false,
                     // Nullable: the CLI sends an explicit `null` (not an omitted key) when the
-                    // project has no composer.lock yet, so the server can resolve versions freely.
-                    'type'     => ['string', 'null'],
+                    // project has no composer.lock yet. Advisory only: the server never installs
+                    // from this lock, it only parses it to report which resolved versions moved.
+                    'type'              => ['string', 'null'],
+                    'validate_callback' => [self::class, 'validateLockArg'],
                 ],
                 'force' => [
                     'required' => false,
@@ -277,6 +285,19 @@ class ComposerController
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => 'Sync failed.', 'output' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * The `lock` sync arg: an optional string (or explicit null) capped at MAX_LOCK_BYTES.
+     * Public + static so it works as a `validate_callback` (WP calls it via call_user_func).
+     */
+    public static function validateLockArg(mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+
+        return is_string($value) && strlen($value) <= self::MAX_LOCK_BYTES;
     }
 
     private static function isStringMap(mixed $value): bool

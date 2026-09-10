@@ -80,7 +80,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |
-| `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json`/`composer.lock` and run Composer on WordPress |
+| `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
 | `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |

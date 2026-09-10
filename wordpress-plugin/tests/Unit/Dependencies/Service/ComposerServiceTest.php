@@ -408,7 +408,7 @@ class ComposerServiceTest extends TestCase
         $this->assertSame('^3.0', $written['require']['monolog/monolog']);
     }
 
-    public function test_sync_runs_install_when_lock_provided_and_reports_removed(): void
+    public function test_sync_always_runs_update_never_install_and_never_writes_the_client_lock(): void
     {
         $this->stubScaffoldIdentity();
         $this->environment->method('readComposerJson')->willReturn(['require' => []]);
@@ -416,13 +416,54 @@ class ComposerServiceTest extends TestCase
         $this->environment->method('readComposerJsonRaw')->willReturn('{}');
         $this->environment->method('readComposerLock')->willReturnOnConsecutiveCalls(
             '{"packages":[{"name":"wpackagist-plugin/gone"}]}', // previous
-            '{"packages":[]}',                                  // after install
+            '{"packages":[]}',                                  // resolved by `composer update`
         );
 
-        $this->runner->method('run')->with(['install'])->willReturn(['exit_code' => 0, 'output' => 'ok']);
+        // A .with(['install']) call would fail this expectation: the client lock must never
+        // reach `composer install`.
+        $this->runner->expects($this->once())->method('run')->with(['update'])
+            ->willReturn(['exit_code' => 0, 'output' => 'ok']);
+        // The client-supplied lock is advisory: on the success path nothing writes composer.lock
+        // (Composer's own `update` does), so this is never called.
+        $this->environment->expects($this->never())->method('writeComposerLock');
 
-        $result = $this->service->sync(['plugins' => []], '{"packages":[]}', false);
+        $result = $this->service->sync(['plugins' => []], '{"packages":[{"name":"other/pkg","version":"1.0.0"}]}', false);
         $this->assertSame(['wpackagist-plugin/gone'], $result['removed']);
+    }
+
+    public function test_sync_reports_lock_drift_between_the_client_lock_and_the_resolved_lock(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('managedDirExists')->willReturn(false);
+        $this->environment->method('readComposerJsonRaw')->willReturn('{}');
+        $this->environment->method('readComposerLock')->willReturnOnConsecutiveCalls(
+            null, // previous (server had no lock)
+            '{"packages":[{"name":"a/b","version":"1.5.0"},{"name":"e/f","version":"3.0.0"}]}', // resolved
+        );
+        $this->runner->method('run')->willReturn(['exit_code' => 0, 'output' => 'ok']);
+
+        $clientLock = '{"packages":[{"name":"a/b","version":"1.0.0"},{"name":"c/d","version":"2.0.0"}]}';
+        $result     = $this->service->sync(['plugins' => []], $clientLock, false);
+
+        $this->assertSame([
+            ['name' => 'a/b', 'from' => '1.0.0', 'to' => '1.5.0'], // bumped
+            ['name' => 'c/d', 'from' => '2.0.0', 'to' => null],    // dropped
+            ['name' => 'e/f', 'from' => null, 'to' => '3.0.0'],    // added
+        ], $result['lockDrift']);
+    }
+
+    public function test_sync_reports_no_lock_drift_when_the_client_sent_no_lock(): void
+    {
+        $this->stubScaffoldIdentity();
+        $this->environment->method('readComposerJson')->willReturn(['require' => []]);
+        $this->environment->method('managedDirExists')->willReturn(false);
+        $this->environment->method('readComposerJsonRaw')->willReturn('{}');
+        $this->environment->method('readComposerLock')->willReturn(null);
+        $this->runner->method('run')->willReturn(['exit_code' => 0, 'output' => 'ok']);
+
+        $result = $this->service->sync(['plugins' => []], null, false);
+        $this->assertSame([], $result['lockDrift']);
     }
 
     public function test_sync_throws_unmanaged_when_folder_exists_and_not_forced(): void
@@ -505,16 +546,21 @@ class ComposerServiceTest extends TestCase
         }
 
         $this->assertCount(2, $writtenJson); // rendered, then rollback
-        $this->assertSame(['{"new": "lock"}', '{"old": "lock"}'], $writtenLock);
+        // Only the rollback restore writes the lock: the client's '{"new": "lock"}' is never
+        // written to disk at any point.
+        $this->assertSame(['{"old": "lock"}'], $writtenLock);
     }
 
-    public function test_sync_deletes_written_lock_on_failure_when_none_existed_before(): void
+    public function test_sync_deletes_the_resolved_lock_on_failure_when_none_existed_before(): void
     {
         $this->stubScaffoldIdentity();
         $this->environment->method('readComposerJson')->willReturn(['require' => []]);
         $this->environment->method('readComposerLock')->willReturn(null);
         $this->environment->method('managedDirExists')->willReturn(false);
 
+        // `composer update` on a lockless project writes a fresh composer.lock; a failed sync
+        // drops it. The client lock is never written, so this is the only lock cleanup.
+        $this->environment->expects($this->never())->method('writeComposerLock');
         $this->environment->expects($this->once())->method('deleteComposerLock');
         $this->runner->method('run')->willReturn(['exit_code' => 1, 'output' => 'Install failed.']);
 
