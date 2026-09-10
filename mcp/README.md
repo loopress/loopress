@@ -51,7 +51,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `snippet_list` | No | `env?` | List snippets currently on WordPress |
 | `api_push` | Yes | `env?`, `path?`, `prune?`, `confirmToken?` | Push local custom API route files to WordPress (`prune` also deletes server-side files not present locally) |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
-| `api_list` | No | `env?` | List custom API route files currently on WordPress |
+| `api_list` | No | `env?` | List custom API route files currently on WordPress (flags each route `public`) |
 | `api_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one custom API route file from WordPress |
 | `hook_push` | Yes | `env?`, `path?`, `prune?`, `confirmToken?` | Push local hook files to WordPress (`prune` also deletes server-side files not present locally) |
 | `hook_pull` | No | `env?`, `path?` | Pull hook files from WordPress |

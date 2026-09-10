@@ -84,6 +84,7 @@ What push does, and deliberately does not do:
 
 - **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with a malformed `declare(strict_types=1);` line, zero or more than one class declared, or a class name that collides with WordPress core, another active plugin, or another `api/` file. Invalid PHP syntax is also rejected (returning the parse error) when the server can run the check; where it's unavailable (no PHP CLI binary, `exec` disabled), the push succeeds and a broken file is instead caught later, when `RouteLoader` tries to load it. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
 - **One bad file doesn't block the rest.** Files are pushed one by one; a failure is reported per file and the remaining files still go through. The command exits with an error summarizing how many failed.
+- **Public routes are called out.** A pushed route that declares `#[Permission(public: true)]` gets a warning: it runs for anyone, with no authentication. The push still succeeds; see [the blast radius of a public route](/api/routes/#the-blast-radius-of-a-public-route).
 - **Without `--prune`, pushing never deletes a route on WordPress**, even if the local file is gone. `--prune` opts into removing routes absent locally: it lists them, asks for confirmation, then deletes each. In a non-interactive shell it refuses unless `--yes` is also given, because, unlike `lps api pull`'s local cleanup, a pruned route on the server is not recoverable from your repo.
 
 **Example:**
@@ -131,7 +132,9 @@ lps api list
 
 | Flag | Description |
 |------|-------------|
-| `--json` | Output raw JSON (filename and full file content per route) instead of formatted text |
+| `--json` | Output raw JSON (filename, full file content, and `public` per route) instead of formatted text |
+
+A route that runs with no authentication (`#[Permission(public: true)]`) is badged `[PUBLIC]`, with a warning after the list. See [the blast radius of a public route](/api/routes/#the-blast-radius-of-a-public-route).
 
 **Example output:**
 
@@ -139,7 +142,9 @@ lps api list
 Found 2 route files:
 
   hello-world
-  webhook-handler
+  open-webhook  [PUBLIC]
+
+ »   Warning: [PUBLIC] routes run for anyone, with no authentication. Review them.
 ```
 
 ---

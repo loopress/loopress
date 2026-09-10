@@ -128,10 +128,22 @@ abstract class AbstractFilesController
                 $file['error'] = $loadErrors[$slug];
             }
 
-            $files[] = $file;
+            $files[] = $this->annotateEntry($file, $content);
         }
 
         return new WP_REST_Response($files, 200);
+    }
+
+    // Hook for a subclass to add resource-specific fields to a list entry or a push response,
+    // derived from the file's own source (never by executing it). Base adds nothing; see
+    // ApiFilesController, which flags a route whose permission is open (F1).
+    /**
+     * @param array<string, mixed> $entry
+     * @return array<string, mixed>
+     */
+    protected function annotateEntry(array $entry, string $rawContent): array // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- $rawContent is the seam subclasses read
+    {
+        return $entry;
     }
 
     public function push_file(WP_REST_Request $request): WP_REST_Response
@@ -197,7 +209,7 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        $response = ['filename' => $filename];
+        $response = $this->annotateEntry(['filename' => $filename], $content);
         if ($syntax['status'] === 'unavailable') {
             // Distinguishes "verified, no error" from "couldn't verify here" for the CLI:
             // the write still succeeded, this is a heads-up, not a failure.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\Infrastructure\ApiDirectory;
+use Loopress\Api\Infrastructure\PermissionScanner;
 use Loopress\Infrastructure\AbstractFilesController;
 use Loopress\Infrastructure\AbstractFilesDirectory;
 
@@ -37,5 +38,19 @@ class ApiFilesController extends AbstractFilesController
     protected static function filenamePattern(): string
     {
         return '/^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/';
+    }
+
+    // Flags a route whose permission is open: `#[Permission(public: true)]` on the class or a
+    // verb method means the route runs for anyone on the internet, with no authentication
+    // (F1). Detected lexically from the source, see PermissionScanner for the blind spots.
+    // Hooks have no permission concept, so HookFilesController does not override this.
+    /**
+     * @param array<string, mixed> $entry
+     * @return array<string, mixed>
+     */
+    protected function annotateEntry(array $entry, string $rawContent): array
+    {
+        $entry['public'] = PermissionScanner::declaresOpenRoute($rawContent);
+        return $entry;
     }
 }

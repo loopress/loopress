@@ -22,7 +22,7 @@ type ApiFile = {
 type PushWithLoadFiles = {loadFiles(path: string): Promise<ApiFile[]>}
 type PushWithPushFile = {
   failedCount: number
-  pushFile(file: ApiFile, task?: {output: string}): Promise<void>
+  pushFile(file: ApiFile, task?: {output: string}): Promise<undefined | {public?: boolean}>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 type PushWithPrune = {
@@ -112,6 +112,17 @@ describe('api push', () => {
       await (cmd as unknown as PushWithPushFile).pushFile(file)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
+    })
+
+    it('surfaces the server\'s public flag so run() can warn about an unauthenticated route', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello', public: true})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
+
+      expect(result?.public).toBe(true)
     })
 
     it('reports a skipped syntax check in task.output without failing the push', async () => {

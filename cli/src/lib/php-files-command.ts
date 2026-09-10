@@ -57,11 +57,14 @@ type PhpFile = {
 }
 
 // What the server returns from a list/pull: `content` is absent when the server declined to
-// read the file back (e.g. it is over the size limit, LP-SEC-02), in which case `error` says why.
+// read the file back (e.g. it is over the size limit, LP-SEC-02), in which case `error` says
+// why. `public` (api only) is true when the route declares `#[Permission(public: true)]`:
+// it runs for anyone, with no authentication (F1).
 type RemotePhpFile = {
   content?: string
   error?: string
   filename: string
+  public?: boolean
 }
 
 type PushResult = {
@@ -149,17 +152,25 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       this.log(`Found ${pluralize(files.length, spec.noun)} to push`)
 
       const pushed: string[] = []
+      const publicRoutes: string[] = []
       await this.runPushTasks(
         files,
         (file) => file.filename,
         async (file, task) => {
-          await this.pushFile(file, task)
+          const result = await this.pushFile(file, task)
           pushed.push(file.filename)
+          if (result?.public) publicRoutes.push(file.filename)
         },
       )
 
       if (this.failedCount > 0) {
         this.error(`${pluralize(this.failedCount, spec.noun)} failed to push.`)
+      }
+
+      for (const route of publicRoutes) {
+        this.warn(
+          `${route}: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions`,
+        )
       }
 
       const pruned = flags.prune ? await this.prune(new Set(files.map((file) => file.filename))) : []
@@ -219,7 +230,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       return deleted
     }
 
-    private async pushFile(file: PhpFile, task?: {output: string}): Promise<void> {
+    private async pushFile(file: PhpFile, task?: {output: string}): Promise<undefined | {public?: boolean}> {
       if (!spec.filenamePattern.test(file.filename)) {
         const message = `Invalid filename "${file.filename}": ${spec.invalidFilenameHint}`
         this.reportTaskFailure(message, new Error(message), task)
@@ -235,11 +246,11 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       if (this.dryRun) {
         if (task) task.output = `[dry-run] Would push: ${file.filename}`
 
-        return
+        return undefined
       }
 
       try {
-        const result = await this.wp.put<{syntax_check?: 'skipped'}>(spec.endpoint, {
+        const result = await this.wp.put<{public?: boolean; syntax_check?: 'skipped'}>(spec.endpoint, {
           content: file.content,
           filename: file.filename,
         })
@@ -249,6 +260,8 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
               ? `Pushed: ${file.filename} (syntax check skipped, unavailable on this host)`
               : `Pushed: ${file.filename}`
         }
+
+        return result
       } catch (error) {
         this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
       }
@@ -340,7 +353,13 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
       this.log('')
 
       for (const file of files) {
-        this.log(file.error ? `  ${file.filename}  (${file.error})` : `  ${file.filename}`)
+        const badges = [file.public ? '[PUBLIC]' : '', file.error ? `(${file.error})` : ''].filter(Boolean).join('  ')
+        this.log(badges ? `  ${file.filename}  ${badges}` : `  ${file.filename}`)
+      }
+
+      if (files.some((file) => file.public)) {
+        this.log('')
+        this.warn('[PUBLIC] routes run for anyone, with no authentication. Review them.')
       }
 
       return files
