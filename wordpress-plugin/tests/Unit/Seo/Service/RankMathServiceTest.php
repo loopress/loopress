@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Seo\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\Service\RankMathService;
 use Loopress\Tests\Stubs\FakeWpdb;
@@ -179,6 +180,44 @@ class RankMathServiceTest extends TestCase
         $this->assertSame(['titleSeparator' => '|'], $result);
     }
 
+    public function test_update_settings_strips_active_content_from_string_values(): void
+    {
+        $stored = [];
+        Functions\when('update_option')->alias(function (string $name, mixed $value) use (&$stored): void {
+            $stored = $value;
+        });
+        Functions\when('get_option')->alias(fn(): mixed => $stored);
+
+        $this->service->updateSettings([
+            'homepage_title'  => 'Home <script>alert(1)</script>',
+            'title_separator' => '|',
+            'nested'          => ['og_image_alt' => '<img src=x onerror=alert(1)>'],
+        ]);
+
+        $this->assertSame('Home ', $stored['homepage_title']);
+        $this->assertSame('|', $stored['title_separator']);
+        $this->assertSame('<img src=x>', $stored['nested']['og_image_alt']);
+    }
+
+    public function test_upsert_post_meta_strips_active_content_from_values(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
+        Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['Old']]);
+        $updated = [];
+        Functions\when('update_post_meta')->alias(function (int $id, string $key, mixed $value) use (&$updated): void {
+            $updated[$key] = $value;
+        });
+        Functions\when('delete_post_meta')->justReturn(true);
+
+        $this->service->upsertPostMeta('post', 'hello', [
+            'rank_math_title'       => 'Safe title',
+            'rank_math_description' => 'desc <script>x()</script>',
+        ]);
+
+        $this->assertSame('Safe title', $updated['rank_math_title']);
+        $this->assertSame('desc ', $updated['rank_math_description']);
+    }
+
     // ── redirects ────────────────────────────────────────────────────────────
 
     // Every redirects method starts with requireRedirectionsModuleEnabled(), so every redirects
@@ -256,6 +295,72 @@ class RankMathServiceTest extends TestCase
         $this->assertSame('/new', $result['urlTo']);
         $this->assertSame(301, $result['headerCode']);
         $this->assertSame([['comparison' => 'exact', 'pattern' => '/old']], $result['sources']);
+    }
+
+    public function test_create_redirection_rejects_an_off_site_url_to_without_allow_external(): void
+    {
+        $this->stubWpdb();
+        Functions\when('wp_validate_redirect')->justReturn(''); // off-site: wp returns the fallback
+
+        $this->expectException(InvalidRedirectException::class);
+        $this->service->createRedirection(['urlTo' => 'https://evil.example/phish']);
+    }
+
+    public function test_create_redirection_rejects_a_protocol_relative_url_to(): void
+    {
+        $this->stubWpdb();
+        Functions\when('wp_validate_redirect')->justReturn('');
+
+        $this->expectException(InvalidRedirectException::class);
+        $this->service->createRedirection(['urlTo' => '//evil.example/phish']);
+    }
+
+    public function test_create_redirection_allows_an_off_site_url_to_when_allow_external_is_set(): void
+    {
+        $this->stubWpdb();
+        Functions\when('current_time')->justReturn('2026-07-21 00:00:00');
+        Functions\when('maybe_serialize')->alias(fn(mixed $v): mixed => $v);
+        Functions\when('maybe_unserialize')->alias(fn(mixed $v): mixed => $v);
+        Functions\when('wp_validate_redirect')->justReturn('');
+
+        $result = $this->service->createRedirection(['allowExternal' => true, 'urlTo' => 'https://partner.example/go']);
+
+        $this->assertSame('https://partner.example/go', $result['urlTo']);
+    }
+
+    public function test_create_redirection_allows_a_same_site_absolute_url_to(): void
+    {
+        $this->stubWpdb();
+        Functions\when('current_time')->justReturn('2026-07-21 00:00:00');
+        Functions\when('maybe_serialize')->alias(fn(mixed $v): mixed => $v);
+        Functions\when('maybe_unserialize')->alias(fn(mixed $v): mixed => $v);
+        // wp_validate_redirect returns the URL unchanged for a same-host target.
+        Functions\when('wp_validate_redirect')->returnArg(1);
+
+        $result = $this->service->createRedirection(['urlTo' => 'https://example.com/new-page']);
+
+        $this->assertSame('https://example.com/new-page', $result['urlTo']);
+    }
+
+    public function test_create_redirection_rejects_an_unknown_status(): void
+    {
+        $this->stubWpdb();
+
+        $this->expectException(InvalidRedirectException::class);
+        $this->service->createRedirection(['status' => 'sticky', 'urlTo' => '/x']);
+    }
+
+    public function test_update_redirection_validates_a_changed_url_to(): void
+    {
+        $wpdb = $this->stubWpdb();
+        $wpdb->rows[1] = ['id' => 1, 'sources' => [], 'url_to' => '/old', 'header_code' => 301, 'status' => 'active', 'hits' => 0, 'created' => 'c', 'updated' => 'c'];
+        Functions\when('current_time')->justReturn('2026-07-21 00:00:00');
+        Functions\when('maybe_serialize')->alias(fn(mixed $v): mixed => $v);
+        Functions\when('maybe_unserialize')->alias(fn(mixed $v): mixed => $v);
+        Functions\when('wp_validate_redirect')->justReturn('');
+
+        $this->expectException(InvalidRedirectException::class);
+        $this->service->updateRedirection(1, ['urlTo' => 'https://evil.example']);
     }
 
     public function test_update_redirection_returns_null_when_not_found(): void

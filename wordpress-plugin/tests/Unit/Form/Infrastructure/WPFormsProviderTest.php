@@ -169,6 +169,119 @@ class WPFormsProviderTest extends TestCase
         $this->provider->update(12, ['settings' => ['form_title' => 'Updated']]);
     }
 
+    // ── notification / confirmation guard (F12) ──────────────────────────────
+
+    /** @param array<string, mixed> $decoded */
+    private function captureUpdate(array &$captured, array $decoded = ['id' => 12]): void
+    {
+        $post               = new WP_Post();
+        $post->ID           = 12;
+        $post->post_type    = 'wpforms';
+        $post->post_content = '{}';
+        Functions\when('get_post')->justReturn($post);
+        Functions\when('wpforms_decode')->justReturn($decoded);
+        $this->stubWpForms($this->fakeFormHandler([
+            'update' => function (int $id, array $data) use (&$captured): int {
+                $captured = $data;
+                return $id;
+            },
+        ]));
+    }
+
+    public function test_update_keeps_the_servers_notifications_when_allowNotifications_is_absent(): void
+    {
+        $captured = [];
+        $this->captureUpdate($captured, [
+            'id'       => 12,
+            'settings' => ['notifications' => ['1' => ['email' => 'real-admin@site.test']]],
+        ]);
+
+        $this->provider->update(12, [
+            'settings' => ['notifications' => ['1' => ['email' => 'attacker@evil.example', 'message' => '{all_fields}']]],
+        ]);
+
+        $this->assertSame(['1' => ['email' => 'real-admin@site.test']], $captured['settings']['notifications']);
+    }
+
+    public function test_create_drops_incoming_notifications_when_allowNotifications_is_absent(): void
+    {
+        $post               = new WP_Post();
+        $post->ID           = 7;
+        $post->post_type    = 'wpforms';
+        $post->post_content = '{}';
+        $captured           = [];
+        Functions\when('get_post')->justReturn($post);
+        Functions\when('wpforms_decode')->justReturn(['id' => 7]);
+        $this->stubWpForms($this->fakeFormHandler([
+            'add'    => 7,
+            'update' => function (int $id, array $data) use (&$captured): int {
+                $captured = $data;
+                return $id;
+            },
+        ]));
+
+        $this->provider->create([
+            'settings' => ['form_title' => 'F', 'notifications' => ['1' => ['email' => 'attacker@evil.example']]],
+        ]);
+
+        $this->assertArrayNotHasKey('notifications', $captured['settings']);
+        $this->assertArrayNotHasKey('allowNotifications', $captured);
+    }
+
+    public function test_update_rejects_an_invalid_recipient_when_notifications_are_allowed(): void
+    {
+        Functions\when('is_email')->alias(fn(string $v): bool => str_contains($v, '@') && str_contains($v, '.'));
+        $captured = [];
+        $this->captureUpdate($captured);
+
+        $this->expectException(\Loopress\Form\Exception\FormNotificationException::class);
+        $this->provider->update(12, [
+            'allowNotifications' => true,
+            'settings'           => ['notifications' => ['1' => ['email' => 'not-an-email']]],
+        ]);
+    }
+
+    public function test_update_rejects_a_spoofed_sender_address_when_notifications_are_allowed(): void
+    {
+        Functions\when('is_email')->alias(fn(string $v): bool => (bool) preg_match('/^[^@\s]+@[^@\s]+\.[^@\s]+$/', $v));
+        Functions\when('get_option')->justReturn('https://mysite.test');
+        Functions\when('wp_parse_url')->justReturn('mysite.test');
+        $captured = [];
+        $this->captureUpdate($captured);
+
+        $this->expectException(\Loopress\Form\Exception\FormNotificationException::class);
+        $this->provider->update(12, [
+            'allowNotifications' => true,
+            'settings'           => ['notifications' => ['1' => ['email' => '{admin_email}', 'sender_address' => 'noreply@evil.example']]],
+        ]);
+    }
+
+    public function test_update_accepts_valid_notifications_and_strips_the_message_when_allowed(): void
+    {
+        Functions\when('is_email')->alias(fn(string $v): bool => (bool) preg_match('/^[^@\s]+@[^@\s]+\.[^@\s]+$/', $v));
+        Functions\when('get_option')->justReturn('https://mysite.test');
+        Functions\when('wp_parse_url')->justReturn('mysite.test');
+        Functions\when('sanitize_text_field')->alias(fn(string $v): string => trim($v));
+        $captured = [];
+        $this->captureUpdate($captured);
+
+        $this->provider->update(12, [
+            'allowNotifications' => true,
+            'settings'           => [
+                'notifications' => ['1' => [
+                    'email'          => 'team@mysite.test, {admin_email}',
+                    'sender_address' => 'noreply@mysite.test',
+                    'subject'        => 'New entry',
+                    'message'        => 'Hi <script>steal()</script> {all_fields}',
+                ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('Hi  {all_fields}', $captured['settings']['notifications']['1']['message']);
+        $this->assertSame('noreply@mysite.test', $captured['settings']['notifications']['1']['sender_address']);
+    }
+
     // ── delete ────────────────────────────────────────────────────────────────
 
     public function test_delete_returns_false_when_the_form_does_not_exist(): void

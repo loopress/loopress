@@ -61,6 +61,8 @@ lps seo push [path]
 
 Settings are matched as a single file (`settings.json`). Post meta is matched by its `slug`: the target post must already exist on WordPress (SEO data syncs onto existing content, push never creates posts). Redirects are matched by numeric id when present; if a local id no longer exists on the target site, push creates a new redirect instead of failing and renames the local file to the `<id>-<slug>` convention, the same fallback used by `snippet push`.
 
+Active content is stripped from the string values in settings and post meta before they are stored (a `<script>` or `onerror=` handler pushed into a title, description or schema field would otherwise run in the public `<head>`). A redirect whose `urlTo` points off this site is rejected unless you pass `--allow-external-redirects`, so a stray push can't 301 your traffic away.
+
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `path` | `./seo` (or `loopress.json`'s `seoDir`) | Local directory to read `.json` files from |
@@ -68,6 +70,7 @@ Settings are matched as a single file (`settings.json`). Post meta is matched by
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
+| `--allow-external-redirects` | Permit a redirect whose target is on another site (rejected by default) |
 
 **Example:**
 

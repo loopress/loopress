@@ -64,7 +64,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `acf_push` | Yes | `env?`, `path?`, `type?`, `confirmToken?` | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |
-| `seo_push` | Yes | `env?`, `path?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
+| `seo_push` | Yes | `env?`, `path?`, `allowExternalRedirects?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
 | `seo_pull` | No | `env?`, `path?`, `postType?` | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | `env?`, `postType?` | List posts with SEO meta, and redirects if supported, on WordPress |
 | `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |

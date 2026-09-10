@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Acf\Service;
 
+use Loopress\RestApi\SyncSanitizer;
+
 // ACF has exactly one backend (itself, or nothing), unlike snippets where two interchangeable
 // plugins must be arbitrated (see SnippetProvider/SnippetService). No provider interface needed
 // here, this talks to ACF's own global functions directly, the same shape as WPCodeSnippetProvider.
@@ -54,7 +56,12 @@ class AcfService
             $data['ID'] = $existing->ID;
         }
 
-        $imported = acf_import_internal_post_type($data, $postType);
+        // Field labels, instructions, choices and a Message field's content are rendered
+        // (largely un-escaped) in the block editor for every user who opens a post using this
+        // group: strip active content from every string in the import payload so a pushed
+        // `<script>`/`onerror=` there can't execute in an admin session (F12). `key`/`ID` and
+        // other identifiers carry no active content, so they pass through unchanged.
+        $imported = acf_import_internal_post_type(SyncSanitizer::deepArray($data), $postType);
 
         return $this->get($postType, (string) ($imported['key'] ?? $key)) ?? $this->prepareForExport($imported, $postType);
     }

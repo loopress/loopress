@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Form\RestApi;
 
+use Loopress\Form\Exception\FormNotificationException;
 use Loopress\Form\Exception\NoActiveFormPluginException;
 use Loopress\Form\Service\FormService;
 use Loopress\RestApi\MapsServiceExceptions;
@@ -16,7 +17,10 @@ class FormController
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
 
-    private const STATUSES = [NoActiveFormPluginException::class => 409];
+    private const STATUSES = [
+        NoActiveFormPluginException::class => 409,
+        FormNotificationException::class   => 422,
+    ];
 
     public function __construct(private FormService $formService) {}
 

@@ -1,4 +1,4 @@
-import {Args} from '@oclif/core'
+import {Args, Flags} from '@oclif/core'
 import {readFile, rename} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
@@ -17,16 +17,24 @@ export default class Push extends PushCommand {
   static description =
     'Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
 
-  static examples = ['$ lps form push']
+  static examples = ['$ lps form push', '$ lps form push --allow-notifications']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
+    'allow-notifications': Flags.boolean({
+      default: false,
+      description:
+        "Also push each form's notification and confirmation settings (recipients, sender, messages). Off by default: the server keeps its own so a stray push can't redirect submissions.",
+    }),
   }
 
+  private allowNotifications = false
+
   async run(): Promise<void> {
-    const {args} = await this.parse(Push)
+    const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveFormPath(args.path)
+    this.allowNotifications = flags['allow-notifications']
 
     this.log(`Pushing forms to ${url}`)
     this.log(`Forms path: ${path}`)
@@ -99,9 +107,10 @@ export default class Push extends PushCommand {
 
     try {
       const id = getFormId(data)
+      const payload = this.allowNotifications ? {...data, allowNotifications: true} : data
       const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
         id,
-        payload: data,
+        payload,
         postEndpoint: FORM_ENDPOINT,
         putEndpoint: (formId) => `${FORM_ENDPOINT}/${formId}`,
       })

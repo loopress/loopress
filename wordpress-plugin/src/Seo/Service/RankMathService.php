@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Seo\Service;
 
 use Loopress\Seo\Contract\SeoRedirectProvider;
+use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
 
 // One of two interchangeable SeoProvider backends (see SeoService for the arbitration between
@@ -79,13 +80,16 @@ class RankMathService extends AbstractSeoService implements SeoRedirectProvider
         global $wpdb;
         $this->requireRedirectionsModuleEnabled();
 
+        $this->assertSafeRedirectTarget($data);
+        $status = $this->normalizeStatus($data['status'] ?? 'active') ?? 'active';
+
         $now = current_time('mysql');
         $wpdb->insert($this->redirectionsTable(), [
             'created'     => $now,
             'header_code' => (int) ($data['headerCode'] ?? 301),
             'hits'        => 0,
             'sources'     => maybe_serialize($data['sources'] ?? []),
-            'status'      => (string) ($data['status'] ?? 'active'),
+            'status'      => $status,
             'updated'     => $now,
             'url_to'      => (string) ($data['urlTo'] ?? ''),
         ]);
@@ -110,19 +114,66 @@ class RankMathService extends AbstractSeoService implements SeoRedirectProvider
         if (isset($data['sources'])) {
             $update['sources'] = maybe_serialize($data['sources']);
         }
-        if (isset($data['urlTo'])) {
+        if (array_key_exists('urlTo', $data)) {
+            $this->assertSafeRedirectTarget($data);
             $update['url_to'] = (string) $data['urlTo'];
         }
         if (isset($data['headerCode'])) {
             $update['header_code'] = (int) $data['headerCode'];
         }
         if (isset($data['status'])) {
-            $update['status'] = (string) $data['status'];
+            $update['status'] = $this->normalizeStatus($data['status']);
         }
 
         $wpdb->update($this->redirectionsTable(), $update, ['id' => $id]);
 
         return $this->getRedirection($id);
+    }
+
+    private const REDIRECT_STATUSES = ['active', 'inactive'];
+
+    // A redirect target the pushing project did not intend to send off-site: relative paths
+    // and URLs on this site are always fine, anything else needs an explicit
+    // `"allowExternal": true` in the body. Otherwise a leaked token could 301 any path on the
+    // site to an attacker's page (F13).
+    /** @param array<string, mixed> $data */
+    private function assertSafeRedirectTarget(array $data): void
+    {
+        $urlTo = trim((string) ($data['urlTo'] ?? ''));
+        if ($urlTo === '' || ($data['allowExternal'] ?? false) === true) {
+            return;
+        }
+
+        // A relative path (but not a protocol-relative "//host/...") is always same-site.
+        if (str_starts_with($urlTo, '/') && !str_starts_with($urlTo, '//')) {
+            return;
+        }
+
+        // wp_validate_redirect() returns the fallback ('') for any host that isn't the site's
+        // own (or allow-listed via the allowed_redirect_hosts filter).
+        if (wp_validate_redirect($urlTo, '') !== '') {
+            return;
+        }
+
+        throw new InvalidRedirectException(esc_html(
+            "Redirect target \"{$urlTo}\" points off this site. Use a relative path, a URL on this site, or pass \"allowExternal\": true."
+        ));
+    }
+
+    private function normalizeStatus(mixed $status): ?string
+    {
+        if ($status === null) {
+            return null;
+        }
+
+        $status = (string) $status;
+        if (!in_array($status, self::REDIRECT_STATUSES, true)) {
+            throw new InvalidRedirectException(esc_html(
+                "Redirect status \"{$status}\" is not valid. Use one of: " . implode(', ', self::REDIRECT_STATUSES) . '.'
+            ));
+        }
+
+        return $status;
     }
 
     // Table/column names (`{$wpdb->prefix}rank_math_redirections`; id, sources, url_to,

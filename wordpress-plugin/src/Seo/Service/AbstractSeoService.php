@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Seo\Service;
 
+use Loopress\RestApi\SyncSanitizer;
 use Loopress\Seo\Contract\SeoProvider;
 
 // Shared body of the two interchangeable SeoProvider backends (RankMathService, YoastService).
@@ -74,7 +75,10 @@ abstract class AbstractSeoService implements SeoProvider
         ));
 
         foreach ($incomingKeys as $key) {
-            update_post_meta($post->ID, $key, $meta[$key]);
+            // These values render into the public <head> (title, description, OG/Twitter tags,
+            // per-post JSON-LD) and the admin SEO metabox: strip active content so a pushed
+            // `<script>`/`onerror=` in a title or schema field can't execute there (F12).
+            update_post_meta($post->ID, $key, SyncSanitizer::deep($meta[$key]));
         }
 
         foreach (array_diff($existingKeys, $incomingKeys) as $removedKey) {
@@ -132,7 +136,12 @@ abstract class AbstractSeoService implements SeoProvider
      */
     public function updateSettings(array $data): array
     {
-        update_option($this->optionTitles(), $data);
+        // The generic `<prefix>_*` sync deliberately has no key allowlist (it would need to
+        // track every RankMath/Yoast release); instead every string value is stripped of
+        // active content before it is stored, since title/meta/schema templates from this
+        // option are rendered into the public <head> site-wide (F12). Unknown keys are left
+        // as-is: RankMath/Yoast ignore keys they don't know, they are not a render sink.
+        update_option($this->optionTitles(), SyncSanitizer::deepArray($data));
 
         return $this->getSettings();
     }

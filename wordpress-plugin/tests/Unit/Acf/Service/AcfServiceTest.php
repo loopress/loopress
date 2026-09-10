@@ -176,6 +176,36 @@ class AcfServiceTest extends TestCase
         $this->assertSame('post_type_existing', $result['key']);
     }
 
+    public function test_upsert_strips_active_content_from_labels_and_field_strings(): void
+    {
+        $capturedData = null;
+
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_import_internal_post_type')->alias(
+            function (array $data) use (&$capturedData): array {
+                $capturedData = $data;
+                return ['key' => 'group_x'];
+            }
+        );
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'group_x']);
+        Functions\when('acf_get_fields')->justReturn([]);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $this->service->upsert('acf-field-group', [
+            'key'    => 'group_x',
+            'title'  => 'Group <script>evil()</script>',
+            'fields' => [
+                ['key' => 'field_1', 'label' => 'Name', 'instructions' => 'Enter <img src=x onerror=alert(1)> your name'],
+            ],
+        ]);
+
+        $this->assertSame('group_x', $capturedData['key']); // identifier untouched
+        $this->assertSame('Group ', $capturedData['title']);
+        $this->assertSame('Enter <img src=x> your name', $capturedData['fields'][0]['instructions']);
+        $this->assertSame('Name', $capturedData['fields'][0]['label']);
+    }
+
     // ── delete ────────────────────────────────────────────────────────────────
 
     public function test_delete_delegates_to_acf_delete_internal_post_type(): void

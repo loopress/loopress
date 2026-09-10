@@ -61,7 +61,7 @@ The server communicates over stdio from the directory your client launches it in
 | `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |
-| `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress |
+| `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress (`allowExternalRedirects` to permit an off-site redirect target) |
 | `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
