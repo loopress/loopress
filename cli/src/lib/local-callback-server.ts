@@ -1,4 +1,5 @@
 import {Buffer} from 'node:buffer'
+import {randomBytes, timingSafeEqual} from 'node:crypto'
 import {createServer, type IncomingMessage, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
 
@@ -14,6 +15,13 @@ function parseFormData(body: string): Record<string, string> {
   return Object.fromEntries(new URLSearchParams(body))
 }
 
+/** Constant-time compare that also tolerates a length mismatch without throwing. */
+function safeEqual(a: string, b: string): boolean {
+  const bufferA = Buffer.from(a)
+  const bufferB = Buffer.from(b)
+  return bufferA.length === bufferB.length && timingSafeEqual(bufferA, bufferB)
+}
+
 export type CallbackHelpers<T> = {
   body: Record<string, string>
   rejectWithPage: (page: string, error: Error) => void
@@ -24,9 +32,22 @@ export type CallbackHelpers<T> = {
 /**
  * Sends the user to a URL in their browser and catches the resulting redirect on a short-lived
  * local server; this factors out the server setup, timeout, and browser-opening boilerplate.
+ *
+ * The loopback server is unauthenticated, so any local process or web page open during the wait
+ * could otherwise POST forged credentials to it (RFC 8252 section 8.9). Two guards close that:
+ *
+ * - a 32-byte `state` generated here, threaded into the authorize URL by `buildUrl`, and required
+ *   back (constant-time compare) on any request that carries credentials;
+ * - an `Origin` allowlist: a browser sends `Origin` on the relay's cross-site form POST, so a
+ *   stray page's POST (carrying its own origin) is rejected. Top-level navigations send no
+ *   `Origin` and are allowed, which is why `state` is the primary control.
+ *
+ * The first request that looks like a callback (valid or not) shuts the server down, so a
+ * failed guess gets no second try within the window.
  */
 export async function waitForLocalCallback<T>(options: {
-  buildUrl: (callbackBaseUrl: string) => string
+  allowedOrigins: string[]
+  buildUrl: (callbackBaseUrl: string, state: string) => string
   handleRequest: (url: URL, helpers: CallbackHelpers<T>) => void
   log: (message: string) => void
   openingMessage: string
@@ -34,6 +55,7 @@ export async function waitForLocalCallback<T>(options: {
   timeoutMs?: number
 }): Promise<T> {
   const timeoutMs = options.timeoutMs ?? 5 * 60 * 1000
+  const state = randomBytes(32).toString('hex')
 
   return new Promise((resolve, reject) => {
     function finish(res: ServerResponse, page: string): void {
@@ -43,11 +65,33 @@ export async function waitForLocalCallback<T>(options: {
       server.close()
     }
 
+    function rejectRequest(res: ServerResponse, message: string): void {
+      res.writeHead(403, {'Content-Type': 'text/plain'})
+      res.end(message)
+      clearTimeout(timer)
+      server.close()
+      reject(new Error(message))
+    }
+
     async function handleIncoming(req: IncomingMessage, res: ServerResponse): Promise<void> {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const body: Record<string, string> =
           req.method === 'POST' ? parseFormData(await readBody(req)) : {}
+
+        const looksLikeCallback = url.searchParams.has('state') || Object.keys(body).length > 0
+        if (looksLikeCallback) {
+          const {origin} = req.headers
+          if (origin !== undefined && !options.allowedOrigins.includes(origin)) {
+            rejectRequest(res, 'Rejected a cross-origin request to the login callback server.')
+            return
+          }
+
+          if (!safeEqual(url.searchParams.get('state') ?? '', state)) {
+            rejectRequest(res, 'Rejected a login callback with a missing or invalid state value.')
+            return
+          }
+        }
 
         options.handleRequest(url, {
           rejectWithPage(page, error) {
@@ -86,7 +130,7 @@ export async function waitForLocalCallback<T>(options: {
 
     server.listen(0, '127.0.0.1', () => {
       const {port} = server.address() as AddressInfo
-      const targetUrl = options.buildUrl(`http://localhost:${port}`)
+      const targetUrl = options.buildUrl(`http://localhost:${port}`, state)
 
       options.log(options.openingMessage)
       options.log(`\nIf it doesn't open automatically, visit:\n${targetUrl}\n`)
