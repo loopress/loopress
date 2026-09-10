@@ -34,7 +34,9 @@ final class PermissionScanner
 
             // T_ATTRIBUTE is the "#[" opener. Accumulate the raw text of following tokens
             // until the bracket it opened is balanced again: that span is the whole
-            // attribute group, e.g. "#[Route('/x'), Permission(public: true)]".
+            // attribute group, e.g. "#[Route('/x'), Permission(public: true)]". No skip-ahead
+            // afterwards: attributes can't nest, so the consumed tokens are never T_ATTRIBUTE
+            // and the outer loop steps over them for free.
             $group = '';
             $depth = 0;
             for ($j = $i; $j < $count; $j++) {
@@ -42,7 +44,6 @@ final class PermissionScanner
                 $group .= $text;
                 $depth += substr_count($text, '[') - substr_count($text, ']');
                 if ($depth <= 0 && $j > $i) {
-                    $i = $j;
                     break;
                 }
             }
