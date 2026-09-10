@@ -1,7 +1,13 @@
 import {afterEach, describe, expect, it} from 'vitest'
 
 import {configManager} from '../../src/config/project-config.manager.js'
-import {isTelemetryDisabled, redactArgv, resolveEnvironment} from '../../src/lib/sentry.js'
+import {
+  isTelemetryDisabled,
+  redactArgv,
+  resolveEnvironment,
+  scrubErrorMessage,
+  scrubEvent,
+} from '../../src/lib/sentry.js'
 
 describe('sentry', () => {
   afterEach(() => {
@@ -76,6 +82,61 @@ describe('sentry', () => {
         '[REDACTED]',
         '--force',
       ])
+    })
+  })
+
+  describe('scrubErrorMessage', () => {
+    it('drops the site URL and everything after the first line', () => {
+      const message =
+        'Request failed (500) on https://client-site.example/wp-json/loopress/v1/composer/sync: Sync failed.\n' +
+        '  Problem 1\n' +
+        '    - Root composer.json requires foo/bar, it could not be found at https://packages.internal.example\n' +
+        '  /home/u12345/domains/client-site.example/public_html/wp-content/loopress/vendor'
+
+      const scrubbed = scrubErrorMessage(message)
+
+      expect(scrubbed).toBe('Request failed (500) on <site>/wp-json/loopress/v1/composer/sync: Sync failed.')
+      expect(scrubbed).not.toContain('client-site.example')
+      expect(scrubbed).not.toContain('packages.internal.example')
+      expect(scrubbed).not.toContain('/home/u12345')
+      expect(scrubbed).not.toContain('\n')
+    })
+
+    it('leaves a plain single-line message alone', () => {
+      expect(scrubErrorMessage('Cannot read properties of undefined (reading id)')).toBe(
+        'Cannot read properties of undefined (reading id)',
+      )
+    })
+
+    it('caps very long lines', () => {
+      expect(scrubErrorMessage('x'.repeat(1000))).toHaveLength(300)
+    })
+  })
+
+  describe('scrubEvent', () => {
+    it('scrubs the message, every chained exception value, and drops request context', () => {
+      const event = {
+        exception: {
+          values: [
+            {value: 'Request to https://client-site.example/wp-json/loopress/v1/options/foo failed'},
+            {value: 'HTTPError: Response code 500\n<html>fatal at /var/www/html/wp-includes/...</html>'},
+          ],
+        },
+        message: 'crash on https://client-site.example/wp-json/wp/v2/plugins',
+        request: {data: {password: 'hunter2'}, url: 'https://client-site.example/wp-json'},
+      }
+
+      const scrubbed = scrubEvent(event as never) as typeof event
+
+      expect(scrubbed.message).toBe('crash on <site>/wp-json/wp/v2/plugins')
+      expect(scrubbed.exception.values[0].value).toBe('Request to <site>/wp-json/loopress/v1/options/foo failed')
+      expect(scrubbed.exception.values[1].value).toBe('HTTPError: Response code 500')
+      expect(scrubbed.request).toBeUndefined()
+    })
+
+    it('is a no-op on an event with nothing sensitive', () => {
+      const event = {exception: {values: [{value: 'boom'}]}}
+      expect(scrubEvent(event as never)).toEqual({exception: {values: [{value: 'boom'}]}})
     })
   })
 })

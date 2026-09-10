@@ -5,6 +5,7 @@ import {
   redactArgv,
   resolveEnvironment,
   runtimeContext,
+  scrubEvent,
   SENTRY_DSN,
 } from '../lib/sentry.js'
 
@@ -22,6 +23,9 @@ const hook: Hook.Finally = async function (options) {
     const Sentry = await import('@sentry/node')
 
     Sentry.init({
+      // Strip the site URL and the raw server response body out of every event. A WordPress
+      // request failure otherwise carries both in its message (F26).
+      beforeSend: scrubEvent,
       dsn: SENTRY_DSN,
       environment: resolveEnvironment(),
       release: this.config.version,
