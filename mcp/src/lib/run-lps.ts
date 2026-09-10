@@ -22,6 +22,9 @@ export interface LpsError {
 export type LpsResult<T> = {data: T; ok: true} | {error: LpsError; ok: false}
 
 export interface RunLpsOptions {
+  // Run `lps` from here instead of the server's own cwd. The mutating handshake points this at a
+  // frozen snapshot of the working tree so an apply reads the previewed bytes, not live disk.
+  cwd?: string
   timeoutMs?: number
 }
 
@@ -35,7 +38,7 @@ export async function runLps<T>(args: string[], options: RunLpsOptions = {}): Pr
 
   try {
     const {stdout} = await execFileAsync(LPS_BIN, [...args, '--json'], {
-      cwd: process.cwd(),
+      cwd: options.cwd ?? process.cwd(),
       maxBuffer: 10 * 1024 * 1024,
       timeout: timeoutMs,
     })
