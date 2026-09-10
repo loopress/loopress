@@ -31,6 +31,13 @@ describe('option-format', () => {
     expect(defaultReadonlyFor('blogname')).toBe(false)
   })
 
+  it('defaults the server-denied behaviour-changing options to readonly too', () => {
+    expect(defaultReadonlyFor('default_role')).toBe(true)
+    expect(defaultReadonlyFor('users_can_register')).toBe(true)
+    expect(defaultReadonlyFor('mailserver_pass')).toBe(true)
+    expect(defaultReadonlyFor('uninstall_plugins')).toBe(true)
+  })
+
   describe('parseLocalOption', () => {
     it('parses a well-formed local option file', () => {
       const parsed = parseLocalOption(JSON.stringify({autoload: 'yes', name: 'blogname', value: 'Hello'}))

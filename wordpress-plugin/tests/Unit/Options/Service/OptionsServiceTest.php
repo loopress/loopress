@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Options\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 use Loopress\Options\Service\OptionsService;
@@ -21,6 +22,9 @@ class OptionsServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // loopress_option_readable / loopress_option_writable pass through to the computed
+        // default unless a test overrides this.
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
         $this->service = new OptionsService();
         $this->wpdb    = new FakeOptionsWpdb();
         $GLOBALS['wpdb'] = $this->wpdb;
@@ -180,12 +184,88 @@ class OptionsServiceTest extends TestCase
         $this->service->getOption('legacy_option');
     }
 
+    // ── getOption: read denylist (F10) ──────────────────────────────────────
+
+    public function test_get_option_refuses_names_that_look_like_secrets(): void
+    {
+        Functions\when('get_option')->justReturn('super-secret-value');
+
+        foreach (
+            [
+                'some_plugin_api_key', 'stripe_secret', 'mailserver_pass', 'auth_salt', 'jwt_token',
+                'smtp_password', 'rest_nonce', 'aws_credentials', 'acme_private_key',
+            ] as $name
+        ) {
+            try {
+                $this->service->getOption($name);
+                $this->fail("Expected getOption(\"{$name}\") to be refused");
+            } catch (ProtectedOptionException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function test_get_option_allows_a_plainly_non_sensitive_name(): void
+    {
+        Functions\when('get_option')->justReturn('Acme Blog');
+        $this->wpdb->rows = ['blogname' => 'yes'];
+
+        $this->assertSame('Acme Blog', $this->service->getOption('blogname')['value']);
+    }
+
+    public function test_get_option_read_denylist_is_filterable(): void
+    {
+        Functions\when('get_option')->justReturn('let-me-in');
+        $this->wpdb->rows = ['tracked_api_key' => 'no'];
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null, mixed $name = null): mixed =>
+                $hook === 'loopress_option_readable' && $name === 'tracked_api_key' ? true : $value,
+        );
+
+        $this->assertSame('let-me-in', $this->service->getOption('tracked_api_key')['value']);
+    }
+
     // ── updateOption ─────────────────────────────────────────────────────────
 
     public function test_update_option_throws_for_a_reserved_name(): void
     {
         $this->expectException(ReservedOptionNameException::class);
         $this->service->updateOption('active_plugins', ['x'], null);
+    }
+
+    public function test_update_and_delete_refuse_behaviour_changing_core_and_loopress_options(): void
+    {
+        $names = [
+            'default_role', 'users_can_register', 'siteurl', 'home', 'cron', 'uninstall_plugins',
+            'mailserver_pass', 'db_version', 'loopress_disabled_features',
+        ];
+
+        foreach ($names as $name) {
+            foreach (['update', 'delete'] as $op) {
+                try {
+                    $op === 'update'
+                        ? $this->service->updateOption($name, 'x', null)
+                        : $this->service->deleteOption($name);
+                    $this->fail("Expected {$op} of \"{$name}\" to be refused");
+                } catch (ProtectedOptionException) {
+                    $this->addToAssertionCount(1);
+                }
+            }
+        }
+    }
+
+    public function test_update_option_write_denylist_is_filterable(): void
+    {
+        Functions\when('update_option')->justReturn(true);
+        Functions\when('get_option')->justReturn('member');
+        $this->wpdb->rows = ['default_role' => 'yes'];
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null, mixed $name = null): mixed =>
+                $hook === 'loopress_option_writable' && $name === 'default_role' ? true : $value,
+        );
+
+        $result = $this->service->updateOption('default_role', 'member', null);
+        $this->assertSame('member', $result['value']);
     }
 
     public function test_update_option_stores_and_returns_the_new_value(): void

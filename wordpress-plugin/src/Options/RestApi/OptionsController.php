@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Options\RestApi;
 
+use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 use Loopress\Options\Service\OptionsService;
@@ -18,7 +19,8 @@ class OptionsController
     use RequiresManageOptionsCapability;
 
     private const STATUSES = [
-        ReservedOptionNameException::class    => 409,
+        ReservedOptionNameException::class     => 409,
+        ProtectedOptionException::class        => 403,
         UnsupportedOptionValueException::class => 422,
     ];
 

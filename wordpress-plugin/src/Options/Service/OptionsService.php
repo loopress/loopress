@@ -4,16 +4,43 @@ declare(strict_types=1);
 
 namespace Loopress\Options\Service;
 
+use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 
 // Direct, agnostic access to the wp_options table: no adapter, no per-plugin knowledge, unlike
 // Seo\Service\* which has to know which option name each SEO plugin uses. Every option name is
-// fair game except the reserved list below, already owned by another Loopress resource.
+// fair game except the reserved list below, already owned by another Loopress resource, the
+// safety denylists (see assertReadable()/assertWritable()), and anything a site rules out via
+// the loopress_option_readable / loopress_option_writable filters.
 class OptionsService
 {
     // Already synced by the `plugin`/`theme` resources; see the exception's own docblock.
     private const RESERVED_NAMES = ['active_plugins', 'stylesheet', 'template'];
+
+    // Core options whose value changes how the site behaves: a generic option-write primitive
+    // must not be an escalation path (F11). `default_role` + `users_can_register` turn every
+    // public sign-up into an admin; `siteurl`/`home` hijack asset loading and redirects; `cron`
+    // reschedules tasks; `uninstall_plugins` runs code on delete; `mailserver_*` is the POP3
+    // fetch account; `db_version` downgrades trigger a migration. A site that genuinely needs
+    // to manage one of these through Loopress can re-allow it via the loopress_option_writable
+    // filter.
+    private const DENY_WRITE_NAMES = [
+        'default_role', 'users_can_register', 'siteurl', 'home', 'cron', 'uninstall_plugins',
+        'mailserver_url', 'mailserver_login', 'mailserver_pass', 'mailserver_port',
+        'db_version', 'initial_db_version',
+    ];
+
+    // Best-effort denylist for reads: a name matching one of these looks like a stored secret,
+    // and the option resource is not meant to be "GET every credential in wp_options" (F10).
+    // Deliberately not exhaustive (a denylist of secret names always leaks: `stripe_sk`,
+    // `mailgun_apikey`, ...); the real control for a specific site is the
+    // loopress_option_readable filter, or tracking only the options it needs.
+    private const DENY_READ_PATTERNS = [
+        '/secret/i', '/password/i', '/_pass$/i', '/passwd/i', '/token/i', '/_key$/i',
+        '/_api_key$/i', '/apikey$/i', '/^auth_/i', '/nonce/i', '/salt/i', '/private_key/i',
+        '/credential/i',
+    ];
 
     // Every option name WordPress core itself creates on install, extracted verbatim from
     // wp-admin/includes/schema.php's populate_options() (verified against a real 6.9 install,
@@ -354,6 +381,8 @@ class OptionsService
     /** @return array{name: string, value: mixed, autoload: string}|null */
     public function getOption(string $name): ?array
     {
+        $this->assertReadable($name);
+
         // A unique object, never a value any option could genuinely hold, so it unambiguously
         // marks "not found": get_option()'s own default (false) is also a value the option can
         // legitimately be set to, and could not tell the two cases apart.
@@ -375,6 +404,7 @@ class OptionsService
     public function updateOption(string $name, mixed $value, ?string $autoload): array
     {
         $this->assertNotReserved($name);
+        $this->assertWritable($name);
 
         // update_option() returns false both on a genuine failure and when the new value equals
         // the old one (a no-op, not an error): re-reading afterwards is the only way to report
@@ -396,6 +426,7 @@ class OptionsService
     public function deleteOption(string $name): void
     {
         $this->assertNotReserved($name);
+        $this->assertWritable($name);
 
         delete_option($name);
     }
@@ -405,6 +436,43 @@ class OptionsService
         if (in_array($name, self::RESERVED_NAMES, true)) {
             throw new ReservedOptionNameException(esc_html(
                 "\"{$name}\" is managed by another Loopress resource (plugin/theme), not by option.",
+            ));
+        }
+    }
+
+    // Refuses to hand back a value whose name looks like a stored secret (F10). A site that
+    // genuinely tracks an option with such a name can re-allow that one name through the
+    // filter (`add_filter('loopress_option_readable', fn($ok, $name) => $name === 'my_key' ?
+    // true : $ok, 10, 2)`).
+    private function assertReadable(string $name): void
+    {
+        $denied = false;
+        foreach (self::DENY_READ_PATTERNS as $pattern) {
+            if (preg_match($pattern, $name) === 1) {
+                $denied = true;
+                break;
+            }
+        }
+
+        if (!apply_filters('loopress_option_readable', !$denied, $name)) {
+            throw new ProtectedOptionException(esc_html(
+                "\"{$name}\" looks like a stored secret and is not readable through the option resource. " .
+                'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
+            ));
+        }
+    }
+
+    // Refuses to write a core option that changes site behaviour, or any loopress_* option
+    // (owned by the plugin's own settings), so a generic write primitive is not an escalation
+    // path (F11). Re-allow a specific name via the loopress_option_writable filter.
+    private function assertWritable(string $name): void
+    {
+        $denied = in_array($name, self::DENY_WRITE_NAMES, true) || str_starts_with($name, 'loopress_');
+
+        if (!apply_filters('loopress_option_writable', !$denied, $name)) {
+            throw new ProtectedOptionException(esc_html(
+                "\"{$name}\" is a protected option and cannot be written through the option resource. " .
+                'Allow it explicitly with the loopress_option_writable filter if you need to.',
             ));
         }
     }
