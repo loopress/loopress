@@ -5,6 +5,9 @@ date: 2026-09-10
 draft: false
 cliVersion: 0.24.0
 wordpressPluginVersion: 2026.9.0
+cover:
+  alt: Scattered, tangled PHP hook snippets on the left resolving into an organized file tree in an editor, pushed through a CLI into WordPress.
+  image: ../../images/wordpress-hooks-in-git-cover.png
 authors:
   - maxime
 tags:
