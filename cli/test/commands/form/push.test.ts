@@ -217,10 +217,27 @@ describe('form push', () => {
        
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task)
 
-       
+
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
       expect(task.output).toBe('Pushed: Demo')
       expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
+    })
+
+    it('does not send allowNotifications by default, but adds it with --allow-notifications', async () => {
+      const base = new Push([], fakeOclifConfig)
+      silenceLogs(base)
+      const put = vi.fn().mockResolvedValue({})
+      ;(base as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
+      // Already canonically named so ensureCanonicalFilename() is a no-op across both calls.
+      const file = join(dir, '8-a.json')
+      writeFileSync(file, '{}')
+
+      await (base as unknown as PushWithPushForm).pushForm(file, {id: 8, settings: {form_title: 'A'}})
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'A'}})
+
+      ;(base as unknown as {allowNotifications: boolean}).allowNotifications = true
+      await (base as unknown as PushWithPushForm).pushForm(file, {id: 8, settings: {form_title: 'A'}})
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {allowNotifications: true, id: 8, settings: {form_title: 'A'}})
     })
 
     it('POSTs a new form when there is no local id, and renames the local file to the id WordPress assigned', async () => {

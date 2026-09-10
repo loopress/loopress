@@ -20,10 +20,21 @@ export function registerSeoTools(server: McpServer): void {
       description:
         'Push SEO settings, post meta, and redirects to WordPress (RankMath or Yoast, whichever is active).' +
         PREVIEW_SUFFIX,
-      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, path: pathArg},
+      inputSchema: {
+        allowExternalRedirects: z
+          .boolean()
+          .optional()
+          .describe('Allow pushing a redirect whose target points off this site (rejected by default)'),
+        confirmToken: confirmTokenFlag,
+        env: envFlag,
+        path: pathArg,
+      },
     },
-    async ({confirmToken, env, path}) =>
-      toCallToolResult(await runMutatingTool('seo_push', buildArgs(['seo', 'push'], {env, path}), confirmToken)),
+    async ({allowExternalRedirects, confirmToken, env, path}) => {
+      const args = buildArgs(['seo', 'push'], {env, path})
+      if (allowExternalRedirects) args.push('--allow-external-redirects')
+      return toCallToolResult(await runMutatingTool('seo_push', args, confirmToken))
+    },
   )
 
   server.registerTool(

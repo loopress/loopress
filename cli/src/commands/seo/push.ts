@@ -1,4 +1,4 @@
-import {Args} from '@oclif/core'
+import {Args, Flags} from '@oclif/core'
 import {readFile, rm, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
@@ -24,16 +24,24 @@ export default class Push extends PushCommand {
   static description =
     'Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to the `<id>-<slug>` convention. Fails clearly per file if the active SEO plugin does not support redirects.'
 
-  static examples = ['$ lps seo push']
+  static examples = ['$ lps seo push', '$ lps seo push --allow-external-redirects']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
+    'allow-external-redirects': Flags.boolean({
+      default: false,
+      description:
+        'Allow pushing a redirect whose target points off this site. Off by default: the server rejects an off-site `urlTo` so a stray push can\'t 301 traffic away.',
+    }),
   }
 
+  private allowExternalRedirects = false
+
   async run(): Promise<void> {
-    const {args} = await this.parse(Push)
+    const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveSeoPath(args.path)
+    this.allowExternalRedirects = flags['allow-external-redirects']
 
     this.log(`Pushing SEO configuration to ${url}`)
     this.log(`SEO path: ${path}`)
@@ -102,7 +110,13 @@ export default class Push extends PushCommand {
 
     try {
       const redirect = JSON.parse(await readFile(filePath, 'utf8')) as SeoRedirect
-      const payload = {headerCode: redirect.headerCode, sources: redirect.sources, status: redirect.status, urlTo: redirect.urlTo}
+      const payload = {
+        headerCode: redirect.headerCode,
+        sources: redirect.sources,
+        status: redirect.status,
+        urlTo: redirect.urlTo,
+        ...(this.allowExternalRedirects && {allowExternal: true}),
+      }
 
       // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
       // falls back to POST instead of failing, adopting whatever id the site assigns.

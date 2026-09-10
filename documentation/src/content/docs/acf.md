@@ -53,6 +53,8 @@ lps acf pull --type field-groups --dry-run
 
 Upload `.json` files from a local directory to WordPress. Each object is identified by its own stable `key`, so push always resolves to create-or-update on that object, there's no id/slug matching step like snippets.
 
+Active content is stripped from every string in the imported object (field labels, instructions, choices, a Message field's content) before it is stored: those are rendered in the block editor for every user who opens a post using the group, so a `<script>` or `onerror=` handler pushed there would otherwise run in an admin session. Benign HTML and plain text are left byte-for-byte unchanged.
+
 ```bash
 lps acf push [path]
 ```

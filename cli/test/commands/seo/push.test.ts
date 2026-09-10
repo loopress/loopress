@@ -8,6 +8,7 @@ import {type SeoRedirect} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 type PushInternals = {
+  allowExternalRedirects: boolean
   dryRun: boolean
   failedCount: number
   pushPostMetaFile(postType: string, filePath: string, task?: {output: string}): Promise<void>
@@ -132,6 +133,21 @@ describe('seo push', () => {
       expect(post).not.toHaveBeenCalled()
       expect(task.output).toBe('Pushed: redirect #4')
       expect(existsSync(file)).toBe(true)
+    })
+
+    it('adds allowExternal to the payload only with --allow-external-redirects', async () => {
+      const {cmd} = makeCmd()
+      const put = vi.fn().mockResolvedValue({})
+      cmd.wpClient = {post: vi.fn(), put}
+      const file = join(dir, '5-x.json')
+      writeFileSync(file, JSON.stringify({...baseRedirect, id: 5, urlTo: 'https://partner.example/go'}))
+
+      await cmd.pushRedirectFile(file)
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/seo/redirects/5', expect.not.objectContaining({allowExternal: expect.anything()}))
+
+      cmd.allowExternalRedirects = true
+      await cmd.pushRedirectFile(file)
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/seo/redirects/5', expect.objectContaining({allowExternal: true}))
     })
 
     it('falls back to creating the redirect when the local id is a 404, then renames the file to the assigned id', async () => {

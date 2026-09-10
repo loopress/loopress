@@ -6,6 +6,7 @@ namespace Loopress\Seo\RestApi;
 
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
+use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\NoActiveSeoPluginException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
 use Loopress\Seo\Service\SeoService;
@@ -22,6 +23,7 @@ class SeoController
     private const POST_META_STATUSES = [NoActiveSeoPluginException::class => 409];
     private const REDIRECT_STATUSES  = [
         RedirectsUnavailableException::class => 400,
+        InvalidRedirectException::class      => 422,
         NoActiveSeoPluginException::class    => 409,
     ];
 

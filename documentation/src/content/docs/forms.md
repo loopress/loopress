@@ -60,6 +60,8 @@ Upload `.json` files from a local directory to WordPress. Each form is matched b
 lps form push [path]
 ```
 
+By default a push does **not** touch a form's notification or confirmation settings on the server: those decide where every submission is emailed and what the visitor sees, so a stray push must not be able to redirect them. Pass `--allow-notifications` to sync those sections too; recipient addresses are then validated and the sender address must be on the site's own domain.
+
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `path` | `./forms` (or `loopress.json`'s `formDir`) | Local directory to read `.json` files from |
@@ -67,6 +69,7 @@ lps form push [path]
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
+| `--allow-notifications` | Also push each form's notification and confirmation settings (recipients, sender, messages) |
 
 **Example:**
 
