@@ -71,6 +71,17 @@ export function ApiRoutes() {
                             <tr key={file.filename} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                 <td style={{ padding: '8px' }}>
                                     <strong>{file.filename}.php</strong>
+                                    {file.public && (
+                                        <span
+                                            title="Declares #[Permission(public: true)]: runs for anyone, no authentication"
+                                            style={{
+                                                marginLeft: 8, fontSize: 11, fontWeight: 600,
+                                                color: '#fff', background: '#b91c1c', borderRadius: 12, padding: '2px 8px',
+                                            }}
+                                        >
+                                            Public
+                                        </span>
+                                    )}
                                     {file.error && (
                                         <span style={{
                                             marginLeft: 8, fontSize: 11, fontWeight: 500,

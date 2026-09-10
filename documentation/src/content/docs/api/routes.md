@@ -266,6 +266,18 @@ class Webhook { /* ... */ }
 
 Same fail-closed behavior as `permission()`: a throwing `callback` denies the request and logs the error instead of breaking the site.
 
+### The blast radius of a public route
+
+`#[Permission(public: true)]` (or a `permission()` that returns `true`) makes the route's code run for **anyone on the internet, with no authentication**. Whatever the verb method does, reading options, making outbound requests, touching the database, is then an unauthenticated capability. Treat a public route like a public-facing endpoint you wrote from scratch: validate every input, and never assume the caller is trusted.
+
+Because a single attribute flips this, Loopress surfaces it:
+
+- `lps api push` prints a warning for each route it just pushed that is public.
+- `lps api list` badges public routes `[PUBLIC]` (and `lps api list --json` includes `"public": true`).
+- The plugin's **API Routes** admin tab shows a red **Public** badge on the row.
+
+Detection is lexical (it reads the file's tokens, it never runs the file), so it has two blind spots it does not warn about: an aliased import of the attribute (`use Loopress\Api\Attribute\Permission as P; #[P(public: true)]`), and a `permission()` method whose body returns `true`. Both are more deliberate than adding one attribute; write the attribute in its plain form if you want the warning.
+
 ## Response headers and CORS
 
 Two ways to set headers, depending on whether they vary per verb or apply to the whole route.

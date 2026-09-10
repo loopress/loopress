@@ -57,4 +57,19 @@ describe('api list', () => {
 
     expect(result).toEqual(files)
   })
+
+  it('badges a public route and warns about it', async () => {
+    const {cmd, logs} = makeCmd([])
+    const get = vi.fn().mockResolvedValueOnce([
+      {content: '<?php', filename: 'products'},
+      {content: '<?php', filename: 'open-webhook', public: true},
+    ])
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('  products')
+    expect(logs.log).toHaveBeenCalledWith('  open-webhook  [PUBLIC]')
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('no authentication'))
+  })
 })

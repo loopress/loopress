@@ -78,6 +78,9 @@ export interface ApiFile {
     // discovery found the wrong number of classes, a name collision, a parse error...), absent
     // once it reloads clean, see RouteLoader::fail() / ApiDirectory::LOAD_ERRORS_OPTION.
     error?: string;
+    // True when the route declares #[Permission(public: true)] on its class or a verb method:
+    // it runs for anyone, with no authentication (see PermissionScanner, F1).
+    public?: boolean;
 }
 
 export interface ApiNamespace {

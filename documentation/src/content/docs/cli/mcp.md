@@ -48,7 +48,7 @@ The server communicates over stdio from the directory your client launches it in
 | `snippet_list` | No | List snippets currently on WordPress |
 | `api_push` | Yes | Push local custom API route files to WordPress (`prune` also removes server-side files absent locally) |
 | `api_pull` | No | Pull custom API route files from WordPress |
-| `api_list` | No | List custom API route files currently on WordPress |
+| `api_list` | No | List custom API route files currently on WordPress (flags each route `public` when it needs no authentication) |
 | `api_rm` | Yes | Remove one custom API route file from WordPress |
 | `hook_push` | Yes | Push local hook files to WordPress (`prune` also removes server-side files absent locally) |
 | `hook_pull` | No | Pull hook files from WordPress |

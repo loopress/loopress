@@ -71,5 +71,19 @@ describe('ApiRoutes', () => {
         render(<ApiRoutes />, { wrapper: wrapperWithFiles(files) });
 
         expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+        expect(screen.queryByText('Public')).not.toBeInTheDocument();
+    });
+
+    test('shows a red "Public" badge for a route with no authentication', () => {
+        const files: ApiFile[] = [
+            { filename: 'open-webhook', content: '<?php', public: true },
+            { filename: 'admin-only', content: '<?php' },
+        ];
+
+        render(<ApiRoutes />, { wrapper: wrapperWithFiles(files) });
+
+        expect(screen.getByText('Public')).toBeInTheDocument();
+        // exactly one badge, on the public route only
+        expect(screen.getAllByText('Public')).toHaveLength(1);
     });
 });

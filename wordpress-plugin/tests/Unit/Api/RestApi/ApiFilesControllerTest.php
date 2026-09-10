@@ -115,6 +115,21 @@ class ApiFilesControllerTest extends TestCase
         $this->assertArrayNotHasKey('error', $response->data[0]);
     }
 
+    public function test_list_files_flags_a_public_route(): void
+    {
+        $this->directory->method('listSlugs')->willReturn(['open', 'closed']);
+        $this->directory->method('read')->willReturnMap([
+            ['open', "<?php\ndeclare(strict_types=1);\n#[\\Loopress\\Api\\Attribute\\Permission(public: true)]\nfinal class Open { public function get(): array { return []; } }\n"],
+            ['closed', "<?php\ndeclare(strict_types=1);\nfinal class Closed { public function get(): array { return []; } }\n"],
+        ]);
+
+        $response = $this->controller->list_files();
+
+        $byName = array_column($response->data, null, 'filename');
+        $this->assertTrue($byName['open']['public']);
+        $this->assertFalse($byName['closed']['public']);
+    }
+
     // ── push_file ────────────────────────────────────────────────────────────
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void
@@ -173,6 +188,20 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(200, $response->status);
+        $this->assertFalse($response->data['public']);
+    }
+
+    public function test_push_file_reports_a_public_route_in_the_response(): void
+    {
+        $request = new WP_REST_Request([
+            'filename' => 'open',
+            'content'  => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Api\\Attribute\\Permission;\n#[Permission(public: true)]\nfinal class Open { public function get(): array { return []; } }\n",
+        ]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertTrue($response->data['public']);
     }
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void

@@ -96,6 +96,8 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertSame('hello', $response->data[0]['filename']);
         $this->assertStringNotContainsString('ABSPATH', $response->data[0]['content']);
+        // Hooks have no permission concept: the public flag is API-only, never added here.
+        $this->assertArrayNotHasKey('public', $response->data[0]);
     }
 
     public function test_list_files_skips_a_slug_whose_file_disappeared(): void
