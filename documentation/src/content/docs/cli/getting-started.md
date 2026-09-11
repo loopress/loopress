@@ -82,6 +82,8 @@ You will be prompted for:
 
 By default the CLI runs a quick diagnostic against your site, then opens your browser to log in to WordPress and creates an Application Password for you automatically, no copy-pasting required. If the diagnostic fails or the browser flow can't complete, it falls back to manual entry (WordPress username + an Application Password you generate yourself under **Users → Profile → Application Passwords**, see [troubleshooting](/application-passwords/) if the section is missing). You can also choose manual entry upfront from the authentication prompt.
 
+The browser flow is pinned to the terminal that started it. The CLI opens a short-lived loopback server on `127.0.0.1`, and only accepts the credential if the reply carries the one-time `state` value the CLI generated and comes from the expected origin. The Application Password is delivered in the reply body, never in a URL, so it stays out of shell history and proxy logs. The `api.loopress.dev` relay only forwards WordPress's redirect so the `success_url` can be HTTPS; it passes the callback through and does not keep the credential.
+
 If Loopress Full isn't active on the site yet, `project config` then offers to install it for you, after a confirmation prompt: it downloads the latest release, creates a temporary administrator account, uploads and activates the plugin through a headless local browser, then deletes the temporary account. This step is independent of which authentication mode you chose above. If the automatic install can't complete (some managed hosts block file uploads via `DISALLOW_FILE_MODS`), the command falls back to instructions for a manual upload, see [Installation](/wordpress-plugin/#installation).
 
 ### Manage multiple projects and environments

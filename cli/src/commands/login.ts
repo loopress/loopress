@@ -20,8 +20,9 @@ export default class Login extends Command {
 
   private async waitForCallback(): Promise<{email?: string; token: string}> {
     return waitForLocalCallback<{email?: string; token: string}>({
-      buildUrl(callbackBaseUrl) {
-        const callbackUrl = encodeURIComponent(`${callbackBaseUrl}/callback`)
+      allowedOrigins: [CONSOLE_URL],
+      buildUrl(callbackBaseUrl, state) {
+        const callbackUrl = encodeURIComponent(`${callbackBaseUrl}/callback?state=${state}`)
         return `${CONSOLE_URL}/cli-auth?callbackUrl=${callbackUrl}`
       },
       handleRequest(url, {resolveWithPage, respondBadRequest}) {

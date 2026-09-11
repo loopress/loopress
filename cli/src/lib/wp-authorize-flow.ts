@@ -18,13 +18,18 @@ export type AuthorizeResult = {password: string; userLogin: string}
  *   5. The API callback returns an HTML page that POSTs a form with the
  *      Application Password to the local callback server.
  *   6. The local server extracts the credentials and resolves the promise.
+ *
+ * The `state` value is threaded through `callbackUrl` (the relay copies it verbatim into the
+ * form's POST target), so it comes back as a query param on the credential POST and
+ * `waitForLocalCallback` can match it before this handler runs.
  */
 export async function authorizeWithBrowser(siteUrl: string, log: (message: string) => void): Promise<AuthorizeResult> {
   return waitForLocalCallback<AuthorizeResult>({
-    buildUrl(callbackBaseUrl) {
+    allowedOrigins: ['https://api.loopress.dev'],
+    buildUrl(callbackBaseUrl, state) {
       const relayUrl = 'https://api.loopress.dev/auth/wp-authorize'
       const params = new URLSearchParams({
-        callbackUrl: callbackBaseUrl,
+        callbackUrl: `${callbackBaseUrl}?state=${state}`,
         wpUrl: siteUrl,
       })
       return `${relayUrl}?${params}`
@@ -38,12 +43,9 @@ export async function authorizeWithBrowser(siteUrl: string, log: (message: strin
         return
       }
 
-      // `||`, not `??`: an empty-string field counts as absent here, same as the `!password`
-      // check below, so falls through to the query-param fallback instead of stopping at "".
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      const password = body.password || url.searchParams.get('password') || ''
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      const userLogin = body.user_login || url.searchParams.get('user_login') || ''
+      // Credentials come from the relay's form POST only. Reading them from the query string
+      // would let them land in shell history, proxy logs and the browser address bar (F24).
+      const {password, user_login: userLogin} = body
 
       if (!password || !userLogin) {
         respondBadRequest('Missing password or user_login')
