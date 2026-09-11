@@ -46,14 +46,14 @@ class AdminPageModule implements Module
             return;
         }
 
-        $assetFile = LOOPRESS_PLUGIN_PATH . 'build/index.tsx.asset.php';
+        $assetFile = LOOPRESS_PLUGIN_PATH . 'build/index.asset.php';
         $asset     = file_exists($assetFile)
             ? require_once $assetFile
             : ['dependencies' => [], 'version' => '1.0.0'];
 
         wp_enqueue_script(
             'loopress-admin',
-            LOOPRESS_PLUGIN_URL . 'build/index.tsx.js',
+            LOOPRESS_PLUGIN_URL . 'build/index.js',
             $asset['dependencies'],
             $asset['version'],
             true
