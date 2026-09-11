@@ -1,3 +1,5 @@
+import type {ErrorEvent} from '@sentry/node'
+
 import {platform, release} from 'node:os'
 
 import {configManager} from '../config/project-config.manager.js'
@@ -33,4 +35,39 @@ export function redactArgv(argv: string[]): string[] {
     const eqIndex = arg.indexOf('=')
     return eqIndex === -1 ? arg : arg.slice(0, eqIndex)
   })
+}
+
+// The site origin in front of a `/wp-json/` REST path: collapse it but keep the path, which is
+// Loopress's own API surface (identical on every site, no user data) and useful for triage.
+const SITE_PREFIX = /\bhttps?:\/\/[^\s"'<>)]*?\/wp-json\//gi
+// Any other absolute URL (bare site root, a package URL on the summary line): blank it whole.
+const ANY_URL = /\bhttps?:\/\/[^\s"'<>)]+/gi
+
+// A WordPress request failure (`formatWpError`) puts the site URL on the first line and, for a
+// 4xx/5xx, appends the server's raw response body after a newline: a Composer trace, a WP fatal,
+// sometimes absolute server paths, package URLs or a connection string. None of that should
+// leave the user's machine. Keep the first line (the "which endpoint, which status" summary)
+// with the site host blanked, and drop everything after it. The terminal still prints the
+// full, unmodified message.
+export function scrubErrorMessage(value: string): string {
+  const firstLine = value.split('\n', 1)[0] ?? ''
+  return firstLine.replaceAll(SITE_PREFIX, '<site>/wp-json/').replaceAll(ANY_URL, '<site>').slice(0, 300)
+}
+
+// Sentry `beforeSend`: runs on every event before it is sent. Scrubs the exception message(s)
+// (including chained `cause` errors, which the linkedErrors integration copies in) and drops
+// any request context. `extra.argv` is already redacted upstream by `redactArgv`.
+export function scrubEvent(event: ErrorEvent): ErrorEvent {
+  if (typeof event.message === 'string') {
+    event.message = scrubErrorMessage(event.message)
+  }
+
+  for (const exception of event.exception?.values ?? []) {
+    if (typeof exception.value === 'string') {
+      exception.value = scrubErrorMessage(exception.value)
+    }
+  }
+
+  delete event.request
+  return event
 }
