@@ -91,10 +91,10 @@ Every tool accepts an optional `env` to target a specific environment instead of
 
 Every mutating tool requires two calls before it touches WordPress:
 
-1. **Call without `confirmToken`**: runs a dry-run preview and returns a single-use `confirmToken` (expires after 5 minutes) instead of making any change.
-2. **Call again with that `confirmToken`**: applies exactly what was previewed.
+1. **Call without `confirmToken`**: takes a private copy of the working directory, runs a dry-run preview against it, and returns a single-use `confirmToken` (expires after 5 minutes) instead of making any change.
+2. **Call again with that `confirmToken`**: applies from that same copy, so a file edited on disk between the two calls cannot change what gets pushed.
 
-This handshake can't be skipped, not even against a `production` environment, so an agent can never push a real change without a human-reviewable preview first.
+This handshake can't be skipped, not even against a `production` environment, so an agent can never push a real change without a human-reviewable preview first. One gap: an `lps --path` that points outside the working directory, or a `loopress.json` that maps a resource directory to an absolute path elsewhere, is still read live when the change is applied.
 
 ## Project config resource
 
