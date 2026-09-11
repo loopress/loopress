@@ -4,7 +4,9 @@
       "Bash(composer psalm *)",
       "Bash(composer cs *)",
       "Bash(pnpm remove *)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(git -C /Users/maximeblanc/Localdev/loopress ls-files)",
+      "Bash(bash -n scripts/setup-wordpress.sh)"
     ]
   }
 }

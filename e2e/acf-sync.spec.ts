@@ -1,6 +1,6 @@
 /* eslint-disable camelcase -- these object literals mirror ACF/WordPress's own REST payload
    shape (post_type, show_in_rest, menu_slug, singular_name, ...), which is snake_case. */
-import {existsSync, mkdirSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, test, unwrap} from './helpers/environment.js'
@@ -145,6 +145,30 @@ test('push fails clearly for an options page on ACF Free instead of silently no-
 
   expect(result.exitCode).not.toBe(0)
   expect(unwrap(result.stderr)).toContain('make sure it was added with acf_add_options_page()')
+})
+
+// `snippet diff` is covered in diff.spec.ts; this exercises the same DiffCommand machinery
+// through the ACF provider, which reads a different REST shape (field groups, not snippets).
+test('acf diff reports no drift after a push + pull, then flags a local edit', async ({projectDir, runCli}) => {
+  const dir = join(projectDir, 'acf', 'field-groups')
+  const key = `group_e2e_diff_${Date.now()}`
+  writeFieldGroup(dir, key, `E2E acf diff ${Date.now()}`)
+
+  expect((await runCli(['acf', 'push'])).exitCode).toBe(0)
+  // Pull everything the shared instance has, so the baseline is genuinely in sync.
+  expect((await runCli(['acf', 'pull'])).exitCode).toBe(0)
+
+  const inSync = await runCli(['acf', 'diff'])
+  expect(inSync.exitCode, inSync.stdout + inSync.stderr).toBe(0)
+  expect(inSync.stdout).toContain('Everything is in sync')
+
+  const file = join(dir, `${key}.json`)
+  const group = JSON.parse(readFileSync(file, 'utf8')) as {title: string}
+  writeFileSync(file, JSON.stringify({...group, title: `${group.title} (edited)`}))
+
+  const drifted = await runCli(['acf', 'diff'])
+  expect(drifted.exitCode).toBe(1)
+  expect(drifted.stdout).toContain('Drift detected')
 })
 
 test.describe('ACF plugin inactive', () => {
