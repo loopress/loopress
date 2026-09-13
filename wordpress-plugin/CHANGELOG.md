@@ -1,5 +1,51 @@
 # @loopress/wordpress-plugin
 
+## 2026.9.2
+
+### Patch Changes
+
+- 406eae1: Security: `POST /loopress/v1/composer/sync` no longer installs from a client-supplied `composer.lock`.
+  
+  The endpoint used to write the uploaded `lock` to disk verbatim and run `composer install`, which replayed it as-is: a crafted lock could point `dist.url` / `source.url` at attacker-controlled hosts (server-side request forgery) and regenerate `vendor/composer/autoload_files.php` from those archives, which the plugin then loads on every request (remote code execution). The lock is now advisory only. Composer always runs `update` and resolves the plugin-rendered `composer.json` against its own Packagist and WPackagist repositories; the uploaded lock is only parsed afterwards to report which resolved versions moved (`lockDrift` in the sync response).
+  
+  Also: every Composer invocation now passes `--no-scripts`, and the `lock` sync argument is capped at 5 MB.
+- b28d36c: Security: bound the size of `api/` and `hooks/` files so one file can no longer take down `/wp-json/`.
+  
+  `AbstractFileLoader` tokenises (`token_get_all()`), then `require`s, every file in the directory on every request. With no size limit, a large enough file (or a large enough pile of them) exhausted memory, an uncatchable `E_ERROR` that 500s every REST route on the site, and the same blob would 500 the push that wrote it (LP-SEC-02 / F19 / F20).
+  
+  Now:
+  
+  - `PUT /api-files` and `/hook-files` reject a `content` over 512 KB with `413`, before anything tokenises it.
+  - The loader skips any on-disk file over 512 KB (recorded in the load-errors option, surfaced in the admin tab), so a file planted outside the CLI breaks only itself.
+  - The loader also stops once the directory as a whole passes an 8 MB budget, a last-resort guard against a runaway directory.
+  - Both limits are filterable: `loopress_max_file_bytes` and `loopress_max_files_total_bytes` (each passed the subdir, `'api'` or `'hooks'`).
+  - `list_files` returns `{filename, error}` without `content` for an over-limit file instead of reading it back.
+  - `FileWriter::withGuard()` fails cleanly if the guard-placement regex bails on its backtrack limit, rather than misplacing the guard.
+- d198555: Security: add `DELETE /loopress/v1/api-files` and `/hook-files` so a deployed route or hook can be removed through the product.
+  
+  Route and hook files live under `wp-content/`, outside the plugin directory, so deactivating the plugin never removed them. Before this, a file pushed by a leaked application password could only be cleared over SSH/SFTP (F3). `DELETE` takes `filename` in the query string, validated by the same rules as `PUT` (including the hooks-only "last segment must not be `index`"), returns `404` when the file is absent and `200 {"filename", "deleted": true}` otherwise, and clears any stale boot-time load-error entry for the removed slug.
+  
+  `uninstall.php` (Full edition) already removed the entire `wp-content/loopress/` tree; a comment now spells out that this is deliberate (api, hooks, vendor, apps, everything), so nothing Loopress wrote survives an uninstall.
+- 69bdc0c: Security: surface which custom API routes run with no authentication (F1).
+  
+  `#[Permission(public: true)]` on a route's class or a verb method makes that code callable by anyone, with no login. There was no signal for it anywhere. Now the `GET /api-files` list and the `PUT /api-files` push response carry `public: true` for such a route (detected lexically by a new `PermissionScanner`, the file is never executed), and the plugin's **API Routes** admin tab shows a red **Public** badge on the row.
+  
+  Hooks are unaffected: they have no permission concept, so `HookFilesController` does not add the flag.
+  
+  Detection has two documented blind spots it does not flag: an aliased import of the attribute, and a `permission()` method that returns `true`.
+- de7f283: Security: guard the generic `/loopress/v1/options/{name}` resource so a deployment token is not "read every secret / rewrite site behaviour over HTTP" (F10, F11).
+  
+  - `GET /options/{name}` now returns `403` for a name that looks like a stored secret (matches `secret`, `password`, `_pass`, `token`, `_key`, `_api_key`, `apikey`, `^auth_`, `nonce`, `salt`, `private_key`, `credential`). This is a best-effort denylist; the real control for a specific site is the new `loopress_option_readable` filter, or tracking only the options it needs.
+  - `PUT` / `DELETE /options/{name}` now return `403` for a curated set of behaviour-changing core options (`default_role`, `users_can_register`, `siteurl`, `home`, `cron`, `uninstall_plugins`, `mailserver_*`, `db_version`, `initial_db_version`) and for any `loopress_*` option (owned by the plugin's own settings). Re-allow a specific name with the new `loopress_option_writable` filter.
+  - New `ProtectedOptionException` (403), distinct from `ReservedOptionNameException` (409, still used only for the 3 names owned by the `plugin`/`theme` resources).
+  
+  A server-enforced allowlist ("only options declared in loopress.json are readable/writable") is the stronger fix and is tracked separately: it needs the tracked list synced to the server.
+- b43b2c7: Security: the SEO, Forms and ACF sync resources no longer write unvalidated request bodies straight into storage other plugins render (F12, F13).
+  
+  - New `SyncSanitizer::stripActiveContent()` neutralises script/style blocks, inline event handlers and `javascript:`/`data:text-html` URLs in a string, leaving benign HTML and text byte-for-byte so a pull/edit/push round trip stays stable. Applied recursively to `PUT /seo/settings`, `POST /seo/post-meta`, and every string in an `/acf` import object, all of which are rendered into the public `<head>` or the block editor.
+  - `POST` / `PUT /forms` no longer overwrites a form's `settings.notifications` / `settings.confirmations` unless the body carries `"allowNotifications": true`. When allowed, recipient addresses are validated with `is_email` and `sender_address` must be on the site's own domain, and message bodies are stripped of active content. New `FormNotificationException` (422). This closes the confirmed notification-hijack: repointing every submission to an attacker inbox with a spoofed sender.
+  - `POST` / `PUT /seo/redirects` rejects a `urlTo` that points off this site unless the body carries `"allowExternal": true`, and constrains `status` to `active` / `inactive`. New `InvalidRedirectException` (422).
+
 ## 2026.9.1
 
 ### Patch Changes
