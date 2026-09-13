@@ -114,7 +114,7 @@ describe('api push', () => {
       expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
     })
 
-    it('surfaces the server\'s public flag so run() can warn about an unauthenticated route', async () => {
+    it("surfaces the server's public flag so run() can warn about an unauthenticated route", async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello', public: true})
@@ -125,10 +125,50 @@ describe('api push', () => {
       expect(result?.public).toBe(true)
     })
 
+    it('does nothing in dry-run mode', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+
+      expect(put).not.toHaveBeenCalled()
+      expect(result).toBeUndefined()
+      expect(task.output).toBe('[dry-run] Would push: hello')
+    })
+
+    it('does nothing in dry-run mode when called with no task (does not crash writing to it)', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
+
+      expect(put).not.toHaveBeenCalled()
+      expect(result).toBeUndefined()
+    })
+
+    it('reports a normal push in task.output, not the "syntax check skipped" wording', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const task = {output: ''}
+
+      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+
+      expect(task.output).toBe('Pushed: hello')
+    })
+
     it('reports a skipped syntax check in task.output without failing the push', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-       
+
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello', syntax_check: 'skipped'})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
@@ -289,6 +329,7 @@ describe('api push', () => {
       expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale-b')
       expect(del).not.toHaveBeenCalledWith('loopress/v1/api-files?filename=keep')
       expect(pruned).toEqual(['stale-a', 'stale-b'])
+      expect(confirm).toHaveBeenCalledWith({default: false, message: expect.stringContaining('stale-a, stale-b')})
     })
 
     it('does nothing when every server-side file is present locally', async () => {

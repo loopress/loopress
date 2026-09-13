@@ -145,6 +145,8 @@ describe('api pull', () => {
       expect(outputsOf(0)).toEqual(['Pulled: hello', 'Pulled: invoice-pdf/[order_id]'])
       expect(logs.log).toHaveBeenCalledWith('Pulled 2 route files to ' + dir)
       expect(result).toEqual({orphans: [], pulled: ['hello', 'invoice-pdf/[order_id]'], status: 'success'})
+      // Both files read back fine: no "skipped, server did not return its content" warning.
+      expect(logs.warn).not.toHaveBeenCalled()
     })
 
     it('skips a file the server would not read back and leaves any local copy untouched', async () => {
@@ -160,9 +162,7 @@ describe('api pull', () => {
       expect(readFileSync(join(dir, 'hello.php'), 'utf8')).toBe('<?php echo 1;')
       // not overwritten, not deleted as an orphan
       expect(readFileSync(join(dir, 'too-big.php'), 'utf8')).toBe('<?php // existing local copy')
-      expect(logs.warn).toHaveBeenCalledWith(
-        'Skipped too-big: file is 900000 bytes, over the 524288 byte limit',
-      )
+      expect(logs.warn).toHaveBeenCalledWith('Skipped too-big: file is 900000 bytes, over the 524288 byte limit')
       expect(result).toEqual({orphans: [], pulled: ['hello'], status: 'success'})
     })
 
@@ -176,12 +176,16 @@ describe('api pull', () => {
     })
 
     it('creates the api directory even when there is nothing to pull', async () => {
-      const {cmd, get} = make(false, [dir])
+      // dir already exists (mkdtempSync); mkdir({recursive:true}) on it is a no-op either way,
+      // so this alone can't prove alwaysCreateDir did anything. Target a path that does NOT
+      // exist yet so only a real mkdir() call makes it appear.
+      const freshDir = join(dir, 'not-created-yet')
+      const {cmd, get} = make(false, [freshDir])
       get.mockResolvedValue([])
 
       await cmd.run()
 
-      expect(existsSync(dir)).toBe(true)
+      expect(existsSync(freshDir)).toBe(true)
     })
 
     it('wires removeOrphanedFiles with the path, the exact orphan list, and the route-deleted reason', async () => {
@@ -216,7 +220,9 @@ describe('api pull', () => {
 
       await cmd.run()
 
-      expect(logs.log).toHaveBeenCalledWith('[dry-run] Would remove 1 local file whose route no longer exists on WordPress: gone.php')
+      expect(logs.log).toHaveBeenCalledWith(
+        '[dry-run] Would remove 1 local file whose route no longer exists on WordPress: gone.php',
+      )
     })
 
     it('reports would-remove with a comma-separated, pluralized list on dry-run', async () => {

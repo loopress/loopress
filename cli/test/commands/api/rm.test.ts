@@ -52,16 +52,18 @@ describe('api rm', () => {
     expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=hello')
     expect(logs.log).toHaveBeenCalledWith('Removed hello from https://acme.com')
     expect(result).toEqual({filename: 'hello', removed: true, status: 'success'})
+    expect(confirm).toHaveBeenCalledWith({default: false, message: 'Remove hello from https://acme.com?'})
   })
 
   it('does nothing when the confirmation is declined', async () => {
     confirm.mockResolvedValue(false)
-    const {cmd, del} = make(['hello'])
+    const {cmd, del, logs} = make(['hello'])
 
     const result = await cmd.run()
 
     expect(del).not.toHaveBeenCalled()
     expect(result).toEqual({filename: 'hello', removed: false, status: 'aborted'})
+    expect(logs.log).toHaveBeenCalledWith('Aborted.')
   })
 
   it('skips the prompt with --yes', async () => {
@@ -88,7 +90,7 @@ describe('api rm', () => {
 
     expect(del).not.toHaveBeenCalled()
     expect(logs.log).toHaveBeenCalledWith('[dry-run] Would remove hello from https://acme.com')
-    expect(result.status).toBe('dry-run')
+    expect(result).toEqual({filename: 'hello', removed: false, status: 'dry-run'})
   })
 
   it('rejects an invalid filename before any network call', async () => {
@@ -107,6 +109,13 @@ describe('api rm', () => {
     )
 
     await expect(cmd.run()).rejects.toThrow(/hello is not on https:\/\/acme\.com/)
+  })
+
+  it('does not swallow a non-404 error, or a 404 with a different body, into "not on the server"', async () => {
+    const {cmd, del} = make(['hello'], {yes: true})
+    del.mockRejectedValue(new Error('server error', {cause: {response: {statusCode: 500}}}))
+
+    await expect(cmd.run()).rejects.toThrow('server error')
   })
 
   it('encodes a nested slug in the query string', async () => {
