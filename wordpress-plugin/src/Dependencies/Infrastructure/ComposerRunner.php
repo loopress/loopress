@@ -128,12 +128,12 @@ class ComposerRunner
 
         $installersDir = rtrim($this->environment->getLoopressDir(), '/') . '/vendor/composer/installers/src/Composer/Installers/';
 
-        spl_autoload_register(static function (string $class) use ($installersDir): void {
-            if (!str_starts_with($class, 'Composer\\Installers\\')) {
+        spl_autoload_register(static function (string $className) use ($installersDir): void {
+            if (!str_starts_with($className, 'Composer\\Installers\\')) {
                 return;
             }
 
-            $file = $installersDir . str_replace('\\', '/', substr($class, strlen('Composer\\Installers\\'))) . '.php';
+            $file = $installersDir . str_replace('\\', '/', substr($className, strlen('Composer\\Installers\\'))) . '.php';
             if (is_file($file)) {
                 require_once $file;
             }
