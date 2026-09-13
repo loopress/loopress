@@ -66,7 +66,14 @@ final class HookAttributeScanner
 
         $found = [];
         foreach ($matches as $match) {
-            $type = strtolower($match[1]);
+            // strtolower($match[1]) would widen to the generic `lowercase-string`: Psalm can't
+            // narrow a preg_match_all() capture group, only a literal match arm, back down to
+            // the 'action'|'filter'|'cron' union the return type declares.
+            $type = match ($match[1]) {
+                'Action' => 'action',
+                'Filter' => 'filter',
+                'Cron' => 'cron',
+            };
             $args = $match[2];
 
             $found[] = $type === 'cron'
