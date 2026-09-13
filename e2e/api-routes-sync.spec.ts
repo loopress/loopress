@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, unwrap } from "./helpers/environment.js";
@@ -116,6 +116,55 @@ test("a route file still using the pre-direct-callback permission() convention d
 	expect(response.status()).toBe(401);
 	expect(((await response.json()) as {code: string}).code).toBe("rest_forbidden");
 	expect(await response.text()).not.toContain("should_never_be_reached");
+});
+
+// The happy path the rejection tests above never assert: a valid route file, once pushed,
+// actually serves live traffic, and `api pull` brings its body back byte-for-byte. Uses a
+// `#[Permission(public: true)]` route so the request needs no auth. Filename and class are
+// unique per run: reusing a name means the previous run's compiled class is still in the
+// server's OPcache when this request lands, and the route serves stale bytecode.
+test("pushes a valid public route that then serves live traffic, and pulls back identically", async ({
+	projectDir,
+	request,
+	runCli,
+	wp,
+}) => {
+	const stamp = Date.now();
+	const routeName = `e2e-ping-${stamp}`;
+	const apiDir = join(projectDir, "api");
+	const source = [
+		"<?php",
+		"",
+		"declare(strict_types=1);",
+		"",
+		"use Loopress\\Api\\Attribute\\Permission;",
+		"",
+		"#[Permission(public: true)]",
+		`final class E2ePing${stamp}`,
+		"{",
+		"    public function get(): array",
+		"    {",
+		`        return ['pong' => true, 'route' => '${routeName}'];`,
+		"    }",
+		"}",
+		"",
+	].join("\n");
+	mkdirSync(apiDir, { recursive: true });
+	writeFileSync(join(apiDir, `${routeName}.php`), source);
+
+	const pushResult = await runCli(["api", "push"]);
+	expect(pushResult.exitCode, pushResult.stderr).toBe(0);
+
+	// No Authorization header: the route is public, and this proves it is actually reachable
+	// and running this push's code, not just present in `api list`.
+	const response = await request.get(`${wp.url}/wp-json/loopress-api/v1/${routeName}`);
+	expect(response.status()).toBe(200);
+	expect(await response.json()).toEqual({ pong: true, route: routeName });
+
+	rmSync(join(apiDir, `${routeName}.php`));
+	const pullResult = await runCli(["api", "pull"]);
+	expect(pullResult.exitCode, pullResult.stderr).toBe(0);
+	expect(readFileSync(join(apiDir, `${routeName}.php`), "utf8")).toBe(source);
 });
 
 // Regression test (QA 7th-pass MEDIUM finding): a dynamic segment name starting with a digit

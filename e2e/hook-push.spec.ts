@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test, unwrap } from "./helpers/environment.js";
@@ -71,4 +71,60 @@ test("pushes a valid hook file even when a sibling file in the same push is reje
 	const listResult = await runCli(["hook", "list"]);
 	expect(listResult.exitCode).toBe(0);
 	expect(listResult.stdout).toContain("good");
+});
+
+// The happy path: a valid hook file, once pushed, is actually require()d at boot and its
+// callback runs (HookLoader), the site does not fatal from that require, and `hook pull`
+// brings the file back byte-for-byte. Unique class/slug per run: a hooks/ file is loaded on
+// every request, so a reused class name collides with the previous run's still-warm copy.
+test("pushes a valid hook that runs on the site, then pulls it back identically", async ({
+	projectDir,
+	request,
+	runCli,
+	wp,
+}) => {
+	const stamp = Date.now();
+	const slug = `e2e-hook-${stamp}`;
+	const hooksDir = join(projectDir, "hooks");
+	const source = [
+		"<?php",
+		"",
+		"declare(strict_types=1);",
+		"",
+		"use Loopress\\Hooks\\Attribute\\Action;",
+		"",
+		`final class E2eHook${stamp}`,
+		"{",
+		"    #[Action('rest_api_init')]",
+		"    public function run(): void",
+		"    {",
+		`        register_rest_route('e2e-hook/v1', '/ping-${stamp}', [`,
+		"            'methods' => 'GET',",
+		"            'permission_callback' => '__return_true',",
+		`            'callback' => static fn () => ['ran' => true, 'slug' => '${slug}'],`,
+		"        ]);",
+		"    }",
+		"}",
+		"",
+	].join("\n");
+	mkdirSync(hooksDir, { recursive: true });
+	writeFileSync(join(hooksDir, `${slug}.php`), source);
+
+	const pushResult = await runCli(["hook", "push"]);
+	expect(pushResult.exitCode, pushResult.stderr).toBe(0);
+
+	const listResult = await runCli(["hook", "list"]);
+	expect(listResult.exitCode).toBe(0);
+	expect(listResult.stdout).toContain(slug);
+
+	// The route only exists if the hook file was require()d at boot and its rest_api_init
+	// callback actually ran; a 200 here also means that boot-time require did not fatal.
+	const response = await request.get(`${wp.url}/wp-json/e2e-hook/v1/ping-${stamp}`);
+	expect(response.status()).toBe(200);
+	expect(await response.json()).toEqual({ ran: true, slug });
+
+	rmSync(join(hooksDir, `${slug}.php`));
+	const pullResult = await runCli(["hook", "pull"]);
+	expect(pullResult.exitCode, pullResult.stderr).toBe(0);
+	expect(readFileSync(join(hooksDir, `${slug}.php`), "utf8")).toBe(source);
 });

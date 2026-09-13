@@ -8,7 +8,11 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   await page.fill('#user_login', wp.username)
   await page.fill('#user_pass', wp.adminPassword)
   await page.click('#wp-submit')
-  await page.waitForLoadState('networkidle')
+  // `networkidle` is discouraged (WP admin keeps a heartbeat poll open) and was the single
+  // slowest wait in the suite. The admin bar is present and visible on every wp-admin page
+  // once logged in, and absent on wp-login.php, so it's the "we're actually in, not bounced
+  // back to the login form" signal.
+  await page.locator('#wpadminbar').waitFor({state: 'visible', timeout: 15_000})
 }
 
 // RequestUtils.activatePlugin/deactivatePlugin key plugins by a kebab-cased `Plugin Name:`
@@ -42,10 +46,14 @@ export async function setPluginActive(requestUtils: RequestUtils, slug: string, 
 // Finds a WPCode admin list row by its exact snippet name. Row actions (Trash, Edit, ...)
 // are only visible on hover in wp-admin's list table styling, hence the explicit hover.
 export async function findWpCodeSnippetRow(page: Page, wp: WpCredentials, name: string) {
-  await page.goto(`${wp.url}/wp-admin/admin.php?page=wpcode`)
-  await page.waitForLoadState('networkidle')
+  // `&s=` filters the list-table server-side. There's no snippet delete endpoint, so on a
+  // long-lived instance this list grows past its first page every run; filtering to the one
+  // unique test name keeps the row on page 1. Also replaces the old `networkidle` wait, which
+  // could return before the table had painted and leave the `.hover()` below hanging.
+  await page.goto(`${wp.url}/wp-admin/admin.php?page=wpcode&s=${encodeURIComponent(name)}`)
 
   const row = page.locator('table.wp-list-table tbody tr', {has: page.getByRole('link', {exact: true, name})})
+  await row.waitFor({timeout: 15_000})
   await row.hover()
   return row
 }
@@ -53,15 +61,20 @@ export async function findWpCodeSnippetRow(page: Page, wp: WpCredentials, name: 
 export async function trashWpCodeSnippet(page: Page, wp: WpCredentials, name: string): Promise<void> {
   const row = await findWpCodeSnippetRow(page, wp, name)
   await row.getByRole('link', {name: 'Trash'}).click()
-  await page.waitForLoadState('networkidle')
+  // The Trash row action is a plain link (?action=trash&...), so a full navigation follows;
+  // the deleted row being gone is the post-condition worth waiting on.
+  await row.waitFor({state: 'detached', timeout: 15_000})
 }
 
 // Finds an ACF field group by its exact title in the native admin list table
 // (edit.php?post_type=acf-field-group). Unlike findWpCodeSnippetRow, callers here only need
 // visibility, never a hover-revealed row action, so no `.hover()`.
 export async function findAcfFieldGroupRow(page: Page, wp: WpCredentials, title: string) {
-  await page.goto(`${wp.url}/wp-admin/edit.php?post_type=acf-field-group`)
-  await page.waitForLoadState('networkidle')
+  // `&s=` filters the list-table server-side to matching titles. ACF sorts this list by title,
+  // not by date, so on a long-lived instance (many `E2E ...` groups from prior runs) a newly
+  // created group lands on page 2+ and a bare list would never show it. Every test title here
+  // is unique, so the filtered result is a single row on page 1.
+  await page.goto(`${wp.url}/wp-admin/edit.php?post_type=acf-field-group&s=${encodeURIComponent(title)}`)
 
   return page.locator('table.wp-list-table tbody tr', {has: page.getByRole('link', {exact: true, name: title})})
 }
@@ -74,6 +87,7 @@ export async function findAcfFieldGroupRow(page: Page, wp: WpCredentials, title:
 // depending on that hover state ever stabilizing.
 export async function trashAcfFieldGroup(page: Page, wp: WpCredentials, title: string): Promise<void> {
   const row = await findAcfFieldGroupRow(page, wp, title)
+  await row.waitFor({timeout: 15_000})
   const href = await row.locator('.row-actions .trash a').getAttribute('href')
   if (!href) throw new Error(`No trash action found for ACF field group "${title}"`)
 

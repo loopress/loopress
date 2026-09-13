@@ -48,3 +48,21 @@ matching what that script sets).
   so it never touches your real `~/.config/loopress/config.json`.
 - There's no snippet delete endpoint, so test data accumulates on the target site across
   runs. That's expected, this is why it must be a disposable instance.
+
+## Running against a persistent local instance (Local by Flywheel, etc.)
+
+CI spins up a fresh container per run; a local instance you keep around needs two things the
+container gets for free:
+
+- **A `php` binary on the web server's `$PATH`.** `api-routes-sync.spec.ts` and `hook-push.spec.ts`
+  assert that pushing a file with broken PHP is *rejected*; the plugin does that check by
+  shelling out to `php -l` (`ApiFilesController::checkSyntax()`), and when `php` isn't on the
+  PATH of the process serving requests it degrades to "couldn't verify" and accepts the file,
+  so those tests fail. Local by Flywheel's php-fpm runs with a minimal PATH: symlink its
+  bundled CLI binary somewhere on it, e.g.
+  `ln -s "<Local>/lightning-services/php-<ver>/bin/<arch>/bin/php" "<Local>/lightning-services/php-<ver>/bin/<arch>/ghostscript/bin/php"`.
+- **A near-fresh `wp-content/loopress/` between full runs.** `composer-sync.spec.ts`'s first
+  test needs a site that has never received a `composer push` (it skips itself if a
+  `composer.lock` is already there); `api`/`hook` files written by a run stay on disk. Delete
+  `wp-content/loopress/{api,hooks}/*` (keep `index.php`) and `wp-content/loopress/composer.{json,lock}`
+  before re-running the whole suite, or point at a snapshot-restored instance.

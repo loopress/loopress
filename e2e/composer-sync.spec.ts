@@ -9,7 +9,16 @@ import {expect, test} from './helpers/environment.js'
 // instead of writing composer.json alone. Must run before any other test in this file pushes a
 // package: `composer push` has the server resolve and write a real composer.lock, which would
 // make this fresh-site precondition false on a second run within the same suite.
-test('pulls composer.json alone from a site that has never received a composer push', async ({projectDir, runCli}) => {
+test('pulls composer.json alone from a site that has never received a composer push', async ({projectDir, request, runCli, wp}) => {
+  // CI runs this against a fresh WordPress; a reused local instance keeps the composer.lock
+  // the next test pushes, and this "nothing pushed yet" precondition can't be restored without
+  // a full DB/files reset. Skip rather than fail there, the fresh-site path is still exercised
+  // on every CI run.
+  const lockProbe = await request.get(`${wp.url}/wp-json/loopress/v1/composer/lock`, {
+    headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},
+  })
+  test.skip(lockProbe.ok(), 'instance already has a composer.lock from a previous run')
+
   const result = await runCli(['composer', 'pull'])
 
   expect(result.exitCode, result.stderr).toBe(0)
