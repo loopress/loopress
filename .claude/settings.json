@@ -3,8 +3,7 @@
     "allow": [
       "Bash(composer psalm *)",
       "Bash(composer cs *)",
-      "Bash(pnpm remove *)",
-      "Bash(python3 -c ' *)"
+      "Bash(pnpm remove *)"
     ]
   }
 }
