@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Hooks\RestApi;
 
+use Loopress\Hooks\Infrastructure\HookAttributeScanner;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Infrastructure\AbstractFilesController;
 use Loopress\Infrastructure\AbstractFilesDirectory;
@@ -52,5 +53,18 @@ class HookFilesController extends AbstractFilesController
     {
         $segments = explode('/', $filename);
         return end($segments) === 'index';
+    }
+
+    // Unlike an API route's path (mechanically derived from the filename, see ApiFilesController),
+    // a hook's name is an arbitrary attribute argument: the admin can't know what a file is
+    // bound to just from its slug, so list it here for display (see HookAttributeScanner).
+    /**
+     * @param array<string, mixed> $entry
+     * @return array<string, mixed>
+     */
+    protected function annotateEntry(array $entry, string $rawContent): array
+    {
+        $entry['hooks'] = HookAttributeScanner::bindingsIn($rawContent);
+        return $entry;
     }
 }

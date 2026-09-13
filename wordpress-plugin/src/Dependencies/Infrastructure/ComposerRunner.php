@@ -44,6 +44,8 @@ class ComposerRunner
         }
 
         try {
+            $this->registerInstallersAutoloader();
+
             $inputDef = $this->buildInputDef($args, $extraOptions);
 
             $output = new BufferedOutput();
@@ -94,6 +96,48 @@ class ComposerRunner
         }
 
         return $inputDef;
+    }
+
+    private static bool $installersAutoloaderRegistered = false;
+
+    // Composer's Application runs in-process, sharing WordPress's PHP autoload stack with
+    // every other active plugin. A wordpress-plugin-type package (any package a site's
+    // composer.json requires via wpackagist-plugin/*, e.g. to install a WordPress.org plugin
+    // from Composer) needs composer/installers active as a Composer plugin to land in
+    // wp-content/plugins/ instead of vendor/. Observed in the wild: Yoast SEO ships its own
+    // vendor/composer/autoload_classmap.php with full entries for every Composer\Installers\*
+    // class, pointing at files that don't exist in Yoast's own vendor (stale from Yoast's own
+    // build, unrelated to Loopress). Composer's plugin manager autoloads Composer\Installers\*
+    // through PHP's global, shared autoload chain right after extracting the package to disk,
+    // so if Yoast's autoloader is registered first (registration order, not ours to control)
+    // and answers first, its include() on the missing path fatals the whole request before any
+    // other autoloader, including a correct one, gets a turn.
+    //
+    // Prepending our own autoloader ahead of every other one guarantees ours answers for these
+    // classes first, straight from our own known-good copy. It resolves lazily (looks the file
+    // up only when a class is actually requested) rather than requiring every file up front,
+    // because this also has to work the very first time composer/installers is installed on a
+    // site: its files land on disk mid-run, during this same command, before Composer needs to
+    // activate it as a plugin, so nothing is on disk yet when run() starts.
+    private function registerInstallersAutoloader(): void
+    {
+        if (self::$installersAutoloaderRegistered) {
+            return;
+        }
+        self::$installersAutoloaderRegistered = true;
+
+        $installersDir = rtrim($this->environment->getLoopressDir(), '/') . '/vendor/composer/installers/src/Composer/Installers/';
+
+        spl_autoload_register(static function (string $className) use ($installersDir): void {
+            if (!str_starts_with($className, 'Composer\\Installers\\')) {
+                return;
+            }
+
+            $file = $installersDir . str_replace('\\', '/', substr($className, strlen('Composer\\Installers\\'))) . '.php';
+            if (is_file($file)) {
+                require_once $file;
+            }
+        }, true, true);
     }
 
     /** @return resource */

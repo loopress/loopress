@@ -87,6 +87,23 @@ export interface ApiNamespace {
     namespace: string;
 }
 
+// Mirrors HookAttributeScanner::bindingsIn() in the plugin: one #[Action]/#[Filter]/#[Cron]
+// method found in the file's source. `hook` is null for a #[Cron] that omits it (HookLoader
+// falls back to a name derived from the slug and method at boot time).
+export interface HookBinding {
+    type: 'action' | 'filter' | 'cron';
+    hook: string | null;
+    recurrence: string | null;
+}
+
+export interface HookFile {
+    filename: string;
+    content: string;
+    // Present when this file failed to load at the last boot, see ApiFile's own `error`.
+    error?: string;
+    hooks: HookBinding[];
+}
+
 // Mirrors AppsController::list_apps() in the plugin.
 export interface RemoteApp {
     name: string;
