@@ -1,11 +1,14 @@
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/seo/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {type SeoRedirect} from '../../../src/utils/seo-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 type PushInternals = {
   allowExternalRedirects: boolean
@@ -45,12 +48,12 @@ describe('seo push', () => {
       const post = vi.fn().mockResolvedValueOnce({})
       cmd.wpClient = {post, put: vi.fn()}
       const file = join(dir, 'about.json')
-      writeFileSync(file, JSON.stringify({meta: {'seo_title': 'About'}, slug: 'about', title: 'About'}))
+      writeFileSync(file, JSON.stringify({meta: {seo_title: 'About'}, slug: 'about', title: 'About'}))
       const task = {output: ''}
 
       await cmd.pushPostMetaFile('page', file, task)
 
-      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {'seo_title': 'About'}, slug: 'about'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {seo_title: 'About'}, slug: 'about'})
       expect(task.output).toBe('Pushed: about')
     })
 
@@ -143,11 +146,17 @@ describe('seo push', () => {
       writeFileSync(file, JSON.stringify({...baseRedirect, id: 5, urlTo: 'https://partner.example/go'}))
 
       await cmd.pushRedirectFile(file)
-      expect(put).toHaveBeenLastCalledWith('loopress/v1/seo/redirects/5', expect.not.objectContaining({allowExternal: expect.anything()}))
+      expect(put).toHaveBeenLastCalledWith(
+        'loopress/v1/seo/redirects/5',
+        expect.not.objectContaining({allowExternal: expect.anything()}),
+      )
 
       cmd.allowExternalRedirects = true
       await cmd.pushRedirectFile(file)
-      expect(put).toHaveBeenLastCalledWith('loopress/v1/seo/redirects/5', expect.objectContaining({allowExternal: true}))
+      expect(put).toHaveBeenLastCalledWith(
+        'loopress/v1/seo/redirects/5',
+        expect.objectContaining({allowExternal: true}),
+      )
     })
 
     it('falls back to creating the redirect when the local id is a 404, then renames the file to the assigned id', async () => {
@@ -267,6 +276,188 @@ describe('seo push', () => {
 
       expect(put).not.toHaveBeenCalled()
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('[dry-run]'))
+    })
+  })
+
+  describe('pushPostMeta', () => {
+    type PostMetaInternals = PushInternals & {pushPostMeta(basePath: string): Promise<void>}
+
+    it('scans every post-type subdirectory of post-meta/, pushing only .json files', async () => {
+      const {cmd, logs} = makeCmd() as unknown as {cmd: PostMetaInternals; logs: ReturnType<typeof silenceLogs>}
+      const post = vi.fn().mockResolvedValue({})
+      cmd.wpClient = {post, put: vi.fn()}
+      mkdirSync(join(dir, 'post-meta', 'page'), {recursive: true})
+      mkdirSync(join(dir, 'post-meta', 'post'), {recursive: true})
+      writeFileSync(
+        join(dir, 'post-meta', 'page', 'about.json'),
+        JSON.stringify({meta: {}, slug: 'about', title: 'About'}),
+      )
+      writeFileSync(join(dir, 'post-meta', 'page', 'notes.txt'), 'not json')
+      writeFileSync(
+        join(dir, 'post-meta', 'post', 'hello.json'),
+        JSON.stringify({meta: {}, slug: 'hello', title: 'Hello'}),
+      )
+
+      await cmd.pushPostMeta(dir)
+
+      expect(post).toHaveBeenCalledTimes(2)
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {}, slug: 'about'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/post', {meta: {}, slug: 'hello'})
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Found 1 page post-meta file'))
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Found 1 post post-meta file'))
+    })
+
+    it('says nothing for an empty or missing post-meta directory', async () => {
+      const {cmd, logs} = makeCmd() as unknown as {cmd: PostMetaInternals; logs: ReturnType<typeof silenceLogs>}
+      cmd.wpClient = {post: vi.fn(), put: vi.fn()}
+      mkdirSync(join(dir, 'post-meta', 'page'), {recursive: true})
+
+      await cmd.pushPostMeta(dir)
+
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Found'))
+    })
+  })
+
+  describe('pushRedirects', () => {
+    type RedirectsInternals = PushInternals & {pushRedirects(basePath: string): Promise<void>}
+    const redirect: SeoRedirect = {
+      createdAt: null,
+      headerCode: 301,
+      hits: 0,
+      id: 4,
+      sources: [{comparison: 'exact', pattern: '/old'}],
+      status: 'active',
+      updatedAt: null,
+      urlTo: '/new',
+    }
+
+    it('pushes every .json file in redirects/, ignoring stray non-.json files', async () => {
+      const {cmd, logs} = makeCmd() as unknown as {cmd: RedirectsInternals; logs: ReturnType<typeof silenceLogs>}
+      const put = vi.fn().mockResolvedValue({})
+      cmd.wpClient = {post: vi.fn(), put}
+      mkdirSync(join(dir, 'redirects'), {recursive: true})
+      writeFileSync(join(dir, 'redirects', '4-new.json'), JSON.stringify(redirect))
+      writeFileSync(join(dir, 'redirects', 'README.md'), 'notes')
+
+      await cmd.pushRedirects(dir)
+
+      expect(put).toHaveBeenCalledTimes(1)
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Found 1 redirect'))
+    })
+
+    it('says nothing for an empty or missing redirects directory', async () => {
+      const {cmd, logs} = makeCmd() as unknown as {cmd: RedirectsInternals; logs: ReturnType<typeof silenceLogs>}
+      cmd.wpClient = {post: vi.fn(), put: vi.fn()}
+
+      await cmd.pushRedirects(dir)
+
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Found'))
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = config
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    function makeRunCmd(argv: string[] = []) {
+      const cmd = new TestPush(argv, fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValue({})
+      const post = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {post, put}
+      return {cmd, logs, post, put}
+    }
+
+    it('pushes settings, post-meta and redirects, then reports success', async () => {
+      mkdirSync(join(dir, 'seo', 'post-meta', 'page'), {recursive: true})
+      mkdirSync(join(dir, 'seo', 'redirects'), {recursive: true})
+      writeFileSync(join(dir, 'seo', 'settings.json'), JSON.stringify({titleSeparator: '-'}))
+      writeFileSync(
+        join(dir, 'seo', 'post-meta', 'page', 'about.json'),
+        JSON.stringify({meta: {}, slug: 'about', title: 'About'}),
+      )
+      writeFileSync(
+        join(dir, 'seo', 'redirects', '4-new.json'),
+        JSON.stringify({
+          createdAt: null,
+          headerCode: 301,
+          hits: 0,
+          id: 4,
+          sources: [],
+          status: 'active',
+          updatedAt: null,
+          urlTo: '/new',
+        }),
+      )
+      const {cmd, logs, post, put} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {titleSeparator: '-'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {}, slug: 'about'})
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/redirects/4', expect.objectContaining({urlTo: '/new'}))
+      expect(logs.log).toHaveBeenCalledWith('All SEO configuration pushed.')
+    })
+
+    it('does not report success on a dry run', async () => {
+      const {cmd, logs} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      await cmd.run()
+
+      expect(logs.log).not.toHaveBeenCalledWith('All SEO configuration pushed.')
+    })
+
+    it('wires --allow-external-redirects through to the redirect payload', async () => {
+      mkdirSync(join(dir, 'seo', 'redirects'), {recursive: true})
+      writeFileSync(
+        join(dir, 'seo', 'redirects', '4-new.json'),
+        JSON.stringify({
+          createdAt: null,
+          headerCode: 301,
+          hits: 0,
+          id: 4,
+          sources: [],
+          status: 'active',
+          updatedAt: null,
+          urlTo: 'https://elsewhere.example/go',
+        }),
+      )
+      const {cmd, put} = makeRunCmd(['--allow-external-redirects'])
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/redirects/4', expect.objectContaining({allowExternal: true}))
+    })
+
+    it('errors with the total failed count when some pushes fail, instead of reporting success', async () => {
+      mkdirSync(join(dir, 'seo', 'redirects'), {recursive: true})
+      writeFileSync(
+        join(dir, 'seo', 'redirects', '4-new.json'),
+        JSON.stringify({
+          createdAt: null,
+          headerCode: 301,
+          hits: 0,
+          id: 4,
+          sources: [],
+          status: 'active',
+          updatedAt: null,
+          urlTo: '/new',
+        }),
+      )
+      const {cmd, put} = makeRunCmd()
+      put.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow(/1 SEO item.*failed to push/)
     })
   })
 })

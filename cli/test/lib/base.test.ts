@@ -52,6 +52,10 @@ class TestCommand extends LoopressCommand {
     return this.siteConfig
   }
 
+  get resolvedWp() {
+    return this.wp
+  }
+
   get resolvedYes(): boolean {
     return this.yes
   }

@@ -106,5 +106,9 @@ describe('snippet diff', () => {
 
     expect(result.left).toBe('staging')
     expect(result.right).toBe('production')
+    // Both sides empty and no error: proves the against-side actually called provider.remote()
+    // (not skipped), rather than comparing against nothing.
+    expect(result.resources.snippet.error).toBeUndefined()
+    expect(result.resources.snippet.added).toEqual([])
   })
 })

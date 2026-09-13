@@ -7,6 +7,7 @@ import {compareStates, isEmptyDiff} from '../../src/lib/diff-state.js'
 import {
   composerLocalState,
   composerRemoteState,
+  getResourceStateProvider,
   RESOURCE_STATE_PROVIDERS,
   type ResourceStateProvider,
 } from '../../src/lib/resource-state.js'
@@ -85,6 +86,46 @@ describe('resource-state providers', () => {
 
       expect(diff.changed.map((change) => change.id)).toEqual(['7'])
     })
+
+    it('flags a real tags-only change (canonicalSnippet must not drop tags)', async () => {
+      const remote = fakeWp({'loopress/v1/snippets': [{active: true, code: 'x', id: 1, name: 'T', tags: ['x'], type: 'php'}]})
+      writeFileSync(join(dir, '1-t.php'), 'x')
+      writeFileSync(join(dir, '1-t.json'), JSON.stringify({active: true, id: 1, name: 'T', tags: ['y'], type: 'php'}))
+
+      const diff = compareStates(await snippetProvider.remote(remote, noWarn, dir), await snippetProvider.local(dir, noWarn), labels)
+
+      expect(diff.changed[0]?.fields).toEqual(expect.arrayContaining([{from: 'x', kind: 'changed', path: 'tags.0', to: 'y'}]))
+    })
+
+    it('flags a real shortcodeAttributes-only change (canonicalSnippet must not drop them)', async () => {
+      const remote = fakeWp({
+        'loopress/v1/snippets': [{active: true, code: 'x', id: 1, name: 'T', shortcodeAttributes: ['a'], type: 'php'}],
+      })
+      writeFileSync(join(dir, '1-t.php'), 'x')
+      writeFileSync(join(dir, '1-t.json'), JSON.stringify({active: true, id: 1, name: 'T', shortcodeAttributes: ['b'], type: 'php'}))
+
+      const diff = compareStates(await snippetProvider.remote(remote, noWarn, dir), await snippetProvider.local(dir, noWarn), labels)
+
+      expect(diff.changed[0]?.fields).toEqual(
+        expect.arrayContaining([{from: 'a', kind: 'changed', path: 'shortcodeAttributes.0', to: 'b'}]),
+      )
+    })
+
+    it('keys a local snippet with no id by its filename', async () => {
+      writeFileSync(join(dir, 'draft.php'), 'x')
+      writeFileSync(join(dir, 'draft.json'), JSON.stringify({active: false, name: 'Draft', type: 'php'}))
+
+      const state = await snippetProvider.local(dir, noWarn)
+
+      expect([...state.keys()]).toEqual(['local:draft.php'])
+    })
+
+    it('propagates a non-ENOENT error from loadSnippets instead of swallowing it', async () => {
+      const filePath = join(dir, 'not-a-dir')
+      writeFileSync(filePath, 'x')
+
+      await expect(snippetProvider.local(filePath, noWarn)).rejects.toThrow()
+    })
   })
 
   describe('api', () => {
@@ -105,6 +146,14 @@ describe('resource-state providers', () => {
       const diff = compareStates(await apiProvider.remote(remote, noWarn, dir), await apiProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('actually populates state entries by filename (an empty-vs-empty match is not proof it works)', async () => {
+      const remote = fakeWp({'loopress/v1/api-files': [{content: 'a', filename: 'ping'}]})
+
+      const state = await apiProvider.remote(remote, noWarn, dir)
+
+      expect([...state.entries()]).toEqual([['ping', 'a']])
     })
   })
 
@@ -158,6 +207,14 @@ describe('resource-state providers', () => {
 
       expect([...state.keys()]).toEqual(['local:draft'])
     })
+
+    it('drops a remote form with no id instead of keying it "undefined"', async () => {
+      const remote = fakeWp({'loopress/v1/forms': [{settings: {form_title: 'No ID'}}]})
+
+      const state = await formProvider.remote(remote, noWarn, dir)
+
+      expect([...state.keys()]).toEqual([])
+    })
   })
 
   describe('acf', () => {
@@ -184,6 +241,32 @@ describe('resource-state providers', () => {
       const diff = compareStates(await acfProvider.remote(remote, noWarn, dir), await acfProvider.local(dir, noWarn), labels)
 
       expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('drops an acf object with no key, both locally and remotely', async () => {
+      mkdirSync(join(dir, 'field-groups'))
+      writeFileSync(join(dir, 'field-groups', 'x.json'), JSON.stringify({title: 'No key'}))
+
+      const localState = await acfProvider.local(dir, noWarn)
+      expect([...localState.keys()]).toEqual([])
+
+      const remote = fakeWp({'loopress/v1/acf/field-groups': [{title: 'No key either'}]})
+      const remoteState = await acfProvider.remote(remote, noWarn, dir)
+      expect([...remoteState.keys()]).toEqual([])
+    })
+
+    it('skips a local json file that is not a plain object (array, null, or scalar)', async () => {
+      mkdirSync(join(dir, 'field-groups'))
+      writeFileSync(join(dir, 'field-groups', 'arr.json'), '[1,2,3]')
+      writeFileSync(join(dir, 'field-groups', 'nil.json'), 'null')
+      writeFileSync(join(dir, 'field-groups', 'str.json'), '"nope"')
+      writeFileSync(join(dir, 'field-groups', 'good.json'), JSON.stringify({key: 'group_1'}))
+      const warnings: string[] = []
+
+      const state = await acfProvider.local(dir, (message) => warnings.push(message))
+
+      expect([...state.keys()]).toEqual(['field-groups/group_1'])
+      expect(warnings).toHaveLength(3)
     })
   })
 
@@ -226,6 +309,87 @@ describe('resource-state providers', () => {
       const keys = [...state.keys()]
       expect(warnings.join('\n')).toContain('redirects')
       expect(keys.filter((key) => key.startsWith('redirects/'))).toHaveLength(0)
+    })
+
+    it('does not swallow a non-404 error fetching redirects', async () => {
+      const wp = {
+        async get(path: string) {
+          if (path === 'loopress/v1/seo/redirects') throw new Error('server error', {cause: {response: {statusCode: 500}}})
+          if (path === 'loopress/v1/seo/settings') return {}
+          return []
+        },
+      } as unknown as WpClient
+
+      await expect(seoProvider.remote(wp, noWarn, dir)).rejects.toThrow('server error')
+    })
+
+    it('excludes a redirect with id <= 0 or a non-integer id', async () => {
+      mkdirSync(join(dir, 'redirects'))
+      writeFileSync(join(dir, 'redirects', 'a.json'), JSON.stringify({headerCode: 301, id: 0, urlTo: '/a'}))
+      writeFileSync(join(dir, 'redirects', 'b.json'), JSON.stringify({headerCode: 301, id: 1.5, urlTo: '/b'}))
+      writeFileSync(join(dir, 'redirects', 'c.json'), JSON.stringify({headerCode: 301, id: 7, urlTo: '/c'}))
+
+      const state = await seoProvider.local(dir, noWarn)
+
+      expect([...state.keys()].filter((key) => key.startsWith('redirects/'))).toEqual(['redirects/7'])
+    })
+
+    it('stores real redirect content with hits dropped (not a stripped-to-undefined placeholder)', async () => {
+      mkdirSync(join(dir, 'redirects'))
+      writeFileSync(join(dir, 'redirects', '4-new.json'), JSON.stringify({headerCode: 301, hits: 2, id: 4, urlTo: '/new'}))
+
+      const state = await seoProvider.local(dir, noWarn)
+
+      expect(state.get('redirects/4')).toEqual({headerCode: 301, id: 4, urlTo: '/new'})
+    })
+
+    it('reads local seo post-meta files, keyed by post type and slug', async () => {
+      mkdirSync(join(dir, 'post-meta', 'post'), {recursive: true})
+      writeFileSync(join(dir, 'post-meta', 'post', 'x.json'), JSON.stringify({slug: 'hello-world', title: 'Hello'}))
+
+      const state = await seoProvider.local(dir, noWarn)
+
+      expect(state.get('post-meta/post/hello-world')).toEqual({slug: 'hello-world', title: 'Hello'})
+    })
+
+    it('falls back to a "local:" key when a post-meta sidecar has no, or an empty, slug', async () => {
+      mkdirSync(join(dir, 'post-meta', 'post'), {recursive: true})
+      writeFileSync(join(dir, 'post-meta', 'post', 'draft.json'), JSON.stringify({title: 'No slug'}))
+      writeFileSync(join(dir, 'post-meta', 'post', 'blank.json'), JSON.stringify({slug: '', title: 'Blank slug'}))
+
+      const state = await seoProvider.local(dir, noWarn)
+
+      expect([...state.keys()].filter((key) => key.startsWith('post-meta/'))).toEqual(
+        expect.arrayContaining(['post-meta/post/local:draft', 'post-meta/post/local:blank']),
+      )
+    })
+
+    it('does not warn when settings.json is simply absent (ENOENT is not an error)', async () => {
+      const warnings: string[] = []
+
+      await seoProvider.local(dir, (message) => warnings.push(message))
+
+      expect(warnings).toEqual([])
+    })
+
+    it('warns on a non-ENOENT error reading settings.json, unlike a merely-missing file', async () => {
+      mkdirSync(join(dir, 'settings.json')) // a directory, not a file: EISDIR
+      const warnings: string[] = []
+
+      await seoProvider.local(dir, (message) => warnings.push(message))
+
+      expect(warnings.some((message) => message.includes('settings.json'))).toBe(true)
+    })
+
+    it('reads remote seo post-meta per post type, keyed by slug', async () => {
+      const remote = fakeWp({
+        'loopress/v1/seo/post-meta/post': [{meta: {}, slug: 'hello-world', title: 'Hello'}],
+        'loopress/v1/seo/settings': {},
+      })
+
+      const state = await seoProvider.remote(remote, noWarn, dir)
+
+      expect(state.get('post-meta/post/hello-world')).toEqual({meta: {}, slug: 'hello-world', title: 'Hello'})
     })
   })
 
@@ -271,6 +435,28 @@ describe('resource-state providers', () => {
 
       expect(diff.added).toEqual(['ghost'])
     })
+
+    it('does not swallow a non-404 error fetching an option', async () => {
+      const remote = {
+        async get(path: string) {
+          if (path === 'loopress/v1/options/ghost') throw new Error('boom', {cause: {response: {statusCode: 500}}})
+          throw new Error(`unexpected request: ${path}`)
+        },
+      } as unknown as WpClient
+      writeFileSync(join(dir, 'ghost.json'), JSON.stringify({autoload: 'yes', name: 'ghost', value: 'x'}))
+
+      await expect(optionsProvider.remote(remote, noWarn, dir)).rejects.toThrow('boom')
+    })
+  })
+})
+
+describe('getResourceStateProvider', () => {
+  it('returns the matching provider', () => {
+    expect(getResourceStateProvider('snippet').resource).toBe('snippet')
+  })
+
+  it('throws for an unknown resource', () => {
+    expect(() => getResourceStateProvider('ghost')).toThrow(/No resource-state provider/)
   })
 })
 
@@ -309,5 +495,37 @@ describe('composer state', () => {
     const diff = compareStates(await composerRemoteState(wp), await composerLocalState(dir), labels)
 
     expect(diff.removed).toEqual(['composer.lock'])
+  })
+
+  it('treats a missing composer.lock as never-pushed, not a failure', async () => {
+    const wp = {
+      async get(path: string) {
+        if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
+        if (path === 'loopress/v1/composer/lock') throw notFound(JSON.stringify({error: 'composer.lock not found'}))
+        throw new Error(`unexpected request: ${path}`)
+      },
+    } as unknown as WpClient
+
+    const state = await composerRemoteState(wp)
+
+    expect([...state.keys()]).toEqual(['composer.json'])
+  })
+
+  it('propagates a non-404 error fetching composer.lock', async () => {
+    const wp = {
+      async get(path: string) {
+        if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
+        if (path === 'loopress/v1/composer/lock') throw new Error('boom', {cause: {response: {statusCode: 500}}})
+        throw new Error(`unexpected request: ${path}`)
+      },
+    } as unknown as WpClient
+
+    await expect(composerRemoteState(wp)).rejects.toThrow('boom')
+  })
+
+  it('propagates a non-ENOENT error reading a local composer file', async () => {
+    mkdirSync(join(dir, 'composer.json')) // a directory, not a file: EISDIR, unlike a merely-missing file
+
+    await expect(composerLocalState(dir)).rejects.toThrow()
   })
 })
