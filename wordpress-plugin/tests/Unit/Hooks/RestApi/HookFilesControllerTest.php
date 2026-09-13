@@ -132,6 +132,17 @@ class HookFilesControllerTest extends TestCase
         $this->assertArrayNotHasKey('error', $response->data[0]);
     }
 
+    public function test_list_files_annotates_each_entry_with_its_hook_bindings(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n";
+        $this->directory->method('listSlugs')->willReturn(['hello']);
+        $this->directory->method('read')->with('hello')->willReturn($content);
+
+        $response = $this->controller->list_files();
+
+        $this->assertSame([['type' => 'action', 'hook' => 'init', 'recurrence' => null]], $response->data[0]['hooks']);
+    }
+
     // ── push_file ────────────────────────────────────────────────────────────
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void

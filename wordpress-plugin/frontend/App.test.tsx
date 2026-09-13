@@ -30,6 +30,9 @@ function stubQuietEndpoints() {
         if (path === '/apps') {
             return [];
         }
+        if (path === '/hook-files') {
+            return [];
+        }
         return {};
     });
 }
@@ -171,6 +174,34 @@ describe('App', () => {
         expect(await screen.findByText('search')).toBeInTheDocument();
         expect(screen.getByText('9f2a1c7b4e10')).toBeInTheDocument();
         expect(screen.getByText('[loopress_app name="search"]')).toBeInTheDocument();
+    });
+
+    test('renders a Hooks tab that lists uploaded hook files with their bindings', async () => {
+        apiFetchMock.mockImplementation(async (path: string) => {
+            if (path === '/hook-files') {
+                return [{ filename: 'content-filters', content: '<?php', hooks: [{ type: 'action', hook: 'init', recurrence: null }] }];
+            }
+            if (path === '/composer/diagnostics') {
+                return { php_version: '8.2.29', platform_php: '8.2.29', issues: [] };
+            }
+            if (path === '/composer/audit') {
+                return { advisories: {}, abandoned: {} };
+            }
+            if (path === '/composer/installed' || path === '/composer/outdated') {
+                return [];
+            }
+            return {};
+        });
+
+        await renderApp(null);
+
+        await screen.findByRole('heading', { name: 'Loopress Full' });
+
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('tab', { name: 'Hooks' }));
+
+        expect(await screen.findByText('content-filters.php')).toBeInTheDocument();
+        expect(screen.getByText('action: init')).toBeInTheDocument();
     });
 
     test('reflects the active outer tab in the URL hash', async () => {

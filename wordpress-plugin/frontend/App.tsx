@@ -8,6 +8,7 @@ import { AuditBanner } from './dependencies/AuditBanner';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { ApiRoutes } from './api-routes/ApiRoutes';
 import { AppsPanel } from './apps/AppsPanel';
+import { HooksPanel } from './hooks/HooksPanel';
 import { UpdateNotice } from './update/UpdateNotice';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
@@ -17,6 +18,7 @@ const TABS = [
     { name: 'dependencies', title: 'Dependencies' },
     { name: 'api', title: 'API' },
     { name: 'apps', title: 'Apps' },
+    { name: 'hooks', title: 'Hooks' },
     { name: 'diagnostics', title: 'Diagnostics' },
     { name: 'settings', title: 'Settings' },
 ];
@@ -78,6 +80,8 @@ export default function App() {
                             <ApiRoutes />
                         ) : tab.name === 'apps' ? (
                             <AppsPanel />
+                        ) : tab.name === 'hooks' ? (
+                            <HooksPanel />
                         ) : tab.name === 'settings' ? (
                             <SettingsPanel />
                         ) : (
