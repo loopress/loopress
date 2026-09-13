@@ -195,14 +195,14 @@ describe('app-manifest', () => {
       await expect(loadAppManifest(dir, 'search')).rejects.toThrow('not in the build output')
     })
 
-    it('rejects an invalid app name from the config', async () => {
-      scaffold({name: 'Bad_Name'}, '<script type="module" src="/assets/index-abc.js"></script>')
+    it.each([
+      {name: 'Bad_Name', title: 'an invalid app name from the config'},
+      {name: '-bad', title: 'a name with a leading or trailing hyphen'},
+      // The pattern must match the whole name, not just a valid prefix.
+      {name: 'good-name!', title: 'a name with a valid prefix but an invalid trailing character'},
+    ])('rejects $title', async ({name}) => {
+      scaffold({name}, '<script type="module" src="/assets/index-abc.js"></script>')
 
-      await expect(loadAppManifest(dir, 'search')).rejects.toThrow('Invalid app name')
-    })
-
-    it('rejects a name with a leading or trailing hyphen', async () => {
-      scaffold({name: '-bad'}, '<script type="module" src="/assets/index-abc.js"></script>')
       await expect(loadAppManifest(dir, 'search')).rejects.toThrow('Invalid app name')
     })
 
