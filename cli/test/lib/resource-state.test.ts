@@ -153,7 +153,7 @@ describe('resource-state providers', () => {
 
       const state = await apiProvider.remote(remote, noWarn, dir)
 
-      expect([...state.entries()]).toEqual([['ping', 'a']])
+      expect([...state]).toEqual([['ping', 'a']])
     })
   })
 
@@ -263,7 +263,9 @@ describe('resource-state providers', () => {
       writeFileSync(join(dir, 'field-groups', 'good.json'), JSON.stringify({key: 'group_1'}))
       const warnings: string[] = []
 
-      const state = await acfProvider.local(dir, (message) => warnings.push(message))
+      const state = await acfProvider.local(dir, (message) => {
+        warnings.push(message)
+      })
 
       expect([...state.keys()]).toEqual(['field-groups/group_1'])
       expect(warnings).toHaveLength(3)
@@ -367,7 +369,9 @@ describe('resource-state providers', () => {
     it('does not warn when settings.json is simply absent (ENOENT is not an error)', async () => {
       const warnings: string[] = []
 
-      await seoProvider.local(dir, (message) => warnings.push(message))
+      await seoProvider.local(dir, (message) => {
+        warnings.push(message)
+      })
 
       expect(warnings).toEqual([])
     })
@@ -376,7 +380,9 @@ describe('resource-state providers', () => {
       mkdirSync(join(dir, 'settings.json')) // a directory, not a file: EISDIR
       const warnings: string[] = []
 
-      await seoProvider.local(dir, (message) => warnings.push(message))
+      await seoProvider.local(dir, (message) => {
+        warnings.push(message)
+      })
 
       expect(warnings.some((message) => message.includes('settings.json'))).toBe(true)
     })
