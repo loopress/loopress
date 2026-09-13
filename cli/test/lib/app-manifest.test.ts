@@ -45,6 +45,20 @@ describe('app-manifest', () => {
     it('returns an empty list for a missing directory', async () => {
       expect(await buildFileList(join(dir, 'nope'))).toEqual([])
     })
+
+    it('propagates a non-ENOENT error instead of treating it as "missing"', async () => {
+      writeFileSync(join(dir, 'not-a-dir'), 'x') // a file, not a directory: ENOTDIR
+
+      await expect(buildFileList(join(dir, 'not-a-dir'))).rejects.toThrow()
+    })
+
+    it('accepts extensions case-insensitively', async () => {
+      writeFileSync(join(dir, 'a.JS'), 'x')
+
+      const files = await buildFileList(dir)
+
+      expect(files.map((f) => f.path)).toEqual(['a.JS'])
+    })
   })
 
   describe('computeBuildId', () => {
@@ -92,6 +106,21 @@ describe('app-manifest', () => {
 
       expect(deriveEntry(html)).toEqual({scripts: ['assets/a.js'], styles: ['assets/b.css']})
     })
+
+    it('ignores a module script or stylesheet link with no src/href, and collects more than one of each', () => {
+      const html =
+        '<script type="module"></script>' +
+        '<script type="module" src="/assets/a.js"></script>' +
+        '<script type="module" src="/assets/b.js"></script>' +
+        '<link rel="stylesheet">' +
+        '<link rel="stylesheet" href="/assets/a.css">' +
+        '<link rel="stylesheet" href="/assets/b.css">'
+
+      expect(deriveEntry(html)).toEqual({
+        scripts: ['assets/a.js', 'assets/b.js'],
+        styles: ['assets/a.css', 'assets/b.css'],
+      })
+    })
   })
 
   describe('diffFiles', () => {
@@ -117,6 +146,16 @@ describe('app-manifest', () => {
 
     it('rejects an unsupported routing mode', () => {
       expect(() => parseAppConfig(JSON.stringify({routing: 'history'}), dir)).toThrow('not supported')
+    })
+
+    it('accepts routing "hash" and leaves it undefined when absent', () => {
+      expect(parseAppConfig(JSON.stringify({routing: 'hash'}), dir).routing).toBe('hash')
+      expect(parseAppConfig('{}', dir).routing).toBeUndefined()
+    })
+
+    it('rejects a JSON scalar or null, not just non-JSON', () => {
+      expect(() => parseAppConfig('"nope"', dir)).toThrow('must be a JSON object')
+      expect(() => parseAppConfig('null', dir)).toThrow('must be a JSON object')
     })
   })
 
@@ -156,10 +195,81 @@ describe('app-manifest', () => {
       await expect(loadAppManifest(dir, 'search')).rejects.toThrow('not in the build output')
     })
 
-    it('rejects an invalid app name from the config', async () => {
-      scaffold({name: 'Bad_Name'}, '<script type="module" src="/assets/index-abc.js"></script>')
+    it.each([
+      {name: 'Bad_Name', title: 'an invalid app name from the config'},
+      {name: '-bad', title: 'a name with a leading or trailing hyphen'},
+      // The pattern must match the whole name, not just a valid prefix.
+      {name: 'good-name!', title: 'a name with a valid prefix but an invalid trailing character'},
+    ])('rejects $title', async ({name}) => {
+      scaffold({name}, '<script type="module" src="/assets/index-abc.js"></script>')
 
       await expect(loadAppManifest(dir, 'search')).rejects.toThrow('Invalid app name')
+    })
+
+    it('accepts a single-character name', async () => {
+      scaffold({name: 'a'}, '<script type="module" src="/assets/index-abc.js"></script>')
+      const {manifest} = await loadAppManifest(dir, 'search')
+      expect(manifest.name).toBe('a')
+    })
+
+    it('prefers the config name over the directory name', async () => {
+      scaffold({name: 'custom-name'}, '<script type="module" src="/assets/index-abc.js"></script>')
+
+      const {manifest} = await loadAppManifest(dir, 'different-dir-name')
+
+      expect(manifest.name).toBe('custom-name')
+      expect(manifest.mountSelector).toBe('#loopress-app-custom-name')
+    })
+
+    it('honours a custom mountSelector from the config', async () => {
+      scaffold({mountSelector: '#custom'}, '<script type="module" src="/assets/index-abc.js"></script>')
+
+      const {manifest} = await loadAppManifest(dir, 'search')
+
+      expect(manifest.mountSelector).toBe('#custom')
+    })
+
+    it('honours a custom assetsDir from the config instead of "dist"', async () => {
+      writeFileSync(join(dir, 'loopress.app.json'), JSON.stringify({assetsDir: 'build'}))
+      mkdirSync(join(dir, 'build'), {recursive: true})
+      writeFileSync(join(dir, 'build', 'index.html'), '<script type="module" src="/index-abc.js"></script>')
+      writeFileSync(join(dir, 'build', 'index-abc.js'), 'app')
+
+      const {distDir, manifest} = await loadAppManifest(dir, 'search')
+
+      expect(distDir).toBe(join(dir, 'build'))
+      expect(manifest.files.map((f) => f.path)).toContain('index-abc.js')
+    })
+
+    it('uses an explicit entry from the config instead of deriving it from index.html', async () => {
+      writeFileSync(join(dir, 'loopress.app.json'), JSON.stringify({entry: {scripts: ['app.js'], styles: []}}))
+      mkdirSync(join(dir, 'dist'), {recursive: true})
+      writeFileSync(join(dir, 'dist', 'app.js'), 'app') // no index.html at all
+
+      const {manifest} = await loadAppManifest(dir, 'search')
+
+      expect(manifest.entry).toEqual({scripts: ['app.js'], styles: []})
+    })
+
+    it('fails when there is no index.html and no explicit entry in the config', async () => {
+      writeFileSync(join(dir, 'loopress.app.json'), '{}')
+      mkdirSync(join(dir, 'dist'), {recursive: true})
+      writeFileSync(join(dir, 'dist', 'app.js'), 'app')
+
+      await expect(loadAppManifest(dir, 'search')).rejects.toThrow('has no index.html')
+    })
+
+    it('fails when the dist directory has no files at all', async () => {
+      writeFileSync(join(dir, 'loopress.app.json'), '{}')
+      mkdirSync(join(dir, 'dist'), {recursive: true})
+
+      await expect(loadAppManifest(dir, 'search')).rejects.toThrow('No files in')
+    })
+
+    it('fails when the derived entry has no module script', async () => {
+      scaffold({}, '<link rel="stylesheet" href="/assets/index-abc.css">')
+
+      await expect(loadAppManifest(dir, 'search')).rejects.toThrow('No <script type="module"> entry found')
     })
   })
 })

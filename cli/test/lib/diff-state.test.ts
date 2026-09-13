@@ -33,6 +33,23 @@ describe('compareStates', () => {
     expect(diff.changed.map((change) => change.id)).toEqual(['a', 'm'])
   })
 
+  // Deliberately reverse-alphabetical map insertion order: unlike the fixture above (which
+  // happens to already come out sorted even without a real sort), this one only passes if
+  // added/removed/changed are genuinely sorted, not left in Map iteration order.
+  it('actually sorts, rather than relying on a fixture that is already in order', () => {
+    // Every one of left's/right's own key-insertion orders is reverse-alphabetical within its
+    // added/removed/changed subset, so an unsorted result would fail these exact-order checks
+    // (the coincidental fixture above happens to insert each subset in order already).
+    const left = state({zebra_removed: 1, zebra_changed: 1, apple_removed: 1, apple_changed: 1})
+    const right = state({zebra_changed: 2, apple_changed: 2, zebra_added: 1, apple_added: 1})
+
+    const diff = compareStates(left, right, labels)
+
+    expect(diff.added).toEqual(['apple_added', 'zebra_added'])
+    expect(diff.removed).toEqual(['apple_removed', 'zebra_removed'])
+    expect(diff.changed.map((change) => change.id)).toEqual(['apple_changed', 'zebra_changed'])
+  })
+
   it('ignores key ordering inside nested objects', () => {
     const left = state({a: {one: 1, two: {x: 1, y: 2}}})
     const right = state({a: {two: {y: 2, x: 1}, one: 1}})
@@ -111,6 +128,59 @@ describe('compareStates', () => {
   it('keeps the patch free of "no newline at end of file" markers when neither side ends in one', () => {
     const diff = compareStates(state({a: 'line one\nline two'}), state({a: 'line one\nline changed'}), labels)
 
+    // Not just the absence of the marker: the appended-newline fallback must keep the text
+    // itself, not discard it (a real regression one of the ways to break this makes).
+    expect(diff.changed[0].patch).toContain('-line two')
+    expect(diff.changed[0].patch).toContain('+line changed')
     expect(diff.changed[0].patch).not.toContain('No newline at end of file')
+  })
+
+  it('renders a clean single-line text patch: no "Index:"/"===" preamble, no doubled trailing newline', () => {
+    const diff = compareStates(state({a: 'x\n'}), state({a: 'y\n'}), labels)
+
+    // An exact match, not a substring check: this is the only way to prove the "Index:"/"==="
+    // preamble was stripped AND that ensureTrailingNewline() didn't add a spurious second
+    // newline to text that already ended with one.
+    expect(diff.changed[0].patch).toBe('--- a\tstaging\n+++ a\tlocal\n@@ -1,1 +1,1 @@\n-x\n+y')
+  })
+
+  it('truncates a long object-field value one character past the limit, not exactly at it', () => {
+    const at200 = compareStates(state({a: {blob: 'x'}}), state({a: {blob: 'a'.repeat(198)}}), labels) // JSON-stringified length: 200
+    expect(at200.changed[0].patch).not.toMatch(/…/)
+
+    const raw = 'a'.repeat(199) // JSON-stringified length: 201, one past the limit
+    const at201 = compareStates(state({a: {blob: 'x'}}), state({a: {blob: raw}}), labels)
+    const expectedTruncated = `${JSON.stringify(raw).slice(0, 199)}…` // exactly MAX_VALUE_LENGTH - 1 kept characters
+    expect(at201.changed[0].patch).toBe(`~ blob: "x" → ${expectedTruncated}`)
+  })
+
+  it('treats null as a type mismatch, not an object to structurally diff', () => {
+    const diff = compareStates(state({a: null}), state({a: {x: 1}}), labels)
+
+    expect(diff.changed[0].fields).toBeUndefined()
+    expect(diff.changed[0].patch).toBe('~ null → {"x":1}')
+  })
+
+  it('treats a value that changed type from string to object as a mismatch, not a text diff', () => {
+    const diff = compareStates(state({a: 'plain text'}), state({a: {x: 1}}), labels)
+
+    expect(diff.changed[0].fields).toBeUndefined()
+    expect(diff.changed[0].patch).toBe('~ "plain text" → {"x":1}')
+  })
+
+  it('treats a value that changed type from object to string as a mismatch too (not just the reverse)', () => {
+    const diff = compareStates(state({a: {x: 1}}), state({a: 'plain text'}), labels)
+
+    expect(diff.changed[0].fields).toBeUndefined()
+    expect(diff.changed[0].patch).toBe('~ {"x":1} → "plain text"')
+  })
+
+  it('isEmptyDiff treats removed-only drift as non-empty too (not just added/changed)', () => {
+    const diff = compareStates(state({gone: 1}), state({}), labels)
+
+    expect(diff.added).toEqual([])
+    expect(diff.changed).toEqual([])
+    expect(diff.removed).toEqual(['gone'])
+    expect(isEmptyDiff(diff)).toBe(false)
   })
 })

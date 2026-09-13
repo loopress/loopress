@@ -1,3 +1,4 @@
+import {confirm} from '@inquirer/prompts'
 import {Buffer} from 'node:buffer'
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -158,6 +159,70 @@ describe('app pull', () => {
 
       expect(existsSync(join(dir, 'obsolete'))).toBe(false)
       expect(result.orphans).toEqual(['obsolete'])
+    })
+
+    it('reports the would-remove orphans line on a dry run, pluralized', async () => {
+      mkdirSync(join(dir, 'obsolete-a'), {recursive: true})
+      writeFileSync(join(dir, 'obsolete-a', 'loopress.app.json'), '{}')
+      mkdirSync(join(dir, 'obsolete-b'), {recursive: true})
+      writeFileSync(join(dir, 'obsolete-b', 'loopress.app.json'), '{}')
+      const {cmd, internals, logs} = makeCmd([dir], true)
+      internals.wpClient = {get: remote([], {})}
+
+      await cmd.run()
+
+      expect(logs.log).toHaveBeenCalledWith(`[dry-run] Would remove 2 local apps: obsolete-a, obsolete-b`)
+    })
+
+    it('does not log a would-remove line on a dry run when there are no orphans', async () => {
+      const {cmd, internals, logs} = makeCmd([dir], true)
+      internals.wpClient = {get: remote([], {})}
+
+      await cmd.run()
+
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Would remove'))
+    })
+
+    it('keeps the app when the interactive removal confirmation is declined', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+      mkdirSync(join(dir, 'obsolete'), {recursive: true})
+      writeFileSync(join(dir, 'obsolete', 'loopress.app.json'), '{}')
+      const {cmd, internals, logs} = makeCmd([dir])
+      internals.wpClient = {get: remote([], {})}
+
+      const result = await cmd.run()
+
+      expect(existsSync(join(dir, 'obsolete'))).toBe(true)
+      expect(result.orphans).toEqual(['obsolete'])
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Kept 1 local app'))
+    })
+
+    it('removes the app and logs (not warns) when the interactive confirmation is accepted', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      mkdirSync(join(dir, 'obsolete'), {recursive: true})
+      writeFileSync(join(dir, 'obsolete', 'loopress.app.json'), '{}')
+      const {cmd, internals, logs} = makeCmd([dir])
+      internals.wpClient = {get: remote([], {})}
+
+      await cmd.run()
+
+      expect(existsSync(join(dir, 'obsolete'))).toBe(false)
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local app'))
+      expect(logs.warn).not.toHaveBeenCalled()
+    })
+
+    it('warns (not logs) when removing without a prompt outside a TTY', async () => {
+      mkdirSync(join(dir, 'obsolete'), {recursive: true})
+      writeFileSync(join(dir, 'obsolete', 'loopress.app.json'), '{}')
+      const {cmd, internals, logs} = makeCmd([dir])
+      internals.wpClient = {get: remote([], {})}
+
+      await cmd.run()
+
+      expect(existsSync(join(dir, 'obsolete'))).toBe(false)
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('Removed 1 local app'))
     })
   })
 })

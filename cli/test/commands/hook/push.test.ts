@@ -4,7 +4,10 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/hook/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 type HookFile = {
   content: string
@@ -199,6 +202,84 @@ describe('hook push', () => {
 
       expect(put).not.toHaveBeenCalled()
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(localConfig: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = localConfig
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-hook-push-run-test-'))
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    function make(argv: string[] = []) {
+      const cmd = new TestPush(argv, fakeOclifConfig)
+      cmd.setup({}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValue({filename: 'hello'})
+      const get = vi.fn().mockResolvedValue([])
+      const del = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {delete: del, get, put}
+      return {cmd, del, get, logs, put}
+    }
+
+    it('pushes every local file, logs the banner and found count, and reports success', async () => {
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, logs, put} = make([dir])
+
+      const result = await cmd.run()
+
+      expect(logs.log).toHaveBeenCalledWith('Pushing hooks to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith('Found 1 hook file to push')
+      expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', expect.objectContaining({filename: 'hello'}))
+      expect(logs.log).toHaveBeenCalledWith('All hooks pushed.')
+      expect(result).toEqual({pruned: [], pushed: ['hello'], status: 'success'})
+    })
+
+    it('errors with the failed count instead of reporting success when a push fails', async () => {
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, put} = make([dir])
+      put.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow(/1 hook file.*failed to push/)
+    })
+
+    it('does not push anything on a dry run, and reports dry-run status', async () => {
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, put} = make([dir])
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      const result = await cmd.run()
+
+      expect(put).not.toHaveBeenCalled()
+      expect(result.status).toBe('dry-run')
+    })
+
+    it('prunes server-side files not present locally when --prune is passed', async () => {
+      const {cmd, del, get, logs} = make([dir, '--prune'])
+      ;(cmd as unknown as {yes: boolean}).yes = true
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      const result = await cmd.run()
+
+      expect(del).toHaveBeenCalledWith('loopress/v1/hook-files?filename=stale')
+      expect(result.pruned).toEqual(['stale'])
+      expect(logs.log).toHaveBeenCalledWith('Pruned: stale')
     })
   })
 })

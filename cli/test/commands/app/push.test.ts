@@ -5,7 +5,10 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/app/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 type AppFile = {path: string; sha256: string; size: number}
 type PushInternals = {
@@ -172,6 +175,48 @@ describe('app push', () => {
       expect(task.output).toContain('[dry-run]')
     })
 
+    it('reports "up to date" on a dry run when the remote already matches, not the "would upload" wording', async () => {
+      const appDir = scaffoldApp(dir, 'search')
+      const {internals} = makeCmd()
+      internals.wpClient.get.mockRejectedValueOnce(notFound)
+      await internals.pushApp(appDir, 'search')
+      const committed = internals.wpClient.post.mock.calls[0][1] as {files: AppFile[]}
+      internals.wpClient.get.mockResolvedValue({files: committed.files})
+      internals.dryRun = true
+      const task = {output: ''}
+
+      const result = await internals.pushApp(appDir, 'search', task)
+
+      expect(result).toBeUndefined()
+      expect(task.output).toContain('up to date')
+      expect(task.output).not.toContain('would upload')
+    })
+
+    it('routes a manifest-loading failure through reportTaskFailure and rethrows', async () => {
+      mkdirSync(dir, {recursive: true}) // an app directory with no loopress.app.json at all
+      const {internals} = makeCmd()
+      const task = {output: ''}
+
+      await expect(internals.pushApp(dir, 'broken', task)).rejects.toThrow()
+
+      expect(task.output).toContain('broken:')
+      expect((internals as unknown as {failedCount: number}).failedCount).toBe(1)
+    })
+
+    it('routes a commit failure through reportTaskFailure and rethrows, after the files were uploaded', async () => {
+      const appDir = scaffoldApp(dir, 'search')
+      const {internals} = makeCmd()
+      internals.wpClient.get.mockRejectedValueOnce(notFound)
+      internals.wpClient.post.mockRejectedValueOnce(new Error('commit boom'))
+      const task = {output: ''}
+
+      await expect(internals.pushApp(appDir, 'search', task)).rejects.toThrow('commit boom')
+
+      expect(internals.wpClient.put).toHaveBeenCalledTimes(3)
+      expect(task.output).toContain('commit failed')
+      expect((internals as unknown as {failedCount: number}).failedCount).toBe(1)
+    })
+
     it('skips the upload but still commits when every file is already on the remote', async () => {
       const appDir = scaffoldApp(dir, 'search')
       const {internals} = makeCmd()
@@ -190,6 +235,84 @@ describe('app push', () => {
       expect(internals.wpClient.post).toHaveBeenCalledTimes(1)
       expect(result).toMatchObject({name: 'search', uploaded: 0})
       expect(task.output).toContain('already up to date')
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(localConfig: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = localConfig
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    // resolveAppsPath() joins rootDir with the (default) "apps" subdirectory, so apps are
+    // scaffolded under <dir>/apps/<name> here, not directly under <dir> like the pushApp-level
+    // tests above (those call pushApp() directly with an explicit appDir, bypassing resolution).
+    let appsRoot: string
+
+    beforeEach(() => {
+      appsRoot = join(dir, 'apps')
+    })
+
+    function make(argv: string[] = []) {
+      const cmd = new TestPush(argv, fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValue(notFound)
+      const post = vi.fn().mockResolvedValue({})
+      const put = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
+      return {cmd, get, logs, post, put}
+    }
+
+    it('pushes every app, logs the banner and found count, and reports success', async () => {
+      scaffoldApp(appsRoot, 'search')
+      const {cmd, logs, post} = make()
+
+      const result = await cmd.run()
+
+      expect(logs.log).toHaveBeenCalledWith('Pushing apps to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Apps path: ${appsRoot}`)
+      expect(logs.log).toHaveBeenCalledWith('Found 1 app to push')
+      expect(logs.log).toHaveBeenCalledWith('All apps pushed.')
+      expect(post).toHaveBeenCalledWith('loopress/v1/apps/search/commit', expect.objectContaining({name: 'search'}))
+      expect(result.status).toBe('success')
+      expect(result.pushed).toEqual([{buildId: expect.any(String), name: 'search', uploaded: 3}])
+    })
+
+    it('errors with the failed count instead of reporting success when an app fails to push', async () => {
+      scaffoldApp(appsRoot, 'search')
+      const {cmd, post} = make()
+      post.mockRejectedValue(new Error('commit boom'))
+
+      await expect(cmd.run()).rejects.toThrow(/1 app.*failed to push/)
+    })
+
+    it('does not push or record success on a dry run', async () => {
+      scaffoldApp(appsRoot, 'search')
+      const {cmd, put} = make()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      const result = await cmd.run()
+
+      expect(put).not.toHaveBeenCalled()
+      expect(result.status).toBe('dry-run')
+    })
+
+    it('narrows to the single named app given as an argument', async () => {
+      scaffoldApp(appsRoot, 'search')
+      scaffoldApp(appsRoot, 'portal')
+      const {cmd, logs} = make(['search'])
+
+      const result = await cmd.run()
+
+      expect(logs.log).toHaveBeenCalledWith('Found 1 app to push')
+      expect(result.pushed.map((p) => p.name)).toEqual(['search'])
     })
   })
 })

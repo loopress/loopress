@@ -72,4 +72,14 @@ describe('api list', () => {
     expect(logs.log).toHaveBeenCalledWith('  open-webhook  [PUBLIC]')
     expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('no authentication'))
   })
+
+  it('does not warn about public routes when there are none', async () => {
+    const {cmd, logs} = makeCmd([])
+    const get = vi.fn().mockResolvedValueOnce([{content: '<?php', filename: 'products'}])
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.warn).not.toHaveBeenCalled()
+  })
 })
