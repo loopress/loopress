@@ -1,5 +1,42 @@
 # @loopress/cli
 
+## 0.24.1
+
+### Patch Changes
+
+- 406eae1: `lps composer push` now reflects that the server resolves `composer.json` itself and never installs from the uploaded `composer.lock`. When the server's resolution moves a version your local lock had pinned, the command prints the drift and tells you to run `lps composer pull`. The `--json` output gains a `lockDrift` array. The MCP `composer_push` tool description is updated to match.
+- b28d36c: `lps api pull` / `lps hook pull` now skip a file the server declined to return (e.g. one over the new size limit): they print a warning and leave any local copy untouched, instead of overwriting it with nothing. `lps api list` / `lps hook list` show the server's reason next to such a file.
+- d198555: Add `lps api rm <slug>` / `lps hook rm <slug>` to delete one route or hook file from WordPress (confirmation prompt, `--yes` for CI, `--dry-run`), and `lps api push --prune` / `lps hook push --prune` to delete server-side files with no local counterpart after a push.
+  
+  `--prune` and `rm` both refuse to delete in a non-interactive shell without `--yes`: unlike `pull`'s local cleanup, a pruned file on the server is not recoverable from the repo. The MCP server gains matching `api_rm` / `hook_rm` tools and a `prune` option on `api_push` / `hook_push`, both behind the confirm-token handshake.
+- 69bdc0c: `lps api push` now warns for each pushed route that runs with no authentication (`#[Permission(public: true)]`), and `lps api list` badges those routes `[PUBLIC]` (with a trailing warning). `lps api list --json` includes `"public"` per route. The MCP `api_list` tool exposes the same field.
+- de7f283: `lps option add` now defaults `readonly: true` for the behaviour-changing core options the server refuses to write (`default_role`, `users_can_register`, `mailserver_*`, `uninstall_plugins`, `initial_db_version`), alongside the ones that were already read-only by default (`siteurl`, `home`, `cron`, ...). `lps option push` skips read-only options, so tracking one of these for `diff` visibility no longer leads to a `403` on push.
+- b43b2c7: `lps form push` and `lps seo push` gain opt-in flags for the sync operations the server now gates:
+  
+  - `lps form push --allow-notifications` also pushes each form's notification and confirmation settings (off by default, so a stray push cannot redirect submissions).
+  - `lps seo push --allow-external-redirects` permits pushing a redirect whose target is on another site (rejected by default).
+  
+  The MCP `seo_push` tool gains `allowExternalRedirects`. `form_push` via MCP always uses the safe default (notifications preserved); the opt-in is CLI-only by design.
+- a52c231: Security: harden the `lps login` / `lps project config` browser authorization flow (F24, F25).
+  
+  - The loopback callback server now generates a 32-byte `state`, threads it through the authorization URL, and requires it back (constant-time compare) on any request that carries credentials. A local process or a web page open during the wait can no longer POST forged credentials into `config.json` / `auth.json`.
+  - The server also enforces an `Origin` allowlist (`https://api.loopress.dev` for site auth, `https://console.loopress.dev` for console login) and shuts down on the first callback-shaped request, valid or not, instead of staying open for the whole 5 minute window.
+  - `authorizeWithBrowser` no longer reads the Application Password or username from the URL query string, only from the relay's form POST body, so they can no longer land in shell history, proxy logs or the browser address bar.
+  
+  No API or console change is required: both relays copy the callback URL, and its `state`, through verbatim.
+- c2fb026: Security: strip WordPress site URLs and server response bodies from CLI crash reports (F26).
+  
+  A failed WordPress request throws an `Error` whose message is built by `formatWpError`: it
+  carries the full request URL and, for a 4xx/5xx, the server's raw response body appended after a
+  newline (a Composer trace, a WordPress fatal, absolute server paths, package URLs). `finally.ts`
+  passed that straight to `Sentry.captureException`.
+  
+  A `beforeSend` scrubber now runs on every event: it keeps the first line of each exception
+  message (the "which endpoint, which status" summary), blanks the site host while keeping the
+  `/wp-json/...` REST path, drops everything after the first line, and removes any request
+  context. Chained `cause` errors are covered too. The terminal still prints the full, unmodified
+  message.
+
 ## 0.24.0
 
 ### Minor Changes
