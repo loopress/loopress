@@ -10,6 +10,35 @@ const isCookbookIndex = entry.id === "cookbook";
 const isCookbookRecipe = entry.id.startsWith("cookbook/");
 const { cliVersion, wordpressPluginVersion, kind } = entry.data;
 
+// Cookbook-only copy, keyed by `kind`, feeding both the intro Aside and the closing CTA below.
+const cookbookKindCopy = {
+	snippet: {
+		singular: "snippet",
+		noun: "Snippets",
+		dir: "snippets/",
+		cmd: "lps snippet push",
+		refHref: "/snippets/",
+		refLabel: "Snippets",
+	},
+	app: {
+		singular: "Single-Page App",
+		noun: "Single-Page Apps",
+		dir: "apps/<name>/",
+		cmd: "lps app push",
+		refHref: "/apps/",
+		refLabel: "Single-Page Apps",
+	},
+	route: {
+		singular: "Custom API Route",
+		noun: "Custom API Routes",
+		dir: "api/",
+		cmd: "lps api push",
+		refHref: "/api/routes/",
+		refLabel: "Writing Route Files",
+	},
+} as const;
+const cookbookKind = cookbookKindCopy[kind ?? "route"];
+
 // Keep in sync with the "Cookbook" sidebar section in astro.config.mjs.
 const cookbookCategoryLabels: Record<string, string> = {
 	"documents-and-files": "Documents & Files",
@@ -73,17 +102,9 @@ if (isCookbookIndex) {
 {
 	isCookbookRecipe && (
 		<Aside type="note">
-			{kind === "snippet" ? (
-				<>
-					This is a Loopress <a href="/snippets/">snippet</a>, a plain PHP file in{" "}
-					<code>snippets/</code> deployed with <code>lps snippet push</code>.
-				</>
-			) : (
-				<>
-					This is a Loopress <a href="/api/routes/">Custom API Route</a>, a plain PHP file in{" "}
-					<code>api/</code> deployed with <code>lps api push</code>.
-				</>
-			)}{" "}
+			This is a Loopress <a href={cookbookKind.refHref}>{cookbookKind.singular}</a>, a{" "}
+			{kind === "app" ? "pre-built bundle" : "plain PHP file"} in <code>{cookbookKind.dir}</code>{" "}
+			deployed with <code>{cookbookKind.cmd}</code>.{" "}
 			New to Loopress? <a href="/getting-started/">Getting Started</a> covers installing the CLI and
 			connecting it to your site.
 		</Aside>
@@ -105,22 +126,16 @@ if (isCookbookIndex) {
 		<div class="cookbook-cta not-content">
 			<hr />
 			<p>
-				{kind === "snippet" ? "Snippets" : "Custom API Routes"} and Composer dependency management
-				ship with Loopress Full, a free WordPress plugin and CLI for managing custom code and
-				dependencies as version-controlled files instead of pasting into wp-admin.
+				{cookbookKind.noun}
+				{kind === "app" ? "" : " and Composer dependency management"} ship with Loopress Full, a free
+				WordPress plugin and CLI for managing custom code and dependencies as version-controlled
+				files instead of pasting into wp-admin.
 			</p>
 			<p>
 				<a href="/getting-started/">Getting Started</a> walks through connecting it to your site in
 				under a minute.{" "}
-				{kind === "snippet" ? (
-					<>
-						<a href="/snippets/">Snippets</a> covers the complete command reference.
-					</>
-				) : (
-					<>
-						<a href="/api/routes/">Writing Route Files</a> covers the complete file reference.
-					</>
-				)}
+				<a href={cookbookKind.refHref}>{cookbookKind.refLabel}</a> covers the complete{" "}
+				{kind === "snippet" ? "command" : "file"} reference.
 			</p>
 		</div>
 	)
