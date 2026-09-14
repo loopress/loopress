@@ -39,8 +39,6 @@ class Image
         $image   = $manager->read($path);
         $image->cover($width, $height); // resize + crop to exactly fill the box, no distortion
 
-        // TODO: verify exact encode method name and quality parameter against Intervention Image
-        // v3's current docs, the encode API changed between v2 and v3.
         $encoded = $image->toWebp(80);
 
         $response = new WP_REST_Response([
