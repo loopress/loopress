@@ -31,17 +31,25 @@ class GithubReleaseCheckerTest extends TestCase
         parent::tearDown();
     }
 
-    /** @param array<int, array<string, string>> $releases */
+    /** @param array<int, array<string, mixed>> $releases */
     private function stubReleasesResponse(array $releases): void
     {
         $this->httpClient->willReturn(new Response(200, [], json_encode($releases)));
     }
 
-    public function test_returns_cached_value_without_calling_github(): void
+    public function test_returns_cached_version_without_calling_github(): void
     {
-        Functions\when('get_transient')->justReturn('2026.8.1');
+        Functions\when('get_transient')->justReturn(['version' => '2026.8.1', 'zip_url' => 'https://example.com/loopress-full.zip']);
 
         $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->assertNull($this->httpClient->lastRequest);
+    }
+
+    public function test_returns_cached_download_url_without_calling_github(): void
+    {
+        Functions\when('get_transient')->justReturn(['version' => '2026.8.1', 'zip_url' => 'https://example.com/loopress-full.zip']);
+
+        $this->assertSame('https://example.com/loopress-full.zip', $this->checker->getLatestDownloadUrl());
         $this->assertNull($this->httpClient->lastRequest);
     }
 
@@ -50,16 +58,27 @@ class GithubReleaseCheckerTest extends TestCase
         Functions\when('get_transient')->justReturn('');
 
         $this->assertNull($this->checker->getLatestVersion());
+        $this->assertNull($this->checker->getLatestDownloadUrl());
         $this->assertNull($this->httpClient->lastRequest);
     }
 
-    public function test_extracts_version_from_the_wordpress_plugin_release_tag(): void
+    public function test_extracts_version_and_zip_url_from_the_wordpress_plugin_release(): void
     {
         Functions\when('get_transient')->justReturn(false);
-        Functions\expect('set_transient')->once()->with('loopress_full_latest_version', '2026.8.1', 12 * HOUR_IN_SECONDS);
+        Functions\expect('set_transient')->once()->with(
+            'loopress_full_latest_release',
+            ['version' => '2026.8.1', 'zip_url' => 'https://github.com/loopress/loopress/releases/download/wordpress-plugin@2026.8.1/loopress-full.zip'],
+            12 * HOUR_IN_SECONDS,
+        );
         $this->stubReleasesResponse([
             ['tag_name' => '@loopress/cli@4.2.0'],
-            ['tag_name' => 'wordpress-plugin@2026.8.1'],
+            [
+                'tag_name' => 'wordpress-plugin@2026.8.1',
+                'assets'   => [
+                    ['name' => 'loopress-light.zip', 'browser_download_url' => 'https://github.com/loopress/loopress/releases/download/wordpress-plugin@2026.8.1/loopress-light.zip'],
+                    ['name' => 'loopress-full.zip', 'browser_download_url' => 'https://github.com/loopress/loopress/releases/download/wordpress-plugin@2026.8.1/loopress-full.zip'],
+                ],
+            ],
         ]);
 
         $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
@@ -69,15 +88,28 @@ class GithubReleaseCheckerTest extends TestCase
         );
     }
 
+    public function test_download_url_is_null_when_the_matching_release_has_no_zip_asset_yet(): void
+    {
+        Functions\when('get_transient')->justReturn(false);
+        Functions\when('set_transient')->justReturn(true);
+        $this->stubReleasesResponse([
+            ['tag_name' => 'wordpress-plugin@2026.8.1', 'assets' => []],
+        ]);
+
+        $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->assertNull($this->checker->getLatestDownloadUrl());
+    }
+
     public function test_caches_null_as_the_empty_string_sentinel_when_no_plugin_release_is_found(): void
     {
         Functions\when('get_transient')->justReturn(false);
-        Functions\expect('set_transient')->once()->with('loopress_full_latest_version', '', 12 * HOUR_IN_SECONDS);
+        Functions\expect('set_transient')->once()->with('loopress_full_latest_release', '', 12 * HOUR_IN_SECONDS);
         $this->stubReleasesResponse([
             ['tag_name' => '@loopress/cli@4.2.0'],
         ]);
 
         $this->assertNull($this->checker->getLatestVersion());
+        $this->assertNull($this->checker->getLatestDownloadUrl());
     }
 
     public function test_returns_null_on_network_error_without_throwing(): void
