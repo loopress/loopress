@@ -21,7 +21,7 @@ export function UpdateNotice() {
                         View release
                     </a>
                 )}{' '}
-                Loopress Full is not distributed through WordPress.org and must be updated manually.
+                Update it from the Plugins page, the same way as any other plugin.
             </Notice>
         </div>
     );

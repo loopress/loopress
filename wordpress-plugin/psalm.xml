@@ -76,6 +76,7 @@
                 <referencedMethod name="Loopress\Update\Module\UpdateCheckModule::__construct" />
                 <referencedMethod name="Loopress\Snippets\Module\SnippetModule::__construct" />
                 <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
+                <referencedMethod name="Loopress\Update\Infrastructure\PluginUpdater::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
                 <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
@@ -146,6 +147,10 @@
                      hook chain Psalm can't trace to a caller. -->
                 <file name="src/Apps/Frontend/AppShortcode.php" />
                 <file name="src/Apps/Frontend/AppAssetEnqueuer.php" />
+                <!-- injectUpdate() is a pre_set_site_transient_update_plugins filter callback and
+                     pluginInformation() a plugins_api one; same untraceable-by-Psalm hook-chain
+                     shape as the other filter callbacks above. -->
+                <file name="src/Update/Infrastructure/PluginUpdater.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 

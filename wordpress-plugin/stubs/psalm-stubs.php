@@ -16,4 +16,5 @@ define('ARRAY_A', 'ARRAY_A');
 // up these define() calls from it, so they're declared here as well.
 define('LOOPRESS_PLUGIN_URL', '');
 define('LOOPRESS_PLUGIN_PATH', '/var/www/html/wp-content/plugins/loopress/');
+define('LOOPRESS_PLUGIN_SLUG', 'loopress');
 define('LOOPRESS_VERSION', '0.0.0');

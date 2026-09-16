@@ -27,7 +27,7 @@ parameters:
               - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
               - src/Form/*
         # Constants defined in the plugin root file (loopress.php), not in src/
-        - '#Constant LOOPRESS_PLUGIN_(PATH|URL) not found#'
+        - '#Constant LOOPRESS_PLUGIN_(PATH|URL|SLUG) not found#'
         - '#Constant LOOPRESS_VERSION not found#'
 
         # WP_REST_Request::get_json_params()'s bundled stub says `@return array` (no `|null`),
