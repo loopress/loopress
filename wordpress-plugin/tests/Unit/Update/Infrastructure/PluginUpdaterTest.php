@@ -47,6 +47,23 @@ class PluginUpdaterTest extends TestCase
         $this->assertSame(LOOPRESS_VERSION, $transient->no_update[LOOPRESS_PLUGIN_SLUG . '/loopress.php']->new_version);
     }
 
+    // WordPress carries the previous transient value forward for a plugin outside
+    // wordpress.org: it does not hand this filter a blank object each cycle. Without
+    // clearing the stale entry first, a plugin that was updatable last cycle would keep
+    // being advertised even after updating (or after the check stops finding an update).
+    public function test_clears_a_stale_response_entry_left_from_a_previous_cycle(): void
+    {
+        $this->checker->method('getLatestVersion')->willReturn(LOOPRESS_VERSION);
+        $basename  = LOOPRESS_PLUGIN_SLUG . '/loopress.php';
+        $transient = new stdClass();
+        $transient->response = [$basename => (object) ['new_version' => '1999.1.1']];
+
+        $result = $this->updater->injectUpdate($transient);
+
+        $this->assertArrayNotHasKey($basename, $result->response);
+        $this->assertArrayHasKey($basename, $result->no_update);
+    }
+
     public function test_reports_no_update_when_the_checker_finds_nothing(): void
     {
         $this->checker->method('getLatestVersion')->willReturn(null);
@@ -75,12 +92,30 @@ class PluginUpdaterTest extends TestCase
     {
         $this->checker->method('getLatestVersion')->willReturn('2999.1.1');
         $this->checker->method('getLatestDownloadUrl')->willReturn(null);
+        $basename  = LOOPRESS_PLUGIN_SLUG . '/loopress.php';
+        $transient = new stdClass();
+        // Seeded with stale entries in both arrays from a previous cycle, to prove this
+        // inconclusive cycle clears them rather than leaving an old state to linger.
+        $transient->no_update = [$basename => (object) ['new_version' => LOOPRESS_VERSION]];
 
-        $transient = $this->updater->injectUpdate(new stdClass());
+        $result = $this->updater->injectUpdate($transient);
 
-        $basename = LOOPRESS_PLUGIN_SLUG . '/loopress.php';
-        $this->assertArrayNotHasKey($basename, $transient->response);
-        $this->assertArrayNotHasKey($basename, $transient->no_update);
+        $this->assertArrayNotHasKey($basename, $result->response);
+        $this->assertArrayNotHasKey($basename, $result->no_update);
+    }
+
+    public function test_clears_a_stale_no_update_entry_when_an_update_becomes_available(): void
+    {
+        $this->checker->method('getLatestVersion')->willReturn('2999.1.1');
+        $this->checker->method('getLatestDownloadUrl')->willReturn('https://example.com/loopress-full.zip');
+        $basename  = LOOPRESS_PLUGIN_SLUG . '/loopress.php';
+        $transient = new stdClass();
+        $transient->no_update = [$basename => (object) ['new_version' => LOOPRESS_VERSION]];
+
+        $result = $this->updater->injectUpdate($transient);
+
+        $this->assertArrayNotHasKey($basename, $result->no_update);
+        $this->assertArrayHasKey($basename, $result->response);
     }
 
     public function test_plugin_information_ignores_other_actions(): void

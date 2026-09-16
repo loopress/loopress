@@ -51,7 +51,13 @@ class PluginUpdater
         }
 
         $basename = $this->pluginBasename();
-        $latest   = $this->checker->getLatestVersion();
+        // WordPress carries this transient's previous value forward for a plugin outside
+        // wordpress.org like this one (its own wp_update_plugins() only ever touches entries
+        // it checked itself), so a stale entry from an earlier cycle survives here unless
+        // cleared before deciding this cycle's state below.
+        unset($transient->response[$basename], $transient->no_update[$basename]);
+
+        $latest = $this->checker->getLatestVersion();
 
         if ($latest === null || !version_compare($latest, LOOPRESS_VERSION, '>')) {
             $transient->no_update[$basename] = $this->pluginItem(LOOPRESS_VERSION);
