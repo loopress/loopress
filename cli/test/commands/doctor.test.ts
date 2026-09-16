@@ -28,6 +28,7 @@ function make(siteConfig: EnvironmentConfig = makeEnv('production', 'https://acm
 describe('doctor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.exitCode = undefined
     vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
     vi.mocked(diagnoseWpSite).mockResolvedValue({ok: true})
   })
@@ -47,21 +48,25 @@ describe('doctor', () => {
     const {cmd, get, logs} = make()
     get.mockResolvedValue({'current_version': '2026.7.1'})
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('✓ WordPress REST API reachable')
     expect(logs.log).toHaveBeenCalledWith('✓ Loopress plugin installed (loopress/v1 endpoints)')
     expect(logs.log).toHaveBeenCalledWith('✓ Credentials accepted (authenticated request)')
     expect(logs.log).toHaveBeenCalledWith('✓ Plugin version: 2026.7.1')
     expect(logs.log).toHaveBeenCalledWith('All checks passed.')
+    expect(result).toMatchObject({ok: true, pluginVersion: '2026.7.1'})
+    expect(process.exitCode).toBeUndefined()
   })
 
   it('fails fast with a non-zero exit when the site is unreachable', async () => {
     vi.mocked(diagnoseWpSite).mockResolvedValue({ok: false, reason: 'Could not reach the WordPress REST API.'})
     const {cmd, get, logs} = make()
 
-    await expect(cmd.run()).rejects.toThrow('1 check failed.')
+    const result = await cmd.run()
 
+    expect(result.ok).toBe(false)
+    expect(process.exitCode).toBe(1)
     expect(logs.log).toHaveBeenCalledWith('✗ WordPress REST API reachable')
     expect(logs.log).toHaveBeenCalledWith('  Could not reach the WordPress REST API.')
     expect(get).not.toHaveBeenCalled()
@@ -70,8 +75,10 @@ describe('doctor', () => {
   it('fails without credentials and skips the authenticated checks', async () => {
     const {cmd, get, logs} = make({...makeEnv('production', 'https://acme.com'), token: undefined})
 
-    await expect(cmd.run()).rejects.toThrow('1 check failed.')
+    const result = await cmd.run()
 
+    expect(result.ok).toBe(false)
+    expect(process.exitCode).toBe(1)
     expect(logs.log).toHaveBeenCalledWith('✗ Credentials configured')
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('lps project config'))
     expect(get).not.toHaveBeenCalled()
@@ -87,8 +94,10 @@ describe('doctor', () => {
       return {'current_version': '2026.7.1'}
     })
 
-    await expect(cmd.run()).rejects.toThrow('1 check failed.')
+    const result = await cmd.run()
 
+    expect(result.ok).toBe(false)
+    expect(process.exitCode).toBe(1)
     expect(logs.log).toHaveBeenCalledWith('✗ Loopress plugin installed (loopress/v1 endpoints)')
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Is the required plugin installed'))
     expect(logs.log).toHaveBeenCalledWith('✓ Credentials accepted (authenticated request)')
@@ -104,8 +113,10 @@ describe('doctor', () => {
       return {}
     })
 
-    await expect(cmd.run()).rejects.toThrow('1 check failed.')
+    const result = await cmd.run()
 
+    expect(result.ok).toBe(false)
+    expect(process.exitCode).toBe(1)
     expect(logs.log).toHaveBeenCalledWith('✗ Credentials accepted (authenticated request)')
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('lps project config'))
   })
@@ -120,8 +131,10 @@ describe('doctor', () => {
       return {}
     })
 
-    await cmd.run()
+    const result = await cmd.run()
 
+    expect(result.ok).toBe(true)
+    expect(process.exitCode).toBeUndefined()
     expect(logs.log).toHaveBeenCalledWith('- Plugin version: not exposed by this plugin edition.')
     expect(logs.log).toHaveBeenCalledWith('All checks passed.')
   })

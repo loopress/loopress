@@ -57,6 +57,6 @@ test.describe('Loopress plugin inactive', () => {
     expect(result.exitCode).not.toBe(0)
     expect(result.stdout).toContain('✗ Loopress plugin installed')
     expect(unwrap(result.stdout)).toContain('Is the required plugin installed and up to date')
-    expect(unwrap(result.stderr)).toContain('check failed')
+    expect(unwrap(result.stdout)).toContain('check failed')
   })
 })

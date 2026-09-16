@@ -87,11 +87,16 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
 | `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
+| `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
+| `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |
+| `validate_local` | No | — | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
 `env` overrides the globally active environment for that call. `path` overrides the directory
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
-`--post-type` flags.
+`--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
+(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `option`, `composer`) and `against` compares two
+environments instead of an environment against local files.
 
 ## Confirmation handshake
 
