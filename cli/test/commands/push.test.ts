@@ -82,6 +82,16 @@ describe('push', () => {
     expect(logs.log).toHaveBeenCalledWith('\nAll resources pushed.')
   })
 
+  it('returns a per-resource result for --json, so push_all in the MCP server has something to parse', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make()
+
+    const result = await cmd.run()
+
+    expect(result.results).toHaveLength(ALL_COMMAND_IDS.length)
+    expect(result.results.every((entry) => entry.status === 'pushed')).toBe(true)
+  })
+
   it('continues past a failed resource and still pushes the rest', async () => {
     vi.mocked(fakeOclifConfig.runCommand)
       .mockRejectedValueOnce(new Error('boom'))

@@ -83,6 +83,7 @@ The server communicates over stdio from the directory your client launches it in
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |
 | `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull` |
+| `project_promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
 | `project_status` | No | Show which project and environment the other tools will target |
 | `project_diff` | No | Show what differs between local tracked files and a WordPress environment, or between two environments (`against`) |
 | `project_doctor` | No | Diagnose connectivity, plugin and credential problems for the targeted environment |
