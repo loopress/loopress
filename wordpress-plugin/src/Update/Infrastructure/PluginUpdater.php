@@ -36,7 +36,11 @@ class PluginUpdater
 
     public function injectUpdate(mixed $transient): mixed
     {
-        if (!is_object($transient)) {
+        // WordPress core always builds this transient as `new stdClass()` (see
+        // wp_update_plugins() in wp-admin/includes/update.php); checking the concrete class
+        // rather than is_object() also lets PHPStan see that dynamic property access below is
+        // safe, since stdClass is the one class it doesn't flag for undefined properties.
+        if (!$transient instanceof stdClass) {
             return $transient;
         }
         if (!isset($transient->response) || !is_array($transient->response)) {
