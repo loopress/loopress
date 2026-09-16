@@ -44,5 +44,7 @@ URL:          https://example.com
   Authentication failed (401) on https://example.com/wp-json/wp/v2/users/me. Check your credentials with `lps project config`.
 - Plugin version: not exposed by this plugin edition.
 
-Error: 1 check failed.
+1 check failed.
 ```
+
+`lps doctor --json` returns the same information as a structured `{project, environment, url, checks, ok, pluginVersion}` object instead, with one entry per check in `checks`.

@@ -84,8 +84,11 @@ The server communicates over stdio from the directory your client launches it in
 | `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |
 | `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull` |
 | `project_status` | No | Show which project and environment the other tools will target |
+| `project_diff` | No | Show what differs between local tracked files and a WordPress environment, or between two environments (`against`) |
+| `project_doctor` | No | Diagnose connectivity, plugin and credential problems for the targeted environment |
+| `validate_local` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags.
+Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags. `project_diff` also takes optional `only`/`skip` resource-name arrays and an `against` environment name to compare two environments instead of an environment against local files.
 
 ## Confirming changes
 
