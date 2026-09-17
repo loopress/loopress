@@ -172,10 +172,10 @@ class MenuService
     private function exportMenu(\WP_Term $menu): array
     {
         $warnings = [];
-        $items    = wp_get_nav_menu_items($menu->term_id);
+        $items    = wp_get_nav_menu_items($menu->term_id) ?? [];
 
         $byParent = [];
-        foreach (($items ?: []) as $item) {
+        foreach ($items as $item) {
             $exported = $this->exportItem($item, $warnings);
             if ($exported === null) {
                 continue; // a dangling item (its target no longer exists), warned about, not exported
@@ -290,7 +290,7 @@ class MenuService
         // class; split back out here so the JSON holds a readable list instead of that quirk.
         $joined = is_array($raw) ? (string) ($raw[0] ?? '') : '';
 
-        return array_values(array_filter(explode(' ', $joined), fn(string $class): bool => $class !== ''));
+        return array_values(array_filter(explode(' ', $joined), fn(string $className): bool => $className !== ''));
     }
 
     // ── Resolve + apply (write) ────────────────────────────────────────────────────────────
@@ -377,13 +377,13 @@ class MenuService
     // `_menu_item_object_id` from another environment, always re-look-up the target by its
     // stable slug on THIS environment (mirrors AbstractSeoService::findPost()'s
     // get_page_by_path() use for the same reason).
-    private function resolveObjectId(string $type, string $object, string $objectSlug): int
+    private function resolveObjectId(string $type, string $objectType, string $objectSlug): int
     {
         if ($type === 'taxonomy') {
-            $term = get_term_by('slug', $objectSlug, $object);
+            $term = get_term_by('slug', $objectSlug, $objectType);
             if (!$term instanceof \WP_Term) {
                 throw new \RuntimeException(esc_html(
-                    "No \"{$object}\" term with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
+                    "No \"{$objectType}\" term with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
                     'identity, they cannot reference content that does not exist here.',
                 ));
             }
@@ -391,10 +391,10 @@ class MenuService
             return (int) $term->term_id;
         }
 
-        $post = get_page_by_path($objectSlug, OBJECT, $object);
+        $post = get_page_by_path($objectSlug, OBJECT, $objectType);
         if (!$post instanceof \WP_Post) {
             throw new \RuntimeException(esc_html(
-                "No \"{$object}\" post with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
+                "No \"{$objectType}\" post with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
                 'identity, they cannot reference content that does not exist here.',
             ));
         }
@@ -436,7 +436,7 @@ class MenuService
      */
     private function replaceItems(int $menuId, array $resolved): void
     {
-        $existing = wp_get_nav_menu_items($menuId) ?: [];
+        $existing = wp_get_nav_menu_items($menuId) ?? [];
 
         $createdIds = [];
         try {

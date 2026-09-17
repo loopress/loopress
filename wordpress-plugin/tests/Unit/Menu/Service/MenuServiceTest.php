@@ -134,10 +134,8 @@ class MenuServiceTest extends TestCase
             $this->service->upsertMenu('main', 'Main', [['object' => 'page', 'objectSlug' => 'ghost', 'type' => 'post_type']]);
             $this->fail('Expected a RuntimeException');
         } catch (\RuntimeException) {
-            // expected
+            $this->assertFalse($updateCalled, 'no item should be written when resolution fails');
         }
-
-        $this->assertFalse($updateCalled, 'no item should be written when resolution fails');
     }
 
     public function test_upsert_menu_throws_before_any_write_when_a_taxonomy_item_does_not_resolve(): void
@@ -232,7 +230,7 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => [], 2 => []]);
 
         $deleted = [];
-        Functions\when('wp_delete_post')->alias(function (int $id, bool $force) use (&$deleted): void {
+        Functions\when('wp_delete_post')->alias(function (int $id) use (&$deleted): void {
             $deleted[] = $id;
         });
 
@@ -295,10 +293,8 @@ class MenuServiceTest extends TestCase
             ]);
             $this->fail('Expected a RuntimeException');
         } catch (\RuntimeException) {
-            // expected
+            $this->assertSame([['create', 100], ['delete', 100]], $calls);
         }
-
-        $this->assertSame([['create', 100], ['delete', 100]], $calls);
     }
 
     // Warned, never blocked: unlike RankMathService's redirect guard, a menu is allowed to link
@@ -448,7 +444,7 @@ class MenuServiceTest extends TestCase
     private function stubItemMeta(array $metaByPostId): void
     {
         Functions\when('get_post_meta')->alias(
-            fn(int $postId, string $key = '', bool $single = true): mixed => $metaByPostId[$postId][$key] ?? '',
+            fn(int $postId, string $key = ''): mixed => $metaByPostId[$postId][$key] ?? '',
         );
     }
 
