@@ -66,9 +66,6 @@ importers:
       diff:
         specifier: ^9.0.0
         version: 9.0.0
-      glob:
-        specifier: 13.0.6
-        version: 13.0.6
       got:
         specifier: ^16.0.0
         version: 16.0.0
