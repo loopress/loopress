@@ -215,6 +215,10 @@ export abstract class LoopressCommand extends Command {
     return resolveResourceDir('snippets', this.localConfig, override)
   }
 
+  protected resolveThemeStylesPath(override?: string): string {
+    return resolveResourceDir('themeStyles', this.localConfig, override)
+  }
+
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {
     const env = project.environments[envName]
     if (!env) {

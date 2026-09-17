@@ -27,6 +27,28 @@ function missingComposerLock(): Error {
   })
 }
 
+// The active theme every test's `wp/v2/themes` mock reports, and the matching local Global
+// Styles file `beforeEach` writes so the baseline stays drift-free.
+const ACTIVE_THEME = 'baseline-theme'
+
+const ACTIVE_THEME_GLOBAL_STYLES_ID = 7
+
+function themeEndpoints(path: string): unknown {
+  if (path === 'wp/v2/themes') {
+    return [
+      {
+        _links: {'wp:user-global-styles': [{href: `https://staging.acme.com/wp-json/wp/v2/global-styles/${ACTIVE_THEME_GLOBAL_STYLES_ID}`}]},
+        status: 'active',
+        stylesheet: ACTIVE_THEME,
+        theme_supports: {'block-templates': true},
+      },
+    ]
+  }
+
+  if (path === `wp/v2/global-styles/${ACTIVE_THEME_GLOBAL_STYLES_ID}`) return {settings: {}, styles: {}}
+  return undefined
+}
+
 // Every list endpoint empty, settings an empty object, composer.json matching what the test
 // writes to disk and no composer.lock: the baseline where nothing differs.
 function baselineGet(composerJson = '{}') {
@@ -35,6 +57,8 @@ function baselineGet(composerJson = '{}') {
     if (path === 'loopress/v1/menu-locations') return {}
     if (path === 'loopress/v1/composer/json') return {composerJson}
     if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
+    const themed = themeEndpoints(path)
+    if (themed !== undefined) return themed
     return []
   })
 }
@@ -58,6 +82,9 @@ describe('diff', () => {
     // Menu locations always exist server-side too, same reasoning as SEO settings above.
     mkdirSync(join(dir, 'menus'))
     writeFileSync(join(dir, 'menus', 'locations.json'), '{}')
+    // Same for the active theme's Global Styles.
+    mkdirSync(join(dir, 'theme'))
+    writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))
     process.exitCode = 0
   })
 
@@ -116,6 +143,8 @@ describe('diff', () => {
       if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
+      const themed = themeEndpoints(path)
+      if (themed !== undefined) return themed
       return []
     })
     const {cmd, logs} = make([], get)
@@ -135,6 +164,8 @@ describe('diff', () => {
       if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
+      const themed = themeEndpoints(path)
+      if (themed !== undefined) return themed
       return []
     })
     const {cmd, logs} = make([], get)
@@ -218,6 +249,8 @@ describe('diff', () => {
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
       if (path === 'loopress/v1/seo/settings') return {}
       if (path === 'loopress/v1/menu-locations') return {}
+      const themed = themeEndpoints(path)
+      if (themed !== undefined) return themed
       return []
     })
     const {cmd, logs} = make([], get)

@@ -463,6 +463,82 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('theme-styles', () => {
+    const themeStylesProvider = provider('theme-styles')
+    const activeTheme = (extra: Record<string, unknown> = {}) => ({
+      _links: {'wp:user-global-styles': [{href: 'https://example.com/wp-json/wp/v2/global-styles/7'}]},
+      status: 'active',
+      stylesheet: 'twentytwentyfour',
+      theme_supports: {'block-templates': true},
+      ...extra,
+    })
+
+    it('reads the active block theme Global Styles, keyed by stylesheet', async () => {
+      const remote = fakeWp({
+        'wp/v2/global-styles/7': {settings: {color: {palette: []}}, styles: {}},
+        'wp/v2/themes': [activeTheme()],
+      })
+
+      const state = await themeStylesProvider.remote(remote, noWarn, dir)
+
+      expect([...state]).toEqual([['twentytwentyfour', {settings: {color: {palette: []}}, styles: {}}]])
+    })
+
+    it('drops WordPress bookkeeping (id, _links) from the compared value', async () => {
+      const remote = fakeWp({
+        'wp/v2/global-styles/7': {_links: {self: [{href: 'x'}]}, id: 7, settings: {}, styles: {}},
+        'wp/v2/themes': [activeTheme()],
+      })
+
+      const state = await themeStylesProvider.remote(remote, noWarn, dir)
+
+      expect(state.get('twentytwentyfour')).toEqual({settings: {}, styles: {}})
+    })
+
+    it('rejects a classic active theme with a clear error instead of a raw REST failure', async () => {
+      const remote = fakeWp({
+        'wp/v2/themes': [{status: 'active', stylesheet: 'astra', theme_supports: {'block-templates': false}}],
+      })
+
+      await expect(themeStylesProvider.remote(remote, noWarn, dir)).rejects.toThrow(/classic theme/)
+    })
+
+    it('matches a pulled file against the same active theme on the server', async () => {
+      const remote = fakeWp({
+        'wp/v2/global-styles/7': {settings: {color: {}}, styles: {}},
+        'wp/v2/themes': [activeTheme()],
+      })
+      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {color: {}}, styles: {}}))
+
+      const diff = compareStates(await themeStylesProvider.remote(remote, noWarn, dir), await themeStylesProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('keys local files by the stylesheet slug parsed from the "<slug>-global-styles.json" filename', async () => {
+      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {}, styles: {}}))
+
+      const state = await themeStylesProvider.local(dir, noWarn)
+
+      expect([...state.keys()]).toEqual(['twentytwentyfour'])
+    })
+
+    it('flags a real styles change', async () => {
+      const remote = fakeWp({
+        'wp/v2/global-styles/7': {settings: {}, styles: {color: {background: '#fff'}}},
+        'wp/v2/themes': [activeTheme()],
+      })
+      writeFileSync(
+        join(dir, 'twentytwentyfour-global-styles.json'),
+        JSON.stringify({settings: {}, styles: {color: {background: '#000'}}}),
+      )
+
+      const diff = compareStates(await themeStylesProvider.remote(remote, noWarn, dir), await themeStylesProvider.local(dir, noWarn), labels)
+
+      expect(diff.changed.map((change) => change.id)).toEqual(['twentytwentyfour'])
+    })
+  })
+
   describe('option', () => {
     const optionsProvider = provider('option')
 

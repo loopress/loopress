@@ -120,6 +120,9 @@
       "theme": {
         "description": "Manage WordPress.org themes tracked in loopress.json (versions only, never switches the active theme)"
       },
+      "theme-styles": {
+        "description": "Manage the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing)"
+      },
       "telemetry": {
         "description": "Manage error reporting preferences"
       }

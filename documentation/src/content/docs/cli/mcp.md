@@ -82,6 +82,8 @@ The server communicates over stdio from the directory your client launches it in
 | `theme_push` | Yes | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_status` | No | Report version drift between the themes on WordPress and `loopress.json` |
+| `theme_styles_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
+| `theme_styles_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |

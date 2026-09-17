@@ -85,6 +85,8 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |
+| `theme_styles_push` | Yes | `env?`, `path?`, `confirmToken?` | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
+| `theme_styles_pull` | No | `env?`, `path?` | Pull the active block theme's Global Styles customizations from WordPress into a local file |
 | `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
@@ -99,7 +101,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `menu`, `option`, `composer`) and `against`
+(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `menu`, `option`, `theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files.
 
 ## Confirmation handshake
