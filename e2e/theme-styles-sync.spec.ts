@@ -34,16 +34,30 @@ test.describe('theme-styles sync (block theme)', () => {
   })
 
   test('classic theme active: the command fails clearly instead of syncing nothing silently', async ({requestUtils, runCli}) => {
-    // A minimal round-trip through a classic theme without installing one: temporarily flip the
-    // active theme's own theme_supports is not possible over REST, so this asserts the guard
-    // using the one classic theme WordPress core always ships alongside the block themes.
-    const themes = await requestUtils.rest<Array<{stylesheet: string; theme_supports?: Record<string, unknown>}>>({
-      path: '/wp/v2/themes',
-    })
-    const classicTheme = themes.find((theme) => theme.theme_supports?.['block-templates'] !== true)
-    test.skip(!classicTheme, 'No classic theme installed on this instance to activate for this assertion.')
+    // `theme_supports` on a *non-active* theme's list entry isn't reliably populated by
+    // WordPress core (only the currently active theme's own entry is), so a candidate can only
+    // be confirmed classic by actually activating it and re-reading its own entry. Every
+    // installed theme other than the block one this file activates is tried in turn; the first
+    // one that reports as non-block once active is used, and the whole assertion is skipped if
+    // none exist on this instance (a fresh core download today ships only block themes).
+    const initialThemes = await requestUtils.rest<Array<{stylesheet: string}>>({path: '/wp/v2/themes'})
+    const candidates = initialThemes.map((theme) => theme.stylesheet).filter((slug) => slug !== BLOCK_THEME)
 
-    await requestUtils.activateTheme(classicTheme!.stylesheet)
+    let classicSlug: string | undefined
+    for (const slug of candidates) {
+      await requestUtils.activateTheme(slug)
+      const themesOnceActive = await requestUtils.rest<Array<{status: string; stylesheet: string; theme_supports?: Record<string, unknown>}>>({
+        path: '/wp/v2/themes',
+      })
+      const active = themesOnceActive.find((theme) => theme.status === 'active')
+      if (active?.theme_supports?.['block-templates'] !== true) {
+        classicSlug = slug
+        break
+      }
+    }
+
+    test.skip(!classicSlug, 'No classic theme installed on this instance to activate for this assertion.')
+
     try {
       const result = await runCli(['theme-styles', 'pull'])
       expect(result.exitCode).not.toBe(0)
