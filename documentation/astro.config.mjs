@@ -119,6 +119,7 @@ export default defineConfig({
 										{ label: "Forms", slug: "forms" },
 										{ label: "Plugins", slug: "plugins" },
 										{ label: "Themes", slug: "themes" },
+										{ label: "Theme Styles", slug: "theme-styles" },
 										{
 											label: "Composer",
 											items: [
