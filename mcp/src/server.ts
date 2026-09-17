@@ -12,6 +12,7 @@ import {registerDiffTools} from './tools/diff.js'
 import {registerDoctorTools} from './tools/doctor.js'
 import {registerFormTools} from './tools/form.js'
 import {registerHookTools} from './tools/hooks.js'
+import {registerMenuTools} from './tools/menu.js'
 import {registerOptionTools} from './tools/option.js'
 import {registerPluginTools} from './tools/plugin.js'
 import {registerPromoteTools} from './tools/promote.js'
@@ -29,6 +30,7 @@ registerHookTools(server)
 registerAppTools(server)
 registerAcfTools(server)
 registerSeoTools(server)
+registerMenuTools(server)
 registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)

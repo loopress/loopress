@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool shells out to the `lps` binary already on your `PATH`, the same one used by the [CLI](/cli/).
 
@@ -64,6 +64,9 @@ The server communicates over stdio from the directory your client launches it in
 | `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress (`allowExternalRedirects` to permit an off-site redirect target) |
 | `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
+| `menu_push` | Yes | Push local nav menus and the active theme menu locations to WordPress |
+| `menu_pull` | No | Pull nav menus and the active theme menu locations from WordPress into local files |
+| `menu_list` | No | List nav menus and the active theme menu locations currently on WordPress |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |
@@ -89,7 +92,7 @@ The server communicates over stdio from the directory your client launches it in
 | `project_doctor` | No | Diagnose connectivity, plugin and credential problems for the targeted environment |
 | `validate_local` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags. `project_diff` also takes optional `only`/`skip` resource-name arrays and an `against` environment name to compare two environments instead of an environment against local files.
+Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags. `project_diff` also takes optional `only`/`skip` resource-name arrays (including `menu`) and an `against` environment name to compare two environments instead of an environment against local files.
 
 ## Confirming changes
 

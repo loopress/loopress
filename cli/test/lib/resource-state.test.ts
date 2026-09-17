@@ -399,6 +399,70 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('menu', () => {
+    const menuProvider = provider('menu')
+
+    it('namespaces menus by slug and reads the active theme locations under a fixed key', async () => {
+      const remote = fakeWp({
+        'loopress/v1/menu-locations': {primary: 'main'},
+        'loopress/v1/menus': [{items: [], name: 'Main', slug: 'main', warnings: []}],
+      })
+      writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
+      writeFileSync(join(dir, 'locations.json'), JSON.stringify({primary: 'main'}))
+
+      const state = await menuProvider.remote(remote, noWarn, dir)
+
+      expect([...state.keys()].sort((a, b) => a.localeCompare(b))).toEqual(['locations', 'menu/main'])
+      expect(state.get('locations')).toEqual({primary: 'main'})
+
+      const diff = compareStates(state, await menuProvider.local(dir, noWarn), labels)
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('ignores warnings: diagnostic only, never tracked configuration', async () => {
+      const remote = fakeWp({
+        'loopress/v1/menu-locations': {},
+        'loopress/v1/menus': [{items: [], name: 'Main', slug: 'main', warnings: ['item 4 references a deleted page']}],
+      })
+      writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
+      writeFileSync(join(dir, 'locations.json'), JSON.stringify({}))
+
+      const diff = compareStates(await menuProvider.remote(remote, noWarn, dir), await menuProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('drops a remote menu with no slug', async () => {
+      const remote = fakeWp({
+        'loopress/v1/menu-locations': {},
+        'loopress/v1/menus': [{items: [], name: 'No slug', warnings: []}],
+      })
+
+      const state = await menuProvider.remote(remote, noWarn, dir)
+
+      expect([...state.keys()]).toEqual(['locations'])
+    })
+
+    it('falls back to a "local:" key for a local menu file with no, or an empty, slug', async () => {
+      writeFileSync(join(dir, 'draft.json'), JSON.stringify({items: [], name: 'Draft', warnings: []}))
+      writeFileSync(join(dir, 'blank.json'), JSON.stringify({items: [], name: 'Blank', slug: '', warnings: []}))
+
+      const state = await menuProvider.local(dir, noWarn)
+
+      expect([...state.keys()]).toEqual(expect.arrayContaining(['menu/local:draft', 'menu/local:blank']))
+    })
+
+    it('reads locations.json as its own fixed "locations" entry, separate from any menu', async () => {
+      writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
+      writeFileSync(join(dir, 'locations.json'), JSON.stringify({footer: null, primary: 'main'}))
+
+      const state = await menuProvider.local(dir, noWarn)
+
+      expect(state.get('locations')).toEqual({footer: null, primary: 'main'})
+      expect(state.get('menu/main')).toEqual({items: [], name: 'Main', slug: 'main'})
+    })
+  })
+
   describe('option', () => {
     const optionsProvider = provider('option')
 

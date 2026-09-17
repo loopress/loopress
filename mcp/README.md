@@ -1,7 +1,7 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms,
+agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus,
 plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
 project status. Ships as the `lps-mcp` binary.
 
@@ -67,6 +67,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `seo_push` | Yes | `env?`, `path?`, `allowExternalRedirects?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
 | `seo_pull` | No | `env?`, `path?`, `postType?` | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | `env?`, `postType?` | List posts with SEO meta, and redirects if supported, on WordPress |
+| `menu_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local nav menus and the active theme menu locations to WordPress |
+| `menu_pull` | No | `env?`, `path?` | Pull nav menus and the active theme menu locations from WordPress into local files |
+| `menu_list` | No | `env?` | List nav menus and the active theme menu locations currently on WordPress |
 | `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
 | `option_list` | No | `env?`, `noCore?` | List WordPress option names and autoload flags currently on the site (names only, never values) |
@@ -96,8 +99,8 @@ The server communicates over stdio and takes no CLI arguments of its own.
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `option`, `composer`) and `against` compares two
-environments instead of an environment against local files.
+(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `menu`, `option`, `composer`) and `against`
+compares two environments instead of an environment against local files.
 
 ## Confirmation handshake
 

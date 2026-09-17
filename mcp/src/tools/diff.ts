@@ -7,7 +7,7 @@ import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 // Mirrors RESOURCES in cli/src/commands/diff.ts.
-const RESOURCES = ['snippet', 'form', 'acf', 'api', 'hook', 'seo', 'option', 'composer'] as const
+const RESOURCES = ['snippet', 'form', 'acf', 'api', 'hook', 'seo', 'menu', 'option', 'composer'] as const
 
 const resourceArray = z.array(z.enum(RESOURCES)).optional()
 
@@ -16,7 +16,7 @@ export function registerDiffTools(server: McpServer): void {
     'project_diff',
     {
       description:
-        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, SEO, options and Composer. Plugins and themes have their own plugin_status / theme_status.',
+        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, SEO, menus, options and Composer. Plugins and themes have their own plugin_status / theme_status.',
       inputSchema: {
         against: z
           .string()

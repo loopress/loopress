@@ -3,6 +3,7 @@ import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
+import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
@@ -333,6 +334,60 @@ const seoProvider: ResourceStateProvider = {
   title: 'SEO',
 }
 
+// ---- Menus --------------------------------------------------------------------------------
+
+// Every item's post_type/taxonomy target is already resolved to `object`/`objectSlug` by the
+// REST layer (MenuService), never a raw `_menu_item_object_id`, so the exported tree is already
+// portable and compared as-is. `warnings` is diagnostic (a dangling item, an off-environment
+// custom URL, ...), not tracked configuration, so it's dropped before comparing, the same
+// "volatile key" treatment ACF/forms/redirects give their own server-computed fields.
+const MENU_VOLATILE_KEYS = ['warnings'] as const
+// The reserved local filename for menu locations, see commands/menu/pull.ts.
+const MENU_LOCATIONS_FILE = 'locations'
+
+function canonicalMenu(menu: Record<string, unknown>): Record<string, unknown> {
+  return omit(menu, MENU_VOLATILE_KEYS)
+}
+
+const menuProvider: ResourceStateProvider = {
+  dirKind: 'menu',
+  async local(dir, onWarn) {
+    const state: ResourceState = new Map()
+
+    const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse: (raw, filePath) => ({file: basename(filePath, '.json'), value: readJson(raw)}),
+    })
+    for (const {file, value} of entries) {
+      if (file === MENU_LOCATIONS_FILE) {
+        state.set(MENU_LOCATIONS_FILE, value)
+        continue
+      }
+
+      const slug = getMenuSlug(value) ?? `local:${file}`
+      state.set(`menu/${slug}`, canonicalMenu(value))
+    }
+
+    return state
+  },
+  async remote(wp) {
+    const state: ResourceState = new Map()
+
+    const menus = await wp.get<Array<Record<string, unknown>>>(MENU_ENDPOINT)
+    for (const menu of menus) {
+      const slug = getMenuSlug(menu)
+      if (slug !== null) state.set(`menu/${slug}`, canonicalMenu(menu))
+    }
+
+    state.set(MENU_LOCATIONS_FILE, await wp.get<Record<string, unknown>>(MENU_LOCATIONS_ENDPOINT))
+
+    return state
+  },
+  resource: 'menu',
+  title: 'Menus',
+}
+
 // ---- Options ------------------------------------------------------------------------------
 
 // Unlike every provider above, remote() has no "everything" endpoint to read: GET /options only
@@ -388,6 +443,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   apiProvider,
   hookProvider,
   seoProvider,
+  menuProvider,
   optionsProvider,
 ]
 
