@@ -86,11 +86,15 @@ class MenuController
     public function upsert_menu(WP_REST_Request $request): WP_REST_Response
     {
         $body = $request->get_json_params();
-        $slug = is_array($body) ? (string) ($body['slug'] ?? '') : '';
-        $name = is_array($body) ? (string) ($body['name'] ?? '') : '';
-        $items = is_array($body) && is_array($body['items'] ?? null) ? $body['items'] : [];
+        if (!is_array($body)) {
+            return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and "name".'], 400);
+        }
 
-        if (!is_array($body) || $slug === '' || $name === '') {
+        $slug  = (string) ($body['slug'] ?? '');
+        $name  = (string) ($body['name'] ?? '');
+        $items = is_array($body['items'] ?? null) ? $body['items'] : [];
+
+        if ($slug === '' || $name === '') {
             return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and "name".'], 400);
         }
 
