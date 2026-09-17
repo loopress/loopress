@@ -54,9 +54,13 @@ class WpHttpClient implements ClientInterface
             throw new WpHttpClientException(esc_html($response->get_error_message()), $request);
         }
 
+        // WordPress core returns this as a Requests_Utility_CaseInsensitiveDictionary
+        // (Traversable, not an array); nyholm/psr7's Response constructor needs an array.
+        $responseHeaders = wp_remote_retrieve_headers($response);
+
         return new Response(
             (int) wp_remote_retrieve_response_code($response),
-            [],
+            is_array($responseHeaders) ? $responseHeaders : iterator_to_array($responseHeaders),
             (string) wp_remote_retrieve_body($response),
         );
     }

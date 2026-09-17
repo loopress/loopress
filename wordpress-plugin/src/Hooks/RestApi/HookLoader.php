@@ -73,7 +73,7 @@ class HookLoader extends AbstractFileLoader
     public function bindingsFor(object $instance, string $slug): array
     {
         $actions = [];
-        foreach ($this->actionMethodsFor($instance) as [$method, $attribute]) {
+        foreach ($this->methodsWithAttribute($instance, Action::class) as [$method, $attribute]) {
             $actions[] = [
                 'hook'         => $attribute->hook,
                 'priority'     => $attribute->priority,
@@ -83,7 +83,7 @@ class HookLoader extends AbstractFileLoader
         }
 
         $filters = [];
-        foreach ($this->filterMethodsFor($instance) as [$method, $attribute]) {
+        foreach ($this->methodsWithAttribute($instance, Filter::class) as [$method, $attribute]) {
             $filters[] = [
                 'hook' => $attribute->hook,
                 'priority' => $attribute->priority,
@@ -96,7 +96,7 @@ class HookLoader extends AbstractFileLoader
         }
 
         $crons = [];
-        foreach ($this->cronMethodsFor($instance) as [$method, $attribute]) {
+        foreach ($this->methodsWithAttribute($instance, Cron::class) as [$method, $attribute]) {
             $crons[] = [
                 'hook'       => $attribute->hook ?? 'loopress_hooks_cron_' . str_replace('/', '_', $slug) . '_' . $method,
                 'recurrence' => $attribute->recurrence,
@@ -146,40 +146,16 @@ class HookLoader extends AbstractFileLoader
         }
     }
 
-    /** @return array<int, array{0: string, 1: Action}> public method name + its #[Action] attribute, in declaration order. */
-    private function actionMethodsFor(object $instance): array
+    /**
+     * @template T of object
+     * @param class-string<T> $attributeClass
+     * @return array<int, array{0: string, 1: T}> public method name + its attribute instance, in declaration order.
+     */
+    private function methodsWithAttribute(object $instance, string $attributeClass): array
     {
         $found = [];
         foreach ((new \ReflectionClass($instance))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(Action::class);
-            if ($attributes !== []) {
-                $found[] = [$method->getName(), $attributes[0]->newInstance()];
-            }
-        }
-
-        return $found;
-    }
-
-    /** @return array<int, array{0: string, 1: Filter}> public method name + its #[Filter] attribute, in declaration order. */
-    private function filterMethodsFor(object $instance): array
-    {
-        $found = [];
-        foreach ((new \ReflectionClass($instance))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(Filter::class);
-            if ($attributes !== []) {
-                $found[] = [$method->getName(), $attributes[0]->newInstance()];
-            }
-        }
-
-        return $found;
-    }
-
-    /** @return array<int, array{0: string, 1: Cron}> public method name + its #[Cron] attribute, in declaration order. */
-    private function cronMethodsFor(object $instance): array
-    {
-        $found = [];
-        foreach ((new \ReflectionClass($instance))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(Cron::class);
+            $attributes = $method->getAttributes($attributeClass);
             if ($attributes !== []) {
                 $found[] = [$method->getName(), $attributes[0]->newInstance()];
             }

@@ -35,12 +35,30 @@ class WpHttpClientTest extends TestCase
             ->andReturn(['fake' => 'response']);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_body')->justReturn('ok');
+        Functions\when('wp_remote_retrieve_headers')->justReturn([]);
 
         $client   = new WpHttpClient();
         $response = $client->sendRequest(new Request('GET', 'https://example.test/x'));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('ok', (string) $response->getBody());
+    }
+
+    public function test_carries_the_upstream_response_headers_through(): void
+    {
+        Functions\when('wp_remote_request')->justReturn(['fake' => 'response']);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
+        Functions\when('wp_remote_retrieve_body')->justReturn('');
+        // WP_Http actually returns a Requests_Utility_CaseInsensitiveDictionary, which is
+        // Traversable but not an array; use an ArrayIterator to exercise that same shape here.
+        Functions\when('wp_remote_retrieve_headers')->justReturn(
+            new \ArrayIterator(['ETag' => '"abc123"', 'X-RateLimit-Remaining' => '42']),
+        );
+
+        $response = (new WpHttpClient())->sendRequest(new Request('GET', 'https://example.test/x'));
+
+        $this->assertSame('"abc123"', $response->getHeaderLine('ETag'));
+        $this->assertSame('42', $response->getHeaderLine('X-RateLimit-Remaining'));
     }
 
     public function test_includes_the_body_when_the_request_has_one(): void
@@ -50,6 +68,7 @@ class WpHttpClientTest extends TestCase
             ->with('https://example.test/x', ['method' => 'POST', 'headers' => ['Host' => 'example.test'], 'timeout' => 5, 'body' => 'hello']);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(201);
         Functions\when('wp_remote_retrieve_body')->justReturn('');
+        Functions\when('wp_remote_retrieve_headers')->justReturn([]);
 
         $client   = new WpHttpClient();
         $response = $client->sendRequest(new Request('POST', 'https://example.test/x', [], 'hello'));
@@ -64,6 +83,7 @@ class WpHttpClientTest extends TestCase
             ->with('https://example.test/x', ['method' => 'GET', 'headers' => ['Host' => 'example.test'], 'timeout' => 5]);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_body')->justReturn('');
+        Functions\when('wp_remote_retrieve_headers')->justReturn([]);
 
         $client   = new WpHttpClient();
         $response = $client->sendRequest(new Request('GET', 'https://example.test/x', [], ''));
@@ -82,6 +102,7 @@ class WpHttpClientTest extends TestCase
             ]);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_body')->justReturn('');
+        Functions\when('wp_remote_retrieve_headers')->justReturn([]);
 
         $request  = (new Request('GET', 'https://example.test/x'))->withHeader('X-Foo', ['a', 'b']);
         $response = (new WpHttpClient())->sendRequest($request);
@@ -96,6 +117,7 @@ class WpHttpClientTest extends TestCase
             ->with('https://example.test/x', ['method' => 'GET', 'headers' => ['Host' => 'example.test'], 'timeout' => 30]);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_body')->justReturn('');
+        Functions\when('wp_remote_retrieve_headers')->justReturn([]);
 
         $response = (new WpHttpClient(30))->sendRequest(new Request('GET', 'https://example.test/x'));
 
