@@ -40,7 +40,7 @@ lps menu pull [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local menu files no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. `locations.json` is a single file, not a list, so it's always overwritten in place.
+Local menu files no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. `menu-locations.json` is a single file, not a list, so it's always overwritten in place.
 
 **Example:**
 
@@ -108,7 +108,7 @@ locations:
 menus/
   main.json
   footer.json
-  locations.json
+  menu-locations.json
 ```
 
 Each menu file holds `{ "slug", "name", "items", "warnings" }`. `items` is a tree (children nested under their parent, not a flat list with parent ids) for a readable git diff:
@@ -150,7 +150,7 @@ Each menu file holds `{ "slug", "name", "items", "warnings" }`. `items` is a tre
 
 `warnings` is diagnostic only, a dangling item whose target was deleted, an item type Loopress doesn't sync (only `post_type`, `taxonomy`, and `custom` are supported), or an off-environment `custom` URL. It's never part of the tracked configuration and is ignored by `lps menu diff`.
 
-`locations.json` holds `{ "<location>": "<menu slug>" | null }` for every location the active theme registers:
+`menu-locations.json` holds `{ "<location>": "<menu slug>" | null }` for every location the active theme registers:
 
 ```json
 {

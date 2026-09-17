@@ -81,7 +81,7 @@ describe('diff', () => {
     writeFileSync(join(dir, 'seo', 'settings.json'), '{}')
     // Menu locations always exist server-side too, same reasoning as SEO settings above.
     mkdirSync(join(dir, 'menus'))
-    writeFileSync(join(dir, 'menus', 'locations.json'), '{}')
+    writeFileSync(join(dir, 'menus', 'menu-locations.json'), '{}')
     // Same for the active theme's Global Styles.
     mkdirSync(join(dir, 'theme'))
     writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))

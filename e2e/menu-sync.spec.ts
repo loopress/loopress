@@ -215,7 +215,7 @@ test('pushes and pulls the active theme menu locations, mapping to a menu slug n
   test.skip(registered.length === 0, 'the active theme on this environment registers no nav menu locations')
 
   const location = registered[0]
-  writeFileSync(join(dir, 'locations.json'), JSON.stringify({[location]: slug}))
+  writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({[location]: slug}))
 
   const pushResult = await runCli(['menu', 'push'])
   expect(pushResult.exitCode).toBe(0)
@@ -225,7 +225,7 @@ test('pushes and pulls the active theme menu locations, mapping to a menu slug n
   expect(listResult.stdout).toContain(`${location}: ${slug}`)
 
   expect((await runCli(['menu', 'pull'])).exitCode).toBe(0)
-  const pulledLocations = JSON.parse(readFileSync(join(dir, 'locations.json'), 'utf8')) as Record<string, null | string>
+  const pulledLocations = JSON.parse(readFileSync(join(dir, 'menu-locations.json'), 'utf8')) as Record<string, null | string>
   expect(pulledLocations[location]).toBe(slug)
 })
 

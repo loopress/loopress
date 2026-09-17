@@ -92,10 +92,14 @@ class MenuController
 
         $slug  = (string) ($body['slug'] ?? '');
         $name  = (string) ($body['name'] ?? '');
-        $items = is_array($body['items'] ?? null) ? $body['items'] : [];
+        $items = $body['items'] ?? [];
 
         if ($slug === '' || $name === '') {
             return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and "name".'], 400);
+        }
+
+        if (!is_array($items)) {
+            return new WP_REST_Response(['error' => 'Request body\'s "items" must be an array.'], 400);
         }
 
         return $this->mapServiceExceptions(

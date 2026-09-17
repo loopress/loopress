@@ -408,12 +408,12 @@ describe('resource-state providers', () => {
         'loopress/v1/menus': [{items: [], name: 'Main', slug: 'main', warnings: []}],
       })
       writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
-      writeFileSync(join(dir, 'locations.json'), JSON.stringify({primary: 'main'}))
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
 
       const state = await menuProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()].sort((a, b) => a.localeCompare(b))).toEqual(['locations', 'menu/main'])
-      expect(state.get('locations')).toEqual({primary: 'main'})
+      expect([...state.keys()].sort((a, b) => a.localeCompare(b))).toEqual(['menu-locations', 'menu/main'])
+      expect(state.get('menu-locations')).toEqual({primary: 'main'})
 
       const diff = compareStates(state, await menuProvider.local(dir, noWarn), labels)
       expect(isEmptyDiff(diff)).toBe(true)
@@ -425,7 +425,7 @@ describe('resource-state providers', () => {
         'loopress/v1/menus': [{items: [], name: 'Main', slug: 'main', warnings: ['item 4 references a deleted page']}],
       })
       writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
-      writeFileSync(join(dir, 'locations.json'), JSON.stringify({}))
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({}))
 
       const diff = compareStates(await menuProvider.remote(remote, noWarn, dir), await menuProvider.local(dir, noWarn), labels)
 
@@ -440,7 +440,7 @@ describe('resource-state providers', () => {
 
       const state = await menuProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()]).toEqual(['locations'])
+      expect([...state.keys()]).toEqual(['menu-locations'])
     })
 
     it('falls back to a "local:" key for a local menu file with no, or an empty, slug', async () => {
@@ -452,13 +452,13 @@ describe('resource-state providers', () => {
       expect([...state.keys()]).toEqual(expect.arrayContaining(['menu/local:draft', 'menu/local:blank']))
     })
 
-    it('reads locations.json as its own fixed "locations" entry, separate from any menu', async () => {
+    it('reads menu-locations.json as its own fixed "menu-locations" entry, separate from any menu', async () => {
       writeFileSync(join(dir, 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
-      writeFileSync(join(dir, 'locations.json'), JSON.stringify({footer: null, primary: 'main'}))
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({footer: null, primary: 'main'}))
 
       const state = await menuProvider.local(dir, noWarn)
 
-      expect(state.get('locations')).toEqual({footer: null, primary: 'main'})
+      expect(state.get('menu-locations')).toEqual({footer: null, primary: 'main'})
       expect(state.get('menu/main')).toEqual({items: [], name: 'Main', slug: 'main'})
     })
   })

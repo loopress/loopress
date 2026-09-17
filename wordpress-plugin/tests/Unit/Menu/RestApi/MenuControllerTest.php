@@ -128,6 +128,17 @@ class MenuControllerTest extends TestCase
         $this->controller->upsert_menu(new WP_REST_Request(['name' => 'Main', 'slug' => 'main']));
     }
 
+    // A malformed (non-array) "items" must be rejected, not silently coerced to [], which would
+    // otherwise wipe the target menu's items on push.
+    public function test_upsert_menu_returns_400_when_items_is_not_an_array(): void
+    {
+        $this->menuService->expects($this->never())->method('upsertMenu');
+
+        $response = $this->controller->upsert_menu(new WP_REST_Request(['items' => 'not-an-array', 'name' => 'Main', 'slug' => 'main']));
+
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_delete_menu_returns_404_when_not_found(): void
     {
         $this->menuService->method('deleteMenu')->willReturn(false);

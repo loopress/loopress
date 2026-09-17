@@ -49,13 +49,13 @@ describe('menu pull', () => {
       return {cmd, get, logs}
     }
 
-    it('writes each menu to <slug>.json and locations to locations.json', async () => {
+    it('writes each menu to <slug>.json and locations to menu-locations.json', async () => {
       const {cmd} = makeRunCmd()
 
       await cmd.run()
 
       expect(JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8'))).toEqual(menu)
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'locations.json'), 'utf8'))).toEqual({primary: 'main'})
+      expect(JSON.parse(readFileSync(join(dir, 'menus', 'menu-locations.json'), 'utf8'))).toEqual({primary: 'main'})
     })
 
     it('removes a local menu file whose slug is no longer present remotely', async () => {
@@ -81,12 +81,12 @@ describe('menu pull', () => {
       expect(logs.warn).toHaveBeenCalledWith('main: item 4 references a deleted page')
     })
 
-    // The "locations" basename is reserved for locations.json (see LOCATIONS_FILE_BASENAME):
+    // The "menu-locations" basename is reserved for menu-locations.json (see LOCATIONS_FILE_BASENAME):
     // a menu that happens to have that slug would otherwise silently collide with it.
-    it('skips and warns about a menu whose slug is literally "locations"', async () => {
+    it('skips and warns about a menu whose slug is literally "menu-locations"', async () => {
       const {cmd, get, logs} = makeRunCmd()
       get.mockImplementation(async (path: string) => {
-        if (path === 'loopress/v1/menus') return [{...menu, slug: 'locations'}]
+        if (path === 'loopress/v1/menus') return [{...menu, slug: 'menu-locations'}]
         if (path === 'loopress/v1/menu-locations') return {}
         return []
       })
@@ -94,7 +94,7 @@ describe('menu pull', () => {
       await cmd.run()
 
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('reserved'))
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'locations.json'), 'utf8'))).toEqual({})
+      expect(JSON.parse(readFileSync(join(dir, 'menus', 'menu-locations.json'), 'utf8'))).toEqual({})
     })
 
     it('does not write anything on a dry run', async () => {
@@ -104,7 +104,7 @@ describe('menu pull', () => {
       await cmd.run()
 
       expect(existsSync(join(dir, 'menus', 'main.json'))).toBe(false)
-      expect(existsSync(join(dir, 'menus', 'locations.json'))).toBe(false)
+      expect(existsSync(join(dir, 'menus', 'menu-locations.json'))).toBe(false)
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('[dry-run]'))
     })
   })

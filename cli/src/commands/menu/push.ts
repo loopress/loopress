@@ -7,7 +7,9 @@ import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} from '../../utils/menu-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
-const LOCATIONS_FILENAME = 'locations.json'
+// A menu literally slugged "menu-locations" would still collide, but that's far less likely
+// than the plain "locations" this used to be (WordPress's own menu-locations feature).
+const LOCATIONS_FILENAME = 'menu-locations.json'
 
 export default class Push extends PushCommand {
   static args = {
@@ -85,7 +87,8 @@ export default class Push extends PushCommand {
       if (slug === null) throw new Error('missing or invalid "slug"')
 
       const name = typeof record.name === 'string' ? record.name : ''
-      const items = Array.isArray(record.items) ? record.items : []
+      const items = record.items ?? []
+      if (!Array.isArray(items)) throw new Error('"items" must be an array')
 
       const result = await this.wp.post<Menu>(MENU_ENDPOINT, {items, name, slug})
       if (task) {

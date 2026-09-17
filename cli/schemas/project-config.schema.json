@@ -56,7 +56,7 @@
     },
     "menuDir": {
       "type": "string",
-      "description": "Directory where nav menus (one JSON file per menu, plus locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",
+      "description": "Directory where nav menus (one JSON file per menu, plus menu-locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",
       "default": "menus"
     },
     "themeStylesDir": {

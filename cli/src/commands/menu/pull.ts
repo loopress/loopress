@@ -7,8 +7,8 @@ import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 import {type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} from '../../utils/menu-format.js'
 
 // The reserved local filename for menu locations (see pullLocations()): a menu genuinely slugged
-// "locations" would collide with it, so it's skipped rather than silently overwriting that file.
-const LOCATIONS_FILE_BASENAME = 'locations'
+// "menu-locations" would collide with it, so it's skipped rather than silently overwriting that file.
+const LOCATIONS_FILE_BASENAME = 'menu-locations'
 
 export default class Pull extends LoopressCommand {
   static args = {

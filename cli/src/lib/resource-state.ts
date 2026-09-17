@@ -350,7 +350,7 @@ const seoProvider: ResourceStateProvider = {
 // "volatile key" treatment ACF/forms/redirects give their own server-computed fields.
 const MENU_VOLATILE_KEYS = ['warnings'] as const
 // The reserved local filename for menu locations, see commands/menu/pull.ts.
-const MENU_LOCATIONS_FILE = 'locations'
+const MENU_LOCATIONS_FILE = 'menu-locations'
 
 function canonicalMenu(menu: Record<string, unknown>): Record<string, unknown> {
   return omit(menu, MENU_VOLATILE_KEYS)

@@ -79,6 +79,32 @@ describe('menu push', () => {
       expect(cmd.failedCount).toBe(1)
     })
 
+    it('rejects a malformed "items" instead of clearing the remote menu', async () => {
+      const {cmd} = makeCmd()
+      const post = vi.fn()
+      cmd.wpClient = {post, put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, JSON.stringify({items: 'not-an-array', name: 'Main', slug: 'main'}))
+      const task = {output: ''}
+
+      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('"items" must be an array')
+      expect(post).not.toHaveBeenCalled()
+      expect(cmd.failedCount).toBe(1)
+    })
+
+    it('defaults a missing "items" to an empty array', async () => {
+      const {cmd} = makeCmd()
+      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', slug: 'main', warnings: []})
+      cmd.wpClient = {post, put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, JSON.stringify({name: 'Main', slug: 'main'}))
+      const task = {output: ''}
+
+      await cmd.pushMenuFile(file, task)
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/menus', {items: [], name: 'Main', slug: 'main'})
+    })
+
     it('does nothing in dry-run mode', async () => {
       const {cmd} = makeCmd()
       cmd.dryRun = true
@@ -110,7 +136,7 @@ describe('menu push', () => {
   })
 
   describe('pushLocations', () => {
-    it('does nothing when there is no local locations.json', async () => {
+    it('does nothing when there is no local menu-locations.json', async () => {
       const {cmd} = makeCmd()
       const put = vi.fn()
       cmd.wpClient = {post: vi.fn(), put}
@@ -124,7 +150,7 @@ describe('menu push', () => {
       const {cmd, logs} = makeCmd()
       const put = vi.fn().mockResolvedValueOnce({})
       cmd.wpClient = {post: vi.fn(), put}
-      writeFileSync(join(dir, 'locations.json'), JSON.stringify({primary: 'main'}))
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
 
       await cmd.pushLocations(dir)
 
@@ -136,7 +162,7 @@ describe('menu push', () => {
       const {cmd, logs} = makeCmd()
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
       cmd.wpClient = {post: vi.fn(), put}
-      writeFileSync(join(dir, 'locations.json'), JSON.stringify({primary: 'main'}))
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
 
       await cmd.pushLocations(dir)
 
@@ -170,7 +196,7 @@ describe('menu push', () => {
     it('pushes every local menu and the locations file, then reports success', async () => {
       mkdirSync(join(dir, 'menus'), {recursive: true})
       writeFileSync(join(dir, 'menus', 'main.json'), JSON.stringify({items: [], name: 'Main', slug: 'main'}))
-      writeFileSync(join(dir, 'menus', 'locations.json'), JSON.stringify({primary: 'main'}))
+      writeFileSync(join(dir, 'menus', 'menu-locations.json'), JSON.stringify({primary: 'main'}))
       const {cmd, logs, post, put} = makeRunCmd()
 
       await cmd.run()

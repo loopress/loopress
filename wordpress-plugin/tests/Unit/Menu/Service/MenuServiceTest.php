@@ -105,6 +105,57 @@ class MenuServiceTest extends TestCase
         $this->assertStringContainsString('post_type_archive', $menu['warnings'][0]);
     }
 
+    // wp_update_nav_menu_item() writes menu-item-description to post_content, not post_excerpt.
+    public function test_get_menu_reads_the_description_from_post_content(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', 'A description', 1)]);
+        $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
+
+        $menu = $this->service->getMenu('main');
+
+        $this->assertSame('A description', $menu['items'][0]['description']);
+    }
+
+    // wp_update_nav_menu_item() stores _menu_item_classes as one array element per class, not a
+    // single joined string; every class must survive the round trip, not just the first.
+    public function test_get_menu_preserves_every_menu_item_class(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([
+            1 => [
+                '_menu_item_type'             => 'custom',
+                '_menu_item_url'              => '/x',
+                '_menu_item_classes'          => ['class-a', 'class-b'],
+                '_menu_item_menu_item_parent' => '0',
+            ],
+        ]);
+
+        $menu = $this->service->getMenu('main');
+
+        $this->assertSame(['class-a', 'class-b'], $menu['items'][0]['classes']);
+    }
+
+    // A supported item whose direct parent has an unsupported type must not become unreachable
+    // from the exported tree just because its parent was skipped.
+    public function test_get_menu_reparents_a_supported_item_under_a_skipped_parent(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        $skippedParent = $this->fakeItemPost(1, '', '', 1);
+        $child         = $this->fakeItemPost(2, '', '', 1);
+        Functions\when('wp_get_nav_menu_items')->justReturn([$skippedParent, $child]);
+        $this->stubItemMeta([
+            1 => ['_menu_item_type' => 'post_type_archive', '_menu_item_menu_item_parent' => '0'],
+            2 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/child', '_menu_item_menu_item_parent' => '1'],
+        ]);
+
+        $menu = $this->service->getMenu('main');
+
+        $this->assertCount(1, $menu['items'], 'the child must surface at the top level, not be lost');
+        $this->assertSame('/child', $menu['items'][0]['url']);
+    }
+
     public function test_list_menus_exports_every_menu(): void
     {
         Functions\when('wp_get_nav_menus')->justReturn([$this->fakeTerm(1, 'main', 'Main'), $this->fakeTerm(2, 'footer', 'Footer')]);
@@ -474,12 +525,12 @@ class MenuServiceTest extends TestCase
         return $post;
     }
 
-    private function fakeItemPost(int $id, string $title, string $excerpt, int $menuOrder): WP_Post
+    private function fakeItemPost(int $id, string $title, string $content, int $menuOrder): WP_Post
     {
         $post              = new WP_Post();
         $post->ID          = $id;
         $post->post_title  = $title;
-        $post->post_excerpt = $excerpt;
+        $post->post_content = $content;
         $post->menu_order  = $menuOrder;
         $post->post_type   = 'nav_menu_item';
 

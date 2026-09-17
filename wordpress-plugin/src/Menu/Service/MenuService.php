@@ -175,15 +175,34 @@ class MenuService
         $rawItems = wp_get_nav_menu_items($menu->term_id);
         $items    = $rawItems === false ? [] : $rawItems;
 
+        // Every item's raw parent id, and its exported node (or null if skipped), computed for
+        // the whole menu up front: a skipped item's raw parent is still needed below to reparent
+        // ITS OWN supported children, even though the skipped item itself never appears in the
+        // exported tree.
+        $rawParentOf = [];
+        $exported    = [];
+        foreach ($items as $item) {
+            $rawParentOf[$item->ID] = (int) get_post_meta($item->ID, '_menu_item_menu_item_parent', true);
+            $exported[$item->ID]    = $this->exportItem($item, $warnings);
+        }
+
         $byParent = [];
         foreach ($items as $item) {
-            $exported = $this->exportItem($item, $warnings);
-            if ($exported === null) {
-                continue; // a dangling item (its target no longer exists), warned about, not exported
+            $node = $exported[$item->ID];
+            if ($node === null) {
+                continue; // a dangling/unsupported item, warned about, not exported itself
             }
 
-            $parentId = (int) get_post_meta($item->ID, '_menu_item_menu_item_parent', true);
-            $byParent[$parentId][(int) $item->menu_order] = $exported;
+            // A supported item whose direct parent was skipped is reparented to the nearest
+            // still-exported ancestor (walking up the *raw* parent chain, since a skipped
+            // ancestor never gets an entry of its own in $byParent) instead of becoming
+            // permanently unreachable from buildTree(0, ...).
+            $parentId = $rawParentOf[$item->ID];
+            while ($parentId !== 0 && ($exported[$parentId] ?? null) === null) {
+                $parentId = $rawParentOf[$parentId] ?? 0;
+            }
+
+            $byParent[$parentId][(int) $item->menu_order] = $node;
         }
 
         return [
@@ -229,7 +248,10 @@ class MenuService
             '_id'         => $item->ID,
             'children'    => [],
             'classes'     => $this->exportClasses($item->ID),
-            'description' => (string) $item->post_excerpt,
+            // wp_update_nav_menu_item() writes menu-item-description to post_content, not
+            // post_excerpt (that holds menu-item-attr-title instead, which this plugin doesn't
+            // sync), confirmed against wp-includes/nav-menu.php's own $post array.
+            'description' => (string) $item->post_content,
             'object'      => null,
             'objectSlug'  => null,
             'target'      => (string) get_post_meta($item->ID, '_menu_item_target', true),
@@ -286,12 +308,12 @@ class MenuService
     private function exportClasses(int $itemId): array
     {
         $raw = get_post_meta($itemId, '_menu_item_classes', true);
-        // WordPress itself stores this meta as a single-element array holding one space-joined
-        // string (confirmed against wp-admin's own nav-menu save handler), not one element per
-        // class; split back out here so the JSON holds a readable list instead of that quirk.
-        $joined = is_array($raw) ? (string) ($raw[0] ?? '') : '';
+        // wp_update_nav_menu_item() stores this meta as one array element per class (it explodes
+        // the incoming space-separated string itself before saving), confirmed against
+        // wp-includes/nav-menu.php's own update_post_meta() call, not a single joined string.
+        $classes = is_array($raw) ? array_map('strval', $raw) : [];
 
-        return array_values(array_filter(explode(' ', $joined), fn(string $className): bool => $className !== ''));
+        return array_values(array_filter($classes, fn(string $className): bool => $className !== ''));
     }
 
     // ── Resolve + apply (write) ────────────────────────────────────────────────────────────
