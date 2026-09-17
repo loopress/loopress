@@ -140,11 +140,13 @@ class MenuController
     // A theme can register zero nav menu locations (or every location can end up unassigned in
     // $mapping), in which case the map below is a genuinely empty PHP array. json_encode()
     // can't tell that apart from an empty list, and would send `[]` instead of `{}`, which the
-    // CLI's `location => slug` reader then rejects as "not a JSON object". Casting to stdClass
+    // CLI's `location => slug` reader then rejects as "not a JSON object". Casting to an object
     // forces object encoding regardless of emptiness, the same ambiguity every PHP-to-JSON
-    // association map has to guard against explicitly.
+    // association map has to guard against explicitly. Typed `object`, not `\stdClass`: that's
+    // as precisely as a plain `(object)` array-cast is statically knowable, even though the
+    // resulting instance always is one at runtime.
     /** @param array<string, null|string> $locations */
-    private function asJsonObject(array $locations): \stdClass
+    private function asJsonObject(array $locations): object
     {
         return (object) $locations;
     }

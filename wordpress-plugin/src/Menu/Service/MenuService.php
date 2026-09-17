@@ -82,7 +82,8 @@ class MenuService
         }
 
         if ($warnings !== []) {
-            $export['warnings'] = [...$warnings, ...$export['warnings']];
+            $existingWarnings = is_array($export['warnings']) ? $export['warnings'] : [];
+            $export['warnings'] = [...$warnings, ...$existingWarnings];
         }
 
         return $export;
@@ -242,7 +243,8 @@ class MenuService
             return $node;
         }
 
-        if (!in_array($type, self::SUPPORTED_ITEM_TYPES, true)) {
+        // Every SUPPORTED_ITEM_TYPES entry except 'custom' (already handled and returned above).
+        if (!in_array($type, ['post_type', 'taxonomy'], true)) {
             // A type Loopress doesn't resolve by identity (e.g. `post_type_archive`, or one a
             // third-party plugin adds): exported as a warning, not guessed at or silently
             // dropped, and never round-tripped through push (see resolveItems()).
