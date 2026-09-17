@@ -1,32 +1,7 @@
-import {type Dirent} from 'node:fs'
-import {readdir, readFile} from 'node:fs/promises'
+import {readFile} from 'node:fs/promises'
 import {extname, join} from 'node:path'
 
-// Recursion for the api resource type only (path-param route files can live in
-// subdirectories, e.g. api/invoice-pdf/[order_id].php); every other resource type stays
-// flat. withFileTypes avoids a second stat() per entry to tell files from directories.
-async function walk(dir: string, extension: string): Promise<string[]> {
-  let entries: Dirent[]
-  try {
-    entries = await readdir(dir, {withFileTypes: true})
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-    throw error
-  }
-
-  const filePaths: string[] = []
-  for (const entry of entries) {
-    const entryPath = join(dir, entry.name)
-    if (entry.isDirectory()) {
-      filePaths.push(...(await walk(entryPath, extension)))
-    } else if (extname(entry.name) === extension) {
-      filePaths.push(entryPath)
-    }
-  }
-
-  return filePaths
-}
+import {readdirTolerant, walkFiles} from './readdir-tolerant.js'
 
 // Loads every `<extension>` file of a directory through `parse`. One file is read in
 // isolation: a corrupted or hand-broken file (unreadable, bad JSON, failed validation) must
@@ -47,21 +22,8 @@ export async function loadFiles<T>(
     recursive?: boolean
   },
 ): Promise<T[]> {
-  let filePaths: string[]
-  if (options.recursive) {
-    filePaths = await walk(dir, options.extension)
-  } else {
-    let entries: string[]
-    try {
-      entries = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-
-    filePaths = entries.filter((entry) => extname(entry) === options.extension).map((entry) => join(dir, entry))
-  }
+  const entries = options.recursive ? await walkFiles(dir) : await readdirTolerant(dir)
+  const filePaths = entries.filter((entry) => extname(entry) === options.extension).map((entry) => join(dir, entry))
 
   const items: T[] = []
   for (const filePath of filePaths) {

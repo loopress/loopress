@@ -1,7 +1,8 @@
 import {createHash} from 'node:crypto'
-import {type Dirent} from 'node:fs'
-import {readdir, readFile} from 'node:fs/promises'
-import {extname, join, relative} from 'node:path'
+import {readFile} from 'node:fs/promises'
+import {extname, join} from 'node:path'
+
+import {walkFiles} from './readdir-tolerant.js'
 
 // Shared contract between `lps app push`/`pull` and the WordPress plugin's AppsController.
 // A "manifest" is the whole description of one committed build; the plugin stores it verbatim
@@ -55,35 +56,11 @@ export function isAllowedAsset(relPath: string): boolean {
   return ALLOWED_EXTENSIONS.has(extname(relPath).toLowerCase())
 }
 
-async function walk(dir: string, root: string): Promise<string[]> {
-  let entries: Dirent[]
-  try {
-    entries = await readdir(dir, {withFileTypes: true})
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-    throw error
-  }
-
-  const out: string[] = []
-  for (const entry of entries) {
-    const abs = join(dir, entry.name)
-    if (entry.isDirectory()) {
-      out.push(...(await walk(abs, root)))
-    } else if (entry.isFile()) {
-      // Identity is always '/'-joined, never the OS separator: it travels over HTTP and is
-      // matched against the server's own '/'-joined paths.
-      out.push(relative(root, abs).replaceAll(/[\\/]/g, '/'))
-    }
-  }
-
-  return out
-}
-
 // Builds the sorted file list of a dist directory. Throws on a file whose extension the
 // server would reject, so the push fails locally with a clear message instead of a 400
 // halfway through the upload.
 export async function buildFileList(distDir: string): Promise<AppFile[]> {
-  const relPaths = (await walk(distDir, distDir)).sort((a, b) => a.localeCompare(b))
+  const relPaths = (await walkFiles(distDir)).sort((a, b) => a.localeCompare(b))
 
   const files: AppFile[] = []
   for (const path of relPaths) {
