@@ -13,6 +13,7 @@ export const RESOURCE_DIR_DEFAULTS = {
   options: 'options',
   seo: 'seo',
   snippets: 'snippets',
+  themeStyles: 'theme',
 } as const
 
 export type ResourceDirKind = keyof typeof RESOURCE_DIR_DEFAULTS
@@ -26,6 +27,7 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   options: 'optionsDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
+  themeStyles: 'themeStylesDir',
 }
 
 // Resolves where a resource's files live: an explicit override wins, otherwise the

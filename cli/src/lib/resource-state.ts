@@ -14,6 +14,13 @@ import {
   type SeoRedirect,
 } from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
+import {
+  canonicalGlobalStyles,
+  getActiveThemeGlobalStyles,
+  globalStylesEndpoint,
+  type GlobalStylesRecord,
+  THEME_STYLES_FILE_SUFFIX,
+} from '../utils/theme-styles-format.js'
 import {type ResourceState} from './diff-state.js'
 import {loadFiles} from './load-files.js'
 import {loadSnippets} from './load-snippets.js'
@@ -381,6 +388,41 @@ const optionsProvider: ResourceStateProvider = {
   title: 'Options',
 }
 
+// ---- Theme styles (Global Styles) ----------------------------------------------------------
+
+// Local files are named `<stylesheet>-global-styles.json`, keyed by stylesheet so a directory
+// that has accumulated files from more than one previously-active theme still compares each one
+// individually rather than colliding on a single key.
+const themeStylesProvider: ResourceStateProvider = {
+  dirKind: 'themeStyles',
+  async local(dir, onWarn) {
+    const entries = await loadFiles<{stylesheet: string; value: Record<string, unknown>}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse(raw, filePath) {
+        const name = basename(filePath)
+        const stylesheet = name.endsWith(THEME_STYLES_FILE_SUFFIX) ? name.slice(0, -THEME_STYLES_FILE_SUFFIX.length) : basename(filePath, '.json')
+        return {stylesheet, value: readJson(raw)}
+      },
+    })
+
+    const state: ResourceState = new Map()
+    for (const {stylesheet, value} of entries) state.set(stylesheet, canonicalGlobalStyles(value))
+    return state
+  },
+  // Only the active theme's Global Styles are compared (see theme-styles-format.ts): a classic
+  // active theme has no Styles screen at all, surfaced here as a normal provider error, the same
+  // "inconclusive for this resource" treatment DiffCommand gives any other fetch failure.
+  async remote(wp) {
+    const {id, stylesheet} = await getActiveThemeGlobalStyles(wp)
+    const item = await wp.get<GlobalStylesRecord>(globalStylesEndpoint(id))
+
+    return new Map([[stylesheet, canonicalGlobalStyles(item)]])
+  },
+  resource: 'theme-styles',
+  title: 'Theme styles',
+}
+
 export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   snippetProvider,
   formProvider,
@@ -389,6 +431,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   hookProvider,
   seoProvider,
   optionsProvider,
+  themeStylesProvider,
 ]
 
 export function getResourceStateProvider(resource: string): ResourceStateProvider {

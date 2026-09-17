@@ -19,6 +19,7 @@ import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
 import {registerThemeTools} from './tools/theme.js'
+import {registerThemeStylesTools} from './tools/theme-styles.js'
 import {registerValidateTools} from './tools/validate.js'
 
 const server = new McpServer({name: 'loopress', version: '0.1.0'})
@@ -33,6 +34,7 @@ registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)
 registerThemeTools(server)
+registerThemeStylesTools(server)
 registerComposerTools(server)
 registerBulkTools(server)
 registerPromoteTools(server)
