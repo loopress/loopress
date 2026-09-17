@@ -225,7 +225,7 @@ class MenuServiceTest extends TestCase
         $this->assertSame('/child', $calls[1]['menu-item-url']);
     }
 
-    public function test_upsert_menu_deletes_every_existing_item_before_recreating(): void
+    public function test_upsert_menu_deletes_every_existing_item_once_the_replacement_is_written(): void
     {
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
         Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1), $this->fakeItemPost(2, '', '', 2)]);
@@ -239,6 +239,66 @@ class MenuServiceTest extends TestCase
         $this->service->upsertMenu('main', 'Main', []);
 
         $this->assertSame([1, 2], $deleted);
+    }
+
+    // The new items are created before the old ones are deleted (see replaceItems()'s own
+    // docblock): if wp_update_nav_menu_item() ever fails partway, the original items must still
+    // be there to fail back to, not already gone.
+    public function test_upsert_menu_creates_the_replacement_before_deleting_the_originals(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([1 => []]);
+
+        $calls = [];
+        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls) {
+            $calls[] = 'create';
+            return 100;
+        });
+        Functions\when('wp_delete_post')->alias(function () use (&$calls): void {
+            $calls[] = 'delete';
+        });
+
+        $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/x']]);
+
+        $this->assertSame(['create', 'delete'], $calls);
+    }
+
+    // Regression coverage for a real data-loss risk: wp_update_nav_menu_item() failing on item 2
+    // of 2, after item 1 already succeeded, must not leave the menu half-migrated. The original
+    // item (id 1) is never deleted, and the one new item already created (id 100) is rolled back.
+    public function test_upsert_menu_rolls_back_partially_created_items_and_keeps_the_originals_when_a_later_item_fails(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([1 => []]);
+
+        $calls = [];
+        $callCount = 0;
+        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls, &$callCount) {
+            $callCount++;
+            if ($callCount === 2) {
+                return new \WP_Error('fail', 'boom');
+            }
+
+            $calls[] = ['create', 100];
+            return 100;
+        });
+        Functions\when('wp_delete_post')->alias(function (int $id) use (&$calls): void {
+            $calls[] = ['delete', $id];
+        });
+
+        try {
+            $this->service->upsertMenu('main', 'Main', [
+                ['type' => 'custom', 'url' => '/a'],
+                ['type' => 'custom', 'url' => '/b'],
+            ]);
+            $this->fail('Expected a RuntimeException');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame([['create', 100], ['delete', 100]], $calls);
     }
 
     // Warned, never blocked: unlike RankMathService's redirect guard, a menu is allowed to link

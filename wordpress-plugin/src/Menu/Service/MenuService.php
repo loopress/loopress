@@ -421,23 +421,46 @@ class MenuService
     }
 
     /**
-     * Deletes every existing item of `$menuId`, then recreates `$resolved` top-down: a parent is
-     * always created before its children so each child's `menu-item-parent-id` can reference the
-     * parent's freshly assigned post ID (the old IDs are gone and were never portable anyway).
+     * Creates `$resolved` top-down first, and only deletes the existing items of `$menuId` once
+     * every new one has been created successfully: `resolveItems()` already rules out a bad
+     * *input* tree before this runs, but wp_update_nav_menu_item() can still fail mid-way for
+     * reasons outside that (a DB error, a race). Deleting-then-creating would leave the menu with
+     * only whichever new items got created before the failure, permanently losing the rest of its
+     * original content. Creating first means a failure here still leaves the original items
+     * intact; createItems() below rolls back the partial replacement it already made before
+     * this rethrows, so the menu is left exactly as it was, not half-migrated.
      *
      * @param array<int, array{args: array<string, mixed>, children: array<int, mixed>}> $resolved
      */
     private function replaceItems(int $menuId, array $resolved): void
     {
-        foreach ((wp_get_nav_menu_items($menuId) ?: []) as $existing) {
-            wp_delete_post($existing->ID, true);
+        $existing = wp_get_nav_menu_items($menuId) ?: [];
+
+        $createdIds = [];
+        try {
+            $this->createItems($menuId, 0, $resolved, $createdIds);
+        } catch (\Throwable $error) {
+            foreach ($createdIds as $createdId) {
+                wp_delete_post($createdId, true);
+            }
+
+            throw $error;
         }
 
-        $this->createItems($menuId, 0, $resolved);
+        foreach ($existing as $item) {
+            wp_delete_post($item->ID, true);
+        }
     }
 
-    /** @param array<int, array{args: array<string, mixed>, children: array<int, mixed>}> $resolved */
-    private function createItems(int $menuId, int $parentId, array $resolved): void
+    /**
+     * A parent is always created before its children so each child's `menu-item-parent-id` can
+     * reference the parent's freshly assigned post ID.
+     *
+     * @param array<int, array{args: array<string, mixed>, children: array<int, mixed>}> $resolved
+     * @param array<int, int> $createdIds every item id created so far, appended to as this
+     *        recurses, so replaceItems() can roll all of them back on a later failure
+     */
+    private function createItems(int $menuId, int $parentId, array $resolved, array &$createdIds): void
     {
         foreach ($resolved as $item) {
             $itemId = wp_update_nav_menu_item($menuId, 0, [...$item['args'], 'menu-item-parent-id' => $parentId]);
@@ -445,7 +468,8 @@ class MenuService
                 throw new \RuntimeException(esc_html('Failed to create menu item: ' . $itemId->get_error_message()));
             }
 
-            $this->createItems($menuId, (int) $itemId, $item['children']);
+            $createdIds[] = (int) $itemId;
+            $this->createItems($menuId, (int) $itemId, $item['children'], $createdIds);
         }
     }
 }
