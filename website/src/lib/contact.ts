@@ -1,5 +1,6 @@
-import { BrevoClient } from "@getbrevo/brevo";
 import { z } from "zod";
+
+import { getBrevoClient } from "./brevo";
 
 export const contactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -11,9 +12,7 @@ export const contactSchema = z.object({
 export type ContactData = z.infer<typeof contactSchema>;
 
 export async function sendContactEmail(data: ContactData) {
-  const brevo = new BrevoClient({
-    apiKey: process.env.BREVO_API_KEY!,
-  });
+  const brevo = getBrevoClient();
 
   await brevo.transactionalEmails.sendTransacEmail({
     sender: { name: "Loopress Contact", email: "noreply@loopress.dev" },
