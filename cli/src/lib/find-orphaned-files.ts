@@ -1,6 +1,6 @@
-import {type Dirent} from 'node:fs'
-import {readdir} from 'node:fs/promises'
-import {extname, join} from 'node:path'
+import {extname} from 'node:path'
+
+import {readdirTolerant, walkFiles} from './readdir-tolerant.js'
 
 // A local file whose identity is no longer in the current remote list belongs to something
 // deleted on WordPress. Left on disk, it would silently come back to life on the next push.
@@ -18,51 +18,10 @@ export type OrphanMatcher = {
   recursive?: boolean
 }
 
-// Same shape as load-files.ts's own walker, kept separate rather than shared: this one
-// filters against a list of extensions (snippet pull needs more than one), that one
-// against a single extension, and reconciling the two would cost more than the ~15 duplicated
-// lines it would save.
-async function walk(dir: string, extensions: string[]): Promise<string[]> {
-  let entries: Dirent[]
-  try {
-    entries = await readdir(dir, {withFileTypes: true})
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-    throw error
-  }
-
-  const relativePaths: string[] = []
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      // join() builds the real OS path to actually walk, but the returned identity is always
-      // '/'-joined regardless of platform: it's matched against `keep`, filenames the server
-      // sends with '/', never the OS separator. join() here (backslash on Windows) would make
-      // every nested file's identity never match, findOrphanedFiles() would then report a
-      // live, kept file as orphaned and pull.ts would delete it.
-      const nested = await walk(join(dir, entry.name), extensions)
-      relativePaths.push(...nested.map((relativePath) => `${entry.name}/${relativePath}`))
-    } else if (extensions.includes(extname(entry.name))) {
-      relativePaths.push(entry.name)
-    }
-  }
-
-  return relativePaths
-}
-
 export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
-  let files: string[]
-  if (matcher.recursive) {
-    files = await walk(dir, matcher.extensions)
-  } else {
-    try {
-      files = await readdir(dir)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-
-      throw error
-    }
-  }
+  // walkFiles already returns '/'-joined identities regardless of platform: matched against
+  // `keep`, filenames the server sends with '/', never the OS separator.
+  const files = matcher.recursive ? await walkFiles(dir) : await readdirTolerant(dir)
 
   return files.filter((file) => {
     const ext = extname(file)
