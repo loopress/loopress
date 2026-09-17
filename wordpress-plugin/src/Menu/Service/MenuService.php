@@ -45,7 +45,7 @@ class MenuService
      * updates its name and replaces its items otherwise. The slug itself is permanent, like
      * ACF's `key`: there is no rename here, only create or update-in-place.
      *
-     * @param array<int, array<string, mixed>> $items
+     * @param array<int, mixed> $items
      * @return array<string, mixed>
      */
     public function upsertMenu(string $slug, string $name, array $items): array
@@ -215,7 +215,10 @@ class MenuService
         return $nodes;
     }
 
-    /** @param array<int, string> $warnings @return array<string, mixed>|null */
+    /**
+     * @param array<int, string> $warnings
+     * @return array<string, mixed>|null
+     */
     private function exportItem(\WP_Post $item, array &$warnings): ?array
     {
         $type = (string) get_post_meta($item->ID, '_menu_item_type', true);
@@ -300,7 +303,11 @@ class MenuService
      * legitimately link off-site, this is just a nudge to check that was intentional before
      * syncing the same menu to another environment.
      *
-     * @param array<int, array<string, mixed>> $items
+     * `$items` is only documented as `array<int, mixed>`, not a nested array shape: it comes
+     * straight from JSON-decoded request input, so a non-array element is a real possibility
+     * the is_array() check below actually has to handle, not dead code.
+     *
+     * @param array<int, mixed> $items
      * @param array<int, string> $warnings
      * @return array<int, array{args: array<string, mixed>, children: array<int, mixed>}>
      */

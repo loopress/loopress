@@ -117,7 +117,7 @@ class MenuController
     public function get_locations(): WP_REST_Response
     {
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->getLocations(), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->asJsonObject($this->menuService->getLocations()), 200),
         );
     }
 
@@ -129,7 +129,19 @@ class MenuController
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->setLocations($body), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->asJsonObject($this->menuService->setLocations($body)), 200),
         );
+    }
+
+    // A theme can register zero nav menu locations (or every location can end up unassigned in
+    // $mapping), in which case the map below is a genuinely empty PHP array. json_encode()
+    // can't tell that apart from an empty list, and would send `[]` instead of `{}`, which the
+    // CLI's `location => slug` reader then rejects as "not a JSON object". Casting to stdClass
+    // forces object encoding regardless of emptiness, the same ambiguity every PHP-to-JSON
+    // association map has to guard against explicitly.
+    /** @param array<string, null|string> $locations */
+    private function asJsonObject(array $locations): \stdClass
+    {
+        return (object) $locations;
     }
 }

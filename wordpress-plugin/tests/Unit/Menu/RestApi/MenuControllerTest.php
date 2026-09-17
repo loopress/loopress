@@ -156,7 +156,9 @@ class MenuControllerTest extends TestCase
         $response = $this->controller->get_locations();
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['primary' => 'main', 'footer' => null], $response->data);
+        // Cast to an object, not the raw array: an empty map must still encode as JSON `{}`,
+        // never `[]`, see MenuController::asJsonObject()'s own docblock.
+        $this->assertEquals((object) ['primary' => 'main', 'footer' => null], $response->data);
     }
 
     public function test_update_locations_returns_400_when_the_body_is_not_an_object(): void
@@ -190,6 +192,6 @@ class MenuControllerTest extends TestCase
         $response = $this->controller->update_locations(new WP_REST_Request(['primary' => 'main']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['primary' => 'main', 'footer' => null], $response->data);
+        $this->assertEquals((object) ['primary' => 'main', 'footer' => null], $response->data);
     }
 }
