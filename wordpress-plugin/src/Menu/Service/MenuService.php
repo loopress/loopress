@@ -172,7 +172,8 @@ class MenuService
     private function exportMenu(\WP_Term $menu): array
     {
         $warnings = [];
-        $items    = wp_get_nav_menu_items($menu->term_id) ?? [];
+        $rawItems = wp_get_nav_menu_items($menu->term_id);
+        $items    = $rawItems === false ? [] : $rawItems;
 
         $byParent = [];
         foreach ($items as $item) {
@@ -436,7 +437,8 @@ class MenuService
      */
     private function replaceItems(int $menuId, array $resolved): void
     {
-        $existing = wp_get_nav_menu_items($menuId) ?? [];
+        $rawExisting = wp_get_nav_menu_items($menuId);
+        $existing    = $rawExisting === false ? [] : $rawExisting;
 
         $createdIds = [];
         try {
