@@ -452,7 +452,10 @@ class MenuService
         }
 
         foreach ($existing as $item) {
-            wp_delete_post($item->ID, true);
+            $deleted = wp_delete_post($item->ID, true);
+            if ($deleted === false || $deleted === null) {
+                throw new \RuntimeException(esc_html('Failed to delete the original menu item.'));
+            }
         }
     }
 
@@ -470,6 +473,10 @@ class MenuService
             $itemId = wp_update_nav_menu_item($menuId, 0, [...$item['args'], 'menu-item-parent-id' => $parentId]);
             if (is_wp_error($itemId)) {
                 throw new \RuntimeException(esc_html('Failed to create menu item: ' . $itemId->get_error_message()));
+            }
+
+            if ($itemId === 0) {
+                throw new \RuntimeException(esc_html('Failed to create menu item: WordPress returned no item ID.'));
             }
 
             $createdIds[] = (int) $itemId;

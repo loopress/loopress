@@ -230,8 +230,10 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => [], 2 => []]);
 
         $deleted = [];
-        Functions\when('wp_delete_post')->alias(function (int $id) use (&$deleted): void {
+        Functions\when('wp_delete_post')->alias(function (int $id) use (&$deleted): bool {
             $deleted[] = $id;
+
+            return true;
         });
 
         $this->service->upsertMenu('main', 'Main', []);
@@ -253,8 +255,10 @@ class MenuServiceTest extends TestCase
             $calls[] = 'create';
             return 100;
         });
-        Functions\when('wp_delete_post')->alias(function () use (&$calls): void {
+        Functions\when('wp_delete_post')->alias(function () use (&$calls): bool {
             $calls[] = 'delete';
+
+            return true;
         });
 
         $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/x']]);
@@ -295,6 +299,48 @@ class MenuServiceTest extends TestCase
         } catch (\RuntimeException) {
             $this->assertSame([['create', 100], ['delete', 100]], $calls);
         }
+    }
+
+    // wp_update_nav_menu_item() returns int 0, not just WP_Error, when it fails to insert the
+    // post; treating 0 as a valid id would use it as the parent for the item's children and let
+    // replaceItems() go on to delete the originals after a replacement that never really happened.
+    public function test_upsert_menu_treats_a_zero_item_id_as_a_creation_failure(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([1 => []]);
+
+        Functions\when('wp_update_nav_menu_item')->justReturn(0);
+        $deleted = false;
+        Functions\when('wp_delete_post')->alias(function () use (&$deleted): bool {
+            $deleted = true;
+
+            return true;
+        });
+
+        try {
+            $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/a']]);
+            $this->fail('Expected a RuntimeException');
+        } catch (\RuntimeException) {
+            $this->assertFalse($deleted, 'the original item must not be deleted after a failed create');
+        }
+    }
+
+    // wp_delete_post() can return false or null on failure, not just a deleted WP_Post. Ignoring
+    // that would let upsertMenu() report success while the original item is still there
+    // alongside its freshly created replacement.
+    public function test_upsert_menu_fails_when_deleting_an_original_item_fails(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([1 => []]);
+
+        Functions\when('wp_update_nav_menu_item')->justReturn(100);
+        Functions\when('wp_delete_post')->justReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/a']]);
     }
 
     // Warned, never blocked: unlike RankMathService's redirect guard, a menu is allowed to link
