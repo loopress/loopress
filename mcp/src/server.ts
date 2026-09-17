@@ -14,6 +14,7 @@ import {registerFormTools} from './tools/form.js'
 import {registerHookTools} from './tools/hooks.js'
 import {registerOptionTools} from './tools/option.js'
 import {registerPluginTools} from './tools/plugin.js'
+import {registerPromoteTools} from './tools/promote.js'
 import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
@@ -34,6 +35,7 @@ registerPluginTools(server)
 registerThemeTools(server)
 registerComposerTools(server)
 registerBulkTools(server)
+registerPromoteTools(server)
 registerStatusTools(server)
 registerDiffTools(server)
 registerDoctorTools(server)

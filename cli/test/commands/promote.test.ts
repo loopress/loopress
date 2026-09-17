@@ -49,21 +49,23 @@ describe('promote', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = make(['staging', 'production', '--yes'])
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes'])
     expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes'])
+    expect(result).toEqual({from: 'staging', status: 'promoted', to: 'production'})
   })
 
   it('forwards --dry-run to both delegated commands and skips the confirmation', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = make(['staging', 'production', '--dry-run'])
 
-    await cmd.run()
+    const result = await cmd.run()
 
     expect(confirm).not.toHaveBeenCalled()
     expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes', '--dry-run'])
     expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--dry-run'])
+    expect(result).toEqual({from: 'staging', status: 'dry-run', to: 'production'})
   })
 
   it('errors, listing the available environments, when <from> is unknown', async () => {

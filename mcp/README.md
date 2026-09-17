@@ -86,6 +86,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
 | `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |
+| `project_promote` | Yes | `from`, `to`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 | `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
 | `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |

@@ -4,6 +4,10 @@ import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
 
+type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed'}
+
+type PushResult = {results: PushTargetResult[]}
+
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
 const PUSH_TARGETS: PushTarget[] = [
@@ -22,6 +26,7 @@ export default class Push extends LoopressCommand {
   static description =
     'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, to WordPress'
 
+  static enableJsonFlag = true
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -30,19 +35,23 @@ export default class Push extends LoopressCommand {
 
   private failedCount = 0
 
-  async run(): Promise<void> {
+  async run(): Promise<PushResult> {
     await this.guardProductionPush()
 
     const argv = this.buildArgv()
+    const results: PushTargetResult[] = []
 
     for (const target of PUSH_TARGETS) {
       this.log(`\n→ Pushing ${target.label}...`)
       try {
         await this.config.runCommand(target.commandId, argv)
         this.log(`✓ ${target.label} pushed`)
+        results.push({label: target.label, status: 'pushed'})
       } catch (error) {
         this.failedCount++
-        this.log(`✗ ${target.label} failed: ${(error as Error).message}`)
+        const {message} = error as Error
+        this.log(`✗ ${target.label} failed: ${message}`)
+        results.push({error: message, label: target.label, status: 'failed'})
       }
     }
 
@@ -51,6 +60,7 @@ export default class Push extends LoopressCommand {
     }
 
     this.log('\nAll resources pushed.')
+    return {results}
   }
 
   // Every delegated push always gets --yes: either this command's own guard already confirmed
