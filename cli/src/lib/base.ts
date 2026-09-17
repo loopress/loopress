@@ -199,6 +199,10 @@ export abstract class LoopressCommand extends Command {
     return resolveResourceDir('hooks', this.localConfig, override)
   }
 
+  protected resolveMenuPath(override?: string): string {
+    return resolveResourceDir('menu', this.localConfig, override)
+  }
+
   protected resolveOptionsPath(override?: string): string {
     return resolveResourceDir('options', this.localConfig, override)
   }

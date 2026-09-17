@@ -16,13 +16,14 @@ export type ValidateResult = {
 
 // Directories holding one JSON document per resource. Snippets (code file plus JSON sidecar)
 // and api routes (`.php`, not JSON) are checked separately.
-const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir'] as const
+const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir', 'menuDir'] as const
 
 const DEFAULT_DIR: Record<string, string> = {
   acfDir: 'acf',
   apiDir: 'api',
   formDir: 'forms',
   hooksDir: 'hooks',
+  menuDir: 'menus',
   seoDir: 'seo',
   snippetsDir: 'snippets',
 }

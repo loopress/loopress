@@ -54,6 +54,7 @@ function themeEndpoints(path: string): unknown {
 function baselineGet(composerJson = '{}') {
   return vi.fn(async (path: string) => {
     if (path === 'loopress/v1/seo/settings') return {}
+    if (path === 'loopress/v1/menu-locations') return {}
     if (path === 'loopress/v1/composer/json') return {composerJson}
     if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
     const themed = themeEndpoints(path)
@@ -78,6 +79,9 @@ describe('diff', () => {
     // SEO settings always exist server-side; a clean baseline needs the local counterpart.
     mkdirSync(join(dir, 'seo'))
     writeFileSync(join(dir, 'seo', 'settings.json'), '{}')
+    // Menu locations always exist server-side too, same reasoning as SEO settings above.
+    mkdirSync(join(dir, 'menus'))
+    writeFileSync(join(dir, 'menus', 'menu-locations.json'), '{}')
     // Same for the active theme's Global Styles.
     mkdirSync(join(dir, 'theme'))
     writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))
@@ -136,6 +140,7 @@ describe('diff', () => {
       if (path === 'loopress/v1/acf/field-groups') return [{key: 'group_1', title: 'New'}]
       if (path === 'loopress/v1/forms') return [{id: 9, settings: {form_title: 'Gone'}}]
       if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
       const themed = themeEndpoints(path)
@@ -148,7 +153,7 @@ describe('diff', () => {
 
     expect(result.resources.acf.changed.map((c) => c.id)).toEqual(['field-groups/group_1'])
     expect(result.resources.form.removed).toEqual(['9'])
-    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('9 compared: 1 changed, 0 added, 1 removed'))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('10 compared: 1 changed, 0 added, 1 removed'))
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('~ field-groups/group_1'))
   })
 
@@ -156,6 +161,7 @@ describe('diff', () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/snippets') throw new Error('boom')
       if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
       const themed = themeEndpoints(path)
@@ -173,8 +179,8 @@ describe('diff', () => {
     expect(result.drift).toBe(false)
     expect(result.resources.form.added).toEqual([]) // the other resources still ran
     expect(process.exitCode).toBe(2) // 2 = inconclusive, distinct from 1 = drift
-    // 8, not 9: the failed resource is excluded from "compared".
-    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('8 compared: 0 changed, 0 added, 0 removed'))
+    // 9, not 10: the failed resource is excluded from "compared".
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('9 compared: 0 changed, 0 added, 0 removed'))
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('inconclusive'))
   })
 
@@ -242,6 +248,7 @@ describe('diff', () => {
       if (path === 'loopress/v1/composer/json') return {composerJson: '{"a":1}\n'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
       if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/menu-locations') return {}
       const themed = themeEndpoints(path)
       if (themed !== undefined) return themed
       return []

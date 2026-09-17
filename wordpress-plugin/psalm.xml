@@ -55,6 +55,9 @@
                 <!-- OptionsController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Options/RestApi" />
+                <!-- MenuController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above. -->
+                <directory name="src/Menu/RestApi" />
                 <!-- AbstractFilesController::list_files()/push_file() are the shared base of
                      ApiFilesController and HookFilesController above: invoked by
                      register_rest_route() (through each subclass's register_routes()), never a
@@ -69,6 +72,7 @@
                 <referencedMethod name="Loopress\Acf\Module\AcfModule::__construct" />
                 <referencedMethod name="Loopress\Seo\Module\SeoModule::__construct" />
                 <referencedMethod name="Loopress\Options\Module\OptionsModule::__construct" />
+                <referencedMethod name="Loopress\Menu\Module\MenuModule::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />

@@ -114,11 +114,24 @@ if (!class_exists('WP_Post')) {
     class WP_Post
     {
         public int $ID = 0;
+        public int $menu_order = 0;
         public string $post_content = '';
+        public string $post_excerpt = '';
         public string $post_name = '';
         public string $post_status = 'draft';
         public string $post_title = '';
         public string $post_type = 'post';
+    }
+}
+
+if (!class_exists('WP_Term')) {
+    class WP_Term
+    {
+        public string $description = '';
+        public string $name = '';
+        public string $slug = '';
+        public string $taxonomy = '';
+        public int $term_id = 0;
     }
 }
 

@@ -21,13 +21,14 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
   {commandId: 'seo:pull', label: 'SEO', supportsYes: true},
+  {commandId: 'menu:pull', label: 'menus', supportsYes: true},
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', supportsYes: true},
 ]
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, from WordPress'
+    'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, menus, options, and snippets, from WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
