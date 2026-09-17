@@ -3,17 +3,13 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
+import {confirmTokenFlag, envFlag} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
-const envFlag = z.string().optional().describe('Target environment by name, overriding the globally active one')
 const pathArg = z.string().optional().describe('Path to the apps directory (overrides project config)')
 const nameArg = z.string().describe('App name (the apps/<name>/ directory)')
 const optionalNameArg = z.string().optional().describe('Push only this app (defaults to every app in the directory)')
-const confirmTokenFlag = z
-  .string()
-  .optional()
-  .describe('Token from a prior preview call of this same tool, to apply it for real')
 
 export function registerAppTools(server: McpServer): void {
   server.registerTool(
