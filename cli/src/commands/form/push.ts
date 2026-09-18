@@ -5,6 +5,7 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
@@ -39,6 +40,9 @@ export default class Push extends PushCommand {
     this.log(`Pushing forms to ${url}`)
     this.log(`Forms path: ${path}`)
 
+    const provider = getResourceStateProvider('form')
+    const beforeState = await this.captureBeforePushState(provider, path)
+
     const files = await this.loadFiles(path)
     this.log(`Found ${pluralize(files.length, 'form')} to push`)
 
@@ -47,6 +51,8 @@ export default class Push extends PushCommand {
       ({data}) => getFormTitle(data),
       async ({data, filePath}, task) => this.pushForm(filePath, data, task),
     )
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)

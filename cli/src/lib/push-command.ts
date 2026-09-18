@@ -1,16 +1,43 @@
 import got from 'got'
 import {Listr} from 'listr2'
+import {resolve} from 'node:path'
 
 import {authManager} from '../config/auth.manager.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
+import {type ResourceState} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
+import {type ResourceStateProvider} from './resource-state.js'
+import {writeSnapshot} from './snapshot-store.js'
 
 export abstract class PushCommand extends LoopressCommand {
   protected failedCount = 0
   // Refusals of the production guard never reach the site, so they must not pollute the
   // deployment history with failure records.
   private refusedByGuard = false
+
+  // Reads `provider`'s remote state right before a real push, for `writeAfterPushSnapshot` to
+  // pair with the actual post-push remote state once the push completes. A dry run changes
+  // nothing, so there is nothing to snapshot. Best-effort: a read failure (the site briefly
+  // unreachable) must never block the push itself, the same "never interrupt the push flow"
+  // stance recordDeployment takes; `undefined` tells `writeAfterPushSnapshot` there is no
+  // restore point to complete.
+  protected async captureBeforePushState(provider: ResourceStateProvider, dir: string): Promise<ResourceState | undefined> {
+    if (this.dryRun) return undefined
+
+    try {
+      return await provider.remote(
+        this.wp,
+        (message) => {
+          this.warn(message)
+        },
+        dir,
+      )
+    } catch (error) {
+      this.warn(`Could not read remote state for a rollback snapshot: ${(error as Error).message}`)
+      return undefined
+    }
+  }
 
   async catch(err: Error): Promise<void> {
     if (!this.dryRun && !this.refusedByGuard && this.siteConfig) {
@@ -86,5 +113,37 @@ export abstract class PushCommand extends LoopressCommand {
       })),
       {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
+  }
+
+  // Pairs `beforeState` (from captureBeforePushState, read before this push touched anything)
+  // with a fresh remote read taken right after the push, and writes both as one rollback
+  // snapshot. Reading the after-state from WordPress itself, rather than assuming it matches
+  // the local files that were pushed, is what keeps this correct for every resource's own
+  // partial-push semantics: a readonly option skipped by `option push`, a snippet or SEO
+  // redirect that gets a server-assigned id on create, a theme-styles push that only touches the
+  // active stylesheet, an API/hook push that leaves server-side files alone unless `--prune`.
+  // `lps <resource> rollback`'s drift check compares the environment's state at rollback time
+  // against exactly this after-state, so it has to be what actually landed, not what was sent.
+  protected async writeAfterPushSnapshot(provider: ResourceStateProvider, dir: string, beforeState: ResourceState | undefined): Promise<void> {
+    if (!beforeState || this.dryRun) return
+
+    try {
+      const afterState = await provider.remote(
+        this.wp,
+        (message) => {
+          this.warn(message)
+        },
+        dir,
+      )
+      await writeSnapshot({
+        afterState,
+        beforeState,
+        environment: this.siteConfig.name,
+        resource: provider.resource,
+        rootDir: resolve(process.cwd(), this.rootDir),
+      })
+    } catch (error) {
+      this.warn(`Could not save a rollback snapshot after this push: ${(error as Error).message}`)
+    }
   }
 }

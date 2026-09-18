@@ -2,6 +2,7 @@ import {Args} from '@oclif/core'
 
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, partitionByReadonly} from '../../utils/option-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -35,6 +36,9 @@ export default class Push extends PushCommand {
     this.log(`Pushing tracked options to ${url}`)
     this.log(`Options path: ${dir}`)
 
+    const provider = getResourceStateProvider('option')
+    const beforeState = await this.captureBeforePushState(provider, dir)
+
     const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',
       onSkip: (message) => {
@@ -61,6 +65,8 @@ export default class Push extends PushCommand {
         pushed.push(option.name)
       },
     )
+
+    await this.writeAfterPushSnapshot(provider, dir, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'option')} failed to push.`)

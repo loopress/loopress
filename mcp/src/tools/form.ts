@@ -11,5 +11,6 @@ export function registerFormTools(server: McpServer): void {
     },
     pathNoun: 'forms directory',
     resource: 'form',
+    supportsRollback: true,
   })
 }

@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -31,4 +31,6 @@ export function registerThemeStylesTools(server: McpServer): void {
     },
     async ({env, path}) => toCallToolResult(unwrap(await runLps(buildArgs(['theme-styles', 'pull'], {env, path})))),
   )
+
+  registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme-styles', toolName: 'theme_styles'})
 }

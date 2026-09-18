@@ -5,6 +5,7 @@ import {basename, dirname, extname, join} from 'node:path'
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {type LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {type Snippet} from '../../types/snippet.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -44,6 +45,9 @@ export default class Push extends PushCommand {
     this.log(`Pushing snippets to ${url}`)
     this.log(`Snippets path: ${path}`)
 
+    const provider = getResourceStateProvider('snippet')
+    const beforeState = await this.captureBeforePushState(provider, path)
+
     const snippets = await this.loadSnippets(path)
     this.log(`Found ${pluralize(snippets.length, 'snippet')} to push`)
 
@@ -57,6 +61,8 @@ export default class Push extends PushCommand {
         pushed.push({id, name: snippet.name})
       },
     )
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'snippet')} failed to push.`)

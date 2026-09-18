@@ -13,6 +13,7 @@ import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
 import {PushCommand} from './push-command.js'
+import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404} from './wp-client.js'
 
 // api/ and hooks/ are the same thing from the CLI's point of view: a recursive directory of
@@ -148,6 +149,9 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       this.log(`Pushing ${spec.label} to ${url}`)
       this.log(`${spec.pathLabel} path: ${path}`)
 
+      const provider = getResourceStateProvider(spec.cliName)
+      const beforeState = await this.captureBeforePushState(provider, path)
+
       const files = await this.loadFiles(path)
       this.log(`Found ${pluralize(files.length, spec.noun)} to push`)
 
@@ -173,7 +177,11 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         )
       }
 
+      // After prune (not before): a pruned file's removal is part of what this push actually
+      // did to the environment, so the rollback snapshot's after-state should reflect it too.
       const pruned = flags.prune ? await this.prune(new Set(files.map((file) => file.filename))) : []
+
+      await this.writeAfterPushSnapshot(provider, path, beforeState)
 
       if (this.dryRun) return {pruned, pushed, status: 'dry-run'}
 
