@@ -75,7 +75,10 @@ test("push, break something, roll back, and land back on the exact prior state",
 	// Roll back: nothing else touched the environment since the v2 push, so this proceeds
 	// without needing a drift confirmation.
 	const rollback = await runCli(["snippet", "rollback", "--yes"]);
-	expect(rollback.exitCode).toBe(0);
+	expect(
+		rollback.exitCode,
+		`stdout:\n${rollback.stdout}\n\nstderr:\n${rollback.stderr}`,
+	).toBe(0);
 	expect(rollback.stdout).toContain("Rolled back");
 
 	// The environment is back to exactly v1: same name, same code, on WordPress...
