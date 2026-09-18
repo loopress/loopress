@@ -13,7 +13,10 @@ function sortKeysDeep(value: unknown): unknown {
 
   if (value !== null && typeof value === 'object') {
     const sorted: Record<string, unknown> = {}
-    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+    // Explicit comparator: the default `.sort()` would already order these correctly (object
+    // keys are always strings), but is ordinal by UTF-16 code unit, not locale-aware, and this
+    // is exactly what the ordering needs to stay deterministic across environments/locales.
+    for (const key of Object.keys(value as Record<string, unknown>).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
       sorted[key] = sortKeysDeep((value as Record<string, unknown>)[key])
     }
 
