@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {runLps} from '../../src/lib/run-lps.js'
 import {runMutatingTool} from '../../src/lib/mutating-tool.js'
+import {registerRollbackTool} from '../../src/lib/resource-tools.js'
 import {createSnapshot, removeSnapshot} from '../../src/lib/snapshot.js'
 
 vi.mock('../../src/lib/run-lps.js', () => ({runLps: vi.fn()}))
@@ -12,6 +13,20 @@ const mockedCreateSnapshot = vi.mocked(createSnapshot)
 const mockedRemoveSnapshot = vi.mocked(removeSnapshot)
 
 const SNAP = '/tmp/loopress-mcp-test-snapshot'
+
+type ToolHandler = (input: Record<string, unknown>) => Promise<{content: Array<{text: string}>; isError: boolean}>
+
+// Mirrors resource-tools.test.ts's fakeServer(): captures the handler `registerRollbackTool`
+// registers, without needing a real McpServer.
+function fakeServer() {
+  const tools = new Map<string, ToolHandler>()
+  const server = {
+    registerTool(name: string, _def: unknown, handler: ToolHandler) {
+      tools.set(name, handler)
+    },
+  }
+  return {server: server as never, tools}
+}
 
 describe('runMutatingTool', () => {
   beforeEach(() => {
@@ -126,5 +141,35 @@ describe('runMutatingTool', () => {
     expect(applied).toEqual({error: {message: 'Site unreachable', name: 'Error'}, status: 'error'})
     expect(mockedRunLps).toHaveBeenCalledTimes(2)
     expect(mockedRemoveSnapshot).toHaveBeenCalledWith(SNAP)
+  })
+
+  // Through the real registerRollbackTool handler (not runMutatingTool called directly), so this
+  // also exercises rollback tool registration and its argv construction (buildArgs + --yes), not
+  // just the shared revalidation mechanism the tests above cover in isolation.
+  it('a registered rollback tool refuses its confirmed call when drift reappears between preview and confirm', async () => {
+    const {server, tools} = fakeServer()
+    registerRollbackTool(server, {pathNoun: 'snippets directory', resource: 'snippet'})
+    const snippetRollback = tools.get('snippet_rollback')!
+
+    mockedRunLps.mockResolvedValueOnce({data: {drift: undefined, status: 'dry-run'}, ok: true})
+    const preview = await snippetRollback({})
+    expect(mockedRunLps).toHaveBeenNthCalledWith(1, ['snippet', 'rollback', '--yes', '--dry-run'], {cwd: SNAP})
+    const {confirmToken} = JSON.parse(preview.content[0].text) as {confirmToken: string}
+
+    // Something else touched the environment between preview and confirm.
+    mockedRunLps.mockResolvedValueOnce({
+      data: {drift: {added: [], changed: ['9'], removed: []}, status: 'dry-run'},
+      ok: true,
+    })
+    const confirmed = await snippetRollback({confirmToken})
+
+    expect(confirmed.isError).toBe(true)
+    expect(JSON.parse(confirmed.content[0].text)).toEqual({
+      error: {message: expect.any(String), name: 'STALE_PREVIEW'},
+      status: 'error',
+    })
+    // Two dry-runs only: the confirmed call never reached the real (non-dry-run) apply.
+    expect(mockedRunLps).toHaveBeenCalledTimes(2)
+    expect(mockedRunLps).toHaveBeenNthCalledWith(2, ['snippet', 'rollback', '--yes', '--dry-run'], {cwd: SNAP})
   })
 })

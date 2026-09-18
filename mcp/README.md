@@ -128,11 +128,17 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
    (e.g. a rollback's `drift` field has changed because something else touched the environment
    since), the call is refused (`STALE_PREVIEW`) instead of applying against stale data, call
    again without `confirmToken` for a fresh preview. Otherwise it runs the real command, using the
-   args captured at preview time, not whatever the second call resends, so what gets applied can
-   never drift from what was previewed.
+   args and local files captured at preview time, not whatever the second call resends or whatever
+   is on disk by then, so those two inputs can never drift from what was previewed.
 
 There is no way to skip the preview and apply in one call, including against a `production`
-environment: no tool schema exposes a flag for it.
+environment: no tool schema exposes a flag for it. One residual gap: the revalidation dry-run and
+the real apply are still two separate requests, not one atomic check-and-write, so a WordPress
+change landing in that narrow window between them (rather than during the, typically much longer,
+preview-to-confirm window the revalidation above guards) can still be overwritten. Closing that
+fully needs a conditional write (an ETag/revision precondition on the underlying PUT/POST, enforced
+by WordPress itself), a materially larger change to the CLI's own HTTP client shared by every
+resource push, tracked separately (loopress#234).
 
 ## Resource
 

@@ -5,7 +5,11 @@
 // JSON.stringify's key order follows insertion order, which is stable for values built by our
 // own code but not guaranteed in general, so keys are sorted recursively before stringifying.
 export function fingerprintPreview(data: unknown): string {
-  return JSON.stringify(sortKeysDeep(data))
+  // JSON.stringify(undefined) is `undefined`, not a string (lib.es5.d.ts's `string` return type
+  // doesn't reflect that). Every real caller's `data` comes from JSON.parse()-ing a CLI's JSON
+  // output, which can never itself be undefined, but the parameter here is `unknown`, so a
+  // defined fallback keeps the contract honest for any other caller.
+  return JSON.stringify(sortKeysDeep(data)) ?? 'undefined'
 }
 
 function sortKeysDeep(value: unknown): unknown {

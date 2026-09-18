@@ -36,4 +36,8 @@ describe('fingerprintPreview', () => {
     expect(fingerprintPreview('status')).toBe('"status"')
     expect(fingerprintPreview({a: undefined, b: 1})).toBe(fingerprintPreview({b: 1}))
   })
+
+  it('always returns a string, even for a top-level undefined (JSON.stringify(undefined) is not a string)', () => {
+    expect(fingerprintPreview(undefined)).toBe('undefined')
+  })
 })
