@@ -136,7 +136,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7, {name: 'New name'})])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      const dir = argv![1]
+      const dir = argv![0]
       materializedFiles = readdirSync(dir)
       return {}
     })
@@ -148,7 +148,7 @@ describe('snippet rollback', () => {
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
     const [commandId, argv] = vi.mocked(fakeOclifConfig.runCommand).mock.calls[0]
     expect(commandId).toBe('snippet:push')
-    expect(argv).toEqual(['--path', expect.any(String), '--env', 'staging', '--yes'])
+    expect(argv).toEqual([expect.any(String), '--env', 'staging', '--yes'])
     // The temp dir materialized the old, pre-push name.
     expect(materializedFiles.some((file) => file.includes('old-name'))).toBe(true)
   })
@@ -174,7 +174,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7, {name: 'New name'}), remoteRow(9, {name: 'Unrelated', type: 'js'})])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      materializedFiles = readdirSync(argv![1])
+      materializedFiles = readdirSync(argv![0])
       return {}
     })
     const {cmd} = make([], get)
@@ -197,7 +197,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7)])
     let capturedDir = ''
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      capturedDir = argv![1]
+      capturedDir = argv![0]
       expect(existsSync(capturedDir)).toBe(true)
       return {}
     })
@@ -311,7 +311,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7)])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      const dir = argv![1]
+      const dir = argv![0]
       materializedFiles = readdirSync(dir)
       return {}
     })

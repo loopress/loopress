@@ -157,10 +157,12 @@ export function resourceRollbackCommand(resource: string, options: {description:
       const tmpDir = await mkdtemp(join(tmpdir(), `loopress-rollback-${resource}-`))
       try {
         await materializeSnapshot(resource, stateToRestore, tmpDir)
-        // --env/--yes: the production guard and the drift confirmation above already covered
-        // what the delegated push's own guard would ask again, same reasoning as the top-level
-        // `lps push` delegating to each resource's push command in commands/push.ts.
-        await this.config.runCommand(`${resource}:push`, ['--path', tmpDir, '--env', this.siteConfig.name, '--yes'])
+        // tmpDir is positional (the same [PATH] arg every resource push command takes, see e.g.
+        // commands/snippet/push.ts's `static args`), not a --path flag. --env/--yes: the
+        // production guard and the drift confirmation above already covered what the delegated
+        // push's own guard would ask again, same reasoning as the top-level `lps push`
+        // delegating to each resource's push command in commands/push.ts.
+        await this.config.runCommand(`${resource}:push`, [tmpDir, '--env', this.siteConfig.name, '--yes'])
       } finally {
         // A cleanup failure here must never hide a real error from the push above: warn about
         // it and let the original error (if any) keep propagating instead of being replaced.
