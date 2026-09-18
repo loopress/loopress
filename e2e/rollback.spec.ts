@@ -91,7 +91,10 @@ test("push, break something, roll back, and land back on the exact prior state",
 	expect(pull.exitCode).toBe(0);
 	const restored = readSidecars(snippetsDir).find((snippet) => snippet.id === v1Id);
 	expect(restored?.name).toBe(nameV1);
-	expect(restored?.code.trim()).toBe('echo "version one";');
+	// `snippet pull` re-adds the `<?php` opening tag WordPress doesn't store (see
+	// buildSnippetFile in cli/src/utils/snippet-format.ts), so compare against that, not the
+	// bare body.
+	expect(restored?.code.trim()).toBe('<?php\n\necho "version one";');
 });
 
 test("rollback --list reports the snapshot written by the previous push", async ({
