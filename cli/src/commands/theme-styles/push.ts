@@ -45,11 +45,14 @@ export default class Push extends PushCommand {
       return
     }
 
-    await this.snapshotBeforePush(getResourceStateProvider('theme-styles'), dir)
+    const provider = getResourceStateProvider('theme-styles')
+    const beforeState = await this.captureBeforePushState(provider, dir)
 
     const local = JSON.parse(raw) as {settings?: Record<string, unknown>; styles?: Record<string, unknown>}
     await this.wp.post(globalStylesEndpoint(id), {settings: local.settings ?? {}, styles: local.styles ?? {}})
     this.log(`Pushed: ${file}`)
+
+    await this.writeAfterPushSnapshot(provider, dir, beforeState)
 
     await this.recordSuccess()
   }

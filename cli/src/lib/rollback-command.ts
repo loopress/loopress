@@ -4,6 +4,7 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join, resolve} from 'node:path'
 
+import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type StateDiff} from './diff-state.js'
@@ -16,6 +17,11 @@ import {listSnapshots, readSnapshot, recordToState, type SnapshotSummary} from '
 const c = ux.colorize
 
 export type RollbackResult = {
+  // Present only when the environment's current state didn't match what the original push
+  // expected to leave behind, i.e. something else touched it since. Surfaced in the structured
+  // (--json/MCP) result too, not just the human-readable log, so a caller reviewing a preview
+  // (the MCP confirmToken handshake's first call) can actually see it before confirming.
+  drift?: {added: string[]; changed: string[]; removed: string[]}
   id?: string
   restored?: {added: string[]; changed: string[]; removed: string[]}
   snapshots?: SnapshotSummary[]
@@ -72,7 +78,7 @@ export function resourceRollbackCommand(resource: string, options: {description:
       const rootDir = resolve(process.cwd(), this.rootDir)
 
       if (flags.list) {
-        const snapshots = await listSnapshots(rootDir, resource)
+        const snapshots = await listSnapshots(rootDir, resource, this.siteConfig.name)
         this.renderList(snapshots)
         return {snapshots, status: 'listed'}
       }
@@ -81,7 +87,7 @@ export function resourceRollbackCommand(resource: string, options: {description:
 
       let snapshot
       try {
-        snapshot = await readSnapshot(rootDir, resource, flags.to)
+        snapshot = await readSnapshot(rootDir, resource, this.siteConfig.name, flags.to)
       } catch (error) {
         this.error((error as Error).message)
       }
@@ -110,7 +116,8 @@ export function resourceRollbackCommand(resource: string, options: {description:
         right: 'current',
       })
 
-      if (!isEmptyDiff(drift)) {
+      const driftSummary = isEmptyDiff(drift) ? undefined : summarize(drift)
+      if (driftSummary) {
         this.renderDiff(`${provider.title} has changed on ${this.siteConfig.url} since that push:`, drift)
         await this.confirmDespiteDrift()
       }
@@ -120,13 +127,23 @@ export function resourceRollbackCommand(resource: string, options: {description:
 
       if (isEmptyDiff(restoreDiff)) {
         this.log('Nothing to restore, the environment already matches this snapshot.')
-        return {id: snapshot.id, restored: summarize(restoreDiff), status: 'no-op'}
+        return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'no-op'}
       }
 
       this.renderDiff(`This would restore ${provider.title} to:`, restoreDiff)
 
+      // `<resource> push` only creates and updates, it never deletes (see each resource's own
+      // push command, e.g. option push's "upsert only, never deletes an untracked option"):
+      // an item present now but absent from the snapshot stays present after "restoring" it.
+      if (restoreDiff.removed.length > 0) {
+        this.warn(
+          `${pluralize(restoreDiff.removed.length, 'item')} present now but not in this snapshot will NOT be removed ` +
+            `(${restoreDiff.removed.join(', ')}): restoring only creates and updates, the same as \`lps ${resource} push\`. Remove ${restoreDiff.removed.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
+        )
+      }
+
       if (this.dryRun) {
-        return {id: snapshot.id, restored: summarize(restoreDiff), status: 'dry-run'}
+        return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'dry-run'}
       }
 
       const tmpDir = await mkdtemp(join(tmpdir(), `loopress-rollback-${resource}-`))
@@ -137,11 +154,15 @@ export function resourceRollbackCommand(resource: string, options: {description:
         // `lps push` delegating to each resource's push command in commands/push.ts.
         await this.config.runCommand(`${resource}:push`, ['--path', tmpDir, '--env', this.siteConfig.name, '--yes'])
       } finally {
-        await rm(tmpDir, {force: true, recursive: true})
+        // A cleanup failure here must never hide a real error from the push above: warn about
+        // it and let the original error (if any) keep propagating instead of being replaced.
+        await rm(tmpDir, {force: true, recursive: true}).catch((error: unknown) => {
+          this.warn(`Could not remove the temporary directory "${tmpDir}": ${(error as Error).message}`)
+        })
       }
 
       this.log(`Rolled back ${provider.title} to the snapshot from ${snapshot.createdAt}.`)
-      return {id: snapshot.id, restored: summarize(restoreDiff), status: 'success'}
+      return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'success'}
     }
 
     private async confirmDespiteDrift(): Promise<void> {
@@ -176,13 +197,15 @@ export function resourceRollbackCommand(resource: string, options: {description:
       if (this.jsonEnabled()) return
 
       if (snapshots.length === 0) {
-        this.log(`No snapshots found for "${resource}". A snapshot is written automatically by \`lps ${resource} push\`.`)
+        this.log(
+          `No snapshots found for "${resource}" on "${this.siteConfig.name}". A snapshot is written automatically by \`lps ${resource} push\`.`,
+        )
         return
       }
 
-      this.log(`Snapshots for "${resource}" (most recent first):`)
+      this.log(`Snapshots for "${resource}" on "${this.siteConfig.name}" (most recent first):`)
       for (const snapshot of snapshots) {
-        this.log(`  ${snapshot.id}  ${snapshot.createdAt}  ${snapshot.environment}`)
+        this.log(`  ${snapshot.id}  ${snapshot.createdAt}`)
       }
     }
   }

@@ -33,16 +33,29 @@ export function recordToState(record: Record<string, unknown>): ResourceState {
   return new Map(Object.entries(record))
 }
 
-function snapshotsDir(rootDir: string, resource: string): string {
-  return join(rootDir, '.loopress', 'snapshots', resource)
+// Environment names are free text (whatever `lps project config` was given), not guaranteed to
+// be filesystem-safe path segments; anything outside a conservative safe set becomes '-'.
+function sanitizeForPath(name: string): string {
+  return name.replaceAll(/[^\w-]/g, '-')
 }
 
-function snapshotPath(rootDir: string, resource: string, id: string): string {
-  return join(snapshotsDir(rootDir, resource), `${id}.json`)
+// Scoped by environment, not just resource: a project with multiple environments (staging,
+// production, ...) sharing one rootDir must never let a staging push's snapshot answer a
+// production rollback, or a staging push's retention prune a production restore point.
+function snapshotsDir(rootDir: string, resource: string, environment: string): string {
+  return join(rootDir, '.loopress', 'snapshots', resource, sanitizeForPath(environment))
+}
+
+function snapshotPath(rootDir: string, resource: string, environment: string, id: string): string {
+  return join(snapshotsDir(rootDir, resource, environment), `${id}.json`)
 }
 
 function isEnoent(error: unknown): boolean {
   return (error as NodeJS.ErrnoException).code === 'ENOENT'
+}
+
+function isEexist(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException).code === 'EEXIST'
 }
 
 // Snapshot ids are the millisecond timestamp they were written at: sortable, unique enough for
@@ -51,9 +64,14 @@ function isSnapshotFilename(name: string): boolean {
   return /^\d+\.json$/.test(name)
 }
 
-// Writes a snapshot for `resource`, then prunes down to `retain` (oldest first), so a project
-// that pushes often never accumulates an unbounded `.loopress/snapshots/` directory. Returns
-// the new snapshot's id.
+// Writes a snapshot for `resource`/`environment`, then prunes down to `retain` (oldest first),
+// so a project that pushes often never accumulates an unbounded `.loopress/snapshots/`
+// directory. Returns the new snapshot's id.
+//
+// Ids are millisecond timestamps; two pushes of the same resource/environment landing in the
+// same millisecond (only realistic from concurrent processes, never a single sequential CLI
+// run) would otherwise silently overwrite one restore point with another. `wx` (exclusive
+// create) turns that into a detected collision instead, retried against the next millisecond.
 export async function writeSnapshot(options: {
   afterState: ResourceState
   beforeState: ResourceState
@@ -63,10 +81,9 @@ export async function writeSnapshot(options: {
   rootDir: string
 }): Promise<string> {
   const {afterState, beforeState, environment, resource, retain = SNAPSHOT_RETENTION, rootDir} = options
-  const dir = snapshotsDir(rootDir, resource)
+  const dir = snapshotsDir(rootDir, resource, environment)
   await mkdir(dir, {recursive: true})
 
-  const id = String(Date.now())
   const snapshot: Snapshot = {
     afterState: stateToRecord(afterState),
     beforeState: stateToRecord(beforeState),
@@ -74,17 +91,28 @@ export async function writeSnapshot(options: {
     environment,
     resource,
   }
+  const content = JSON.stringify(snapshot, null, 2) + '\n'
 
-  await writeFile(join(dir, `${id}.json`), JSON.stringify(snapshot, null, 2) + '\n')
-  await pruneSnapshots(rootDir, resource, retain)
-  return id
+  let id = Date.now()
+  for (;;) {
+    try {
+      await writeFile(join(dir, `${id}.json`), content, {flag: 'wx'})
+      break
+    } catch (error) {
+      if (!isEexist(error)) throw error
+      id += 1
+    }
+  }
+
+  await pruneSnapshots(rootDir, resource, environment, retain)
+  return String(id)
 }
 
 // Newest first. A missing snapshots directory (never pushed, or pruned to nothing) reads as
 // "no snapshots", not an error, the same ENOENT tolerance every resource-state provider gives
 // a never-pulled local directory.
-export async function listSnapshots(rootDir: string, resource: string): Promise<SnapshotSummary[]> {
-  const dir = snapshotsDir(rootDir, resource)
+export async function listSnapshots(rootDir: string, resource: string, environment: string): Promise<SnapshotSummary[]> {
+  const dir = snapshotsDir(rootDir, resource, environment)
 
   let entries: string[]
   try {
@@ -110,15 +138,18 @@ export async function listSnapshots(rootDir: string, resource: string): Promise<
   return summaries.sort((a, b) => Number(b.id) - Number(a.id))
 }
 
-// `id` undefined reads the most recent snapshot (the common `lps <resource> rollback` case).
-// Throws a message ready to show the user directly: no snapshots at all, or that specific id
-// missing (renamed, deleted, or from a different resource's directory).
-export async function readSnapshot(rootDir: string, resource: string, id?: string): Promise<Snapshot & {id: string}> {
+// `id` undefined reads the most recent snapshot for this environment (the common
+// `lps <resource> rollback` case). Throws a message ready to show the user directly: no
+// snapshots at all for this environment, or that specific id missing (renamed, deleted, or
+// written under a different resource/environment).
+export async function readSnapshot(rootDir: string, resource: string, environment: string, id?: string): Promise<Snapshot & {id: string}> {
   let targetId = id
   if (targetId === undefined) {
-    const [latest] = await listSnapshots(rootDir, resource)
+    const [latest] = await listSnapshots(rootDir, resource, environment)
     if (!latest) {
-      throw new Error(`No snapshots found for "${resource}". A snapshot is written automatically by \`lps ${resource} push\`.`)
+      throw new Error(
+        `No snapshots found for "${resource}" on "${environment}". A snapshot is written automatically by \`lps ${resource} push\`.`,
+      )
     }
 
     targetId = latest.id
@@ -126,12 +157,13 @@ export async function readSnapshot(rootDir: string, resource: string, id?: strin
 
   let raw: string
   try {
-    raw = await readFile(snapshotPath(rootDir, resource, targetId), 'utf8')
+    raw = await readFile(snapshotPath(rootDir, resource, environment, targetId), 'utf8')
   } catch (error) {
     if (isEnoent(error)) {
-      throw new Error(`Snapshot "${targetId}" not found for "${resource}". Run \`lps ${resource} rollback --list\` to see what's available.`, {
-        cause: error,
-      })
+      throw new Error(
+        `Snapshot "${targetId}" not found for "${resource}" on "${environment}". Run \`lps ${resource} rollback --list\` to see what's available.`,
+        {cause: error},
+      )
     }
 
     throw error
@@ -140,8 +172,8 @@ export async function readSnapshot(rootDir: string, resource: string, id?: strin
   return {...(JSON.parse(raw) as Snapshot), id: targetId}
 }
 
-export async function pruneSnapshots(rootDir: string, resource: string, retain: number): Promise<void> {
-  const summaries = await listSnapshots(rootDir, resource)
+export async function pruneSnapshots(rootDir: string, resource: string, environment: string, retain: number): Promise<void> {
+  const summaries = await listSnapshots(rootDir, resource, environment)
   const stale = summaries.slice(retain)
-  await Promise.all(stale.map(async (summary) => rm(snapshotPath(rootDir, resource, summary.id), {force: true})))
+  await Promise.all(stale.map(async (summary) => rm(snapshotPath(rootDir, resource, environment, summary.id), {force: true})))
 }

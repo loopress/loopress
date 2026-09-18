@@ -289,4 +289,71 @@ describe('snippet rollback', () => {
     expect(result.id).toBe(older)
     expect(materializedFiles.some((file) => file.includes('from-the-older-snapshot'))).toBe(true)
   })
+
+  it('includes the drift in the structured result, not just the log, so a JSON/MCP caller can see it before confirming', async () => {
+    await writeSnapshot({
+      afterState: new Map([['7', canonical({name: 'Expected after push'})]]),
+      beforeState: new Map([['7', canonical({name: 'Before push'})]]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    const get = vi.fn(async () => [remoteRow(7, {name: 'Changed by someone else'})])
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make(['--yes'], get, {yes: true})
+
+    const result = await cmd.run()
+
+    expect(result.drift?.changed).toEqual(['7'])
+  })
+
+  it('has no drift field when the environment matches what the push expected to leave behind', async () => {
+    await writeSnapshot({
+      afterState: new Map([['7', canonical({name: 'New name'})]]),
+      beforeState: new Map([['7', canonical({name: 'Old name'})]]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    const get = vi.fn(async () => [remoteRow(7, {name: 'New name'})])
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make([], get)
+
+    const result = await cmd.run()
+
+    expect(result.drift).toBeUndefined()
+  })
+
+  it('warns that an item absent from the snapshot will not be removed, since restoring only creates and updates', async () => {
+    await writeSnapshot({
+      afterState: new Map([
+        ['7', canonical()],
+        ['9', canonical({name: 'Added after the push'})],
+      ]),
+      beforeState: new Map([['7', canonical()]]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    const get = vi.fn(async () => [remoteRow(7), remoteRow(9, {name: 'Added after the push'})])
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make([], get)
+
+    await cmd.run()
+
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('will NOT be removed'))
+  })
+
+  it('scopes snapshots by environment: a production rollback never sees a staging snapshot', async () => {
+    await writeSnapshot({
+      afterState: new Map([['7', canonical()]]),
+      beforeState: new Map([['7', canonical({name: 'Staging restore point'})]]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    const {cmd} = make([], vi.fn(), {siteConfig: makeEnv('production', 'https://acme.com')})
+
+    await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet" on "production"/)
+  })
 })

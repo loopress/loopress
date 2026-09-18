@@ -47,11 +47,14 @@ export default class Push extends PushCommand {
     this.log(`Pushing SEO configuration to ${url}`)
     this.log(`SEO path: ${path}`)
 
-    await this.snapshotBeforePush(getResourceStateProvider('seo'), path)
+    const provider = getResourceStateProvider('seo')
+    const beforeState = await this.captureBeforePushState(provider, path)
 
     await this.pushSettings(path)
     await this.pushPostMeta(path)
     await this.pushRedirects(path)
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'SEO item')} failed to push.`)

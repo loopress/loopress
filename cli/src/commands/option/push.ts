@@ -36,7 +36,8 @@ export default class Push extends PushCommand {
     this.log(`Pushing tracked options to ${url}`)
     this.log(`Options path: ${dir}`)
 
-    await this.snapshotBeforePush(getResourceStateProvider('option'), dir)
+    const provider = getResourceStateProvider('option')
+    const beforeState = await this.captureBeforePushState(provider, dir)
 
     const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',
@@ -64,6 +65,8 @@ export default class Push extends PushCommand {
         pushed.push(option.name)
       },
     )
+
+    await this.writeAfterPushSnapshot(provider, dir, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'option')} failed to push.`)

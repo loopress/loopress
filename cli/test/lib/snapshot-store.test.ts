@@ -1,7 +1,7 @@
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {listSnapshots, readSnapshot, recordToState, stateToRecord, writeSnapshot} from '../../src/lib/snapshot-store.js'
 
@@ -46,7 +46,7 @@ describe('snapshot-store', () => {
 
     const id = await writeSnapshot({afterState, beforeState, environment: 'staging', resource: 'snippet', rootDir})
 
-    const snapshot = await readSnapshot(rootDir, 'snippet', id)
+    const snapshot = await readSnapshot(rootDir, 'snippet', 'staging', id)
     expect(snapshot.id).toBe(id)
     expect(snapshot.environment).toBe('staging')
     expect(snapshot.beforeState).toEqual({7: {name: 'old'}})
@@ -59,7 +59,7 @@ describe('snapshot-store', () => {
     await wait(2)
     const second = await writeSnapshot({afterState: empty, beforeState: new Map([['b', 2]]), environment: 'staging', resource: 'snippet', rootDir})
 
-    const latest = await readSnapshot(rootDir, 'snippet')
+    const latest = await readSnapshot(rootDir, 'snippet', 'staging')
     expect(latest.id).toBe(second)
     expect(latest.beforeState).toEqual({b: 2})
   })
@@ -71,21 +71,21 @@ describe('snapshot-store', () => {
     const second = await writeSnapshot({afterState: empty, beforeState: empty, environment: 'staging', resource: 'snippet', rootDir})
     await writeSnapshot({afterState: empty, beforeState: empty, environment: 'staging', resource: 'form', rootDir})
 
-    const snippetSnapshots = await listSnapshots(rootDir, 'snippet')
+    const snippetSnapshots = await listSnapshots(rootDir, 'snippet', 'staging')
 
     expect(snippetSnapshots.map((s) => s.id)).toEqual([second, first])
   })
 
   it('lists an empty array when nothing has ever been snapshotted for a resource', async () => {
-    expect(await listSnapshots(rootDir, 'snippet')).toEqual([])
+    expect(await listSnapshots(rootDir, 'snippet', 'staging')).toEqual([])
   })
 
   it('readSnapshot throws a clear error when there are no snapshots at all', async () => {
-    await expect(readSnapshot(rootDir, 'snippet')).rejects.toThrow(/No snapshots found for "snippet"/)
+    await expect(readSnapshot(rootDir, 'snippet', 'staging')).rejects.toThrow(/No snapshots found for "snippet" on "staging"/)
   })
 
   it('readSnapshot throws a clear error for an unknown id', async () => {
-    await expect(readSnapshot(rootDir, 'snippet', '123')).rejects.toThrow(/Snapshot "123" not found for "snippet"/)
+    await expect(readSnapshot(rootDir, 'snippet', 'staging', '123')).rejects.toThrow(/Snapshot "123" not found for "snippet" on "staging"/)
   })
 
   it('prunes down to the retention limit, oldest first, on every write', async () => {
@@ -96,7 +96,7 @@ describe('snapshot-store', () => {
       await wait(2)
     }
 
-    const remaining = await listSnapshots(rootDir, 'snippet')
+    const remaining = await listSnapshots(rootDir, 'snippet', 'staging')
 
     // eslint-disable-next-line unicorn/no-array-reverse -- toReversed() needs an ES2023 lib target this package doesn't use
     expect(remaining.map((s) => s.id)).toEqual([...ids].reverse().slice(0, 3))
@@ -105,10 +105,72 @@ describe('snapshot-store', () => {
   it('skips a corrupted snapshot file instead of failing the whole listing', async () => {
     const empty = new Map()
     const id = await writeSnapshot({afterState: empty, beforeState: empty, environment: 'staging', resource: 'snippet', rootDir})
-    writeFileSync(join(rootDir, '.loopress', 'snapshots', 'snippet', '999999999999.json'), '{ not valid json')
+    writeFileSync(join(rootDir, '.loopress', 'snapshots', 'snippet', 'staging', '999999999999.json'), '{ not valid json')
 
-    const snapshots = await listSnapshots(rootDir, 'snippet')
+    const snapshots = await listSnapshots(rootDir, 'snippet', 'staging')
 
     expect(snapshots.map((s) => s.id)).toEqual([id])
+  })
+
+  it('scopes listing, reading, and pruning by environment: a staging snapshot never answers a production rollback', async () => {
+    const empty = new Map()
+    const stagingId = await writeSnapshot({
+      afterState: empty,
+      beforeState: new Map([['a', 'staging value']]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    await wait(2)
+    const productionId = await writeSnapshot({
+      afterState: empty,
+      beforeState: new Map([['a', 'production value']]),
+      environment: 'production',
+      resource: 'snippet',
+      rootDir,
+    })
+
+    expect((await listSnapshots(rootDir, 'snippet', 'staging')).map((s) => s.id)).toEqual([stagingId])
+    expect((await listSnapshots(rootDir, 'snippet', 'production')).map((s) => s.id)).toEqual([productionId])
+
+    // The most recent snapshot overall is production's, but a staging rollback must still
+    // resolve to staging's own latest, never fall through to it.
+    const latestForStaging = await readSnapshot(rootDir, 'snippet', 'staging')
+    expect(latestForStaging.id).toBe(stagingId)
+    expect(latestForStaging.beforeState).toEqual({a: 'staging value'})
+
+    // An explicit --to id from another environment must not be readable through this one.
+    await expect(readSnapshot(rootDir, 'snippet', 'staging', productionId)).rejects.toThrow(/not found/)
+  })
+
+  it('prunes only the current environment, never another one sharing the same resource', async () => {
+    const empty = new Map()
+    for (let index = 0; index < 3; index++) {
+       
+      await writeSnapshot({afterState: empty, beforeState: empty, environment: 'staging', resource: 'snippet', retain: 1, rootDir})
+       
+      await wait(2)
+    }
+
+    await writeSnapshot({afterState: empty, beforeState: empty, environment: 'production', resource: 'snippet', retain: 1, rootDir})
+
+    expect(await listSnapshots(rootDir, 'snippet', 'staging')).toHaveLength(1)
+    expect(await listSnapshots(rootDir, 'snippet', 'production')).toHaveLength(1)
+  })
+
+  it('retries with the next millisecond instead of overwriting an existing snapshot file', async () => {
+    const empty = new Map()
+    const realNow = Date.now
+    vi.spyOn(Date, 'now').mockReturnValue(realNow())
+    try {
+      const first = await writeSnapshot({afterState: empty, beforeState: new Map([['a', 'first']]), environment: 'staging', resource: 'snippet', rootDir})
+      const second = await writeSnapshot({afterState: empty, beforeState: new Map([['a', 'second']]), environment: 'staging', resource: 'snippet', rootDir})
+
+      expect(second).not.toBe(first)
+      const firstSnapshot = await readSnapshot(rootDir, 'snippet', 'staging', first)
+      expect(firstSnapshot.beforeState).toEqual({a: 'first'})
+    } finally {
+      vi.spyOn(Date, 'now').mockRestore()
+    }
   })
 })

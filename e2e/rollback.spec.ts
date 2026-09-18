@@ -11,17 +11,26 @@ test.beforeAll(async ({ requestUtils }) => {
 	await setPluginActive(requestUtils, "insert-headers-and-footers", true);
 });
 
+// `id` must be set when editing an already-pushed snippet: `snippet push` reads it from the
+// sidecar JSON, not the filename, to decide whether to PUT (update) or POST (create) - an edit
+// that dropped it would create a second, unrelated snippet instead of updating the first.
 function writeSnippet(
 	dir: string,
 	basename: string,
 	name: string,
 	code: string,
+	id?: number,
 ): void {
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(join(dir, `${basename}.php`), code);
 	writeFileSync(
 		join(dir, `${basename}.json`),
-		JSON.stringify({ location: "everywhere", name, type: "php" }),
+		JSON.stringify({
+			location: "everywhere",
+			name,
+			type: "php",
+			...(id === undefined ? {} : { id }),
+		}),
 	);
 }
 
@@ -57,6 +66,7 @@ test("push, break something, roll back, and land back on the exact prior state",
 		`${v1Id}-rollback-demo`,
 		nameV2,
 		'<?php\n\necho "version two, oops";\n',
+		Number(v1Id),
 	);
 	const secondPush = await runCli(["snippet", "push"]);
 	expect(secondPush.exitCode).toBe(0);

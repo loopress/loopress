@@ -34,10 +34,13 @@ export default class Push extends PushCommand {
     this.log(`Pushing nav menus to ${url}`)
     this.log(`Menus path: ${path}`)
 
-    await this.snapshotBeforePush(getResourceStateProvider('menu'), path)
+    const provider = getResourceStateProvider('menu')
+    const beforeState = await this.captureBeforePushState(provider, path)
 
     await this.pushMenus(path)
     await this.pushLocations(path)
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'menu')} failed to push.`)

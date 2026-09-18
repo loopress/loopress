@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import {type ResourceState} from '../../src/lib/diff-state.js'
 import {PushCommand} from '../../src/lib/push-command.js'
 import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
 import {listSnapshots} from '../../src/lib/snapshot-store.js'
@@ -45,6 +46,10 @@ class TestPush extends PushCommand {
     this.yes = value
   }
 
+  async testCaptureBeforePushState(provider: ResourceStateProvider, dir: string) {
+    return this.captureBeforePushState(provider, dir)
+  }
+
   async testCatch(err: Error) {
     try {
       await this.catch(err)
@@ -59,8 +64,8 @@ class TestPush extends PushCommand {
     await this.recordSuccess()
   }
 
-  async testSnapshotBeforePush(provider: ResourceStateProvider, dir: string) {
-    await this.snapshotBeforePush(provider, dir)
+  async testWriteAfterPushSnapshot(provider: ResourceStateProvider, dir: string, beforeState: ResourceState | undefined) {
+    await this.writeAfterPushSnapshot(provider, dir, beforeState)
   }
 }
 
@@ -191,7 +196,7 @@ describe('PushCommand', () => {
     })
   })
 
-  describe('snapshotBeforePush()', () => {
+  describe('captureBeforePushState() / writeAfterPushSnapshot()', () => {
     let rootDir: string
 
     beforeEach(() => {
@@ -202,39 +207,38 @@ describe('PushCommand', () => {
       rmSync(rootDir, {force: true, recursive: true})
     })
 
-    it('writes a snapshot of the remote (before) and local (about to be pushed) state', async () => {
-      const cmd = make(false, SITE)
+    function makeWithClient(dryRun: boolean, siteConfig: EnvironmentConfig): TestPush {
+      const cmd = make(dryRun, siteConfig)
       cmd.setRootDir(rootDir)
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      return cmd
+    }
 
-      await cmd.testSnapshotBeforePush(
-        fakeProvider({local: async () => new Map([['1', {name: 'about to push'}]]), remote: async () => new Map([['1', {name: 'on site now'}]])}),
-        rootDir,
-      )
+    it('captureBeforePushState reads and returns the remote state', async () => {
+      const cmd = makeWithClient(false, SITE)
+      const remote = vi.fn(async () => new Map([['1', {name: 'on site now'}]]))
 
-      const [snapshot] = await listSnapshots(rootDir, 'snippet')
-      expect(snapshot.environment).toBe('test')
+      const beforeState = await cmd.testCaptureBeforePushState(fakeProvider({remote}), rootDir)
+
+      expect(remote).toHaveBeenCalledOnce()
+      expect(beforeState).toEqual(new Map([['1', {name: 'on site now'}]]))
     })
 
-    it('does nothing on a dry run', async () => {
-      const cmd = make(true, SITE)
-      cmd.setRootDir(rootDir)
-      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+    it('captureBeforePushState does nothing on a dry run', async () => {
+      const cmd = makeWithClient(true, SITE)
       const remote = vi.fn(async () => new Map())
 
-      await cmd.testSnapshotBeforePush(fakeProvider({remote}), rootDir)
+      const beforeState = await cmd.testCaptureBeforePushState(fakeProvider({remote}), rootDir)
 
       expect(remote).not.toHaveBeenCalled()
-      expect(await listSnapshots(rootDir, 'snippet')).toEqual([])
+      expect(beforeState).toBeUndefined()
     })
 
-    it('warns instead of throwing when reading the remote or local state fails', async () => {
-      const cmd = make(false, SITE)
-      cmd.setRootDir(rootDir)
-      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+    it('captureBeforePushState warns and returns undefined when the remote read fails', async () => {
+      const cmd = makeWithClient(false, SITE)
       const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
 
-      await cmd.testSnapshotBeforePush(
+      const beforeState = await cmd.testCaptureBeforePushState(
         fakeProvider({
           async remote() {
             throw new Error('site unreachable')
@@ -243,8 +247,63 @@ describe('PushCommand', () => {
         rootDir,
       )
 
+      expect(beforeState).toBeUndefined()
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('site unreachable'))
-      expect(await listSnapshots(rootDir, 'snippet')).toEqual([])
+    })
+
+    it('writeAfterPushSnapshot pairs beforeState with a fresh post-push remote read, not the local files', async () => {
+      const cmd = makeWithClient(false, SITE)
+      const beforeState = new Map([['1', {name: 'on site before'}]])
+      // Deliberately different from what a naive "local files about to be pushed" read would
+      // have shown, the exact case a server-assigned id or a readonly-skipped item produces:
+      // what actually landed on the server is the only correct after-state.
+      const remote = vi.fn(async () => new Map([['1', {name: 'on site after'}]]))
+      const local = vi.fn(async () => new Map([['1', {name: 'never pushed, irrelevant'}]]))
+
+      await cmd.testWriteAfterPushSnapshot(fakeProvider({local, remote}), rootDir, beforeState)
+
+      expect(local).not.toHaveBeenCalled()
+      expect(remote).toHaveBeenCalledOnce()
+      const [snapshot] = await listSnapshots(rootDir, 'snippet', 'test')
+      expect(snapshot.environment).toBe('test')
+    })
+
+    it('writeAfterPushSnapshot does nothing on a dry run', async () => {
+      const cmd = makeWithClient(true, SITE)
+      const remote = vi.fn(async () => new Map())
+
+      await cmd.testWriteAfterPushSnapshot(fakeProvider({remote}), rootDir, new Map([['1', {}]]))
+
+      expect(remote).not.toHaveBeenCalled()
+      expect(await listSnapshots(rootDir, 'snippet', 'test')).toEqual([])
+    })
+
+    it('writeAfterPushSnapshot does nothing when beforeState is undefined (capture already failed or was a dry run)', async () => {
+      const cmd = makeWithClient(false, SITE)
+      const remote = vi.fn(async () => new Map())
+
+      await cmd.testWriteAfterPushSnapshot(fakeProvider({remote}), rootDir, undefined)
+
+      expect(remote).not.toHaveBeenCalled()
+      expect(await listSnapshots(rootDir, 'snippet', 'test')).toEqual([])
+    })
+
+    it('writeAfterPushSnapshot warns instead of throwing when the post-push remote read fails', async () => {
+      const cmd = makeWithClient(false, SITE)
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
+
+      await cmd.testWriteAfterPushSnapshot(
+        fakeProvider({
+          async remote() {
+            throw new Error('site unreachable')
+          },
+        }),
+        rootDir,
+        new Map([['1', {}]]),
+      )
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('site unreachable'))
+      expect(await listSnapshots(rootDir, 'snippet', 'test')).toEqual([])
     })
   })
 })

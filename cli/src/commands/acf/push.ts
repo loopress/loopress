@@ -29,11 +29,14 @@ export default class Push extends PushCommand {
     this.log(`Pushing ACF configuration to ${url}`)
     this.log(`ACF path: ${path}`)
 
-    await this.snapshotBeforePush(getResourceStateProvider('acf'), path)
+    const provider = getResourceStateProvider('acf')
+    const beforeState = await this.captureBeforePushState(provider, path)
 
     for (const type of types) {
       await this.pushType(type, path)
     }
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'ACF object')} failed to push.`)

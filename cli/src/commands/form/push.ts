@@ -40,7 +40,8 @@ export default class Push extends PushCommand {
     this.log(`Pushing forms to ${url}`)
     this.log(`Forms path: ${path}`)
 
-    await this.snapshotBeforePush(getResourceStateProvider('form'), path)
+    const provider = getResourceStateProvider('form')
+    const beforeState = await this.captureBeforePushState(provider, path)
 
     const files = await this.loadFiles(path)
     this.log(`Found ${pluralize(files.length, 'form')} to push`)
@@ -50,6 +51,8 @@ export default class Push extends PushCommand {
       ({data}) => getFormTitle(data),
       async ({data, filePath}, task) => this.pushForm(filePath, data, task),
     )
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
