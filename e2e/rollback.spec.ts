@@ -84,12 +84,14 @@ test("push, break something, roll back, and land back on the exact prior state",
 	// The environment is back to exactly v1: same name, same code, on WordPress...
 	await expect(await findWpCodeSnippetRow(page, wp, nameV1)).toBeVisible();
 
-	// ...and pulling confirms the local tracked state matches it byte for byte.
+	// ...and pulling confirms the local tracked state matches it byte for byte. `snippet pull`
+	// pulls every snippet on the (shared, long-lived) e2e site, not just this test's, so find
+	// this one by id rather than assuming it's the only or the first file on disk.
 	const pull = await runCli(["snippet", "pull"]);
 	expect(pull.exitCode).toBe(0);
-	const [{ code, name }] = readSidecars(snippetsDir);
-	expect(name).toBe(nameV1);
-	expect(code.trim()).toBe('echo "version one";');
+	const restored = readSidecars(snippetsDir).find((snippet) => snippet.id === v1Id);
+	expect(restored?.name).toBe(nameV1);
+	expect(restored?.code.trim()).toBe('echo "version one";');
 });
 
 test("rollback --list reports the snapshot written by the previous push", async ({
