@@ -49,7 +49,8 @@ export function registerRollbackTool(
       description:
         `Restore this resource to the snapshot automatically saved right before an earlier \`${toolName}_push\`. ` +
         'Pass list: true to see available snapshots (their id, timestamp, and environment) instead of rolling back. ' +
-        'Only safe when nothing else has changed the environment since that push: the preview result includes a `drift` field (added/changed/removed) whenever it has, review it before confirming, confirming anyway overwrites that later change.' +
+        'Only safe when nothing else has changed the environment since that push: the preview result includes a `drift` field (added/changed/removed) whenever it has, review it before confirming. ' +
+        "If the environment changes again between the preview and the confirmed call, the confirm is refused (a stale-preview error) instead of silently overwriting that later change; call again without confirmToken for a fresh preview." +
         PREVIEW_SUFFIX,
       inputSchema: {
         confirmToken: confirmTokenFlag,

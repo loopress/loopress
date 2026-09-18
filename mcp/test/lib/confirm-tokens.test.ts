@@ -7,6 +7,7 @@ vi.mock('../../src/lib/snapshot.js', () => ({createSnapshot: vi.fn(), removeSnap
 
 const mockedRemoveSnapshot = vi.mocked(removeSnapshot)
 const SNAP = '/tmp/loopress-mcp-test-snapshot'
+const FINGERPRINT = 'fp-1'
 
 describe('confirm-tokens', () => {
   beforeEach(() => {
@@ -18,12 +19,12 @@ describe('confirm-tokens', () => {
     vi.useRealTimers()
   })
 
-  it('round-trips the args and snapshot dir stored at creation time', () => {
-    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP)
+  it('round-trips the args, snapshot dir, and preview fingerprint stored at creation time', () => {
+    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP, FINGERPRINT)
 
     const consumed = consumeConfirmation('snippet_push', confirmToken)
 
-    expect(consumed).toEqual({args: ['snippet', 'push'], ok: true, snapshotDir: SNAP})
+    expect(consumed).toEqual({args: ['snippet', 'push'], ok: true, previewFingerprint: FINGERPRINT, snapshotDir: SNAP})
   })
 
   it('rejects an unknown token', () => {
@@ -34,7 +35,7 @@ describe('confirm-tokens', () => {
   })
 
   it('is single-use: a second consume of the same token fails even though the first succeeded', () => {
-    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP)
+    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP, FINGERPRINT)
 
     consumeConfirmation('snippet_push', confirmToken)
     const second = consumeConfirmation('snippet_push', confirmToken)
@@ -44,7 +45,7 @@ describe('confirm-tokens', () => {
   })
 
   it('rejects a token consumed for a different tool than it was issued for, and drops its snapshot', () => {
-    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP)
+    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP, FINGERPRINT)
 
     const consumed = consumeConfirmation('form_push', confirmToken)
 
@@ -54,7 +55,7 @@ describe('confirm-tokens', () => {
   })
 
   it('rejects a token past its TTL and drops its snapshot', () => {
-    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP)
+    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP, FINGERPRINT)
 
     vi.advanceTimersByTime(5 * 60 * 1000 + 1)
     const consumed = consumeConfirmation('snippet_push', confirmToken)
@@ -65,7 +66,7 @@ describe('confirm-tokens', () => {
   })
 
   it('accepts a token right up to its TTL boundary', () => {
-    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP)
+    const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push'], SNAP, FINGERPRINT)
 
     vi.advanceTimersByTime(5 * 60 * 1000)
     const consumed = consumeConfirmation('snippet_push', confirmToken)
@@ -74,10 +75,10 @@ describe('confirm-tokens', () => {
   })
 
   it('prunes expired entries on the next create, dropping their snapshots', () => {
-    const {confirmToken: stale} = createConfirmation('snippet_push', ['snippet', 'push'], '/tmp/stale-snap')
+    const {confirmToken: stale} = createConfirmation('snippet_push', ['snippet', 'push'], '/tmp/stale-snap', FINGERPRINT)
 
     vi.advanceTimersByTime(5 * 60 * 1000 + 1)
-    createConfirmation('form_push', ['form', 'push'], SNAP)
+    createConfirmation('form_push', ['form', 'push'], SNAP, FINGERPRINT)
 
     expect(mockedRemoveSnapshot).toHaveBeenCalledWith('/tmp/stale-snap')
     // The stale entry is gone from the store entirely: consuming it now looks unknown.
@@ -87,7 +88,7 @@ describe('confirm-tokens', () => {
   it('caps the number of pending previews, evicting the oldest and its snapshot once full', () => {
     let firstToken = ''
     for (let i = 0; i < 101; i++) {
-      const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push', String(i)], `/tmp/snap-${i}`)
+      const {confirmToken} = createConfirmation('snippet_push', ['snippet', 'push', String(i)], `/tmp/snap-${i}`, FINGERPRINT)
       if (i === 0) firstToken = confirmToken
     }
 

@@ -123,9 +123,13 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
 1. **Call without `confirmToken`**: runs `lps ... --dry-run`, returns the preview plus a
    single-use `confirmToken` (UUID, expires after 5 minutes, capped at 100 pending tokens
    process-wide).
-2. **Call again with that `confirmToken`**: runs the real command, using the args captured at
-   preview time, not whatever the second call resends, so what gets applied can never drift from
-   what was previewed.
+2. **Call again with that `confirmToken`**: re-runs that same `--dry-run` once more against the
+   frozen copy taken at preview time; if it reports anything different from the original preview
+   (e.g. a rollback's `drift` field has changed because something else touched the environment
+   since), the call is refused (`STALE_PREVIEW`) instead of applying against stale data, call
+   again without `confirmToken` for a fresh preview. Otherwise it runs the real command, using the
+   args captured at preview time, not whatever the second call resends, so what gets applied can
+   never drift from what was previewed.
 
 There is no way to skip the preview and apply in one call, including against a `production`
 environment: no tool schema exposes a flag for it.
@@ -145,6 +149,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 | `ExecError` | The `lps` process failed outside the two cases above |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
+| `STALE_PREVIEW` | The environment changed since the preview; call again without `confirmToken` for a fresh one |
 | `NO_PROJECT_CONFIG` | No `loopress.json` in the current directory (resource only) |
 
 ## Environment variables
