@@ -146,9 +146,17 @@ export function resourceRollbackCommand(resource: string, options: {description:
         return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'dry-run'}
       }
 
+      // Only the items that actually need restoring, not the whole snapshot: an item already
+      // matching `beforeState` needs no push, and re-pushing it anyway would put every other
+      // item this resource ever had at push time (however unrelated to what actually drifted)
+      // through the delegated push's own validation, where a single unrelated failure would
+      // fail the whole rollback.
+      const idsToRestore = new Set([...restoreDiff.added, ...restoreDiff.changed.map((change) => change.id)])
+      const stateToRestore = Object.fromEntries(Object.entries(snapshot.beforeState).filter(([id]) => idsToRestore.has(id)))
+
       const tmpDir = await mkdtemp(join(tmpdir(), `loopress-rollback-${resource}-`))
       try {
-        await materializeSnapshot(resource, snapshot.beforeState, tmpDir)
+        await materializeSnapshot(resource, stateToRestore, tmpDir)
         // --env/--yes: the production guard and the drift confirmation above already covered
         // what the delegated push's own guard would ask again, same reasoning as the top-level
         // `lps push` delegating to each resource's push command in commands/push.ts.

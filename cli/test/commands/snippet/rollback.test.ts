@@ -153,6 +153,39 @@ describe('snippet rollback', () => {
     expect(materializedFiles.some((file) => file.includes('old-name'))).toBe(true)
   })
 
+  it('only materializes and pushes items that actually differ, not every item the snapshot happens to carry', async () => {
+    // id 9 is unrelated: present, unchanged, in both the snapshot and the current environment
+    // (some other snippet that already existed at push time and was never touched by it). A
+    // rollback must never re-push it, an unrelated failure to round-trip it would otherwise
+    // fail the whole rollback even though the one item that actually needs restoring is fine.
+    await writeSnapshot({
+      afterState: new Map([
+        ['7', canonical({name: 'New name'})],
+        ['9', canonical({name: 'Unrelated', type: 'js'})],
+      ]),
+      beforeState: new Map([
+        ['7', canonical({name: 'Old name'})],
+        ['9', canonical({name: 'Unrelated', type: 'js'})],
+      ]),
+      environment: 'staging',
+      resource: 'snippet',
+      rootDir,
+    })
+    const get = vi.fn(async () => [remoteRow(7, {name: 'New name'}), remoteRow(9, {name: 'Unrelated', type: 'js'})])
+    let materializedFiles: string[] = []
+    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
+      materializedFiles = readdirSync(argv![1])
+      return {}
+    })
+    const {cmd} = make([], get)
+
+    const result = await cmd.run()
+
+    expect(result.status).toBe('success')
+    expect(materializedFiles.some((file) => file.includes('old-name'))).toBe(true)
+    expect(materializedFiles.some((file) => file.includes('unrelated'))).toBe(false)
+  })
+
   it('cleans up the temp directory used to materialize the snapshot', async () => {
     await writeSnapshot({
       afterState: new Map([['7', canonical()]]),
