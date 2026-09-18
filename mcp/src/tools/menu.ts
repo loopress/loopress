@@ -12,5 +12,6 @@ export function registerMenuTools(server: McpServer): void {
     },
     pathNoun: 'menus directory',
     resource: 'menu',
+    supportsRollback: true,
   })
 }

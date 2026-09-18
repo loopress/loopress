@@ -81,4 +81,44 @@ describe('registerResourceTools', () => {
     await tools.get('api_push')!({prune: false})
     expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push'], undefined)
   })
+
+  it('registers api_rollback only when opted in', () => {
+    expect([...register().keys()]).not.toContain('api_rollback')
+    expect([...register({supportsRollback: true}).keys()]).toContain('api_rollback')
+  })
+
+  it('api_rollback with list runs `api rollback --list` as a plain read, bypassing the confirm handshake', async () => {
+    const tools = register({supportsRollback: true})
+
+    await tools.get('api_rollback')!({env: 'prod', list: true})
+
+    expect(runLps).toHaveBeenCalledWith(['api', 'rollback', '--env', 'prod', '--list'])
+    expect(runMutatingTool).not.toHaveBeenCalled()
+  })
+
+  it('api_rollback without list runs `api rollback --to <id> --yes` through the confirm handshake', async () => {
+    const tools = register({supportsRollback: true})
+
+    await tools.get('api_rollback')!({confirmToken: 'tok', to: '123'})
+
+    expect(runMutatingTool).toHaveBeenCalledWith('api_rollback', ['api', 'rollback', '--to', '123', '--yes'], 'tok')
+  })
+})
+
+describe('registerRollbackTool', () => {
+  beforeEach(() => {
+    runMutatingTool.mockClear()
+    runLps.mockClear()
+  })
+
+  it('uses toolName for the registered tool name, resource for the CLI topic', async () => {
+    const {registerRollbackTool} = await import('../../src/lib/resource-tools.js')
+    const {server, tools} = fakeServer()
+
+    registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme-styles', toolName: 'theme_styles'})
+
+    expect([...tools.keys()]).toEqual(['theme_styles_rollback'])
+    await tools.get('theme_styles_rollback')!({})
+    expect(runMutatingTool).toHaveBeenCalledWith('theme_styles_rollback', ['theme-styles', 'rollback', '--yes'], undefined)
+  })
 })

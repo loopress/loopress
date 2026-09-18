@@ -4,6 +4,7 @@ import {extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} from '../../utils/menu-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -32,6 +33,8 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing nav menus to ${url}`)
     this.log(`Menus path: ${path}`)
+
+    await this.snapshotBeforePush(getResourceStateProvider('menu'), path)
 
     await this.pushMenus(path)
     await this.pushLocations(path)

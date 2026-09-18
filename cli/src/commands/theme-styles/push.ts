@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../utils/theme-styles-format.js'
 
 export default class Push extends PushCommand {
@@ -43,6 +44,8 @@ export default class Push extends PushCommand {
       this.log(`[dry-run] Would push: ${file}`)
       return
     }
+
+    await this.snapshotBeforePush(getResourceStateProvider('theme-styles'), dir)
 
     const local = JSON.parse(raw) as {settings?: Record<string, unknown>; styles?: Record<string, unknown>}
     await this.wp.post(globalStylesEndpoint(id), {settings: local.settings ?? {}, styles: local.styles ?? {}})

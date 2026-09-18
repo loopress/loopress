@@ -1,10 +1,13 @@
 import got from 'got'
 import {Listr} from 'listr2'
+import {resolve} from 'node:path'
 
 import {authManager} from '../config/auth.manager.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {guardProductionPush} from './guard-production-push.js'
+import {type ResourceStateProvider} from './resource-state.js'
+import {writeSnapshot} from './snapshot-store.js'
 
 export abstract class PushCommand extends LoopressCommand {
   protected failedCount = 0
@@ -86,5 +89,32 @@ export abstract class PushCommand extends LoopressCommand {
       })),
       {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
     ).run()
+  }
+
+  // Writes a rollback snapshot of `provider`'s remote state (before) and local state (about to
+  // be pushed, after) right before a real push, so `lps <resource> rollback` has a restore
+  // point without needing any server-side history. A dry run changes nothing, so there is
+  // nothing to snapshot. Best-effort: a snapshot failure (a read-only filesystem, a malformed
+  // local file one of the two reads chokes on) must never block the push itself, the same
+  // "never interrupt the push flow" stance recordDeployment takes.
+  protected async snapshotBeforePush(provider: ResourceStateProvider, dir: string): Promise<void> {
+    if (this.dryRun) return
+
+    try {
+      const warn = (message: string) => {
+        this.warn(message)
+      }
+
+      const [beforeState, afterState] = await Promise.all([provider.remote(this.wp, warn, dir), provider.local(dir, warn)])
+      await writeSnapshot({
+        afterState,
+        beforeState,
+        environment: this.siteConfig.name,
+        resource: provider.resource,
+        rootDir: resolve(process.cwd(), this.rootDir),
+      })
+    } catch (error) {
+      this.warn(`Could not save a rollback snapshot before this push: ${(error as Error).message}`)
+    }
   }
 }

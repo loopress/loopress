@@ -14,5 +14,6 @@ export function registerHookTools(server: McpServer): void {
     resource: 'hook',
     supportsPrune: true,
     supportsRm: true,
+    supportsRollback: true,
   })
 }

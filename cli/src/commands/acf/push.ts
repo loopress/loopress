@@ -3,6 +3,7 @@ import {join} from 'node:path'
 
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -27,6 +28,8 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing ACF configuration to ${url}`)
     this.log(`ACF path: ${path}`)
+
+    await this.snapshotBeforePush(getResourceStateProvider('acf'), path)
 
     for (const type of types) {
       await this.pushType(type, path)

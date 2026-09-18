@@ -1,0 +1,191 @@
+import {confirm} from '@inquirer/prompts'
+import {Args, Flags, ux} from '@oclif/core'
+import {mkdtemp, rm} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join, resolve} from 'node:path'
+
+import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {LoopressCommand} from './base.js'
+import {compareStates, isEmptyDiff, type StateDiff} from './diff-state.js'
+import {guardProductionPush} from './guard-production-push.js'
+import {isInteractive} from './interactive.js'
+import {getResourceStateProvider} from './resource-state.js'
+import {materializeSnapshot} from './rollback-materialize.js'
+import {listSnapshots, readSnapshot, recordToState, type SnapshotSummary} from './snapshot-store.js'
+
+const c = ux.colorize
+
+export type RollbackResult = {
+  id?: string
+  restored?: {added: string[]; changed: string[]; removed: string[]}
+  snapshots?: SnapshotSummary[]
+  status: 'dry-run' | 'listed' | 'no-op' | 'success'
+}
+
+function summarize(diff: StateDiff): {added: string[]; changed: string[]; removed: string[]} {
+  return {added: diff.added, changed: diff.changed.map((change) => change.id), removed: diff.removed}
+}
+
+function indentPatch(patch: string): string {
+  return patch
+    .split('\n')
+    .map((line) => (line === '' ? line : `    ${line}`))
+    .join('\n')
+    .trimEnd()
+}
+
+// Builds the `lps <resource> rollback` command for one resource-state-backed resource (the 9
+// listed in resource-state.ts's RESOURCE_STATE_PROVIDERS). `lps <resource> push` writes a
+// snapshot of the environment's state right before every real push (see snapshot-store.ts);
+// this command restores one: by default the most recent, or `--to <id>` for an older one.
+//
+// A rollback is only safe when nothing else touched the environment between the original push
+// and now, otherwise it silently overwrites a legitimate later change. So before restoring
+// anything, this runs the equivalent of `lps <resource> diff` between the environment's current
+// state and the state the original push expected to leave behind, and requires explicit
+// confirmation (the same interactive/`--yes` shape as guardProductionPush) when they differ.
+export function resourceRollbackCommand(resource: string, options: {description: string; pathNoun: string}): typeof LoopressCommand {
+  class ResourceRollback extends LoopressCommand {
+    static args = {
+      path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
+    }
+
+    static description = options.description
+    static enableJsonFlag = true
+    static examples = [
+      `$ lps ${resource} rollback`,
+      `$ lps ${resource} rollback --list`,
+      `$ lps ${resource} rollback --to 1732000000000`,
+      `$ lps ${resource} rollback --dry-run`,
+    ]
+
+    static flags = {
+      ...LoopressCommand.dryRunFlag,
+      ...LoopressCommand.yesFlag,
+      list: Flags.boolean({description: 'List available snapshots instead of rolling back'}),
+      to: Flags.string({description: 'Roll back to this snapshot id instead of the most recent one'}),
+    }
+
+    async run(): Promise<RollbackResult> {
+      const {args, flags} = await this.parse(ResourceRollback)
+      const provider = getResourceStateProvider(resource)
+      const rootDir = resolve(process.cwd(), this.rootDir)
+
+      if (flags.list) {
+        const snapshots = await listSnapshots(rootDir, resource)
+        this.renderList(snapshots)
+        return {snapshots, status: 'listed'}
+      }
+
+      const dir = resolveResourceDir(provider.dirKind, this.localConfig, args.path)
+
+      let snapshot
+      try {
+        snapshot = await readSnapshot(rootDir, resource, flags.to)
+      } catch (error) {
+        this.error((error as Error).message)
+      }
+
+      await guardProductionPush({
+        dryRun: this.dryRun,
+        error: (message) => this.error(message),
+        siteConfig: this.siteConfig,
+        yes: this.yes,
+      })
+
+      this.log(`Rolling back ${provider.title} on ${this.siteConfig.url} to the snapshot from ${snapshot.createdAt} (${snapshot.id})`)
+
+      const warn = (message: string) => {
+        this.warn(message)
+      }
+
+      const currentState = await provider.remote(this.wp, warn, dir)
+
+      // Has anything else changed the environment since the original push? Compare its current
+      // state against what that push expected to leave behind (`afterState`), not against the
+      // snapshot we're about to restore (`beforeState`), those are expected to differ, that's
+      // the whole point of rolling back.
+      const drift = compareStates(recordToState(snapshot.afterState), currentState, {
+        left: `expected (right after the ${snapshot.createdAt} push)`,
+        right: 'current',
+      })
+
+      if (!isEmptyDiff(drift)) {
+        this.renderDiff(`${provider.title} has changed on ${this.siteConfig.url} since that push:`, drift)
+        await this.confirmDespiteDrift()
+      }
+
+      const restoreState = recordToState(snapshot.beforeState)
+      const restoreDiff = compareStates(currentState, restoreState, {left: 'current', right: `snapshot ${snapshot.id}`})
+
+      if (isEmptyDiff(restoreDiff)) {
+        this.log('Nothing to restore, the environment already matches this snapshot.')
+        return {id: snapshot.id, restored: summarize(restoreDiff), status: 'no-op'}
+      }
+
+      this.renderDiff(`This would restore ${provider.title} to:`, restoreDiff)
+
+      if (this.dryRun) {
+        return {id: snapshot.id, restored: summarize(restoreDiff), status: 'dry-run'}
+      }
+
+      const tmpDir = await mkdtemp(join(tmpdir(), `loopress-rollback-${resource}-`))
+      try {
+        await materializeSnapshot(resource, snapshot.beforeState, tmpDir)
+        // --env/--yes: the production guard and the drift confirmation above already covered
+        // what the delegated push's own guard would ask again, same reasoning as the top-level
+        // `lps push` delegating to each resource's push command in commands/push.ts.
+        await this.config.runCommand(`${resource}:push`, ['--path', tmpDir, '--env', this.siteConfig.name, '--yes'])
+      } finally {
+        await rm(tmpDir, {force: true, recursive: true})
+      }
+
+      this.log(`Rolled back ${provider.title} to the snapshot from ${snapshot.createdAt}.`)
+      return {id: snapshot.id, restored: summarize(restoreDiff), status: 'success'}
+    }
+
+    private async confirmDespiteDrift(): Promise<void> {
+      if (this.dryRun || this.yes) return
+
+      if (!isInteractive()) {
+        this.error(
+          'The environment has changed since this snapshot was taken. Re-run with --yes to roll back anyway (overwriting those later changes), or without --dry-run/--yes to leave it as is.',
+        )
+      }
+
+      const proceed = await confirm({
+        default: false,
+        message: 'The environment has changed since this snapshot was taken. Roll back anyway, overwriting those later changes?',
+      })
+      if (!proceed) this.error('Aborted.')
+    }
+
+    private renderDiff(heading: string, diff: StateDiff): void {
+      if (this.jsonEnabled()) return
+
+      this.log(c('bold', heading))
+      for (const id of diff.added) this.log(c('green', `  + ${id}`))
+      for (const id of diff.removed) this.log(c('red', `  - ${id}`))
+      for (const change of diff.changed) {
+        this.log(c('yellow', `  ~ ${change.id}`))
+        this.log(indentPatch(change.patch))
+      }
+    }
+
+    private renderList(snapshots: SnapshotSummary[]): void {
+      if (this.jsonEnabled()) return
+
+      if (snapshots.length === 0) {
+        this.log(`No snapshots found for "${resource}". A snapshot is written automatically by \`lps ${resource} push\`.`)
+        return
+      }
+
+      this.log(`Snapshots for "${resource}" (most recent first):`)
+      for (const snapshot of snapshots) {
+        this.log(`  ${snapshot.id}  ${snapshot.createdAt}  ${snapshot.environment}`)
+      }
+    }
+  }
+
+  return ResourceRollback
+}

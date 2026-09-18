@@ -2,6 +2,7 @@ import {Args} from '@oclif/core'
 
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, partitionByReadonly} from '../../utils/option-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -34,6 +35,8 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing tracked options to ${url}`)
     this.log(`Options path: ${dir}`)
+
+    await this.snapshotBeforePush(getResourceStateProvider('option'), dir)
 
     const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',

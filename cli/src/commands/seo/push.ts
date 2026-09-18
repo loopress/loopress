@@ -5,6 +5,7 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {
   redirectFileBase,
@@ -45,6 +46,8 @@ export default class Push extends PushCommand {
 
     this.log(`Pushing SEO configuration to ${url}`)
     this.log(`SEO path: ${path}`)
+
+    await this.snapshotBeforePush(getResourceStateProvider('seo'), path)
 
     await this.pushSettings(path)
     await this.pushPostMeta(path)

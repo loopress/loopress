@@ -13,6 +13,7 @@ import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
 import {PushCommand} from './push-command.js'
+import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404} from './wp-client.js'
 
 // api/ and hooks/ are the same thing from the CLI's point of view: a recursive directory of
@@ -147,6 +148,8 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
       this.log(`Pushing ${spec.label} to ${url}`)
       this.log(`${spec.pathLabel} path: ${path}`)
+
+      await this.snapshotBeforePush(getResourceStateProvider(spec.cliName), path)
 
       const files = await this.loadFiles(path)
       this.log(`Found ${pluralize(files.length, spec.noun)} to push`)

@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -56,4 +56,6 @@ export function registerSeoTools(server: McpServer): void {
     async ({env, postType}) =>
       toCallToolResult(unwrap(await runLps(buildArgs(['seo', 'list'], {env, repeatFlags: {'post-type': postType}})))),
   )
+
+  registerRollbackTool(server, {pathNoun: 'SEO directory', resource: 'seo'})
 }

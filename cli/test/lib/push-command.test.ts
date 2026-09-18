@@ -1,7 +1,12 @@
 import {confirm} from '@inquirer/prompts'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {mkdtempSync, rmSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {PushCommand} from '../../src/lib/push-command.js'
+import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
+import {listSnapshots} from '../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
 vi.mock('@inquirer/prompts', () => ({
@@ -27,6 +32,10 @@ class TestPush extends PushCommand {
 
   async run(): Promise<void> {}
 
+  setRootDir(rootDir: string) {
+    this.localConfig = {rootDir}
+  }
+
   setup(dryRun: boolean, siteConfig?: EnvironmentConfig) {
     this.dryRun = dryRun
     this.siteConfig = siteConfig!
@@ -49,12 +58,31 @@ class TestPush extends PushCommand {
   async testRecordSuccess() {
     await this.recordSuccess()
   }
+
+  async testSnapshotBeforePush(provider: ResourceStateProvider, dir: string) {
+    await this.snapshotBeforePush(provider, dir)
+  }
 }
 
 function make(dryRun: boolean, siteConfig?: EnvironmentConfig): TestPush {
   const cmd = new TestPush([], {} as never)
   cmd.setup(dryRun, siteConfig)
   return cmd
+}
+
+// A minimal stand-in ResourceStateProvider, just enough for snapshotBeforePush() to call
+// remote()/local() and hand the results to writeSnapshot().
+function fakeProvider(options: {
+  local?: () => Promise<Map<string, unknown>>
+  remote?: () => Promise<Map<string, unknown>>
+}): ResourceStateProvider {
+  return {
+    dirKind: 'snippets',
+    local: options.local ?? (async () => new Map([['1', {name: 'local'}]])),
+    remote: options.remote ?? (async () => new Map([['1', {name: 'remote'}]])),
+    resource: 'snippet',
+    title: 'Snippets',
+  }
 }
 
 describe('PushCommand', () => {
@@ -160,6 +188,63 @@ describe('PushCommand', () => {
       const cmd = make(false)
       await cmd.testCatch(new Error('boom'))
       expect(cmd.calls).toHaveLength(0)
+    })
+  })
+
+  describe('snapshotBeforePush()', () => {
+    let rootDir: string
+
+    beforeEach(() => {
+      rootDir = mkdtempSync(join(tmpdir(), 'lps-push-command-snapshot-'))
+    })
+
+    afterEach(() => {
+      rmSync(rootDir, {force: true, recursive: true})
+    })
+
+    it('writes a snapshot of the remote (before) and local (about to be pushed) state', async () => {
+      const cmd = make(false, SITE)
+      cmd.setRootDir(rootDir)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+
+      await cmd.testSnapshotBeforePush(
+        fakeProvider({local: async () => new Map([['1', {name: 'about to push'}]]), remote: async () => new Map([['1', {name: 'on site now'}]])}),
+        rootDir,
+      )
+
+      const [snapshot] = await listSnapshots(rootDir, 'snippet')
+      expect(snapshot.environment).toBe('test')
+    })
+
+    it('does nothing on a dry run', async () => {
+      const cmd = make(true, SITE)
+      cmd.setRootDir(rootDir)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      const remote = vi.fn(async () => new Map())
+
+      await cmd.testSnapshotBeforePush(fakeProvider({remote}), rootDir)
+
+      expect(remote).not.toHaveBeenCalled()
+      expect(await listSnapshots(rootDir, 'snippet')).toEqual([])
+    })
+
+    it('warns instead of throwing when reading the remote or local state fails', async () => {
+      const cmd = make(false, SITE)
+      cmd.setRootDir(rootDir)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
+
+      await cmd.testSnapshotBeforePush(
+        fakeProvider({
+          async remote() {
+            throw new Error('site unreachable')
+          },
+        }),
+        rootDir,
+      )
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('site unreachable'))
+      expect(await listSnapshots(rootDir, 'snippet')).toEqual([])
     })
   })
 })
