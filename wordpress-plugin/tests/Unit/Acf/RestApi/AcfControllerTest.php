@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Acf\RestApi;
 
 use Brain\Monkey;
+use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\RestApi\AcfController;
 use Loopress\Acf\Service\AcfService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -145,7 +146,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->once())
             ->method('upsert')
-            ->with('acf-post-type', $this->isType('array'))
+            ->with('acf-post-type', $this->isType('array'), null)
             ->willReturn(['key' => 'post_type_1']);
 
         $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']);
@@ -153,6 +154,85 @@ class AcfControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['key' => 'post_type_1'], $response->data);
+    }
+
+    // ── upsert_object: conditional write (#234) ─────────────────────────────
+
+    public function test_upsert_forwards_expected_revision_from_the_request_body(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->once())
+            ->method('upsert')
+            ->with('acf-post-type', $this->isType('array'), 'rev-1')
+            ->willReturn(['key' => 'post_type_1']);
+
+        $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1', 'expectedRevision' => 'rev-1']);
+        $response = $this->controller->upsert_object($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_upsert_passes_null_when_no_expected_revision_is_given(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->once())
+            ->method('upsert')
+            ->with('acf-post-type', $this->isType('array'), null)
+            ->willReturn(['key' => 'post_type_1']);
+
+        $this->controller->upsert_object(new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']));
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_upsert_passes_null_when_expected_revision_is_explicitly_null(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->once())
+            ->method('upsert')
+            ->with('acf-post-type', $this->isType('array'), null)
+            ->willReturn(['key' => 'post_type_1']);
+
+        $this->controller->upsert_object(new WP_REST_Request([
+            'type'             => 'post-types',
+            'key'              => 'post_type_1',
+            'expectedRevision' => null,
+        ]));
+        $this->addToAssertionCount(1);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, a client that (accidentally or otherwise) sent something other than a string
+    // would otherwise have the conditional-write precondition disabled entirely instead of
+    // getting a clear error, and upsert() would run as if no precondition had been requested.
+    public function test_upsert_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->never())->method('upsert');
+
+        $response = $this->controller->upsert_object(new WP_REST_Request([
+            'type'             => 'post-types',
+            'key'              => 'post_type_1',
+            'expectedRevision' => 12_345,
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_upsert_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->method('upsert')->willThrowException(
+            new StaleAcfRevisionException('"post_type_1" changed on WordPress since it was last read.'),
+        );
+
+        $response = $this->controller->upsert_object(new WP_REST_Request([
+            'type'             => 'post-types',
+            'key'              => 'post_type_1',
+            'expectedRevision' => 'stale-revision',
+        ]));
+
+        $this->assertSame(412, $response->status);
+        $this->assertSame(['error' => '"post_type_1" changed on WordPress since it was last read.'], $response->data);
     }
 
     // ── delete_object ────────────────────────────────────────────────────────
