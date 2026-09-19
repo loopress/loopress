@@ -22,6 +22,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 type PushWithLoadSnippets = {loadSnippets(path: string): Promise<Snippet[]>}
 type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet, id: number, name: string): Promise<void>}
 type PushWithPushSnippet = {
+  dryRun: boolean
   failedCount: number
   pushSnippet(snippet: Snippet, task?: {output: string}): Promise<number | undefined>
   wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
