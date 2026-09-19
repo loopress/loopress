@@ -29,6 +29,11 @@ final class SnippetData
         public readonly ?string $insertMethod = null,
         public readonly ?int $priority = null,
         public readonly ?array $shortcodeAttributes = null,
+        // Opaque content hash of every field above except id (see SnippetService::revisionOf()),
+        // only ever compared for equality (#234). Computed by SnippetService, never accepted as
+        // patch input: fromArray() deliberately doesn't read a "revision" key, so a client can't
+        // set it through create/update, only receive it back on a read.
+        public readonly ?string $revision = null,
     ) {
     }
 
@@ -76,6 +81,7 @@ final class SnippetData
             'insertMethod'        => $this->insertMethod,
             'priority'            => $this->priority,
             'shortcodeAttributes' => $this->shortcodeAttributes,
+            'revision'            => $this->revision,
         ], static fn(mixed $value): bool => $value !== null);
     }
 }
