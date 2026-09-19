@@ -8,6 +8,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\RestApi\ApiFilesController;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
@@ -248,61 +249,64 @@ class ApiFilesControllerTest extends TestCase
         $this->assertSame(200, $response->status);
     }
 
-    public function test_push_file_returns_412_and_does_not_write_when_expectedRevision_is_stale(): void
+    // Three shapes of "the write must be refused, and never reach directory()->write()", the
+    // stale-revision (412), missing-file (412), and malformed-type (400) cases, previously three
+    // separate but near-identical tests, consolidated to cut the boilerplate CI flagged as
+    // duplication (each only differs in the current content, the expectedRevision sent, and the
+    // resulting status/error substring).
+    /** @return array<string, array{0: string, 1: null|string, 2: mixed, 3: string, 4: int}> */
+    public static function rejectedExpectedRevisionCases(): array
     {
-        $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $this->directory->method('read')->with('hello')->willReturn($current);
-        $this->directory->expects($this->never())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello { public function get(): array { return []; } }\n",
-            'expectedRevision' => 'not-the-current-revision',
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(412, $response->status);
-        $this->assertStringContainsString('changed on WordPress since it was last read', (string) $response->data['error']);
+        return [
+            'stale revision' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello { public function get(): array { return []; } }\n",
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                'not-the-current-revision',
+                'changed on WordPress since it was last read',
+                412,
+            ],
+            // No current content (the file doesn't exist yet) means there was nothing to
+            // condition on: an expectedRevision sent for it anyway is a real mismatch, framed
+            // the same as options' equivalent ("it no longer exists"), not treated as if no
+            // precondition had been given.
+            'missing file' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                null,
+                'some-revision',
+                'it no longer exists',
+                412,
+            ],
+            // Unlike 'content' (a wrong type is silently (string)-cast), a malformed
+            // expectedRevision must never be silently treated as absent: that would drop the
+            // conditional-write precondition entirely, letting a stray non-string value bypass
+            // #234's protection outright.
+            'non-string revision' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                42,
+                'expectedRevision',
+                400,
+            ],
+        ];
     }
 
-    // No current content (the file doesn't exist yet) means there was nothing to condition on:
-    // an expectedRevision sent for it anyway is a real mismatch, framed the same as options'
-    // equivalent ("it no longer exists"), not treated as if no precondition had been given.
-    public function test_push_file_returns_412_when_expectedRevision_is_given_for_a_file_that_does_not_exist_yet(): void
-    {
-        $this->directory->method('read')->with('hello')->willReturn(null);
+    #[DataProvider('rejectedExpectedRevisionCases')]
+    public function test_push_file_rejects_the_write_when_expectedRevision_does_not_clear(
+        string $content,
+        ?string $currentContent,
+        mixed $expectedRevision,
+        string $expectedError,
+        int $expectedStatus,
+    ): void {
+        $this->directory->method('read')->with('hello')->willReturn($currentContent);
         $this->directory->expects($this->never())->method('write');
 
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
-            'expectedRevision' => 'some-revision',
-        ]);
+        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content, 'expectedRevision' => $expectedRevision]);
 
         $response = $this->controller->push_file($request);
 
-        $this->assertSame(412, $response->status);
-        $this->assertStringContainsString('it no longer exists', (string) $response->data['error']);
-    }
-
-    // Unlike 'content' (a wrong type is silently (string)-cast), a malformed expectedRevision
-    // must never be silently treated as absent: that would drop the conditional-write
-    // precondition entirely, letting a stray non-string value bypass #234's protection outright.
-    public function test_push_file_returns_400_when_expectedRevision_is_not_a_string(): void
-    {
-        $this->directory->expects($this->never())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
-            'expectedRevision' => 42,
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('expectedRevision', (string) $response->data['error']);
+        $this->assertSame($expectedStatus, $response->status);
+        $this->assertStringContainsString($expectedError, (string) $response->data['error']);
     }
 
     public function test_push_file_writes_without_a_precondition_when_expectedRevision_is_absent(): void

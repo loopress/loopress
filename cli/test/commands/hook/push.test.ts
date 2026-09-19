@@ -1,4 +1,3 @@
-import {createHash} from 'node:crypto'
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -10,6 +9,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {sha256} from '../../helpers/sha256.js'
 
 type HookFile = {
   content: string
@@ -27,11 +27,6 @@ async function loadFiles(path: string): Promise<HookFile[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
-}
-
-// Matches AbstractFilesController::revisionOf(): sha256 over the file's raw content.
-function sha256(content: string): string {
-  return createHash('sha256').update(content, 'utf8').digest('hex')
 }
 
 describe('hook push', () => {
