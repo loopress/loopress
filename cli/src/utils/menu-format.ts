@@ -26,6 +26,10 @@ export type MenuItem = {
 export type Menu = {
   items: MenuItem[]
   name: string
+  // Opaque content hash of `name` + `items`, only ever compared for equality (see `menu push`'s
+  // conditional-write precondition, #234). Bookkeeping only, like `warnings`: never part of the
+  // tracked configuration, so diffing ignores it too (see resource-state.ts's MENU_VOLATILE_KEYS).
+  revision: string
   slug: string
   // Diagnostics only (a dangling item, an unsupported item type, a custom URL pointing
   // off-environment): never part of the tracked configuration, see resource-state.ts.

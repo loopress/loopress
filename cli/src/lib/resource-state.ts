@@ -352,8 +352,12 @@ const seoProvider: ResourceStateProvider = {
 // REST layer (MenuService), never a raw `_menu_item_object_id`, so the exported tree is already
 // portable and compared as-is. `warnings` is diagnostic (a dangling item, an off-environment
 // custom URL, ...), not tracked configuration, so it's dropped before comparing, the same
-// "volatile key" treatment ACF/forms/redirects give their own server-computed fields.
-const MENU_VOLATILE_KEYS = ['warnings'] as const
+// "volatile key" treatment ACF/forms/redirects give their own server-computed fields. `revision`
+// (#234) is bookkeeping for menu push's conditional-write precondition, not tracked configuration
+// either: it's a pure hash of name + items, so it never disagrees when they don't, but a local
+// file pulled before this field existed simply wouldn't have it, which must never show up as
+// drift on its own.
+const MENU_VOLATILE_KEYS = ['revision', 'warnings'] as const
 // The reserved local filename for menu locations, see commands/menu/pull.ts.
 const MENU_LOCATIONS_FILE = 'menu-locations'
 

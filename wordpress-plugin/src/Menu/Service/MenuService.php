@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Menu\Service;
 
+use Loopress\Menu\Exception\StaleMenuRevisionException;
+
 // Syncs WordPress nav menus (a `nav_menu` term plus its `nav_menu_item` posts) as a portable
 // tree, and the active theme's menu locations (a `nav_menu_locations` theme_mod).
 //
@@ -46,15 +48,26 @@ class MenuService
      * ACF's `key`: there is no rename here, only create or update-in-place.
      *
      * @param array<int, mixed> $items
+     * @param string|null $expectedRevision When given, the write is refused (#234) unless it
+     *        still matches the menu's current revision (name + items), i.e. nothing else changed
+     *        it since the caller last read it via getMenu(). This is optimistic concurrency
+     *        control (a check immediately followed by the write, both within this one request),
+     *        not a database-level atomic compare-and-swap: it closes the far larger window
+     *        between an MCP tool's preview and its confirmed call down to this single request's
+     *        own execution time, not to mathematically zero.
      * @return array<string, mixed>
      */
-    public function upsertMenu(string $slug, string $name, array $items): array
+    public function upsertMenu(string $slug, string $name, array $items, ?string $expectedRevision = null): array
     {
         // Resolved (and every custom-URL warning collected) before any write happens: an item
         // this environment can't resolve must abort the whole push, not leave the menu half
         // rebuilt with some of its old items already deleted.
         $warnings = [];
         $resolved = $this->resolveItems($items, $warnings);
+
+        if ($expectedRevision !== null) {
+            $this->assertRevisionMatches($slug, $expectedRevision);
+        }
 
         $menu = wp_get_nav_menu_object($slug);
         if (!$menu instanceof \WP_Term) {
@@ -205,12 +218,34 @@ class MenuService
             $byParent[$parentId][(int) $item->menu_order] = $node;
         }
 
+        $items = $this->buildTree(0, $byParent);
+
         return [
-            'items'    => $this->buildTree(0, $byParent),
+            'items'    => $items,
             'name'     => $menu->name,
+            // A content hash of everything a write actually changes (name and items, see
+            // upsertMenu()), opaque to callers, only ever compared for equality (see
+            // upsertMenu()'s $expectedRevision). `slug` and `warnings` are deliberately left out:
+            // the slug is the menu's permanent identity, never something a write changes, and
+            // warnings are derived/informational only, not menu content.
+            'revision' => $this->revisionOf($menu->name, $items),
             'slug'     => $menu->slug,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * wp_json_encode() over a raw json_encode() call: house style (see e.g.
+     * LoopressEnvironment.php), and it normalizes key order the same way on every read, unlike a
+     * serialized-bytes comparison. sha256, not md5: a plain change-detection tag, never a
+     * security control, but sha256 is exactly as cheap here and doesn't trip a "weak hashing
+     * algorithm" scanner finding.
+     *
+     * @param array<int, array<string, mixed>> $items
+     */
+    private function revisionOf(string $name, array $items): string
+    {
+        return hash('sha256', (string) wp_json_encode(['items' => $items, 'name' => $name]));
     }
 
     /**
@@ -317,6 +352,28 @@ class MenuService
     }
 
     // ── Resolve + apply (write) ────────────────────────────────────────────────────────────
+
+    // Covers both fields a write actually changes (see upsertMenu()): a revision read before a
+    // name-only rename would otherwise still match after it, letting a later push with a stale
+    // revision silently overwrite that intervening rename once the items change too.
+    private function assertRevisionMatches(string $slug, string $expectedRevision): void
+    {
+        $current = $this->getMenu($slug);
+        // getMenu()'s return type is only documented as array<string, mixed> (like the rest of
+        // this file), so 'revision' isn't statically known to be a string here even though
+        // revisionOf() always sets it: is_string() below is a real (if always-true at runtime)
+        // narrowing, not dead code, the same defensive shape OptionsService avoids by typing its
+        // own getOption() return more precisely.
+        $currentRevision = $current !== null && is_string($current['revision']) ? $current['revision'] : null;
+
+        if ($currentRevision !== $expectedRevision) {
+            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            throw new StaleMenuRevisionException(esc_html(
+                "\"{$slug}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
+                    'Re-read the menu and try again.',
+            ));
+        }
+    }
 
     /**
      * Validates and resolves a whole item tree with no side effects: every post_type/taxonomy

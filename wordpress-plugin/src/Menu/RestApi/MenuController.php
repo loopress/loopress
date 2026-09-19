@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Menu\RestApi;
 
+use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\Service\MenuService;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
@@ -14,6 +15,10 @@ class MenuController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
+
+    private const STATUSES = [
+        StaleMenuRevisionException::class => 412,
+    ];
 
     public function __construct(private MenuService $menuService) {}
 
@@ -102,8 +107,18 @@ class MenuController
             return new WP_REST_Response(['error' => 'Request body\'s "items" must be an array.'], 400);
         }
 
+        // Unlike "items" or "name" above (both required), a malformed expectedRevision must
+        // never be silently treated as absent: that would drop the conditional-write precondition
+        // entirely, letting a client whose value happened to be sent as e.g. a number bypass
+        // #234's protection outright instead of getting a clear error.
+        $expectedRevision = $body['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->upsertMenu($slug, $name, $items), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->upsertMenu($slug, $name, $items, $expectedRevision), 200),
+            self::STATUSES,
         );
     }
 
