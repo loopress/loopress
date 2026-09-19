@@ -1,5 +1,18 @@
 # @loopress/wordpress-plugin
 
+## 2026.10.0
+
+### Minor Changes
+
+- 9b3647d: Loopress Full now updates through WordPress's native Plugins page flow (the "update available" notice, "Update now" link, and bulk updater), instead of requiring a manual re-upload of `loopress-full.zip`. WordPress fetches the zip directly from the matching GitHub release, using the same GitHub lookup the update-available notice already relied on.
+- 1607fc5: Adds a `menu` resource for syncing WordPress navigation menus and menu locations. The plugin exposes `loopress/v1/menus` and `loopress/v1/menu-locations` REST endpoints, resolving menu items by identity (post type/taxonomy + slug) rather than raw object ids so they remain portable between environments. The CLI gains `lps menu list/pull/push/diff`, wired into `lps push`/`lps pull`/`lps diff`/`lps init` and local file validation, and the MCP server gains matching `menu_push`/`menu_pull`/`menu_list` tools.
+
+### Patch Changes
+
+- bc2359c: Proof of concept for #234: `lps option push` now closes the WordPress-side race a write can still land in, on the one resource this lands on first (`option`).
+  
+  `GET /options/{name}` now returns a `revision` (a content hash of the value). `option push` reads it right before writing each option, and sends it back as `expectedRevision`; `PUT /options/{name}` refuses the write (412) if the option's revision no longer matches, instead of silently overwriting whatever changed it in between. This is optimistic concurrency control within a single request, not a database-level atomic compare-and-swap: it shrinks the window down to this one request's own execution time, not to zero. The other 8 resource-state-backed resources (snippet, form, acf, api, hook, seo, menu, theme-styles) aren't covered yet, tracked in #234 as the remaining rollout.
+
 ## 2026.9.2
 
 ### Patch Changes

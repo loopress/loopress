@@ -1,5 +1,29 @@
 # @loopress/cli
 
+## 0.25.0
+
+### Minor Changes
+
+- 3ec619c: `lps doctor` now supports `--json`, returning a structured `{project, environment, url, checks, ok, pluginVersion}` result instead of throwing on failure (its human-readable output and exit code are unchanged).
+  
+  The MCP server gains three read-only tools that were missing from CLI parity: `project_diff` (drift between local files and an environment, or between two environments), `project_doctor` (connectivity, plugin and credential diagnostics), and `validate_local` (checks local tracked files without contacting WordPress).
+- 1607fc5: Adds a `menu` resource for syncing WordPress navigation menus and menu locations. The plugin exposes `loopress/v1/menus` and `loopress/v1/menu-locations` REST endpoints, resolving menu items by identity (post type/taxonomy + slug) rather than raw object ids so they remain portable between environments. The CLI gains `lps menu list/pull/push/diff`, wired into `lps push`/`lps pull`/`lps diff`/`lps init` and local file validation, and the MCP server gains matching `menu_push`/`menu_pull`/`menu_list` tools.
+- 10d18ec: `lps push`, `lps pull`, and `lps promote` now support `--json` (each returns a structured per-resource result instead of erroring with "Nonexistent flag: --json"). This was a real bug in the MCP server's `push_all` and `pull_all` tools, which always shell out with `--json` and so always failed.
+  
+  The MCP server also gains `project_promote`, the tool for `lps promote` that CLI parity was missing.
+- ce19505: Adds `lps <resource> rollback` for the 9 resource-state-backed resources (snippet, form, acf, api, hook, seo, menu, option, theme-styles). `lps <resource> push` now writes a snapshot of the environment's state (before and about-to-be-pushed) to a local, gitignored cache (`.loopress/snapshots/<resource>/`, capped at the last 10 per resource) right before every real push. `lps <resource> rollback` restores the most recent snapshot (or `--to <id>`), `--list` shows what's available. It refuses to overwrite a change made to the environment since the original push unless explicitly confirmed (interactive prompt, or `--yes`), the same shape as the production-push guard. No WordPress-side capability is required: restoring materializes the archived state into the resource's own local file layout, then delegates to the existing push command.
+  
+  The MCP server gains a matching `<resource>_rollback` tool per resource, following the existing confirmToken handshake (`list: true` bypasses it as a plain read).
+- 4432466: New `lps theme-styles pull/push/diff` command group syncs the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing) as a local `theme/<stylesheet>-global-styles.json` file, reusing WordPress core's own `wp/v2/themes` and `wp/v2/global-styles/<id>` REST endpoints (no new PHP controller needed). Classic (non-block) themes fail the command clearly instead of syncing nothing silently. This resource is included automatically in `lps diff`, but deliberately left out of the aggregate `lps push`/`lps pull` (like `lps theme`), so a classic-theme site's routine sync isn't broken by this opt-in feature.
+  
+  The MCP server gains matching `theme_styles_pull` and `theme_styles_push` tools, and `project_diff` now covers `theme-styles` too.
+
+### Patch Changes
+
+- bc2359c: Proof of concept for #234: `lps option push` now closes the WordPress-side race a write can still land in, on the one resource this lands on first (`option`).
+  
+  `GET /options/{name}` now returns a `revision` (a content hash of the value). `option push` reads it right before writing each option, and sends it back as `expectedRevision`; `PUT /options/{name}` refuses the write (412) if the option's revision no longer matches, instead of silently overwriting whatever changed it in between. This is optimistic concurrency control within a single request, not a database-level atomic compare-and-swap: it shrinks the window down to this one request's own execution time, not to zero. The other 8 resource-state-backed resources (snippet, form, acf, api, hook, seo, menu, theme-styles) aren't covered yet, tracked in #234 as the remaining rollout.
+
 ## 0.24.1
 
 ### Patch Changes
