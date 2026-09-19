@@ -453,7 +453,10 @@ class OptionsService
         // arrays of the same), and json_encode() normalizes key order the same way on every
         // read, unlike a serialized-bytes comparison, which would treat two calls that produced
         // the same array in a different insertion order as different revisions.
-        return md5((string) json_encode($value));
+        // sha256, not md5: this is a plain change-detection tag, never a security control, but
+        // sha256 is exactly as cheap here and doesn't trip a "weak hashing algorithm" scanner
+        // finding on a codebase that otherwise has none.
+        return hash('sha256', (string) json_encode($value));
     }
 
     private function assertRevisionMatches(string $name, string $expectedRevision): void
