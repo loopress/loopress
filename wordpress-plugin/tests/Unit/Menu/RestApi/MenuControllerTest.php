@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Menu\RestApi;
 
 use Brain\Monkey;
+use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\RestApi\MenuController;
 use Loopress\Menu\Service\MenuService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -35,12 +36,13 @@ class MenuControllerTest extends TestCase
 
     public function test_list_menus_returns_the_service_result(): void
     {
-        $this->menuService->method('listMenus')->willReturn([['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []]]);
+        $this->menuService->method('listMenus')
+            ->willReturn([['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]]);
 
         $response = $this->controller->list_menus();
 
         $this->assertSame(200, $response->status);
-        $this->assertSame([['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []]], $response->data);
+        $this->assertSame([['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]], $response->data);
     }
 
     public function test_list_menus_returns_500_on_runtime_exception(): void
@@ -63,12 +65,13 @@ class MenuControllerTest extends TestCase
 
     public function test_get_menu_returns_200_with_the_menu(): void
     {
-        $this->menuService->method('getMenu')->with('main')->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []]);
+        $this->menuService->method('getMenu')->with('main')
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
         $response = $this->controller->get_menu(new WP_REST_Request(['slug' => 'main']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []], $response->data);
+        $this->assertSame(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []], $response->data);
     }
 
     public function test_upsert_menu_returns_400_when_slug_or_name_is_missing(): void
@@ -105,8 +108,8 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->once())
             ->method('upsertMenu')
-            ->with('main', 'Main', [['type' => 'custom', 'url' => '/x']])
-            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []]);
+            ->with('main', 'Main', [['type' => 'custom', 'url' => '/x']], null)
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
         $response = $this->controller->upsert_menu(new WP_REST_Request([
             'items' => [['type' => 'custom', 'url' => '/x']],
@@ -115,15 +118,15 @@ class MenuControllerTest extends TestCase
         ]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []], $response->data);
+        $this->assertSame(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []], $response->data);
     }
 
     public function test_upsert_menu_defaults_items_to_an_empty_array(): void
     {
         $this->menuService->expects($this->once())
             ->method('upsertMenu')
-            ->with('main', 'Main', [])
-            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'warnings' => []]);
+            ->with('main', 'Main', [], null)
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
         $this->controller->upsert_menu(new WP_REST_Request(['name' => 'Main', 'slug' => 'main']));
     }
@@ -137,6 +140,79 @@ class MenuControllerTest extends TestCase
         $response = $this->controller->upsert_menu(new WP_REST_Request(['items' => 'not-an-array', 'name' => 'Main', 'slug' => 'main']));
 
         $this->assertSame(400, $response->status);
+    }
+
+    // ── upsert: conditional write (#234) ────────────────────────────────────
+
+    public function test_upsert_menu_forwards_expected_revision_from_the_request_body(): void
+    {
+        $this->menuService->expects($this->once())
+            ->method('upsertMenu')
+            ->with('main', 'Main', [], 'rev-1')
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-2', 'warnings' => []]);
+
+        $response = $this->controller->upsert_menu(new WP_REST_Request([
+            'expectedRevision' => 'rev-1',
+            'name'             => 'Main',
+            'slug'             => 'main',
+        ]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_upsert_menu_passes_null_when_no_expected_revision_is_given(): void
+    {
+        $this->menuService->expects($this->once())
+            ->method('upsertMenu')
+            ->with('main', 'Main', [], null)
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
+
+        $this->controller->upsert_menu(new WP_REST_Request(['name' => 'Main', 'slug' => 'main']));
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_upsert_menu_passes_null_when_expected_revision_is_explicitly_null(): void
+    {
+        $this->menuService->expects($this->once())
+            ->method('upsertMenu')
+            ->with('main', 'Main', [], null)
+            ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
+
+        $this->controller->upsert_menu(new WP_REST_Request(['expectedRevision' => null, 'name' => 'Main', 'slug' => 'main']));
+        $this->addToAssertionCount(1);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, a client that (accidentally or otherwise) sent something other than a string would
+    // otherwise have the conditional-write precondition disabled entirely instead of getting a
+    // clear error, and upsertMenu() would run as if no precondition had been requested.
+    public function test_upsert_menu_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->menuService->expects($this->never())->method('upsertMenu');
+
+        $response = $this->controller->upsert_menu(new WP_REST_Request([
+            'expectedRevision' => 12_345,
+            'name'             => 'Main',
+            'slug'             => 'main',
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_upsert_menu_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->menuService->method('upsertMenu')->willThrowException(
+            new StaleMenuRevisionException('"main" changed on WordPress since it was last read.'),
+        );
+
+        $response = $this->controller->upsert_menu(new WP_REST_Request([
+            'expectedRevision' => 'stale-revision',
+            'name'             => 'Main',
+            'slug'             => 'main',
+        ]));
+
+        $this->assertSame(412, $response->status);
+        $this->assertSame(['error' => '"main" changed on WordPress since it was last read.'], $response->data);
     }
 
     public function test_delete_menu_returns_404_when_not_found(): void

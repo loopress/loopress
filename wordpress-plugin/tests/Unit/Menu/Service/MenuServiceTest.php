@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Menu\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\Service\MenuService;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
@@ -23,6 +24,10 @@ class MenuServiceTest extends TestCase
 
         Functions\when('is_wp_error')->alias(fn(mixed $thing): bool => $thing instanceof \WP_Error);
         Functions\when('wp_parse_url')->alias('parse_url');
+        // getMenu()'s revision hash goes through wp_json_encode(), unavailable outside a real
+        // WordPress load; a plain json_encode() delegate is exactly what it does for the
+        // already-JSON-safe menu data reaching this point.
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
     }
 
     protected function tearDown(): void
@@ -166,6 +171,51 @@ class MenuServiceTest extends TestCase
         $this->assertCount(2, $result);
         $this->assertSame('main', $result[0]['slug']);
         $this->assertSame('footer', $result[1]['slug']);
+    }
+
+    // ── revision (#234) ──────────────────────────────────────────────────────
+
+    public function test_get_menu_revision_is_stable_for_the_same_content(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+        $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
+
+        $first  = $this->service->getMenu('main');
+        $second = $this->service->getMenu('main');
+
+        $this->assertSame($first['revision'], $second['revision']);
+    }
+
+    public function test_get_menu_revision_differs_when_items_differ(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', '', 1)]);
+
+        $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/a', '_menu_item_menu_item_parent' => '0']]);
+        $before = $this->service->getMenu('main');
+
+        $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/b', '_menu_item_menu_item_parent' => '0']]);
+        $after = $this->service->getMenu('main');
+
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
+    // Regression coverage (#234): upsertMenu() writes name and items together, so a revision
+    // covering only items would let a later push, still holding the revision from before a
+    // name-only rename elsewhere, silently overwrite that rename once the items also change.
+    public function test_get_menu_revision_differs_for_a_name_only_change(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Original Name'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+        $before = $this->service->getMenu('main');
+
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'New Name'));
+        $after = $this->service->getMenu('main');
+
+        $this->assertSame($before['items'], $after['items']);
+        $this->assertNotSame($before['name'], $after['name']);
+        $this->assertNotSame($before['revision'], $after['revision']);
     }
 
     // ── upsert (write) ────────────────────────────────────────────────────
@@ -419,6 +469,66 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => 'https://this-site.example/x']]);
 
         $this->assertSame([], $menu['warnings']);
+    }
+
+    // ── upsert: conditional write (#234) ────────────────────────────────────
+
+    public function test_upsert_menu_succeeds_when_the_expected_revision_still_matches(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+        $currentRevision = $this->service->getMenu('main')['revision'];
+
+        $menu = $this->service->upsertMenu('main', 'Main', [], $currentRevision);
+
+        $this->assertSame('Main', $menu['name']);
+    }
+
+    // Regression coverage (#234): the whole point of the precondition is that a write is
+    // refused, not silently applied, once the menu no longer holds the name/items the caller
+    // last read.
+    public function test_upsert_menu_throws_stale_revision_exception_when_the_menu_changed_underneath(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Renamed Elsewhere'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+
+        $this->expectException(StaleMenuRevisionException::class);
+        $this->service->upsertMenu('main', 'Main', [], 'a-revision-that-no-longer-matches');
+    }
+
+    public function test_upsert_menu_does_not_write_anything_when_the_revision_is_stale(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Renamed Elsewhere'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+        Functions\expect('wp_update_term')->never();
+        Functions\expect('wp_update_nav_menu_item')->never();
+
+        try {
+            $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/x']], 'a-revision-that-no-longer-matches');
+        } catch (StaleMenuRevisionException) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
+    // A menu that no longer exists at all is exactly as much "not the state the caller expected"
+    // as one holding a different name/items: a precondition must still refuse the write rather
+    // than treat "vanished" as an exemption from the check.
+    public function test_upsert_menu_throws_stale_revision_exception_when_the_menu_no_longer_exists(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn(false);
+
+        $this->expectException(StaleMenuRevisionException::class);
+        $this->service->upsertMenu('main', 'Main', [], 'a-revision-from-when-it-existed');
+    }
+
+    public function test_upsert_menu_skips_the_revision_check_entirely_when_none_is_given(): void
+    {
+        $this->installFreshMenuCreation(10);
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+
+        $menu = $this->service->upsertMenu('main', 'Main', []);
+
+        $this->assertSame('Main', $menu['name']);
     }
 
     public function test_delete_menu_returns_false_when_not_found(): void
