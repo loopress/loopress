@@ -448,15 +448,15 @@ class OptionsService
 
     private function revisionOf(mixed $value): string
     {
-        // json_encode() over WP's own maybe_serialize(): assertJsonSafe() already guarantees
+        // wp_json_encode() over WP's own maybe_serialize(): assertJsonSafe() already guarantees
         // every value reaching here round-trips through JSON losslessly (scalars, null, and
-        // arrays of the same), and json_encode() normalizes key order the same way on every
-        // read, unlike a serialized-bytes comparison, which would treat two calls that produced
-        // the same array in a different insertion order as different revisions.
+        // arrays of the same), and it normalizes key order the same way on every read, unlike a
+        // serialized-bytes comparison, which would treat two calls that produced the same array
+        // in a different insertion order as different revisions.
         // sha256, not md5: this is a plain change-detection tag, never a security control, but
         // sha256 is exactly as cheap here and doesn't trip a "weak hashing algorithm" scanner
         // finding on a codebase that otherwise has none.
-        return hash('sha256', (string) json_encode($value));
+        return hash('sha256', (string) wp_json_encode($value));
     }
 
     private function assertRevisionMatches(string $name, string $expectedRevision): void

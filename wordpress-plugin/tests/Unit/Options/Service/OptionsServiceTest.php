@@ -26,6 +26,10 @@ class OptionsServiceTest extends TestCase
         // loopress_option_readable / loopress_option_writable pass through to the computed
         // default unless a test overrides this.
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
+        // getOption()'s revision hash goes through wp_json_encode(), unavailable outside a real
+        // WordPress load; a plain json_encode() delegate is exactly what it does for the
+        // JSON-safe values assertJsonSafe() already guarantees reach this point.
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         $this->service = new OptionsService();
         $this->wpdb    = new FakeOptionsWpdb();
         $GLOBALS['wpdb'] = $this->wpdb;
@@ -391,7 +395,7 @@ class OptionsServiceTest extends TestCase
         try {
             $this->service->updateOption('my_option', 'new value', null, 'a-revision-that-no-longer-matches');
         } catch (StaleOptionRevisionException) {
-            // Expected; the assertion is that update_option() was never reached (above).
+            $this->addToAssertionCount(1);
         }
     }
 
