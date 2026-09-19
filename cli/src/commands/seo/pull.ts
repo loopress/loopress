@@ -7,9 +7,10 @@ import {basenameKey, findOrphanedFiles, numericPrefixKey} from '../../lib/find-o
 import {
   DEFAULT_POST_TYPES,
   redirectFileBase,
+  type RemoteSeoPostMeta,
+  type RemoteSeoSettings,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
-  type SeoPostMeta,
   seoPostMetaEndpoint,
   type SeoRedirect,
 } from '../../utils/seo-format.js'
@@ -46,7 +47,7 @@ export default class Pull extends LoopressCommand {
 
   private async pullPostMeta(postType: string, basePath: string): Promise<void> {
     const dir = join(basePath, 'post-meta', postType)
-    const remote = await this.wp.get<SeoPostMeta[]>(seoPostMetaEndpoint(postType))
+    const remote = await this.wp.get<RemoteSeoPostMeta[]>(seoPostMetaEndpoint(postType))
     const orphans = await findOrphanedFiles(dir, new Set(remote.map((post) => post.slug)), {
       extensions: ['.json'],
       key: basenameKey,
@@ -57,7 +58,10 @@ export default class Pull extends LoopressCommand {
       orphanReason: `in ${dir} no longer present on WordPress`,
       pulledMessage: `Pulled ${remote.length} ${postType} post-meta file(s) to ${dir}`,
       title: (post) => post.slug,
-      write: async (post, writeDir) => writeFile(join(writeDir, `${post.slug}.json`), JSON.stringify(post, null, 2) + '\n'),
+      // `revision` (#234) is never persisted locally, same as RemoteOption.revision: it's only
+      // ever read fresh, right before a push, never trusted from a stale local file.
+      write: async ({meta, slug, title}, writeDir) =>
+        writeFile(join(writeDir, `${slug}.json`), JSON.stringify({meta, slug, title}, null, 2) + '\n'),
     })
   }
 
@@ -92,7 +96,9 @@ export default class Pull extends LoopressCommand {
 
   private async pullSettings(basePath: string): Promise<void> {
     const file = join(basePath, 'settings.json')
-    const settings = await this.wp.get<Record<string, unknown>>(SEO_SETTINGS_ENDPOINT)
+    // `revision` (#234) is never persisted locally, same as RemoteOption.revision: settings.json
+    // holds only the settings themselves, exactly as it did before the wrapped response shape.
+    const {settings} = await this.wp.get<RemoteSeoSettings>(SEO_SETTINGS_ENDPOINT)
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull settings to ${file}`)

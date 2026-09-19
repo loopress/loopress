@@ -7,6 +7,7 @@ namespace Loopress\Tests\Unit\Seo\RestApi;
 use Brain\Monkey;
 use Loopress\Seo\Exception\NoActiveSeoPluginException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
+use Loopress\Seo\Exception\StaleSeoRevisionException;
 use Loopress\Seo\RestApi\SeoController;
 use Loopress\Seo\Service\SeoService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -126,7 +127,7 @@ class SeoControllerTest extends TestCase
         $this->seoService->method('isActive')->willReturn(true);
         $this->seoService->expects($this->once())
             ->method('upsertPostMeta')
-            ->with('post', 'hello', ['title' => 'New'])
+            ->with('post', 'hello', ['title' => 'New'], null)
             ->willReturn(['slug' => 'hello']);
 
         $response = $this->controller->upsert_post_meta(new WP_REST_Request([
@@ -137,6 +138,61 @@ class SeoControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['slug' => 'hello'], $response->data);
+    }
+
+    // ── post meta: conditional write (#234) ───────────────────────────────
+
+    public function test_upsert_post_meta_forwards_expected_revision_from_the_request_body(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->once())
+            ->method('upsertPostMeta')
+            ->with('post', 'hello', ['title' => 'New'], 'rev-1')
+            ->willReturn(['slug' => 'hello']);
+
+        $response = $this->controller->upsert_post_meta(new WP_REST_Request([
+            'expectedRevision' => 'rev-1',
+            'meta'             => ['title' => 'New'],
+            'slug'             => 'hello',
+            'type'             => 'post',
+        ]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, otherwise a client sending something other than a string would have the
+    // conditional-write precondition disabled entirely instead of getting a clear error.
+    public function test_upsert_post_meta_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('upsertPostMeta');
+
+        $response = $this->controller->upsert_post_meta(new WP_REST_Request([
+            'expectedRevision' => 12_345,
+            'meta'             => ['title' => 'New'],
+            'slug'             => 'hello',
+            'type'             => 'post',
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_upsert_post_meta_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('upsertPostMeta')->willThrowException(
+            new StaleSeoRevisionException('SEO meta for "hello" changed on WordPress since it was last read.'),
+        );
+
+        $response = $this->controller->upsert_post_meta(new WP_REST_Request([
+            'expectedRevision' => 'stale-revision',
+            'meta'             => ['title' => 'New'],
+            'slug'             => 'hello',
+            'type'             => 'post',
+        ]));
+
+        $this->assertSame(412, $response->status);
     }
 
     // ── settings ────────────────────────────────────────────────────────────
@@ -153,12 +209,12 @@ class SeoControllerTest extends TestCase
     public function test_get_settings_returns_the_service_result(): void
     {
         $this->seoService->method('isActive')->willReturn(true);
-        $this->seoService->method('getSettings')->willReturn(['titleSeparator' => '-']);
+        $this->seoService->method('getSettings')->willReturn(['revision' => 'rev-1', 'settings' => ['titleSeparator' => '-']]);
 
         $response = $this->controller->get_settings();
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['titleSeparator' => '-'], $response->data);
+        $this->assertSame(['revision' => 'rev-1', 'settings' => ['titleSeparator' => '-']], $response->data);
     }
 
     public function test_update_settings_returns_400_when_the_body_is_empty(): void
@@ -171,15 +227,79 @@ class SeoControllerTest extends TestCase
         $this->assertSame(400, $response->status);
     }
 
+    // Regression coverage: "settings" is required and must be a non-empty object, not just any
+    // non-empty body (e.g. an expectedRevision alone with no settings to write).
+    public function test_update_settings_returns_400_when_settings_is_missing(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('updateSettings');
+
+        $response = $this->controller->update_settings(new WP_REST_Request(['expectedRevision' => 'rev-1']));
+
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_update_settings_returns_200_with_the_updated_settings(): void
     {
         $this->seoService->method('isActive')->willReturn(true);
-        $this->seoService->method('updateSettings')->willReturn(['titleSeparator' => '|']);
+        $this->seoService->expects($this->once())
+            ->method('updateSettings')
+            ->with(['titleSeparator' => '|'], null)
+            ->willReturn(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '|']]);
 
-        $response = $this->controller->update_settings(new WP_REST_Request(['titleSeparator' => '|']));
+        $response = $this->controller->update_settings(new WP_REST_Request(['settings' => ['titleSeparator' => '|']]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['titleSeparator' => '|'], $response->data);
+        $this->assertSame(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '|']], $response->data);
+    }
+
+    // ── settings: conditional write (#234) ────────────────────────────────
+
+    public function test_update_settings_forwards_expected_revision_from_the_request_body(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->once())
+            ->method('updateSettings')
+            ->with(['titleSeparator' => '|'], 'rev-1')
+            ->willReturn(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '|']]);
+
+        $response = $this->controller->update_settings(new WP_REST_Request([
+            'expectedRevision' => 'rev-1',
+            'settings'         => ['titleSeparator' => '|'],
+        ]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, otherwise a client sending something other than a string would have the
+    // conditional-write precondition disabled entirely instead of getting a clear error.
+    public function test_update_settings_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->expects($this->never())->method('updateSettings');
+
+        $response = $this->controller->update_settings(new WP_REST_Request([
+            'expectedRevision' => 12_345,
+            'settings'         => ['titleSeparator' => '|'],
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_update_settings_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->seoService->method('isActive')->willReturn(true);
+        $this->seoService->method('updateSettings')->willThrowException(
+            new StaleSeoRevisionException('SEO settings changed on WordPress since they were last read.'),
+        );
+
+        $response = $this->controller->update_settings(new WP_REST_Request([
+            'expectedRevision' => 'stale-revision',
+            'settings'         => ['titleSeparator' => '|'],
+        ]));
+
+        $this->assertSame(412, $response->status);
     }
 
     // ── redirects ───────────────────────────────────────────────────────────

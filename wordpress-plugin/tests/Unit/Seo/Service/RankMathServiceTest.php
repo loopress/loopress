@@ -8,6 +8,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
+use Loopress\Seo\Exception\StaleSeoRevisionException;
 use Loopress\Seo\Service\RankMathService;
 use Loopress\Tests\Stubs\FakeWpdb;
 use PHPUnit\Framework\TestCase;
@@ -21,6 +22,9 @@ class RankMathServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // getPostMeta()/getSettings()'s revision hash goes through wp_json_encode(), unavailable
+        // outside a real WordPress load; a plain json_encode() delegate does the same thing here.
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         $this->service = new RankMathService();
     }
 
@@ -152,14 +156,14 @@ class RankMathServiceTest extends TestCase
     {
         Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
 
-        $this->assertSame(['titleSeparator' => '-'], $this->service->getSettings());
+        $this->assertSame(['titleSeparator' => '-'], $this->service->getSettings()['settings']);
     }
 
     public function test_get_settings_returns_an_empty_array_when_the_option_is_not_an_array(): void
     {
         Functions\when('get_option')->justReturn(false);
 
-        $this->assertSame([], $this->service->getSettings());
+        $this->assertSame([], $this->service->getSettings()['settings']);
     }
 
     public function test_update_settings_stores_and_returns_the_new_value(): void
@@ -177,7 +181,7 @@ class RankMathServiceTest extends TestCase
 
         $result = $this->service->updateSettings(['titleSeparator' => '|']);
 
-        $this->assertSame(['titleSeparator' => '|'], $result);
+        $this->assertSame(['titleSeparator' => '|'], $result['settings']);
     }
 
     public function test_update_settings_strips_active_content_from_string_values(): void
@@ -197,6 +201,66 @@ class RankMathServiceTest extends TestCase
         $this->assertSame('Home ', $stored['homepage_title']);
         $this->assertSame('|', $stored['title_separator']);
         $this->assertSame('<img src=x>', $stored['nested']['og_image_alt']);
+    }
+
+    // ── settings: revision / conditional writes (#234) ──────────────────────
+
+    public function test_get_settings_revision_is_stable_for_the_same_value(): void
+    {
+        Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
+
+        $first  = $this->service->getSettings();
+        $second = $this->service->getSettings();
+
+        $this->assertSame($first['revision'], $second['revision']);
+    }
+
+    public function test_get_settings_revision_differs_for_a_different_value(): void
+    {
+        Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
+        $before = $this->service->getSettings();
+
+        Functions\when('get_option')->justReturn(['titleSeparator' => '|']);
+        $after = $this->service->getSettings();
+
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
+    // Regression coverage (#234): the whole point of the precondition is that a write is refused,
+    // not silently applied, once the settings no longer hold the value the caller last read.
+    public function test_update_settings_throws_stale_revision_exception_when_the_value_changed_underneath(): void
+    {
+        Functions\when('get_option')->justReturn(['titleSeparator' => 'someone else changed this']);
+        Functions\expect('update_option')->never();
+
+        $this->expectException(StaleSeoRevisionException::class);
+        $this->service->updateSettings(['titleSeparator' => '|'], 'a-revision-that-no-longer-matches');
+    }
+
+    // ── post meta: revision / conditional writes (#234) ─────────────────────
+
+    public function test_upsert_post_meta_throws_stale_revision_exception_when_the_meta_changed_underneath(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
+        Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['Someone else changed this']]);
+        Functions\expect('update_post_meta')->never();
+
+        $this->expectException(StaleSeoRevisionException::class);
+        $this->service->upsertPostMeta('post', 'hello', ['rank_math_title' => 'New title'], 'a-revision-that-no-longer-matches');
+    }
+
+    public function test_upsert_post_meta_succeeds_when_the_expected_revision_still_matches(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
+        Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['Old title']]);
+        $currentRevision = $this->service->getPostMeta('post', 'hello')['revision'];
+
+        Functions\when('update_post_meta')->justReturn(true);
+        Functions\when('delete_post_meta')->justReturn(true);
+
+        $result = $this->service->upsertPostMeta('post', 'hello', ['rank_math_title' => 'New title'], $currentRevision);
+
+        $this->assertSame('hello', $result['slug']);
     }
 
     public function test_upsert_post_meta_strips_active_content_from_values(): void

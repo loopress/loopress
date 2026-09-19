@@ -53,7 +53,7 @@ function themeEndpoints(path: string): unknown {
 // writes to disk and no composer.lock: the baseline where nothing differs.
 function baselineGet(composerJson = '{}') {
   return vi.fn(async (path: string) => {
-    if (path === 'loopress/v1/seo/settings') return {}
+    if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
     if (path === 'loopress/v1/menu-locations') return {}
     if (path === 'loopress/v1/composer/json') return {composerJson}
     if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
@@ -139,7 +139,7 @@ describe('diff', () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/acf/field-groups') return [{key: 'group_1', title: 'New'}]
       if (path === 'loopress/v1/forms') return [{id: 9, settings: {form_title: 'Gone'}}]
-      if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
       if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
@@ -160,7 +160,7 @@ describe('diff', () => {
   it('isolates a failing resource but still exits non-zero so a CI gate never passes on it', async () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/snippets') throw new Error('boom')
-      if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
       if (path === 'loopress/v1/menu-locations') return {}
       if (path === 'loopress/v1/composer/json') return {composerJson: '{}'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
@@ -247,7 +247,7 @@ describe('diff', () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/composer/json') return {composerJson: '{"a":1}\n'}
       if (path === 'loopress/v1/composer/lock') throw missingComposerLock()
-      if (path === 'loopress/v1/seo/settings') return {}
+      if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
       if (path === 'loopress/v1/menu-locations') return {}
       const themed = themeEndpoints(path)
       if (themed !== undefined) return themed
