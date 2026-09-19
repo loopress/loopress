@@ -7,6 +7,7 @@ namespace Loopress\Tests\Unit\Options\RestApi;
 use Brain\Monkey;
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
+use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\RestApi\OptionsController;
 use Loopress\Options\Service\OptionsService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -58,12 +59,13 @@ class OptionsControllerTest extends TestCase
 
     public function test_get_option_returns_200_with_the_option(): void
     {
-        $this->optionsService->method('getOption')->with('blogname')->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes']);
+        $this->optionsService->method('getOption')->with('blogname')
+            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
         $response = $this->controller->get_option(new WP_REST_Request(['name' => 'blogname']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes'], $response->data);
+        $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1'], $response->data);
     }
 
     // ── update ───────────────────────────────────────────────────────────────
@@ -96,8 +98,8 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->expects($this->once())
             ->method('updateOption')
-            ->with('blogname', 'Hello', 'yes')
-            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes']);
+            ->with('blogname', 'Hello', 'yes', null)
+            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
         $response = $this->controller->update_option(new WP_REST_Request([
             'name'     => 'blogname',
@@ -106,7 +108,7 @@ class OptionsControllerTest extends TestCase
         ]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes'], $response->data);
+        $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1'], $response->data);
     }
 
     // Regression coverage: a name already owned by `plugin`/`theme` must surface as a client-
@@ -120,6 +122,52 @@ class OptionsControllerTest extends TestCase
         $response = $this->controller->update_option(new WP_REST_Request(['name' => 'active_plugins', 'value' => []]));
 
         $this->assertSame(409, $response->status);
+    }
+
+    // ── update: conditional write (#234) ────────────────────────────────────
+
+    public function test_update_option_forwards_expected_revision_from_the_request_body(): void
+    {
+        $this->optionsService->expects($this->once())
+            ->method('updateOption')
+            ->with('blogname', 'Hello', 'yes', 'rev-1')
+            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-2']);
+
+        $response = $this->controller->update_option(new WP_REST_Request([
+            'name'             => 'blogname',
+            'value'            => 'Hello',
+            'autoload'         => 'yes',
+            'expectedRevision' => 'rev-1',
+        ]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_update_option_passes_null_when_no_expected_revision_is_given(): void
+    {
+        $this->optionsService->expects($this->once())
+            ->method('updateOption')
+            ->with('blogname', 'Hello', 'yes', null)
+            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
+
+        $this->controller->update_option(new WP_REST_Request(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes']));
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_option_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->optionsService->method('updateOption')->willThrowException(
+            new StaleOptionRevisionException('"blogname" changed on WordPress since it was last read.'),
+        );
+
+        $response = $this->controller->update_option(new WP_REST_Request([
+            'name'             => 'blogname',
+            'value'            => 'Hello',
+            'expectedRevision' => 'stale-revision',
+        ]));
+
+        $this->assertSame(412, $response->status);
+        $this->assertSame(['error' => '"blogname" changed on WordPress since it was last read.'], $response->data);
     }
 
     // ── delete ───────────────────────────────────────────────────────────────
@@ -136,7 +184,7 @@ class OptionsControllerTest extends TestCase
 
     public function test_delete_option_returns_200_when_deleted(): void
     {
-        $this->optionsService->method('getOption')->willReturn(['name' => 'my_option', 'value' => 1, 'autoload' => 'yes']);
+        $this->optionsService->method('getOption')->willReturn(['name' => 'my_option', 'value' => 1, 'autoload' => 'yes', 'revision' => 'rev-1']);
         $this->optionsService->expects($this->once())->method('deleteOption')->with('my_option');
 
         $response = $this->controller->delete_option(new WP_REST_Request(['name' => 'my_option']));
@@ -147,7 +195,7 @@ class OptionsControllerTest extends TestCase
 
     public function test_delete_option_returns_409_for_a_reserved_name(): void
     {
-        $this->optionsService->method('getOption')->willReturn(['name' => 'template', 'value' => 'x', 'autoload' => 'yes']);
+        $this->optionsService->method('getOption')->willReturn(['name' => 'template', 'value' => 'x', 'autoload' => 'yes', 'revision' => 'rev-1']);
         $this->optionsService->method('deleteOption')->willThrowException(
             new ReservedOptionNameException('"template" is managed by another Loopress resource.'),
         );

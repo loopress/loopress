@@ -6,6 +6,7 @@ namespace Loopress\Options\RestApi;
 
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
+use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 use Loopress\Options\Service\OptionsService;
 use Loopress\RestApi\MapsServiceExceptions;
@@ -22,6 +23,7 @@ class OptionsController
         ReservedOptionNameException::class     => 409,
         ProtectedOptionException::class        => 403,
         UnsupportedOptionValueException::class => 422,
+        StaleOptionRevisionException::class    => 412,
     ];
 
     public function __construct(private OptionsService $optionsService) {}
@@ -90,11 +92,12 @@ class OptionsController
             return new WP_REST_Response(['error' => 'Request body must include a "value".'], 400);
         }
 
-        $autoload = isset($body['autoload']) && is_string($body['autoload']) ? $body['autoload'] : null;
+        $autoload         = isset($body['autoload']) && is_string($body['autoload']) ? $body['autoload'] : null;
+        $expectedRevision = isset($body['expectedRevision']) && is_string($body['expectedRevision']) ? $body['expectedRevision'] : null;
 
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response(
-                $this->optionsService->updateOption((string) $request->get_param('name'), $body['value'], $autoload),
+                $this->optionsService->updateOption((string) $request->get_param('name'), $body['value'], $autoload, $expectedRevision),
                 200,
             ),
             self::STATUSES,
