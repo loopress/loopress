@@ -6,13 +6,17 @@ import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {
   redirectFileBase,
+  type RemoteSeoPostMeta,
+  type RemoteSeoSettings,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
   type SeoPostMeta,
   seoPostMetaEndpoint,
+  seoPostMetaItemEndpoint,
   type SeoRedirect,
   seoRedirectEndpoint,
 } from '../../utils/seo-format.js'
@@ -66,6 +70,16 @@ export default class Push extends PushCommand {
     this.log('All SEO configuration pushed.')
   }
 
+  private async currentPostMetaRevision(postType: string, slug: string): Promise<string | undefined> {
+    try {
+      const current = await this.wp.get<RemoteSeoPostMeta>(seoPostMetaItemEndpoint(postType, slug))
+      return current.revision
+    } catch (error) {
+      if (isNotFoundError(error)) return undefined
+      throw error
+    }
+  }
+
   private async jsonFilesIn(dir: string): Promise<string[]> {
     return (await readdirTolerant(dir)).filter((file) => extname(file) === '.json')
   }
@@ -100,7 +114,16 @@ export default class Push extends PushCommand {
 
     try {
       const post = JSON.parse(await readFile(filePath, 'utf8')) as SeoPostMeta
-      await this.wp.post(seoPostMetaEndpoint(postType), {meta: post.meta, slug: post.slug})
+      // Read the post's current SEO-meta revision right before writing it, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed that
+      // post's meta in between, instead of this push silently overwriting it (#234). No revision
+      // to condition on for a post whose meta doesn't exist remotely yet (an upsert that will
+      // itself fail with a clearer "post not found" error): falls back to an unconditional write.
+      const expectedRevision = await this.currentPostMetaRevision(postType, post.slug)
+      const body: Record<string, unknown> = {meta: post.meta, slug: post.slug}
+      if (expectedRevision !== undefined) body.expectedRevision = expectedRevision
+
+      await this.wp.post(seoPostMetaEndpoint(postType), body)
       if (task) task.output = `Pushed: ${post.slug}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${filePath}: ${(error as Error).message}`, error, task)
@@ -171,7 +194,12 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.put(SEO_SETTINGS_ENDPOINT, JSON.parse(raw) as Record<string, unknown>)
+      const settings = JSON.parse(raw) as Record<string, unknown>
+      // Read the settings' current revision right before writing them, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed the
+      // settings in between, instead of this push silently overwriting it (#234).
+      const {revision} = await this.wp.get<RemoteSeoSettings>(SEO_SETTINGS_ENDPOINT)
+      await this.wp.put(SEO_SETTINGS_ENDPOINT, {expectedRevision: revision, settings})
       this.log(`Pushed: ${file}`)
     } catch (error) {
       this.failedCount++

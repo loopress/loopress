@@ -107,21 +107,44 @@ class SeoServiceTest extends TestCase
     public function test_upsert_post_meta_delegates_to_the_active_provider(): void
     {
         $active = $this->provider(true);
-        $active->method('upsertPostMeta')->with('post', 'hello', ['title' => 'New'])->willReturn(['slug' => 'hello']);
+        $active->method('upsertPostMeta')->with('post', 'hello', ['title' => 'New'], null)->willReturn(['slug' => 'hello']);
 
         $service = new SeoService($active);
 
         $this->assertSame(['slug' => 'hello'], $service->upsertPostMeta('post', 'hello', ['title' => 'New']));
     }
 
-    public function test_update_settings_delegates_to_the_active_provider(): void
+    // Regression coverage (#234): the conditional-write precondition must actually reach the
+    // active provider, not get dropped by the arbitration layer in between.
+    public function test_upsert_post_meta_forwards_expected_revision_to_the_active_provider(): void
     {
         $active = $this->provider(true);
-        $active->method('updateSettings')->with(['titleSeparator' => '-'])->willReturn(['titleSeparator' => '-']);
+        $active->expects($this->once())->method('upsertPostMeta')->with('post', 'hello', ['title' => 'New'], 'rev-1')->willReturn(['slug' => 'hello']);
 
         $service = new SeoService($active);
 
-        $this->assertSame(['titleSeparator' => '-'], $service->updateSettings(['titleSeparator' => '-']));
+        $service->upsertPostMeta('post', 'hello', ['title' => 'New'], 'rev-1');
+    }
+
+    public function test_update_settings_delegates_to_the_active_provider(): void
+    {
+        $active = $this->provider(true);
+        $active->method('updateSettings')->with(['titleSeparator' => '-'], null)->willReturn(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '-']]);
+
+        $service = new SeoService($active);
+
+        $this->assertSame(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '-']], $service->updateSettings(['titleSeparator' => '-']));
+    }
+
+    public function test_update_settings_forwards_expected_revision_to_the_active_provider(): void
+    {
+        $active = $this->provider(true);
+        $active->expects($this->once())->method('updateSettings')->with(['titleSeparator' => '-'], 'rev-1')
+            ->willReturn(['revision' => 'rev-2', 'settings' => ['titleSeparator' => '-']]);
+
+        $service = new SeoService($active);
+
+        $service->updateSettings(['titleSeparator' => '-'], 'rev-1');
     }
 
     // ── redirects (only some providers support them) ─────────────────────────

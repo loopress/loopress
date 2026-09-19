@@ -277,7 +277,7 @@ describe('resource-state providers', () => {
 
     it('drops the volatile hits counter from redirects', async () => {
       const remote = fakeWp({
-        'loopress/v1/seo/settings': {titleSep: '-'},
+        'loopress/v1/seo/settings': {revision: 'rev-1', settings: {titleSep: '-'}},
         'loopress/v1/seo/redirects': [{headerCode: 301, hits: 999, id: 4, urlTo: '/new'}],
       })
 
@@ -294,7 +294,7 @@ describe('resource-state providers', () => {
       const wp = {
         async get(path: string) {
           if (path === 'loopress/v1/seo/redirects') throw notFound()
-          if (path === 'loopress/v1/seo/settings') return {}
+          if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
           return []
         },
       } as unknown as WpClient
@@ -317,7 +317,7 @@ describe('resource-state providers', () => {
       const wp = {
         async get(path: string) {
           if (path === 'loopress/v1/seo/redirects') throw new Error('server error', {cause: {response: {statusCode: 500}}})
-          if (path === 'loopress/v1/seo/settings') return {}
+          if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
           return []
         },
       } as unknown as WpClient
@@ -389,8 +389,8 @@ describe('resource-state providers', () => {
 
     it('reads remote seo post-meta per post type, keyed by slug', async () => {
       const remote = fakeWp({
-        'loopress/v1/seo/post-meta/post': [{meta: {}, slug: 'hello-world', title: 'Hello'}],
-        'loopress/v1/seo/settings': {},
+        'loopress/v1/seo/post-meta/post': [{meta: {}, revision: 'post-rev', slug: 'hello-world', title: 'Hello'}],
+        'loopress/v1/seo/settings': {revision: 'rev-1', settings: {}},
       })
 
       const state = await seoProvider.remote(remote, noWarn, dir)

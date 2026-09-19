@@ -14,6 +14,10 @@ export function seoPostMetaEndpoint(postType: string): string {
   return `loopress/v1/seo/post-meta/${postType}`
 }
 
+export function seoPostMetaItemEndpoint(postType: string, slug: string): string {
+  return `${seoPostMetaEndpoint(postType)}/${encodeURIComponent(slug)}`
+}
+
 // Deliberately loose: SeoService's active provider (RankMath or Yoast) reads/writes every one
 // of its own plugin-prefixed postmeta keys generically (see RankMathService/YoastService's
 // docblocks), so there's no fixed field list to model here either: whatever the active plugin
@@ -22,6 +26,22 @@ export type SeoPostMeta = {
   meta: Record<string, unknown>
   slug: string
   title: string
+}
+
+// GET /seo/post-meta/{type}/{slug}'s shape (a single post): carries a `revision`, the same
+// content-hash conditional-write precondition `option` uses (#234), on top of SeoPostMeta.
+// Never persisted locally (see `seo pull`'s pullPostMeta, which strips it before writing to
+// disk), only ever read fresh right before a push, same as RemoteOption.revision.
+export type RemoteSeoPostMeta = SeoPostMeta & {revision: string}
+
+// GET/PUT /seo/settings's shape: wrapped (unlike the bare settings object every earlier version
+// of this endpoint returned) so a `revision` can travel alongside the settings without being
+// mistaken for one of them, see SeoService::getSettings()'s docblock. `settings` alone is what
+// `seo pull`/`seo push` read and write to/from settings.json, never `revision` (same "never
+// persisted locally" rule as RemoteOption.revision).
+export type RemoteSeoSettings = {
+  revision: string
+  settings: Record<string, unknown>
 }
 
 // Only the active provider knowing how to handle redirects (RankMath does, Yoast doesn't, see
