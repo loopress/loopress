@@ -22,7 +22,7 @@ type PushWithLoadFiles = {loadFiles(dir: string): Promise<Array<{data: Record<st
 type PushWithPushForm = {
   failedCount: number
   pushForm(filePath: string, data: Record<string, unknown>, task?: {output: string}): Promise<void>
-  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 async function ensureCanonicalFilename(filePath: string, id: number, title: string): Promise<void> {
@@ -176,12 +176,13 @@ describe('form push', () => {
     it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
       const task = {output: ''}
 
       await expect(
-         
+
         (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task),
       ).rejects.toThrow('boom')
 
@@ -193,10 +194,11 @@ describe('form push', () => {
     it('falls back to warn when called without a task', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
 
-       
+
       await expect((cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}})).rejects.toThrow(
         'boom',
       )
@@ -205,20 +207,21 @@ describe('form push', () => {
       expect((cmd as unknown as PushWithPushForm).failedCount).toBe(1)
     })
 
-    it('PUTs to loopress/v1/forms/<id> and renames the file to the canonical name', async () => {
-       
+    it('reads the form’s current revision first, then PUTs the payload and that revision as a precondition (#234)', async () => {
+
       writeFileSync(join(dir, 'demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockResolvedValueOnce({})
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
       const task = {output: ''}
 
-       
+
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task)
 
-
-      expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
+      expect(get).toHaveBeenCalledWith('loopress/v1/forms/8')
+      expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {expectedRevision: 'rev-1', id: 8, settings: {form_title: 'Demo'}})
       expect(task.output).toBe('Pushed: Demo')
       expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
     })
@@ -226,18 +229,24 @@ describe('form push', () => {
     it('does not send allowNotifications by default, but adds it with --allow-notifications', async () => {
       const base = new Push([], fakeOclifConfig)
       silenceLogs(base)
+      const get = vi.fn().mockResolvedValue({revision: 'rev-1'})
       const put = vi.fn().mockResolvedValue({})
-      ;(base as unknown as PushWithPushForm).wpClient = {post: vi.fn(), put}
+      ;(base as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
       // Already canonically named so ensureCanonicalFilename() is a no-op across both calls.
       const file = join(dir, '8-a.json')
       writeFileSync(file, '{}')
 
       await (base as unknown as PushWithPushForm).pushForm(file, {id: 8, settings: {form_title: 'A'}})
-      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'A'}})
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {expectedRevision: 'rev-1', id: 8, settings: {form_title: 'A'}})
 
       ;(base as unknown as {allowNotifications: boolean}).allowNotifications = true
       await (base as unknown as PushWithPushForm).pushForm(file, {id: 8, settings: {form_title: 'A'}})
-      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {allowNotifications: true, id: 8, settings: {form_title: 'A'}})
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/forms/8', {
+        allowNotifications: true,
+        expectedRevision: 'rev-1',
+        id: 8,
+        settings: {form_title: 'A'},
+      })
     })
 
     it('POSTs a new form when there is no local id, and renames the local file to the id WordPress assigned', async () => {
@@ -247,68 +256,111 @@ describe('form push', () => {
       silenceLogs(cmd)
        
       const post = vi.fn().mockResolvedValueOnce({id: 42, settings: {form_title: 'New'}})
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post, put: vi.fn()}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get: vi.fn(), post, put: vi.fn()}
 
-       
+
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'new.json'), {settings: {form_title: 'New'}})
 
-       
+
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {settings: {form_title: 'New'}})
       expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['42-new.json'])
     })
 
-    it('skips the network entirely on a dry run, and reports what would happen on the task', async () => {
+    it('skips the network entirely on a dry run, not even reading the current revision', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
       ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      const get = vi.fn()
       const post = vi.fn()
       const put = vi.fn()
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post, put}
       const task = {output: ''}
 
-       
+
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, 'new.json'), {settings: {form_title: 'New'}}, task)
 
+      expect(get).not.toHaveBeenCalled()
       expect(post).not.toHaveBeenCalled()
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toBe('[dry-run] Would push: New')
     })
 
-    it('recreates a form whose local id no longer exists on the site', async () => {
-       
+    it('omits expectedRevision for a form whose id exists locally but not remotely yet (e.g. a fresh install)', async () => {
+
       writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
       const put = vi.fn().mockRejectedValueOnce(notFoundError())
-       
-      const post = vi.fn().mockResolvedValueOnce({id: 99, settings: {form_title: 'Demo'}})
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
 
-       
+      const post = vi.fn().mockResolvedValueOnce({id: 99, settings: {form_title: 'Demo'}})
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post, put}
+
+
       await (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}})
 
-       
+
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
-       
+
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {id: 8, settings: {form_title: 'Demo'}})
       expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['99-demo.json'])
     })
 
     it('rethrows a PUT failure that is not a 404 instead of falling back to create', async () => {
-       
+
       writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockRejectedValueOnce(new Error('server error'))
       const post = vi.fn()
-      ;(cmd as unknown as PushWithPushForm).wpClient = {post, put}
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post, put}
 
       await expect(
-         
+
         (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}}),
       ).rejects.toThrow('server error')
 
       expect(post).not.toHaveBeenCalled()
+    })
+
+    it('records the failure and rethrows so Listr marks the task failed when the write is refused as stale (412)', async () => {
+
+      writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
+      const put = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Request failed (412) on .../forms/8: "Form #8 changed on WordPress since it was last read.'))
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await expect(
+        (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task),
+      ).rejects.toThrow('412')
+
+      expect(task.output).toContain('Failed to push')
+      expect((cmd as unknown as PushWithPushForm).failedCount).toBe(1)
+    })
+
+    it('records the failure and rethrows when reading the current revision itself fails (not a 404)', async () => {
+
+      writeFileSync(join(dir, '8-demo.json'), JSON.stringify({id: 8, settings: {form_title: 'Demo'}}))
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValueOnce(new Error('server error', {cause: {response: {statusCode: 500}}}))
+      const put = vi.fn()
+      ;(cmd as unknown as PushWithPushForm).wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await expect(
+        (cmd as unknown as PushWithPushForm).pushForm(join(dir, '8-demo.json'), {id: 8, settings: {form_title: 'Demo'}}, task),
+      ).rejects.toThrow('server error')
+
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toContain('Failed to push')
+      expect((cmd as unknown as PushWithPushForm).failedCount).toBe(1)
     })
   })
 })
