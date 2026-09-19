@@ -1,9 +1,11 @@
+import {createHash} from 'node:crypto'
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/api/push.js'
+import {type ResourceState} from '../../../src/lib/diff-state.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
@@ -22,7 +24,7 @@ type ApiFile = {
 type PushWithLoadFiles = {loadFiles(path: string): Promise<ApiFile[]>}
 type PushWithPushFile = {
   failedCount: number
-  pushFile(file: ApiFile, task?: {output: string}): Promise<undefined | {public?: boolean}>
+  pushFile(file: ApiFile, beforeState: ResourceState | undefined, task?: {output: string}): Promise<undefined | {public?: boolean}>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 type PushWithPrune = {
@@ -37,6 +39,11 @@ async function loadFiles(path: string): Promise<ApiFile[]> {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   return (cmd as unknown as PushWithLoadFiles).loadFiles(path)
+}
+
+// Matches AbstractFilesController::revisionOf(): sha256 over the file's raw content.
+function sha256(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex')
 }
 
 describe('api push', () => {
@@ -109,9 +116,52 @@ describe('api push', () => {
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
-      await (cmd as unknown as PushWithPushFile).pushFile(file)
+      await (cmd as unknown as PushWithPushFile).pushFile(file, undefined)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
+    })
+
+    it('omits expectedRevision when beforeState has no entry for the file (a first push, #234)', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const beforeState: ResourceState = new Map([['some-other-file', '<?php']])
+
+      await (cmd as unknown as PushWithPushFile).pushFile(file, beforeState)
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
+    })
+
+    it('sends expectedRevision as the sha256 of the remote content already read into beforeState (#234)', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const remoteContent = '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello { public function get(): array { return []; } }\n'
+      const beforeState: ResourceState = new Map([['hello', remoteContent]])
+
+      await (cmd as unknown as PushWithPushFile).pushFile(file, beforeState)
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {
+        content: file.content,
+        expectedRevision: sha256(remoteContent),
+        filename: file.filename,
+      })
+    })
+
+    it('surfaces a 412 refusal (a stale revision) the same way as any other push failure', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const put = vi.fn().mockRejectedValueOnce(new Error('Request failed (412) on .../api-files: "hello.php" changed on WordPress since it was last read.'))
+      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
+      const beforeState: ResourceState = new Map([['hello', 'old content']])
+      const task = {output: ''}
+
+      await expect((cmd as unknown as PushWithPushFile).pushFile(file, beforeState, task)).rejects.toThrow('412')
+
+      expect(task.output).toBe('Failed to push hello: Request failed (412) on .../api-files: "hello.php" changed on WordPress since it was last read.')
+      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
     })
 
     it("surfaces the server's public flag so run() can warn about an unauthenticated route", async () => {
@@ -120,7 +170,7 @@ describe('api push', () => {
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello', public: true})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, undefined)
 
       expect(result?.public).toBe(true)
     })
@@ -133,7 +183,7 @@ describe('api push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)
 
       expect(put).not.toHaveBeenCalled()
       expect(result).toBeUndefined()
@@ -147,7 +197,7 @@ describe('api push', () => {
       const put = vi.fn()
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
+      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, undefined)
 
       expect(put).not.toHaveBeenCalled()
       expect(result).toBeUndefined()
@@ -160,7 +210,7 @@ describe('api push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+      await (cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)
 
       expect(task.output).toBe('Pushed: hello')
     })
@@ -173,7 +223,7 @@ describe('api push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+      await (cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)
 
       expect(task.output).toBe('Pushed: hello (syntax check skipped, unavailable on this host)')
     })
@@ -185,7 +235,7 @@ describe('api push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(file, task)).rejects.toThrow('boom')
+      await expect((cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)).rejects.toThrow('boom')
 
       expect(task.output).toBe('Failed to push hello: boom')
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
@@ -199,7 +249,7 @@ describe('api push', () => {
       const task = {output: ''}
       const invalidFile: ApiFile = {content: '<?php', filename: 'WITH_MAJ_ENDPOINT'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, undefined, task)).rejects.toThrow(
         'Invalid filename "WITH_MAJ_ENDPOINT"',
       )
 
@@ -218,7 +268,7 @@ describe('api push', () => {
         filename: 'invoice-pdf/[order_id]',
       }
 
-      await (cmd as unknown as PushWithPushFile).pushFile(dynamicFile)
+      await (cmd as unknown as PushWithPushFile).pushFile(dynamicFile, undefined)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {
         content: dynamicFile.content,
@@ -240,7 +290,7 @@ describe('api push', () => {
       const task = {output: ''}
       const invalidFile: ApiFile = {content: '<?php', filename: 'badseg/[1bad]'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, undefined, task)).rejects.toThrow(
         'Invalid filename "badseg/[1bad]"',
       )
 
@@ -255,7 +305,7 @@ describe('api push', () => {
       const task = {output: ''}
       const traversalFile: ApiFile = {content: '<?php', filename: 'invoice-pdf/..'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, undefined, task)).rejects.toThrow(
         'Invalid filename "invoice-pdf/.."',
       )
 
@@ -270,7 +320,7 @@ describe('api push', () => {
       const task = {output: ''}
       const missingDeclare: ApiFile = {content: '<?php\nfinal class Hello {}\n', filename: 'hello'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, undefined, task)).rejects.toThrow(
         'declare(strict_types=1);" is missing',
       )
 
@@ -289,7 +339,7 @@ describe('api push', () => {
         filename: 'hello',
       }
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, undefined, task)).rejects.toThrow(
         'declare(strict_types=1);" appears more than once',
       )
 

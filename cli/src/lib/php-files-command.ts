@@ -1,5 +1,6 @@
 import {confirm} from '@inquirer/prompts'
 import {Args, type Config, Flags} from '@oclif/core'
+import {createHash} from 'node:crypto'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
@@ -9,6 +10,7 @@ import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {ApiClient} from './api-client.js'
 import {LoopressCommand} from './base.js'
+import {type ResourceState} from './diff-state.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
@@ -60,12 +62,19 @@ type PhpFile = {
 // What the server returns from a list/pull: `content` is absent when the server declined to
 // read the file back (e.g. it is over the size limit, LP-SEC-02), in which case `error` says
 // why. `public` (api only) is true when the route declares `#[Permission(public: true)]`:
-// it runs for anyone, with no authentication (F1).
+// it runs for anyone, with no authentication (F1). `revision` (#234) is a content hash of
+// `content`, present on every entry but not read anywhere here: `push` computes its own
+// expectedRevision by hashing `beforeState`'s already-fetched content the same way (see
+// `expectedRevisionFor`), rather than depending on the server also echoing this field back
+// through the list endpoint, so there is exactly one place that needs to reproduce the
+// server's hash algorithm correctly. Kept in the type only so it is not a surprise field to
+// whoever inspects the raw JSON.
 type RemotePhpFile = {
   content?: string
   error?: string
   filename: string
   public?: boolean
+  revision?: string
 }
 
 type PushResult = {
@@ -102,6 +111,20 @@ export type RmFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmRe
 // unambiguous insertion point for the ABSPATH guard). Matching "exactly once" here, not just
 // presence, so a file that would still fail server-side doesn't falsely pass this check.
 const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
+
+// A file's expected revision (#234), computed from `beforeState`: the remote listing already
+// read by `captureBeforePushState` right before this push, for the rollback snapshot. Its value
+// for a PHP file is exactly the file's own raw content string (see phpFilesProvider in
+// resource-state.ts), the same string AbstractFilesController::push_file() hashes server-side to
+// produce the `revision` it returns, so hashing it here the same way (sha256, hex) reproduces
+// that server revision with no extra network round trip and no need for the server to echo a
+// `revision` field back through the list endpoint for the CLI to consume. A filename absent from
+// `beforeState` (a new file, or `beforeState` itself unavailable, e.g. a dry run or a failed
+// remote read) has nothing to condition on: pushFile falls back to today's unconditional create.
+function expectedRevisionFor(beforeState: ResourceState | undefined, filename: string): string | undefined {
+  const content = beforeState?.get(filename)
+  return typeof content === 'string' ? createHash('sha256').update(content, 'utf8').digest('hex') : undefined
+}
 
 function pathArg(pathNoun: string) {
   return {path: Args.string({description: `Path to ${pathNoun} (overrides project config)`})}
@@ -161,7 +184,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         files,
         (file) => file.filename,
         async (file, task) => {
-          const result = await this.pushFile(file, task)
+          const result = await this.pushFile(file, beforeState, task)
           pushed.push(file.filename)
           if (result?.public) publicRoutes.push(file.filename)
         },
@@ -238,7 +261,11 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       return deleted
     }
 
-    private async pushFile(file: PhpFile, task?: {output: string}): Promise<undefined | {public?: boolean}> {
+    private async pushFile(
+      file: PhpFile,
+      beforeState: ResourceState | undefined,
+      task?: {output: string},
+    ): Promise<undefined | {public?: boolean}> {
       if (!spec.filenamePattern.test(file.filename)) {
         const message = `Invalid filename "${file.filename}": ${spec.invalidFilenameHint}`
         this.reportTaskFailure(message, new Error(message), task)
@@ -257,11 +284,19 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         return undefined
       }
 
+      // `beforeState` was read once, at the start of this push run (see `expectedRevisionFor`
+      // above): there is no per-file GET endpoint to re-read it right before each individual
+      // write the way `option push` does. Sent back as `expectedRevision`, WordPress still
+      // refuses the write (412) if something changed the file in between, instead of this push
+      // silently overwriting it (#234); the vulnerable window is this run's own duration rather
+      // than a single request's, wider than option's but still far smaller than not checking
+      // at all.
+      const body: Record<string, unknown> = {content: file.content, filename: file.filename}
+      const expectedRevision = expectedRevisionFor(beforeState, file.filename)
+      if (expectedRevision !== undefined) body.expectedRevision = expectedRevision
+
       try {
-        const result = await this.wp.put<{public?: boolean; syntax_check?: 'skipped'}>(spec.endpoint, {
-          content: file.content,
-          filename: file.filename,
-        })
+        const result = await this.wp.put<{public?: boolean; syntax_check?: 'skipped'}>(spec.endpoint, body)
         if (task) {
           task.output =
             result.syntax_check === 'skipped'
