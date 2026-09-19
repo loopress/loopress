@@ -43,4 +43,5 @@ parameters:
               - src/Form/RestApi/FormController.php
               - src/Options/RestApi/OptionsController.php
               - src/Menu/RestApi/MenuController.php
+              - src/Seo/RestApi/SeoController.php
 

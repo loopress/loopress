@@ -14,12 +14,22 @@ interface SeoProvider extends ActivatableProvider
     /** @return array<string, mixed>|null */
     public function getPostMeta(string $postType, string $slug): ?array;
 
-    /** @param array<string, mixed> $meta @return array<string, mixed> */
-    public function upsertPostMeta(string $postType, string $slug, array $meta): array;
+    /**
+     * @param array<string, mixed> $meta
+     * @param string|null $expectedRevision When given, the write is refused (#234, StaleSeoRevisionException)
+     *        unless it still matches this post's current SEO-meta revision.
+     * @return array<string, mixed>
+     */
+    public function upsertPostMeta(string $postType, string $slug, array $meta, ?string $expectedRevision = null): array;
 
-    /** @return array<string, mixed> */
+    /** @return array{revision: string, settings: array<string, mixed>} */
     public function getSettings(): array;
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function updateSettings(array $data): array;
+    /**
+     * @param array<string, mixed> $data
+     * @param string|null $expectedRevision When given, the write is refused (#234, StaleSeoRevisionException)
+     *        unless it still matches the settings' current revision.
+     * @return array{revision: string, settings: array<string, mixed>}
+     */
+    public function updateSettings(array $data, ?string $expectedRevision = null): array;
 }

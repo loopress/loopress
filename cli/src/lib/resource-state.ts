@@ -8,9 +8,10 @@ import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/opti
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
+  type RemoteSeoPostMeta,
+  type RemoteSeoSettings,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
-  type SeoPostMeta,
   seoPostMetaEndpoint,
   type SeoRedirect,
 } from '../utils/seo-format.js'
@@ -315,12 +316,16 @@ const seoProvider: ResourceStateProvider = {
   async remote(wp, onWarn) {
     const state: ResourceState = new Map()
 
-    const settings = await wp.get<Record<string, unknown>>(SEO_SETTINGS_ENDPOINT)
+    // `revision` (#234) is dropped from both, same as optionsProvider.remote() does for
+    // RemoteOption.revision below: it's bookkeeping for the conditional-write precondition, not
+    // configuration, and comparing it here would flag drift whenever the mere act of reading
+    // changed nothing meaningful.
+    const {settings} = await wp.get<RemoteSeoSettings>(SEO_SETTINGS_ENDPOINT)
     state.set('settings', settings)
 
     for (const postType of DEFAULT_POST_TYPES) {
-      const posts = await wp.get<SeoPostMeta[]>(seoPostMetaEndpoint(postType))
-      for (const post of posts) state.set(`post-meta/${postType}/${post.slug}`, post)
+      const posts = await wp.get<RemoteSeoPostMeta[]>(seoPostMetaEndpoint(postType))
+      for (const {meta, slug, title} of posts) state.set(`post-meta/${postType}/${slug}`, {meta, slug, title})
     }
 
     // Redirects are a RankMath-only feature; on Yoast the endpoint 404s, same graceful skip
