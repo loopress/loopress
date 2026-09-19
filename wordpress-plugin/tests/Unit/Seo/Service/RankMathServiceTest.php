@@ -8,7 +8,6 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
-use Loopress\Seo\Exception\StaleSeoRevisionException;
 use Loopress\Seo\Service\RankMathService;
 use Loopress\Tests\Stubs\FakeWpdb;
 use PHPUnit\Framework\TestCase;
@@ -203,65 +202,10 @@ class RankMathServiceTest extends TestCase
         $this->assertSame('<img src=x>', $stored['nested']['og_image_alt']);
     }
 
-    // ── settings: revision / conditional writes (#234) ──────────────────────
-
-    public function test_get_settings_revision_is_stable_for_the_same_value(): void
-    {
-        Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
-
-        $first  = $this->service->getSettings();
-        $second = $this->service->getSettings();
-
-        $this->assertSame($first['revision'], $second['revision']);
-    }
-
-    public function test_get_settings_revision_differs_for_a_different_value(): void
-    {
-        Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
-        $before = $this->service->getSettings();
-
-        Functions\when('get_option')->justReturn(['titleSeparator' => '|']);
-        $after = $this->service->getSettings();
-
-        $this->assertNotSame($before['revision'], $after['revision']);
-    }
-
-    // Regression coverage (#234): the whole point of the precondition is that a write is refused,
-    // not silently applied, once the settings no longer hold the value the caller last read.
-    public function test_update_settings_throws_stale_revision_exception_when_the_value_changed_underneath(): void
-    {
-        Functions\when('get_option')->justReturn(['titleSeparator' => 'someone else changed this']);
-        Functions\expect('update_option')->never();
-
-        $this->expectException(StaleSeoRevisionException::class);
-        $this->service->updateSettings(['titleSeparator' => '|'], 'a-revision-that-no-longer-matches');
-    }
-
-    // ── post meta: revision / conditional writes (#234) ─────────────────────
-
-    public function test_upsert_post_meta_throws_stale_revision_exception_when_the_meta_changed_underneath(): void
-    {
-        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
-        Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['Someone else changed this']]);
-        Functions\expect('update_post_meta')->never();
-
-        $this->expectException(StaleSeoRevisionException::class);
-        $this->service->upsertPostMeta('post', 'hello', ['rank_math_title' => 'New title'], 'a-revision-that-no-longer-matches');
-    }
-
-    public function test_upsert_post_meta_succeeds_when_the_expected_revision_still_matches(): void
-    {
-        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
-        Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['Old title']]);
-        $currentRevision = $this->service->getPostMeta('post', 'hello')['revision'];
-
-        Functions\when('update_post_meta')->justReturn(true);
-        Functions\when('delete_post_meta')->justReturn(true);
-
-        $result = $this->service->upsertPostMeta('post', 'hello', ['rank_math_title' => 'New title'], $currentRevision);
-
-        $this->assertSame('hello', $result['slug']);
-    }
+    // Revision/conditional-write (#234) behavior is inherited from AbstractSeoService unchanged
+    // (see its revisionOf()/assertSettingsRevisionMatches()/assertPostMetaRevisionMatches()) and
+    // is exercised exhaustively there via YoastServiceTest; re-proving the identical shared logic
+    // again per subclass would just be copy-pasted coverage of code this class doesn't override.
 
     public function test_upsert_post_meta_strips_active_content_from_values(): void
     {
