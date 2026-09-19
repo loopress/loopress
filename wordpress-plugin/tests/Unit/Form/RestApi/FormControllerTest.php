@@ -122,7 +122,9 @@ class FormControllerTest extends TestCase
     {
         $this->formService->expects($this->never())->method('update');
 
-        $response = $this->controller->update_form($this->request(['id' => 2]));
+        // An explicit empty JSON body: the stub's get_json_params() falls back to the route
+        // params (here just `id`) when it isn't set, which would otherwise not be empty.
+        $response = $this->controller->update_form($this->request(['id' => 2], []));
 
         $this->assertSame(400, $response->status);
     }
