@@ -1,10 +1,16 @@
 import {describe, expect, it} from 'vitest'
 
-import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../src/utils/form-format.js'
+import {FORM_ENDPOINT, formEndpoint, getFormId, getFormTitle} from '../../src/utils/form-format.js'
 
 describe('form-format', () => {
   it('exposes the forms REST endpoint', () => {
     expect(FORM_ENDPOINT).toBe('loopress/v1/forms')
+  })
+
+  describe('formEndpoint', () => {
+    it('builds the single-form REST endpoint for an id', () => {
+      expect(formEndpoint(8)).toBe('loopress/v1/forms/8')
+    })
   })
 
   describe('getFormId', () => {

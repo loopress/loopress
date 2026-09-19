@@ -6,6 +6,7 @@ namespace Loopress\Form\RestApi;
 
 use Loopress\Form\Exception\FormNotificationException;
 use Loopress\Form\Exception\NoActiveFormPluginException;
+use Loopress\Form\Exception\StaleFormRevisionException;
 use Loopress\Form\Service\FormService;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
@@ -20,6 +21,7 @@ class FormController
     private const STATUSES = [
         NoActiveFormPluginException::class => 409,
         FormNotificationException::class   => 422,
+        StaleFormRevisionException::class  => 412,
     ];
 
     public function __construct(private FormService $formService) {}
@@ -112,12 +114,31 @@ class FormController
         }
 
         $data = $request->get_json_params();
-        if (!is_array($data) || $data === []) {
+        if (!is_array($data)) {
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
-        return $this->mapServiceExceptions(function () use ($request, $data): WP_REST_Response {
-            $form = $this->formService->update((int) $request->get_param('id'), $data);
+        // Unlike allowNotifications (where a wrong type simply falls back to "unspecified"), a
+        // malformed expectedRevision must never be silently treated as absent: that would drop
+        // the conditional-write precondition entirely, letting a client whose value happened to
+        // be sent as e.g. a number bypass #234's protection outright instead of getting a clear
+        // error. Checked and stripped from $data before the empty-body check below: a control
+        // flag, never persisted as form content (same reasoning as allowNotifications, see
+        // WPFormsProvider::sanitizeFormData()), and a body carrying nothing but this flag must
+        // still be rejected as empty rather than forwarded as an update that erases the form.
+        $expectedRevision = $data['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
+        unset($data['expectedRevision']);
+
+        if ($data === []) {
+            return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
+        }
+
+        return $this->mapServiceExceptions(function () use ($request, $data, $expectedRevision): WP_REST_Response {
+            $form = $this->formService->update((int) $request->get_param('id'), $data, $expectedRevision);
 
             return $form === null
                 ? new WP_REST_Response(['error' => 'Form not found'], 404)
