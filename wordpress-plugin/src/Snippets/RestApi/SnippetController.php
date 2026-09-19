@@ -9,6 +9,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\Exception\SnippetProviderRequestException;
+use Loopress\Snippets\Exception\StaleSnippetRevisionException;
 use Loopress\Snippets\Exception\UnsupportedLocationException;
 use Loopress\Snippets\Service\SnippetService;
 use WP_REST_Request;
@@ -38,6 +39,7 @@ class SnippetController
         UnsupportedLocationException::class    => 400,
         NoActiveSnippetPluginException::class  => 409,
         SnippetProviderRequestException::class => 502,
+        StaleSnippetRevisionException::class   => 412,
     ];
     private const DELETE_STATUSES = [NoActiveSnippetPluginException::class => 409];
 
@@ -174,8 +176,22 @@ class SnippetController
             'shortcodeAttributes' => $request->get_param('shortcodeAttributes'),
         ], fn($v) => $v !== null);
 
-        return $this->mapServiceExceptions(function () use ($request, $data): WP_REST_Response {
-            $snippet = $this->snippetService->updateSnippet((int) $request->get_param('id'), SnippetData::fromArray($data));
+        // Unlike the fields above (where a wrong type is simply dropped by array_filter), a
+        // malformed expectedRevision must never be silently treated as absent: that would drop
+        // the conditional-write precondition entirely, letting a client whose value happened to
+        // be sent as e.g. a number bypass #234's protection outright instead of getting a clear
+        // error. Mirrors OptionsController::update_option()'s equivalent check.
+        $expectedRevision = $request->get_param('expectedRevision');
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
+        return $this->mapServiceExceptions(function () use ($request, $data, $expectedRevision): WP_REST_Response {
+            $snippet = $this->snippetService->updateSnippet(
+                (int) $request->get_param('id'),
+                SnippetData::fromArray($data),
+                $expectedRevision,
+            );
 
             return $snippet === null
                 ? new WP_REST_Response(['error' => 'Snippet not found'], 404)
