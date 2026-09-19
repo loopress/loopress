@@ -5,7 +5,8 @@ import {extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
-import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} from '../../utils/menu-format.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
+import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, menuEndpoint, type MenuLocations} from '../../utils/menu-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 // A menu literally slugged "menu-locations" would still collide, but that's far less likely
@@ -52,6 +53,16 @@ export default class Push extends PushCommand {
     this.log('All nav menus pushed.')
   }
 
+  private async currentRevision(slug: string): Promise<string | undefined> {
+    try {
+      const current = await this.wp.get<Menu>(menuEndpoint(slug))
+      return current.revision
+    } catch (error) {
+      if (isNotFoundError(error)) return undefined
+      throw error
+    }
+  }
+
   private async pushLocations(basePath: string): Promise<void> {
     const file = join(basePath, LOCATIONS_FILENAME)
     let raw: string
@@ -96,7 +107,16 @@ export default class Push extends PushCommand {
       const items = record.items ?? []
       if (!Array.isArray(items)) throw new Error('"items" must be an array')
 
-      const result = await this.wp.post<Menu>(MENU_ENDPOINT, {items, name, slug})
+      // Read the menu's current revision right before writing it, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed the menu
+      // in between, instead of this push silently overwriting it (#234). No revision to condition
+      // on for a menu that doesn't exist remotely yet (a first push, an upsert create): falls back
+      // to today's unconditional write, same as before this existed.
+      const expectedRevision = await this.currentRevision(slug)
+      const body: Record<string, unknown> = {items, name, slug}
+      if (expectedRevision !== undefined) body.expectedRevision = expectedRevision
+
+      const result = await this.wp.post<Menu>(MENU_ENDPOINT, body)
       if (task) {
         task.output = result.warnings.length > 0 ? `Pushed: ${slug} (warning: ${result.warnings.join('; ')})` : `Pushed: ${slug}`
       }

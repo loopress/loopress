@@ -14,13 +14,18 @@ type PushInternals = {
   failedCount: number
   pushLocations(basePath: string): Promise<void>
   pushMenuFile(filePath: string, task?: {output: string}): Promise<void>
-  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 function makeCmd(): {cmd: PushInternals; logs: ReturnType<typeof silenceLogs>} {
   const cmd = new Push([], fakeOclifConfig)
   const logs = silenceLogs(cmd)
   return {cmd: cmd as unknown as PushInternals, logs}
+}
+
+// Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
+function notFoundError(): Error {
+  return new Error('not found', {cause: {response: {statusCode: 404}}})
 }
 
 describe('menu push', () => {
@@ -35,29 +40,53 @@ describe('menu push', () => {
   })
 
   describe('pushMenuFile', () => {
-    it('posts the slug, name, and items from the file to the menus endpoint', async () => {
+    it('reads the menu’s current revision first, then posts the slug, name, items, and that revision as a precondition (#234)', async () => {
       const {cmd} = makeCmd()
-      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', slug: 'main', warnings: []})
-      cmd.wpClient = {post, put: vi.fn()}
+      const get = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
+      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', revision: 'rev-2', slug: 'main', warnings: []})
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: [{type: 'custom', url: '/x'}], name: 'Main', slug: 'main', warnings: []}))
       const task = {output: ''}
 
       await cmd.pushMenuFile(file, task)
 
-      expect(post).toHaveBeenCalledWith('loopress/v1/menus', {items: [{type: 'custom', url: '/x'}], name: 'Main', slug: 'main'})
+      expect(get).toHaveBeenCalledWith('loopress/v1/menus/main')
+      expect(post).toHaveBeenCalledWith('loopress/v1/menus', {
+        expectedRevision: 'rev-1',
+        items: [{type: 'custom', url: '/x'}],
+        name: 'Main',
+        slug: 'main',
+      })
+      expect(task.output).toBe('Pushed: main')
+    })
+
+    it('omits expectedRevision for a menu that does not exist remotely yet (a first push)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
+      cmd.wpClient = {get, post, put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, JSON.stringify({items: [], name: 'Main', slug: 'main'}))
+      const task = {output: ''}
+
+      await cmd.pushMenuFile(file, task)
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/menus', {items: [], name: 'Main', slug: 'main'})
       expect(task.output).toBe('Pushed: main')
     })
 
     it('appends any server-returned warning to the task output instead of silently dropping it', async () => {
       const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
       const post = vi.fn().mockResolvedValueOnce({
         items: [],
         name: 'Main',
+        revision: 'rev-1',
         slug: 'main',
         warnings: ['Custom menu item URL points to a different domain'],
       })
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: [], name: 'Main', slug: 'main', warnings: []}))
       const task = {output: ''}
@@ -70,7 +99,7 @@ describe('menu push', () => {
 
     it('fails clearly when the file has no slug', async () => {
       const {cmd} = makeCmd()
-      cmd.wpClient = {post: vi.fn(), put: vi.fn()}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
       const file = join(dir, 'draft.json')
       writeFileSync(file, JSON.stringify({items: [], name: 'Draft'}))
       const task = {output: ''}
@@ -82,7 +111,7 @@ describe('menu push', () => {
     it('rejects a malformed "items" instead of clearing the remote menu', async () => {
       const {cmd} = makeCmd()
       const post = vi.fn()
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get: vi.fn(), post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: 'not-an-array', name: 'Main', slug: 'main'}))
       const task = {output: ''}
@@ -94,8 +123,9 @@ describe('menu push', () => {
 
     it('defaults a missing "items" to an empty array', async () => {
       const {cmd} = makeCmd()
-      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', slug: 'main', warnings: []})
-      cmd.wpClient = {post, put: vi.fn()}
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const post = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({name: 'Main', slug: 'main'}))
       const task = {output: ''}
@@ -105,31 +135,52 @@ describe('menu push', () => {
       expect(post).toHaveBeenCalledWith('loopress/v1/menus', {items: [], name: 'Main', slug: 'main'})
     })
 
-    it('does nothing in dry-run mode', async () => {
+    it('does nothing in dry-run mode, not even reading the current revision', async () => {
       const {cmd} = makeCmd()
       cmd.dryRun = true
+      const get = vi.fn()
       const post = vi.fn()
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: [], name: 'Main', slug: 'main'}))
       const task = {output: ''}
 
       await cmd.pushMenuFile(file, task)
 
+      expect(get).not.toHaveBeenCalled()
       expect(post).not.toHaveBeenCalled()
       expect(task.output).toContain('[dry-run]')
     })
 
-    it('records the failure and rethrows so Listr marks the task failed', async () => {
+    it('records the failure and rethrows so Listr marks the task failed when the write is refused as stale (412)', async () => {
       const {cmd} = makeCmd()
-      const post = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      cmd.wpClient = {post, put: vi.fn()}
+      const get = vi.fn().mockResolvedValueOnce({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
+      const post = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Request failed (412) on .../menus: "main" changed on WordPress since it was last read.'))
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: [], name: 'Main', slug: 'main'}))
       const task = {output: ''}
 
-      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('boom')
+      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('412')
 
+      expect(task.output).toContain('Failed to push')
+      expect(cmd.failedCount).toBe(1)
+    })
+
+    it('records the failure and rethrows when reading the current revision itself fails (not a 404)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(new Error('server error', {cause: {response: {statusCode: 500}}}))
+      const post = vi.fn()
+      cmd.wpClient = {get, post, put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, JSON.stringify({items: [], name: 'Main', slug: 'main'}))
+      const task = {output: ''}
+
+      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('server error')
+
+      expect(post).not.toHaveBeenCalled()
       expect(task.output).toContain('Failed to push')
       expect(cmd.failedCount).toBe(1)
     })
@@ -139,7 +190,7 @@ describe('menu push', () => {
     it('does nothing when there is no local menu-locations.json', async () => {
       const {cmd} = makeCmd()
       const put = vi.fn()
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
 
       await cmd.pushLocations(dir)
 
@@ -149,7 +200,7 @@ describe('menu push', () => {
     it('PUTs the parsed locations file', async () => {
       const {cmd, logs} = makeCmd()
       const put = vi.fn().mockResolvedValueOnce({})
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
       writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
 
       await cmd.pushLocations(dir)
@@ -161,7 +212,7 @@ describe('menu push', () => {
     it('warns and records the failure without throwing', async () => {
       const {cmd, logs} = makeCmd()
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
       writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
 
       await cmd.pushLocations(dir)
@@ -188,9 +239,12 @@ describe('menu push', () => {
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
       const put = vi.fn().mockResolvedValue({})
-      const post = vi.fn().mockResolvedValue({items: [], name: 'Main', slug: 'main', warnings: []})
-      ;(cmd as unknown as {wpClient: unknown}).wpClient = {post, put}
-      return {cmd, logs, post, put}
+      // No existing menu on this environment for any of these tests: pushMenuFile()'s revision
+      // read 404s, so every push here falls back to an unconditional create (see push.ts).
+      const get = vi.fn().mockRejectedValue(notFoundError())
+      const post = vi.fn().mockResolvedValue({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
+      return {cmd, get, logs, post, put}
     }
 
     it('pushes every local menu and the locations file, then reports success', async () => {
