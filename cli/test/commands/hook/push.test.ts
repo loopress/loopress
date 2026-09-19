@@ -4,10 +4,12 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/hook/push.js'
+import {type ResourceState} from '../../../src/lib/diff-state.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {sha256} from '../../helpers/sha256.js'
 
 type HookFile = {
   content: string
@@ -17,7 +19,7 @@ type HookFile = {
 type PushWithLoadFiles = {loadFiles(path: string): Promise<HookFile[]>}
 type PushWithPushFile = {
   failedCount: number
-  pushFile(file: HookFile, task?: {output: string}): Promise<void>
+  pushFile(file: HookFile, beforeState: ResourceState | undefined, task?: {output: string}): Promise<void>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
@@ -88,10 +90,16 @@ describe('hook push', () => {
       const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
 
-      await (cmd as unknown as PushWithPushFile).pushFile(file)
+      await (cmd as unknown as PushWithPushFile).pushFile(file, undefined)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', {content: file.content, filename: file.filename})
     })
+
+    // The full expectedRevision matrix (omitted on a first push, sent as the sha256 of
+    // beforeState's content, a 412 surfaced like any other push failure) lives once in
+    // api/push.test.ts: pushFile() here is the exact same shared resourcePushCommand() factory
+    // code, not a reimplementation. The end-to-end run() test below covers hook's own wiring
+    // into that shared code.
 
     it('reports a skipped syntax check in task.output without failing the push', async () => {
       const cmd = new Push([], fakeOclifConfig)
@@ -101,7 +109,7 @@ describe('hook push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+      await (cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)
 
       expect(task.output).toBe('Pushed: hello (syntax check skipped, unavailable on this host)')
     })
@@ -113,7 +121,7 @@ describe('hook push', () => {
       ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(file, task)).rejects.toThrow('boom')
+      await expect((cmd as unknown as PushWithPushFile).pushFile(file, undefined, task)).rejects.toThrow('boom')
 
       expect(task.output).toBe('Failed to push hello: boom')
       expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
@@ -127,7 +135,7 @@ describe('hook push', () => {
       const task = {output: ''}
       const invalidFile: HookFile = {content: '<?php', filename: 'WITH_MAJ_HOOK'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, undefined, task)).rejects.toThrow(
         'Invalid filename "WITH_MAJ_HOOK"',
       )
 
@@ -146,7 +154,7 @@ describe('hook push', () => {
         filename: 'content/filters',
       }
 
-      await (cmd as unknown as PushWithPushFile).pushFile(nestedFile)
+      await (cmd as unknown as PushWithPushFile).pushFile(nestedFile, undefined)
 
       expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', {
         content: nestedFile.content,
@@ -162,7 +170,7 @@ describe('hook push', () => {
       const task = {output: ''}
       const traversalFile: HookFile = {content: '<?php', filename: 'content/..'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, undefined, task)).rejects.toThrow(
         'Invalid filename "content/.."',
       )
 
@@ -177,7 +185,7 @@ describe('hook push', () => {
       const task = {output: ''}
       const missingDeclare: HookFile = {content: '<?php\nfinal class Hello {}\n', filename: 'hello'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, undefined, task)).rejects.toThrow(
         'declare(strict_types=1);" is missing',
       )
 
@@ -196,7 +204,7 @@ describe('hook push', () => {
         filename: 'hello',
       }
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, task)).rejects.toThrow(
+      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, undefined, task)).rejects.toThrow(
         'declare(strict_types=1);" appears more than once',
       )
 
@@ -249,6 +257,20 @@ describe('hook push', () => {
       expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', expect.objectContaining({filename: 'hello'}))
       expect(logs.log).toHaveBeenCalledWith('All hooks pushed.')
       expect(result).toEqual({pruned: [], pushed: ['hello'], status: 'success'})
+    })
+
+    it('sends expectedRevision end to end, computed from the remote listing read for the rollback snapshot (#234)', async () => {
+      const remoteContent = '<?php\n\ndeclare(strict_types=1);\n\nfinal class OldHello {}\n'
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, get, put} = make([dir])
+      get.mockResolvedValue([{content: remoteContent, filename: 'hello'}])
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith(
+        'loopress/v1/hook-files',
+        expect.objectContaining({expectedRevision: sha256(remoteContent), filename: 'hello'}),
+      )
     })
 
     it('errors with the failed count instead of reporting success when a push fails', async () => {

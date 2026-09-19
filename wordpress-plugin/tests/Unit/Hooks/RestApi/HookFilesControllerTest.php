@@ -172,6 +172,31 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame(200, $response->status);
     }
 
+    // ── expectedRevision (#234) ─────────────────────────────────────────────
+    //
+    // The full matrix (revision present/stable, match/stale/missing-file/non-string
+    // expectedRevision) lives once in ApiFilesControllerTest: this behavior is inherited
+    // unchanged from AbstractFilesController, not reimplemented per controller. This single
+    // smoke test just confirms HookFilesController is wired to it the same way.
+
+    public function test_push_file_enforces_the_expectedRevision_precondition(): void
+    {
+        $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $this->directory->method('read')->with('hello')->willReturn($current);
+        $this->directory->expects($this->never())->method('write');
+
+        $request = new WP_REST_Request([
+            'filename'         => 'hello',
+            'content'          => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n",
+            'expectedRevision' => 'not-the-current-revision',
+        ]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(412, $response->status);
+        $this->assertStringContainsString('changed on WordPress since it was last read', (string) $response->data['error']);
+    }
+
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
     {
         $request = new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);

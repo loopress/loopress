@@ -72,6 +72,15 @@ abstract class AbstractFilesController
                         'required' => true,
                         'type'     => 'string',
                     ],
+                    // Optimistic-concurrency precondition (#234): when present, push_file()
+                    // refuses the write with a 412 unless it still matches the file's current
+                    // revision. Declaring 'type' here is documentation only, same as 'content'
+                    // above; neither is auto-validated by this bare register_rest_route() call
+                    // (no validate_callback), so push_file() checks its type itself.
+                    'expectedRevision' => [
+                        'required' => false,
+                        'type'     => 'string',
+                    ],
                 ],
             ],
             [
@@ -123,7 +132,8 @@ abstract class AbstractFilesController
                 continue;
             }
 
-            $file = ['filename' => $slug, 'content' => FileWriter::stripGuard($content)];
+            $unguarded = FileWriter::stripGuard($content);
+            $file      = ['filename' => $slug, 'content' => $unguarded, 'revision' => $this->revisionOf($unguarded)];
             if (isset($loadErrors[$slug]) && is_string($loadErrors[$slug])) {
                 $file['error'] = $loadErrors[$slug];
             }
@@ -203,13 +213,40 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => $collision], 400);
         }
 
+        // Unlike 'content' above ((string) cast, a wrong type is silently coerced), a malformed
+        // expectedRevision must never be silently treated as absent: that would drop the
+        // conditional-write precondition entirely, letting a client whose value happened to be
+        // sent as e.g. a number bypass #234's protection outright instead of getting a clear
+        // error. Only a genuinely absent or explicit null one means "no precondition requested."
+        $expectedRevision = $request->get_param('expectedRevision');
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
+        if ($expectedRevision !== null) {
+            $current         = $this->directory()->read($filename);
+            $currentRevision = $current === null ? null : $this->revisionOf(FileWriter::stripGuard($current));
+
+            if ($currentRevision !== $expectedRevision) {
+                // No current content (the file doesn't exist yet) means there was nothing to
+                // condition on: an expectedRevision sent for it anyway is a real mismatch, not
+                // a false positive, same "it no longer exists" framing as options' equivalent.
+                $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+
+                return new WP_REST_Response([
+                    'error' => "\"{$filename}.php\" changed on WordPress since it was last read " .
+                        "(expected revision \"{$expectedRevision}\", but {$found}). Re-read the file and try again.",
+                ], 412);
+            }
+        }
+
         try {
             $this->directory()->write($filename, $guarded);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        $response = $this->annotateEntry(['filename' => $filename], $content);
+        $response = $this->annotateEntry(['filename' => $filename, 'revision' => $this->revisionOf($content)], $content);
         if ($syntax['status'] === 'unavailable') {
             // Distinguishes "verified, no error" from "couldn't verify here" for the CLI:
             // the write still succeeded, this is a heads-up, not a failure.
@@ -366,6 +403,18 @@ abstract class AbstractFilesController
         // First line is always "PHP Parse error: ..." or "PHP Fatal error: ...", the rest is
         // an "Errors parsing ..." footer that repeats the filename back, not useful to the user.
         return ['status' => 'error', 'message' => $output[0] ?? 'Unknown syntax error.'];
+    }
+
+    // A content hash of a file's own unguarded bytes (the same string list_files() returns as
+    // 'content', and push_file()'s own $content parameter), opaque to callers, only ever
+    // compared for equality (see push_file()'s $expectedRevision precondition, #234). No JSON
+    // envelope needed, unlike OptionsService::revisionOf(): the input here is already a single
+    // raw string to hash directly, not a value/autoload pair that needs combining first. sha256,
+    // not md5, matching the option resource's own choice (see #235): this is a plain
+    // change-detection tag, never a security control, but sha256 costs nothing extra here.
+    private function revisionOf(string $content): string
+    {
+        return hash('sha256', $content);
     }
 
     // disable_functions is a comma-separated list of exact function names: a substring check
