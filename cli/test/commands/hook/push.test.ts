@@ -100,48 +100,11 @@ describe('hook push', () => {
       expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', {content: file.content, filename: file.filename})
     })
 
-    it('omits expectedRevision when beforeState has no entry for the file (a first push, #234)', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const beforeState: ResourceState = new Map([['some-other-file', '<?php']])
-
-      await (cmd as unknown as PushWithPushFile).pushFile(file, beforeState)
-
-      expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', {content: file.content, filename: file.filename})
-    })
-
-    it('sends expectedRevision as the sha256 of the remote content already read into beforeState (#234)', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const remoteContent = "<?php\n\ndeclare(strict_types=1);\n\nadd_action('init', static function (): void {});\n"
-      const beforeState: ResourceState = new Map([['hello', remoteContent]])
-
-      await (cmd as unknown as PushWithPushFile).pushFile(file, beforeState)
-
-      expect(put).toHaveBeenCalledWith('loopress/v1/hook-files', {
-        content: file.content,
-        expectedRevision: sha256(remoteContent),
-        filename: file.filename,
-      })
-    })
-
-    it('surfaces a 412 refusal (a stale revision) the same way as any other push failure', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockRejectedValueOnce(new Error('Request failed (412) on .../hook-files: "hello.php" changed on WordPress since it was last read.'))
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const beforeState: ResourceState = new Map([['hello', 'old content']])
-      const task = {output: ''}
-
-      await expect((cmd as unknown as PushWithPushFile).pushFile(file, beforeState, task)).rejects.toThrow('412')
-
-      expect(task.output).toBe('Failed to push hello: Request failed (412) on .../hook-files: "hello.php" changed on WordPress since it was last read.')
-      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
-    })
+    // The full expectedRevision matrix (omitted on a first push, sent as the sha256 of
+    // beforeState's content, a 412 surfaced like any other push failure) lives once in
+    // api/push.test.ts: pushFile() here is the exact same shared resourcePushCommand() factory
+    // code, not a reimplementation. The end-to-end run() test below covers hook's own wiring
+    // into that shared code.
 
     it('reports a skipped syntax check in task.output without failing the push', async () => {
       const cmd = new Push([], fakeOclifConfig)

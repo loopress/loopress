@@ -143,20 +143,6 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame([['type' => 'action', 'hook' => 'init', 'recurrence' => null]], $response->data[0]['hooks']);
     }
 
-    // A content hash of the file's own unguarded bytes (#234), the precondition `hook push`
-    // reads back as `expectedRevision`. Opaque to callers: only ever asserted for equality
-    // here, never for a particular value.
-    public function test_list_files_includes_a_revision_field(): void
-    {
-        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $this->directory->method('listSlugs')->willReturn(['hello']);
-        $this->directory->method('read')->with('hello')->willReturn($content);
-
-        $response = $this->controller->list_files();
-
-        $this->assertSame(hash('sha256', $content), $response->data[0]['revision']);
-    }
-
     // ── push_file ────────────────────────────────────────────────────────────
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void
@@ -187,37 +173,13 @@ class HookFilesControllerTest extends TestCase
     }
 
     // ── expectedRevision (#234) ─────────────────────────────────────────────
+    //
+    // The full matrix (revision present/stable, match/stale/missing-file/non-string
+    // expectedRevision) lives once in ApiFilesControllerTest: this behavior is inherited
+    // unchanged from AbstractFilesController, not reimplemented per controller. This single
+    // smoke test just confirms HookFilesController is wired to it the same way.
 
-    public function test_push_file_returns_a_revision_in_the_success_response(): void
-    {
-        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(200, $response->status);
-        $this->assertSame(hash('sha256', $content), $response->data['revision']);
-    }
-
-    public function test_push_file_writes_when_expectedRevision_matches_the_files_current_content(): void
-    {
-        $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $new     = "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n";
-        $this->directory->method('read')->with('hello')->willReturn($current);
-        $this->directory->expects($this->once())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => $new,
-            'expectedRevision' => hash('sha256', $current),
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(200, $response->status);
-    }
-
-    public function test_push_file_returns_412_and_does_not_write_when_expectedRevision_is_stale(): void
+    public function test_push_file_enforces_the_expectedRevision_precondition(): void
     {
         $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
         $this->directory->method('read')->with('hello')->willReturn($current);
@@ -225,7 +187,7 @@ class HookFilesControllerTest extends TestCase
 
         $request = new WP_REST_Request([
             'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+            'content'          => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n",
             'expectedRevision' => 'not-the-current-revision',
         ]);
 
@@ -233,60 +195,6 @@ class HookFilesControllerTest extends TestCase
 
         $this->assertSame(412, $response->status);
         $this->assertStringContainsString('changed on WordPress since it was last read', (string) $response->data['error']);
-    }
-
-    // No current content (the file doesn't exist yet) means there was nothing to condition on:
-    // an expectedRevision sent for it anyway is a real mismatch, framed the same as options'
-    // equivalent ("it no longer exists"), not treated as if no precondition had been given.
-    public function test_push_file_returns_412_when_expectedRevision_is_given_for_a_file_that_does_not_exist_yet(): void
-    {
-        $this->directory->method('read')->with('hello')->willReturn(null);
-        $this->directory->expects($this->never())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
-            'expectedRevision' => 'some-revision',
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(412, $response->status);
-        $this->assertStringContainsString('it no longer exists', (string) $response->data['error']);
-    }
-
-    // Unlike 'content' (a wrong type is silently (string)-cast), a malformed expectedRevision
-    // must never be silently treated as absent: that would drop the conditional-write
-    // precondition entirely, letting a stray non-string value bypass #234's protection outright.
-    public function test_push_file_returns_400_when_expectedRevision_is_not_a_string(): void
-    {
-        $this->directory->expects($this->never())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename'         => 'hello',
-            'content'          => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
-            'expectedRevision' => 42,
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('expectedRevision', (string) $response->data['error']);
-    }
-
-    public function test_push_file_writes_without_a_precondition_when_expectedRevision_is_absent(): void
-    {
-        $this->directory->method('read')->with('hello')->willReturn(null);
-        $this->directory->expects($this->once())->method('write');
-
-        $request = new WP_REST_Request([
-            'filename' => 'hello',
-            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
-        ]);
-
-        $response = $this->controller->push_file($request);
-
-        $this->assertSame(200, $response->status);
     }
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
