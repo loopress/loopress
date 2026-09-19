@@ -124,6 +124,7 @@ abstract class AbstractSeoService implements SeoProvider
 
     // Opaque content hash, only ever compared for equality (see assertPostMetaRevisionMatches()/
     // assertSettingsRevisionMatches()), mirrors OptionsService::revisionOf().
+    /** @param array<string, mixed> $data */
     private function revisionOf(array $data): string
     {
         return hash('sha256', (string) wp_json_encode($data));
