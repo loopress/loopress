@@ -24,7 +24,12 @@ type PushWithEnsureCanonicalFilename = {ensureCanonicalFilename(snippet: Snippet
 type PushWithPushSnippet = {
   failedCount: number
   pushSnippet(snippet: Snippet, task?: {output: string}): Promise<number | undefined>
-  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+}
+
+// Mirrors WpClient.isNotFoundError()'s expected shape (see lib/wp-client.ts).
+function notFoundError(): Error {
+  return new Error('not found', {cause: {response: {statusCode: 404}}})
 }
 
 describe('snippet push', () => {
@@ -330,8 +335,9 @@ describe('snippet push', () => {
     it('routes the failure message through task.output instead of warn, and rethrows so Listr marks the task failed', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post: vi.fn(), put}
       const task = {output: ''}
 
       await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet, task)).rejects.toThrow('boom')
@@ -344,8 +350,9 @@ describe('snippet push', () => {
     it('falls back to warn when called without a task (e.g. directly in tests)', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      ;(cmd as unknown as PushWithPushSnippet).wpClient = {put}
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post: vi.fn(), put}
 
       await expect((cmd as unknown as PushWithPushSnippet).pushSnippet(snippet)).rejects.toThrow('boom')
 
@@ -359,14 +366,17 @@ describe('snippet push', () => {
 
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      const get = vi.fn()
       const post = vi.fn().mockResolvedValueOnce({id: 42, name: 'demo'})
       const put = vi.fn()
-      ;(cmd as unknown as PushWithPushSnippet).wpClient = {post, put}
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post, put}
 
       const id = await (cmd as unknown as PushWithPushSnippet).pushSnippet(newSnippet)
 
       expect(id).toBe(42)
       expect(put).not.toHaveBeenCalled()
+      // No known remote id to read a revision for; a first push must never attempt the GET.
+      expect(get).not.toHaveBeenCalled()
     })
 
     it('returns the existing id when updating an already-linked snippet', async () => {
@@ -375,13 +385,115 @@ describe('snippet push', () => {
 
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
       const put = vi.fn().mockResolvedValueOnce({})
-      ;(cmd as unknown as PushWithPushSnippet).wpClient = {post: vi.fn(), put}
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post: vi.fn(), put}
 
       const id = await (cmd as unknown as PushWithPushSnippet).pushSnippet(existingSnippet)
 
       expect(id).toBe(8)
       expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/8`, expect.any(Object))
+    })
+  })
+
+  describe('pushSnippet: conditional write (#234)', () => {
+    const snippet: Snippet = {
+      active: false,
+      code: '<?php echo 1;',
+      id: 8,
+      insertMethod: 'auto',
+      location: 'everywhere',
+      name: 'demo',
+      path: join('/tmp', 'demo.php'),
+      priority: 10,
+      shortcodeAttributes: [],
+      tags: [],
+      type: 'php',
+    }
+
+    function makeCmd(): {cmd: PushWithPushSnippet} {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      return {cmd: cmd as unknown as PushWithPushSnippet}
+    }
+
+    it('reads the snippet’s current revision first, then PUTs the payload and that revision as a precondition', async () => {
+      // Named already at its canonical `<id>-<slug>` form so pushSnippet's post-write rename is
+      // a no-op; only the revision/precondition plumbing is under test here.
+      const localSnippet = {...snippet, path: join(dir, '8-demo.php')}
+
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({id: 8, name: 'demo', revision: 'rev-1'})
+      const put = vi.fn().mockResolvedValueOnce({})
+      cmd.wpClient = {get, post: vi.fn(), put}
+
+      await cmd.pushSnippet(localSnippet)
+
+      expect(get).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/8`)
+      expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/8`, expect.objectContaining({expectedRevision: 'rev-1'}))
+    })
+
+    it('omits expectedRevision when the known id no longer exists remotely (404 on the read)', async () => {
+      writeFileSync(join(dir, 'demo.php'), '<?php echo 1;')
+      const localSnippet = {...snippet, path: join(dir, 'demo.php')}
+
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const post = vi.fn().mockResolvedValueOnce({id: 99, name: 'demo'})
+      const put = vi.fn().mockRejectedValueOnce(notFoundError())
+      cmd.wpClient = {get, post, put}
+
+      await cmd.pushSnippet(localSnippet)
+
+      const [, putBody] = put.mock.calls[0] as [string, Record<string, unknown>]
+      expect(putBody.expectedRevision).toBeUndefined()
+      // putOrCreate's own PUT-then-404-fallback-to-POST dance; the POST body must never carry
+      // a leftover expectedRevision, it would be meaningless on a create.
+      expect(post).toHaveBeenCalledWith(SNIPPETS_ENDPOINT, expect.not.objectContaining({expectedRevision: expect.anything()}))
+    })
+
+    it('does nothing in dry-run mode, not even reading the current revision', async () => {
+      const {cmd} = makeCmd()
+      cmd.dryRun = true
+      const get = vi.fn()
+      const put = vi.fn()
+      cmd.wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await cmd.pushSnippet(snippet, task)
+
+      expect(get).not.toHaveBeenCalled()
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toContain('[dry-run]')
+    })
+
+    it('records the failure and rethrows so Listr marks the task failed when the write is refused as stale (412)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({id: 8, name: 'demo', revision: 'rev-1'})
+      const put = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Request failed (412) on .../snippets/8: Snippet 8 changed on WordPress since it was last read.'))
+      cmd.wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await expect(cmd.pushSnippet(snippet, task)).rejects.toThrow('412')
+
+      expect(task.output).toContain('Failed to push')
+      expect(cmd.failedCount).toBe(1)
+    })
+
+    it('records the failure and rethrows when reading the current revision itself fails (not a 404)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(new Error('server error', {cause: {response: {statusCode: 500}}}))
+      const put = vi.fn()
+      cmd.wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await expect(cmd.pushSnippet(snippet, task)).rejects.toThrow('server error')
+
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toContain('Failed to push')
+      expect(cmd.failedCount).toBe(1)
     })
   })
 })

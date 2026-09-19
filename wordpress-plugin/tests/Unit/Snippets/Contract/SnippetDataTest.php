@@ -149,6 +149,25 @@ class SnippetDataTest extends TestCase
         $this->assertSame([], (new SnippetData())->toArray());
     }
 
+    // ── revision (#234) ──────────────────────────────────────────────────────
+
+    public function test_to_array_includes_revision_when_set(): void
+    {
+        $this->assertSame(['id' => 1, 'revision' => 'rev-1'], (new SnippetData(id: 1, revision: 'rev-1'))->toArray());
+    }
+
+    public function test_to_array_drops_revision_when_not_set(): void
+    {
+        $this->assertArrayNotHasKey('revision', (new SnippetData(id: 1))->toArray());
+    }
+
+    // fromArray() builds patch input for create/update; a client sending a "revision" field
+    // must never be able to set it directly, only ever receive it back on a read (#234).
+    public function test_from_array_never_sets_revision(): void
+    {
+        $this->assertNull(SnippetData::fromArray(['id' => 1, 'revision' => 'client-supplied'])->revision);
+    }
+
     // ── round trip ───────────────────────────────────────────────────────────
 
     public function test_from_array_then_to_array_round_trips(): void

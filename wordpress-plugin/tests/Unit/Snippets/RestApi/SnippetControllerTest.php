@@ -9,6 +9,7 @@ use Brain\Monkey\Functions;
 use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Exception\NoActiveSnippetPluginException;
 use Loopress\Snippets\Exception\SnippetProviderRequestException;
+use Loopress\Snippets\Exception\StaleSnippetRevisionException;
 use Loopress\Snippets\Exception\UnsupportedLocationException;
 use Loopress\Snippets\RestApi\SnippetController;
 use Loopress\Snippets\Service\SnippetService;
@@ -365,6 +366,88 @@ class SnippetControllerTest extends TestCase
         $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1']));
 
         $this->assertSame(500, $response->status);
+    }
+
+    // ── update_snippet: conditional write (#234) ────────────────────────────
+
+    public function test_update_snippet_forwards_expected_revision_from_the_request(): void
+    {
+        $this->snippetService->method('isActive')->willReturn(true);
+        $this->snippetService->expects($this->once())
+            ->method('updateSnippet')
+            ->with(1, $this->anything(), 'rev-1')
+            ->willReturn(new SnippetData(id: 1, name: 'New'));
+
+        $response = $this->controller->update_snippet(new WP_REST_Request([
+            'id'               => '1',
+            'name'             => 'New',
+            'expectedRevision' => 'rev-1',
+        ]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_update_snippet_passes_null_when_no_expected_revision_is_given(): void
+    {
+        $this->snippetService->method('isActive')->willReturn(true);
+        $this->snippetService->expects($this->once())
+            ->method('updateSnippet')
+            ->with(1, $this->anything(), null)
+            ->willReturn(new SnippetData(id: 1, name: 'New'));
+
+        $this->controller->update_snippet(new WP_REST_Request(['id' => '1', 'name' => 'New']));
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_update_snippet_passes_null_when_expected_revision_is_explicitly_null(): void
+    {
+        $this->snippetService->method('isActive')->willReturn(true);
+        $this->snippetService->expects($this->once())
+            ->method('updateSnippet')
+            ->with(1, $this->anything(), null)
+            ->willReturn(new SnippetData(id: 1, name: 'New'));
+
+        $this->controller->update_snippet(new WP_REST_Request([
+            'id'               => '1',
+            'name'             => 'New',
+            'expectedRevision' => null,
+        ]));
+        $this->addToAssertionCount(1);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, a client that (accidentally or otherwise) sent something other than a string would
+    // otherwise have the conditional-write precondition disabled entirely instead of getting a
+    // clear error, and updateSnippet() would run as if no precondition had been requested.
+    public function test_update_snippet_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->snippetService->method('isActive')->willReturn(true);
+        $this->snippetService->expects($this->never())->method('updateSnippet');
+
+        $response = $this->controller->update_snippet(new WP_REST_Request([
+            'id'               => '1',
+            'name'             => 'New',
+            'expectedRevision' => 12_345,
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_update_snippet_returns_412_when_the_expected_revision_is_stale(): void
+    {
+        $this->snippetService->method('isActive')->willReturn(true);
+        $this->snippetService->method('updateSnippet')->willThrowException(
+            new StaleSnippetRevisionException('Snippet 1 changed on WordPress since it was last read.'),
+        );
+
+        $response = $this->controller->update_snippet(new WP_REST_Request([
+            'id'               => '1',
+            'name'             => 'New',
+            'expectedRevision' => 'stale-revision',
+        ]));
+
+        $this->assertSame(412, $response->status);
+        $this->assertSame(['error' => 'Snippet 1 changed on WordPress since it was last read.'], $response->data);
     }
 
     // ── delete_snippet ───────────────────────────────────────────────────────

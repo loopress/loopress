@@ -19,6 +19,11 @@ export type NormalizedSnippet = {
   location: SnippetLocation
   name: string
   priority: number
+  // Opaque content hash of every field an update can change, only ever compared for equality
+  // (see `snippet push`'s conditional-write precondition, #234). Present only on a single-
+  // snippet GET/POST/PUT response, never on the `loopress/v1/snippets` list, and never persisted
+  // locally: a local snippet file describes the desired state, not remote bookkeeping.
+  revision?: string
   shortcodeAttributes: string[]
   tags: string[]
   type: SnippetType
@@ -114,6 +119,7 @@ export function normalizeSnippet(data: Record<string, unknown>): NormalizedSnipp
     location: parseLocation(data.location) ?? defaultLocationForType(parseType(data.type) ?? 'php'),
     name: coerceString(data.name),
     priority: resolvePriority(data.priority),
+    revision: typeof data.revision === 'string' ? data.revision : undefined,
     shortcodeAttributes: Array.isArray(data.shortcodeAttributes) ? (data.shortcodeAttributes as unknown[]).map(String) : [],
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
     type: parseType(data.type) ?? 'php',
