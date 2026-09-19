@@ -4,7 +4,8 @@ import {join} from 'node:path'
 import {loadFiles} from '../../lib/load-files.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, acfObjectEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 export default class Push extends PushCommand {
@@ -48,6 +49,16 @@ export default class Push extends PushCommand {
     this.log('All ACF objects pushed.')
   }
 
+  private async currentRevision(type: AcfObjectType, key: string): Promise<string | undefined> {
+    try {
+      const current = await this.wp.get<{revision?: string}>(acfObjectEndpoint(type, key))
+      return current.revision
+    } catch (error) {
+      if (isNotFoundError(error)) return undefined
+      throw error
+    }
+  }
+
   private async loadObjects(dir: string): Promise<Array<Record<string, unknown>>> {
     return loadFiles<Record<string, unknown>>(dir, {
       extension: '.json',
@@ -76,7 +87,15 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.post(acfEndpoint(type), object)
+      // Read the object's current revision right before writing it, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed the
+      // object in between, instead of this push silently overwriting it (#234). No revision to
+      // condition on for an object that doesn't exist remotely yet (a first push, an upsert
+      // create): falls back to today's unconditional write, same as before this existed.
+      const expectedRevision = await this.currentRevision(type, key)
+      const body: Record<string, unknown> = expectedRevision === undefined ? object : {...object, expectedRevision}
+
+      await this.wp.post(acfEndpoint(type), body)
       if (task) task.output = `Pushed: ${key}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${key}: ${(error as Error).message}`, error, task)
