@@ -43,6 +43,11 @@ export type LocalOption = {
 export type RemoteOption = {
   autoload: string
   name: string
+  // Opaque content hash of `value`, only ever compared for equality (see `option push`'s
+  // conditional-write precondition, #234). Never persisted locally: a local file describes the
+  // desired state, not remote bookkeeping, and diffing ignores it the same way (see
+  // resource-state.ts's optionsProvider, which reads this field but doesn't keep it).
+  revision: string
   value: unknown
 }
 

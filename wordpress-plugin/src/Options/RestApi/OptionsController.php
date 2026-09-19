@@ -6,6 +6,7 @@ namespace Loopress\Options\RestApi;
 
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
+use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 use Loopress\Options\Service\OptionsService;
 use Loopress\RestApi\MapsServiceExceptions;
@@ -22,6 +23,7 @@ class OptionsController
         ReservedOptionNameException::class     => 409,
         ProtectedOptionException::class        => 403,
         UnsupportedOptionValueException::class => 422,
+        StaleOptionRevisionException::class    => 412,
     ];
 
     public function __construct(private OptionsService $optionsService) {}
@@ -92,9 +94,18 @@ class OptionsController
 
         $autoload = isset($body['autoload']) && is_string($body['autoload']) ? $body['autoload'] : null;
 
+        // Unlike autoload (where a wrong type simply falls back to "unspecified"), a malformed
+        // expectedRevision must never be silently treated as absent: that would drop the
+        // conditional-write precondition entirely, letting a client whose value happened to be
+        // sent as e.g. a number bypass #234's protection outright instead of getting a clear error.
+        $expectedRevision = $body['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response(
-                $this->optionsService->updateOption((string) $request->get_param('name'), $body['value'], $autoload),
+                $this->optionsService->updateOption((string) $request->get_param('name'), $body['value'], $autoload, $expectedRevision),
                 200,
             ),
             self::STATUSES,

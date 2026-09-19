@@ -8,6 +8,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
+use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 use Loopress\Options\Service\OptionsService;
 use Loopress\Tests\Stubs\FakeOptionsWpdb;
@@ -25,6 +26,10 @@ class OptionsServiceTest extends TestCase
         // loopress_option_readable / loopress_option_writable pass through to the computed
         // default unless a test overrides this.
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
+        // getOption()'s revision hash goes through wp_json_encode(), unavailable outside a real
+        // WordPress load; a plain json_encode() delegate is exactly what it does for the
+        // JSON-safe values assertJsonSafe() already guarantees reach this point.
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         $this->service = new OptionsService();
         $this->wpdb    = new FakeOptionsWpdb();
         $GLOBALS['wpdb'] = $this->wpdb;
@@ -330,6 +335,110 @@ class OptionsServiceTest extends TestCase
 
             $this->assertTrue($captured, "autoload \"{$autoload}\" should turn autoload on");
         }
+    }
+
+    // ── revision / conditional writes (#234) ────────────────────────────────
+
+    public function test_get_option_revision_is_stable_for_the_same_value(): void
+    {
+        Functions\when('get_option')->justReturn(['a' => 1]);
+        $this->wpdb->rows = ['my_option' => 'yes'];
+
+        $first  = $this->service->getOption('my_option');
+        $second = $this->service->getOption('my_option');
+
+        $this->assertSame($first['revision'], $second['revision']);
+    }
+
+    public function test_get_option_revision_differs_for_a_different_value(): void
+    {
+        $this->wpdb->rows = ['my_option' => 'yes'];
+
+        Functions\when('get_option')->justReturn(['a' => 1]);
+        $before = $this->service->getOption('my_option');
+
+        Functions\when('get_option')->justReturn(['a' => 2]);
+        $after = $this->service->getOption('my_option');
+
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
+    // Regression coverage (#234): updateOption() writes value and autoload together, so a
+    // revision covering only the value would let a later push, still holding the revision from
+    // before an autoload-only change elsewhere, silently overwrite that change once the value
+    // also changes: the precondition must see autoload-only drift too, not just value drift.
+    public function test_get_option_revision_differs_for_an_autoload_only_change(): void
+    {
+        Functions\when('get_option')->justReturn(['a' => 1]);
+
+        $this->wpdb->rows = ['my_option' => 'yes'];
+        $before = $this->service->getOption('my_option');
+
+        $this->wpdb->rows = ['my_option' => 'no'];
+        $after = $this->service->getOption('my_option');
+
+        $this->assertSame($before['value'], $after['value']);
+        $this->assertNotSame($before['autoload'], $after['autoload']);
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
+    public function test_update_option_succeeds_when_the_expected_revision_still_matches(): void
+    {
+        Functions\when('update_option')->justReturn(true);
+        Functions\when('get_option')->justReturn('current value');
+        $this->wpdb->rows = ['my_option' => 'yes'];
+        $currentRevision = $this->service->getOption('my_option')['revision'];
+
+        $result = $this->service->updateOption('my_option', 'new value', null, $currentRevision);
+
+        $this->assertSame('current value', $result['value']);
+    }
+
+    // Regression coverage (#234): the whole point of the precondition is that a write is refused,
+    // not silently applied, once the option no longer holds the value the caller last read.
+    public function test_update_option_throws_stale_revision_exception_when_the_value_changed_underneath(): void
+    {
+        Functions\when('get_option')->justReturn('someone else already changed this');
+        $this->wpdb->rows = ['my_option' => 'yes'];
+
+        $this->expectException(StaleOptionRevisionException::class);
+        $this->service->updateOption('my_option', 'new value', null, 'a-revision-that-no-longer-matches');
+    }
+
+    public function test_update_option_does_not_call_update_option_when_the_revision_is_stale(): void
+    {
+        Functions\when('get_option')->justReturn('someone else already changed this');
+        $this->wpdb->rows = ['my_option' => 'yes'];
+        Functions\expect('update_option')->never();
+
+        try {
+            $this->service->updateOption('my_option', 'new value', null, 'a-revision-that-no-longer-matches');
+        } catch (StaleOptionRevisionException) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
+    // An option that no longer exists at all is exactly as much "not the value the caller
+    // expected" as one holding a different value: a precondition must still refuse the write
+    // rather than treat "vanished" as an exemption from the check.
+    public function test_update_option_throws_stale_revision_exception_when_the_option_no_longer_exists(): void
+    {
+        Functions\when('get_option')->alias(fn(string $name, mixed $fallback = false): mixed => $fallback);
+        $this->wpdb->rows = [];
+
+        $this->expectException(StaleOptionRevisionException::class);
+        $this->service->updateOption('my_option', 'new value', null, 'a-revision-from-when-it-existed');
+    }
+
+    public function test_update_option_skips_the_revision_check_entirely_when_none_is_given(): void
+    {
+        Functions\when('update_option')->justReturn(true);
+        Functions\when('get_option')->justReturn('whatever is there now');
+        $this->wpdb->rows = ['my_option' => 'yes'];
+
+        $result = $this->service->updateOption('my_option', 'new value', null);
+
+        $this->assertSame('whatever is there now', $result['value']);
     }
 
     // ── deleteOption ─────────────────────────────────────────────────────────

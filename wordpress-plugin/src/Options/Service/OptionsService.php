@@ -6,6 +6,7 @@ namespace Loopress\Options\Service;
 
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
+use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 
 // Direct, agnostic access to the wp_options table: no adapter, no per-plugin knowledge, unlike
@@ -378,7 +379,7 @@ class OptionsService
         return null;
     }
 
-    /** @return array{name: string, value: mixed, autoload: string}|null */
+    /** @return array{name: string, value: mixed, autoload: string, revision: string}|null */
     public function getOption(string $name): ?array
     {
         $this->assertReadable($name);
@@ -395,16 +396,40 @@ class OptionsService
         $this->assertJsonSafe($name, $value);
 
         global $wpdb;
-        $autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name));
+        $rawAutoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name));
+        $autoload    = $rawAutoload === null ? 'yes' : (string) $rawAutoload;
 
-        return ['name' => $name, 'value' => $value, 'autoload' => $autoload === null ? 'yes' : (string) $autoload];
+        return [
+            'name'     => $name,
+            'value'    => $value,
+            'autoload' => $autoload,
+            // A content hash of everything a write actually changes (both value and autoload,
+            // see updateOption()), opaque to callers, only ever compared for equality (see
+            // updateOption()'s $expectedRevision). Cheap and self-contained: unlike a per-option
+            // "last modified" timestamp, it needs no new storage and can be recomputed
+            // identically from any read of the same state, on either side of the wire.
+            'revision' => $this->revisionOf($value, $autoload),
+        ];
     }
 
-    /** @return array{name: string, value: mixed, autoload: string} */
-    public function updateOption(string $name, mixed $value, ?string $autoload): array
+    /**
+     * @param string|null $expectedRevision When given, the write is refused (#234) unless it
+     *        still matches the option's current revision, i.e. nothing else changed it since the
+     *        caller last read it via getOption(). This is optimistic concurrency control (a
+     *        check immediately followed by the write, both within this one request), not a
+     *        database-level atomic compare-and-swap: it closes the far larger window between an
+     *        MCP tool's preview and its confirmed call down to this single request's own
+     *        execution time, not to mathematically zero.
+     * @return array{name: string, value: mixed, autoload: string, revision: string}
+     */
+    public function updateOption(string $name, mixed $value, ?string $autoload, ?string $expectedRevision = null): array
     {
         $this->assertNotReserved($name);
         $this->assertWritable($name);
+
+        if ($expectedRevision !== null) {
+            $this->assertRevisionMatches($name, $expectedRevision);
+        }
 
         // update_option() returns false both on a genuine failure and when the new value equals
         // the old one (a no-op, not an error): re-reading afterwards is the only way to report
@@ -421,6 +446,36 @@ class OptionsService
         }
 
         return $result;
+    }
+
+    // Covers both fields a write actually changes (see updateOption()): a revision read before
+    // an autoload-only change would otherwise still match after it, letting a later push with a
+    // stale autoload silently overwrite that intervening change once the value changes too.
+    private function revisionOf(mixed $value, string $autoload): string
+    {
+        // wp_json_encode() over WP's own maybe_serialize(): assertJsonSafe() already guarantees
+        // every value reaching here round-trips through JSON losslessly (scalars, null, and
+        // arrays of the same), and it normalizes key order the same way on every read, unlike a
+        // serialized-bytes comparison, which would treat two calls that produced the same array
+        // in a different insertion order as different revisions.
+        // sha256, not md5: this is a plain change-detection tag, never a security control, but
+        // sha256 is exactly as cheap here and doesn't trip a "weak hashing algorithm" scanner
+        // finding on a codebase that otherwise has none.
+        return hash('sha256', (string) wp_json_encode(['autoload' => $autoload, 'value' => $value]));
+    }
+
+    private function assertRevisionMatches(string $name, string $expectedRevision): void
+    {
+        $current         = $this->getOption($name);
+        $currentRevision = $current === null ? null : $current['revision'];
+
+        if ($currentRevision !== $expectedRevision) {
+            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            throw new StaleOptionRevisionException(esc_html(
+                "\"{$name}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
+                    'Re-read the option and try again.',
+            ));
+        }
     }
 
     public function deleteOption(string $name): void
