@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Acf\RestApi;
 
+use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\Service\AcfService;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
@@ -21,6 +22,11 @@ class AcfController
         'options-pages' => 'acf-ui-options-page',
         'post-types'    => 'acf-post-type',
         'taxonomies'    => 'acf-taxonomy',
+    ];
+
+    /** @var array<class-string<\Throwable>, int> */
+    private const STATUSES = [
+        StaleAcfRevisionException::class => 412,
     ];
 
     public function __construct(private AcfService $acfService) {}
@@ -97,8 +103,26 @@ class AcfController
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
         }
 
+        // `expectedRevision` isn't part of ACF's own object schema, it's protocol metadata for
+        // the conditional-write precondition (#234), sent as a sibling field in the same body as
+        // the ACF object itself. It's pulled out here and never forwarded to AcfService::upsert()'s
+        // $data payload, so it can't leak into what acf_import_internal_post_type() persists.
+        // Unlike a field the ACF payload actually owns, a malformed expectedRevision must never
+        // be silently treated as absent: that would drop the precondition entirely instead of
+        // surfacing the malformed input, letting a stray non-string value bypass #234's
+        // protection outright.
+        $expectedRevision = $data['expectedRevision'] ?? null;
+        unset($data['expectedRevision']);
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->upsert($this->postType($request), $data), 200)
+            fn(): WP_REST_Response => new WP_REST_Response(
+                $this->acfService->upsert($this->postType($request), $data, $expectedRevision),
+                200,
+            ),
+            self::STATUSES,
         );
     }
 
