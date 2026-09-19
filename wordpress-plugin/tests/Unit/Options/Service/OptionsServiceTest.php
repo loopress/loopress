@@ -363,6 +363,25 @@ class OptionsServiceTest extends TestCase
         $this->assertNotSame($before['revision'], $after['revision']);
     }
 
+    // Regression coverage (#234): updateOption() writes value and autoload together, so a
+    // revision covering only the value would let a later push, still holding the revision from
+    // before an autoload-only change elsewhere, silently overwrite that change once the value
+    // also changes: the precondition must see autoload-only drift too, not just value drift.
+    public function test_get_option_revision_differs_for_an_autoload_only_change(): void
+    {
+        Functions\when('get_option')->justReturn(['a' => 1]);
+
+        $this->wpdb->rows = ['my_option' => 'yes'];
+        $before = $this->service->getOption('my_option');
+
+        $this->wpdb->rows = ['my_option' => 'no'];
+        $after = $this->service->getOption('my_option');
+
+        $this->assertSame($before['value'], $after['value']);
+        $this->assertNotSame($before['autoload'], $after['autoload']);
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
     public function test_update_option_succeeds_when_the_expected_revision_still_matches(): void
     {
         Functions\when('update_option')->justReturn(true);

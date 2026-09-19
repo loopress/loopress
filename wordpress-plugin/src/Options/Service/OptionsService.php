@@ -396,17 +396,19 @@ class OptionsService
         $this->assertJsonSafe($name, $value);
 
         global $wpdb;
-        $autoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name));
+        $rawAutoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name));
+        $autoload    = $rawAutoload === null ? 'yes' : (string) $rawAutoload;
 
         return [
             'name'     => $name,
             'value'    => $value,
-            'autoload' => $autoload === null ? 'yes' : (string) $autoload,
-            // A content hash of the value, opaque to callers, only ever compared for equality
-            // (see updateOption()'s $expectedRevision). Cheap and self-contained: unlike a
-            // per-option "last modified" timestamp, it needs no new storage and can be recomputed
-            // identically from any read of the same value, on either side of the wire.
-            'revision' => $this->revisionOf($value),
+            'autoload' => $autoload,
+            // A content hash of everything a write actually changes (both value and autoload,
+            // see updateOption()), opaque to callers, only ever compared for equality (see
+            // updateOption()'s $expectedRevision). Cheap and self-contained: unlike a per-option
+            // "last modified" timestamp, it needs no new storage and can be recomputed
+            // identically from any read of the same state, on either side of the wire.
+            'revision' => $this->revisionOf($value, $autoload),
         ];
     }
 
@@ -446,7 +448,10 @@ class OptionsService
         return $result;
     }
 
-    private function revisionOf(mixed $value): string
+    // Covers both fields a write actually changes (see updateOption()): a revision read before
+    // an autoload-only change would otherwise still match after it, letting a later push with a
+    // stale autoload silently overwrite that intervening change once the value changes too.
+    private function revisionOf(mixed $value, string $autoload): string
     {
         // wp_json_encode() over WP's own maybe_serialize(): assertJsonSafe() already guarantees
         // every value reaching here round-trips through JSON losslessly (scalars, null, and
@@ -456,7 +461,7 @@ class OptionsService
         // sha256, not md5: this is a plain change-detection tag, never a security control, but
         // sha256 is exactly as cheap here and doesn't trip a "weak hashing algorithm" scanner
         // finding on a codebase that otherwise has none.
-        return hash('sha256', (string) wp_json_encode($value));
+        return hash('sha256', (string) wp_json_encode(['autoload' => $autoload, 'value' => $value]));
     }
 
     private function assertRevisionMatches(string $name, string $expectedRevision): void

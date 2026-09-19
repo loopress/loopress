@@ -92,8 +92,16 @@ class OptionsController
             return new WP_REST_Response(['error' => 'Request body must include a "value".'], 400);
         }
 
-        $autoload         = isset($body['autoload']) && is_string($body['autoload']) ? $body['autoload'] : null;
-        $expectedRevision = isset($body['expectedRevision']) && is_string($body['expectedRevision']) ? $body['expectedRevision'] : null;
+        $autoload = isset($body['autoload']) && is_string($body['autoload']) ? $body['autoload'] : null;
+
+        // Unlike autoload (where a wrong type simply falls back to "unspecified"), a malformed
+        // expectedRevision must never be silently treated as absent: that would drop the
+        // conditional-write precondition entirely, letting a client whose value happened to be
+        // sent as e.g. a number bypass #234's protection outright instead of getting a clear error.
+        $expectedRevision = $body['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
 
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response(

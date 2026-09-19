@@ -154,6 +154,39 @@ class OptionsControllerTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_update_option_passes_null_when_expected_revision_is_explicitly_null(): void
+    {
+        $this->optionsService->expects($this->once())
+            ->method('updateOption')
+            ->with('blogname', 'Hello', 'yes', null)
+            ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
+
+        $this->controller->update_option(new WP_REST_Request([
+            'name'             => 'blogname',
+            'value'            => 'Hello',
+            'autoload'         => 'yes',
+            'expectedRevision' => null,
+        ]));
+        $this->addToAssertionCount(1);
+    }
+
+    // Regression coverage (#234): a malformed expectedRevision must be rejected, never silently
+    // dropped, a client that (accidentally or otherwise) sent something other than a string would
+    // otherwise have the conditional-write precondition disabled entirely instead of getting a
+    // clear error, and updateOption() would run as if no precondition had been requested.
+    public function test_update_option_returns_400_when_expected_revision_is_not_a_string(): void
+    {
+        $this->optionsService->expects($this->never())->method('updateOption');
+
+        $response = $this->controller->update_option(new WP_REST_Request([
+            'name'             => 'blogname',
+            'value'            => 'Hello',
+            'expectedRevision' => 12_345,
+        ]));
+
+        $this->assertSame(400, $response->status);
+    }
+
     public function test_update_option_returns_412_when_the_expected_revision_is_stale(): void
     {
         $this->optionsService->method('updateOption')->willThrowException(
