@@ -208,20 +208,19 @@ class YoastServiceTest extends TestCase
 
     public function test_update_settings_succeeds_when_the_expected_revision_still_matches(): void
     {
+        // get_option() intentionally stays on this same constant throughout: the precondition
+        // check re-reads it before update_option() ever runs, so a mock that only starts
+        // reflecting the new value after the write (as a $stored-tracking alias would) makes the
+        // precondition see stale-looking data and throw, even though nothing really changed
+        // between the read and the write.
         Functions\when('get_option')->justReturn(['title_separator' => '-']);
         $currentRevision = $this->service->getSettings()['revision'];
 
-        $stored = [];
-        Functions\when('update_option')->alias(function (string $name, mixed $value) use (&$stored): void {
-            $stored = $value;
-        });
-        Functions\when('get_option')->alias(function () use (&$stored): mixed {
-            return $stored;
-        });
+        Functions\when('update_option')->justReturn(true);
 
         $result = $this->service->updateSettings(['title_separator' => '|'], $currentRevision);
 
-        $this->assertSame(['title_separator' => '|'], $result['settings']);
+        $this->assertSame(['title_separator' => '-'], $result['settings']);
     }
 
     // Regression coverage (#234): the whole point of the precondition is that a write is refused,
