@@ -38,10 +38,15 @@ abstract class AbstractFilesDirectory
     private string $path;
     private Filesystem $filesystem;
 
-    public function __construct()
+    // $filesystem is injectable only so a test can substitute a Filesystem double for one
+    // specific failure mode that's otherwise impractical to reproduce on a real filesystem (see
+    // ApiDirectoryTest's commitBatch() backup-cleanup-failure test); every real caller, PHP-DI
+    // autowiring included, gets the same plain Filesystem() a bare `new ApiDirectory()` always
+    // constructed before this parameter existed.
+    public function __construct(?Filesystem $filesystem = null)
     {
         $this->path       = WP_CONTENT_DIR . '/loopress/' . static::SUBDIR . '/';
-        $this->filesystem = new Filesystem();
+        $this->filesystem = $filesystem ?? new Filesystem();
     }
 
     public function filePath(string $slug): string
@@ -237,15 +242,23 @@ abstract class AbstractFilesDirectory
 
     // Atomically swaps the staged batch into place as the live directory. Two renames, each a
     // move to a path that does not yet exist (never an overwrite), so each one alone is a
-    // single atomic filesystem operation: the live path is, at every instant, either the
-    // complete old set or the complete new one, never a mix. (This assumes wp-content/loopress/
-    // lives on one filesystem, same assumption write()'s own dumpFile() already makes; a
-    // network mount spanning filesystems could make an individual rename() fall back to a
-    // non-atomic copy, outside what this class can control.)
+    // single atomic filesystem operation: the live path is never a mix of old and new files.
+    // There is a narrow instant between the two renames where the live path doesn't exist at
+    // all (moved to $backup, not yet replaced by $staging); a request landing in that instant
+    // sees an empty listSlugs()/read(), the same as a directory that hasn't been created yet,
+    // never a partial one. Closing that gap fully needs a different primitive (a symlink swap,
+    // or a rename-exchange syscall) than the plain directory rename() this method is built
+    // around; not attempted here. (This also assumes wp-content/loopress/ lives on one
+    // filesystem, same assumption write()'s own dumpFile() already makes; a network mount
+    // spanning filesystems could make an individual rename() fall back to a non-atomic copy,
+    // outside what this class can control.)
     //
-    // On any failure, the live directory is restored if it was already moved aside, so a
-    // caller never observes a missing directory, and the staging directory is left in place
-    // for inspection rather than silently discarded.
+    // On a failure swapping in the new set, the live directory is restored if it was already
+    // moved aside, so a caller never observes a missing directory, and the staging directory is
+    // left in place for inspection rather than silently discarded. Once the swap itself has
+    // succeeded, the deployment is live: a failure removing the now-obsolete $backup below is a
+    // cleanup problem, not a deployment one, and must never be reported as though the push
+    // failed (see cleanupBackup()).
     public function commitBatch(): void
     {
         $staging = $this->stagingPath();
@@ -269,8 +282,25 @@ abstract class AbstractFilesDirectory
             throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()));
         }
 
-        if (is_dir($backup)) {
+        $this->cleanupBackup($backup);
+    }
+
+    // Best-effort removal of a commitBatch() backup, once the swap it belongs to has already
+    // succeeded: a failure here (the old directory not fully removed, e.g. a permission quirk
+    // on one leftover file) must never surface as a commitBatch() failure, since the deployment
+    // itself already landed. A leftover `.old-*` directory is otherwise harmless: a sibling of
+    // $this->path, never scanned by listSlugs()/read(), and each one uniquely named (uniqid()),
+    // so it neither collides with nor is picked up by a later batch.
+    private function cleanupBackup(string $backup): void
+    {
+        if (!is_dir($backup)) {
+            return;
+        }
+
+        try {
             $this->filesystem->remove($backup);
+        } catch (IOExceptionInterface) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+            // Deliberately swallowed: see the method comment above.
         }
     }
 

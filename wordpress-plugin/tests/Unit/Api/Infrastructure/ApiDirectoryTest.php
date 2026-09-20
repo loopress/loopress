@@ -8,6 +8,8 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 
 class ApiDirectoryTest extends TestCase
 {
@@ -426,5 +428,26 @@ class ApiDirectoryTest extends TestCase
         $dir->abortBatch();
 
         $this->assertDirectoryDoesNotExist($this->stagingPath());
+    }
+
+    // A failure removing the now-obsolete backup, after the swap itself already succeeded, must
+    // never be reported as a commitBatch() failure (CodeRabbit finding on PR #243): the
+    // deployment landed, only cleanup of the old directory didn't. Not practically reproducible
+    // on a real filesystem here (root in CI/this sandbox can remove almost anything regardless
+    // of permissions), hence the one place in this file that injects a Filesystem double rather
+    // than exercising the real one.
+    public function test_commitBatch_does_not_fail_when_only_the_post_swap_backup_cleanup_fails(): void
+    {
+        $filesystem = $this->getMockBuilder(Filesystem::class)->onlyMethods(['remove'])->getMock();
+        $filesystem->method('remove')->willThrowException(new IOException('simulated cleanup failure'));
+
+        $dir = new ApiDirectory($filesystem);
+        $dir->write('hello', '<?php old content');
+        $dir->beginBatch();
+        $dir->stageWrite('hello', '<?php new content');
+
+        $dir->commitBatch();
+
+        $this->assertSame('<?php new content', $dir->read('hello'));
     }
 }

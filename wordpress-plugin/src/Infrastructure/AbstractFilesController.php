@@ -111,8 +111,11 @@ abstract class AbstractFilesController
                 'callback'            => [$this, 'push_batch'],
                 'permission_callback' => $this->permissionCallback(),
                 'args'                => [
+                    // Neither is individually required: a prune-only batch (no local files,
+                    // `--prune` removing server-side orphans) sends an empty 'files' array.
+                    // push_batch() itself rejects the request only when both are empty.
                     'files' => [
-                        'required' => true,
+                        'required' => false,
                         'type'     => 'array',
                     ],
                     'prune' => [
@@ -233,14 +236,38 @@ abstract class AbstractFilesController
     // untouched, so the site is never left mixing old and new files.
     public function push_batch(WP_REST_Request $request): WP_REST_Response
     {
-        $files = $request->get_param('files');
-        if (!is_array($files) || $files === []) {
-            return new WP_REST_Response(['error' => 'At least one file is required.'], 400);
+        // Neither is required on its own: a prune-only batch (no local files, --prune removing
+        // server-side orphans) sends an empty 'files' array with a non-empty 'prune' one.
+        $files = $request->get_param('files') ?? [];
+        if (!is_array($files)) {
+            return new WP_REST_Response(['error' => 'If present, "files" must be an array.'], 400);
         }
 
         $prune = $request->get_param('prune') ?? [];
         if (!is_array($prune)) {
             return new WP_REST_Response(['error' => 'If present, "prune" must be an array of filenames.'], 400);
+        }
+
+        if ($files === [] && $prune === []) {
+            return new WP_REST_Response(['error' => 'At least one file to push or a filename to prune is required.'], 400);
+        }
+
+        // A filename staged for both push and prune in the same batch would end up neither
+        // reliably pushed nor cleanly pruned (whichever step runs second wins on disk, but the
+        // response would still report it under both 'files' and 'pruned'): reject it outright
+        // rather than resolve the ambiguity one way silently.
+        $pushedFilenames = [];
+        foreach ($files as $file) {
+            if (is_array($file) && is_string($file['filename'] ?? null)) {
+                $pushedFilenames[] = $file['filename'];
+            }
+        }
+
+        $overlap = array_values(array_intersect($pushedFilenames, $prune));
+        if ($overlap !== []) {
+            return new WP_REST_Response([
+                'error' => 'Cannot push and prune the same filename in one batch: ' . implode(', ', $overlap),
+            ], 400);
         }
 
         try {

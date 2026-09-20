@@ -576,7 +576,7 @@ class ApiFilesControllerTest extends TestCase
         return ['content' => "<?php\ndeclare(strict_types=1);\nfinal class {$className} {}\n", 'filename' => $filename];
     }
 
-    public function test_push_batch_returns_400_when_files_is_missing(): void
+    public function test_push_batch_returns_400_when_files_and_prune_are_both_missing(): void
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
@@ -585,11 +585,37 @@ class ApiFilesControllerTest extends TestCase
         $this->assertSame(400, $response->status);
     }
 
-    public function test_push_batch_returns_400_when_files_is_empty(): void
+    public function test_push_batch_returns_400_when_files_and_prune_are_both_empty(): void
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request(['files' => []]));
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => []]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    // A prune-only batch (no local files, --prune removing server-side orphans) must not be
+    // rejected just because 'files' is empty: only "neither files nor prune" is a genuine
+    // no-op request. Regression test for a CodeRabbit finding on PR #243.
+    public function test_push_batch_allows_an_empty_files_array_when_prune_is_not_empty(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        $this->directory->expects($this->never())->method('stageWrite');
+        $this->directory->expects($this->once())->method('stageDelete')->with('stale');
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame([], $response->data['files']);
+        $this->assertSame(['stale'], $response->data['pruned']);
+    }
+
+    public function test_push_batch_returns_400_when_files_is_present_but_not_an_array(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => 'not-an-array']));
 
         $this->assertSame(400, $response->status);
     }
@@ -601,6 +627,22 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch(new WP_REST_Request(['files' => [$this->validFile()], 'prune' => 'not-an-array']));
 
         $this->assertSame(400, $response->status);
+    }
+
+    // A filename staged for both push and prune in the same batch is ambiguous (whichever step
+    // runs second wins on disk, but the response would report it under both 'files' and
+    // 'pruned'): reject it outright. Regression test for a CodeRabbit finding on PR #243.
+    public function test_push_batch_returns_400_when_a_filename_is_both_pushed_and_pruned(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request([
+            'files' => [$this->validFile('hello', 'Hello')],
+            'prune' => ['hello'],
+        ]));
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('hello', (string) $response->data['error']);
     }
 
     public function test_push_batch_stages_every_file_and_commits_once(): void
