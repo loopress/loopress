@@ -212,7 +212,9 @@ abstract class AbstractFilesController
             fn (string $slug): ?string => $this->directory()->read($slug),
             fn (): array => $this->directory()->listSlugs(),
             fn (string $slug): ?int => $this->directory()->fileSize($slug),
-            function (string $slug, string $guarded): void { $this->directory()->write($slug, $guarded); },
+            function (string $slug, string $guarded): void {
+                $this->directory()->write($slug, $guarded);
+            },
         );
 
         if ($result instanceof WP_REST_Response) {
@@ -314,7 +316,9 @@ abstract class AbstractFilesController
             fn (string $slug): ?string => $this->directory()->readStaged($slug),
             fn (): array => $this->directory()->listStagedSlugs(),
             fn (string $slug): ?int => $this->directory()->stagedFileSize($slug),
-            function (string $slug, string $guarded): void { $this->directory()->stageWrite($slug, $guarded); },
+            function (string $slug, string $guarded): void {
+                $this->directory()->stageWrite($slug, $guarded);
+            },
         );
 
         return $result instanceof WP_REST_Response ? $result : $this->annotateEntry($result, $content);

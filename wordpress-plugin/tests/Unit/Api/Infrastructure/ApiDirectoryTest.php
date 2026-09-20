@@ -395,14 +395,13 @@ class ApiDirectoryTest extends TestCase
         $dir = new ApiDirectory();
         $dir->write('hello', '<?php still here');
 
+        $this->expectException(\RuntimeException::class);
+
         try {
             $dir->commitBatch();
-            $this->fail('Expected a RuntimeException.');
-        } catch (\RuntimeException) {
-            // expected
+        } finally {
+            $this->assertSame('<?php still here', $dir->read('hello'));
         }
-
-        $this->assertSame('<?php still here', $dir->read('hello'));
     }
 
     public function test_abortBatch_discards_the_staged_batch_without_touching_the_live_directory(): void
