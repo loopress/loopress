@@ -65,7 +65,18 @@ abstract class AbstractFilesDirectory
     // through one place rather than each reaching for @filesize() on a path they build.
     public function fileSize(string $slug): ?int
     {
-        $path = $this->filePath($slug);
+        return $this->fileSizeIn($this->filePath($slug));
+    }
+
+    // Same as fileSize(), for a slug in the staged batch instead of the live directory (used by
+    // the controller's collision check against the batch's own state, see #236).
+    public function stagedFileSize(string $slug): ?int
+    {
+        return $this->fileSizeIn($this->stagedFilePath($slug));
+    }
+
+    private function fileSizeIn(string $path): ?int
+    {
         if (!is_file($path)) {
             return null;
         }
@@ -94,30 +105,7 @@ abstract class AbstractFilesDirectory
      */
     public function listSlugs(): array
     {
-        if (!is_dir($this->path)) {
-            return [];
-        }
-
-        // RecursiveIteratorIterator defaults to LEAVES_ONLY: intermediate directories never
-        // appear as their own entry, only actual files do.
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->path, \FilesystemIterator::SKIP_DOTS)
-        );
-
-        $slugs = [];
-        foreach ($files as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php' || $file->getFilename() === 'index.php') {
-                continue;
-            }
-
-            // getPathname() uses the platform's directory separator ('\' on Windows); a slug
-            // is always explode()d on '/', so a slug carrying '\' would be read as one single
-            // segment instead of the intended nested path.
-            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($this->path)));
-            $slugs[]  = substr($relative, 0, -4); // strip the trailing '.php'
-        }
-
-        return $slugs;
+        return $this->listSlugsIn($this->path);
     }
 
     public function read(string $slug): ?string
@@ -158,5 +146,173 @@ abstract class AbstractFilesDirectory
 
         $this->filesystem->remove($path);
         return true;
+    }
+
+    // ── Batch staging / atomic swap (#236) ──────────────────────────────────────────────────
+    //
+    // write()/delete() above are already individually atomic (dumpFile()'s temp-file-then-
+    // rename), but a *multi-file* push through AbstractFilesController is a sequence of
+    // independent writes: a failure partway through leaves the live directory mixing old and
+    // new files, discoverable only after the fact. The methods below let a caller stage a
+    // whole batch in an inactive sibling directory, then swap it in with a single rename(),
+    // so the live directory is at every instant either fully the old set or fully the new one.
+    //
+    // A sibling of $this->path, not nested inside it, so it never shows up in listSlugs()/
+    // fileSize() scans of the live directory.
+    private function stagingPath(): string
+    {
+        return rtrim($this->path, '/') . '.staging/';
+    }
+
+    private function stagedFilePath(string $slug): string
+    {
+        return $this->stagingPath() . $slug . '.php';
+    }
+
+    // Starts a batch: (re)creates the staging directory seeded with a copy of every file
+    // currently live, so a file this batch never touches still exists after the swap. Any
+    // leftover staging directory from a previous batch that never committed (a crashed
+    // request) is discarded first, never merged into the new one.
+    public function beginBatch(): void
+    {
+        $staging = $this->stagingPath();
+
+        try {
+            if (is_dir($staging)) {
+                $this->filesystem->remove($staging);
+            }
+
+            wp_mkdir_p($staging);
+            DirectoryGuard::writeIndexIfMissing($staging);
+
+            if (is_dir($this->path)) {
+                $this->filesystem->mirror($this->path, $staging);
+            }
+        } catch (IOExceptionInterface $e) {
+            throw new \RuntimeException(esc_html('Failed to prepare the staged batch: ' . $e->getMessage()));
+        }
+    }
+
+    // Writes one file into the staged batch only, never the live directory. Same atomic
+    // temp-file-then-rename as write(), scoped to the staging directory.
+    public function stageWrite(string $slug, string $content): void
+    {
+        try {
+            $this->filesystem->dumpFile($this->stagedFilePath($slug), $content);
+        } catch (IOExceptionInterface $e) {
+            throw new \RuntimeException(esc_html("Failed to stage {$slug}.php: " . $e->getMessage()));
+        }
+    }
+
+    // Removes one file from the staged batch (used for a pruned slug), a no-op if it was never
+    // there. Never touches the live directory.
+    public function stageDelete(string $slug): void
+    {
+        $path = $this->stagedFilePath($slug);
+        if (is_file($path)) {
+            $this->filesystem->remove($path);
+        }
+    }
+
+    // Reads a file back from the staged batch (its post-write content, or content mirrored
+    // from the live directory and never touched by this batch), for pre-swap validation
+    // (syntax/class-collision checks) to see the batch's own final state rather than only
+    // what's live today. Null if the slug isn't in the batch (deleted, or never existed).
+    public function readStaged(string $slug): ?string
+    {
+        $path = $this->stagedFilePath($slug);
+        if (!file_exists($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        return $contents !== false ? $contents : null;
+    }
+
+    /** @return string[] slugs currently in the staged batch, same shape as listSlugs(). */
+    public function listStagedSlugs(): array
+    {
+        return $this->listSlugsIn($this->stagingPath());
+    }
+
+    // Atomically swaps the staged batch into place as the live directory. Two renames, each a
+    // move to a path that does not yet exist (never an overwrite), so each one alone is a
+    // single atomic filesystem operation: the live path is, at every instant, either the
+    // complete old set or the complete new one, never a mix. (This assumes wp-content/loopress/
+    // lives on one filesystem, same assumption write()'s own dumpFile() already makes; a
+    // network mount spanning filesystems could make an individual rename() fall back to a
+    // non-atomic copy, outside what this class can control.)
+    //
+    // On any failure, the live directory is restored if it was already moved aside, so a
+    // caller never observes a missing directory, and the staging directory is left in place
+    // for inspection rather than silently discarded.
+    public function commitBatch(): void
+    {
+        $staging = $this->stagingPath();
+        if (!is_dir($staging)) {
+            throw new \RuntimeException('commitBatch() called without a staged batch; call beginBatch() first.');
+        }
+
+        $backup = rtrim($this->path, '/') . '.old-' . uniqid('', true) . '/';
+
+        try {
+            if (is_dir($this->path)) {
+                $this->filesystem->rename($this->path, $backup);
+            }
+
+            $this->filesystem->rename($staging, $this->path);
+        } catch (IOExceptionInterface $e) {
+            if (is_dir($backup) && !is_dir($this->path)) {
+                $this->filesystem->rename($backup, $this->path);
+            }
+
+            throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()));
+        }
+
+        if (is_dir($backup)) {
+            $this->filesystem->remove($backup);
+        }
+    }
+
+    // Discards a staged batch without ever touching the live directory: the counterpart to
+    // commitBatch() for when staging itself failed partway through, or a caller decides not to
+    // commit. A no-op if there is nothing staged.
+    public function abortBatch(): void
+    {
+        $staging = $this->stagingPath();
+        if (is_dir($staging)) {
+            $this->filesystem->remove($staging);
+        }
+    }
+
+    // Shared walk behind listSlugs()/listStagedSlugs(): identical RecursiveIteratorIterator
+    // scan, only the root directory differs.
+    /** @return string[] */
+    private function listSlugsIn(string $root): array
+    {
+        if (!is_dir($root)) {
+            return [];
+        }
+
+        // RecursiveIteratorIterator defaults to LEAVES_ONLY: intermediate directories never
+        // appear as their own entry, only actual files do.
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        $slugs = [];
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php' || $file->getFilename() === 'index.php') {
+                continue;
+            }
+
+            // getPathname() uses the platform's directory separator ('\' on Windows); a slug
+            // is always explode()d on '/', so a slug carrying '\' would be read as one single
+            // segment instead of the intended nested path.
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($root)));
+            $slugs[]  = substr($relative, 0, -4); // strip the trailing '.php'
+        }
+
+        return $slugs;
     }
 }

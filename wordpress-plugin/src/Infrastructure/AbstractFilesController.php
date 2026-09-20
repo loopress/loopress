@@ -98,6 +98,30 @@ abstract class AbstractFilesController
                 ],
             ],
         ]);
+
+        // Atomic multi-file push (#236): stages every file of a `lps <resource> push` run and
+        // swaps them all into place with a single directory rename(), so a mid-batch failure
+        // (network error, a bad file further down the list) never leaves the live directory
+        // with some files updated and others not. 'files'/'prune' are documented, not
+        // auto-validated the same way as push_file()'s own 'content' above; push_batch()
+        // checks their shape itself.
+        register_rest_route('loopress/v1', $this->routePath() . '/batch', [
+            [
+                'methods'             => 'POST',
+                'callback'            => [$this, 'push_batch'],
+                'permission_callback' => $this->permissionCallback(),
+                'args'                => [
+                    'files' => [
+                        'required' => true,
+                        'type'     => 'array',
+                    ],
+                    'prune' => [
+                        'required' => false,
+                        'type'     => 'array',
+                    ],
+                ],
+            ],
+        ]);
     }
 
     // Public and static, so it's directly unit-testable rather than only reachable through a
@@ -171,6 +195,152 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'Invalid filename'], 400);
         }
 
+        // Unlike 'content' above ((string) cast, a wrong type is silently coerced), a malformed
+        // expectedRevision must never be silently treated as absent: that would drop the
+        // conditional-write precondition entirely, letting a client whose value happened to be
+        // sent as e.g. a number bypass #234's protection outright instead of getting a clear
+        // error. Only a genuinely absent or explicit null one means "no precondition requested."
+        $expectedRevision = $request->get_param('expectedRevision');
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
+        $result = $this->validateAndWrite(
+            $filename,
+            $content,
+            $expectedRevision,
+            fn (string $slug): ?string => $this->directory()->read($slug),
+            fn (): array => $this->directory()->listSlugs(),
+            fn (string $slug): ?int => $this->directory()->fileSize($slug),
+            function (string $slug, string $guarded): void { $this->directory()->write($slug, $guarded); },
+        );
+
+        if ($result instanceof WP_REST_Response) {
+            return $result;
+        }
+
+        return new WP_REST_Response($this->annotateEntry($result, $content), 200);
+    }
+
+    // One request stages and atomically swaps every file of a `lps <resource> push` run (#236):
+    // beginBatch() seeds a staging directory with a copy of everything currently live, each
+    // file is validated and staged the same way push_file() validates and writes one, any
+    // pruned filename is staged for removal too, and only once every single one of those steps
+    // succeeds does commitBatch() swap the whole set in with one directory rename(). Any
+    // failure along the way aborts the batch and leaves the live directory completely
+    // untouched, so the site is never left mixing old and new files.
+    public function push_batch(WP_REST_Request $request): WP_REST_Response
+    {
+        $files = $request->get_param('files');
+        if (!is_array($files) || $files === []) {
+            return new WP_REST_Response(['error' => 'At least one file is required.'], 400);
+        }
+
+        $prune = $request->get_param('prune') ?? [];
+        if (!is_array($prune)) {
+            return new WP_REST_Response(['error' => 'If present, "prune" must be an array of filenames.'], 400);
+        }
+
+        try {
+            $this->directory()->beginBatch();
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+
+        $pushed = [];
+        foreach ($files as $file) {
+            $outcome = $this->stageBatchFile($file);
+            if ($outcome instanceof WP_REST_Response) {
+                $this->directory()->abortBatch();
+                return $outcome;
+            }
+
+            $pushed[] = $outcome;
+        }
+
+        $pruned = [];
+        foreach ($prune as $filename) {
+            if (!is_string($filename) || !static::isValidFilename($filename)) {
+                $this->directory()->abortBatch();
+                $shown = is_string($filename) ? $filename : get_debug_type($filename);
+                return new WP_REST_Response(['error' => "Invalid filename to prune: {$shown}"], 400);
+            }
+
+            $this->directory()->stageDelete($filename);
+            $pruned[] = $filename;
+        }
+
+        try {
+            $this->directory()->commitBatch();
+        } catch (\RuntimeException $e) {
+            $this->directory()->abortBatch();
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+
+        $this->clearLoadErrorsFor($pruned);
+
+        return new WP_REST_Response(['files' => $pushed, 'pruned' => $pruned], 200);
+    }
+
+    // One entry of push_batch()'s 'files' array, validated and staged the same way push_file()
+    // validates and writes one, only reading/writing/listing the staged batch instead of the
+    // live directory: an already-staged sibling from earlier in this same batch is visible to
+    // the collision check with its new content, a sibling this batch hasn't reached yet is
+    // still seen with today's live content, same characteristic push_file() itself already has
+    // for the file it hasn't been pushed yet in a sequential multi-file run.
+    /** @return array<string, mixed>|WP_REST_Response */
+    private function stageBatchFile(mixed $file): array|WP_REST_Response
+    {
+        if (!is_array($file) || !is_string($file['filename'] ?? null) || !is_string($file['content'] ?? null)) {
+            return new WP_REST_Response(['error' => 'Each file needs a string "filename" and "content".'], 400);
+        }
+
+        $filename = $file['filename'];
+        $content  = $file['content'];
+
+        if (!static::isValidFilename($filename)) {
+            return new WP_REST_Response(['error' => "Invalid filename: {$filename}"], 400);
+        }
+
+        $expectedRevision = $file['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => "\"{$filename}\": if present, \"expectedRevision\" must be a string."], 400);
+        }
+
+        $result = $this->validateAndWrite(
+            $filename,
+            $content,
+            $expectedRevision,
+            fn (string $slug): ?string => $this->directory()->readStaged($slug),
+            fn (): array => $this->directory()->listStagedSlugs(),
+            fn (string $slug): ?int => $this->directory()->stagedFileSize($slug),
+            function (string $slug, string $guarded): void { $this->directory()->stageWrite($slug, $guarded); },
+        );
+
+        return $result instanceof WP_REST_Response ? $result : $this->annotateEntry($result, $content);
+    }
+
+    // Shared validation + write pipeline behind push_file() (against the live directory) and
+    // push_batch()'s stageBatchFile() (against the staged batch): identical checks either way,
+    // only where content is read from/listed/written differs, passed in so this stays the one
+    // place that size cap, guard, syntax, class-count, collision, and #234's expectedRevision
+    // precondition are enforced instead of two near-duplicate copies drifting apart.
+    /**
+     * @param callable(string): ?string $read
+     * @param callable(): string[] $listSlugs
+     * @param callable(string): ?int $fileSize
+     * @param callable(string, string): void $write
+     * @return array<string, mixed>|WP_REST_Response
+     */
+    private function validateAndWrite(
+        string $filename,
+        string $content,
+        mixed $expectedRevision,
+        callable $read,
+        callable $listSlugs,
+        callable $fileSize,
+        callable $write,
+    ): array|WP_REST_Response {
         // Before anything reads $content into a tokeniser (ClassScanner) or `php -l`: an
         // oversized blob would otherwise exhaust memory, an uncatchable E_ERROR that 500s
         // the request instead of failing it cleanly (LP-SEC-02 / F19 / F20).
@@ -208,23 +378,13 @@ abstract class AbstractFilesController
         }
 
         $className = $classes[0];
-        $collision = $this->findCollision($filename, $className);
+        $collision = $this->findCollision($filename, $className, $read, $listSlugs, $fileSize);
         if ($collision !== null) {
             return new WP_REST_Response(['error' => $collision], 400);
         }
 
-        // Unlike 'content' above ((string) cast, a wrong type is silently coerced), a malformed
-        // expectedRevision must never be silently treated as absent: that would drop the
-        // conditional-write precondition entirely, letting a client whose value happened to be
-        // sent as e.g. a number bypass #234's protection outright instead of getting a clear
-        // error. Only a genuinely absent or explicit null one means "no precondition requested."
-        $expectedRevision = $request->get_param('expectedRevision');
-        if ($expectedRevision !== null && !is_string($expectedRevision)) {
-            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
-        }
-
         if ($expectedRevision !== null) {
-            $current         = $this->directory()->read($filename);
+            $current         = $read($filename);
             $currentRevision = $current === null ? null : $this->revisionOf(FileWriter::stripGuard($current));
 
             if ($currentRevision !== $expectedRevision) {
@@ -241,19 +401,19 @@ abstract class AbstractFilesController
         }
 
         try {
-            $this->directory()->write($filename, $guarded);
+            $write($filename, $guarded);
         } catch (\RuntimeException $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        $response = $this->annotateEntry(['filename' => $filename, 'revision' => $this->revisionOf($content)], $content);
+        $response = ['filename' => $filename, 'revision' => $this->revisionOf($content)];
         if ($syntax['status'] === 'unavailable') {
             // Distinguishes "verified, no error" from "couldn't verify here" for the CLI:
             // the write still succeeded, this is a heads-up, not a failure.
             $response['syntax_check'] = 'skipped';
         }
 
-        return new WP_REST_Response($response, 200);
+        return $response;
     }
 
     // Removes one deployed file. This is the only way to take a route or hook off the server
@@ -275,27 +435,58 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'File not found'], 404);
         }
 
-        // Drop any stale boot-time load error for this slug so list_files() stops reporting a
-        // file that no longer exists. The loader rewrites this option in full on its next pass
-        // regardless; this just keeps `lps <resource> list` consistent right after a delete.
-        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
-        if (is_array($loadErrors) && array_key_exists($filename, $loadErrors)) {
-            unset($loadErrors[$filename]);
-            update_option($this->directory()::LOAD_ERRORS_OPTION, $loadErrors, false);
-        }
+        $this->clearLoadErrorsFor([$filename]);
 
         return new WP_REST_Response(['filename' => $filename, 'deleted' => true], 200);
     }
 
+    // Drops any stale boot-time load error for the given slugs so list_files() stops reporting
+    // a file that no longer exists, whether it was removed one at a time (delete_file()) or as
+    // part of push_batch()'s prune list. The loader rewrites this option in full on its next
+    // pass regardless; this just keeps `lps <resource> list` consistent right after a removal.
+    /** @param string[] $filenames */
+    private function clearLoadErrorsFor(array $filenames): void
+    {
+        if ($filenames === []) {
+            return;
+        }
+
+        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
+        if (!is_array($loadErrors)) {
+            return;
+        }
+
+        $changed = false;
+        foreach ($filenames as $filename) {
+            if (array_key_exists($filename, $loadErrors)) {
+                unset($loadErrors[$filename]);
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            update_option($this->directory()::LOAD_ERRORS_OPTION, $loadErrors, false);
+        }
+    }
+
     // Catches at push time what the loader would otherwise only discover, silently, at the
     // next boot. Two sources checked, in order:
-    // 1. Another file in the same directory already declaring the same class: found by the
-    //    same static tokenizer scan, never by require()ing anything.
-    // 2. WP core or another active plugin, both already loaded in this very request (push_file
-    //    is itself a WP REST request, dispatched after the loader already ran): class_exists()
-    //    is safe to use directly here, unlike at the loader's own class_exists() check which
-    //    only rules out *other* files.
-    private function findCollision(string $filename, string $className): ?string
+    // 1. Another file in the same batch (or, for push_file(), already live) declaring the same
+    //    class: found by the same static tokenizer scan, never by require()ing anything.
+    // 2. WP core or another active plugin, both already loaded in this very request (push_file/
+    //    push_batch are themselves WP REST requests, dispatched after the loader already ran):
+    //    class_exists() is safe to use directly here, unlike at the loader's own class_exists()
+    //    check which only rules out *other* files.
+    //
+    // $read/$listSlugs/$fileSize are validateAndWrite()'s own: push_file() passes the live
+    // directory's, push_batch() the staged batch's, so this same check runs against whichever
+    // one is being written to.
+    /**
+     * @param callable(string): ?string $read
+     * @param callable(): string[] $listSlugs
+     * @param callable(string): ?int $fileSize
+     */
+    private function findCollision(string $filename, string $className, callable $read, callable $listSlugs, callable $fileSize): ?string
     {
         // PHP resolves class names case-insensitively (class_exists(), `new $x()`, and the
         // "Cannot redeclare class" fatal itself all ignore case), so comparing scanned names
@@ -306,19 +497,19 @@ abstract class AbstractFilesController
         $normalizedClassName = strtolower($className);
         $maxBytes            = $this->directory()->maxFileBytes();
 
-        foreach ($this->directory()->listSlugs() as $slug) {
+        foreach ($listSlugs() as $slug) {
             if ($slug === $filename) {
                 continue; // re-pushing the same file is an update, never a collision with itself
             }
 
-            $size = $this->directory()->fileSize($slug);
+            $size = $fileSize($slug);
             if ($size !== null && $size > $maxBytes) {
                 // The loader skips this file, so it declares nothing at runtime: don't
                 // tokenise it here just to check for a collision that can't happen.
                 continue;
             }
 
-            $existingContent = $this->directory()->read($slug);
+            $existingContent = $read($slug);
             if ($existingContent === null) {
                 continue;
             }
@@ -333,7 +524,7 @@ abstract class AbstractFilesController
         // including $filename's own previous content if it existed: class_exists() would
         // therefore already be true for a class name this exact file declared before this
         // push, which isn't a collision, just an unchanged (or renamed-away-from) class.
-        $previousContent = $this->directory()->read($filename);
+        $previousContent = $read($filename);
         $previousClasses = $previousContent !== null
             ? array_map('strtolower', ClassScanner::declaredClasses($previousContent))
             : [];

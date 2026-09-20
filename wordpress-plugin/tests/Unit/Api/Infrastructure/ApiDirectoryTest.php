@@ -249,4 +249,183 @@ class ApiDirectoryTest extends TestCase
 
         $this->assertSame(['invoice-pdf/[order_id]'], $dir->listSlugs());
     }
+
+    // ── batch staging / atomic swap (#236) ─────────────────────────────────────
+
+    private function stagingPath(): string
+    {
+        return WP_CONTENT_DIR . '/loopress/api.staging/';
+    }
+
+    public function test_beginBatch_creates_an_empty_staging_directory_with_an_index_php(): void
+    {
+        $dir = new ApiDirectory();
+
+        $dir->beginBatch();
+
+        $this->assertDirectoryExists($this->stagingPath());
+        $this->assertFileExists($this->stagingPath() . 'index.php');
+        $this->assertSame([], $dir->listStagedSlugs());
+    }
+
+    public function test_beginBatch_seeds_staging_with_a_copy_of_every_live_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php live content');
+
+        $dir->beginBatch();
+
+        $this->assertSame(['hello'], $dir->listStagedSlugs());
+        $this->assertSame('<?php live content', $dir->readStaged('hello'));
+        // A copy, not the same file: the live one must still be there and untouched.
+        $this->assertSame('<?php live content', $dir->read('hello'));
+    }
+
+    public function test_beginBatch_discards_a_leftover_staging_directory_from_a_crashed_previous_batch(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+        $dir->stageWrite('stray', '<?php from a batch that never committed');
+
+        $dir->beginBatch();
+
+        $this->assertSame([], $dir->listStagedSlugs());
+    }
+
+    public function test_stageWrite_writes_into_staging_only_never_the_live_directory(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+
+        $dir->stageWrite('hello', '<?php staged content');
+
+        $this->assertSame('<?php staged content', $dir->readStaged('hello'));
+        $this->assertNull($dir->read('hello'));
+    }
+
+    public function test_stageDelete_removes_a_file_from_the_staged_batch_only(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php live content');
+        $dir->beginBatch();
+
+        $dir->stageDelete('hello');
+
+        $this->assertNull($dir->readStaged('hello'));
+        // Live is untouched until commitBatch() actually swaps.
+        $this->assertSame('<?php live content', $dir->read('hello'));
+    }
+
+    public function test_stageDelete_is_a_no_op_for_a_slug_never_staged(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+
+        $dir->stageDelete('never-there');
+
+        $this->assertSame([], $dir->listStagedSlugs());
+    }
+
+    public function test_readStaged_returns_null_for_a_missing_slug(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+
+        $this->assertNull($dir->readStaged('missing'));
+    }
+
+    public function test_stagedFileSize_returns_the_byte_count_of_a_staged_file(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+        $dir->stageWrite('hello', 'abcde');
+
+        $this->assertSame(5, $dir->stagedFileSize('hello'));
+    }
+
+    public function test_stagedFileSize_returns_null_for_a_missing_slug(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+
+        $this->assertNull($dir->stagedFileSize('missing'));
+    }
+
+    public function test_commitBatch_makes_the_staged_content_live_and_removes_the_staging_directory(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->beginBatch();
+        $dir->stageWrite('hello', '<?php new content');
+
+        $dir->commitBatch();
+
+        $this->assertSame('<?php new content', $dir->read('hello'));
+        $this->assertDirectoryDoesNotExist($this->stagingPath());
+    }
+
+    public function test_commitBatch_preserves_a_live_file_the_batch_never_touched(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('keep', '<?php untouched');
+        $dir->beginBatch();
+        $dir->stageWrite('new-file', '<?php brand new');
+
+        $dir->commitBatch();
+
+        $this->assertSame('<?php untouched', $dir->read('keep'));
+        $this->assertSame('<?php brand new', $dir->read('new-file'));
+    }
+
+    public function test_commitBatch_removes_a_live_file_that_was_staged_for_deletion(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('keep', '<?php stays');
+        $dir->write('old', '<?php goes');
+        $dir->beginBatch();
+        $dir->stageDelete('old');
+
+        $dir->commitBatch();
+
+        $this->assertSame('<?php stays', $dir->read('keep'));
+        $this->assertNull($dir->read('old'));
+    }
+
+    public function test_commitBatch_throws_and_leaves_the_live_directory_untouched_without_a_staged_batch(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php still here');
+
+        try {
+            $dir->commitBatch();
+            $this->fail('Expected a RuntimeException.');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame('<?php still here', $dir->read('hello'));
+    }
+
+    public function test_abortBatch_discards_the_staged_batch_without_touching_the_live_directory(): void
+    {
+        $dir = new ApiDirectory();
+        $dir->write('hello', '<?php live content');
+        $dir->beginBatch();
+        $dir->stageWrite('hello', '<?php would-be new content');
+        $dir->stageWrite('new-file', '<?php never committed');
+
+        $dir->abortBatch();
+
+        $this->assertDirectoryDoesNotExist($this->stagingPath());
+        $this->assertSame('<?php live content', $dir->read('hello'));
+        $this->assertNull($dir->read('new-file'));
+    }
+
+    public function test_abortBatch_is_a_no_op_when_nothing_is_staged(): void
+    {
+        $dir = new ApiDirectory();
+
+        $dir->abortBatch();
+
+        $this->assertDirectoryDoesNotExist($this->stagingPath());
+    }
 }

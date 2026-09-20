@@ -568,4 +568,177 @@ class ApiFilesControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
     }
+
+    // ── push_batch (#236) ───────────────────────────────────────────────────
+
+    private function validFile(string $filename = 'hello', string $className = 'Hello'): array
+    {
+        return ['content' => "<?php\ndeclare(strict_types=1);\nfinal class {$className} {}\n", 'filename' => $filename];
+    }
+
+    public function test_push_batch_returns_400_when_files_is_missing(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request([]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_returns_400_when_files_is_empty(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => []]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_returns_400_when_prune_is_present_but_not_an_array(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [$this->validFile()], 'prune' => 'not-an-array']));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_stages_every_file_and_commits_once(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        $this->directory->expects($this->exactly(2))->method('stageWrite')
+            ->with($this->logicalOr('hello', 'world'), $this->anything());
+        $this->directory->expects($this->once())->method('commitBatch');
+        $this->directory->expects($this->never())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile('hello', 'Hello'), $this->validFile('world', 'World')]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertCount(2, $response->data['files']);
+        $this->assertSame([], $response->data['pruned']);
+    }
+
+    public function test_push_batch_returns_a_revision_for_each_staged_file(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $request = new WP_REST_Request(['files' => [['content' => $content, 'filename' => 'hello']]]);
+
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(hash('sha256', $content), $response->data['files'][0]['revision']);
+    }
+
+    public function test_push_batch_aborts_and_stops_staging_further_files_when_one_fails_validation(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        // 'first' declares no class, so this fails before 'second' is ever reached.
+        $this->directory->expects($this->never())->method('stageWrite');
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [
+                ['content' => "<?php\nfunction not_a_class(): void {}\n", 'filename' => 'first'],
+                $this->validFile('second', 'Second'),
+            ],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_checks_a_collision_against_the_staged_batch_not_just_the_live_directory(): void
+    {
+        // Two files in the same batch both declaring class Shared: findCollision() must catch
+        // this from listStagedSlugs()/readStaged(), the live directory is empty either way.
+        $this->directory->method('listStagedSlugs')->willReturnOnConsecutiveCalls([], ['first']);
+        $this->directory->method('readStaged')->willReturnMap([
+            ['first', "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n"],
+        ]);
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [
+                ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'first'],
+                ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'second'],
+            ],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('first.php', (string) $response->data['error']);
+    }
+
+    public function test_push_batch_returns_400_and_aborts_for_an_invalid_prune_filename(): void
+    {
+        $this->directory->expects($this->once())->method('stageWrite');
+        $this->directory->expects($this->never())->method('stageDelete');
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['../../wp-config']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_stages_prune_deletions_and_commits_alongside_the_pushed_files(): void
+    {
+        $this->directory->expects($this->once())->method('stageWrite')->with('hello', $this->anything());
+        $this->directory->expects($this->once())->method('stageDelete')->with('stale');
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['stale'], $response->data['pruned']);
+    }
+
+    public function test_push_batch_clears_stale_load_errors_for_pruned_filenames(): void
+    {
+        Functions\when('get_option')->justReturn(['other' => 'boom', 'stale' => 'expected exactly one class declaration, found none']);
+        Functions\expect('update_option')->once()->with('loopress_api_load_errors', ['other' => 'boom'], false)->andReturn(true);
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_push_batch_returns_500_and_aborts_when_commitBatch_fails(): void
+    {
+        $this->directory->method('commitBatch')->willThrowException(new \RuntimeException('disk full'));
+        $this->directory->expects($this->once())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(500, $response->status);
+        $this->assertStringContainsString('disk full', (string) $response->data['error']);
+    }
+
+    public function test_push_batch_returns_500_when_beginBatch_fails(): void
+    {
+        $this->directory->method('beginBatch')->willThrowException(new \RuntimeException('cannot prepare staging'));
+        $this->directory->expects($this->never())->method('stageWrite');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(500, $response->status);
+    }
+
+    public function test_push_batch_returns_400_for_each_entry_missing_filename_or_content(): void
+    {
+        $this->directory->expects($this->once())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [['content' => '<?php']]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
 }
