@@ -83,6 +83,13 @@ type PushResult = {
   status: 'dry-run' | 'success'
 }
 
+// The `{routePath}/batch` endpoint's success shape (#236): every file that was staged and
+// swapped in, plus the filenames actually pruned as part of that same swap.
+type BatchPushResult = {
+  files: Array<{filename: string; public?: boolean; syntax_check?: 'skipped'}>
+  pruned: string[]
+}
+
 type PullResult = {
   orphans: string[]
   pulled: string[]
@@ -178,15 +185,14 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       const files = await this.loadFiles(path)
       this.log(`Found ${pluralize(files.length, spec.noun)} to push`)
 
-      const pushed: string[] = []
-      const publicRoutes: string[] = []
+      // Local, network-free checks only (filename shape, the declare(strict_types=1) guard):
+      // catches a bad file before anything is staged on WordPress, same as before #236. The
+      // actual write is no longer per-file here, it's the single atomic batch request below.
       await this.runPushTasks(
         files,
         (file) => file.filename,
         async (file, task) => {
-          const result = await this.pushFile(file, beforeState, task)
-          pushed.push(file.filename)
-          if (result?.public) publicRoutes.push(file.filename)
+          this.validateFileLocally(file, task)
         },
       )
 
@@ -194,19 +200,24 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         this.error(`${pluralize(this.failedCount, spec.noun)} failed to push.`)
       }
 
-      for (const route of publicRoutes) {
-        this.warn(
-          `${route}: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions`,
-        )
+      // Resolved before the batch request: which files to prune is a local decision (a GET plus
+      // confirmation), but their removal itself happens inside the same atomic swap as the push
+      // below, not as separate DELETE calls, so a mid-push failure can't remove server-side
+      // files without also landing the new ones.
+      const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename))) : []
+
+      if (this.dryRun) {
+        for (const file of files) this.log(`[dry-run] Would push: ${file.filename}`)
+        await this.writeAfterPushSnapshot(provider, path, beforeState)
+        return {pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
       }
 
-      // After prune (not before): a pruned file's removal is part of what this push actually
-      // did to the environment, so the rollback snapshot's after-state should reflect it too.
-      const pruned = flags.prune ? await this.prune(new Set(files.map((file) => file.filename))) : []
+      const {pruned, pushed} =
+        files.length === 0 && pruneList.length === 0
+          ? {pruned: [], pushed: []}
+          : await this.pushBatch(files, pruneList, beforeState)
 
       await this.writeAfterPushSnapshot(provider, path, beforeState)
-
-      if (this.dryRun) return {pruned, pushed, status: 'dry-run'}
 
       await this.recordSuccess()
       await spec.afterPush?.({filenames: pushed, siteConfig: this.siteConfig})
@@ -218,12 +229,62 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       return loadPhpFiles(this, path)
     }
 
+    // One request stages every file and every pruned filename, then swaps them all into place
+    // together (#236): a failure anywhere in the batch (a stale expectedRevision, a class
+    // collision, a syntax error) leaves WordPress completely unchanged, not partially pushed.
+    private async pushBatch(
+      files: PhpFile[],
+      pruneList: string[],
+      beforeState: ResourceState | undefined,
+    ): Promise<{pruned: string[]; pushed: string[]}> {
+      const body = {
+        files: files.map((file) => {
+          const entry: Record<string, unknown> = {content: file.content, filename: file.filename}
+          // `beforeState` was read once, at the start of this push run (see `expectedRevisionFor`
+          // above): there is no per-file GET endpoint to re-read it right before this batch the
+          // way `option push` does. Sent back as `expectedRevision`, WordPress still refuses the
+          // whole batch (412) if something changed the file in between, instead of silently
+          // overwriting it (#234); the vulnerable window is this run's own duration rather than a
+          // single request's, wider than option's but still far smaller than not checking at all.
+          const expectedRevision = expectedRevisionFor(beforeState, file.filename)
+          if (expectedRevision !== undefined) entry.expectedRevision = expectedRevision
+          return entry
+        }),
+        prune: pruneList,
+      }
+
+      let result: BatchPushResult
+      try {
+        result = await this.wp.post<BatchPushResult>(`${spec.endpoint}/batch`, body)
+      } catch (error) {
+        this.error(`Push failed, nothing was changed on ${this.siteConfig.url}: ${(error as Error).message}`)
+      }
+
+      for (const file of result.files) {
+        this.log(
+          file.syntax_check === 'skipped'
+            ? `Pushed: ${file.filename} (syntax check skipped, unavailable on this host)`
+            : `Pushed: ${file.filename}`,
+        )
+        if (file.public) {
+          this.warn(
+            `${file.filename}: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions`,
+          )
+        }
+      }
+
+      for (const filename of result.pruned) this.log(`Pruned: ${filename}`)
+
+      return {pruned: result.pruned, pushed: result.files.map((file) => file.filename)}
+    }
+
     // Mirror of `pull`'s local orphan cleanup, aimed at the server: any file on WordPress with
-    // no local counterpart is deleted. Opt-in (`--prune`) because it removes code from a live
-    // site. In a non-TTY without `--yes` it refuses rather than prunes: a stray local path in
-    // CI must not silently wipe production routes, and unlike `pull`'s local deletions these
-    // are not recoverable from the repo.
-    private async prune(localFilenames: Set<string>): Promise<string[]> {
+    // no local counterpart is a candidate for removal. Opt-in (`--prune`) because it removes
+    // code from a live site. In a non-TTY without `--yes` it refuses rather than prunes: a stray
+    // local path in CI must not silently wipe production routes, and unlike `pull`'s local
+    // deletions these are not recoverable from the repo. Only decides *which* filenames to
+    // prune; pushBatch() is what actually removes them, atomically alongside the push.
+    private async resolvePruneList(localFilenames: Set<string>): Promise<string[]> {
       const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
       const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name))
 
@@ -249,23 +310,10 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         }
       }
 
-      // Sequential, like runPushTasks: keeps the "Pruned: …" lines ordered and the WordPress
-      // writes serial.
-      const deleted: string[] = []
-      for (const filename of orphans) {
-        await this.wp.delete(`${spec.endpoint}?filename=${encodeURIComponent(filename)}`)
-        this.log(`Pruned: ${filename}`)
-        deleted.push(filename)
-      }
-
-      return deleted
+      return orphans
     }
 
-    private async pushFile(
-      file: PhpFile,
-      beforeState: ResourceState | undefined,
-      task?: {output: string},
-    ): Promise<undefined | {public?: boolean}> {
+    private validateFileLocally(file: PhpFile, task?: {output: string}): void {
       if (!spec.filenamePattern.test(file.filename)) {
         const message = `Invalid filename "${file.filename}": ${spec.invalidFilenameHint}`
         this.reportTaskFailure(message, new Error(message), task)
@@ -278,36 +326,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         this.reportTaskFailure(message, new Error(message), task)
       }
 
-      if (this.dryRun) {
-        if (task) task.output = `[dry-run] Would push: ${file.filename}`
-
-        return undefined
-      }
-
-      // `beforeState` was read once, at the start of this push run (see `expectedRevisionFor`
-      // above): there is no per-file GET endpoint to re-read it right before each individual
-      // write the way `option push` does. Sent back as `expectedRevision`, WordPress still
-      // refuses the write (412) if something changed the file in between, instead of this push
-      // silently overwriting it (#234); the vulnerable window is this run's own duration rather
-      // than a single request's, wider than option's but still far smaller than not checking
-      // at all.
-      const body: Record<string, unknown> = {content: file.content, filename: file.filename}
-      const expectedRevision = expectedRevisionFor(beforeState, file.filename)
-      if (expectedRevision !== undefined) body.expectedRevision = expectedRevision
-
-      try {
-        const result = await this.wp.put<{public?: boolean; syntax_check?: 'skipped'}>(spec.endpoint, body)
-        if (task) {
-          task.output =
-            result.syntax_check === 'skipped'
-              ? `Pushed: ${file.filename} (syntax check skipped, unavailable on this host)`
-              : `Pushed: ${file.filename}`
-        }
-
-        return result
-      } catch (error) {
-        this.reportTaskFailure(`Failed to push ${file.filename}: ${(error as Error).message}`, error, task)
-      }
+      if (task) task.output = `Validated: ${file.filename}`
     }
   }
 
