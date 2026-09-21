@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\ApiNamespace;
+use Loopress\Api\Attribute\Hidden;
 use Loopress\Api\Attribute\Permission;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
@@ -107,6 +108,8 @@ class RouteLoader extends AbstractFileLoader
      */
     public function endpointsFor(object $instance): array
     {
+        $hidden = (new \ReflectionClass($instance))->getAttributes(Hidden::class) !== [];
+
         $endpoints = [];
         foreach (self::VERBS as $method => $httpMethod) {
             if (!$this->hasPublicMethod($instance, $method)) {
@@ -118,6 +121,13 @@ class RouteLoader extends AbstractFileLoader
                 'callback'            => [$instance, $method],
                 'permission_callback' => $this->resolvePermission($instance, $method),
             ];
+
+            if ($hidden) {
+                // Recognized natively by WP_REST_Server::get_index(): the route still
+                // dispatches normally, it just never appears in the /wp-json/ or
+                // namespace discovery listing.
+                $endpoint['show_in_index'] = false;
+            }
 
             // WP passes unknown keys through register_rest_route() untouched, and reflects
             // whichever endpoint entry actually matched back onto the request via
