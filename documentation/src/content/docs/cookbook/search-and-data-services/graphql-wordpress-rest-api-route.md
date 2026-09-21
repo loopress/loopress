@@ -109,6 +109,44 @@ public function permission(): bool
 
 Without `webonyx/graphql-php` installed, `ObjectType` and `Schema` are undefined classes, an ordinary PHP error on this request. As with every other package used in a route, Loopress only [catches and logs](/api/routes/#failure-isolation) a corrupted or missing `vendor/autoload.php` itself, not one missing package inside an intact `vendor/`, so install it through [Composer dependency management](/composer/) first.
 
+## Fields backed by ACF, not raw postmeta
+
+`price` above reads `get_post_meta($post->ID, '_price', true)` because that's how a plugin like WooCommerce already stores it. When the field doesn't come from another plugin, and doesn't need a custom post type either, defining it as an [ACF field group](/acf/) attached to WordPress's own `post` type and reading it with `get_field()` instead means the schema for that field, its type, its label, which post type it applies to, lives in one file synced by Loopress (`lps acf push`), not scattered across `register_post_meta()` calls or, worse, undocumented. This repository's own demo does exactly that: no custom post type, no WooCommerce, a `Post` type instead of `Product`, `readingTime`/`summary` instead of `price`:
+
+```php
+'readingTime' => Type::float(),
+'summary'     => Type::string(),
+// ...
+'readingTime' => (float) get_field('reading_time', $post->ID),
+'summary'     => (string) get_field('summary', $post->ID),
+```
+
+Nothing about the route changes to support this, `get_field()` is a drop-in for `get_post_meta()` here, ACF stores simple field types in the same postmeta table under the field's own name. The composition is the point: the field group is a schema Loopress deploys, the route is an API Loopress also deploys, and neither needs to know about the other beyond the field name they agree on.
+
+## A GraphiQL route, for exploring it interactively
+
+The route above only accepts POST, nothing a browser can poke at directly. A second route, `api/graphiql.php`, serves [GraphiQL](https://github.com/graphql/graphiql) pointed at it, so a teammate can explore the schema and run queries without a separate tool:
+
+```php title="api/graphiql.php"
+public function get(): void
+{
+    $endpoint = esc_url_raw(rest_url('loopress-api/v1/graphql'));
+
+    header('Content-Type: text/html; charset=utf-8');
+    echo <<<HTML
+    <script type="importmap">{"imports": {"graphiql": "https://esm.sh/graphiql@5.4.0?standalone&external=react,react-dom,@graphiql/react,graphql", "...": "..."}}</script>
+    <script type="module">
+      import { GraphiQL } from 'graphiql';
+      import { createGraphiQLFetcher } from '@graphiql/toolkit';
+      // render GraphiQL with fetcher: createGraphiQLFetcher({ url: {$endpoint} })
+    </script>
+    HTML;
+    exit;
+}
+```
+
+Same raw-output bypass as the PDF and spreadsheet recipes: a route can hand back HTML instead of JSON by setting its own `Content-Type` header and calling `exit` before WordPress's own dispatch gets a chance to serialize anything. React and GraphiQL load as ES modules from a CDN through an import map, GraphiQL's own documented approach for its current major version, no build step, no separate npm project for what's otherwise a one-file recipe.
+
 ## What this opens up
 
 The same file grows by adding fields and types, not by adding endpoints, a `relatedProducts` field on `Product` is a resolver, not a new route. It's also narrow enough as a starting point, one file, one schema, one dispatch method, that drafting the first version of it with an AI coding assistant and reviewing the resolvers yourself is a reasonable way to get it written.
