@@ -103,7 +103,7 @@ class RouteLoader extends AbstractFileLoader
      * verb the file publicly implements. Kept as pure logic (no WP calls) so it's testable
      * without stubbing register_rest_route().
      *
-     * @return array<int, array{methods: string, callback: array{0: object, 1: string}, permission_callback: callable, loopress_instance?: object}>
+     * @return array<int, array{methods: string, callback: callable, permission_callback: callable, loopress_instance?: object}>
      */
     public function endpointsFor(object $instance): array
     {
@@ -115,7 +115,7 @@ class RouteLoader extends AbstractFileLoader
 
             $endpoint = [
                 'methods'             => $httpMethod,
-                'callback'            => [$instance, $method],
+                'callback'            => $this->wrapVerbCallback($instance, $method),
                 'permission_callback' => $this->resolvePermission($instance, $method),
             ];
 
@@ -190,6 +190,28 @@ class RouteLoader extends AbstractFileLoader
     public function hasPublicMethod(object $instance, string $method): bool
     {
         return method_exists($instance, $method) && (new \ReflectionMethod($instance, $method))->isPublic();
+    }
+
+    // WP core's own dispatch (WP_REST_Server::respond_to_request()) calls the route callback
+    // with no try/catch of its own, unlike permission_callback and headers() below which this
+    // class already wraps for the same reason: an uncaught \Throwable from user code running
+    // at dispatch, not at registration inside loadFile()'s try/catch, would 500/fatal this one
+    // request instead of the route returning a clean error. get()/post()/etc. is exactly that
+    // same category of dispatch-time user code, just not previously wrapped.
+    private function wrapVerbCallback(object $instance, string $method): callable
+    {
+        return function (WP_REST_Request $request) use ($instance, $method) {
+            if (!is_callable([$instance, $method])) {
+                return new \WP_REST_Response(['error' => 'Internal error'], 500);
+            }
+
+            try {
+                return call_user_func([$instance, $method], $request);
+            } catch (\Throwable $e) {
+                $this->log("{$method}() threw: " . $e->getMessage());
+                return new \WP_REST_Response(['error' => 'Internal error'], 500);
+            }
+        };
     }
 
     // A permission_callback resolved from user code (the file's own permission(), or a
