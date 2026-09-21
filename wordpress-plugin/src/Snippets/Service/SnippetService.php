@@ -142,10 +142,10 @@ class SnippetService extends AbstractSingleProviderService
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
-            throw new StaleSnippetRevisionException(esc_html(
+            throw new StaleSnippetRevisionException(
                 "Snippet {$id} changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
                     'Re-read the snippet and try again.',
-            ));
+            );
         }
     }
 }

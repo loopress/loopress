@@ -131,6 +131,16 @@ describe('form pull', () => {
       expect(logs.log).toHaveBeenCalledWith('Pulled 1 form to ' + dir)
     })
 
+    it('never persists the remote revision field locally', async () => {
+      const {cmd, get} = make(false, [dir])
+      get.mockResolvedValue([{id: 9, revision: 'abc123', settings: {form_title: 'Contact Us'}}])
+
+      await cmd.run()
+
+      const written = JSON.parse(readFileSync(join(dir, '9-contact-us.json'), 'utf8')) as Record<string, unknown>
+      expect(written).not.toHaveProperty('revision')
+    })
+
     it('uses "(untitled)" and falls back to "untitled" for the slug when a form has no form_title', async () => {
       const {cmd, get} = make(false, [dir])
       get.mockResolvedValue([{id: 3, settings: {}}])

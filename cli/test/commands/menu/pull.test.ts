@@ -20,7 +20,7 @@ function makeCmd(): {cmd: PullInternals; logs: ReturnType<typeof silenceLogs>} {
   return {cmd: cmd as unknown as PullInternals, logs}
 }
 
-const menu = {items: [], name: 'Main Menu', slug: 'main', warnings: []}
+const menu = {items: [], name: 'Main Menu', revision: 'abc123', slug: 'main', warnings: []}
 
 describe('menu pull', () => {
   let dir: string
@@ -54,8 +54,22 @@ describe('menu pull', () => {
 
       await cmd.run()
 
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8'))).toEqual(menu)
+      expect(JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8'))).toEqual({
+        items: [],
+        name: 'Main Menu',
+        slug: 'main',
+      })
       expect(JSON.parse(readFileSync(join(dir, 'menus', 'menu-locations.json'), 'utf8'))).toEqual({primary: 'main'})
+    })
+
+    it('never persists revision or warnings, server bookkeeping not tracked configuration', async () => {
+      const {cmd} = makeRunCmd()
+
+      await cmd.run()
+
+      const written = JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8')) as Record<string, unknown>
+      expect(written).not.toHaveProperty('revision')
+      expect(written).not.toHaveProperty('warnings')
     })
 
     it('removes a local menu file whose slug is no longer present remotely', async () => {

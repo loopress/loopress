@@ -135,11 +135,11 @@ abstract class AbstractSeoService implements SeoProvider
         $current = $this->revisionOf($this->prefixedMeta($post->ID));
 
         if ($current !== $expectedRevision) {
-            throw new StaleSeoRevisionException(esc_html(
+            throw new StaleSeoRevisionException(
                 "SEO meta for \"{$post->post_name}\" changed on WordPress since it was last read " .
                     "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
                     'Re-read the post and try again.',
-            ));
+            );
         }
     }
 
@@ -201,11 +201,11 @@ abstract class AbstractSeoService implements SeoProvider
         $current = $this->revisionOf($this->rawSettings());
 
         if ($current !== $expectedRevision) {
-            throw new StaleSeoRevisionException(esc_html(
+            throw new StaleSeoRevisionException(
                 'SEO settings changed on WordPress since they were last read ' .
                     "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
                     'Re-read the settings and try again.',
-            ));
+            );
         }
     }
 

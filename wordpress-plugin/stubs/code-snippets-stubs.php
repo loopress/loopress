@@ -5,30 +5,29 @@
 // optional runtime dependency, only present when the user has it installed and active, see
 // CodeSnippetsSnippetProvider::isActive()), so neither PHPStan nor Psalm can otherwise see these.
 
-namespace Code_Snippets;
+namespace Code_Snippets\Model;
 
 /**
- * Minimal stub of Code Snippets' own Snippet class: only the members this codebase actually
- * reads (CodeSnippetsSnippetProvider::isTrashed()/trashedIds()), not the real class's full
- * shape, for the same reason the functions below are stubbed rather than imported.
+ * Minimal stub of Code Snippets' own Snippet model class: only the members this codebase
+ * actually reads (CodeSnippetsSnippetProvider::isTrashed()/trashedIds()), not the real class's
+ * full shape, for the same reason the functions below are stubbed rather than imported.
  */
 class Snippet
 {
     public int $id;
-
-    public function is_trashed(): bool
-    {
-    }
+    public bool $trashed;
 }
+
+namespace Code_Snippets;
 
 /**
  * @param int[] $ids
- * @return Snippet[]
+ * @return Model\Snippet[]
  */
 function get_snippets(array $ids = [], ?bool $network = null): array
 {
 }
 
-function get_snippet(int $id = 0, ?bool $network = null): Snippet
+function get_snippet(int $id = 0, ?bool $network = null): Model\Snippet
 {
 }

@@ -296,6 +296,24 @@ class FormServiceTest extends TestCase
         $service->update(2, ['settings' => ['form_title' => 'Updated']], 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        $active = $this->provider(true);
+        $active->method('get')->willReturn(['id' => 2, 'settings' => ['form_title' => 'Someone else already changed this']]);
+
+        $service = new FormService($active);
+
+        try {
+            $service->update(2, ['settings' => ['form_title' => 'Updated']], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleFormRevisionException.');
+        } catch (StaleFormRevisionException $e) {
+            $this->assertStringContainsString('Form #2', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_update_does_not_call_the_providers_update_when_the_revision_is_stale(): void
     {
         $active = $this->provider(true);

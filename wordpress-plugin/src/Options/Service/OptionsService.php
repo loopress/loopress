@@ -471,10 +471,10 @@ class OptionsService
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
-            throw new StaleOptionRevisionException(esc_html(
+            throw new StaleOptionRevisionException(
                 "\"{$name}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
                     'Re-read the option and try again.',
-            ));
+            );
         }
     }
 
