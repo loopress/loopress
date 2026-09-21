@@ -126,10 +126,10 @@ class FormService extends AbstractSingleProviderService
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
-            throw new StaleFormRevisionException(esc_html(
+            throw new StaleFormRevisionException(
                 "Form #{$id} changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
                     'Re-read the form and try again.',
-            ));
+            );
         }
     }
 }

@@ -405,6 +405,23 @@ class OptionsServiceTest extends TestCase
         $this->service->updateOption('my_option', 'new value', null, 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html() (which would turn its quotes into
+    // literal "&quot;" in the terminal).
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('get_option')->justReturn('someone else already changed this');
+        $this->wpdb->rows = ['my_option' => 'yes'];
+
+        try {
+            $this->service->updateOption('my_option', 'new value', null, 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleOptionRevisionException.');
+        } catch (StaleOptionRevisionException $e) {
+            $this->assertStringContainsString('"my_option"', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_update_option_does_not_call_update_option_when_the_revision_is_stale(): void
     {
         Functions\when('get_option')->justReturn('someone else already changed this');

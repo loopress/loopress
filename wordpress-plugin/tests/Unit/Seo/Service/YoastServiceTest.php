@@ -234,6 +234,22 @@ class YoastServiceTest extends TestCase
         $this->service->updateSettings(['title_separator' => '|'], 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_settings_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('get_option')->justReturn(['title_separator' => 'someone else changed this']);
+        Functions\expect('update_option')->never();
+
+        try {
+            $this->service->updateSettings(['title_separator' => '|'], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleSeoRevisionException.');
+        } catch (StaleSeoRevisionException $e) {
+            $this->assertStringContainsString('SEO settings', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_update_settings_skips_the_revision_check_entirely_when_none_is_given(): void
     {
         $stored = [];
@@ -299,6 +315,23 @@ class YoastServiceTest extends TestCase
 
         $this->expectException(StaleSeoRevisionException::class);
         $this->service->upsertPostMeta('post', 'hello', ['_yoast_wpseo_title' => 'New title'], 'a-revision-that-no-longer-matches');
+    }
+
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_post_meta_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->fakePost(5, 'hello', 'Hello'));
+        Functions\when('get_post_meta')->justReturn(['_yoast_wpseo_title' => ['Someone else changed this']]);
+        Functions\expect('update_post_meta')->never();
+
+        try {
+            $this->service->upsertPostMeta('post', 'hello', ['_yoast_wpseo_title' => 'New title'], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleSeoRevisionException.');
+        } catch (StaleSeoRevisionException $e) {
+            $this->assertStringContainsString('"hello"', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
     }
 
     public function test_upsert_post_meta_skips_the_revision_check_entirely_when_none_is_given(): void

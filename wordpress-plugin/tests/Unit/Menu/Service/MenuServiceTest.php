@@ -496,6 +496,22 @@ class MenuServiceTest extends TestCase
         $this->service->upsertMenu('main', 'Main', [], 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Renamed Elsewhere'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([]);
+
+        try {
+            $this->service->upsertMenu('main', 'Main', [], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleMenuRevisionException.');
+        } catch (StaleMenuRevisionException $e) {
+            $this->assertStringContainsString('"main"', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_upsert_menu_does_not_write_anything_when_the_revision_is_stale(): void
     {
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Renamed Elsewhere'));

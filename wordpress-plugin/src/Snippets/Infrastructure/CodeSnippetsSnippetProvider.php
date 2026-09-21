@@ -205,12 +205,12 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     // Code Snippets' own REST responses cannot tell a trashed snippet apart from a genuinely
     // inactive one: Snippet::prepare_field() normalizes `active` to `false` for both a real
     // `0` and the `-1` trash sentinel it stores in the database, and trash status isn't part
-    // of the REST schema at all. `is_trashed()` (backed by that same `-1` sentinel) is the only
+    // of the REST schema at all. `$trashed` (backed by that same `-1` sentinel) is the only
     // place that still knows the difference, so this reaches past the REST layer for this one
     // check rather than trying to reconstruct trash detection from data that no longer carries it.
     private function isTrashed(int $id): bool
     {
-        return \Code_Snippets\get_snippet($id)->is_trashed();
+        return \Code_Snippets\get_snippet($id)->trashed;
     }
 
     /**
@@ -223,18 +223,18 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
             return [];
         }
 
-        // Runtime parameter type stays the bare `object`: `Code_Snippets\Snippet` only exists
-        // as code-snippets-stubs.php's static-analysis stub (that class lives in a third-party
-        // plugin this codebase doesn't depend on at the autoload level, only at runtime when
-        // Code Snippets happens to be active, see isActive()), and PHP enforces parameter
-        // types at runtime, unlike PHPDoc. The @param below narrows it for PHPStan/Psalm only.
+        // Runtime parameter type stays the bare `object`: `Code_Snippets\Model\Snippet` only
+        // exists as code-snippets-stubs.php's static-analysis stub (that class lives in a
+        // third-party plugin this codebase doesn't depend on at the autoload level, only at
+        // runtime when Code Snippets happens to be active, see isActive()), and PHP enforces
+        // parameter types at runtime, unlike PHPDoc. The @param below narrows it for PHPStan/Psalm only.
         return array_values(array_map(
-            /** @param \Code_Snippets\Snippet $snippet */
+            /** @param \Code_Snippets\Model\Snippet $snippet */
             static fn(object $snippet): int => $snippet->id,
             array_filter(
                 \Code_Snippets\get_snippets($ids),
-                /** @param \Code_Snippets\Snippet $snippet */
-                static fn(object $snippet): bool => $snippet->is_trashed(),
+                /** @param \Code_Snippets\Model\Snippet $snippet */
+                static fn(object $snippet): bool => $snippet->trashed,
             ),
         ));
     }

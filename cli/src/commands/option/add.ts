@@ -49,7 +49,7 @@ export default class Add extends LoopressCommand {
       throw error
     }
 
-    const local: LocalOption = {...remote, readonly: defaultReadonlyFor(name)}
+    const local: LocalOption = {autoload: remote.autoload, name: remote.name, readonly: defaultReadonlyFor(name), value: remote.value}
     const file = join(dir, optionFileName(name))
 
     if (this.dryRun) {

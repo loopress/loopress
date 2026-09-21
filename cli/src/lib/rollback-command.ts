@@ -180,7 +180,7 @@ export function resourceRollbackCommand(resource: string, options: {description:
 
       if (!isInteractive()) {
         this.error(
-          'The environment has changed since this snapshot was taken. Re-run with --yes to roll back anyway (overwriting those later changes), or without --dry-run/--yes to leave it as is.',
+          'The environment has changed since this snapshot was taken. Re-run with --yes to roll back anyway (overwriting those later changes).',
         )
       }
 

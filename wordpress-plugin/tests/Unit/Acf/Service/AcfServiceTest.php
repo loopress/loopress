@@ -296,6 +296,24 @@ class AcfServiceTest extends TestCase
         $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1', 'title' => 'Someone else already changed this']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        try {
+            $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleAcfRevisionException.');
+        } catch (StaleAcfRevisionException $e) {
+            $this->assertStringContainsString('"post_type_1"', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_upsert_does_not_call_acf_import_internal_post_type_when_the_revision_is_stale(): void
     {
         Functions\when('acf_get_internal_post_type_instance')->justReturn(true);

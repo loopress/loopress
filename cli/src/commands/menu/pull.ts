@@ -69,7 +69,12 @@ export default class Pull extends LoopressCommand {
       orphanReason: `in ${dir} no longer present on WordPress`,
       pulledMessage: `Pulled ${remote.length} menu(s) to ${dir}`,
       title: (menu) => menu.slug,
-      write: async (menu, writeDir) => writeFile(join(writeDir, `${menu.slug}.json`), JSON.stringify(menu, null, 2) + '\n'),
+      // revision/warnings are server bookkeeping, never part of the tracked configuration (see
+      // their doc comments on Menu in menu-format.ts): never persisted locally.
+      async write(menu, writeDir) {
+        const local: Pick<Menu, 'items' | 'name' | 'slug'> = {items: menu.items, name: menu.name, slug: menu.slug}
+        await writeFile(join(writeDir, `${menu.slug}.json`), JSON.stringify(local, null, 2) + '\n')
+      },
     })
 
     if (this.dryRun) return

@@ -237,7 +237,9 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7, {name: 'Changed by someone else'})])
     const {cmd} = make([], get)
 
-    await expect(cmd.run()).rejects.toThrow(/environment has changed/)
+    await expect(cmd.run()).rejects.toThrow(
+      'The environment has changed since this snapshot was taken. Re-run with --yes to roll back anyway (overwriting those later changes).',
+    )
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
   })
 

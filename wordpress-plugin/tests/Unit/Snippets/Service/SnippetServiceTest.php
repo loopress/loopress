@@ -309,6 +309,24 @@ class SnippetServiceTest extends TestCase
         $service->updateSnippet(1, new SnippetData(name: 'New'), 'a-revision-that-no-longer-matches');
     }
 
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        $active = $this->provider(true);
+        $active->method('getSnippet')->willReturn(new SnippetData(id: 1, name: 'Someone else already changed this'));
+
+        $service = new SnippetService($active);
+
+        try {
+            $service->updateSnippet(1, new SnippetData(name: 'New'), 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleSnippetRevisionException.');
+        } catch (StaleSnippetRevisionException $e) {
+            $this->assertStringContainsString('Snippet 1', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
     public function test_update_snippet_does_not_call_the_provider_update_when_the_revision_is_stale(): void
     {
         $active = $this->provider(true);

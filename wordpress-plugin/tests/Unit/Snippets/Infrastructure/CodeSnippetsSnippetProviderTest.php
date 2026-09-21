@@ -135,12 +135,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     private function fakeSnippet(int $id, bool $trashed): object
     {
         return new class($id, $trashed) {
-            public function __construct(public readonly int $id, private readonly bool $trashed) {}
-
-            public function is_trashed(): bool
-            {
-                return $this->trashed;
-            }
+            public function __construct(public readonly int $id, public readonly bool $trashed) {}
         };
     }
 
