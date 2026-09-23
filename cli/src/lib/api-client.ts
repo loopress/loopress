@@ -55,8 +55,16 @@ function formatApiError(error: unknown, url: string, timeoutMs: number): string 
     return `Not logged in or session expired on ${url}. Run \`lps login\` again.`
   }
 
+  const reason = nestErrorMessage(err.response?.body)
+
   if (status === 403) {
-    return `Request rejected (${status}) on ${url}: ${err.response?.body ?? err.message}`
+    return `Request rejected (${status}) on ${url}: ${reason ?? err.response?.body ?? err.message}`
+  }
+
+  // Any other API refusal (a 400 validation error, a 409 conflict) carries its explanation in
+  // the body; got's own message ("Request failed with status code 400") never does.
+  if (status !== undefined && reason) {
+    return `Request failed (${status}) on ${url}: ${reason}`
   }
 
   if (err.name === 'TimeoutError') {
@@ -64,4 +72,20 @@ function formatApiError(error: unknown, url: string, timeoutMs: number): string 
   }
 
   return err.message ?? String(error)
+}
+
+// NestJS's HttpException body: `{statusCode, message, error}`, where `message` is a list for a
+// ValidationPipe failure (one entry per invalid field).
+function nestErrorMessage(body: string | undefined): string | undefined {
+  if (!body) return undefined
+
+  try {
+    const {message} = JSON.parse(body) as {message?: unknown}
+    if (typeof message === 'string' && message.trim()) return message
+    if (Array.isArray(message) && message.length > 0) return message.join('; ')
+  } catch {
+    // not JSON (a proxy's HTML error page): nothing to extract
+  }
+
+  return undefined
 }

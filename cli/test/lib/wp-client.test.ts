@@ -215,6 +215,22 @@ describe('formatWpError', () => {
     }
   })
 
+  it("shows a Loopress controller's own refusal on a 403 instead of blaming the credentials", () => {
+    const body = JSON.stringify({error: '&quot;secure_auth_key&quot; looks like a stored secret and is not readable.'})
+    const message = formatWpError({response: {body, statusCode: 403}}, url)
+    expect(message).toBe(`Request refused (403) on ${url}: "secure_auth_key" looks like a stored secret and is not readable.`)
+  })
+
+  it("keeps the credentials hint for WordPress core's own 401/403 bodies", () => {
+    const body = JSON.stringify({code: 'rest_forbidden', message: 'Sorry, you are not allowed to do that.'})
+    expect(formatWpError({response: {body, statusCode: 403}}, url)).toContain('lps project config')
+  })
+
+  it('decodes the HTML entities esc_html() puts in server messages, ampersand last', () => {
+    const body = JSON.stringify({error: 'Tom &amp; Jerry&#039;s &lt;b&gt; &amp;quot;'})
+    expect(formatWpError({response: {body, statusCode: 500}}, url)).toBe(`Request failed (500) on ${url}: Tom & Jerry's <b> &quot;`)
+  })
+
   it('mentions the plugin on a 404 with no error body', () => {
     expect(formatWpError({response: {body: '{}', statusCode: 404}}, url)).toContain('Is the required plugin installed')
   })
