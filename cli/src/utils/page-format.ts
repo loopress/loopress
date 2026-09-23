@@ -13,10 +13,21 @@ export type PageStatus = (typeof PAGE_STATUSES)[number]
 // What `lps page push` sends and what PagesController hands back (plus `link`), so the two
 // sides of `lps page diff` compare the exact same fields.
 export type Page = {
+  fullWidth: boolean
+  hideTitle: boolean
   html: string
   slug: string
   status: PageStatus
+  template: string
   title: string
+}
+
+const HEADER_KEYS = ['title', 'status', 'full-width', 'hide-title', 'template'] as const
+
+function parseBoolean(key: string, value: string | undefined): boolean {
+  if (value === undefined) return false
+  if (value !== 'true' && value !== 'false') throw new Error(`"${key}" must be "true" or "false", got "${value}"`)
+  return value === 'true'
 }
 
 export type RemotePage = Page & {link: string}
@@ -38,11 +49,16 @@ export function titleFromSlug(slug: string): string {
 //   <!--
 //   title: Legal notice
 //   status: publish
+//   template: page-no-title
 //   -->
 //
 // A comment rather than YAML front matter so the file stays valid HTML, previewable as is in a
 // browser. The header is stripped from what gets pushed. Throws on an unknown key or status so a
-// typo never silently falls back to a default.
+// typo never silently falls back to a default. `template` is the active theme's own template
+// slug (a block theme's templates/<slug>.html, or a classic theme's page-<slug>.php); unlike
+// `status`, it's never validated here, an unknown slug just makes WordPress fall back to the
+// default template, the same silent no-op as `full-width`/`hide-title` on a theme that doesn't
+// support them.
 export function parsePageFile(slug: string, raw: string): Page {
   const header = /^\s*<!--([\s\S]*?)-->\r?\n?/.exec(raw)
   const meta: Record<string, string> = {}
@@ -53,7 +69,7 @@ export function parsePageFile(slug: string, raw: string): Page {
       const colon = line.indexOf(':')
       if (colon === -1) throw new Error(`header line "${line.trim()}" is not a "key: value" pair`)
       const key = line.slice(0, colon).trim()
-      if (key !== 'title' && key !== 'status') throw new Error(`unknown header key "${key}" (allowed: title, status)`)
+      if (!(HEADER_KEYS as readonly string[]).includes(key)) throw new Error(`unknown header key "${key}" (allowed: ${HEADER_KEYS.join(', ')})`)
       meta[key] = line.slice(colon + 1).trim()
     }
   }
@@ -64,9 +80,12 @@ export function parsePageFile(slug: string, raw: string): Page {
   }
 
   return {
+    fullWidth: parseBoolean('full-width', meta['full-width']),
+    hideTitle: parseBoolean('hide-title', meta['hide-title']),
     html: header ? raw.slice(header[0].length) : raw,
     slug,
     status: status as PageStatus,
+    template: meta.template ?? '',
     title: meta.title || titleFromSlug(slug),
   }
 }

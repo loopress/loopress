@@ -16,7 +16,7 @@ class PagesControllerTest extends TestCase
 {
     private PagesController $controller;
 
-    /** @var array<int, array{name: string, status: string, managed: bool, html: string, desired?: string}> */
+    /** @var array<int, array{name: string, status: string, managed: bool, html: string, desired?: string, fullWidth?: bool, hideTitle?: bool, template?: string}> */
     private array $pages = [];
 
     // What wp_unique_post_slug() answers for a given slug; unlisted slugs are free.
@@ -65,10 +65,12 @@ class PagesControllerTest extends TestCase
         Functions\when('get_post_meta')->alias(function (int $id, string $key): string {
             $page = $this->pages[$id] ?? null;
             return match (true) {
-                $page === null                   => '',
-                $key === ManagedPage::MARKER_META => $page['managed'] ? '1' : '',
-                $key === ManagedPage::HTML_META   => $page['html'],
-                default                          => '',
+                $page === null                       => '',
+                $key === ManagedPage::MARKER_META     => $page['managed'] ? '1' : '',
+                $key === ManagedPage::HTML_META       => $page['html'],
+                $key === ManagedPage::FULL_WIDTH_META => ($page['fullWidth'] ?? false) ? '1' : '0',
+                $key === ManagedPage::HIDE_TITLE_META => ($page['hideTitle'] ?? false) ? '1' : '0',
+                default                              => '',
             };
         });
         Functions\when('get_post')->alias(function (int $id): ?WP_Post {
@@ -84,18 +86,30 @@ class PagesControllerTest extends TestCase
             $post->post_type   = 'page';
             return $post;
         });
+        Functions\when('get_page_template_slug')->alias(fn(WP_Post $post): string => $this->pages[$post->ID]['template'] ?? '');
         Functions\when('get_posts')->alias(fn(array $args): array => $this->queryPages($args));
         Functions\when('wp_unique_post_slug')->alias(fn(string $slug): string => $this->takenSlugs[$slug] ?? $slug);
         Functions\when('wp_insert_post')->alias(function (array $postarr): int {
             $this->writes[] = ['fn' => 'insert', 'postarr' => $postarr];
             $id             = 100;
-            $this->pages[$id] = ['name' => $postarr['post_name'], 'status' => $postarr['post_status'], 'managed' => true, 'html' => $postarr['meta_input'][ManagedPage::HTML_META]];
+            $this->pages[$id] = [
+                'name'      => $postarr['post_name'],
+                'status'    => $postarr['post_status'],
+                'managed'   => true,
+                'html'      => $postarr['meta_input'][ManagedPage::HTML_META],
+                'fullWidth' => $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1',
+                'hideTitle' => $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1',
+                'template'  => $postarr['page_template'],
+            ];
             return $id;
         });
         Functions\when('wp_update_post')->alias(function (array $postarr): int {
-            $this->writes[] = ['fn' => 'update', 'postarr' => $postarr];
-            $this->pages[$postarr['ID']]['status'] = $postarr['post_status'];
-            $this->pages[$postarr['ID']]['html']   = $postarr['meta_input'][ManagedPage::HTML_META];
+            $this->writes[]                            = ['fn' => 'update', 'postarr' => $postarr];
+            $this->pages[$postarr['ID']]['status']    = $postarr['post_status'];
+            $this->pages[$postarr['ID']]['html']      = $postarr['meta_input'][ManagedPage::HTML_META];
+            $this->pages[$postarr['ID']]['fullWidth'] = $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1';
+            $this->pages[$postarr['ID']]['hideTitle'] = $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1';
+            $this->pages[$postarr['ID']]['template']  = $postarr['page_template'];
             return $postarr['ID'];
         });
     }
@@ -133,9 +147,23 @@ class PagesControllerTest extends TestCase
         return $ids;
     }
 
-    private function put(string $slug, string $html = '<h1>Hi</h1>', string $status = 'draft'): \WP_REST_Response
-    {
-        return $this->controller->put_page(new WP_REST_Request(['slug' => $slug, 'title' => 'About', 'status' => $status, 'html' => $html]));
+    private function put(
+        string $slug,
+        string $html = '<h1>Hi</h1>',
+        string $status = 'draft',
+        bool $fullWidth = false,
+        bool $hideTitle = false,
+        string $template = '',
+    ): \WP_REST_Response {
+        return $this->controller->put_page(new WP_REST_Request([
+            'slug'      => $slug,
+            'title'     => 'About',
+            'status'    => $status,
+            'html'      => $html,
+            'fullWidth' => $fullWidth,
+            'hideTitle' => $hideTitle,
+            'template'  => $template,
+        ]));
     }
 
     public function test_creates_a_new_page_with_empty_post_content_and_the_html_in_meta(): void
@@ -148,8 +176,30 @@ class PagesControllerTest extends TestCase
         $this->assertSame('', $postarr['post_content']);
         $this->assertSame('about', $postarr['post_name']);
         $this->assertSame('draft', $postarr['post_status']);
-        $this->assertSame(['_loopress_page' => '1', '_loopress_page_html' => '<h1>Hi</h1>'], $postarr['meta_input']);
+        $this->assertSame(
+            ['_loopress_page' => '1', '_loopress_page_html' => '<h1>Hi</h1>', '_loopress_page_full_width' => '0', '_loopress_page_hide_title' => '0'],
+            $postarr['meta_input']
+        );
         $this->assertSame('<h1>Hi</h1>', $response->get_data()['html']);
+    }
+
+    public function test_stores_full_width_and_hide_title_as_meta(): void
+    {
+        $response = $this->put('about', '<h1>Hi</h1>', 'draft', true, true);
+
+        $postarr = $this->writes[0]['postarr'];
+        $this->assertSame('1', $postarr['meta_input']['_loopress_page_full_width']);
+        $this->assertSame('1', $postarr['meta_input']['_loopress_page_hide_title']);
+        $this->assertTrue($response->get_data()['fullWidth']);
+        $this->assertTrue($response->get_data()['hideTitle']);
+    }
+
+    public function test_stores_the_page_template(): void
+    {
+        $response = $this->put('about', '<h1>Hi</h1>', 'draft', false, false, 'page-no-title');
+
+        $this->assertSame('page-no-title', $this->writes[0]['postarr']['page_template']);
+        $this->assertSame('page-no-title', $response->get_data()['template']);
     }
 
     public function test_updates_an_existing_managed_page_in_place(): void
@@ -246,11 +296,14 @@ class PagesControllerTest extends TestCase
         $data = $this->controller->list_pages()->get_data();
 
         $this->assertSame([[
-            'slug'   => 'about',
-            'title'  => 'Title',
-            'status' => 'publish',
-            'link'   => 'https://example.test/about/',
-            'html'   => '<p>a</p>',
+            'slug'      => 'about',
+            'title'     => 'Title',
+            'status'    => 'publish',
+            'link'      => 'https://example.test/about/',
+            'html'      => '<p>a</p>',
+            'fullWidth' => false,
+            'hideTitle' => false,
+            'template'  => '',
         ],], $data);
     }
 }

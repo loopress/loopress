@@ -20,7 +20,7 @@ type PushInternals = {
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
-const page: Page = {html: '<p>x</p>', slug: 'about', status: 'draft', title: 'About'}
+const page: Page = {fullWidth: false, hideTitle: false, html: '<p>x</p>', slug: 'about', status: 'draft', template: '', title: 'About'}
 
 function makeCommand(put = vi.fn()): PushInternals {
   const cmd = new Push([], fakeOclifConfig)
@@ -91,7 +91,15 @@ describe('page push', () => {
 
       expect(result).toEqual({pushed: ['about'], status: 'success'})
       expect(put).toHaveBeenCalledTimes(1)
-      expect(put).toHaveBeenCalledWith('loopress/v1/pages', {html: '<p>a</p>', slug: 'about', status: 'publish', title: 'About'})
+      expect(put).toHaveBeenCalledWith('loopress/v1/pages', {
+        fullWidth: false,
+        hideTitle: false,
+        html: '<p>a</p>',
+        slug: 'about',
+        status: 'publish',
+        template: '',
+        title: 'About',
+      })
     })
   })
 })

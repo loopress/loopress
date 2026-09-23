@@ -26,6 +26,8 @@ class PageFilters
         add_filter('the_content', [$this, 'restoreAutop'], PHP_INT_MAX);
         add_filter('map_meta_cap', [$this, 'blockEditing'], 10, 4);
         add_filter('display_post_states', [$this, 'addPostState'], 10, 2);
+        add_filter('page_row_actions', [$this, 'addPreviewRowAction'], 10, 2);
+        add_action('wp_head', [$this, 'printPageStyles']);
     }
 
     // Only the page's own body is replaced, recognized by being empty (post_content always is for
@@ -76,6 +78,14 @@ class PageFilters
     public function blockEditing(array $caps, string $cap, int $userId, array $args): array
     {
         if (($cap === 'edit_post' || $cap === 'edit_page') && ManagedPage::isManaged((int) ($args[0] ?? 0))) {
+            // WordPress's own draft preview (front end, ?preview=true) gates on this same
+            // capability but never writes anything, so it's exempt. Every real write path
+            // (post.php, Quick/bulk edit, the block editor's REST PATCH) runs with is_preview()
+            // false and stays blocked.
+            if (is_preview() || get_query_var('preview')) {
+                return $caps;
+            }
+
             return ['do_not_allow'];
         }
 
@@ -93,5 +103,71 @@ class PageFilters
         }
 
         return $states;
+    }
+
+    // WP_Posts_List_Table only adds its own "Preview" row action when current_user_can('edit_post')
+    // is true, which blockEditing() denies for a managed page outside of the preview request
+    // itself. The link it would have generated is safe to show unconditionally though: it only
+    // ever points at the same read-only preview URL that check now exempts.
+    /**
+     * @param array<string, string> $actions
+     * @return array<string, string>
+     */
+    public function addPreviewRowAction(array $actions, WP_Post $post): array
+    {
+        if (isset($actions['view']) || !ManagedPage::isManaged($post->ID) || !in_array($post->post_status, ['draft', 'pending', 'future'], true)) {
+            return $actions;
+        }
+
+        $actions['view'] = sprintf(
+            '<a href="%s" rel="bookmark" aria-label="%s">%s</a>',
+            esc_url(get_preview_post_link($post)),
+            /* translators: %s: Post title. */
+            esc_attr(sprintf(__('Preview &#8220;%s&#8221;'), $post->post_title)),
+            _x('Preview', 'verb')
+        );
+
+        return $actions;
+    }
+
+    // Scoped by the post's own body class (core, present on every theme) rather than a class
+    // baked into the pushed HTML, so `full-width`/`hide-title` work the same regardless of what
+    // markup the page author wrote. The two custom properties are WordPress's own block layout
+    // API (set from theme.json, read by every block-theme's "constrained" layout CSS), so
+    // overriding them here is a core mechanism, not a guess at this theme's class names. On a
+    // classic (non-block) theme neither property nor `.wp-block-post-title` exists, so this is a
+    // silent no-op there, not a broken layout: full width and title placement on those themes are
+    // controlled by PHP templates, which this can't reach.
+    public function printPageStyles(): void
+    {
+        if (!is_page()) return;
+
+        $postId = get_queried_object_id();
+        if (!ManagedPage::isManaged($postId)) return;
+
+        $fullWidth = get_post_meta($postId, ManagedPage::FULL_WIDTH_META, true) === '1';
+        $hideTitle = get_post_meta($postId, ManagedPage::HIDE_TITLE_META, true) === '1';
+        if (!$fullWidth && !$hideTitle) return;
+
+        // body_class() puts a page under "page-id-<id>", not "postid-<id>" (that's for posts).
+        $selector = sprintf('body.page-id-%d', $postId);
+        $rules    = [];
+
+        if ($fullWidth) {
+            // Scoped to .wp-block-post-content itself, not body: a custom property set on body
+            // inherits into the header/footer template parts too, widening them along with the
+            // page. content-size/wide-size drop the "constrained" layout's max-width; root
+            // padding is a separate global-styles mechanism (.has-global-padding), the side
+            // gutter kept even on a full-width block, so it also has to go for the page to reach
+            // the true edge.
+            $rules[] = "{$selector} .wp-block-post-content { --wp--style--global--content-size: none; --wp--style--global--wide-size: none; "
+                . '--wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }';
+        }
+
+        if ($hideTitle) {
+            $rules[] = "{$selector} .wp-block-post-title { display: none; }";
+        }
+
+        echo '<style id="loopress-page-styles">' . implode(' ', $rules) . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 }

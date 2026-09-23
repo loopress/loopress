@@ -29,6 +29,8 @@ class PageFiltersTest extends TestCase
             default                       => '',
         });
         Functions\when('__')->returnArg();
+        Functions\when('is_preview')->justReturn(false);
+        Functions\when('get_query_var')->justReturn(false);
     }
 
     protected function tearDown(): void
@@ -76,6 +78,13 @@ class PageFiltersTest extends TestCase
         $this->assertSame(['do_not_allow'], $this->filters->blockEditing(['edit_pages'], 'edit_page', 1, [5]));
         $this->assertSame(['edit_pages'], $this->filters->blockEditing(['edit_pages'], 'edit_post', 1, [6]));
         $this->assertSame(['delete_pages'], $this->filters->blockEditing(['delete_pages'], 'delete_post', 1, [5]));
+    }
+
+    public function test_exempts_the_front_end_draft_preview_from_the_edit_block(): void
+    {
+        Functions\when('is_preview')->justReturn(true);
+
+        $this->assertSame(['edit_pages'], $this->filters->blockEditing(['edit_pages'], 'edit_page', 1, [5]));
     }
 
     public function test_adds_the_managed_by_loopress_post_state(): void

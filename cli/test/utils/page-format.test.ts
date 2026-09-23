@@ -24,15 +24,38 @@ describe('parsePageFile', () => {
     const raw = '<!--\ntitle: Mentions légales\nstatus: publish\n-->\n<section class="legal">x</section>\n'
 
     expect(parsePageFile('legal', raw)).toEqual({
+      fullWidth: false,
+      hideTitle: false,
       html: '<section class="legal">x</section>\n',
       slug: 'legal',
       status: 'publish',
+      template: '',
       title: 'Mentions légales',
     })
   })
 
   it('defaults to draft and a slug-derived title without a header, keeping the html verbatim', () => {
-    expect(parsePageFile('legal-notice', '<p>x</p>')).toEqual({html: '<p>x</p>', slug: 'legal-notice', status: 'draft', title: 'Legal notice'})
+    expect(parsePageFile('legal-notice', '<p>x</p>')).toEqual({
+      fullWidth: false,
+      hideTitle: false,
+      html: '<p>x</p>',
+      slug: 'legal-notice',
+      status: 'draft',
+      template: '',
+      title: 'Legal notice',
+    })
+  })
+
+  it('reads full-width and hide-title booleans, and the template slug, from the header', () => {
+    const raw = '<!--\nfull-width: true\nhide-title: true\ntemplate: page-no-title\n-->\n<p>x</p>'
+    const page = parsePageFile('a', raw)
+    expect(page.fullWidth).toBe(true)
+    expect(page.hideTitle).toBe(true)
+    expect(page.template).toBe('page-no-title')
+  })
+
+  it('rejects a full-width/hide-title value that is not "true" or "false"', () => {
+    expect(() => parsePageFile('a', '<!-- full-width: yes -->\n<p>x</p>')).toThrow('"full-width" must be "true" or "false"')
   })
 
   it('tolerates leading whitespace before the header and values containing a colon', () => {

@@ -12,8 +12,10 @@ namespace Loopress\Pages;
  */
 final class ManagedPage
 {
-    public const MARKER_META = '_loopress_page';
-    public const HTML_META   = '_loopress_page_html';
+    public const MARKER_META     = '_loopress_page';
+    public const HTML_META       = '_loopress_page_html';
+    public const FULL_WIDTH_META = '_loopress_page_full_width';
+    public const HIDE_TITLE_META = '_loopress_page_hide_title';
 
     public static function isManaged(int $postId): bool
     {

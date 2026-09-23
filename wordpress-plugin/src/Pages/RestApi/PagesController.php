@@ -47,10 +47,13 @@ class PagesController
                 'callback'            => [$this, 'put_page'],
                 'permission_callback' => $this->permissionCallback(),
                 'args'                => [
-                    'slug'   => ['required' => true, 'type' => 'string', 'pattern' => self::SLUG_PATTERN],
-                    'title'  => ['required' => true, 'type' => 'string'],
-                    'status' => ['required' => true, 'type' => 'string', 'enum' => ['draft', 'publish']],
-                    'html'   => ['required' => true, 'type' => 'string'],
+                    'slug'      => ['required' => true, 'type' => 'string', 'pattern' => self::SLUG_PATTERN],
+                    'title'     => ['required' => true, 'type' => 'string'],
+                    'status'    => ['required' => true, 'type' => 'string', 'enum' => ['draft', 'publish']],
+                    'html'      => ['required' => true, 'type' => 'string'],
+                    'fullWidth' => ['required' => false, 'type' => 'boolean', 'default' => false],
+                    'hideTitle' => ['required' => false, 'type' => 'boolean', 'default' => false],
+                    'template'  => ['required' => false, 'type' => 'string', 'default' => ''],
                 ],
             ],
         ]);
@@ -87,10 +90,13 @@ class PagesController
 
     private function upsert(WP_REST_Request $request): WP_REST_Response
     {
-        $slug   = (string) $request->get_param('slug');
-        $title  = (string) $request->get_param('title');
-        $status = (string) $request->get_param('status');
-        $html   = (string) $request->get_param('html');
+        $slug      = (string) $request->get_param('slug');
+        $title     = (string) $request->get_param('title');
+        $status    = (string) $request->get_param('status');
+        $html      = (string) $request->get_param('html');
+        $fullWidth = (bool) $request->get_param('fullWidth');
+        $hideTitle = (bool) $request->get_param('hideTitle');
+        $template  = (string) $request->get_param('template');
 
         $maxFileBytes = (int) apply_filters('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
         if (strlen($html) > $maxFileBytes) {
@@ -143,14 +149,20 @@ class PagesController
         }
 
         $postarr = [
-            'post_type'    => 'page',
-            'post_name'    => $slug,
-            'post_title'   => $title,
-            'post_status'  => $status,
-            'post_content' => '',
-            'meta_input'   => [
-                ManagedPage::MARKER_META => '1',
-                ManagedPage::HTML_META   => $html,
+            'post_type'     => 'page',
+            'post_name'     => $slug,
+            'post_title'    => $title,
+            'post_status'   => $status,
+            'post_content'  => '',
+            // The theme's own template picks up full-width/no-title support natively where it
+            // exists; an unknown or empty slug just falls back to the default template, WordPress
+            // never errors on it. Not validated here on purpose, same as page-format.ts.
+            'page_template' => $template,
+            'meta_input'    => [
+                ManagedPage::MARKER_META     => '1',
+                ManagedPage::HTML_META       => $html,
+                ManagedPage::FULL_WIDTH_META => $fullWidth ? '1' : '0',
+                ManagedPage::HIDE_TITLE_META => $hideTitle ? '1' : '0',
             ],
         ];
 
@@ -223,7 +235,7 @@ class PagesController
         return $total;
     }
 
-    /** @return array{slug: string, title: string, status: string, link: string, html: string} */
+    /** @return array{slug: string, title: string, status: string, link: string, html: string, fullWidth: bool, hideTitle: bool, template: string} */
     private function toArray(int $id): array
     {
         $post = get_post($id);
@@ -232,11 +244,14 @@ class PagesController
         }
 
         return [
-            'slug'   => $post->post_name,
-            'title'  => $post->post_title,
-            'status' => $post->post_status,
-            'link'   => (string) get_permalink($post),
-            'html'   => (string) get_post_meta($id, ManagedPage::HTML_META, true),
+            'slug'      => $post->post_name,
+            'title'     => $post->post_title,
+            'status'    => $post->post_status,
+            'link'      => (string) get_permalink($post),
+            'html'      => (string) get_post_meta($id, ManagedPage::HTML_META, true),
+            'fullWidth' => get_post_meta($id, ManagedPage::FULL_WIDTH_META, true) === '1',
+            'hideTitle' => get_post_meta($id, ManagedPage::HIDE_TITLE_META, true) === '1',
+            'template'  => get_page_template_slug($post),
         ];
     }
 
