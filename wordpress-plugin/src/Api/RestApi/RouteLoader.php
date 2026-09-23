@@ -104,7 +104,7 @@ class RouteLoader extends AbstractFileLoader
      * verb the file publicly implements. Kept as pure logic (no WP calls) so it's testable
      * without stubbing register_rest_route().
      *
-     * @return array<int, array{methods: string, callback: array{0: object, 1: string}, permission_callback: callable, loopress_instance?: object}>
+     * @return array<int, array{methods: string, callback: array{0: object, 1: string}, permission_callback: callable, show_in_index?: false, loopress_instance?: object}>
      */
     public function endpointsFor(object $instance): array
     {
