@@ -140,14 +140,20 @@ class PageFilters
     // controlled by PHP templates, which this can't reach.
     public function printPageStyles(): void
     {
-        if (!is_page()) return;
+        if (!is_page()) {
+            return;
+        }
 
         $postId = get_queried_object_id();
-        if (!ManagedPage::isManaged($postId)) return;
+        if (!ManagedPage::isManaged($postId)) {
+            return;
+        }
 
         $fullWidth = get_post_meta($postId, ManagedPage::FULL_WIDTH_META, true) === '1';
         $hideTitle = get_post_meta($postId, ManagedPage::HIDE_TITLE_META, true) === '1';
-        if (!$fullWidth && !$hideTitle) return;
+        if (!$fullWidth && !$hideTitle) {
+            return;
+        }
 
         // body_class() puts a page under "page-id-<id>", not "postid-<id>" (that's for posts).
         $selector = sprintf('body.page-id-%d', $postId);
