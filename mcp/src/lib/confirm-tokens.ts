@@ -11,6 +11,9 @@ const MAX_PENDING = 100
 interface PendingConfirmation {
   args: string[]
   expiresAt: number
+  // Fingerprint of the preview's own --dry-run output, so a confirmed call can tell whether
+  // re-running that same dry-run right now would say something different (see mutating-tool.ts).
+  previewFingerprint: string
   // Frozen copy of the working tree taken at preview time; the apply runs from here (F28).
   snapshotDir: string
   tool: string
@@ -36,6 +39,7 @@ export function createConfirmation(
   tool: string,
   args: string[],
   snapshotDir: string,
+  previewFingerprint: string,
 ): {confirmToken: string; expiresAt: string} {
   pruneExpired()
 
@@ -48,12 +52,12 @@ export function createConfirmation(
 
   const confirmToken = randomUUID()
   const expiresAt = Date.now() + TTL_MS
-  pending.set(confirmToken, {args, expiresAt, snapshotDir, tool})
+  pending.set(confirmToken, {args, expiresAt, previewFingerprint, snapshotDir, tool})
   return {confirmToken, expiresAt: new Date(expiresAt).toISOString()}
 }
 
 export type ConsumeResult =
-  | {args: string[]; ok: true; snapshotDir: string}
+  | {args: string[]; ok: true; previewFingerprint: string; snapshotDir: string}
   | {error: {message: string; name: string}; ok: false}
 
 // Single-use: deleted on lookup regardless of outcome, so a replayed token always fails on the
@@ -92,5 +96,5 @@ export function consumeConfirmation(tool: string, confirmToken: string): Consume
     }
   }
 
-  return {args: entry.args, ok: true, snapshotDir: entry.snapshotDir}
+  return {args: entry.args, ok: true, previewFingerprint: entry.previewFingerprint, snapshotDir: entry.snapshotDir}
 }

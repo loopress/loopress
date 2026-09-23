@@ -8,6 +8,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\RestApi\ApiFilesController;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
@@ -130,6 +131,32 @@ class ApiFilesControllerTest extends TestCase
         $this->assertFalse($byName['closed']['public']);
     }
 
+    // A content hash of the file's own unguarded bytes (#234), the precondition `api push`
+    // reads back as `expectedRevision`. Opaque to callers: only ever asserted for equality
+    // here, never for a particular value.
+    public function test_list_files_includes_a_revision_field(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $this->directory->method('listSlugs')->willReturn(['hello']);
+        $this->directory->method('read')->with('hello')->willReturn($content);
+
+        $response = $this->controller->list_files();
+
+        $this->assertSame(hash('sha256', $content), $response->data[0]['revision']);
+    }
+
+    public function test_list_files_gives_two_files_with_identical_content_the_same_revision(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $this->directory->method('listSlugs')->willReturn(['hello', 'hello-again']);
+        $this->directory->method('read')->willReturn($content);
+
+        $response = $this->controller->list_files();
+
+        $byName = array_column($response->data, 'revision', 'filename');
+        $this->assertSame($byName['hello'], $byName['hello-again']);
+    }
+
     // ── push_file ────────────────────────────────────────────────────────────
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void
@@ -189,6 +216,116 @@ class ApiFilesControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertFalse($response->data['public']);
+    }
+
+    // ── expectedRevision (#234) ─────────────────────────────────────────────
+
+    public function test_push_file_returns_a_revision_in_the_success_response(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(hash('sha256', $content), $response->data['revision']);
+    }
+
+    public function test_push_file_writes_when_expectedRevision_matches_the_files_current_content(): void
+    {
+        $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello { public function get(): array { return []; } }\n";
+        $new     = "<?php\ndeclare(strict_types=1);\nfinal class Hello { public function get(): array { return ['ok' => true]; } }\n";
+        $this->directory->method('read')->with('hello')->willReturn($current);
+        $this->directory->expects($this->once())->method('write');
+
+        $request = new WP_REST_Request([
+            'filename'         => 'hello',
+            'content'          => $new,
+            'expectedRevision' => hash('sha256', $current),
+        ]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    // Three shapes of "the write must be refused, and never reach directory()->write()", the
+    // stale-revision (412), missing-file (412), and malformed-type (400) cases, previously three
+    // separate but near-identical tests, consolidated to cut the boilerplate CI flagged as
+    // duplication (each only differs in the current content, the expectedRevision sent, and the
+    // resulting status/error substring).
+    /** @return array<string, array{0: string, 1: null|string, 2: mixed, 3: string, 4: int}> */
+    public static function rejectedExpectedRevisionCases(): array
+    {
+        return [
+            'stale revision' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello { public function get(): array { return []; } }\n",
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                'not-the-current-revision',
+                'changed on WordPress since it was last read',
+                412,
+            ],
+            // No current content (the file doesn't exist yet) means there was nothing to
+            // condition on: an expectedRevision sent for it anyway is a real mismatch, framed
+            // the same as options' equivalent ("it no longer exists"), not treated as if no
+            // precondition had been given.
+            'missing file' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                null,
+                'some-revision',
+                'it no longer exists',
+                412,
+            ],
+            // Unlike 'content' (a wrong type is silently (string)-cast), a malformed
+            // expectedRevision must never be silently treated as absent: that would drop the
+            // conditional-write precondition entirely, letting a stray non-string value bypass
+            // #234's protection outright.
+            'non-string revision' => [
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+                42,
+                'expectedRevision',
+                400,
+            ],
+        ];
+    }
+
+    #[DataProvider('rejectedExpectedRevisionCases')]
+    public function test_push_file_rejects_the_write_when_expectedRevision_does_not_clear(
+        string $content,
+        ?string $currentContent,
+        mixed $expectedRevision,
+        string $expectedError,
+        int $expectedStatus,
+    ): void {
+        $this->directory->method('read')->with('hello')->willReturn($currentContent);
+        $this->directory->expects($this->never())->method('write');
+
+        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content, 'expectedRevision' => $expectedRevision]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame($expectedStatus, $response->status);
+        $this->assertStringContainsString($expectedError, (string) $response->data['error']);
+    }
+
+    public function test_push_file_writes_without_a_precondition_when_expectedRevision_is_absent(): void
+    {
+        // Regression guard: the directory's own read() must not even be consulted for the
+        // precondition check when no expectedRevision was sent (a first push, an upsert
+        // create), only for the pre-existing collision-detection read() call this test doesn't
+        // trigger (no other slugs, no previous content under this same filename).
+        $this->directory->method('read')->with('hello')->willReturn(null);
+        $this->directory->expects($this->once())->method('write');
+
+        $request = new WP_REST_Request([
+            'filename' => 'hello',
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
+        ]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(200, $response->status);
     }
 
     public function test_push_file_reports_a_public_route_in_the_response(): void
@@ -430,5 +567,220 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
 
         $this->assertSame(200, $response->status);
+    }
+
+    // ── push_batch (#236) ───────────────────────────────────────────────────
+
+    private function validFile(string $filename = 'hello', string $className = 'Hello'): array
+    {
+        return ['content' => "<?php\ndeclare(strict_types=1);\nfinal class {$className} {}\n", 'filename' => $filename];
+    }
+
+    public function test_push_batch_returns_400_when_files_and_prune_are_both_missing(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request([]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_returns_400_when_files_and_prune_are_both_empty(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => []]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    // A prune-only batch (no local files, --prune removing server-side orphans) must not be
+    // rejected just because 'files' is empty: only "neither files nor prune" is a genuine
+    // no-op request. Regression test for a CodeRabbit finding on PR #243.
+    public function test_push_batch_allows_an_empty_files_array_when_prune_is_not_empty(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        $this->directory->expects($this->never())->method('stageWrite');
+        $this->directory->expects($this->once())->method('stageDelete')->with('stale');
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame([], $response->data['files']);
+        $this->assertSame(['stale'], $response->data['pruned']);
+    }
+
+    public function test_push_batch_returns_400_when_files_is_present_but_not_an_array(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => 'not-an-array']));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_returns_400_when_prune_is_present_but_not_an_array(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [$this->validFile()], 'prune' => 'not-an-array']));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    // A filename staged for both push and prune in the same batch is ambiguous (whichever step
+    // runs second wins on disk, but the response would report it under both 'files' and
+    // 'pruned'): reject it outright. Regression test for a CodeRabbit finding on PR #243.
+    public function test_push_batch_returns_400_when_a_filename_is_both_pushed_and_pruned(): void
+    {
+        $this->directory->expects($this->never())->method('beginBatch');
+
+        $response = $this->controller->push_batch(new WP_REST_Request([
+            'files' => [$this->validFile('hello', 'Hello')],
+            'prune' => ['hello'],
+        ]));
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('hello', (string) $response->data['error']);
+    }
+
+    public function test_push_batch_stages_every_file_and_commits_once(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        $this->directory->expects($this->exactly(2))->method('stageWrite')
+            ->with($this->logicalOr('hello', 'world'), $this->anything());
+        $this->directory->expects($this->once())->method('commitBatch');
+        $this->directory->expects($this->never())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile('hello', 'Hello'), $this->validFile('world', 'World')]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertCount(2, $response->data['files']);
+        $this->assertSame([], $response->data['pruned']);
+    }
+
+    public function test_push_batch_returns_a_revision_for_each_staged_file(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $request = new WP_REST_Request(['files' => [['content' => $content, 'filename' => 'hello']]]);
+
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(hash('sha256', $content), $response->data['files'][0]['revision']);
+    }
+
+    public function test_push_batch_aborts_and_stops_staging_further_files_when_one_fails_validation(): void
+    {
+        $this->directory->expects($this->once())->method('beginBatch');
+        // 'first' declares no class, so this fails before 'second' is ever reached.
+        $this->directory->expects($this->never())->method('stageWrite');
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [
+                ['content' => "<?php\nfunction not_a_class(): void {}\n", 'filename' => 'first'],
+                $this->validFile('second', 'Second'),
+            ],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_checks_a_collision_against_the_staged_batch_not_just_the_live_directory(): void
+    {
+        // Two files in the same batch both declaring class Shared: findCollision() must catch
+        // this from listStagedSlugs()/readStaged(), the live directory is empty either way.
+        $this->directory->method('listStagedSlugs')->willReturnOnConsecutiveCalls([], ['first']);
+        $this->directory->method('readStaged')->willReturnMap([
+            ['first', "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n"],
+        ]);
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [
+                ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'first'],
+                ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'second'],
+            ],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString('first.php', (string) $response->data['error']);
+    }
+
+    public function test_push_batch_returns_400_and_aborts_for_an_invalid_prune_filename(): void
+    {
+        $this->directory->expects($this->once())->method('stageWrite');
+        $this->directory->expects($this->never())->method('stageDelete');
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['../../wp-config']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_stages_prune_deletions_and_commits_alongside_the_pushed_files(): void
+    {
+        $this->directory->expects($this->once())->method('stageWrite')->with('hello', $this->anything());
+        $this->directory->expects($this->once())->method('stageDelete')->with('stale');
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['stale'], $response->data['pruned']);
+    }
+
+    public function test_push_batch_clears_stale_load_errors_for_pruned_filenames(): void
+    {
+        Functions\when('get_option')->justReturn(['other' => 'boom', 'stale' => 'expected exactly one class declaration, found none']);
+        Functions\expect('update_option')->once()->with('loopress_api_load_errors', ['other' => 'boom'], false)->andReturn(true);
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_push_batch_returns_500_and_aborts_when_commitBatch_fails(): void
+    {
+        $this->directory->method('commitBatch')->willThrowException(new \RuntimeException('disk full'));
+        $this->directory->expects($this->once())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(500, $response->status);
+        $this->assertStringContainsString('disk full', (string) $response->data['error']);
+    }
+
+    public function test_push_batch_returns_500_when_beginBatch_fails(): void
+    {
+        $this->directory->method('beginBatch')->willThrowException(new \RuntimeException('cannot prepare staging'));
+        $this->directory->expects($this->never())->method('stageWrite');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(500, $response->status);
+    }
+
+    public function test_push_batch_returns_400_for_each_entry_missing_filename_or_content(): void
+    {
+        $this->directory->expects($this->once())->method('abortBatch');
+
+        $request  = new WP_REST_Request(['files' => [['content' => '<?php']]]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
     }
 }

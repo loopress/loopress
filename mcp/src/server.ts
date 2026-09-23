@@ -8,15 +8,21 @@ import {registerApiTools} from './tools/api.js'
 import {registerAppTools} from './tools/app.js'
 import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
+import {registerDiffTools} from './tools/diff.js'
+import {registerDoctorTools} from './tools/doctor.js'
 import {registerFormTools} from './tools/form.js'
 import {registerHookTools} from './tools/hooks.js'
+import {registerMenuTools} from './tools/menu.js'
 import {registerOptionTools} from './tools/option.js'
 import {registerPageTools} from './tools/page.js'
 import {registerPluginTools} from './tools/plugin.js'
+import {registerPromoteTools} from './tools/promote.js'
 import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
 import {registerThemeTools} from './tools/theme.js'
+import {registerThemeStylesTools} from './tools/theme-styles.js'
+import {registerValidateTools} from './tools/validate.js'
 
 const server = new McpServer({name: 'loopress', version: '0.1.0'})
 
@@ -27,13 +33,19 @@ registerPageTools(server)
 registerAppTools(server)
 registerAcfTools(server)
 registerSeoTools(server)
+registerMenuTools(server)
 registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)
 registerThemeTools(server)
+registerThemeStylesTools(server)
 registerComposerTools(server)
 registerBulkTools(server)
+registerPromoteTools(server)
 registerStatusTools(server)
+registerDiffTools(server)
+registerDoctorTools(server)
+registerValidateTools(server)
 registerProjectResources(server)
 
 const transport = new StdioServerTransport()

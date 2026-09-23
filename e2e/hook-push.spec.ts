@@ -43,9 +43,11 @@ test("rejects a hook file with invalid PHP syntax instead of silently accepting 
 	expect(listResult.stdout).not.toContain("broken");
 });
 
-// A file failing for one reason (bad syntax) must not block a sibling file in the same push,
-// same isolation principle as api-routes-sync.spec.ts's own sibling test.
-test("pushes a valid hook file even when a sibling file in the same push is rejected", async ({
+// #236: `hook push` stages and atomically swaps the whole batch in one directory rename(), so a
+// sibling file rejected for one reason (bad syntax) now blocks the entire push, including an
+// otherwise-valid file, rather than the old per-file-PUT isolation where only the bad file was
+// skipped. Nothing is left live on WordPress from a rejected batch.
+test("rejects the whole batch, including an otherwise-valid file, when a sibling file in the same push is rejected", async ({
 	projectDir,
 	runCli,
 }) => {
@@ -70,7 +72,7 @@ test("pushes a valid hook file even when a sibling file in the same push is reje
 
 	const listResult = await runCli(["hook", "list"]);
 	expect(listResult.exitCode).toBe(0);
-	expect(listResult.stdout).toContain("good");
+	expect(listResult.stdout).not.toContain("good");
 });
 
 // The happy path: a valid hook file, once pushed, is actually require()d at boot and its

@@ -18,6 +18,7 @@ const SNIPPET_PROVIDERS = [
 const FEATURES = [
   {dir: 'acf', key: 'acfDir', label: 'ACF'},
   {dir: 'seo', key: 'seoDir', label: 'SEO'},
+  {dir: 'menus', key: 'menuDir', label: 'Menus'},
   {dir: 'forms', key: 'formDir', label: 'Forms'},
   {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
   {dir: 'hooks', key: 'hooksDir', label: 'Hooks (actions, filters, cron)'},

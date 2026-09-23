@@ -14,5 +14,6 @@ export function registerApiTools(server: McpServer): void {
     resource: 'api',
     supportsPrune: true,
     supportsRm: true,
+    supportsRollback: true,
   })
 }

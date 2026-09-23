@@ -7,6 +7,8 @@ import {isInteractive} from '../lib/interactive.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 
+type PromoteResult = {from: string; status: 'dry-run' | 'promoted'; to: string}
+
 export default class Promote extends Command {
   static args = {
     from: Args.string({description: 'Environment to copy the configuration from', required: true}),
@@ -16,13 +18,14 @@ export default class Promote extends Command {
   static description =
     'Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked files are overwritten with <from> in the process.'
 
+  static enableJsonFlag = true
   static examples = ['$ lps promote staging production', '$ lps promote production staging --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<PromoteResult> {
     const {args, flags} = await this.parse(Promote)
     const {yes} = flags
     const dryRun = flags['dry-run']
@@ -49,6 +52,8 @@ export default class Promote extends Command {
     await this.config.runCommand('push', this.delegateArgv(to.name, dryRun))
 
     this.log(dryRun ? `\n[dry-run] ${from.name} would be promoted to ${to.name}.` : `\n${from.name} promoted to ${to.name}.`)
+
+    return {from: from.name, status: dryRun ? 'dry-run' : 'promoted', to: to.name}
   }
 
   // Deliberately not `guardProductionPush`: promote overwrites local tracked files for every

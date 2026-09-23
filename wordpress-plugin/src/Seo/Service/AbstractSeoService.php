@@ -6,6 +6,7 @@ namespace Loopress\Seo\Service;
 
 use Loopress\RestApi\SyncSanitizer;
 use Loopress\Seo\Contract\SeoProvider;
+use Loopress\Seo\Exception\StaleSeoRevisionException;
 
 // Shared body of the two interchangeable SeoProvider backends (RankMathService, YoastService).
 // Both store post-level SEO data as postmeta under a single fixed prefix and site-wide settings
@@ -54,15 +55,23 @@ abstract class AbstractSeoService implements SeoProvider
      * field groups or redirects this integration never creates content on its own.
      *
      * @param array<string, mixed> $meta
+     * @param string|null $expectedRevision When given, the write is refused (#234) unless it
+     *        still matches this post's current SEO-meta revision, i.e. nothing else changed it
+     *        since the caller last read it via getPostMeta()/listPostMeta(). See
+     *        assertPostMetaRevisionMatches().
      * @return array<string, mixed>
      */
-    public function upsertPostMeta(string $postType, string $slug, array $meta): array
+    public function upsertPostMeta(string $postType, string $slug, array $meta, ?string $expectedRevision = null): array
     {
         $post = $this->findPost($postType, $slug);
         if ($post === null) {
             throw new \RuntimeException(esc_html(
                 "No published \"{$postType}\" post with slug \"{$slug}\" was found. {$this->providerLabel()} data syncs onto existing content, it does not create posts."
             ));
+        }
+
+        if ($expectedRevision !== null) {
+            $this->assertPostMetaRevisionMatches($post, $expectedRevision);
         }
 
         $existingKeys = array_keys($this->prefixedMeta($post->ID));
@@ -98,11 +107,40 @@ abstract class AbstractSeoService implements SeoProvider
     /** @return array<string, mixed> */
     private function exportPost(\WP_Post $post): array
     {
+        $meta = $this->prefixedMeta($post->ID);
+
         return [
-            'meta'  => $this->prefixedMeta($post->ID),
-            'slug'  => $post->post_name,
-            'title' => $post->post_title,
+            'meta'     => $meta,
+            // A content hash of every provider-prefixed meta key currently on the post (#234):
+            // upsertPostMeta() replaces this whole set on a write (see its existing/incoming key
+            // diff above), so the revision must cover it as a whole, not just the incoming keys a
+            // particular write happens to mention, the same reasoning OptionsService::revisionOf()
+            // documents for including autoload alongside value.
+            'revision' => $this->revisionOf($meta),
+            'slug'     => $post->post_name,
+            'title'    => $post->post_title,
         ];
+    }
+
+    // Opaque content hash, only ever compared for equality (see assertPostMetaRevisionMatches()/
+    // assertSettingsRevisionMatches()), mirrors OptionsService::revisionOf().
+    /** @param array<string, mixed> $data */
+    private function revisionOf(array $data): string
+    {
+        return hash('sha256', (string) wp_json_encode($data));
+    }
+
+    private function assertPostMetaRevisionMatches(\WP_Post $post, string $expectedRevision): void
+    {
+        $current = $this->revisionOf($this->prefixedMeta($post->ID));
+
+        if ($current !== $expectedRevision) {
+            throw new StaleSeoRevisionException(
+                "SEO meta for \"{$post->post_name}\" changed on WordPress since it was last read " .
+                    "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
+                    'Re-read the post and try again.',
+            );
+        }
     }
 
     /** @return array<string, mixed> */
@@ -122,20 +160,32 @@ abstract class AbstractSeoService implements SeoProvider
 
     // ── Site-wide Titles & Meta settings (includes per-post-type schema defaults) ─────────
 
-    /** @return array<string, mixed> */
+    /** @return array{revision: string, settings: array<string, mixed>} */
     public function getSettings(): array
     {
-        $settings = get_option($this->optionTitles(), []);
+        $settings = $this->rawSettings();
 
-        return is_array($settings) ? $settings : [];
+        // Wrapped (unlike a plain settings array) so a revision can travel alongside the
+        // settings without being mistaken for one of them: settings round-trip verbatim through
+        // update_option() (see updateSettings() below), so a bare 'revision' key sitting inside
+        // the array itself would get persisted into wp_options as if it were a real Titles &
+        // Meta field.
+        return ['revision' => $this->revisionOf($settings), 'settings' => $settings];
     }
 
     /**
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @param string|null $expectedRevision When given, the write is refused (#234) unless it
+     *        still matches the settings' current revision, i.e. nothing else changed them since
+     *        the caller last read them via getSettings(). See assertSettingsRevisionMatches().
+     * @return array{revision: string, settings: array<string, mixed>}
      */
-    public function updateSettings(array $data): array
+    public function updateSettings(array $data, ?string $expectedRevision = null): array
     {
+        if ($expectedRevision !== null) {
+            $this->assertSettingsRevisionMatches($expectedRevision);
+        }
+
         // The generic `<prefix>_*` sync deliberately has no key allowlist (it would need to
         // track every RankMath/Yoast release); instead every string value is stripped of
         // active content before it is stored, since title/meta/schema templates from this
@@ -144,5 +194,26 @@ abstract class AbstractSeoService implements SeoProvider
         update_option($this->optionTitles(), SyncSanitizer::deepArray($data));
 
         return $this->getSettings();
+    }
+
+    private function assertSettingsRevisionMatches(string $expectedRevision): void
+    {
+        $current = $this->revisionOf($this->rawSettings());
+
+        if ($current !== $expectedRevision) {
+            throw new StaleSeoRevisionException(
+                'SEO settings changed on WordPress since they were last read ' .
+                    "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
+                    'Re-read the settings and try again.',
+            );
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function rawSettings(): array
+    {
+        $settings = get_option($this->optionTitles(), []);
+
+        return is_array($settings) ? $settings : [];
     }
 }

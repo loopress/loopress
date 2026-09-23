@@ -21,6 +21,9 @@ class RankMathServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // getPostMeta()/getSettings()'s revision hash goes through wp_json_encode(), unavailable
+        // outside a real WordPress load; a plain json_encode() delegate does the same thing here.
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         $this->service = new RankMathService();
     }
 
@@ -152,14 +155,14 @@ class RankMathServiceTest extends TestCase
     {
         Functions\when('get_option')->justReturn(['titleSeparator' => '-']);
 
-        $this->assertSame(['titleSeparator' => '-'], $this->service->getSettings());
+        $this->assertSame(['titleSeparator' => '-'], $this->service->getSettings()['settings']);
     }
 
     public function test_get_settings_returns_an_empty_array_when_the_option_is_not_an_array(): void
     {
         Functions\when('get_option')->justReturn(false);
 
-        $this->assertSame([], $this->service->getSettings());
+        $this->assertSame([], $this->service->getSettings()['settings']);
     }
 
     public function test_update_settings_stores_and_returns_the_new_value(): void
@@ -177,7 +180,7 @@ class RankMathServiceTest extends TestCase
 
         $result = $this->service->updateSettings(['titleSeparator' => '|']);
 
-        $this->assertSame(['titleSeparator' => '|'], $result);
+        $this->assertSame(['titleSeparator' => '|'], $result['settings']);
     }
 
     public function test_update_settings_strips_active_content_from_string_values(): void
@@ -198,6 +201,11 @@ class RankMathServiceTest extends TestCase
         $this->assertSame('|', $stored['title_separator']);
         $this->assertSame('<img src=x>', $stored['nested']['og_image_alt']);
     }
+
+    // Revision/conditional-write (#234) behavior is inherited from AbstractSeoService unchanged
+    // (see its revisionOf()/assertSettingsRevisionMatches()/assertPostMetaRevisionMatches()) and
+    // is exercised exhaustively there via YoastServiceTest; re-proving the identical shared logic
+    // again per subclass would just be copy-pasted coverage of code this class doesn't override.
 
     public function test_upsert_post_meta_strips_active_content_from_values(): void
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Acf\Service;
 
+use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\RestApi\SyncSanitizer;
 
 // ACF has exactly one backend (itself, or nothing), unlike snippets where two interchangeable
@@ -38,17 +39,38 @@ class AcfService
     {
         $post = acf_get_internal_post_type($key, $postType);
 
-        return $post === false ? null : $this->prepareForExport($post, $postType);
+        if ($post === false) {
+            return null;
+        }
+
+        $exported             = $this->prepareForExport($post, $postType);
+        $exported['revision'] = $this->revisionOf($exported);
+
+        return $exported;
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function upsert(string $postType, array $data): array
+    /**
+     * @param array<string, mixed> $data
+     * @param string|null $expectedRevision When given, the write is refused (#234) unless it
+     *        still matches the object's current exported revision, i.e. nothing else changed it
+     *        since the caller last read it via get(). A genuinely new object (no post found by
+     *        `key` yet) has a null current revision, so an $expectedRevision given for one is
+     *        itself a mismatch, same framing as OptionsService's "it no longer exists" case.
+     *        This is optimistic concurrency control (a check immediately followed by the write,
+     *        both within this one request), not a database-level atomic compare-and-swap.
+     * @return array<string, mixed>
+     */
+    public function upsert(string $postType, array $data, ?string $expectedRevision = null): array
     {
         $this->requireRegisteredType($postType);
 
         $key = $data['key'] ?? null;
         if (!is_string($key) || $key === '') {
             throw new \RuntimeException('Missing or invalid "key" in the ACF object payload.');
+        }
+
+        if ($expectedRevision !== null) {
+            $this->assertRevisionMatches($postType, $key, $expectedRevision);
         }
 
         $existing = acf_get_internal_post_type_post($key, $postType);
@@ -63,7 +85,20 @@ class AcfService
         // other identifiers carry no active content, so they pass through unchanged.
         $imported = acf_import_internal_post_type(SyncSanitizer::deepArray($data), $postType);
 
-        return $this->get($postType, (string) ($imported['key'] ?? $key)) ?? $this->prepareForExport($imported, $postType);
+        // get() re-reads the just-imported object so the response reflects ACF's own
+        // server-computed fields (e.g. `modified`), same as before this existed; the fallback
+        // below only fires if that re-read can't find it (unexpected, but not this method's
+        // concern to diagnose), and still needs its own revision computed the same way get()
+        // would, so a caller can't tell the two paths apart from the shape of the response.
+        $result = $this->get($postType, (string) ($imported['key'] ?? $key));
+        if ($result !== null) {
+            return $result;
+        }
+
+        $fallback             = $this->prepareForExport($imported, $postType);
+        $fallback['revision'] = $this->revisionOf($fallback);
+
+        return $fallback;
     }
 
     public function delete(string $postType, string $key): bool
@@ -79,6 +114,43 @@ class AcfService
         }
 
         return acf_prepare_internal_post_type_for_export($post, $postType);
+    }
+
+    // A content hash of the exported object, excluding fields ACF itself computes/stamps rather
+    // than ones a write actually changes: `modified` is a unix timestamp ACF bumps on every
+    // save, already excluded the same way by the CLI's resource-state.ts (ACF_VOLATILE_KEYS)
+    // when it diffs local files against remote state, so a push that only round-trips the
+    // fields that matter still gets a stable revision to condition its own next write on.
+    // wp_json_encode() over a raw json_encode() call: WordPress.WP.AlternativeFunctions flags
+    // the latter, and wp_json_encode() is WordPress core's own wrapper (see OptionsService's
+    // revisionOf() for the same choice). sha256, not md5: this is a plain change-detection tag,
+    // never a security control, but sha256 is exactly as cheap here and isn't flagged as a weak
+    // hashing algorithm by a security scanner.
+    /** @param array<string, mixed> $exported */
+    private function revisionOf(array $exported): string
+    {
+        unset($exported['modified']);
+
+        return hash('sha256', (string) wp_json_encode($exported));
+    }
+
+    // Mirrors OptionsService::assertRevisionMatches(): re-reads the object's current state
+    // (rather than trusting anything computed earlier in this request) and refuses the write
+    // unless it still matches. A `key` with no post behind it yet has a null current revision,
+    // so an $expectedRevision given for one always mismatches; the normal `lps acf push` path
+    // for a first-time create simply never sends one (see cli/src/commands/acf/push.ts).
+    private function assertRevisionMatches(string $postType, string $key, string $expectedRevision): void
+    {
+        $current         = $this->get($postType, $key);
+        $currentRevision = $current === null ? null : $current['revision'];
+
+        if ($currentRevision !== $expectedRevision) {
+            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            throw new StaleAcfRevisionException(
+                "\"{$key}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
+                    'Re-read the object and try again.',
+            );
+        }
     }
 
     // Guards a silent no-op specific to upsert(): acf_import_internal_post_type() against an

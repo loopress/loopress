@@ -47,7 +47,10 @@ export default class Pull extends LoopressCommand {
       async write(form, writeDir) {
         const id = getFormId(form)!
         const title = getFormTitle(form)
-        await writeFile(join(writeDir, `${id}-${toSlug(title, 'untitled')}.json`), JSON.stringify(form, null, 2) + '\n')
+        // `revision` is server bookkeeping (see RemoteForm in form-format.ts), never part of
+        // the tracked configuration: never persisted locally.
+        const local = Object.fromEntries(Object.entries(form).filter(([key]) => key !== 'revision'))
+        await writeFile(join(writeDir, `${id}-${toSlug(title, 'untitled')}.json`), JSON.stringify(local, null, 2) + '\n')
       },
     })
 

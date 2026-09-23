@@ -17,7 +17,7 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 | Feature | Loopress Light | Loopress Full |
 |---|:---:|:---:|
 | Distribution | [WordPress.org directory](https://wordpress.org/plugins/loopress-light/) | loopress.dev |
-| Automatic updates | ✓ (via WordPress.org) | |
+| Automatic updates | ✓ (via WordPress.org) | ✓ (via GitHub Releases) |
 | ACF sync (field groups, post types, taxonomies, options pages) | ✓ | ✓ |
 | `lps acf pull` / `push` / `list` | ✓ | ✓ |
 | SEO sync (RankMath or Yoast SEO: settings, post meta, redirects) | ✓ | ✓ |
@@ -84,7 +84,7 @@ The tradeoff is a strict set of guidelines, and Loopress ran into two of them:
 
 Loopress Light no longer ships snippet sync as a result: it now covers only ACF and SEO configuration, plain JSON data with no executable-code angle, and is published on the WordPress.org directory in that form.
 
-This is why the plugin ships as two editions instead of one: Loopress Light is on the WordPress.org directory, installed and updated in place like any other plugin from there. Loopress Full carries both rejected capabilities (Composer and snippet sync), so it is downloaded directly from loopress.dev and updated manually by re-uploading a new `loopress-full.zip` when one is released.
+This is why the plugin ships as two editions instead of one: Loopress Light is on the WordPress.org directory, installed and updated in place like any other plugin from there. Loopress Full carries both rejected capabilities (Composer and snippet sync), so it is downloaded directly from loopress.dev, but it still updates itself through the normal Plugins page: it checks GitHub Releases for a newer `loopress-full.zip` and, once found, WordPress downloads and installs it the same way it would a WordPress.org-hosted plugin.
 
 ## Requirements
 
@@ -107,7 +107,7 @@ Or install it [from the WordPress.org page](https://wordpress.org/plugins/loopre
 2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**
 3. Upload and activate the plugin, then find **Loopress** in the sidebar
 
-Installing Loopress Full deactivates Loopress Light automatically.
+Installing Loopress Full deactivates Loopress Light automatically. From then on, updates show up on **Plugins** like any other plugin, since Loopress Full checks GitHub Releases for a newer `loopress-full.zip` and lets WordPress install it in place.
 
 ## Pages
 

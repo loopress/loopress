@@ -5,7 +5,9 @@ import {dirname, extname, join} from 'node:path'
 import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
-import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
+import {FORM_ENDPOINT, formEndpoint, getFormId, getFormTitle, type RemoteForm} from '../../utils/form-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -39,6 +41,9 @@ export default class Push extends PushCommand {
     this.log(`Pushing forms to ${url}`)
     this.log(`Forms path: ${path}`)
 
+    const provider = getResourceStateProvider('form')
+    const beforeState = await this.captureBeforePushState(provider, path)
+
     const files = await this.loadFiles(path)
     this.log(`Found ${pluralize(files.length, 'form')} to push`)
 
@@ -48,6 +53,8 @@ export default class Push extends PushCommand {
       async ({data, filePath}, task) => this.pushForm(filePath, data, task),
     )
 
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
+
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
     }
@@ -56,6 +63,16 @@ export default class Push extends PushCommand {
 
     await this.recordSuccess()
     this.log('All forms pushed.')
+  }
+
+  private async currentRevision(id: number): Promise<string | undefined> {
+    try {
+      const current = await this.wp.get<RemoteForm>(formEndpoint(id))
+      return current.revision
+    } catch (error) {
+      if (isNotFoundError(error)) return undefined
+      throw error
+    }
   }
 
   // Renames the local file to the `<id>-<slug>.json` convention used by `form pull`
@@ -108,11 +125,23 @@ export default class Push extends PushCommand {
     try {
       const id = getFormId(data)
       const payload = this.allowNotifications ? {...data, allowNotifications: true} : data
+
+      // Read the form's current revision right before writing it, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed the
+      // form in between, instead of this push silently overwriting it (#234). No revision to
+      // condition on for a form that doesn't exist remotely yet (a first push, or one whose id
+      // 404s below and falls back to create): that PUT attempt just 404s too, same as before
+      // this existed. Kept out of the POST fallback body (`postPayload`): it is a precondition
+      // on an existing resource, meaningless (and never persisted) on a freshly created one.
+      const expectedRevision = id === null ? undefined : await this.currentRevision(id)
+      const putPayload = expectedRevision === undefined ? payload : {...payload, expectedRevision}
+
       const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
         id,
-        payload,
+        payload: putPayload,
         postEndpoint: FORM_ENDPOINT,
-        putEndpoint: (formId) => `${FORM_ENDPOINT}/${formId}`,
+        postPayload: payload,
+        putEndpoint: formEndpoint,
       })
 
       const canonicalId = created ? getFormId(body) : id

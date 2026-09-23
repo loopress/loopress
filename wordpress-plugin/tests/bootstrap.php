@@ -59,3 +59,9 @@ if (!defined('WP_DEBUG')) {
 if (!defined('LOOPRESS_PLUGIN_PATH')) {
     define('LOOPRESS_PLUGIN_PATH', '/var/www/html/wp-content/plugins/loopress/');
 }
+
+// Normally defined in loopress.php (outside src/, not autoloaded); PluginUpdater reads it
+// at real test runtime too, same reasoning as LOOPRESS_VERSION above.
+if (!defined('LOOPRESS_PLUGIN_SLUG')) {
+    define('LOOPRESS_PLUGIN_SLUG', 'loopress-full');
+}

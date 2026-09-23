@@ -5,6 +5,8 @@ import {basename, dirname, extname, join} from 'node:path'
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
+import {isNotFoundError} from '../../lib/wp-client.js'
 import {type LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {type Snippet} from '../../types/snippet.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -44,6 +46,9 @@ export default class Push extends PushCommand {
     this.log(`Pushing snippets to ${url}`)
     this.log(`Snippets path: ${path}`)
 
+    const provider = getResourceStateProvider('snippet')
+    const beforeState = await this.captureBeforePushState(provider, path)
+
     const snippets = await this.loadSnippets(path)
     this.log(`Found ${pluralize(snippets.length, 'snippet')} to push`)
 
@@ -58,6 +63,8 @@ export default class Push extends PushCommand {
       },
     )
 
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
+
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'snippet')} failed to push.`)
     }
@@ -67,6 +74,16 @@ export default class Push extends PushCommand {
     await this.recordSuccess()
     this.log('All snippets pushed.')
     return {pushed, status: 'success'}
+  }
+
+  private async currentRevision(id: number): Promise<string | undefined> {
+    try {
+      const current = await this.wp.get<Record<string, unknown>>(`${SNIPPETS_ENDPOINT}/${id}`)
+      return normalizeSnippet(current).revision
+    } catch (error) {
+      if (isNotFoundError(error)) return undefined
+      throw error
+    }
   }
 
   // Renames the local file pair to the `<id>-<slug>` convention used by `snippet pull` whenever
@@ -124,12 +141,26 @@ export default class Push extends PushCommand {
     try {
       const payload = this.toPayload(snippet)
 
+      // Read the snippet's current revision right before writing it, and send it back as
+      // `expectedRevision`: WordPress refuses the write (412) if something else changed the
+      // snippet in between, instead of this push silently overwriting it (#234). No revision to
+      // condition on when there's no known remote id yet (a first push): putPayload then equals
+      // payload, and putOrCreate falls back to POST below exactly as before this existed. Kept
+      // out of the POST body specifically (see postPayload): a spurious expectedRevision on a
+      // create would be meaningless there.
+      let putPayload: Record<string, unknown> = payload
+      if (snippet.id !== undefined) {
+        const expectedRevision = await this.currentRevision(snippet.id)
+        if (expectedRevision !== undefined) putPayload = {...payload, expectedRevision}
+      }
+
       // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
       // falls back to POST instead of failing, adopting whatever id the site assigns.
       const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
         id: snippet.id ?? null,
-        payload,
+        payload: putPayload,
         postEndpoint: SNIPPETS_ENDPOINT,
+        postPayload: payload,
         putEndpoint: (id) => `${SNIPPETS_ENDPOINT}/${id}`,
       })
 

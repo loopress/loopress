@@ -9,6 +9,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Seo\Exception\InvalidRedirectException;
 use Loopress\Seo\Exception\NoActiveSeoPluginException;
 use Loopress\Seo\Exception\RedirectsUnavailableException;
+use Loopress\Seo\Exception\StaleSeoRevisionException;
 use Loopress\Seo\Service\SeoService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -20,7 +21,10 @@ class SeoController
 
     // Every handler maps the same service exceptions the same way (redirect handlers add
     // RedirectsUnavailableException => 400); \RuntimeException => 500 is applied by the trait.
-    private const POST_META_STATUSES = [NoActiveSeoPluginException::class => 409];
+    private const POST_META_STATUSES = [
+        NoActiveSeoPluginException::class => 409,
+        StaleSeoRevisionException::class  => 412,
+    ];
     private const REDIRECT_STATUSES  = [
         RedirectsUnavailableException::class => 400,
         InvalidRedirectException::class      => 422,
@@ -136,9 +140,18 @@ class SeoController
             return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and a "meta" object.'], 400);
         }
 
+        // Unlike a wrong-type "slug"/"meta" (rejected above), a malformed expectedRevision must
+        // never be silently treated as absent: that would drop the conditional-write precondition
+        // entirely (#234), letting a client whose value happened to be sent as e.g. a number
+        // bypass it outright instead of getting a clear error. Mirrors OptionsController.
+        $expectedRevision = $body['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
+        }
+
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response(
-                $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta),
+                $this->seoService->upsertPostMeta((string) $request->get_param('type'), $slug, $meta, $expectedRevision),
                 200,
             ),
             self::POST_META_STATUSES,
@@ -165,13 +178,20 @@ class SeoController
             return $this->inactiveResponse();
         }
 
-        $data = $request->get_json_params();
-        if ($data === []) {
-            return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);
+        $body = $request->get_json_params();
+        if (!is_array($body) || !isset($body['settings']) || !is_array($body['settings']) || $body['settings'] === []) {
+            return new WP_REST_Response(['error' => 'Request body must include a non-empty "settings" object.'], 400);
+        }
+
+        // Same care as upsert_post_meta() above: a malformed expectedRevision must be rejected,
+        // never silently dropped (#234).
+        $expectedRevision = $body['expectedRevision'] ?? null;
+        if ($expectedRevision !== null && !is_string($expectedRevision)) {
+            return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->updateSettings($data), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->seoService->updateSettings($body['settings'], $expectedRevision), 200),
             self::POST_META_STATUSES,
         );
     }

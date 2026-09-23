@@ -91,6 +91,8 @@ export default class Push extends PushCommand {
       throw error
     }
 
+    toReactivate.push(...(await this.filesForNewlyInstalled(diff.toInstall)))
+
     if (toPrune.length > 0) {
       await this.deactivate(installed.filter((p) => toPrune.includes(p.slug)))
     }
@@ -152,6 +154,21 @@ export default class Push extends PushCommand {
       if (isNotFoundError(error)) return null
       throw error
     }
+  }
+
+  // toInstall entries carry no `file`: the plugin didn't exist on the site at diff time, so its
+  // WordPress core plugin id (folder/main-file.php) is only knowable after sync() has actually
+  // installed it. Refetch to get it, then activate like everything else.
+  private async filesForNewlyInstalled(toInstall: PluginDiff['toInstall']): Promise<Array<{file: string; slug: string}>> {
+    if (toInstall.length === 0) return []
+
+    const installedAfterSync = parseInstalledPlugins(await this.wp.get<WpNativePlugin[]>('wp/v2/plugins'))
+    const fileBySlug = new Map(installedAfterSync.map((p) => [p.slug, p.file]))
+
+    return toInstall.flatMap(({slug}) => {
+      const file = fileBySlug.get(slug)
+      return file ? [{file, slug}] : []
+    })
   }
 
   private guardForce(diff: PluginDiff, force: boolean): void {

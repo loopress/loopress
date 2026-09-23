@@ -26,7 +26,55 @@ type ResourceToolsSpec = {
   // api and hooks only: `push --prune` deletes server-side files with no local counterpart,
   // and a dedicated `<resource>_rm` tool removes one file. form and snippet have neither.
   supportsPrune?: boolean
+  // Every resource-state-backed resource (see cli's resource-state.ts) gets a `<resource>_rollback`
+  // tool mirroring `lps <resource> rollback`; app/plugin/theme/composer don't have one (no
+  // `lps <resource> push` snapshot to roll back to).
+  supportsRollback?: boolean
   supportsRm?: boolean
+}
+
+// Registers `<resource>_rollback`: restores the snapshot `<resource>_push` automatically saved
+// right before an earlier real push, or (with `list`) just lists what's available. Shared by
+// registerResourceTools below and by the resources that register their other tools directly
+// (acf, seo, option, theme-styles), since rollback's shape never varies with their extra flags.
+export function registerRollbackTool(
+  server: McpServer,
+  {pathNoun, resource, toolName = resource}: {pathNoun: string; resource: string; toolName?: string},
+): void {
+  const pathArg = z.string().optional().describe(`Path to the ${pathNoun} (overrides project config)`)
+
+  server.registerTool(
+    `${toolName}_rollback`,
+    {
+      description:
+        `Restore this resource to the snapshot automatically saved right before an earlier \`${toolName}_push\`. ` +
+        'Pass list: true to see available snapshots (their id, timestamp, and environment) instead of rolling back. ' +
+        'Only safe when nothing else has changed the environment since that push: the preview result includes a `drift` field (added/changed/removed) whenever it has, review it before confirming. ' +
+        "If the environment changes again between the preview and the confirmed call, the confirm is refused (a stale-preview error) instead of silently overwriting that later change; call again without confirmToken for a fresh preview." +
+        PREVIEW_SUFFIX,
+      inputSchema: {
+        confirmToken: confirmTokenFlag,
+        env: envFlag,
+        list: z.boolean().optional().describe('List available snapshots instead of rolling back'),
+        path: pathArg,
+        to: z.string().optional().describe('Roll back to this snapshot id instead of the most recent one (see list: true)'),
+      },
+    },
+    async ({confirmToken, env, list, path, to}) => {
+      const args = buildArgs([resource, 'rollback'], {env, path})
+
+      if (list) {
+        args.push('--list')
+        return toCallToolResult(unwrap(await runLps(args)))
+      }
+
+      if (to) args.push('--to', to)
+      // --yes: the confirmToken handshake below is the actual approval gate, same reasoning as
+      // prune/rm above.
+      args.push('--yes')
+      return toCallToolResult(await runMutatingTool(`${toolName}_rollback`, args, confirmToken))
+    },
+  )
 }
 
 // Registers push/pull/list for a directory-backed resource whose tools differ only in wording
@@ -36,7 +84,7 @@ type ResourceToolsSpec = {
 // `post-type`) register their tools directly instead.
 export function registerResourceTools(
   server: McpServer,
-  {descriptions, pathNoun, resource, supportsPrune, supportsRm}: ResourceToolsSpec,
+  {descriptions, pathNoun, resource, supportsPrune, supportsRm, supportsRollback}: ResourceToolsSpec,
 ): void {
   const pathArg = z.string().optional().describe(`Path to the ${pathNoun} (overrides project config)`)
 
@@ -107,4 +155,6 @@ export function registerResourceTools(
       },
     )
   }
+
+  if (supportsRollback) registerRollbackTool(server, {pathNoun, resource})
 }

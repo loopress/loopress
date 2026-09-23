@@ -143,6 +143,22 @@ describe('plugin push', () => {
     expect(result.activated).toContain('woocommerce')
   })
 
+  it('activates a plugin freshly installed by this push', async () => {
+    const {cmd, get, put} = make({plugins: {akismet: '5.3.3'}})
+    let pluginsCalls = 0
+    get.mockImplementation(async (path: string) => {
+      if (path === 'loopress/v1/composer/lock') throw new Error('nf', {cause: {response: {statusCode: 404}}})
+      pluginsCalls += 1
+      // Not installed yet on the pre-sync fetch; present (inactive) once sync() installs it.
+      return pluginsCalls === 1 ? [] : [native('akismet', '5.3.3', 'inactive')]
+    })
+
+    const result = await cmd.run()
+
+    expect(put).toHaveBeenCalledWith('wp/v2/plugins/akismet/akismet.php', {status: 'active'})
+    expect(result.activated).toContain('akismet')
+  })
+
   it('restores the plugins it deactivated when the sync fails', async () => {
     const {cmd, get, post, put} = make({plugins: {woocommerce: '9.4.2'}}, ['--force'])
     get.mockImplementation(async (path: string) =>

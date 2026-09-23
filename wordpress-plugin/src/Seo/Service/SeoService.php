@@ -30,21 +30,21 @@ class SeoService extends AbstractSingleProviderService
     }
 
     /** @param array<string, mixed> $meta @return array<string, mixed> */
-    public function upsertPostMeta(string $postType, string $slug, array $meta): array
+    public function upsertPostMeta(string $postType, string $slug, array $meta, ?string $expectedRevision = null): array
     {
-        return $this->activeSeoProvider()->upsertPostMeta($postType, $slug, $meta);
+        return $this->activeSeoProvider()->upsertPostMeta($postType, $slug, $meta, $expectedRevision);
     }
 
-    /** @return array<string, mixed> */
+    /** @return array{revision: string, settings: array<string, mixed>} */
     public function getSettings(): array
     {
         return $this->activeSeoProvider()->getSettings();
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
-    public function updateSettings(array $data): array
+    /** @param array<string, mixed> $data @return array{revision: string, settings: array<string, mixed>} */
+    public function updateSettings(array $data, ?string $expectedRevision = null): array
     {
-        return $this->activeSeoProvider()->updateSettings($data);
+        return $this->activeSeoProvider()->updateSettings($data, $expectedRevision);
     }
 
     /** @return array<int, array<string, mixed>> */

@@ -59,6 +59,9 @@
                 <!-- OptionsController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Options/RestApi" />
+                <!-- MenuController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above. -->
+                <directory name="src/Menu/RestApi" />
                 <!-- AbstractFilesController::list_files()/push_file() are the shared base of
                      ApiFilesController and HookFilesController above: invoked by
                      register_rest_route() (through each subclass's register_routes()), never a
@@ -73,6 +76,7 @@
                 <referencedMethod name="Loopress\Acf\Module\AcfModule::__construct" />
                 <referencedMethod name="Loopress\Seo\Module\SeoModule::__construct" />
                 <referencedMethod name="Loopress\Options\Module\OptionsModule::__construct" />
+                <referencedMethod name="Loopress\Menu\Module\MenuModule::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />
@@ -80,6 +84,7 @@
                 <referencedMethod name="Loopress\Update\Module\UpdateCheckModule::__construct" />
                 <referencedMethod name="Loopress\Snippets\Module\SnippetModule::__construct" />
                 <referencedMethod name="Loopress\Update\Infrastructure\GithubReleaseChecker::__construct" />
+                <referencedMethod name="Loopress\Update\Infrastructure\PluginUpdater::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\PackagistClient::__construct" />
                 <referencedMethod name="Loopress\Form\Module\FormModule::__construct" />
                 <referencedMethod name="Loopress\Api\Module\ApiModule::__construct" />
@@ -152,6 +157,10 @@
                      hook chain Psalm can't trace to a caller. -->
                 <file name="src/Apps/Frontend/AppShortcode.php" />
                 <file name="src/Apps/Frontend/AppAssetEnqueuer.php" />
+                <!-- injectUpdate() is a pre_set_site_transient_update_plugins filter callback and
+                     pluginInformation() a plugins_api one; same untraceable-by-Psalm hook-chain
+                     shape as the other filter callbacks above. -->
+                <file name="src/Update/Infrastructure/PluginUpdater.php" />
                 <!-- the_content / map_meta_cap / display_post_states filter callbacks. -->
                 <file name="src/Pages/Frontend/PageFilters.php" />
             </errorLevel>

@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Acf\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\Service\AcfService;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,10 @@ class AcfServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // get()'s revision hash goes through wp_json_encode(), unavailable outside a real
+        // WordPress load; a plain json_encode() delegate is exactly what it does for the
+        // exported arrays reaching it here (see OptionsServiceTest for the same stub).
+        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         $this->service = new AcfService();
     }
 
@@ -92,6 +97,60 @@ class AcfServiceTest extends TestCase
         Functions\when('acf_get_internal_post_type')->justReturn(false);
 
         $this->assertNull($this->service->get('acf-ui-options-page', 'ui_options_page_1'));
+    }
+
+    // ── get: revision (#234) ─────────────────────────────────────────────────
+
+    public function test_get_attaches_a_revision_field(): void
+    {
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $result = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        $this->assertArrayHasKey('revision', $result);
+        $this->assertIsString($result['revision']);
+    }
+
+    public function test_get_revision_is_stable_for_the_same_exported_content(): void
+    {
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $first  = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $second = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        $this->assertSame($first['revision'], $second['revision']);
+    }
+
+    public function test_get_revision_differs_for_different_exported_content(): void
+    {
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category']);
+        $before = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Categories']);
+        $after = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        $this->assertNotSame($before['revision'], $after['revision']);
+    }
+
+    // Regression coverage (#234): `modified` is a unix timestamp ACF bumps on every save,
+    // already excluded from diffing by the CLI's resource-state.ts (ACF_VOLATILE_KEYS). A
+    // revision that covered it would change on every save even when nothing else did, needlessly
+    // invalidating an expectedRevision a caller only just read.
+    public function test_get_revision_ignores_the_modified_timestamp(): void
+    {
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category', 'modified' => 1]);
+        $before = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category', 'modified' => 2]);
+        $after = $this->service->get('acf-taxonomy', 'taxonomy_1');
+
+        $this->assertSame($before['revision'], $after['revision']);
     }
 
     // ── upsert ────────────────────────────────────────────────────────────────
@@ -204,6 +263,96 @@ class AcfServiceTest extends TestCase
         $this->assertSame('Group ', $capturedData['title']);
         $this->assertSame('Enter <img src=x> your name', $capturedData['fields'][0]['instructions']);
         $this->assertSame('Name', $capturedData['fields'][0]['label']);
+    }
+
+    // ── upsert: conditional write (#234) ────────────────────────────────────
+
+    public function test_upsert_succeeds_when_the_expected_revision_still_matches(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1', 'title' => 'Current']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+        Functions\when('acf_import_internal_post_type')->justReturn(['key' => 'post_type_1']);
+
+        $currentRevision = $this->service->get('acf-post-type', 'post_type_1')['revision'];
+
+        $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], $currentRevision);
+
+        $this->assertSame('post_type_1', $result['key']);
+    }
+
+    // Regression coverage (#234): the whole point of the precondition is that a write is
+    // refused, not silently applied, once the object no longer holds the content the caller
+    // last read.
+    public function test_upsert_throws_stale_acf_revision_exception_when_the_object_changed_underneath(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1', 'title' => 'Someone else already changed this']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $this->expectException(StaleAcfRevisionException::class);
+        $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], 'a-revision-that-no-longer-matches');
+    }
+
+    // Regression coverage: the message reaches a REST JSON body then the CLI's stderr, never
+    // HTML, so it must not have been run through esc_html().
+    public function test_stale_revision_exception_message_is_not_html_escaped(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1', 'title' => 'Someone else already changed this']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        try {
+            $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], 'a-revision-that-no-longer-matches');
+            $this->fail('Expected a StaleAcfRevisionException.');
+        } catch (StaleAcfRevisionException $e) {
+            $this->assertStringContainsString('"post_type_1"', $e->getMessage());
+            $this->assertStringNotContainsString('&quot;', $e->getMessage());
+        }
+    }
+
+    public function test_upsert_does_not_call_acf_import_internal_post_type_when_the_revision_is_stale(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1', 'title' => 'Someone else already changed this']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+        Functions\expect('acf_import_internal_post_type')->never();
+
+        try {
+            $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], 'a-revision-that-no-longer-matches');
+        } catch (StaleAcfRevisionException) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
+    // A `key` with no post behind it yet is exactly as much "not the content the caller
+    // expected" as one holding different content: a precondition must still refuse the write
+    // rather than treat "doesn't exist yet" as an exemption from the check.
+    public function test_upsert_throws_stale_acf_revision_exception_when_the_key_does_not_exist_yet(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_get_internal_post_type')->justReturn(false);
+
+        $this->expectException(StaleAcfRevisionException::class);
+        $this->service->upsert('acf-post-type', ['key' => 'post_type_new', 'title' => 'New'], 'a-revision-from-when-it-existed');
+    }
+
+    public function test_upsert_skips_the_revision_check_entirely_when_none_is_given(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_get_internal_post_type_post')->justReturn(false);
+        Functions\when('acf_import_internal_post_type')->justReturn(['key' => 'post_type_1']);
+        Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'post_type_1']);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New']);
+
+        $this->assertSame('post_type_1', $result['key']);
     }
 
     // ── delete ────────────────────────────────────────────────────────────────

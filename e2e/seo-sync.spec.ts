@@ -99,7 +99,8 @@ test.describe('RankMath active alone', () => {
       headers: {Authorization: authHeader(wp)},
     })
     expect(response.ok()).toBe(true)
-    expect(await response.json()).toMatchObject(settings)
+    const body = (await response.json()) as {revision: string; settings: Record<string, unknown>}
+    expect(body.settings).toMatchObject(settings)
   })
 
   test('pushes post meta onto an existing post and it reads back identically', async ({projectDir, request, runCli, wp}) => {
@@ -217,8 +218,8 @@ test.describe('Yoast active alone', () => {
       headers: {Authorization: authHeader(wp)},
     })
     expect(response.ok()).toBe(true)
-    const body = (await response.json()) as Record<string, unknown>
-    expect(body['title-post']).toBe(titlePost)
+    const body = (await response.json()) as {revision: string; settings: Record<string, unknown>}
+    expect(body.settings['title-post']).toBe(titlePost)
   })
 
   test('pushes post meta onto an existing post and it reads back identically', async ({projectDir, request, runCli, wp}) => {

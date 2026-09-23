@@ -4,9 +4,11 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/api/push.js'
+import {type ResourceState} from '../../../src/lib/diff-state.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {sha256} from '../../helpers/sha256.js'
 
 const {confirm} = vi.hoisted(() => ({confirm: vi.fn()}))
 vi.mock('@inquirer/prompts', () => ({confirm}))
@@ -19,17 +21,30 @@ type ApiFile = {
   filename: string
 }
 
-type PushWithLoadFiles = {loadFiles(path: string): Promise<ApiFile[]>}
-type PushWithPushFile = {
-  failedCount: number
-  pushFile(file: ApiFile, task?: {output: string}): Promise<undefined | {public?: boolean}>
-  wpClient: {put: ReturnType<typeof vi.fn>}
+type BatchPushResult = {
+  files: Array<{filename: string; public?: boolean; syntax_check?: 'skipped'}>
+  pruned: string[]
 }
-type PushWithPrune = {
-  dryRun: boolean
-  prune(localFilenames: Set<string>): Promise<string[]>
+
+type PushWithLoadFiles = {loadFiles(path: string): Promise<ApiFile[]>}
+type PushWithValidateFileLocally = {
+  failedCount: number
+  validateFileLocally(file: ApiFile, task?: {output: string}): void
+}
+type PushWithPushBatch = {
+  pushBatch(
+    files: ApiFile[],
+    pruneList: string[],
+    beforeState: ResourceState | undefined,
+  ): Promise<{pruned: string[]; pushed: string[]}>
   siteConfig: EnvironmentConfig
-  wpClient: {delete: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>}
+  wpClient: {post: ReturnType<typeof vi.fn>}
+}
+type PushWithResolvePruneList = {
+  dryRun: boolean
+  resolvePruneList(localFilenames: Set<string>): Promise<string[]>
+  siteConfig: EnvironmentConfig
+  wpClient: {get: ReturnType<typeof vi.fn>}
   yes: boolean
 }
 
@@ -100,130 +115,43 @@ describe('api push', () => {
     })
   })
 
-  describe('pushFile', () => {
+  describe('validateFileLocally', () => {
     const file: ApiFile = {content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n', filename: 'hello'}
 
-    it('PUTs to loopress/v1/api-files with the filename and raw content in the body', async () => {
+    it('accepts a well-formed file and reports it in task.output', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-
-      await (cmd as unknown as PushWithPushFile).pushFile(file)
-
-      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {content: file.content, filename: file.filename})
-    })
-
-    it("surfaces the server's public flag so run() can warn about an unauthenticated route", async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello', public: true})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
-
-      expect(result?.public).toBe(true)
-    })
-
-    it('does nothing in dry-run mode', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
 
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file, task)
+      ;(cmd as unknown as PushWithValidateFileLocally).validateFileLocally(file, task)
 
-      expect(put).not.toHaveBeenCalled()
-      expect(result).toBeUndefined()
-      expect(task.output).toBe('[dry-run] Would push: hello')
-    })
-
-    it('does nothing in dry-run mode when called with no task (does not crash writing to it)', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-
-      const result = await (cmd as unknown as PushWithPushFile).pushFile(file)
-
-      expect(put).not.toHaveBeenCalled()
-      expect(result).toBeUndefined()
-    })
-
-    it('reports a normal push in task.output, not the "syntax check skipped" wording', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
-
-      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
-
-      expect(task.output).toBe('Pushed: hello')
-    })
-
-    it('reports a skipped syntax check in task.output without failing the push', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-
-      const put = vi.fn().mockResolvedValueOnce({filename: 'hello', syntax_check: 'skipped'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
-
-      await (cmd as unknown as PushWithPushFile).pushFile(file, task)
-
-      expect(task.output).toBe('Pushed: hello (syntax check skipped, unavailable on this host)')
-    })
-
-    it('routes the failure message through task.output and rethrows so Listr marks the task failed', async () => {
-      const cmd = new Push([], fakeOclifConfig)
-      silenceLogs(cmd)
-      const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
-
-      await expect((cmd as unknown as PushWithPushFile).pushFile(file, task)).rejects.toThrow('boom')
-
-      expect(task.output).toBe('Failed to push hello: boom')
-      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+      expect(task.output).toBe('Validated: hello')
+      expect((cmd as unknown as PushWithValidateFileLocally).failedCount).toBe(0)
     })
 
     it('rejects a filename the server route would never match, without calling the API', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const task = {output: ''}
       const invalidFile: ApiFile = {content: '<?php', filename: 'WITH_MAJ_ENDPOINT'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(invalidFile, task); }).toThrow(
         'Invalid filename "WITH_MAJ_ENDPOINT"',
       )
 
-      expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Invalid filename "WITH_MAJ_ENDPOINT"')
-      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+      expect((cmd as unknown as PushWithValidateFileLocally).failedCount).toBe(1)
     })
 
     it('accepts a nested filename with a dynamic segment', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn().mockResolvedValueOnce({filename: 'invoice-pdf/[order_id]'})
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
       const dynamicFile: ApiFile = {
         content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class InvoicePdf_OrderId {}\n',
         filename: 'invoice-pdf/[order_id]',
       }
 
-      await (cmd as unknown as PushWithPushFile).pushFile(dynamicFile)
-
-      expect(put).toHaveBeenCalledWith('loopress/v1/api-files', {
-        content: dynamicFile.content,
-        filename: 'invoice-pdf/[order_id]',
-      })
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(dynamicFile); }).not.toThrow()
     })
 
     it('rejects a dynamic segment starting with a digit, mirroring the server rule', async () => {
@@ -235,81 +163,140 @@ describe('api push', () => {
       // client's own comment promises "mirrors the server's own allowlist".
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
       const invalidFile: ApiFile = {content: '<?php', filename: 'badseg/[1bad]'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(invalidFile, task)).rejects.toThrow(
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(invalidFile); }).toThrow(
         'Invalid filename "badseg/[1bad]"',
       )
-
-      expect(put).not.toHaveBeenCalled()
     })
 
-    it('rejects a filename attempting path traversal, without calling the API', async () => {
+    it('rejects a filename attempting path traversal', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
       const traversalFile: ApiFile = {content: '<?php', filename: 'invoice-pdf/..'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(traversalFile, task)).rejects.toThrow(
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(traversalFile); }).toThrow(
         'Invalid filename "invoice-pdf/.."',
       )
-
-      expect(put).not.toHaveBeenCalled()
     })
 
-    it('rejects a file missing declare(strict_types=1);, without calling the API', async () => {
+    it('rejects a file missing declare(strict_types=1);', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
       const missingDeclare: ApiFile = {content: '<?php\nfinal class Hello {}\n', filename: 'hello'}
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(missingDeclare, task)).rejects.toThrow(
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(missingDeclare); }).toThrow(
         'declare(strict_types=1);" is missing',
       )
-
-      expect(put).not.toHaveBeenCalled()
-      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+      expect((cmd as unknown as PushWithValidateFileLocally).failedCount).toBe(1)
     })
 
-    it('rejects a file with declare(strict_types=1); appearing more than once, without calling the API', async () => {
+    it('rejects a file with declare(strict_types=1); appearing more than once', async () => {
       const cmd = new Push([], fakeOclifConfig)
       silenceLogs(cmd)
-      const put = vi.fn()
-      ;(cmd as unknown as PushWithPushFile).wpClient = {put}
-      const task = {output: ''}
       const duplicateDeclare: ApiFile = {
         content: '<?php\ndeclare(strict_types=1);\ndeclare(strict_types=1);\nfinal class Hello {}\n',
         filename: 'hello',
       }
 
-      await expect((cmd as unknown as PushWithPushFile).pushFile(duplicateDeclare, task)).rejects.toThrow(
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(duplicateDeclare); }).toThrow(
         'declare(strict_types=1);" appears more than once',
       )
-
-      expect(put).not.toHaveBeenCalled()
-      expect((cmd as unknown as PushWithPushFile).failedCount).toBe(1)
+      expect((cmd as unknown as PushWithValidateFileLocally).failedCount).toBe(1)
     })
   })
 
-  describe('prune', () => {
-    function makePrune({dryRun = false, yes = false} = {}) {
+  describe('pushBatch', () => {
+    const file: ApiFile = {content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n', filename: 'hello'}
+
+    function makePushBatch() {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const internals = cmd as unknown as PushWithPushBatch
+      internals.siteConfig = makeEnv('production', 'https://acme.com')
+      const post = vi.fn<(...args: unknown[]) => Promise<BatchPushResult>>().mockResolvedValue({files: [{filename: 'hello'}], pruned: []})
+      internals.wpClient = {post}
+      return {cmd: internals, post}
+    }
+
+    it('POSTs to loopress/v1/api-files/batch with every file and the prune list in one body', async () => {
+      const {cmd, post} = makePushBatch()
+
+      await cmd.pushBatch([file], ['stale'], undefined)
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/api-files/batch', {
+        files: [{content: file.content, filename: file.filename}],
+        prune: ['stale'],
+      })
+    })
+
+    it('omits expectedRevision when beforeState has no entry for the file (a first push, #234)', async () => {
+      const {cmd, post} = makePushBatch()
+      const beforeState: ResourceState = new Map([['some-other-file', '<?php']])
+
+      await cmd.pushBatch([file], [], beforeState)
+
+      expect(post).toHaveBeenCalledWith(
+        'loopress/v1/api-files/batch',
+        expect.objectContaining({files: [{content: file.content, filename: file.filename}]}),
+      )
+    })
+
+    it('sends expectedRevision as the sha256 of the remote content already read into beforeState (#234)', async () => {
+      const {cmd, post} = makePushBatch()
+      const remoteContent = '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello { public function get(): array { return []; } }\n'
+      const beforeState: ResourceState = new Map([['hello', remoteContent]])
+
+      await cmd.pushBatch([file], [], beforeState)
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/api-files/batch', {
+        files: [{content: file.content, expectedRevision: sha256(remoteContent), filename: file.filename}],
+        prune: [],
+      })
+    })
+
+    it('surfaces a 412 refusal (a stale revision) as a whole-batch failure, nothing changed', async () => {
+      const {cmd, post} = makePushBatch()
+      post.mockRejectedValueOnce(
+        new Error('Request failed (412) on .../api-files/batch: "hello.php" changed on WordPress since it was last read.'),
+      )
+      const beforeState: ResourceState = new Map([['hello', 'old content']])
+
+      await expect(cmd.pushBatch([file], [], beforeState)).rejects.toThrow(
+        'Push failed, nothing was changed on https://acme.com',
+      )
+    })
+
+    it("surfaces the server's public flag for each pushed file", async () => {
+      const {cmd, post} = makePushBatch()
+      post.mockResolvedValueOnce({files: [{filename: 'hello', public: true}], pruned: []})
+
+      const result = await cmd.pushBatch([file], [], undefined)
+
+      expect(result.pushed).toEqual(['hello'])
+    })
+
+    it('returns the pushed and pruned filenames the server reports', async () => {
+      const {cmd, post} = makePushBatch()
+      post.mockResolvedValueOnce({files: [{filename: 'hello'}], pruned: ['stale']})
+
+      const result = await cmd.pushBatch([file], ['stale'], undefined)
+
+      expect(result).toEqual({pruned: ['stale'], pushed: ['hello']})
+    })
+  })
+
+  describe('resolvePruneList', () => {
+    function makeResolvePruneList({dryRun = false, yes = false} = {}) {
       const cmd = new Push([], fakeOclifConfig)
       const logs = silenceLogs(cmd)
-      const internals = cmd as unknown as PushWithPrune
+      const internals = cmd as unknown as PushWithResolvePruneList
       internals.dryRun = dryRun
       internals.yes = yes
       internals.siteConfig = makeEnv('production', 'https://acme.com')
       const get = vi.fn()
-      const del = vi.fn().mockResolvedValue({deleted: true})
-      internals.wpClient = {delete: del, get}
-      return {cmd: internals, del, get, logs}
+      internals.wpClient = {get}
+      return {cmd: internals, get, logs}
     }
 
     beforeEach(() => {
@@ -317,68 +304,62 @@ describe('api push', () => {
       interactive.value = true
     })
 
-    it('deletes every server-side file with no local counterpart, after confirmation', async () => {
+    it('lists every server-side file with no local counterpart, after confirmation', async () => {
       confirm.mockResolvedValue(true)
-      const {cmd, del, get} = makePrune()
+      const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'keep'}, {filename: 'stale-a'}, {filename: 'stale-b'}])
 
-      const pruned = await cmd.prune(new Set(['keep']))
+      const pruned = await cmd.resolvePruneList(new Set(['keep']))
 
       expect(get).toHaveBeenCalledWith('loopress/v1/api-files')
-      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale-a')
-      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale-b')
-      expect(del).not.toHaveBeenCalledWith('loopress/v1/api-files?filename=keep')
       expect(pruned).toEqual(['stale-a', 'stale-b'])
       expect(confirm).toHaveBeenCalledWith({default: false, message: expect.stringContaining('stale-a, stale-b')})
     })
 
     it('does nothing when every server-side file is present locally', async () => {
-      const {cmd, del, get} = makePrune()
+      const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'keep'}])
 
-      const pruned = await cmd.prune(new Set(['keep']))
+      const pruned = await cmd.resolvePruneList(new Set(['keep']))
 
-      expect(del).not.toHaveBeenCalled()
+      expect(confirm).not.toHaveBeenCalled()
       expect(pruned).toEqual([])
     })
 
     it('keeps the server-side files when the confirmation is declined', async () => {
       confirm.mockResolvedValue(false)
-      const {cmd, del, get} = makePrune()
+      const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      const pruned = await cmd.prune(new Set())
+      const pruned = await cmd.resolvePruneList(new Set())
 
-      expect(del).not.toHaveBeenCalled()
       expect(pruned).toEqual([])
     })
 
     it('refuses to prune in a non-TTY without --yes', async () => {
       interactive.value = false
-      const {cmd, del, get} = makePrune()
+      const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      await expect(cmd.prune(new Set())).rejects.toThrow(/--prune would delete .* not a TTY/s)
-      expect(del).not.toHaveBeenCalled()
+      await expect(cmd.resolvePruneList(new Set())).rejects.toThrow(/--prune would delete .* not a TTY/s)
     })
 
-    it('prunes without prompting when --yes is set', async () => {
-      const {cmd, del, get} = makePrune({yes: true})
+    it('lists the orphans without prompting when --yes is set', async () => {
+      const {cmd, get} = makeResolvePruneList({yes: true})
       get.mockResolvedValue([{filename: 'stale'}])
 
-      await cmd.prune(new Set())
+      const pruned = await cmd.resolvePruneList(new Set())
 
       expect(confirm).not.toHaveBeenCalled()
-      expect(del).toHaveBeenCalledWith('loopress/v1/api-files?filename=stale')
+      expect(pruned).toEqual(['stale'])
     })
 
-    it('reports what it would prune on --dry-run without deleting anything', async () => {
-      const {cmd, del, get, logs} = makePrune({dryRun: true})
+    it('reports what it would prune on --dry-run', async () => {
+      const {cmd, get, logs} = makeResolvePruneList({dryRun: true})
       get.mockResolvedValue([{filename: 'stale'}])
 
-      const pruned = await cmd.prune(new Set())
+      const pruned = await cmd.resolvePruneList(new Set())
 
-      expect(del).not.toHaveBeenCalled()
       expect(pruned).toEqual(['stale'])
       expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\[dry-run\] Would prune .*stale/))
     })

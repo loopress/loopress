@@ -177,9 +177,9 @@ describe('seo pull helpers', () => {
       rmSync(dir, {force: true, recursive: true})
     })
 
-    it('writes the fetched settings to settings.json', async () => {
+    it('writes the fetched settings to settings.json, dropping the revision (#234)', async () => {
       const {cmd, logs} = makeCmd()
-      cmd.wpClient = {get: vi.fn().mockResolvedValueOnce({titleSeparator: '-'})}
+      cmd.wpClient = {get: vi.fn().mockResolvedValueOnce({revision: 'rev-1', settings: {titleSeparator: '-'}})}
 
       await cmd.pullSettings(dir)
 
@@ -191,7 +191,7 @@ describe('seo pull helpers', () => {
     it('does not write anything on a dry run', async () => {
       const {cmd, logs} = makeCmd()
       cmd.dryRun = true
-      cmd.wpClient = {get: vi.fn().mockResolvedValueOnce({titleSeparator: '-'})}
+      cmd.wpClient = {get: vi.fn().mockResolvedValueOnce({revision: 'rev-1', settings: {titleSeparator: '-'}})}
 
       await cmd.pullSettings(dir)
 
@@ -211,15 +211,15 @@ describe('seo pull helpers', () => {
       rmSync(dir, {force: true, recursive: true})
     })
 
-    it('writes each remote post-meta entry to <slug>.json under post-meta/<type>/', async () => {
+    it('writes each remote post-meta entry to <slug>.json under post-meta/<type>/, dropping the revision (#234)', async () => {
       const {cmd} = makeCmd()
-      const post = {meta: {seo_title: 'About'}, slug: 'about', title: 'About'}
+      const post = {meta: {seo_title: 'About'}, revision: 'rev-1', slug: 'about', title: 'About'}
       cmd.wpClient = {get: vi.fn().mockResolvedValueOnce([post])}
 
       await cmd.pullPostMeta('page', dir)
 
       const written = JSON.parse(readFileSync(join(dir, 'post-meta', 'page', 'about.json'), 'utf8'))
-      expect(written).toEqual(post)
+      expect(written).toEqual({meta: {seo_title: 'About'}, slug: 'about', title: 'About'})
     })
 
     it('removes a local post-meta file whose slug is no longer present remotely', async () => {
@@ -252,7 +252,7 @@ describe('seo pull helpers', () => {
       internals.siteConfig = makeEnv('production', 'https://acme.com')
       const logs = silenceLogs(cmd)
       const get = vi.fn().mockImplementation(async (path: string) => {
-        if (path === 'loopress/v1/seo/settings') return {}
+        if (path === 'loopress/v1/seo/settings') return {revision: 'rev-1', settings: {}}
         return []
       })
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {get}

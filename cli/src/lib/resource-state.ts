@@ -3,18 +3,27 @@ import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
+import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
 import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalPages} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
+  type RemoteSeoPostMeta,
+  type RemoteSeoSettings,
   SEO_REDIRECTS_ENDPOINT,
   SEO_SETTINGS_ENDPOINT,
-  type SeoPostMeta,
   seoPostMetaEndpoint,
   type SeoRedirect,
 } from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
+import {
+  canonicalGlobalStyles,
+  getActiveThemeGlobalStyles,
+  globalStylesEndpoint,
+  type GlobalStylesRecord,
+  THEME_STYLES_FILE_SUFFIX,
+} from '../utils/theme-styles-format.js'
 import {type ResourceState} from './diff-state.js'
 import {loadFiles} from './load-files.js'
 import {loadSnippets} from './load-snippets.js'
@@ -332,12 +341,16 @@ const seoProvider: ResourceStateProvider = {
   async remote(wp, onWarn) {
     const state: ResourceState = new Map()
 
-    const settings = await wp.get<Record<string, unknown>>(SEO_SETTINGS_ENDPOINT)
+    // `revision` (#234) is dropped from both, same as optionsProvider.remote() does for
+    // RemoteOption.revision below: it's bookkeeping for the conditional-write precondition, not
+    // configuration, and comparing it here would flag drift whenever the mere act of reading
+    // changed nothing meaningful.
+    const {settings} = await wp.get<RemoteSeoSettings>(SEO_SETTINGS_ENDPOINT)
     state.set('settings', settings)
 
     for (const postType of DEFAULT_POST_TYPES) {
-      const posts = await wp.get<SeoPostMeta[]>(seoPostMetaEndpoint(postType))
-      for (const post of posts) state.set(`post-meta/${postType}/${post.slug}`, post)
+      const posts = await wp.get<RemoteSeoPostMeta[]>(seoPostMetaEndpoint(postType))
+      for (const {meta, slug, title} of posts) state.set(`post-meta/${postType}/${slug}`, {meta, slug, title})
     }
 
     // Redirects are a RankMath-only feature; on Yoast the endpoint 404s, same graceful skip
@@ -356,6 +369,64 @@ const seoProvider: ResourceStateProvider = {
   },
   resource: 'seo',
   title: 'SEO',
+}
+
+// ---- Menus --------------------------------------------------------------------------------
+
+// Every item's post_type/taxonomy target is already resolved to `object`/`objectSlug` by the
+// REST layer (MenuService), never a raw `_menu_item_object_id`, so the exported tree is already
+// portable and compared as-is. `warnings` is diagnostic (a dangling item, an off-environment
+// custom URL, ...), not tracked configuration, so it's dropped before comparing, the same
+// "volatile key" treatment ACF/forms/redirects give their own server-computed fields. `revision`
+// (#234) is bookkeeping for menu push's conditional-write precondition, not tracked configuration
+// either: it's a pure hash of name + items, so it never disagrees when they don't, but a local
+// file pulled before this field existed simply wouldn't have it, which must never show up as
+// drift on its own.
+const MENU_VOLATILE_KEYS = ['revision', 'warnings'] as const
+// The reserved local filename for menu locations, see commands/menu/pull.ts.
+const MENU_LOCATIONS_FILE = 'menu-locations'
+
+function canonicalMenu(menu: Record<string, unknown>): Record<string, unknown> {
+  return omit(menu, MENU_VOLATILE_KEYS)
+}
+
+const menuProvider: ResourceStateProvider = {
+  dirKind: 'menu',
+  async local(dir, onWarn) {
+    const state: ResourceState = new Map()
+
+    const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse: (raw, filePath) => ({file: basename(filePath, '.json'), value: readJson(raw)}),
+    })
+    for (const {file, value} of entries) {
+      if (file === MENU_LOCATIONS_FILE) {
+        state.set(MENU_LOCATIONS_FILE, value)
+        continue
+      }
+
+      const slug = getMenuSlug(value) ?? `local:${file}`
+      state.set(`menu/${slug}`, canonicalMenu(value))
+    }
+
+    return state
+  },
+  async remote(wp) {
+    const state: ResourceState = new Map()
+
+    const menus = await wp.get<Array<Record<string, unknown>>>(MENU_ENDPOINT)
+    for (const menu of menus) {
+      const slug = getMenuSlug(menu)
+      if (slug !== null) state.set(`menu/${slug}`, canonicalMenu(menu))
+    }
+
+    state.set(MENU_LOCATIONS_FILE, await wp.get<Record<string, unknown>>(MENU_LOCATIONS_ENDPOINT))
+
+    return state
+  },
+  resource: 'menu',
+  title: 'Menus',
 }
 
 // ---- Options ------------------------------------------------------------------------------
@@ -406,6 +477,41 @@ const optionsProvider: ResourceStateProvider = {
   title: 'Options',
 }
 
+// ---- Theme styles (Global Styles) ----------------------------------------------------------
+
+// Local files are named `<stylesheet>-global-styles.json`, keyed by stylesheet so a directory
+// that has accumulated files from more than one previously-active theme still compares each one
+// individually rather than colliding on a single key.
+const themeStylesProvider: ResourceStateProvider = {
+  dirKind: 'themeStyles',
+  async local(dir, onWarn) {
+    const entries = await loadFiles<{stylesheet: string; value: Record<string, unknown>}>(dir, {
+      extension: '.json',
+      onSkip: onWarn,
+      parse(raw, filePath) {
+        const name = basename(filePath)
+        const stylesheet = name.endsWith(THEME_STYLES_FILE_SUFFIX) ? name.slice(0, -THEME_STYLES_FILE_SUFFIX.length) : basename(filePath, '.json')
+        return {stylesheet, value: readJson(raw)}
+      },
+    })
+
+    const state: ResourceState = new Map()
+    for (const {stylesheet, value} of entries) state.set(stylesheet, canonicalGlobalStyles(value))
+    return state
+  },
+  // Only the active theme's Global Styles are compared (see theme-styles-format.ts): a classic
+  // active theme has no Styles screen at all, surfaced here as a normal provider error, the same
+  // "inconclusive for this resource" treatment DiffCommand gives any other fetch failure.
+  async remote(wp) {
+    const {id, stylesheet} = await getActiveThemeGlobalStyles(wp)
+    const item = await wp.get<GlobalStylesRecord>(globalStylesEndpoint(id))
+
+    return new Map([[stylesheet, canonicalGlobalStyles(item)]])
+  },
+  resource: 'theme-styles',
+  title: 'Theme styles',
+}
+
 export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   snippetProvider,
   formProvider,
@@ -414,7 +520,9 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   hookProvider,
   pageProvider,
   seoProvider,
+  menuProvider,
   optionsProvider,
+  themeStylesProvider,
 ]
 
 export function getResourceStateProvider(resource: string): ResourceStateProvider {

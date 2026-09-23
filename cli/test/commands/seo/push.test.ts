@@ -17,7 +17,7 @@ type PushInternals = {
   pushPostMetaFile(postType: string, filePath: string, task?: {output: string}): Promise<void>
   pushRedirectFile(filePath: string, task?: {output: string}): Promise<void>
   pushSettings(basePath: string): Promise<void>
-  wpClient: {post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 function makeCmd(): {cmd: PushInternals; logs: ReturnType<typeof silenceLogs>} {
@@ -43,10 +43,31 @@ describe('seo push', () => {
   })
 
   describe('pushPostMetaFile', () => {
-    it('posts the slug and meta from the file to the post-meta endpoint', async () => {
+    it('reads the post’s current SEO-meta revision first, then posts the slug, meta, and that revision as a precondition (#234)', async () => {
       const {cmd} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({meta: {}, revision: 'rev-1', slug: 'about', title: 'About'})
       const post = vi.fn().mockResolvedValueOnce({})
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
+      const file = join(dir, 'about.json')
+      writeFileSync(file, JSON.stringify({meta: {seo_title: 'About'}, slug: 'about', title: 'About'}))
+      const task = {output: ''}
+
+      await cmd.pushPostMetaFile('page', file, task)
+
+      expect(get).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page/about')
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {
+        expectedRevision: 'rev-1',
+        meta: {seo_title: 'About'},
+        slug: 'about',
+      })
+      expect(task.output).toBe('Pushed: about')
+    })
+
+    it('omits expectedRevision for a post whose SEO meta does not exist remotely yet (a first push)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const post = vi.fn().mockResolvedValueOnce({})
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'about.json')
       writeFileSync(file, JSON.stringify({meta: {seo_title: 'About'}, slug: 'about', title: 'About'}))
       const task = {output: ''}
@@ -57,25 +78,28 @@ describe('seo push', () => {
       expect(task.output).toBe('Pushed: about')
     })
 
-    it('does nothing in dry-run mode', async () => {
+    it('does nothing in dry-run mode, not even reading the current revision', async () => {
       const {cmd} = makeCmd()
       cmd.dryRun = true
+      const get = vi.fn()
       const post = vi.fn()
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'about.json')
       writeFileSync(file, JSON.stringify({meta: {}, slug: 'about', title: 'About'}))
       const task = {output: ''}
 
       await cmd.pushPostMetaFile('page', file, task)
 
+      expect(get).not.toHaveBeenCalled()
       expect(post).not.toHaveBeenCalled()
       expect(task.output).toContain('[dry-run]')
     })
 
     it('records the failure and rethrows so Listr marks the task failed', async () => {
       const {cmd} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({meta: {}, revision: 'rev-1', slug: 'about', title: 'About'})
       const post = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'about.json')
       writeFileSync(file, JSON.stringify({meta: {}, slug: 'about', title: 'About'}))
       const task = {output: ''}
@@ -86,13 +110,30 @@ describe('seo push', () => {
       expect(cmd.failedCount).toBe(1)
     })
 
+    it('records the failure and rethrows when reading the current revision itself fails (not a 404)', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(new Error('server error', {cause: {response: {statusCode: 500}}}))
+      const post = vi.fn()
+      cmd.wpClient = {get, post, put: vi.fn()}
+      const file = join(dir, 'about.json')
+      writeFileSync(file, JSON.stringify({meta: {}, slug: 'about', title: 'About'}))
+      const task = {output: ''}
+
+      await expect(cmd.pushPostMetaFile('page', file, task)).rejects.toThrow('server error')
+
+      expect(post).not.toHaveBeenCalled()
+      expect(task.output).toContain('Failed to push')
+      expect(cmd.failedCount).toBe(1)
+    })
+
     // The active SEO plugin not supporting redirects surfaces the same way any other REST
     // failure does; post meta itself is unaffected, so this is really about push not silently
     // swallowing the "not supported" message.
     it('surfaces "not supported" errors the same way as any other failure', async () => {
       const {cmd} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({meta: {}, revision: 'rev-1', slug: 'about', title: 'About'})
       const post = vi.fn().mockRejectedValueOnce(new Error('Redirects are not supported by the active SEO plugin.'))
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       const file = join(dir, 'about.json')
       writeFileSync(file, JSON.stringify({meta: {}, slug: 'about', title: 'About'}))
       const task = {output: ''}
@@ -120,7 +161,7 @@ describe('seo push', () => {
       const {cmd} = makeCmd()
       const put = vi.fn().mockResolvedValueOnce({})
       const post = vi.fn()
-      cmd.wpClient = {post, put}
+      cmd.wpClient = {get: vi.fn(), post, put}
       const file = join(dir, '4-new.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: 4}))
       const task = {output: ''}
@@ -141,7 +182,7 @@ describe('seo push', () => {
     it('adds allowExternal to the payload only with --allow-external-redirects', async () => {
       const {cmd} = makeCmd()
       const put = vi.fn().mockResolvedValue({})
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
       const file = join(dir, '5-x.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: 5, urlTo: 'https://partner.example/go'}))
 
@@ -163,7 +204,7 @@ describe('seo push', () => {
       const {cmd} = makeCmd()
       const put = vi.fn().mockRejectedValueOnce(notFoundError())
       const post = vi.fn().mockResolvedValueOnce({...baseRedirect, id: 9})
-      cmd.wpClient = {post, put}
+      cmd.wpClient = {get: vi.fn(), post, put}
       const file = join(dir, '999-new.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: 999}))
       const task = {output: ''}
@@ -186,7 +227,7 @@ describe('seo push', () => {
       const {cmd} = makeCmd()
       const put = vi.fn()
       const post = vi.fn().mockResolvedValueOnce({...baseRedirect, id: 12})
-      cmd.wpClient = {post, put}
+      cmd.wpClient = {get: vi.fn(), post, put}
       const file = join(dir, 'draft.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: undefined}))
       const task = {output: ''}
@@ -201,7 +242,7 @@ describe('seo push', () => {
     it('fails clearly (not silently) when the active plugin does not support redirects', async () => {
       const {cmd} = makeCmd()
       const post = vi.fn().mockRejectedValueOnce(new Error('Redirects are not supported by the active SEO plugin.'))
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get: vi.fn(), post, put: vi.fn()}
       const file = join(dir, 'draft.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: undefined}))
       const task = {output: ''}
@@ -217,7 +258,7 @@ describe('seo push', () => {
       cmd.dryRun = true
       const put = vi.fn()
       const post = vi.fn()
-      cmd.wpClient = {post, put}
+      cmd.wpClient = {get: vi.fn(), post, put}
       const file = join(dir, '4-new.json')
       writeFileSync(file, JSON.stringify({...baseRedirect, id: 4}))
       const task = {output: ''}
@@ -233,30 +274,35 @@ describe('seo push', () => {
   describe('pushSettings', () => {
     it('does nothing when there is no local settings.json', async () => {
       const {cmd} = makeCmd()
+      const get = vi.fn()
       const put = vi.fn()
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get, post: vi.fn(), put}
 
       await cmd.pushSettings(dir)
 
+      expect(get).not.toHaveBeenCalled()
       expect(put).not.toHaveBeenCalled()
     })
 
-    it('PUTs the parsed settings file', async () => {
+    it('reads the settings’ current revision first, then PUTs the settings and that revision as a precondition (#234)', async () => {
       const {cmd, logs} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1', settings: {}})
       const put = vi.fn().mockResolvedValueOnce({})
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get, post: vi.fn(), put}
       writeFileSync(join(dir, 'settings.json'), JSON.stringify({titleSeparator: '-'}))
 
       await cmd.pushSettings(dir)
 
-      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {titleSeparator: '-'})
+      expect(get).toHaveBeenCalledWith('loopress/v1/seo/settings')
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {expectedRevision: 'rev-1', settings: {titleSeparator: '-'}})
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Pushed:'))
     })
 
     it('warns and records the failure without throwing', async () => {
       const {cmd, logs} = makeCmd()
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1', settings: {}})
       const put = vi.fn().mockRejectedValueOnce(new Error('boom'))
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get, post: vi.fn(), put}
       writeFileSync(join(dir, 'settings.json'), JSON.stringify({titleSeparator: '-'}))
 
       await cmd.pushSettings(dir)
@@ -265,15 +311,31 @@ describe('seo push', () => {
       expect(cmd.failedCount).toBe(1)
     })
 
-    it('does not call the API in dry-run mode', async () => {
+    it('warns and records the failure when reading the current revision itself fails', async () => {
       const {cmd, logs} = makeCmd()
-      cmd.dryRun = true
+      const get = vi.fn().mockRejectedValueOnce(new Error('server error'))
       const put = vi.fn()
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get, post: vi.fn(), put}
       writeFileSync(join(dir, 'settings.json'), JSON.stringify({titleSeparator: '-'}))
 
       await cmd.pushSettings(dir)
 
+      expect(put).not.toHaveBeenCalled()
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to push'))
+      expect(cmd.failedCount).toBe(1)
+    })
+
+    it('does not call the API in dry-run mode, not even reading the current revision', async () => {
+      const {cmd, logs} = makeCmd()
+      cmd.dryRun = true
+      const get = vi.fn()
+      const put = vi.fn()
+      cmd.wpClient = {get, post: vi.fn(), put}
+      writeFileSync(join(dir, 'settings.json'), JSON.stringify({titleSeparator: '-'}))
+
+      await cmd.pushSettings(dir)
+
+      expect(get).not.toHaveBeenCalled()
       expect(put).not.toHaveBeenCalled()
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('[dry-run]'))
     })
@@ -284,8 +346,9 @@ describe('seo push', () => {
 
     it('scans every post-type subdirectory of post-meta/, pushing only .json files', async () => {
       const {cmd, logs} = makeCmd() as unknown as {cmd: PostMetaInternals; logs: ReturnType<typeof silenceLogs>}
+      const get = vi.fn().mockRejectedValue(notFoundError())
       const post = vi.fn().mockResolvedValue({})
-      cmd.wpClient = {post, put: vi.fn()}
+      cmd.wpClient = {get, post, put: vi.fn()}
       mkdirSync(join(dir, 'post-meta', 'page'), {recursive: true})
       mkdirSync(join(dir, 'post-meta', 'post'), {recursive: true})
       writeFileSync(
@@ -309,7 +372,7 @@ describe('seo push', () => {
 
     it('says nothing for an empty or missing post-meta directory', async () => {
       const {cmd, logs} = makeCmd() as unknown as {cmd: PostMetaInternals; logs: ReturnType<typeof silenceLogs>}
-      cmd.wpClient = {post: vi.fn(), put: vi.fn()}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
       mkdirSync(join(dir, 'post-meta', 'page'), {recursive: true})
 
       await cmd.pushPostMeta(dir)
@@ -334,7 +397,7 @@ describe('seo push', () => {
     it('pushes every .json file in redirects/, ignoring stray non-.json files', async () => {
       const {cmd, logs} = makeCmd() as unknown as {cmd: RedirectsInternals; logs: ReturnType<typeof silenceLogs>}
       const put = vi.fn().mockResolvedValue({})
-      cmd.wpClient = {post: vi.fn(), put}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
       mkdirSync(join(dir, 'redirects'), {recursive: true})
       writeFileSync(join(dir, 'redirects', '4-new.json'), JSON.stringify(redirect))
       writeFileSync(join(dir, 'redirects', 'README.md'), 'notes')
@@ -347,7 +410,7 @@ describe('seo push', () => {
 
     it('says nothing for an empty or missing redirects directory', async () => {
       const {cmd, logs} = makeCmd() as unknown as {cmd: RedirectsInternals; logs: ReturnType<typeof silenceLogs>}
-      cmd.wpClient = {post: vi.fn(), put: vi.fn()}
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
 
       await cmd.pushRedirects(dir)
 
@@ -367,14 +430,27 @@ describe('seo push', () => {
       }
     }
 
+    // Routes GET calls made both by captureBeforePushState (a full remote-state read before the
+    // push) and by the per-item conditional-write precondition reads (#234): a settings read
+    // returns the wrapped {revision, settings} shape, a post-meta item read (has a slug segment)
+    // returns a single post with a revision, anything else (list endpoints) an empty array.
+    function defaultGet() {
+      return vi.fn().mockImplementation(async (path: string) => {
+        if (path === 'loopress/v1/seo/settings') return {revision: 'settings-rev', settings: {}}
+        if (/\/seo\/post-meta\/[^/]+\/[^/]+$/.test(path)) return {meta: {}, revision: 'post-rev', slug: 'x', title: 'X'}
+        return []
+      })
+    }
+
     function makeRunCmd(argv: string[] = []) {
       const cmd = new TestPush(argv, fakeOclifConfig)
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
+      const get = defaultGet()
       const put = vi.fn().mockResolvedValue({})
       const post = vi.fn().mockResolvedValue({})
-      ;(cmd as unknown as {wpClient: unknown}).wpClient = {post, put}
-      return {cmd, logs, post, put}
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
+      return {cmd, get, logs, post, put}
     }
 
     it('pushes settings, post-meta and redirects, then reports success', async () => {
@@ -402,8 +478,8 @@ describe('seo push', () => {
 
       await cmd.run()
 
-      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {titleSeparator: '-'})
-      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {meta: {}, slug: 'about'})
+      expect(put).toHaveBeenCalledWith('loopress/v1/seo/settings', {expectedRevision: 'settings-rev', settings: {titleSeparator: '-'}})
+      expect(post).toHaveBeenCalledWith('loopress/v1/seo/post-meta/page', {expectedRevision: 'post-rev', meta: {}, slug: 'about'})
       expect(put).toHaveBeenCalledWith('loopress/v1/seo/redirects/4', expect.objectContaining({urlTo: '/new'}))
       expect(logs.log).toHaveBeenCalledWith('All SEO configuration pushed.')
     })

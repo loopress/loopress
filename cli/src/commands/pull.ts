@@ -6,6 +6,10 @@ import {pluralize} from '../utils/pluralize.js'
 // not define the flag, passing it to them would be a "Nonexistent flag" parse error.
 type PullTarget = {commandId: string; label: string; supportsYes?: boolean}
 
+type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled'}
+
+type PullResult = {results: PullTargetResult[]}
+
 // composer before plugins: `plugin:pull` reads the local composer.json to skip
 // Composer-managed plugins, so it needs the freshly pulled one. The rest write to independent
 // directories and their order does not matter, it mirrors `lps push` for familiarity.
@@ -17,14 +21,16 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
   {commandId: 'seo:pull', label: 'SEO', supportsYes: true},
+  {commandId: 'menu:pull', label: 'menus', supportsYes: true},
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', supportsYes: true},
 ]
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, from WordPress'
+    'Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, menus, options, and snippets, from WordPress'
 
+  static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -33,15 +39,20 @@ export default class Pull extends LoopressCommand {
 
   private failedCount = 0
 
-  async run(): Promise<void> {
+  async run(): Promise<PullResult> {
+    const results: PullTargetResult[] = []
+
     for (const target of PULL_TARGETS) {
       this.log(`\n→ Pulling ${target.label}...`)
       try {
         await this.config.runCommand(target.commandId, this.buildArgv(target))
         this.log(`✓ ${target.label} pulled`)
+        results.push({label: target.label, status: 'pulled'})
       } catch (error) {
         this.failedCount++
-        this.log(`✗ ${target.label} failed: ${(error as Error).message}`)
+        const {message} = error as Error
+        this.log(`✗ ${target.label} failed: ${message}`)
+        results.push({error: message, label: target.label, status: 'failed'})
       }
     }
 
@@ -50,6 +61,7 @@ export default class Pull extends LoopressCommand {
     }
 
     this.log('\nAll resources pulled.')
+    return {results}
   }
 
   // `--yes` is forwarded only when the user passed it and the target accepts it: unlike

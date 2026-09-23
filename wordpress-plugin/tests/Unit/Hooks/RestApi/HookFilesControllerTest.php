@@ -172,6 +172,31 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame(200, $response->status);
     }
 
+    // ── expectedRevision (#234) ─────────────────────────────────────────────
+    //
+    // The full matrix (revision present/stable, match/stale/missing-file/non-string
+    // expectedRevision) lives once in ApiFilesControllerTest: this behavior is inherited
+    // unchanged from AbstractFilesController, not reimplemented per controller. This single
+    // smoke test just confirms HookFilesController is wired to it the same way.
+
+    public function test_push_file_enforces_the_expectedRevision_precondition(): void
+    {
+        $current = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $this->directory->method('read')->with('hello')->willReturn($current);
+        $this->directory->expects($this->never())->method('write');
+
+        $request = new WP_REST_Request([
+            'filename'         => 'hello',
+            'content'          => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n",
+            'expectedRevision' => 'not-the-current-revision',
+        ]);
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(412, $response->status);
+        $this->assertStringContainsString('changed on WordPress since it was last read', (string) $response->data['error']);
+    }
+
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
     {
         $request = new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);
@@ -321,6 +346,58 @@ class HookFilesControllerTest extends TestCase
         $this->directory->expects($this->never())->method('delete');
 
         $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content/index']));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    // ── push_batch (#236) ───────────────────────────────────────────────────
+    //
+    // The full matrix (staging/commit/abort, prune, the expectedRevision/collision checks
+    // against the staged batch) lives once in ApiFilesControllerTest: push_batch() here is the
+    // exact same AbstractFilesController code, not reimplemented per controller. These smoke
+    // tests confirm HookFilesController is wired to it the same way, and that its own
+    // isValidFilename() override (rejecting a last segment of "index") is honoured on both the
+    // pushed files and the prune list, not just push_file()/delete_file().
+
+    public function test_push_batch_stages_the_guarded_content_and_commits(): void
+    {
+        $this->directory->expects($this->once())
+            ->method('stageWrite')
+            ->with('content-filters', $this->stringContains("if (!defined('ABSPATH'))"));
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content-filters']],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_push_batch_returns_400_and_aborts_for_a_filename_whose_last_segment_is_index(): void
+    {
+        $this->directory->expects($this->never())->method('stageWrite');
+        $this->directory->expects($this->once())->method('abortBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content/index']],
+        ]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_returns_400_and_aborts_for_an_index_slug_in_the_prune_list(): void
+    {
+        $this->directory->expects($this->never())->method('stageDelete');
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $request = new WP_REST_Request([
+            'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content-filters']],
+            'prune' => ['content/index'],
+        ]);
+        $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);
     }

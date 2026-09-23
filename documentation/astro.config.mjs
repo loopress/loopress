@@ -116,9 +116,11 @@ export default defineConfig({
 										{ label: "Snippets", slug: "snippets" },
 										{ label: "ACF", slug: "acf" },
 										{ label: "SEO", slug: "seo" },
+										{ label: "Menus", slug: "menus" },
 										{ label: "Forms", slug: "forms" },
 										{ label: "Plugins", slug: "plugins" },
 										{ label: "Themes", slug: "themes" },
+										{ label: "Theme Styles", slug: "theme-styles" },
 										{
 											label: "Composer",
 											items: [

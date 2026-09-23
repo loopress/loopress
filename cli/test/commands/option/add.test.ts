@@ -49,6 +49,17 @@ describe('option add', () => {
     expect(written).toMatchObject({autoload: 'no', name: 'wpseo_titles', readonly: false, value: {titleSep: '-'}})
   })
 
+  it('never persists the remote revision field locally', async () => {
+    const {cmd, internals} = makeCmd(['wpseo_titles', '--path', dir])
+    const get = vi.fn().mockResolvedValueOnce({autoload: 'no', name: 'wpseo_titles', revision: 'abc123', value: {titleSep: '-'}})
+    internals.wpClient = {get}
+
+    await cmd.run()
+
+    const written = JSON.parse(readFileSync(join(dir, 'wpseo_titles.json'), 'utf8')) as Record<string, unknown>
+    expect(written).not.toHaveProperty('revision')
+  })
+
   // siteurl is environment-owned (see option-format.ts's READONLY_BY_DEFAULT_OPTION_NAMES):
   // pushing a value copied from another environment would repoint the target site's own URL.
   it('defaults readonly to true for an environment-owned option like siteurl', async () => {

@@ -10,10 +10,12 @@ export const RESOURCE_DIR_DEFAULTS = {
   apps: 'apps',
   form: 'forms',
   hooks: 'hooks',
+  menu: 'menus',
   options: 'options',
   page: 'pages',
   seo: 'seo',
   snippets: 'snippets',
+  themeStyles: 'theme',
 } as const
 
 export type ResourceDirKind = keyof typeof RESOURCE_DIR_DEFAULTS
@@ -24,10 +26,12 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   apps: 'appsDir',
   form: 'formDir',
   hooks: 'hooksDir',
+  menu: 'menuDir',
   options: 'optionsDir',
   page: 'pageDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
+  themeStyles: 'themeStylesDir',
 }
 
 // Resolves where a resource's files live: an explicit override wins, otherwise the

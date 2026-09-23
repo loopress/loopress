@@ -199,6 +199,10 @@ export abstract class LoopressCommand extends Command {
     return resolveResourceDir('hooks', this.localConfig, override)
   }
 
+  protected resolveMenuPath(override?: string): string {
+    return resolveResourceDir('menu', this.localConfig, override)
+  }
+
   protected resolveOptionsPath(override?: string): string {
     return resolveResourceDir('options', this.localConfig, override)
   }
@@ -209,6 +213,10 @@ export abstract class LoopressCommand extends Command {
 
   protected resolveSnippetsPath(override?: string): string {
     return resolveResourceDir('snippets', this.localConfig, override)
+  }
+
+  protected resolveThemeStylesPath(override?: string): string {
+    return resolveResourceDir('themeStyles', this.localConfig, override)
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

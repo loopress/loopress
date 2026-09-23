@@ -140,6 +140,20 @@ class RouteLoaderTest extends TestCase
         $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
     }
 
+    public function test_endpointsFor_wraps_a_throwing_verb_callback_instead_of_fataling(): void
+    {
+        // WP core's own dispatch (WP_REST_Server::respond_to_request()) has no try/catch
+        // around the route callback: an uncaught throw here would 500/fatal a real request,
+        // same principle already applied to permission_callback and headers() above.
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureThrowingGet());
+
+        $response = ($endpoints[0]['callback'])(new WP_REST_Request([], '/test'));
+
+        $this->assertInstanceOf(\WP_REST_Response::class, $response);
+        $this->assertSame(500, $response->status);
+    }
+
     public function test_endpointsFor_resolves_permission_per_verb_from_method_level_attributes(): void
     {
         $loader    = new RouteLoader($this->directory, $this->environment);

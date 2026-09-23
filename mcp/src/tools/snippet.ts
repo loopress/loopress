@@ -11,5 +11,6 @@ export function registerSnippetTools(server: McpServer): void {
     },
     pathNoun: 'snippets directory',
     resource: 'snippet',
+    supportsRollback: true,
   })
 }

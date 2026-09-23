@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, static pages, ACF objects, SEO settings, forms, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, static pages, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool shells out to the `lps` binary already on your `PATH`, the same one used by the [CLI](/cli/).
 
@@ -46,14 +46,17 @@ The server communicates over stdio from the directory your client launches it in
 | `snippet_push` | Yes | Push local snippet files to WordPress |
 | `snippet_pull` | No | Pull snippets from WordPress into local files |
 | `snippet_list` | No | List snippets currently on WordPress |
+| `snippet_rollback` | Yes | Restore snippets to the snapshot saved automatically before an earlier `snippet_push` (`list` shows what's available) |
 | `api_push` | Yes | Push local custom API route files to WordPress (`prune` also removes server-side files absent locally) |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress (flags each route `public` when it needs no authentication) |
 | `api_rm` | Yes | Remove one custom API route file from WordPress |
+| `api_rollback` | Yes | Restore API route files to the snapshot saved automatically before an earlier `api_push` (`list` shows what's available) |
 | `hook_push` | Yes | Push local hook files to WordPress (`prune` also removes server-side files absent locally) |
 | `hook_pull` | No | Pull hook files from WordPress |
 | `hook_list` | No | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | Remove one hook file (action, filter, cron) from WordPress |
+| `hook_rollback` | Yes | Restore hook files to the snapshot saved automatically before an earlier `hook_push` (`list` shows what's available) |
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |
@@ -64,17 +67,25 @@ The server communicates over stdio from the directory your client launches it in
 | `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |
+| `acf_rollback` | Yes | Restore ACF objects to the snapshot saved automatically before an earlier `acf_push` (`list` shows what's available) |
 | `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress (`allowExternalRedirects` to permit an off-site redirect target) |
 | `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
 | `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
+| `seo_rollback` | Yes | Restore SEO settings, post meta and redirects to the snapshot saved automatically before an earlier `seo_push` (`list` shows what's available) |
+| `menu_push` | Yes | Push local nav menus and the active theme menu locations to WordPress |
+| `menu_pull` | No | Pull nav menus and the active theme menu locations from WordPress into local files |
+| `menu_list` | No | List nav menus and the active theme menu locations currently on WordPress |
+| `menu_rollback` | Yes | Restore nav menus and menu locations to the snapshot saved automatically before an earlier `menu_push` (`list` shows what's available) |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |
 | `option_add` | No | Fetch a WordPress option by name and start tracking it locally |
 | `option_remove` | Yes | Stop tracking an option locally and delete it from WordPress |
+| `option_rollback` | Yes | Restore tracked options to the snapshot saved automatically before an earlier `option_push` (`list` shows what's available) |
 | `form_push` | Yes | Push local form files to WordPress |
 | `form_pull` | No | Pull forms from WordPress into local files |
 | `form_list` | No | List forms currently on WordPress |
+| `form_rollback` | Yes | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
 | `plugin_push` | Yes | Install/pin/activate WordPress.org plugins to match `loopress.json`, via Composer + WPackagist |
 | `plugin_pull` | No | Pull installed plugins from WordPress into `loopress.json`, pinned to their live versions |
 | `plugin_status` | No | Report drift between the plugins on WordPress and `loopress.json` |
@@ -82,22 +93,29 @@ The server communicates over stdio from the directory your client launches it in
 | `theme_push` | Yes | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_status` | No | Report version drift between the themes on WordPress and `loopress.json` |
+| `theme_styles_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
+| `theme_styles_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |
+| `theme_styles_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_styles_push` (`list` shows what's available) |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
 | `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |
 | `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull` |
+| `project_promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
 | `project_status` | No | Show which project and environment the other tools will target |
+| `project_diff` | No | Show what differs between local tracked files and a WordPress environment, or between two environments (`against`) |
+| `project_doctor` | No | Diagnose connectivity, plugin and credential problems for the targeted environment |
+| `validate_local` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull` and `_list` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags.
+Every tool accepts an optional `env` to target a specific environment instead of the globally active one. The `_push`, `_pull`, `_list` and `_rollback` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags. `project_diff` also takes optional `only`/`skip` resource-name arrays (including `menu`) and an `against` environment name to compare two environments instead of an environment against local files. Each `_rollback` tool restores the snapshot its resource's `_push` tool saved automatically right before the last real push; pass `list: true` to see what's available instead (id, timestamp, environment) or `to` to pick an older one. The preview result's `drift` field reports whether the environment changed since that push, and if it changes again between the preview and the confirmed call, the confirmed call is refused rather than applied, the same staleness check every other mutating tool's confirmation handshake now does.
 
 ## Confirming changes
 
 Every mutating tool requires two calls before it touches WordPress:
 
 1. **Call without `confirmToken`**: takes a private copy of the working directory, runs a dry-run preview against it, and returns a single-use `confirmToken` (expires after 5 minutes) instead of making any change.
-2. **Call again with that `confirmToken`**: applies from that same copy, so a file edited on disk between the two calls cannot change what gets pushed.
+2. **Call again with that `confirmToken`**: re-runs that same dry-run once more, from the same private copy, right before applying. If it now reports anything different, meaning the environment changed since the preview, the call is refused instead of applying against stale data; call again without a `confirmToken` for a fresh preview. Otherwise it applies from that same copy, so a file edited on disk between the two calls cannot change what gets pushed either.
 
-This handshake can't be skipped, not even against a `production` environment, so an agent can never push a real change without a human-reviewable preview first. One gap: an `lps --path` that points outside the working directory, or a `loopress.json` that maps a resource directory to an absolute path elsewhere, is still read live when the change is applied.
+This handshake can't be skipped, not even against a `production` environment, so an agent can never push a real change without a human-reviewable preview first. Two known gaps: an `lps --path` that points outside the working directory, or a `loopress.json` that maps a resource directory to an absolute path elsewhere, is still read live when the change is applied; and the revalidation dry-run and the real apply are still two separate requests rather than one atomic check-and-write, so a WordPress change landing in that (much narrower) window can still be overwritten, closing that fully needs a conditional write enforced by WordPress itself, tracked separately.
 
 ## Project config resource
 

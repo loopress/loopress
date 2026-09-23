@@ -13,12 +13,13 @@ const ALL_COMMAND_IDS = [
   'hook:pull',
   'form:pull',
   'seo:pull',
+  'menu:pull',
   'option:pull',
   'snippet:pull',
 ]
 
 // The commands that delete orphaned local files and so accept --yes.
-const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'form:pull', 'hook:pull', 'option:pull', 'seo:pull', 'snippet:pull'])
+const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'form:pull', 'hook:pull', 'menu:pull', 'option:pull', 'seo:pull', 'snippet:pull'])
 
 class TestPull extends Pull {
   setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
@@ -99,6 +100,16 @@ describe('pull', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('\nAll resources pulled.')
+  })
+
+  it('returns a per-resource result for --json, so pull_all in the MCP server has something to parse', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make()
+
+    const result = await cmd.run()
+
+    expect(result.results).toHaveLength(ALL_COMMAND_IDS.length)
+    expect(result.results.every((entry) => entry.status === 'pulled')).toBe(true)
   })
 
   it('continues past a failed resource and still pulls the rest', async () => {

@@ -21,7 +21,7 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.24.1 darwin-arm64 node-v24.20.0
+@loopress/cli/0.25.0 darwin-arm64 node-v24.20.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
@@ -51,12 +51,14 @@ report.
 * [`lps acf list`](#lps-acf-list)
 * [`lps acf pull [PATH]`](#lps-acf-pull-path)
 * [`lps acf push [PATH]`](#lps-acf-push-path)
+* [`lps acf rollback [PATH]`](#lps-acf-rollback-path)
 * [`lps api diff [PATH]`](#lps-api-diff-path)
 * [`lps api list`](#lps-api-list)
 * [`lps api publish [PATH]`](#lps-api-publish-path)
 * [`lps api pull [PATH]`](#lps-api-pull-path)
 * [`lps api push [PATH]`](#lps-api-push-path)
 * [`lps api rm FILENAME`](#lps-api-rm-filename)
+* [`lps api rollback [PATH]`](#lps-api-rollback-path)
 * [`lps app list`](#lps-app-list)
 * [`lps app pull [PATH]`](#lps-app-pull-path)
 * [`lps app push [NAME]`](#lps-app-push-name)
@@ -71,21 +73,29 @@ report.
 * [`lps form list`](#lps-form-list)
 * [`lps form pull [PATH]`](#lps-form-pull-path)
 * [`lps form push [PATH]`](#lps-form-push-path)
+* [`lps form rollback [PATH]`](#lps-form-rollback-path)
 * [`lps help [COMMAND]`](#lps-help-command)
 * [`lps hook diff [PATH]`](#lps-hook-diff-path)
 * [`lps hook list`](#lps-hook-list)
 * [`lps hook pull [PATH]`](#lps-hook-pull-path)
 * [`lps hook push [PATH]`](#lps-hook-push-path)
 * [`lps hook rm FILENAME`](#lps-hook-rm-filename)
+* [`lps hook rollback [PATH]`](#lps-hook-rollback-path)
 * [`lps init`](#lps-init)
 * [`lps login`](#lps-login)
 * [`lps logout`](#lps-logout)
+* [`lps menu diff [PATH]`](#lps-menu-diff-path)
+* [`lps menu list`](#lps-menu-list)
+* [`lps menu pull [PATH]`](#lps-menu-pull-path)
+* [`lps menu push [PATH]`](#lps-menu-push-path)
+* [`lps menu rollback [PATH]`](#lps-menu-rollback-path)
 * [`lps option add NAME`](#lps-option-add-name)
 * [`lps option diff [PATH]`](#lps-option-diff-path)
 * [`lps option list`](#lps-option-list)
 * [`lps option pull [PATH]`](#lps-option-pull-path)
 * [`lps option push [PATH]`](#lps-option-push-path)
 * [`lps option remove NAME`](#lps-option-remove-name)
+* [`lps option rollback [PATH]`](#lps-option-rollback-path)
 * [`lps page diff [PATH]`](#lps-page-diff-path)
 * [`lps page list`](#lps-page-list)
 * [`lps page push [SLUG]`](#lps-page-push-slug)
@@ -108,14 +118,20 @@ report.
 * [`lps seo list`](#lps-seo-list)
 * [`lps seo pull [PATH]`](#lps-seo-pull-path)
 * [`lps seo push [PATH]`](#lps-seo-push-path)
+* [`lps seo rollback [PATH]`](#lps-seo-rollback-path)
 * [`lps snippet diff [PATH]`](#lps-snippet-diff-path)
 * [`lps snippet list`](#lps-snippet-list)
 * [`lps snippet publish [PATH]`](#lps-snippet-publish-path)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
+* [`lps snippet rollback [PATH]`](#lps-snippet-rollback-path)
 * [`lps status`](#lps-status)
 * [`lps telemetry disable`](#lps-telemetry-disable)
 * [`lps telemetry enable`](#lps-telemetry-enable)
+* [`lps theme-styles diff [PATH]`](#lps-theme-styles-diff-path)
+* [`lps theme-styles pull [PATH]`](#lps-theme-styles-pull-path)
+* [`lps theme-styles push [PATH]`](#lps-theme-styles-push-path)
+* [`lps theme-styles rollback [PATH]`](#lps-theme-styles-rollback-path)
 * [`lps theme add SLUG`](#lps-theme-add-slug)
 * [`lps theme pull`](#lps-theme-pull)
 * [`lps theme push`](#lps-theme-push)
@@ -152,7 +168,7 @@ EXAMPLES
   $ lps acf diff --env staging --against production
 ```
 
-_See code: [src/commands/acf/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/acf/diff.ts)_
+_See code: [src/commands/acf/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/diff.ts)_
 
 ## `lps acf list`
 
@@ -179,7 +195,7 @@ EXAMPLES
   $ lps acf list --type field-groups
 ```
 
-_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/acf/list.ts)_
+_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/list.ts)_
 
 ## `lps acf pull [PATH]`
 
@@ -208,7 +224,7 @@ EXAMPLES
   $ lps acf pull --type field-groups
 ```
 
-_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/acf/pull.ts)_
+_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/pull.ts)_
 
 ## `lps acf push [PATH]`
 
@@ -237,7 +253,44 @@ EXAMPLES
   $ lps acf push --type field-groups
 ```
 
-_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/acf/push.ts)_
+_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/push.ts)_
+
+## `lps acf rollback [PATH]`
+
+Restore ACF field groups, post types, taxonomies, and options pages to a snapshot taken automatically before an earlier `lps acf push`
+
+```
+USAGE
+  $ lps acf rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to ACF directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore ACF field groups, post types, taxonomies, and options pages to a snapshot taken automatically before an
+  earlier `lps acf push`
+
+EXAMPLES
+  $ lps acf rollback
+
+  $ lps acf rollback --list
+
+  $ lps acf rollback --to 1732000000000
+
+  $ lps acf rollback --dry-run
+```
+
+_See code: [src/commands/acf/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/rollback.ts)_
 
 ## `lps api diff [PATH]`
 
@@ -269,7 +322,7 @@ EXAMPLES
   $ lps api diff --env staging --against production
 ```
 
-_See code: [src/commands/api/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/diff.ts)_
+_See code: [src/commands/api/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/diff.ts)_
 
 ## `lps api list`
 
@@ -292,7 +345,7 @@ EXAMPLES
   $ lps api list
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/list.ts)_
 
 ## `lps api publish [PATH]`
 
@@ -315,7 +368,7 @@ EXAMPLES
   $ lps api publish --path ./api
 ```
 
-_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/publish.ts)_
+_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/publish.ts)_
 
 ## `lps api pull [PATH]`
 
@@ -345,7 +398,7 @@ EXAMPLES
   $ lps api pull --path ./api
 ```
 
-_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/pull.ts)_
+_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/pull.ts)_
 
 ## `lps api push [PATH]`
 
@@ -378,7 +431,7 @@ EXAMPLES
   $ lps api push --prune
 ```
 
-_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/push.ts)_
+_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/push.ts)_
 
 ## `lps api rm FILENAME`
 
@@ -408,7 +461,43 @@ EXAMPLES
   $ lps api rm hello --yes
 ```
 
-_See code: [src/commands/api/rm.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/api/rm.ts)_
+_See code: [src/commands/api/rm.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/rm.ts)_
+
+## `lps api rollback [PATH]`
+
+Restore API route files to a snapshot taken automatically before an earlier `lps api push`
+
+```
+USAGE
+  $ lps api rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to api directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore API route files to a snapshot taken automatically before an earlier `lps api push`
+
+EXAMPLES
+  $ lps api rollback
+
+  $ lps api rollback --list
+
+  $ lps api rollback --to 1732000000000
+
+  $ lps api rollback --dry-run
+```
+
+_See code: [src/commands/api/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/rollback.ts)_
 
 ## `lps app list`
 
@@ -431,7 +520,7 @@ EXAMPLES
   $ lps app list
 ```
 
-_See code: [src/commands/app/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/app/list.ts)_
+_See code: [src/commands/app/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/list.ts)_
 
 ## `lps app pull [PATH]`
 
@@ -459,7 +548,7 @@ EXAMPLES
   $ lps app pull
 ```
 
-_See code: [src/commands/app/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/app/pull.ts)_
+_See code: [src/commands/app/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/pull.ts)_
 
 ## `lps app push [NAME]`
 
@@ -490,7 +579,7 @@ EXAMPLES
   $ lps app push search
 ```
 
-_See code: [src/commands/app/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/app/push.ts)_
+_See code: [src/commands/app/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/push.ts)_
 
 ## `lps app remove NAME`
 
@@ -519,7 +608,7 @@ EXAMPLES
   $ lps app remove search
 ```
 
-_See code: [src/commands/app/remove.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/app/remove.ts)_
+_See code: [src/commands/app/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/remove.ts)_
 
 ## `lps composer init`
 
@@ -542,7 +631,7 @@ EXAMPLES
   $ lps composer init --dry-run
 ```
 
-_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/composer/init.ts)_
+_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/init.ts)_
 
 ## `lps composer pull`
 
@@ -568,7 +657,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -596,7 +685,7 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/push.ts)_
 
 ## `lps dev`
 
@@ -622,34 +711,34 @@ EXAMPLES
   $ lps dev --skip=plugins
 ```
 
-_See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/dev.ts)_
+_See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/dev.ts)_
 
 ## `lps diff`
 
-Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, Hooks, pages, SEO, options, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.
+Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, Hooks, pages, SEO, Options, Menus, Theme styles, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.
 
 ```
 USAGE
   $ lps diff [--json] [--env <value>] [--against <value>] [--only
-    snippet|form|acf|api|hook|page|seo|option|composer...] [--skip
-    snippet|form|acf|api|hook|page|seo|option|composer...]
+    snippet|form|acf|api|hook|page|seo|menu|option|theme-styles|composer...] [--skip
+    snippet|form|acf|api|hook|page|seo|menu|option|theme-styles|composer...]
 
 FLAGS
   --against=<value>   Compare the primary environment against this second environment instead of against local files
   --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
   --only=<option>...  Only compare these resources
-                      <options: snippet|form|acf|api|hook|page|seo|option|composer>
+                      <options: snippet|form|acf|api|hook|page|seo|menu|option|theme-styles|composer>
   --skip=<option>...  Compare every resource except these
-                      <options: snippet|form|acf|api|hook|page|seo|option|composer>
+                      <options: snippet|form|acf|api|hook|page|seo|menu|option|theme-styles|composer>
 
 GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
   Show what differs between your local tracked files and a WordPress environment, or between two environments. Covers
-  snippets, forms, ACF, API routes, Hooks, pages, SEO, options, and Composer. Plugins and themes have their own `lps
-  plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it
-  doubles as a CI drift gate.
+  snippets, forms, ACF, API routes, Hooks, pages, SEO, Options, Menus, Theme styles, and Composer. Plugins and themes
+  have their own `lps plugin status` / `lps theme status`. Exit code: 0 in sync, 1 on drift, 2 when a resource could not
+  be compared, so it doubles as a CI drift gate.
 
 EXAMPLES
   $ lps diff
@@ -663,7 +752,7 @@ EXAMPLES
   $ lps diff --skip composer
 ```
 
-_See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/diff.ts)_
+_See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/diff.ts)_
 
 ## `lps doctor`
 
@@ -671,10 +760,13 @@ Diagnose connectivity, plugin and credential problems for the targeted environme
 
 ```
 USAGE
-  $ lps doctor [--env <value>]
+  $ lps doctor [--json] [--env <value>]
 
 FLAGS
   --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Diagnose connectivity, plugin and credential problems for the targeted environment
@@ -685,7 +777,7 @@ EXAMPLES
   $ lps doctor --env production
 ```
 
-_See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/doctor.ts)_
+_See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/doctor.ts)_
 
 ## `lps form diff [PATH]`
 
@@ -716,7 +808,7 @@ EXAMPLES
   $ lps form diff --env staging --against production
 ```
 
-_See code: [src/commands/form/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/form/diff.ts)_
+_See code: [src/commands/form/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/diff.ts)_
 
 ## `lps form list`
 
@@ -739,7 +831,7 @@ EXAMPLES
   $ lps form list
 ```
 
-_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/form/list.ts)_
+_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/list.ts)_
 
 ## `lps form pull [PATH]`
 
@@ -764,7 +856,7 @@ EXAMPLES
   $ lps form pull
 ```
 
-_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/form/pull.ts)_
+_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/pull.ts)_
 
 ## `lps form push [PATH]`
 
@@ -795,7 +887,43 @@ EXAMPLES
   $ lps form push --allow-notifications
 ```
 
-_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/form/push.ts)_
+_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/push.ts)_
+
+## `lps form rollback [PATH]`
+
+Restore forms to a snapshot taken automatically before an earlier `lps form push`
+
+```
+USAGE
+  $ lps form rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to forms directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore forms to a snapshot taken automatically before an earlier `lps form push`
+
+EXAMPLES
+  $ lps form rollback
+
+  $ lps form rollback --list
+
+  $ lps form rollback --to 1732000000000
+
+  $ lps form rollback --dry-run
+```
+
+_See code: [src/commands/form/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/rollback.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -846,7 +974,7 @@ EXAMPLES
   $ lps hook diff --env staging --against production
 ```
 
-_See code: [src/commands/hook/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/hook/diff.ts)_
+_See code: [src/commands/hook/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/diff.ts)_
 
 ## `lps hook list`
 
@@ -869,7 +997,7 @@ EXAMPLES
   $ lps hook list
 ```
 
-_See code: [src/commands/hook/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/hook/list.ts)_
+_See code: [src/commands/hook/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/list.ts)_
 
 ## `lps hook pull [PATH]`
 
@@ -899,7 +1027,7 @@ EXAMPLES
   $ lps hook pull --path ./hooks
 ```
 
-_See code: [src/commands/hook/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/hook/pull.ts)_
+_See code: [src/commands/hook/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/pull.ts)_
 
 ## `lps hook push [PATH]`
 
@@ -932,7 +1060,7 @@ EXAMPLES
   $ lps hook push --prune
 ```
 
-_See code: [src/commands/hook/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/hook/push.ts)_
+_See code: [src/commands/hook/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/push.ts)_
 
 ## `lps hook rm FILENAME`
 
@@ -962,7 +1090,43 @@ EXAMPLES
   $ lps hook rm hello --yes
 ```
 
-_See code: [src/commands/hook/rm.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/hook/rm.ts)_
+_See code: [src/commands/hook/rm.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/rm.ts)_
+
+## `lps hook rollback [PATH]`
+
+Restore hook files to a snapshot taken automatically before an earlier `lps hook push`
+
+```
+USAGE
+  $ lps hook rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to hooks directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore hook files to a snapshot taken automatically before an earlier `lps hook push`
+
+EXAMPLES
+  $ lps hook rollback
+
+  $ lps hook rollback --list
+
+  $ lps hook rollback --to 1732000000000
+
+  $ lps hook rollback --dry-run
+```
+
+_See code: [src/commands/hook/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/rollback.ts)_
 
 ## `lps init`
 
@@ -979,7 +1143,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -996,7 +1160,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -1013,7 +1177,150 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/logout.ts)_
+
+## `lps menu diff [PATH]`
+
+Show what differs in nav menus and the active theme menu locations between your local files and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps menu diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to menus directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in nav menus and the active theme menu locations between your local files and a WordPress
+  environment, or between two environments
+
+EXAMPLES
+  $ lps menu diff
+
+  $ lps menu diff --env staging
+
+  $ lps menu diff --env staging --against production
+```
+
+_See code: [src/commands/menu/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/diff.ts)_
+
+## `lps menu list`
+
+List nav menus and the active theme menu locations on WordPress
+
+```
+USAGE
+  $ lps menu list [--json] [--env <value>]
+
+FLAGS
+  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  List nav menus and the active theme menu locations on WordPress
+
+EXAMPLES
+  $ lps menu list
+```
+
+_See code: [src/commands/menu/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/list.ts)_
+
+## `lps menu pull [PATH]`
+
+Pull nav menus and the active theme menu locations from WordPress
+
+```
+USAGE
+  $ lps menu pull [PATH] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to menus directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Pull nav menus and the active theme menu locations from WordPress
+
+EXAMPLES
+  $ lps menu pull
+```
+
+_See code: [src/commands/menu/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/pull.ts)_
+
+## `lps menu push [PATH]`
+
+Push local nav menus and the active theme menu locations to WordPress. Each menu's post_type/taxonomy items are resolved by slug on the target environment, never by a raw id; an item whose target does not exist there fails the whole menu rather than guessing.
+
+```
+USAGE
+  $ lps menu push [PATH] [--env <value>] [-d] [-y]
+
+ARGUMENTS
+  [PATH]  Path to menus directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Push local nav menus and the active theme menu locations to WordPress. Each menu's post_type/taxonomy items are
+  resolved by slug on the target environment, never by a raw id; an item whose target does not exist there fails the
+  whole menu rather than guessing.
+
+EXAMPLES
+  $ lps menu push
+```
+
+_See code: [src/commands/menu/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/push.ts)_
+
+## `lps menu rollback [PATH]`
+
+Restore nav menus and menu locations to a snapshot taken automatically before an earlier `lps menu push`
+
+```
+USAGE
+  $ lps menu rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to menus directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore nav menus and menu locations to a snapshot taken automatically before an earlier `lps menu push`
+
+EXAMPLES
+  $ lps menu rollback
+
+  $ lps menu rollback --list
+
+  $ lps menu rollback --to 1732000000000
+
+  $ lps menu rollback --dry-run
+```
+
+_See code: [src/commands/menu/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/rollback.ts)_
 
 ## `lps option add NAME`
 
@@ -1044,7 +1351,7 @@ EXAMPLES
   $ lps option add siteurl
 ```
 
-_See code: [src/commands/option/add.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/add.ts)_
+_See code: [src/commands/option/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/add.ts)_
 
 ## `lps option diff [PATH]`
 
@@ -1076,7 +1383,7 @@ EXAMPLES
   $ lps option diff --env staging --against production
 ```
 
-_See code: [src/commands/option/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/diff.ts)_
+_See code: [src/commands/option/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/diff.ts)_
 
 ## `lps option list`
 
@@ -1106,7 +1413,7 @@ EXAMPLES
   $ lps option list --no-core
 ```
 
-_See code: [src/commands/option/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/list.ts)_
+_See code: [src/commands/option/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/list.ts)_
 
 ## `lps option pull [PATH]`
 
@@ -1135,7 +1442,7 @@ EXAMPLES
   $ lps option pull
 ```
 
-_See code: [src/commands/option/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/pull.ts)_
+_See code: [src/commands/option/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/pull.ts)_
 
 ## `lps option push [PATH]`
 
@@ -1164,7 +1471,7 @@ EXAMPLES
   $ lps option push
 ```
 
-_See code: [src/commands/option/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/push.ts)_
+_See code: [src/commands/option/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/push.ts)_
 
 ## `lps option remove NAME`
 
@@ -1197,7 +1504,43 @@ EXAMPLES
   $ lps option remove wpseo_titles --local-only
 ```
 
-_See code: [src/commands/option/remove.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/option/remove.ts)_
+_See code: [src/commands/option/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/remove.ts)_
+
+## `lps option rollback [PATH]`
+
+Restore tracked options to a snapshot taken automatically before an earlier `lps option push`
+
+```
+USAGE
+  $ lps option rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to options directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore tracked options to a snapshot taken automatically before an earlier `lps option push`
+
+EXAMPLES
+  $ lps option rollback
+
+  $ lps option rollback --list
+
+  $ lps option rollback --to 1732000000000
+
+  $ lps option rollback --dry-run
+```
+
+_See code: [src/commands/option/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/rollback.ts)_
 
 ## `lps page diff [PATH]`
 
@@ -1228,7 +1571,7 @@ EXAMPLES
   $ lps page diff --env staging --against production
 ```
 
-_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/page/diff.ts)_
+_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/diff.ts)_
 
 ## `lps page list`
 
@@ -1251,7 +1594,7 @@ EXAMPLES
   $ lps page list
 ```
 
-_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/page/list.ts)_
+_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/list.ts)_
 
 ## `lps page push [SLUG]`
 
@@ -1284,7 +1627,7 @@ EXAMPLES
   $ lps page push --dry-run
 ```
 
-_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/page/push.ts)_
+_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/push.ts)_
 
 ## `lps plugin add SLUG`
 
@@ -1313,7 +1656,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/add.ts)_
 
 ## `lps plugin audit`
 
@@ -1336,7 +1679,7 @@ EXAMPLES
   $ lps plugin audit
 ```
 
-_See code: [src/commands/plugin/audit.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/plugin/audit.ts)_
+_See code: [src/commands/plugin/audit.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/audit.ts)_
 
 ## `lps plugin pull`
 
@@ -1362,7 +1705,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -1393,7 +1736,7 @@ EXAMPLES
   $ lps plugin push --force --prune
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/push.ts)_
 
 ## `lps plugin status`
 
@@ -1416,7 +1759,7 @@ EXAMPLES
   $ lps plugin status
 ```
 
-_See code: [src/commands/plugin/status.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/plugin/status.ts)_
+_See code: [src/commands/plugin/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/status.ts)_
 
 ## `lps project config`
 
@@ -1434,7 +1777,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -1454,7 +1797,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/list.ts)_
 
 ## `lps project pull`
 
@@ -1471,7 +1814,7 @@ EXAMPLES
   $ lps project pull
 ```
 
-_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/pull.ts)_
+_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/pull.ts)_
 
 ## `lps project push`
 
@@ -1491,7 +1834,7 @@ EXAMPLES
   $ lps project push
 ```
 
-_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/push.ts)_
+_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/push.ts)_
 
 ## `lps project remove`
 
@@ -1508,7 +1851,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/remove.ts)_
 
 ## `lps project rotate`
 
@@ -1530,7 +1873,7 @@ EXAMPLES
   $ lps project rotate --env staging
 ```
 
-_See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/rotate.ts)_
+_See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/rotate.ts)_
 
 ## `lps project switch`
 
@@ -1547,7 +1890,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/switch.ts)_
 
 ## `lps promote FROM TO`
 
@@ -1555,7 +1898,7 @@ Copy every tracked resource from one environment to another by pulling from <fro
 
 ```
 USAGE
-  $ lps promote FROM TO [-d] [-y]
+  $ lps promote FROM TO [--json] [-d] [-y]
 
 ARGUMENTS
   FROM  Environment to copy the configuration from
@@ -1564,6 +1907,9 @@ ARGUMENTS
 FLAGS
   -d, --dry-run  Show what would change without making changes
   -y, --yes      Answer yes to confirmation prompts
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked
@@ -1575,24 +1921,27 @@ EXAMPLES
   $ lps promote production staging --dry-run
 ```
 
-_See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/promote.ts)_
+_See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/promote.ts)_
 
 ## `lps pull`
 
-Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, from WordPress
+Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, menus, options, and snippets, from WordPress
 
 ```
 USAGE
-  $ lps pull [--env <value>] [-d] [-y]
+  $ lps pull [--json] [--env <value>] [-d] [-y]
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
       --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
+GLOBAL FLAGS
+  --json  Format output as json.
+
 DESCRIPTION
-  Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, options, and snippets, from
-  WordPress
+  Pull all content, plugins, composer dependencies, ACF, API routes, hooks, forms, SEO, menus, options, and snippets,
+  from WordPress
 
 EXAMPLES
   $ lps pull
@@ -1602,23 +1951,26 @@ EXAMPLES
   $ lps pull --dry-run
 ```
 
-_See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/pull.ts)_
+_See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/pull.ts)_
 
 ## `lps push`
 
-Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, options, and snippets, to WordPress
+Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, menus, options, and snippets, to WordPress
 
 ```
 USAGE
-  $ lps push [--env <value>] [-d] [-y]
+  $ lps push [--json] [--env <value>] [-d] [-y]
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
       --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
 
+GLOBAL FLAGS
+  --json  Format output as json.
+
 DESCRIPTION
-  Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, options, and
+  Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, pages, SEO, menus, options, and
   snippets, to WordPress
 
 EXAMPLES
@@ -1629,7 +1981,7 @@ EXAMPLES
   $ lps push --dry-run
 ```
 
-_See code: [src/commands/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/push.ts)_
+_See code: [src/commands/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/push.ts)_
 
 ## `lps seo diff [PATH]`
 
@@ -1661,7 +2013,7 @@ EXAMPLES
   $ lps seo diff --env staging --against production
 ```
 
-_See code: [src/commands/seo/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/seo/diff.ts)_
+_See code: [src/commands/seo/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/diff.ts)_
 
 ## `lps seo list`
 
@@ -1687,7 +2039,7 @@ EXAMPLES
   $ lps seo list --post-type post
 ```
 
-_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/seo/list.ts)_
+_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/list.ts)_
 
 ## `lps seo pull [PATH]`
 
@@ -1715,7 +2067,7 @@ EXAMPLES
   $ lps seo pull --post-type post --post-type page
 ```
 
-_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/seo/pull.ts)_
+_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/pull.ts)_
 
 ## `lps seo push [PATH]`
 
@@ -1745,7 +2097,43 @@ EXAMPLES
   $ lps seo push --allow-external-redirects
 ```
 
-_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/seo/push.ts)_
+_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/push.ts)_
+
+## `lps seo rollback [PATH]`
+
+Restore SEO settings, post meta, and redirects to a snapshot taken automatically before an earlier `lps seo push`
+
+```
+USAGE
+  $ lps seo rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to SEO directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore SEO settings, post meta, and redirects to a snapshot taken automatically before an earlier `lps seo push`
+
+EXAMPLES
+  $ lps seo rollback
+
+  $ lps seo rollback --list
+
+  $ lps seo rollback --to 1732000000000
+
+  $ lps seo rollback --dry-run
+```
+
+_See code: [src/commands/seo/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/rollback.ts)_
 
 ## `lps snippet diff [PATH]`
 
@@ -1776,7 +2164,7 @@ EXAMPLES
   $ lps snippet diff --env staging --against production
 ```
 
-_See code: [src/commands/snippet/diff.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/snippet/diff.ts)_
+_See code: [src/commands/snippet/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/diff.ts)_
 
 ## `lps snippet list`
 
@@ -1799,7 +2187,7 @@ EXAMPLES
   $ lps snippet list
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/list.ts)_
 
 ## `lps snippet publish [PATH]`
 
@@ -1822,7 +2210,7 @@ EXAMPLES
   $ lps snippet publish --path ./snippets
 ```
 
-_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/snippet/publish.ts)_
+_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -1852,7 +2240,7 @@ EXAMPLES
   $ lps snippet pull --path ./snippets
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -1883,7 +2271,43 @@ EXAMPLES
   $ lps snippet push --path ./snippets
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/push.ts)_
+
+## `lps snippet rollback [PATH]`
+
+Restore snippets to a snapshot taken automatically before an earlier `lps snippet push`
+
+```
+USAGE
+  $ lps snippet rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to snippets directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore snippets to a snapshot taken automatically before an earlier `lps snippet push`
+
+EXAMPLES
+  $ lps snippet rollback
+
+  $ lps snippet rollback --list
+
+  $ lps snippet rollback --to 1732000000000
+
+  $ lps snippet rollback --dry-run
+```
+
+_See code: [src/commands/snippet/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/rollback.ts)_
 
 ## `lps status`
 
@@ -1908,7 +2332,7 @@ EXAMPLES
   $ lps status --env staging
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/status.ts)_
 
 ## `lps telemetry disable`
 
@@ -1925,7 +2349,7 @@ EXAMPLES
   $ lps telemetry disable
 ```
 
-_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/telemetry/disable.ts)_
+_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/telemetry/disable.ts)_
 
 ## `lps telemetry enable`
 
@@ -1942,7 +2366,123 @@ EXAMPLES
   $ lps telemetry enable
 ```
 
-_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/telemetry/enable.ts)_
+_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/telemetry/enable.ts)_
+
+## `lps theme-styles diff [PATH]`
+
+Show what differs in the active block theme's Global Styles (Site Editor > Styles) between your local file and a WordPress environment, or between two environments
+
+```
+USAGE
+  $ lps theme-styles diff [PATH] [--json] [--env <value>] [--against <value>]
+
+ARGUMENTS
+  [PATH]  Path to theme styles directory (overrides project config)
+
+FLAGS
+  --against=<value>  Compare the primary environment against this second environment instead of against local files
+  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Show what differs in the active block theme's Global Styles (Site Editor > Styles) between your local file and a
+  WordPress environment, or between two environments
+
+EXAMPLES
+  $ lps theme-styles diff
+
+  $ lps theme-styles diff --env staging
+
+  $ lps theme-styles diff --env staging --against production
+```
+
+_See code: [src/commands/theme-styles/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/diff.ts)_
+
+## `lps theme-styles pull [PATH]`
+
+Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file
+
+```
+USAGE
+  $ lps theme-styles pull [PATH] [--env <value>] [-d]
+
+ARGUMENTS
+  [PATH]  Path to theme styles directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file
+
+EXAMPLES
+  $ lps theme-styles pull
+```
+
+_See code: [src/commands/theme-styles/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/pull.ts)_
+
+## `lps theme-styles push [PATH]`
+
+Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress
+
+```
+USAGE
+  $ lps theme-styles push [PATH] [--env <value>] [-d]
+
+ARGUMENTS
+  [PATH]  Path to theme styles directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+
+DESCRIPTION
+  Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress
+
+EXAMPLES
+  $ lps theme-styles push
+```
+
+_See code: [src/commands/theme-styles/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/push.ts)_
+
+## `lps theme-styles rollback [PATH]`
+
+Restore the active theme’s Global Styles to a snapshot taken automatically before an earlier `lps theme-styles push`
+
+```
+USAGE
+  $ lps theme-styles rollback [PATH] [--json] [--env <value>] [-d] [-y] [--list] [--to <value>]
+
+ARGUMENTS
+  [PATH]  Path to theme styles directory (overrides project config)
+
+FLAGS
+  -d, --dry-run      Show what would change without making changes
+  -y, --yes          Answer yes to confirmation prompts
+      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --list         List available snapshots instead of rolling back
+      --to=<value>   Roll back to this snapshot id instead of the most recent one
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Restore the active theme’s Global Styles to a snapshot taken automatically before an earlier `lps theme-styles push`
+
+EXAMPLES
+  $ lps theme-styles rollback
+
+  $ lps theme-styles rollback --list
+
+  $ lps theme-styles rollback --to 1732000000000
+
+  $ lps theme-styles rollback --dry-run
+```
+
+_See code: [src/commands/theme-styles/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/rollback.ts)_
 
 ## `lps theme add SLUG`
 
@@ -1969,7 +2509,7 @@ EXAMPLES
   $ lps theme add generatepress --version 3.4.0
 ```
 
-_See code: [src/commands/theme/add.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/theme/add.ts)_
+_See code: [src/commands/theme/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/add.ts)_
 
 ## `lps theme pull`
 
@@ -1993,7 +2533,7 @@ EXAMPLES
   $ lps theme pull
 ```
 
-_See code: [src/commands/theme/pull.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/theme/pull.ts)_
+_See code: [src/commands/theme/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/pull.ts)_
 
 ## `lps theme push`
 
@@ -2021,7 +2561,7 @@ EXAMPLES
   $ lps theme push --force
 ```
 
-_See code: [src/commands/theme/push.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/theme/push.ts)_
+_See code: [src/commands/theme/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/push.ts)_
 
 ## `lps theme status`
 
@@ -2044,7 +2584,7 @@ EXAMPLES
   $ lps theme status
 ```
 
-_See code: [src/commands/theme/status.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/theme/status.ts)_
+_See code: [src/commands/theme/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/status.ts)_
 
 ## `lps validate`
 
@@ -2064,5 +2604,5 @@ EXAMPLES
   $ lps validate
 ```
 
-_See code: [src/commands/validate.ts](https://github.com/loopress/loopress/blob/v0.24.1/src/commands/validate.ts)_
+_See code: [src/commands/validate.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/validate.ts)_
 <!-- commandsstop -->
