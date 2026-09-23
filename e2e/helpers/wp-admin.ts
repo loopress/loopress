@@ -1,12 +1,22 @@
-import type {Page} from '@playwright/test'
+import {expect, type Page} from '@playwright/test'
 import type {RequestUtils} from '@wordpress/e2e-test-utils-playwright'
 
 import type {WpCredentials} from './environment.js'
 
 export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<void> {
-  await page.goto(`${wp.url}/wp-admin`)
+  // wp-login.php runs wp_attempt_focus() on a 200ms timer after load: it blanks #user_pass
+  // (whenever a username is pre-filled) and then focuses one of the two fields. Filling before
+  // that timer fires lost the password and bounced the test back to the login form, so wait
+  // for its focus call first. Bounded and non-fatal: a login page without that script just
+  // proceeds, and the value checks below still catch a blanked field before submitting.
+  await page.goto(`${wp.url}/wp-admin`, {waitUntil: 'load'})
+  await page
+    .waitForFunction(() => ['user_login', 'user_pass'].includes(document.activeElement?.id ?? ''), undefined, {timeout: 5000})
+    .catch(() => {})
   await page.fill('#user_login', wp.username)
   await page.fill('#user_pass', wp.adminPassword)
+  await expect(page.locator('#user_login')).toHaveValue(wp.username)
+  await expect(page.locator('#user_pass')).toHaveValue(wp.adminPassword)
   await page.click('#wp-submit')
   // `networkidle` is discouraged (WP admin keeps a heartbeat poll open) and was the single
   // slowest wait in the suite. The admin bar is present and visible on every wp-admin page
