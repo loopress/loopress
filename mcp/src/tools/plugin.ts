@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -22,24 +22,7 @@ const pruneFlag = z
   .describe('Deactivate plugins that are active on the site but absent from loopress.json')
 
 export function registerPluginTools(server: McpServer): void {
-  server.registerTool(
-    'plugin_add',
-    {
-      description:
-        'Add a WordPress.org plugin to loopress.json, or change its pinned version (writes loopress.json only, no change to WordPress). ' +
-        'Run plugin_push afterwards to install it on the site.',
-      inputSchema: {
-        // Leading character can't be "-": the slug is a positional CLI argument, never a flag.
-        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'must be a WordPress.org slug').describe('Plugin slug on WordPress.org (e.g. "woocommerce")'),
-        version: z.string().optional().describe('Exact version to pin (e.g. "3.4.0"); omit for "latest"'),
-      },
-    },
-    async ({slug, version}) => {
-      const args = ['plugin', 'add', slug]
-      if (version) args.push('--version', version)
-      return toCallToolResult(unwrap(await runLps(args)))
-    },
-  )
+  registerAddTool(server, {exampleSlug: 'woocommerce', resource: 'plugin'})
 
   server.registerTool(
     'plugin_push',

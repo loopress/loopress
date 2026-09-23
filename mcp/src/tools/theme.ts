@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -15,24 +15,7 @@ const forceFlag = z
   .describe('Allow downgrades and take over themes installed outside Loopress')
 
 export function registerThemeTools(server: McpServer): void {
-  server.registerTool(
-    'theme_add',
-    {
-      description:
-        'Add a WordPress.org theme to loopress.json, or change its pinned version (writes loopress.json only, no change to WordPress). ' +
-        'Run theme_push afterwards to install it on the site.',
-      inputSchema: {
-        // Leading character can't be "-": the slug is a positional CLI argument, never a flag.
-        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'must be a WordPress.org slug').describe('Theme slug on WordPress.org (e.g. "generatepress")'),
-        version: z.string().optional().describe('Exact version to pin (e.g. "3.4.0"); omit for "latest"'),
-      },
-    },
-    async ({slug, version}) => {
-      const args = ['theme', 'add', slug]
-      if (version) args.push('--version', version)
-      return toCallToolResult(unwrap(await runLps(args)))
-    },
-  )
+  registerAddTool(server, {exampleSlug: 'generatepress', resource: 'theme'})
 
   server.registerTool(
     'theme_push',

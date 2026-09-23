@@ -77,6 +77,30 @@ export function registerRollbackTool(
   )
 }
 
+// Registers `<resource>_add`: pins a WordPress.org plugin or theme (the only two resources with
+// one) into loopress.json, writing no change to WordPress itself. Shared by plugin.ts and
+// theme.ts, whose add tools differ only in wording and the example slug.
+export function registerAddTool(server: McpServer, {exampleSlug, resource}: {exampleSlug: string; resource: string}): void {
+  server.registerTool(
+    `${resource}_add`,
+    {
+      description:
+        `Add a WordPress.org ${resource} to loopress.json, or change its pinned version (writes loopress.json only, no change to WordPress). ` +
+        `Run ${resource}_push afterwards to install it on the site.`,
+      inputSchema: {
+        // Leading character can't be "-": the slug is a positional CLI argument, never a flag.
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'must be a WordPress.org slug').describe(`${resource[0].toUpperCase()}${resource.slice(1)} slug on WordPress.org (e.g. "${exampleSlug}")`),
+        version: z.string().optional().describe('Exact version to pin (e.g. "3.4.0"); omit for "latest"'),
+      },
+    },
+    async ({slug, version}) => {
+      const args = [resource, 'add', slug]
+      if (version) args.push('--version', version)
+      return toCallToolResult(unwrap(await runLps(args)))
+    },
+  )
+}
+
 // Registers push/pull/list for a directory-backed resource whose tools differ only in wording
 // (api, hook, form, snippet). push runs through the confirmToken handshake; pull and list are
 // plain reads; list takes no path. api and hook additionally get `prune` on push and a `rm`
