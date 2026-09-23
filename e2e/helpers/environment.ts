@@ -36,7 +36,7 @@ function readWpCredentials(): WpCredentials {
   if (!url || !username || !appPassword || !adminPassword) {
     throw new Error(
       'Missing WP_URL / WP_USERNAME / WP_APP_PASSWORD / WP_ADMIN_PASSWORD environment variables. ' +
-        'These e2e tests need a real, disposable WordPress instance to run against, see cli/e2e/README.md.',
+        'These e2e tests need a real, disposable WordPress instance to run against, see e2e/README.md.',
     )
   }
 

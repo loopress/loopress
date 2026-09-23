@@ -19,9 +19,10 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | | `lps status` | Show which project and environment commands will target |
 | | `lps doctor` | Diagnose connectivity, plugin and credential problems |
 | | `lps validate` | Check local tracked files are well formed and push-ready, without contacting WordPress |
-| | `lps dev` | Watch snippets, pages, API routes and plugins, pushing each change to the `local` environment automatically |
-| | `lps push` | Push plugins, composer, ACF, API routes, forms, pages, SEO, and snippets to WordPress in one command |
-| | `lps pull` | Pull plugins, composer, ACF, API routes, forms, pages, SEO, and snippets from WordPress in one command |
+| | `lps dev` | Watch snippets, API routes, hooks and plugins, pushing each change to the `local` environment automatically |
+| | `lps push` | Push plugins, composer, ACF, API routes, hooks, forms, SEO, menus, options, and snippets to WordPress in one command |
+| | `lps pull` | Pull plugins, composer, ACF, API routes, hooks, forms, SEO, menus, options, and snippets from WordPress in one command |
+| | `lps diff` | Show what differs between your local files and an environment, or between two environments (`--against`). Exits 1 on drift, so it doubles as a CI gate |
 | | `lps promote` | Copy every tracked resource from one environment to another (`lps pull` from the source, then `lps push` to the target) |
 | **Project** | `lps project config` | Add or update a WordPress project environment |
 | | `lps project list` | List configured WordPress projects |
@@ -35,14 +36,20 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 
 ## Features
 
-Each of these syncs one kind of WordPress data as files in Git. See its own page for commands, flags, and file format:
+Each of these syncs one kind of WordPress data as files in Git. See its own page for commands, flags, and file format. Every resource with a `push` also has a `rollback` (`lps snippet rollback`, `lps acf rollback`, ...): each real push saves a snapshot of what it replaced, and rollback restores it, listing available snapshots with `--list`. Snapshots stay on your machine, in `.loopress/snapshots/` at the root of your project (the last 10 per resource and environment), and that directory ignores itself in Git.
 
 - [Snippets](/snippets/): PHP/CSS/JS code snippets (Code Snippets or WPCode)
 - [ACF](/acf/): Advanced Custom Fields configuration
 - [SEO](/seo/): SEO settings, post meta, and redirects (RankMath or Yoast)
 - [Forms](/forms/): WPForms forms
 - [API Routes](/api/): custom REST API endpoints
+- [Hooks](/hooks/): WordPress actions, filters, and cron jobs as PHP files
+- [Menus](/menus/): navigation menus and menu locations
+- [Options](/options/): individually tracked `wp_options` values
+- [Single-page apps](/apps/): built Vue, React or Svelte bundles mounted with a shortcode
+- [Theme Styles](/theme-styles/): block theme Global Styles (`theme.json` overrides)
 - [Plugins](/plugins/): installed WordPress.org plugins manifest
+- [Themes](/themes/): installed WordPress.org themes manifest
 - [Composer](/composer/): PHP dependencies, without SSH
 
 Connecting an AI agent instead of a human? See the [MCP server](/cli/mcp/).
