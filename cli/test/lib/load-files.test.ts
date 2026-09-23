@@ -1,4 +1,4 @@
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join, relative} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -47,6 +47,23 @@ describe('loadFiles', () => {
   })
 
   describe('recursive: true', () => {
+    it('follows a symlink to a file, skips a broken one', async () => {
+      const shared = mkdtempSync(join(tmpdir(), 'lps-load-files-shared-'))
+      writeFileSync(join(shared, 'graphql.php'), '<?php')
+      symlinkSync(join(shared, 'graphql.php'), join(dir, 'graphql.php'))
+      symlinkSync(join(shared, 'missing.php'), join(dir, 'broken.php'))
+
+      const files = await loadFiles<ParsedFile>(dir, {
+        extension: '.php',
+        onSkip: vi.fn<(message: string) => void>(),
+        parse: (raw, filePath) => ({content: raw, filename: relative(dir, filePath)}),
+        recursive: true,
+      })
+
+      rmSync(shared, {force: true, recursive: true})
+      expect(files).toEqual([{content: '<?php', filename: 'graphql.php'}])
+    })
+
     it('finds files nested in subdirectories, filename reflecting the relative path', async () => {
       mkdirSync(join(dir, 'invoice-pdf'), {recursive: true})
       writeFileSync(join(dir, 'invoice-pdf', '[order_id].php'), '<?php')
