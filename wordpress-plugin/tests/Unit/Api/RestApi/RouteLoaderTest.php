@@ -212,6 +212,22 @@ class RouteLoaderTest extends TestCase
         $this->assertFalse($callback($unauthorized));
     }
 
+    public function test_endpointsFor_marks_every_endpoint_show_in_index_false_when_the_class_has_hidden(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureHidden());
+
+        $this->assertFalse($endpoints[0]['show_in_index']);
+    }
+
+    public function test_endpointsFor_leaves_show_in_index_unset_without_hidden(): void
+    {
+        $loader    = new RouteLoader($this->directory, $this->environment);
+        $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureGet());
+
+        $this->assertArrayNotHasKey('show_in_index', $endpoints[0]);
+    }
+
     public function test_hasPublicMethod_is_false_for_a_private_method(): void
     {
         $loader = new RouteLoader($this->directory, $this->environment);

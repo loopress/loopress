@@ -2,8 +2,9 @@
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
 agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus,
-plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
-project status. Ships as the `lps-mcp` binary.
+plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which
+don't support pull), one resource at a time or all at once, plus check project status. Ships as the
+`lps-mcp` binary.
 
 It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
 `PATH` with `--json`, and parses its stdout. No direct dependency on `@loopress/cli`.
@@ -60,6 +61,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |
 | `hook_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore hook files to the snapshot saved automatically before an earlier `hook_push` (`list` shows what's available) |
+| `page_push` | Yes | `env?`, `slug?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
+| `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
+| `page_diff` | No | `env?` | Show what differs (HTML, title, status) between the local pages and WordPress |
 | `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |

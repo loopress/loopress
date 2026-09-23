@@ -230,7 +230,7 @@ describe('dev', () => {
       silenceLogs(cmd)
 
       expect(() => (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('bogus', 'skip')).toThrow(
-        'Unknown resource type "bogus" in --skip. Valid types: snippets, api, plugins',
+        'Unknown resource type "bogus" in --skip. Valid types: snippets, pages, api, plugins',
       )
     })
   })

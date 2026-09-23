@@ -145,6 +145,7 @@ export default defineConfig({
 											],
 										},
 										{ label: "Hooks", slug: "hooks" },
+										{ label: "Static Pages", slug: "pages" },
 										{
 											label: "Single-page apps",
 											items: [

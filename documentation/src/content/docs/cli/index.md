@@ -42,6 +42,7 @@ Each of these syncs one kind of WordPress data as files in Git. See its own page
 - [SEO](/seo/): SEO settings, post meta, and redirects (RankMath or Yoast)
 - [Forms](/forms/): WPForms forms
 - [API Routes](/api/): custom REST API endpoints
+- [Static Pages](/pages/): hand-written HTML pages rendered by your theme
 - [Plugins](/plugins/): installed WordPress.org plugins manifest
 - [Composer](/composer/): PHP dependencies, without SSH
 

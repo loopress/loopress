@@ -278,6 +278,25 @@ Because a single attribute flips this, Loopress surfaces it:
 
 Detection is lexical (it reads the file's tokens, it never runs the file), so it has two blind spots it does not warn about: an aliased import of the attribute (`use Loopress\Api\Attribute\Permission as P; #[P(public: true)]`), and a `permission()` method whose body returns `true`. Both are more deliberate than adding one attribute; write the attribute in its plain form if you want the warning.
 
+### Hiding a route from the discovery index
+
+`/wp-json/{namespace}` lists every route registered in it, each with its accepted methods and args, the standard way a client discovers what's available. That's useful for an ordinary REST resource, and actively unhelpful for a route whose response shape isn't fixed, a GraphQL endpoint answering whatever the request's query describes, or one that isn't JSON at all, an HTML page like a GraphiQL playground. `#[Hidden]` on the class excludes every verb in the file from that index:
+
+```php
+use Loopress\Api\Attribute\Hidden;
+
+#[Hidden]
+class Graphql
+{
+    public function post(WP_REST_Request $request): array
+    {
+        // ...
+    }
+}
+```
+
+The route itself is unaffected, it still dispatches and responds exactly as before, `#[Hidden]` only sets `show_in_index => false` on its registered endpoints, the same flag `WP_REST_Server::get_index()` checks natively. WordPress itself supports `show_in_index` per verb; `#[Hidden]` is class-level only because Loopress reads it once per route file and applies it to every verb that file implements, not because WordPress lacks the per-verb granularity.
+
 ## Response headers and CORS
 
 Two ways to set headers, depending on whether they vary per verb or apply to the whole route.
