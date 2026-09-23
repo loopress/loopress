@@ -114,7 +114,7 @@ describe('push', () => {
       .mockResolvedValue({})
     const {cmd} = make()
 
-    await expect(cmd.run()).rejects.toThrow('2 resources failed to push.')
+    await expect(cmd.run()).rejects.toThrow('2 resources failed to push. plugins: boom; ACF: bang')
   })
 
   describe('production guard', () => {

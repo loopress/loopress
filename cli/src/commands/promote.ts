@@ -4,6 +4,7 @@ import {Args, Command} from '@oclif/core'
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
 import {isInteractive} from '../lib/interactive.js'
+import {stdoutToStderr} from '../lib/json-delegation.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 
@@ -42,14 +43,14 @@ export default class Promote extends Command {
 
     this.log(`\n=== Pulling from ${from.name} (${from.url}) ===`)
     try {
-      await this.config.runCommand('pull', this.delegateArgv(from.name, dryRun))
+      await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('pull', this.delegateArgv(from.name, dryRun)))
     } catch (error) {
       // A partial pull must never be pushed onward: stop before touching <to>.
       this.error(`Pull from ${from.name} failed, ${to.name} left untouched: ${(error as Error).message}`)
     }
 
     this.log(`\n=== Pushing to ${to.name} (${to.url}) ===`)
-    await this.config.runCommand('push', this.delegateArgv(to.name, dryRun))
+    await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', this.delegateArgv(to.name, dryRun)))
 
     this.log(dryRun ? `\n[dry-run] ${from.name} would be promoted to ${to.name}.` : `\n${from.name} promoted to ${to.name}.`)
 

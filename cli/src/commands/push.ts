@@ -1,5 +1,6 @@
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
+import {stdoutToStderr} from '../lib/json-delegation.js'
 import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
@@ -45,7 +46,7 @@ export default class Push extends LoopressCommand {
     for (const target of PUSH_TARGETS) {
       this.log(`\n→ Pushing ${target.label}...`)
       try {
-        await this.config.runCommand(target.commandId, argv)
+        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
         this.log(`✓ ${target.label} pushed`)
         results.push({label: target.label, status: 'pushed'})
       } catch (error) {
@@ -57,7 +58,10 @@ export default class Push extends LoopressCommand {
     }
 
     if (this.failedCount > 0) {
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to push.`)
+      // Each failure's own reason, not just the count: under --json the per-resource lines above
+      // never reach stdout, and this message is all an MCP caller or a script gets to see.
+      const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
+      this.error(`${pluralize(this.failedCount, 'resource')} failed to push. ${failures.join('; ')}`)
     }
 
     this.log('\nAll resources pushed.')
