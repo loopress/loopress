@@ -295,7 +295,7 @@ class Graphql
 }
 ```
 
-The route itself is unaffected, it still dispatches and responds exactly as before, `#[Hidden]` only sets `show_in_index => false` on its registered endpoints, the same flag `WP_REST_Server::get_index()` checks natively. Class-level only, since WordPress has no per-verb notion of index visibility.
+The route itself is unaffected, it still dispatches and responds exactly as before, `#[Hidden]` only sets `show_in_index => false` on its registered endpoints, the same flag `WP_REST_Server::get_index()` checks natively. WordPress itself supports `show_in_index` per verb; `#[Hidden]` is class-level only because Loopress reads it once per route file and applies it to every verb that file implements, not because WordPress lacks the per-verb granularity.
 
 ## Response headers and CORS
 

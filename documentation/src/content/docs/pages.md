@@ -7,7 +7,7 @@ description: Version-control hand-written HTML pages and push them to WordPress 
 Static pages are a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
 :::
 
-A static page is a plain `.html` file in your project's `pages/` directory. `lps page push` turns each file into a WordPress page (`post_type=page`) whose slug is the file name: `pages/legal-notice.html` becomes `/legal-notice/`. The page is rendered inside your active theme, header and footer included, classic and block themes alike.
+A static page is a plain `.html` file in your project's `pages/` directory. `lps page push` turns each file into a WordPress page (`post_type=page`) whose slug is the file name: `pages/legal-notice.html` becomes `/legal-notice/` on a site using pretty permalinks, or a `?page_id=` URL on Plain permalinks. Either way, use the URL `lps page list` reports rather than assuming the pretty form. The page is rendered inside your active theme, header and footer included, classic and block themes alike.
 
 The file is the only source of truth. A page pushed by Loopress can no longer be edited in wp-admin, so what's in Git is always what's on the site.
 
@@ -30,6 +30,9 @@ The file may start with an HTML comment of `key: value` lines. It stays valid HT
 |-----|---------|-------------|
 | `title` | Derived from the slug (`legal-notice` → `Legal notice`) | The page title, used by the theme and in `<title>`. |
 | `status` | `draft` | `draft` or `publish`. Declarative: switching a published page back to `draft` unpublishes it on the next push. |
+| `full-width` | `false` | `true` or `false`. On a block theme, drops the theme's max-width/side-padding for this page's content only (header and footer keep theirs). Silent no-op on a classic (non-block) theme. |
+| `hide-title` | `false` | `true` or `false`. Hides the theme's own page title block, useful when your HTML already has its own heading. Same block-theme-only scope as `full-width`. |
+| `template` | Theme default | Any template slug the active theme ships (a block theme's `templates/<slug>.html`, or a classic theme's `page-<slug>.php`). Not validated: an unknown slug just falls back to the default template, WordPress never errors on it. |
 
 Any other key, or any other status, is rejected before anything is sent to WordPress, so a typo never silently falls back to a default.
 
@@ -60,10 +63,11 @@ The push is refused, and nothing is written, when:
 
 ## In wp-admin
 
-In **Pages**, a page pushed by Loopress carries a **Managed by Loopress** badge and has no Edit or Quick Edit link: the editor, Quick Edit and bulk edit are closed for it, including its slug, status and template. You can still:
+In **Pages**, a page pushed by Loopress carries a **Managed by Loopress** badge and has no Edit or Quick Edit link: the editor, Quick Edit and bulk edit are closed for it, including its slug, status and template, all of which come from the pushed file instead. You can still:
 
 - add it to a menu;
-- move it to the trash. The next push then refuses it until you restore it.
+- move it to the trash. The next push then refuses it until you restore it;
+- preview a `draft` page: the **Preview** row action opens the real rendered page, the same read-only check WordPress's own front-end draft preview uses.
 
 Because the editor is closed, the SEO plugin's meta box and the featured image are not reachable for these pages either.
 
@@ -73,7 +77,7 @@ The HTML is stored in a hidden post meta, never in the page's regular content (`
 
 - **Shortcodes from other plugins may lose their styles.** Many plugins decide whether to load their CSS and JS by looking for their shortcode in `post_content`. Since it's empty, the shortcode renders but without its assets on those plugins. Plugins that load their assets from the shortcode itself are not affected.
 - **No bare page.** A page is always rendered inside your theme's layout. A page without the theme's header and footer is not supported yet.
-- **WordPress search doesn't find these pages**, since it searches `post_content`.
+- **WordPress search matches a page's title, not its HTML.** Core search includes `post_title`, so a page can turn up by title, but it never matches inside the pushed HTML, since that lives outside `post_content`.
 - **Deactivating Loopress** leaves these pages empty between the theme's header and footer. Nothing leaks, and `lps doctor` reports the missing plugin.
 - **Pushed HTML is not filtered.** Like [API routes](/api/) and [hooks](/hooks/), anything you push, `<script>` included, runs on the site as is. Pushing requires an administrator (`manage_options`) account.
 - There is no `lps page pull` or `lps page rm` yet: to remove a page, trash it in wp-admin and delete its file.

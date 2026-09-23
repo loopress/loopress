@@ -198,10 +198,11 @@ jobs:
             - Confirm activation is clean: no fatals/notices in debug.log,
               `wp plugin list` shows loopress-full active.
             - CLI round trip: for each feature this release touches (snippet,
-              acf, seo, app, form, api, hook, page, composer), run its `lps <feature>
+              acf, seo, app, form, api, hook, composer), run its `lps <feature>
               list` / `pull` / `push --env local` against the live site and
-              confirm it works end to end. Install any companion plugin a
-              feature needs yourself with `wp plugin install <slug> --activate`
+              confirm it works end to end. For `page` (no pull), run `lps page
+              list` / `push` / `diff --env local` instead. Install any companion
+              plugin a feature needs yourself with `wp plugin install <slug> --activate`
               (WPCode = insert-headers-and-footers, ACF =
               advanced-custom-fields, SEO = seo-by-rank-math or wordpress-seo).
             - REST: curl WP_URL/wp-json/loopress/v1/... with the app password

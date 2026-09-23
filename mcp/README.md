@@ -1,9 +1,10 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, API routes, hooks, static pages, ACF objects, SEO settings, forms, nav menus,
-plugins and Composer dependencies on a WordPress site, one resource at a time or all at once, plus check
-project status. Ships as the `lps-mcp` binary.
+agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus,
+plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which
+don't support pull), one resource at a time or all at once, plus check project status. Ships as the
+`lps-mcp` binary.
 
 It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
 `PATH` with `--json`, and parses its stdout. No direct dependency on `@loopress/cli`.

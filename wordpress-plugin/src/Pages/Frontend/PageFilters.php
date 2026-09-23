@@ -121,7 +121,7 @@ class PageFilters
 
         $actions['view'] = sprintf(
             '<a href="%s" rel="bookmark" aria-label="%s">%s</a>',
-            esc_url(get_preview_post_link($post)),
+            esc_url((string) get_preview_post_link($post)),
             /* translators: %s: Post title. */
             esc_attr(sprintf(__('Preview &#8220;%s&#8221;'), $post->post_title)),
             _x('Preview', 'verb')

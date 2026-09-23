@@ -251,7 +251,7 @@ class PagesController
             'html'      => (string) get_post_meta($id, ManagedPage::HTML_META, true),
             'fullWidth' => get_post_meta($id, ManagedPage::FULL_WIDTH_META, true) === '1',
             'hideTitle' => get_post_meta($id, ManagedPage::HIDE_TITLE_META, true) === '1',
-            'template'  => get_page_template_slug($post),
+            'template'  => (string) get_page_template_slug($post),
         ];
     }
 
