@@ -208,7 +208,9 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }
 
-        $result = $this->validateAndWrite(
+        // Under the directory lock: the revision check and the write must not interleave with a
+        // concurrent batch (see AbstractFilesDirectory::exclusively()).
+        $result = $this->directory()->exclusively(fn (): array|WP_REST_Response => $this->validateAndWrite(
             $filename,
             $content,
             $expectedRevision,
@@ -218,7 +220,7 @@ abstract class AbstractFilesController
             function (string $slug, string $guarded): void {
                 $this->directory()->write($slug, $guarded);
             },
-        );
+        ));
 
         if ($result instanceof WP_REST_Response) {
             return $result;
@@ -270,6 +272,17 @@ abstract class AbstractFilesController
             ], 400);
         }
 
+        // The whole begin/stage/commit sequence holds the directory lock: see
+        // AbstractFilesDirectory::exclusively() for what two interleaved batches would do.
+        return $this->directory()->exclusively(fn (): WP_REST_Response => $this->runBatch($files, $prune));
+    }
+
+    /**
+     * @param array<mixed> $files
+     * @param array<mixed> $prune
+     */
+    private function runBatch(array $files, array $prune): WP_REST_Response
+    {
         try {
             $this->directory()->beginBatch();
         } catch (\RuntimeException $e) {
@@ -462,7 +475,7 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'Invalid filename'], 400);
         }
 
-        if (!$this->directory()->delete($filename)) {
+        if (!$this->directory()->exclusively(fn (): bool => $this->directory()->delete($filename))) {
             return new WP_REST_Response(['error' => 'File not found'], 404);
         }
 

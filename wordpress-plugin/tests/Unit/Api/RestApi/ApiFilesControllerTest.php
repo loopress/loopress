@@ -24,6 +24,8 @@ class ApiFilesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->directory = $this->createMock(ApiDirectory::class);
+        // The lock itself is AbstractFilesDirectory's concern (see ApiDirectoryTest); here it just runs the work.
+        $this->directory->method('exclusively')->willReturnCallback(static fn (callable $work): mixed => $work());
         // Real default cap: an unstubbed mock int-return would be 0 and reject every push.
         $this->directory->method('maxFileBytes')->willReturn(512 * 1024);
         $this->controller = new ApiFilesController($this->directory);
@@ -178,6 +180,8 @@ class ApiFilesControllerTest extends TestCase
     public function test_push_file_returns_413_when_content_exceeds_the_size_cap(): void
     {
         $this->directory = $this->createMock(ApiDirectory::class);
+        // The lock itself is AbstractFilesDirectory's concern (see ApiDirectoryTest); here it just runs the work.
+        $this->directory->method('exclusively')->willReturnCallback(static fn (callable $work): mixed => $work());
         $this->directory->method('maxFileBytes')->willReturn(100);
         $this->directory->expects($this->never())->method('write');
         $controller = new ApiFilesController($this->directory);

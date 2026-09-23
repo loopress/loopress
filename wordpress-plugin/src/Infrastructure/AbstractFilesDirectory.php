@@ -49,6 +49,46 @@ abstract class AbstractFilesDirectory
         $this->filesystem = $filesystem ?? new Filesystem();
     }
 
+    /**
+     * Runs $work while holding this directory's exclusive lock, so writers never interleave.
+     * Without it, two overlapping batches share the one staging directory: the second
+     * beginBatch() wipes the first's staging, the first commit moves it away, and the second
+     * batch's next stageWrite() recreates an empty staging directory (dumpFile() creates
+     * parents) holding only its own files, which its commit then swaps in as the whole live
+     * set, deleting every other route/hook on the site. A single-file write or delete landing
+     * between a batch's mirror and its commit would likewise be silently reverted.
+     *
+     * Blocking, not fail-fast: a second push waits for the first and then starts from its
+     * result, where the expectedRevision preconditions still catch a real conflict. flock() is
+     * released by the OS if PHP dies mid-batch, so a crash never leaves a stale lock behind.
+     * Per-host only (like the rename() swap itself, see commitBatch()).
+     *
+     * @template T
+     * @param callable(): T $work
+     * @return T
+     */
+    public function exclusively(callable $work): mixed
+    {
+        $lockPath = rtrim($this->path, '/') . '.lock';
+        if (!is_dir(dirname($lockPath))) {
+            wp_mkdir_p(dirname($lockPath));
+        }
+
+        // Local lock file next to our own working directory, not a remote URL; flock() needs a
+        // real stream handle, which WP_Filesystem doesn't provide.
+        $handle = fopen($lockPath, 'c'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        if ($handle === false || !flock($handle, LOCK_EX)) {
+            throw new \RuntimeException(esc_html('Failed to lock ' . static::SUBDIR . ' for writing.'));
+        }
+
+        try {
+            return $work();
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+        }
+    }
+
     public function filePath(string $slug): string
     {
         return $this->path . $slug . '.php';

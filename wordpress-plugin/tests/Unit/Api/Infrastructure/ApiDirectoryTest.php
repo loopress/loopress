@@ -450,4 +450,34 @@ class ApiDirectoryTest extends TestCase
 
         $this->assertSame('<?php new content', $dir->read('hello'));
     }
+
+    public function test_exclusively_holds_the_directory_lock_for_the_whole_work_and_releases_it(): void
+    {
+        $directory = new ApiDirectory();
+        $lockPath  = WP_CONTENT_DIR . '/loopress/api.lock';
+
+        $heldDuringWork = $directory->exclusively(function () use ($lockPath): bool {
+            // A second handle is what a concurrent request would use: it must not get the lock.
+            $other  = fopen($lockPath, 'c');
+            $gotIt  = flock($other, LOCK_EX | LOCK_NB);
+            fclose($other);
+            return !$gotIt;
+        });
+
+        $this->assertTrue($heldDuringWork);
+
+        try {
+            $directory->exclusively(static function (): never {
+                throw new \RuntimeException('staging failed');
+            });
+            $this->fail('the work exception must propagate');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('staging failed', $e->getMessage());
+        }
+
+        // Released even though the work threw.
+        $after = fopen($lockPath, 'c');
+        $this->assertTrue(flock($after, LOCK_EX | LOCK_NB));
+        fclose($after);
+    }
 }

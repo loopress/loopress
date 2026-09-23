@@ -23,6 +23,8 @@ class HookFilesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->directory = $this->createMock(HooksDirectory::class);
+        // The lock itself is AbstractFilesDirectory's concern (see ApiDirectoryTest); here it just runs the work.
+        $this->directory->method('exclusively')->willReturnCallback(static fn (callable $work): mixed => $work());
         // Real default cap: an unstubbed mock int-return would be 0 and reject every push.
         $this->directory->method('maxFileBytes')->willReturn(512 * 1024);
         $this->controller = new HookFilesController($this->directory);
