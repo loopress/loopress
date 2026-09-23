@@ -86,10 +86,12 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
 | `form_list` | No | `env?` | List forms currently on WordPress |
 | `form_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
+| `plugin_add` | No | `slug`, `version?` | Add a WordPress.org plugin to `loopress.json`, or change its pinned version (local file only) |
 | `plugin_push` | Yes | `env?`, `force?`, `prune?`, `confirmToken?` | Install/pin/activate WordPress.org plugins to match `loopress.json`, via Composer + WPackagist |
 | `plugin_pull` | No | `env?` | Pull installed plugins from WordPress into `loopress.json`, pinned to their live versions |
 | `plugin_status` | No | `env?` | Report drift between the plugins on WordPress and `loopress.json` |
 | `plugin_audit` | No | — | Check `loopress.json` plugins for known vulnerabilities and health issues |
+| `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |

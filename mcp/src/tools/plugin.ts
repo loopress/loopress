@@ -23,6 +23,25 @@ const pruneFlag = z
 
 export function registerPluginTools(server: McpServer): void {
   server.registerTool(
+    'plugin_add',
+    {
+      description:
+        'Add a WordPress.org plugin to loopress.json, or change its pinned version (writes loopress.json only, no change to WordPress). ' +
+        'Run plugin_push afterwards to install it on the site.',
+      inputSchema: {
+        // Leading character can't be "-": the slug is a positional CLI argument, never a flag.
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'must be a WordPress.org slug').describe('Plugin slug on WordPress.org (e.g. "woocommerce")'),
+        version: z.string().optional().describe('Exact version to pin (e.g. "3.4.0"); omit for "latest"'),
+      },
+    },
+    async ({slug, version}) => {
+      const args = ['plugin', 'add', slug]
+      if (version) args.push('--version', version)
+      return toCallToolResult(unwrap(await runLps(args)))
+    },
+  )
+
+  server.registerTool(
     'plugin_push',
     {
       description:
