@@ -35,6 +35,8 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 | `lps api pull` / `push` / `list` | | ✓ |
 | Hooks (WordPress actions, filters and cron jobs deployed from PHP files) | | ✓ |
 | `lps hook pull` / `push` / `list` / `rm` | | ✓ |
+| Static pages (hand-written HTML pages rendered by the theme) | | ✓ |
+| `lps page push` / `list` / `diff` | | ✓ |
 | Single-page apps (ship a built Vue, React or Svelte bundle, mount with a shortcode) | | ✓ |
 | `lps app pull` / `push` / `list` / `remove` | | ✓ |
 | Plugin and theme lockfile (pin WordPress.org plugins and themes, install via Composer + WPackagist) | | ✓ |
@@ -63,6 +65,7 @@ Everything above, plus:
 - **Works with Code Snippets and WPCode**: Loopress Full talks to whichever is active
 - **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push/list`
 - **Custom API routes**: version-control REST API endpoints as plain PHP files with `lps api pull/push/list`, each file becomes one route
+- **Static pages**: push hand-written HTML files as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, see [Static Pages](/pages/)
 - **Single-page apps**: ship a pre-built Vue, React or Svelte bundle to the site with `lps app push` and mount it in any page with a shortcode
 - **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme push`, via Composer and WPackagist
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages

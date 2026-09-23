@@ -1,0 +1,26 @@
+<!--
+title: Test page
+status: draft
+full-width: true
+template: page-no-title
+-->
+<div style="padding: 0 2rem; box-sizing: border-box;">
+<h1>Test page</h1>
+<p>This is a test page pushed via <code>lps page push</code>. The file is the source of truth:
+editing it in wp-admin does nothing, the next push overwrites whatever was there.</p>
+
+<h2>What this page is for</h2>
+<p>It exists to exercise the page push/preview flow end to end: pushing as <code>draft</code>,
+previewing it in wp-admin without publishing, then flipping the <code>status</code> header to
+<code>publish</code> when it's ready to go live.</p>
+
+<ul>
+  <li>Push updates the title, slug, status and HTML in one call.</li>
+  <li>A draft stays invisible to visitors and search engines.</li>
+  <li>The wp-admin "Preview" row action opens the real rendered page.</li>
+</ul>
+
+<h2>Some formatting</h2>
+<p>Regular text, <strong>bold text</strong>, <em>italic text</em>, and a
+<a href="https://loopress.dev">link</a> to make sure inline HTML survives the round trip.</p>
+</div>

@@ -3,6 +3,7 @@ import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {parseLocalOption} from '../utils/option-format.js'
+import {readLocalPages} from '../utils/page-format.js'
 import {parseType} from '../utils/snippet-format.js'
 import {loadSnippets} from './load-snippets.js'
 import {readdirTolerant} from './readdir-tolerant.js'
@@ -26,6 +27,7 @@ const DEFAULT_DIR: Record<string, string> = {
   hooksDir: 'hooks',
   menuDir: 'menus',
   optionsDir: 'options',
+  pageDir: 'pages',
   seoDir: 'seo',
   snippetsDir: 'snippets',
   themeStylesDir: 'theme',
@@ -62,6 +64,10 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')
   checked += await checkPhpDir(resolve('hooksDir'), problems, 'Hook file is empty')
+
+  const pages = await readLocalPages(resolve('pageDir'))
+  checked += pages.pages.length + pages.problems.length
+  problems.push(...pages.problems)
 
   return {checked, problems, valid: problems.length === 0}
 }

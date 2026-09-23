@@ -23,6 +23,7 @@ const FEATURES = [
   {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
   {dir: 'hooks', key: 'hooksDir', label: 'Hooks (actions, filters, cron)'},
   {dir: 'apps', key: 'appsDir', label: 'Single-page apps'},
+  {dir: 'pages', key: 'pageDir', label: 'Static pages'},
 ] as const
 
 export default class Init extends Command {

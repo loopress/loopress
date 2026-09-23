@@ -7,7 +7,7 @@ import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, resourc
 
 describe('resolveResourceTypes', () => {
   it('defaults to every resource type when neither --only nor --skip is given', () => {
-    expect(resolveResourceTypes()).toEqual(['snippets', 'api', 'hooks', 'plugins'])
+    expect(resolveResourceTypes()).toEqual(['snippets', 'pages', 'api', 'hooks', 'plugins'])
   })
 
   it('narrows to --only', () => {
@@ -15,7 +15,7 @@ describe('resolveResourceTypes', () => {
   })
 
   it('removes --skip from the default set', () => {
-    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'api', 'hooks'])
+    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'pages', 'api', 'hooks'])
   })
 
   it('applies --skip on top of --only', () => {

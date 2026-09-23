@@ -19,8 +19,8 @@ Commands for managing the tool itself, your projects, and your Loopress account:
 | | `lps status` | Show which project and environment commands will target |
 | | `lps doctor` | Diagnose connectivity, plugin and credential problems |
 | | `lps validate` | Check local tracked files are well formed and push-ready, without contacting WordPress |
-| | `lps dev` | Watch snippets, API routes, hooks and plugins, pushing each change to the `local` environment automatically |
-| | `lps push` | Push plugins, composer, ACF, API routes, hooks, forms, SEO, menus, options, and snippets to WordPress in one command |
+| | `lps dev` | Watch snippets, pages, API routes, hooks and plugins, pushing each change to the `local` environment automatically |
+| | `lps push` | Push plugins, composer, ACF, API routes, hooks, forms, pages, SEO, menus, options, and snippets to WordPress in one command |
 | | `lps pull` | Pull plugins, composer, ACF, API routes, hooks, forms, SEO, menus, options, and snippets from WordPress in one command |
 | | `lps diff` | Show what differs between your local files and an environment, or between two environments (`--against`). Exits 1 on drift, so it doubles as a CI gate |
 | | `lps promote` | Copy every tracked resource from one environment to another (`lps pull` from the source, then `lps push` to the target) |
@@ -47,6 +47,7 @@ Each of these syncs one kind of WordPress data as files in Git. See its own page
 - [Menus](/menus/): navigation menus and menu locations
 - [Options](/options/): individually tracked `wp_options` values
 - [Single-page apps](/apps/): built Vue, React or Svelte bundles mounted with a shortcode
+- [Static Pages](/pages/): hand-written HTML pages rendered by your theme
 - [Theme Styles](/theme-styles/): block theme Global Styles (`theme.json` overrides)
 - [Plugins](/plugins/): installed WordPress.org plugins manifest
 - [Themes](/themes/): installed WordPress.org themes manifest
