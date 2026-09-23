@@ -49,6 +49,11 @@
       "description": "Directory where single-page app bundles are read from and written to, relative to rootDir. Each subdirectory is one app: a loopress.app.json plus a built dist/ folder.",
       "default": "apps"
     },
+    "pageDir": {
+      "type": "string",
+      "description": "Directory where static HTML pages (one <slug>.html per WordPress page, managed by Loopress) are read from, relative to rootDir.",
+      "default": "pages"
+    },
     "optionsDir": {
       "type": "string",
       "description": "Directory where explicitly tracked WordPress options (wp_options rows) are read from and written to, relative to rootDir. Only options added via `lps option add` live here, this is never the whole options table.",

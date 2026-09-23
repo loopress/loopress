@@ -4,6 +4,7 @@ import {basename, join, relative, sep} from 'node:path'
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
+import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalPages} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
@@ -255,6 +256,30 @@ const hookProvider = phpFilesProvider({
   title: 'Hooks',
 })
 
+// ---- Pages ------------------------------------------------------------------------------
+
+// Keyed by slug (the page's identity on both sides). `link` is server-derived and never
+// compared. A local problem (a `.php` in pages/, a bad header) fails the whole resource rather
+// than hiding that page, the same stop-everything stance as `page push`.
+function canonicalPage(page: Page): Record<string, unknown> {
+  return {html: page.html, status: page.status, title: page.title}
+}
+
+const pageProvider: ResourceStateProvider = {
+  dirKind: 'page',
+  async local(dir) {
+    const {pages, problems} = await readLocalPages(dir)
+    if (problems.length > 0) throw new Error(formatPageProblems(problems))
+    return new Map(pages.map((page) => [page.slug, canonicalPage(page)]))
+  },
+  async remote(wp) {
+    const pages = await wp.get<Page[]>(PAGES_ENDPOINT)
+    return new Map(pages.map((page) => [page.slug, canonicalPage(page)]))
+  },
+  resource: 'page',
+  title: 'Pages',
+}
+
 // ---- SEO --------------------------------------------------------------------------------
 
 function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
@@ -387,6 +412,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   acfProvider,
   apiProvider,
   hookProvider,
+  pageProvider,
   seoProvider,
   optionsProvider,
 ]

@@ -11,6 +11,7 @@ export const RESOURCE_DIR_DEFAULTS = {
   form: 'forms',
   hooks: 'hooks',
   options: 'options',
+  page: 'pages',
   seo: 'seo',
   snippets: 'snippets',
 } as const
@@ -24,6 +25,7 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   form: 'formDir',
   hooks: 'hooksDir',
   options: 'optionsDir',
+  page: 'pageDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
 }

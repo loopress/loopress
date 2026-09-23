@@ -298,6 +298,11 @@ jobs:
             echo "::error::Loopress Light artifact contains src/Snippets"
             exit 1
           fi
+          if find /tmp/loopress-light-check/loopress-light/src -type d -name Pages | grep -q . \
+            || grep -RiIl --include='*.php' -E 'Loopress\\Pages|_loopress_page' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
+            echo "::error::Loopress Light artifact contains the Pages feature"
+            exit 1
+          fi
           if [ -f /tmp/loopress-light-check/loopress-light/uninstall.php ]; then
             echo "::error::Loopress Light artifact contains uninstall.php"
             exit 1

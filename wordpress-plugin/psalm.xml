@@ -39,6 +39,10 @@
                 <directory name="src/Form/RestApi" />
                 <directory name="src/Sentry/RestApi" />
                 <directory name="src/Settings/RestApi" />
+                <!-- PagesController's endpoints are invoked by register_rest_route(), and
+                     PageFilters' public methods by add_filter(), same untraceable shape. -->
+                <directory name="src/Pages/RestApi" />
+                <directory name="src/Pages/Frontend" />
                 <!-- ApiFilesController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above; RouteLoader::loadFile()/registerRoutesFor()
                      don't call this directly, but RouteLoader::applyHeaders() is invoked by WP core
@@ -119,6 +123,8 @@
                 <!-- AppShortcode::render()'s $content and $tag complete the do_shortcode callback
                      signature; this shortcode reads neither. -->
                 <directory name="src/Apps/Frontend" />
+                <!-- PageFilters::blockEditing()'s $userId completes the map_meta_cap signature. -->
+                <directory name="src/Pages/Frontend" />
             </errorLevel>
         </PossiblyUnusedParam>
 
@@ -146,6 +152,8 @@
                      hook chain Psalm can't trace to a caller. -->
                 <file name="src/Apps/Frontend/AppShortcode.php" />
                 <file name="src/Apps/Frontend/AppAssetEnqueuer.php" />
+                <!-- the_content / map_meta_cap / display_post_states filter callbacks. -->
+                <file name="src/Pages/Frontend/PageFilters.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 
@@ -170,6 +178,7 @@
                 <file name="src/Api/Feature.php" />
                 <file name="src/Hooks/Feature.php" />
                 <file name="src/Apps/Feature.php" />
+                <file name="src/Pages/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>

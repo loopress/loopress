@@ -65,6 +65,15 @@ describe('runLps', () => {
     expect(result).toEqual({error: {message: 'No composer.json found', name: 'Error'}, ok: false})
   })
 
+  it('returns the payload of a non-zero exit that is not an error envelope (e.g. diff exiting 1 on drift)', async () => {
+    const error = Object.assign(new Error('Command failed'), {stdout: '{"drift":true,"resources":{}}'})
+    execFileCustom.mockRejectedValueOnce(error)
+
+    const result = await runLps(['page', 'diff'])
+
+    expect(result).toEqual({data: {drift: true, resources: {}}, ok: true})
+  })
+
   it('falls back to a generic error when the child never got as far as printing JSON (e.g. lps not found)', async () => {
     execFileCustom.mockRejectedValueOnce(new Error('spawn lps ENOENT'))
 

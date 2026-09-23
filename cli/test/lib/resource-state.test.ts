@@ -178,6 +178,33 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('page', () => {
+    const pageProvider = provider('page')
+
+    it('compares html, title and status by slug, ignoring the server-derived link', async () => {
+      const remote = fakeWp({
+        'loopress/v1/pages': [
+          {html: '<p>a</p>', link: 'https://x.test/about/', slug: 'about', status: 'publish', title: 'About'},
+          {html: '<p>old</p>', link: 'https://x.test/terms/', slug: 'terms', status: 'draft', title: 'Terms'},
+          {html: '', link: 'https://x.test/gone/', slug: 'gone', status: 'draft', title: 'Gone'},
+        ],
+      })
+      writeFileSync(join(dir, 'about.html'), '<!--\nstatus: publish\n-->\n<p>a</p>')
+      writeFileSync(join(dir, 'terms.html'), '<p>new</p>')
+
+      const diff = compareStates(await pageProvider.remote(remote, noWarn, dir), await pageProvider.local(dir, noWarn), labels)
+
+      expect(diff.removed).toEqual(['gone'])
+      expect(diff.changed.map((change) => change.id)).toEqual(['terms'])
+    })
+
+    it('fails the local side when the directory holds a non-.html file', async () => {
+      writeFileSync(join(dir, 'x.php'), '<?php')
+
+      await expect(pageProvider.local(dir, noWarn)).rejects.toThrow('only .html files are allowed')
+    })
+  })
+
   describe('form', () => {
     const formProvider = provider('form')
 

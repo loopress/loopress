@@ -58,6 +58,9 @@ export async function runLps<T>(args: string[], options: RunLpsOptions = {}): Pr
       try {
         const parsed = JSON.parse(stdout) as {error?: LpsError}
         if (parsed.error) return {error: parsed.error, ok: false}
+        // A non-zero exit with a normal payload is a result, not a failure: `lps <resource>
+        // diff` exits 1 on drift (a CI gate) and still prints its full report.
+        return {data: parsed as T, ok: true}
       } catch {
         // stdout wasn't JSON (e.g. the process crashed before oclif's own error handling ran);
         // fall through to the generic error below.
