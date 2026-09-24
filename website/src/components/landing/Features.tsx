@@ -21,7 +21,6 @@ export function Features() {
           <FeatureCard
             tag="01"
             title="Hooks"
-            badge="In progress"
             description={
               <>
                 Declare actions and filters as PHP 8 classes with attributes. Loopress loads and
@@ -39,7 +38,7 @@ export function Features() {
             title="Plugin Lockfile"
             description={
               <>
-                Declare plugin versions in <Code>loopress.json</Code>, like a{" "}
+                Declare plugin and theme versions in <Code>loopress.json</Code>, like a{" "}
                 <Code>package.json</Code> for WordPress. <Code>lps plugin pull</Code> merges what's
                 actually live into your manifest instead of overwriting it, so drift never turns
                 into a fight.
@@ -82,20 +81,6 @@ export function Features() {
 
           <FeatureCard
             tag="06"
-            title="Snippets"
-            description={
-              <>
-                Interop with <Code>Code Snippets</Code> and <Code>WPCode</Code>. Pull existing
-                snippets to <Code>.php</Code> files for a one-off edit, or to move them into Git on
-                the way to hooks. Same pull, edit, push loop, no database dump.
-              </>
-            }
-          >
-            <SnippetsBlock />
-          </FeatureCard>
-
-          <FeatureCard
-            tag="07"
             title="Official CI configs"
             description={
               <>
@@ -106,6 +91,48 @@ export function Features() {
             }
           >
             <CIBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="07"
+            title="Static Pages"
+            description={
+              <>
+                Hand-written <Code>.html</Code> files in <Code>pages/</Code>, pushed as regular
+                WordPress pages rendered inside your theme, header and footer included. The file is
+                the only source of truth: a Loopress page can't drift in wp-admin.
+              </>
+            }
+          >
+            <PagesBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="08"
+            title="Rollback"
+            description={
+              <>
+                Every push snapshots what it's about to overwrite. <Code>lps hook rollback</Code>{" "}
+                (or <Code>api</Code>, <Code>acf</Code>, <Code>seo</Code>, <Code>menu</Code>...) puts
+                it back, and asks first if the site changed since that snapshot was taken.
+              </>
+            }
+          >
+            <RollbackBlock />
+          </FeatureCard>
+
+          <FeatureCard
+            tag="09"
+            title="MCP Server"
+            description={
+              <>
+                Let Claude Code or any MCP client pull, diff and push your site through{" "}
+                <Code>lps</Code>. Every mutating call previews first and is refused if the site
+                changed between the preview and the confirmation.
+              </>
+            }
+          >
+            <McpBlock />
           </FeatureCard>
         </div>
       </div>
@@ -183,7 +210,7 @@ function HooksBlock() {
   }`}
       </pre>
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
-        <Line c="muted">$ lps hooks push</Line>
+        <Line c="muted">$ lps hook push</Line>
         <Line c="muted"># wired onto add_filter('woocommerce_get_price_html')</Line>
       </div>
     </div>
@@ -270,6 +297,62 @@ function CIBlock() {
   );
 }
 
+function PagesBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        pages/legal-notice.html
+      </div>
+      <pre className="px-3 py-3">
+        {`  <!--
+  title: Legal notice
+  status: publish
+  -->
+  <section class="legal">
+    <h1>Legal notice</h1>
+  </section>`}
+      </pre>
+      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
+        <Line c="muted">$ lps page push</Line>
+        <Line c="success">✓ Published: /legal-notice/</Line>
+      </div>
+    </div>
+  );
+}
+
+function RollbackBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        Terminal
+      </div>
+      <pre className="px-3 py-3">
+        <Line c="muted">$ lps hook rollback --list</Line>
+        <Line c="muted"> 2026-09-24 10:42 production (latest)</Line>
+        <Line c="muted"> 2026-09-23 17:05 production</Line>
+        <Line c="muted">$ lps hook rollback</Line>
+        <Line c="success">Rolled back hooks to the snapshot from 10:42.</Line>
+      </pre>
+    </div>
+  );
+}
+
+function McpBlock() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
+      <div className="border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
+        Claude Code
+      </div>
+      <pre className="px-3 py-3">
+        <Line c="muted">$ claude mcp add loopress -- lps-mcp</Line>
+        <Line c="muted">&gt; add a VAT suffix to WooCommerce prices on staging</Line>
+        <Line c="muted"> hook_push (preview): +1 hooks/PriceFormatter.php</Line>
+        <Line c="success">✓ Confirmed and pushed to staging</Line>
+      </pre>
+    </div>
+  );
+}
+
 function ApiBlock() {
   return (
     <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
@@ -288,28 +371,6 @@ function ApiBlock() {
       <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
         <Line c="muted">$ lps api push</Line>
         <Line c="success">✓ Deployed: /loopress-api/v1/webhook-handler</Line>
-      </div>
-    </div>
-  );
-}
-
-function SnippetsBlock() {
-  return (
-    <div className="overflow-hidden rounded-lg border border-border/80 bg-background/60 font-mono text-[12px] leading-relaxed">
-      <div className="flex items-center justify-between border-b border-border/80 px-3 py-1.5 text-[10px] text-muted-foreground">
-        <span>snippets/disable-emojis.php</span>
-        <span>+ 3 / − 1</span>
-      </div>
-      <pre className="px-3 py-3">
-        {`  <?php
-- // remove_action('wp_head', ...);
-+ remove_action('wp_head', 'print_emoji_detection_script', 7);
-+ remove_action('wp_print_styles', 'print_emoji_styles');
-+ remove_filter('the_content_feed', 'wp_staticize_emoji');`}
-      </pre>
-      <div className="border-t border-border/80 px-3 py-2 text-[10px] text-muted-foreground">
-        <Line c="muted">$ lps snippet push</Line>
-        <Line c="success">✓ Updated: disable-emojis</Line>
       </div>
     </div>
   );

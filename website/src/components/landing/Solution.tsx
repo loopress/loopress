@@ -11,9 +11,9 @@ export function Solution() {
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
           A versioned file describes how a resource should look: a hook, a plugin version, a
-          Composer dependency, an API route, an app bundle. Loopress diffs that file against the
-          live site and applies only what changed. The same loop for every resource, and never your
-          content or your database.
+          Composer dependency, an API route, a nav menu, a static page, an app bundle. Loopress
+          diffs that file against the live site and applies only what changed. The same loop for
+          every resource, and never your content or your database.
         </p>
 
         <div className="mt-12">

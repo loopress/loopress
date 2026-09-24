@@ -14,17 +14,6 @@ const POINTS: { title: string; body: React.ReactNode }[] = [
     body: "Every command authenticates with a WordPress Application Password, the same mechanism WordPress core has shipped since 5.6. Revoke it from Users → Profile at any time and access stops immediately, no Loopress involvement required.",
   },
   {
-    title: "Snippets: trust stays with the plugin you already run",
-    body: (
-      <>
-        For snippets, Loopress touches neither storage nor execution. It pushes to{" "}
-        <Code>Code Snippets</Code> or <Code>WPCode</Code>, established plugins with years of
-        production use around running PHP from the admin. You inherit their hardening and their
-        track record, not a new one.
-      </>
-    ),
-  },
-  {
     title: "Hooks and API Routes: native primitives, no runtime of our own",
     body: (
       <>
