@@ -18,7 +18,7 @@ The command is interactive: it prompts you for each field and writes the result 
 | WordPress project | Select a project you have already configured with `lps project config`, or enter a project ID manually. When no project exists yet, `lps init` offers to run `lps project config` right away and continues with the project you create. |
 | Root directory | Base directory for the project. All other paths are resolved relative to it. Defaults to `.`. |
 | Snippets directory | Directory where snippet files are written and read. Relative to root. Defaults to `snippets`. |
-| Other features | Optional multi-select for ACF, SEO, Forms, custom API routes, hooks, single-page apps, and static pages. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `forms`, `api`, `hooks`, `apps`, `pages`). |
+| Other features | Optional multi-select for ACF, SEO, Menus, Forms, custom API routes, hooks, single-page apps, and static pages. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `menus`, `forms`, `api`, `hooks`, `apps`, `pages`). |
 | Snippet provider | The WordPress plugin used to manage snippets: [Code Snippets](https://wordpress.org/plugins/code-snippets/), [WPCode](https://wpcode.com/), or none if it's already installed. When you pick one, it's added to `plugins`. |
 
 The final summary lists everything that was configured and the next useful command.
@@ -49,8 +49,13 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `seoDir` | `seo` | Directory for SEO settings, post meta and redirects, relative to `rootDir`. Used by `lps seo pull/push`. |
 | `formDir` | `forms` | Directory for form files, relative to `rootDir`. Used by `lps form pull/push`. |
 | `apiDir` | `api` | Directory for custom API route files, relative to `rootDir`. Used by `lps api pull/push`. |
+| `hooksDir` | `hooks` | Directory for hook files (actions, filters, cron), relative to `rootDir`. Used by `lps hook pull/push`. |
+| `menuDir` | `menus` | Directory for nav menus (one JSON file per menu, plus `menu-locations.json`), relative to `rootDir`. Used by `lps menu pull/push`. |
+| `optionsDir` | `options` | Directory for tracked WordPress options, relative to `rootDir`. Only options added with `lps option add` live here. |
+| `themeStylesDir` | `theme` | Directory for the active block theme's Global Styles, relative to `rootDir`. Used by `lps theme-styles pull/push`. |
 | `pageDir` | `pages` | Directory for static HTML pages, relative to `rootDir`. Used by `lps page push/diff`. |
 | `appsDir` | `apps` | Directory for single-page app bundles, relative to `rootDir`. Used by `lps app pull/push`. |
+| `themes` | none | WordPress.org themes managed by Loopress (slugs). Populated by `lps theme pull` and `lps theme add`. Never switches the active theme. |
 | `plugins` | none | WordPress.org plugins managed by Loopress (slugs). Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
 
 ## If loopress.json already exists

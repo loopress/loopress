@@ -83,6 +83,7 @@ export async function writeSnapshot(options: {
   const {afterState, beforeState, environment, resource, retain = SNAPSHOT_RETENTION, rootDir} = options
   const dir = snapshotsDir(rootDir, resource, environment)
   await mkdir(dir, {recursive: true})
+  await ignoreCacheDirInGit(rootDir)
 
   const snapshot: Snapshot = {
     afterState: stateToRecord(afterState),
@@ -106,6 +107,18 @@ export async function writeSnapshot(options: {
 
   await pruneSnapshots(rootDir, resource, environment, retain)
   return String(id)
+}
+
+// `.loopress/` lives inside the user's project and holds the environment's full remote state
+// (snippet code, form definitions, option values): a `git add .` must never pick it up. The
+// directory ignores itself, the way `.pytest_cache` does, instead of relying on every project
+// to add it to its own .gitignore. `wx` so a hand-edited file is never overwritten.
+async function ignoreCacheDirInGit(rootDir: string): Promise<void> {
+  try {
+    await writeFile(join(rootDir, '.loopress', '.gitignore'), '# Written by the Loopress CLI: local rollback snapshots, never commit them.\n*\n', {flag: 'wx'})
+  } catch (error) {
+    if (!isEexist(error)) throw error
+  }
 }
 
 // Newest first. A missing snapshots directory (never pushed, or pruned to nothing) reads as

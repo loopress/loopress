@@ -50,7 +50,7 @@
     "vitest": "^4.1.11"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "files": [
     "./bin",
@@ -126,7 +126,8 @@
       "telemetry": {
         "description": "Manage error reporting preferences"
       }
-    }
+    },
+    "repositoryPrefix": "<%- repo %>/blob/%40loopress%2Fcli%40<%- version %>/cli/<%- commandPath %>"
   },
   "repository": {
     "type": "git",

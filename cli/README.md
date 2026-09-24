@@ -21,7 +21,7 @@ $ npm install -g @loopress/cli
 $ lps COMMAND
 running command...
 $ lps (--version)
-@loopress/cli/0.25.0 darwin-arm64 node-v24.20.0
+@loopress/cli/0.26.0 darwin-arm64 node-v24.20.0
 $ lps --help [COMMAND]
 USAGE
   $ lps COMMAND
@@ -168,7 +168,7 @@ EXAMPLES
   $ lps acf diff --env staging --against production
 ```
 
-_See code: [src/commands/acf/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/diff.ts)_
+_See code: [src/commands/acf/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/acf/diff.ts)_
 
 ## `lps acf list`
 
@@ -195,7 +195,7 @@ EXAMPLES
   $ lps acf list --type field-groups
 ```
 
-_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/list.ts)_
+_See code: [src/commands/acf/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/acf/list.ts)_
 
 ## `lps acf pull [PATH]`
 
@@ -224,7 +224,7 @@ EXAMPLES
   $ lps acf pull --type field-groups
 ```
 
-_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/pull.ts)_
+_See code: [src/commands/acf/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/acf/pull.ts)_
 
 ## `lps acf push [PATH]`
 
@@ -253,7 +253,7 @@ EXAMPLES
   $ lps acf push --type field-groups
 ```
 
-_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/push.ts)_
+_See code: [src/commands/acf/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/acf/push.ts)_
 
 ## `lps acf rollback [PATH]`
 
@@ -290,7 +290,7 @@ EXAMPLES
   $ lps acf rollback --dry-run
 ```
 
-_See code: [src/commands/acf/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/acf/rollback.ts)_
+_See code: [src/commands/acf/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/acf/rollback.ts)_
 
 ## `lps api diff [PATH]`
 
@@ -322,7 +322,7 @@ EXAMPLES
   $ lps api diff --env staging --against production
 ```
 
-_See code: [src/commands/api/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/diff.ts)_
+_See code: [src/commands/api/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/diff.ts)_
 
 ## `lps api list`
 
@@ -345,7 +345,7 @@ EXAMPLES
   $ lps api list
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/list.ts)_
 
 ## `lps api publish [PATH]`
 
@@ -368,7 +368,7 @@ EXAMPLES
   $ lps api publish --path ./api
 ```
 
-_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/publish.ts)_
+_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/publish.ts)_
 
 ## `lps api pull [PATH]`
 
@@ -398,7 +398,7 @@ EXAMPLES
   $ lps api pull --path ./api
 ```
 
-_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/pull.ts)_
+_See code: [src/commands/api/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/pull.ts)_
 
 ## `lps api push [PATH]`
 
@@ -431,7 +431,7 @@ EXAMPLES
   $ lps api push --prune
 ```
 
-_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/push.ts)_
+_See code: [src/commands/api/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/push.ts)_
 
 ## `lps api rm FILENAME`
 
@@ -461,7 +461,7 @@ EXAMPLES
   $ lps api rm hello --yes
 ```
 
-_See code: [src/commands/api/rm.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/rm.ts)_
+_See code: [src/commands/api/rm.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/rm.ts)_
 
 ## `lps api rollback [PATH]`
 
@@ -497,7 +497,7 @@ EXAMPLES
   $ lps api rollback --dry-run
 ```
 
-_See code: [src/commands/api/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/api/rollback.ts)_
+_See code: [src/commands/api/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/rollback.ts)_
 
 ## `lps app list`
 
@@ -520,7 +520,7 @@ EXAMPLES
   $ lps app list
 ```
 
-_See code: [src/commands/app/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/list.ts)_
+_See code: [src/commands/app/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/app/list.ts)_
 
 ## `lps app pull [PATH]`
 
@@ -548,7 +548,7 @@ EXAMPLES
   $ lps app pull
 ```
 
-_See code: [src/commands/app/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/pull.ts)_
+_See code: [src/commands/app/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/app/pull.ts)_
 
 ## `lps app push [NAME]`
 
@@ -579,7 +579,7 @@ EXAMPLES
   $ lps app push search
 ```
 
-_See code: [src/commands/app/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/push.ts)_
+_See code: [src/commands/app/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/app/push.ts)_
 
 ## `lps app remove NAME`
 
@@ -608,7 +608,7 @@ EXAMPLES
   $ lps app remove search
 ```
 
-_See code: [src/commands/app/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/app/remove.ts)_
+_See code: [src/commands/app/remove.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/app/remove.ts)_
 
 ## `lps composer init`
 
@@ -631,7 +631,7 @@ EXAMPLES
   $ lps composer init --dry-run
 ```
 
-_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/init.ts)_
+_See code: [src/commands/composer/init.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/composer/init.ts)_
 
 ## `lps composer pull`
 
@@ -657,7 +657,7 @@ EXAMPLES
   $ lps composer pull --dry-run
 ```
 
-_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/pull.ts)_
+_See code: [src/commands/composer/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/composer/pull.ts)_
 
 ## `lps composer push`
 
@@ -685,7 +685,7 @@ EXAMPLES
   $ lps composer push --dry-run
 ```
 
-_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/composer/push.ts)_
+_See code: [src/commands/composer/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/composer/push.ts)_
 
 ## `lps dev`
 
@@ -696,8 +696,8 @@ USAGE
   $ lps dev [--only <value>] [--skip <value>]
 
 FLAGS
-  --only=<value>  Only watch these resource types (comma-separated): snippets, pages, api, plugins
-  --skip=<value>  Skip these resource types (comma-separated): snippets, pages, api, plugins
+  --only=<value>  Only watch these resource types (comma-separated): snippets, pages, api, hooks, plugins
+  --skip=<value>  Skip these resource types (comma-separated): snippets, pages, api, hooks, plugins
 
 DESCRIPTION
   Watch project files and push changes to the local WordPress instance as they happen. Always targets the "local"
@@ -711,7 +711,7 @@ EXAMPLES
   $ lps dev --skip=plugins
 ```
 
-_See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/dev.ts)_
+_See code: [src/commands/dev.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/dev.ts)_
 
 ## `lps diff`
 
@@ -752,7 +752,7 @@ EXAMPLES
   $ lps diff --skip composer
 ```
 
-_See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/diff.ts)_
+_See code: [src/commands/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/diff.ts)_
 
 ## `lps doctor`
 
@@ -777,7 +777,7 @@ EXAMPLES
   $ lps doctor --env production
 ```
 
-_See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/doctor.ts)_
+_See code: [src/commands/doctor.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/doctor.ts)_
 
 ## `lps form diff [PATH]`
 
@@ -808,7 +808,7 @@ EXAMPLES
   $ lps form diff --env staging --against production
 ```
 
-_See code: [src/commands/form/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/diff.ts)_
+_See code: [src/commands/form/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/form/diff.ts)_
 
 ## `lps form list`
 
@@ -831,7 +831,7 @@ EXAMPLES
   $ lps form list
 ```
 
-_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/list.ts)_
+_See code: [src/commands/form/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/form/list.ts)_
 
 ## `lps form pull [PATH]`
 
@@ -856,7 +856,7 @@ EXAMPLES
   $ lps form pull
 ```
 
-_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/pull.ts)_
+_See code: [src/commands/form/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/form/pull.ts)_
 
 ## `lps form push [PATH]`
 
@@ -887,7 +887,7 @@ EXAMPLES
   $ lps form push --allow-notifications
 ```
 
-_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/push.ts)_
+_See code: [src/commands/form/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/form/push.ts)_
 
 ## `lps form rollback [PATH]`
 
@@ -923,7 +923,7 @@ EXAMPLES
   $ lps form rollback --dry-run
 ```
 
-_See code: [src/commands/form/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/form/rollback.ts)_
+_See code: [src/commands/form/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/form/rollback.ts)_
 
 ## `lps help [COMMAND]`
 
@@ -974,7 +974,7 @@ EXAMPLES
   $ lps hook diff --env staging --against production
 ```
 
-_See code: [src/commands/hook/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/diff.ts)_
+_See code: [src/commands/hook/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/diff.ts)_
 
 ## `lps hook list`
 
@@ -997,7 +997,7 @@ EXAMPLES
   $ lps hook list
 ```
 
-_See code: [src/commands/hook/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/list.ts)_
+_See code: [src/commands/hook/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/list.ts)_
 
 ## `lps hook pull [PATH]`
 
@@ -1027,7 +1027,7 @@ EXAMPLES
   $ lps hook pull --path ./hooks
 ```
 
-_See code: [src/commands/hook/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/pull.ts)_
+_See code: [src/commands/hook/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/pull.ts)_
 
 ## `lps hook push [PATH]`
 
@@ -1060,7 +1060,7 @@ EXAMPLES
   $ lps hook push --prune
 ```
 
-_See code: [src/commands/hook/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/push.ts)_
+_See code: [src/commands/hook/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/push.ts)_
 
 ## `lps hook rm FILENAME`
 
@@ -1090,7 +1090,7 @@ EXAMPLES
   $ lps hook rm hello --yes
 ```
 
-_See code: [src/commands/hook/rm.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/rm.ts)_
+_See code: [src/commands/hook/rm.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/rm.ts)_
 
 ## `lps hook rollback [PATH]`
 
@@ -1126,7 +1126,7 @@ EXAMPLES
   $ lps hook rollback --dry-run
 ```
 
-_See code: [src/commands/hook/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/hook/rollback.ts)_
+_See code: [src/commands/hook/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/hook/rollback.ts)_
 
 ## `lps init`
 
@@ -1143,7 +1143,7 @@ EXAMPLES
   $ lps init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/init.ts)_
 
 ## `lps login`
 
@@ -1160,7 +1160,7 @@ EXAMPLES
   $ lps login
 ```
 
-_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/login.ts)_
 
 ## `lps logout`
 
@@ -1177,7 +1177,7 @@ EXAMPLES
   $ lps logout
 ```
 
-_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/logout.ts)_
 
 ## `lps menu diff [PATH]`
 
@@ -1209,7 +1209,7 @@ EXAMPLES
   $ lps menu diff --env staging --against production
 ```
 
-_See code: [src/commands/menu/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/diff.ts)_
+_See code: [src/commands/menu/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/menu/diff.ts)_
 
 ## `lps menu list`
 
@@ -1232,7 +1232,7 @@ EXAMPLES
   $ lps menu list
 ```
 
-_See code: [src/commands/menu/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/list.ts)_
+_See code: [src/commands/menu/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/menu/list.ts)_
 
 ## `lps menu pull [PATH]`
 
@@ -1257,7 +1257,7 @@ EXAMPLES
   $ lps menu pull
 ```
 
-_See code: [src/commands/menu/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/pull.ts)_
+_See code: [src/commands/menu/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/menu/pull.ts)_
 
 ## `lps menu push [PATH]`
 
@@ -1284,7 +1284,7 @@ EXAMPLES
   $ lps menu push
 ```
 
-_See code: [src/commands/menu/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/push.ts)_
+_See code: [src/commands/menu/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/menu/push.ts)_
 
 ## `lps menu rollback [PATH]`
 
@@ -1320,7 +1320,7 @@ EXAMPLES
   $ lps menu rollback --dry-run
 ```
 
-_See code: [src/commands/menu/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/menu/rollback.ts)_
+_See code: [src/commands/menu/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/menu/rollback.ts)_
 
 ## `lps option add NAME`
 
@@ -1351,7 +1351,7 @@ EXAMPLES
   $ lps option add siteurl
 ```
 
-_See code: [src/commands/option/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/add.ts)_
+_See code: [src/commands/option/add.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/add.ts)_
 
 ## `lps option diff [PATH]`
 
@@ -1383,7 +1383,7 @@ EXAMPLES
   $ lps option diff --env staging --against production
 ```
 
-_See code: [src/commands/option/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/diff.ts)_
+_See code: [src/commands/option/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/diff.ts)_
 
 ## `lps option list`
 
@@ -1413,7 +1413,7 @@ EXAMPLES
   $ lps option list --no-core
 ```
 
-_See code: [src/commands/option/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/list.ts)_
+_See code: [src/commands/option/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/list.ts)_
 
 ## `lps option pull [PATH]`
 
@@ -1442,7 +1442,7 @@ EXAMPLES
   $ lps option pull
 ```
 
-_See code: [src/commands/option/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/pull.ts)_
+_See code: [src/commands/option/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/pull.ts)_
 
 ## `lps option push [PATH]`
 
@@ -1471,7 +1471,7 @@ EXAMPLES
   $ lps option push
 ```
 
-_See code: [src/commands/option/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/push.ts)_
+_See code: [src/commands/option/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/push.ts)_
 
 ## `lps option remove NAME`
 
@@ -1504,7 +1504,7 @@ EXAMPLES
   $ lps option remove wpseo_titles --local-only
 ```
 
-_See code: [src/commands/option/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/remove.ts)_
+_See code: [src/commands/option/remove.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/remove.ts)_
 
 ## `lps option rollback [PATH]`
 
@@ -1540,7 +1540,7 @@ EXAMPLES
   $ lps option rollback --dry-run
 ```
 
-_See code: [src/commands/option/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/option/rollback.ts)_
+_See code: [src/commands/option/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/option/rollback.ts)_
 
 ## `lps page diff [PATH]`
 
@@ -1571,7 +1571,7 @@ EXAMPLES
   $ lps page diff --env staging --against production
 ```
 
-_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/diff.ts)_
+_See code: [src/commands/page/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/page/diff.ts)_
 
 ## `lps page list`
 
@@ -1594,7 +1594,7 @@ EXAMPLES
   $ lps page list
 ```
 
-_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/list.ts)_
+_See code: [src/commands/page/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/page/list.ts)_
 
 ## `lps page push [SLUG]`
 
@@ -1627,7 +1627,7 @@ EXAMPLES
   $ lps page push --dry-run
 ```
 
-_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/page/push.ts)_
+_See code: [src/commands/page/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/page/push.ts)_
 
 ## `lps plugin add SLUG`
 
@@ -1635,7 +1635,7 @@ Add a WordPress.org plugin to loopress.json
 
 ```
 USAGE
-  $ lps plugin add SLUG [--env <value>] [-d] [--version <value>]
+  $ lps plugin add SLUG [--json] [--env <value>] [-d] [--version <value>]
 
 ARGUMENTS
   SLUG  Plugin slug on WordPress.org
@@ -1644,6 +1644,9 @@ FLAGS
   -d, --dry-run          Show what would change without making changes
       --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
       --version=<value>  Exact version to pin (default: "latest", tracked on every push)
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Add a WordPress.org plugin to loopress.json
@@ -1656,7 +1659,7 @@ EXAMPLES
   $ lps plugin add contact-form-7 --dry-run
 ```
 
-_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/add.ts)_
+_See code: [src/commands/plugin/add.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/plugin/add.ts)_
 
 ## `lps plugin audit`
 
@@ -1679,7 +1682,7 @@ EXAMPLES
   $ lps plugin audit
 ```
 
-_See code: [src/commands/plugin/audit.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/audit.ts)_
+_See code: [src/commands/plugin/audit.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/plugin/audit.ts)_
 
 ## `lps plugin pull`
 
@@ -1705,7 +1708,7 @@ EXAMPLES
   $ lps plugin pull --dry-run
 ```
 
-_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/pull.ts)_
+_See code: [src/commands/plugin/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/plugin/pull.ts)_
 
 ## `lps plugin push`
 
@@ -1736,7 +1739,7 @@ EXAMPLES
   $ lps plugin push --force --prune
 ```
 
-_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/push.ts)_
+_See code: [src/commands/plugin/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/plugin/push.ts)_
 
 ## `lps plugin status`
 
@@ -1759,7 +1762,7 @@ EXAMPLES
   $ lps plugin status
 ```
 
-_See code: [src/commands/plugin/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/plugin/status.ts)_
+_See code: [src/commands/plugin/status.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/plugin/status.ts)_
 
 ## `lps project config`
 
@@ -1777,7 +1780,7 @@ EXAMPLES
   $ lps project config
 ```
 
-_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/config.ts)_
+_See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/config.ts)_
 
 ## `lps project list`
 
@@ -1797,7 +1800,7 @@ EXAMPLES
   $ lps project list
 ```
 
-_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/list.ts)_
+_See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/list.ts)_
 
 ## `lps project pull`
 
@@ -1814,7 +1817,7 @@ EXAMPLES
   $ lps project pull
 ```
 
-_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/pull.ts)_
+_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/pull.ts)_
 
 ## `lps project push`
 
@@ -1834,7 +1837,7 @@ EXAMPLES
   $ lps project push
 ```
 
-_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/push.ts)_
+_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/push.ts)_
 
 ## `lps project remove`
 
@@ -1851,7 +1854,7 @@ EXAMPLES
   $ lps project remove
 ```
 
-_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/remove.ts)_
+_See code: [src/commands/project/remove.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/remove.ts)_
 
 ## `lps project rotate`
 
@@ -1873,7 +1876,7 @@ EXAMPLES
   $ lps project rotate --env staging
 ```
 
-_See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/rotate.ts)_
+_See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/rotate.ts)_
 
 ## `lps project switch`
 
@@ -1890,7 +1893,7 @@ EXAMPLES
   $ lps project switch
 ```
 
-_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/project/switch.ts)_
+_See code: [src/commands/project/switch.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/switch.ts)_
 
 ## `lps promote FROM TO`
 
@@ -1921,7 +1924,7 @@ EXAMPLES
   $ lps promote production staging --dry-run
 ```
 
-_See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/promote.ts)_
+_See code: [src/commands/promote.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/promote.ts)_
 
 ## `lps pull`
 
@@ -1951,7 +1954,7 @@ EXAMPLES
   $ lps pull --dry-run
 ```
 
-_See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/pull.ts)_
+_See code: [src/commands/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/pull.ts)_
 
 ## `lps push`
 
@@ -1981,7 +1984,7 @@ EXAMPLES
   $ lps push --dry-run
 ```
 
-_See code: [src/commands/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/push.ts)_
+_See code: [src/commands/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/push.ts)_
 
 ## `lps seo diff [PATH]`
 
@@ -2013,7 +2016,7 @@ EXAMPLES
   $ lps seo diff --env staging --against production
 ```
 
-_See code: [src/commands/seo/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/diff.ts)_
+_See code: [src/commands/seo/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/seo/diff.ts)_
 
 ## `lps seo list`
 
@@ -2039,7 +2042,7 @@ EXAMPLES
   $ lps seo list --post-type post
 ```
 
-_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/list.ts)_
+_See code: [src/commands/seo/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/seo/list.ts)_
 
 ## `lps seo pull [PATH]`
 
@@ -2067,7 +2070,7 @@ EXAMPLES
   $ lps seo pull --post-type post --post-type page
 ```
 
-_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/pull.ts)_
+_See code: [src/commands/seo/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/seo/pull.ts)_
 
 ## `lps seo push [PATH]`
 
@@ -2097,7 +2100,7 @@ EXAMPLES
   $ lps seo push --allow-external-redirects
 ```
 
-_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/push.ts)_
+_See code: [src/commands/seo/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/seo/push.ts)_
 
 ## `lps seo rollback [PATH]`
 
@@ -2133,7 +2136,7 @@ EXAMPLES
   $ lps seo rollback --dry-run
 ```
 
-_See code: [src/commands/seo/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/seo/rollback.ts)_
+_See code: [src/commands/seo/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/seo/rollback.ts)_
 
 ## `lps snippet diff [PATH]`
 
@@ -2164,7 +2167,7 @@ EXAMPLES
   $ lps snippet diff --env staging --against production
 ```
 
-_See code: [src/commands/snippet/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/diff.ts)_
+_See code: [src/commands/snippet/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/diff.ts)_
 
 ## `lps snippet list`
 
@@ -2187,7 +2190,7 @@ EXAMPLES
   $ lps snippet list
 ```
 
-_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/list.ts)_
+_See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/list.ts)_
 
 ## `lps snippet publish [PATH]`
 
@@ -2210,7 +2213,7 @@ EXAMPLES
   $ lps snippet publish --path ./snippets
 ```
 
-_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/publish.ts)_
+_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 
@@ -2240,7 +2243,7 @@ EXAMPLES
   $ lps snippet pull --path ./snippets
 ```
 
-_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/pull.ts)_
+_See code: [src/commands/snippet/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/pull.ts)_
 
 ## `lps snippet push [PATH]`
 
@@ -2271,7 +2274,7 @@ EXAMPLES
   $ lps snippet push --path ./snippets
 ```
 
-_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/push.ts)_
+_See code: [src/commands/snippet/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/push.ts)_
 
 ## `lps snippet rollback [PATH]`
 
@@ -2307,7 +2310,7 @@ EXAMPLES
   $ lps snippet rollback --dry-run
 ```
 
-_See code: [src/commands/snippet/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/snippet/rollback.ts)_
+_See code: [src/commands/snippet/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/rollback.ts)_
 
 ## `lps status`
 
@@ -2332,7 +2335,7 @@ EXAMPLES
   $ lps status --env staging
 ```
 
-_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/status.ts)_
 
 ## `lps telemetry disable`
 
@@ -2349,7 +2352,7 @@ EXAMPLES
   $ lps telemetry disable
 ```
 
-_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/telemetry/disable.ts)_
+_See code: [src/commands/telemetry/disable.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/telemetry/disable.ts)_
 
 ## `lps telemetry enable`
 
@@ -2366,7 +2369,7 @@ EXAMPLES
   $ lps telemetry enable
 ```
 
-_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/telemetry/enable.ts)_
+_See code: [src/commands/telemetry/enable.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/telemetry/enable.ts)_
 
 ## `lps theme-styles diff [PATH]`
 
@@ -2398,7 +2401,7 @@ EXAMPLES
   $ lps theme-styles diff --env staging --against production
 ```
 
-_See code: [src/commands/theme-styles/diff.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/diff.ts)_
+_See code: [src/commands/theme-styles/diff.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme-styles/diff.ts)_
 
 ## `lps theme-styles pull [PATH]`
 
@@ -2422,7 +2425,7 @@ EXAMPLES
   $ lps theme-styles pull
 ```
 
-_See code: [src/commands/theme-styles/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/pull.ts)_
+_See code: [src/commands/theme-styles/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme-styles/pull.ts)_
 
 ## `lps theme-styles push [PATH]`
 
@@ -2446,7 +2449,7 @@ EXAMPLES
   $ lps theme-styles push
 ```
 
-_See code: [src/commands/theme-styles/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/push.ts)_
+_See code: [src/commands/theme-styles/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme-styles/push.ts)_
 
 ## `lps theme-styles rollback [PATH]`
 
@@ -2482,7 +2485,7 @@ EXAMPLES
   $ lps theme-styles rollback --dry-run
 ```
 
-_See code: [src/commands/theme-styles/rollback.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme-styles/rollback.ts)_
+_See code: [src/commands/theme-styles/rollback.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme-styles/rollback.ts)_
 
 ## `lps theme add SLUG`
 
@@ -2490,7 +2493,7 @@ Add a WordPress.org theme to loopress.json
 
 ```
 USAGE
-  $ lps theme add SLUG [--env <value>] [-d] [--version <value>]
+  $ lps theme add SLUG [--json] [--env <value>] [-d] [--version <value>]
 
 ARGUMENTS
   SLUG  Theme slug on WordPress.org
@@ -2499,6 +2502,9 @@ FLAGS
   -d, --dry-run          Show what would change without making changes
       --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
       --version=<value>  Exact version to pin (default: "latest")
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   Add a WordPress.org theme to loopress.json
@@ -2509,7 +2515,7 @@ EXAMPLES
   $ lps theme add generatepress --version 3.4.0
 ```
 
-_See code: [src/commands/theme/add.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/add.ts)_
+_See code: [src/commands/theme/add.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme/add.ts)_
 
 ## `lps theme pull`
 
@@ -2533,7 +2539,7 @@ EXAMPLES
   $ lps theme pull
 ```
 
-_See code: [src/commands/theme/pull.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/pull.ts)_
+_See code: [src/commands/theme/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme/pull.ts)_
 
 ## `lps theme push`
 
@@ -2561,7 +2567,7 @@ EXAMPLES
   $ lps theme push --force
 ```
 
-_See code: [src/commands/theme/push.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/push.ts)_
+_See code: [src/commands/theme/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme/push.ts)_
 
 ## `lps theme status`
 
@@ -2584,7 +2590,7 @@ EXAMPLES
   $ lps theme status
 ```
 
-_See code: [src/commands/theme/status.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/theme/status.ts)_
+_See code: [src/commands/theme/status.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/theme/status.ts)_
 
 ## `lps validate`
 
@@ -2604,5 +2610,5 @@ EXAMPLES
   $ lps validate
 ```
 
-_See code: [src/commands/validate.ts](https://github.com/loopress/loopress/blob/v0.25.0/src/commands/validate.ts)_
+_See code: [src/commands/validate.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/validate.ts)_
 <!-- commandsstop -->

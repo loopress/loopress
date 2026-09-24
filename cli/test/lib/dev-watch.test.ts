@@ -7,7 +7,7 @@ import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, resourc
 
 describe('resolveResourceTypes', () => {
   it('defaults to every resource type when neither --only nor --skip is given', () => {
-    expect(resolveResourceTypes()).toEqual(['snippets', 'pages', 'api', 'plugins'])
+    expect(resolveResourceTypes()).toEqual(['snippets', 'pages', 'api', 'hooks', 'plugins'])
   })
 
   it('narrows to --only', () => {
@@ -15,7 +15,7 @@ describe('resolveResourceTypes', () => {
   })
 
   it('removes --skip from the default set', () => {
-    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'pages', 'api'])
+    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'pages', 'api', 'hooks'])
   })
 
   it('applies --skip on top of --only', () => {
@@ -49,6 +49,14 @@ describe('buildWatchTargets', () => {
     const targets = buildWatchTargets(['snippets'], {rootDir: 'wp', snippetsDir: 'code'}, dir)
 
     expect(targets).toEqual([{commandId: 'snippet:push', path: join(dir, 'wp', 'code'), type: 'snippets'}])
+  })
+
+  it('watches the hooks directory with hook:push, honoring hooksDir', () => {
+    mkdirSync(join(dir, 'wp-hooks'))
+
+    const targets = buildWatchTargets(['hooks'], {hooksDir: 'wp-hooks'}, dir)
+
+    expect(targets).toEqual([{commandId: 'hook:push', path: join(dir, 'wp-hooks'), type: 'hooks'}])
   })
 
   it('excludes plugins when the manifest is empty, regardless of loopress.json existing', () => {

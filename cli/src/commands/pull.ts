@@ -1,4 +1,5 @@
 import {LoopressCommand} from '../lib/base.js'
+import {stdoutToStderr} from '../lib/json-delegation.js'
 import {pluralize} from '../utils/pluralize.js'
 
 // `supportsYes` marks the commands that prompt before deleting orphaned local files and so
@@ -45,7 +46,7 @@ export default class Pull extends LoopressCommand {
     for (const target of PULL_TARGETS) {
       this.log(`\n→ Pulling ${target.label}...`)
       try {
-        await this.config.runCommand(target.commandId, this.buildArgv(target))
+        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, this.buildArgv(target)))
         this.log(`✓ ${target.label} pulled`)
         results.push({label: target.label, status: 'pulled'})
       } catch (error) {
@@ -57,7 +58,10 @@ export default class Pull extends LoopressCommand {
     }
 
     if (this.failedCount > 0) {
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull.`)
+      // Each failure's own reason, not just the count: under --json the per-resource lines above
+      // never reach stdout, and this message is all an MCP caller or a script gets to see.
+      const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
+      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull. ${failures.join('; ')}`)
     }
 
     this.log('\nAll resources pulled.')

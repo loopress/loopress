@@ -78,6 +78,26 @@ describe('ApiClient', () => {
     await expect(client.post('projects', {name: 'acme'})).rejects.toThrow('Free plan is limited to 3 projects.')
   })
 
+  it("surfaces the API's own message on other refusals, joining validation errors", async () => {
+    const client = await serve((_req, res) => {
+      res.writeHead(400, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify({error: 'Bad Request', message: ['name must be a string', 'url must be a URL'], statusCode: 400}))
+    })
+
+    await expect(client.post('projects', {name: 1})).rejects.toThrow(
+      /Request failed \(400\) on http:\/\/127\.0\.0\.1:\d+\/projects: name must be a string; url must be a URL/,
+    )
+  })
+
+  it('shows only the message of a 403, not the raw JSON body', async () => {
+    const client = await serve((_req, res) => {
+      res.writeHead(403, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify({error: 'Forbidden', message: 'Free plan is limited to 3 projects.', statusCode: 403}))
+    })
+
+    await expect(client.post('projects', {name: 'acme'})).rejects.toThrow(/projects: Free plan is limited to 3 projects\.$/)
+  })
+
   it('times out with an actionable message instead of hanging when the API does not respond', async () => {
     const client = await serve(() => {
       // accept the request, never respond

@@ -24,6 +24,8 @@ class ApiFilesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->directory = $this->createMock(ApiDirectory::class);
+        // The lock itself is AbstractFilesDirectory's concern (see ApiDirectoryTest); here it just runs the work.
+        $this->directory->method('exclusively')->willReturnCallback(static fn (callable $work): mixed => $work());
         // Real default cap: an unstubbed mock int-return would be 0 and reject every push.
         $this->directory->method('maxFileBytes')->willReturn(512 * 1024);
         $this->controller = new ApiFilesController($this->directory);
@@ -178,6 +180,8 @@ class ApiFilesControllerTest extends TestCase
     public function test_push_file_returns_413_when_content_exceeds_the_size_cap(): void
     {
         $this->directory = $this->createMock(ApiDirectory::class);
+        // The lock itself is AbstractFilesDirectory's concern (see ApiDirectoryTest); here it just runs the work.
+        $this->directory->method('exclusively')->willReturnCallback(static fn (callable $work): mixed => $work());
         $this->directory->method('maxFileBytes')->willReturn(100);
         $this->directory->expects($this->never())->method('write');
         $controller = new ApiFilesController($this->directory);
@@ -533,6 +537,29 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'gone']));
 
         $this->assertSame(404, $response->status);
+    }
+
+    // Regression test for a CodeRabbit finding on PR #250: a lock failure used to escape as an
+    // uncaught exception, which WordPress REST turns into a bare PHP fatal instead of JSON.
+    public function test_every_writer_returns_a_json_500_when_the_directory_lock_fails(): void
+    {
+        $directory = $this->createMock(ApiDirectory::class);
+        $directory->method('exclusively')->willThrowException(new \RuntimeException('Failed to lock api for writing.'));
+        $directory->method('maxFileBytes')->willReturn(512 * 1024);
+        $directory->expects($this->never())->method('write');
+        $directory->expects($this->never())->method('delete');
+        $controller = new ApiFilesController($directory);
+
+        $responses = [
+            $controller->push_file(new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"])),
+            $controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']])),
+            $controller->delete_file(new WP_REST_Request(['filename' => 'hello'])),
+        ];
+
+        foreach ($responses as $response) {
+            $this->assertSame(500, $response->status);
+            $this->assertSame(['error' => 'Failed to lock api for writing.'], $response->data);
+        }
     }
 
     public function test_delete_file_returns_400_for_an_invalid_filename_without_touching_the_directory(): void

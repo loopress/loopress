@@ -208,7 +208,9 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }
 
-        $result = $this->validateAndWrite(
+        // Under the directory lock: the revision check and the write must not interleave with a
+        // concurrent batch (see AbstractFilesDirectory::exclusively()).
+        $result = $this->locked(fn (): array|WP_REST_Response => $this->validateAndWrite(
             $filename,
             $content,
             $expectedRevision,
@@ -218,7 +220,7 @@ abstract class AbstractFilesController
             function (string $slug, string $guarded): void {
                 $this->directory()->write($slug, $guarded);
             },
-        );
+        ));
 
         if ($result instanceof WP_REST_Response) {
             return $result;
@@ -270,6 +272,17 @@ abstract class AbstractFilesController
             ], 400);
         }
 
+        // The whole begin/stage/commit sequence holds the directory lock: see
+        // AbstractFilesDirectory::exclusively() for what two interleaved batches would do.
+        return $this->locked(fn (): WP_REST_Response => $this->runBatch($files, $prune));
+    }
+
+    /**
+     * @param array<mixed> $files
+     * @param array<mixed> $prune
+     */
+    private function runBatch(array $files, array $prune): WP_REST_Response
+    {
         try {
             $this->directory()->beginBatch();
         } catch (\RuntimeException $e) {
@@ -462,13 +475,36 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'Invalid filename'], 400);
         }
 
-        if (!$this->directory()->delete($filename)) {
+        $deleted = $this->locked(fn (): bool => $this->directory()->delete($filename));
+        if ($deleted instanceof WP_REST_Response) {
+            return $deleted;
+        }
+
+        if (!$deleted) {
             return new WP_REST_Response(['error' => 'File not found'], 404);
         }
 
         $this->clearLoadErrorsFor([$filename]);
 
         return new WP_REST_Response(['filename' => $filename, 'deleted' => true], 200);
+    }
+
+    /**
+     * exclusively() throws when the lock itself can't be taken (e.g. wp-content/loopress/ not
+     * writable). WordPress REST doesn't catch callback exceptions, so without this the CLI gets
+     * a bare PHP fatal instead of the same JSON 500 as every other filesystem failure here.
+     *
+     * @template T
+     * @param callable(): T $work
+     * @return T|WP_REST_Response
+     */
+    private function locked(callable $work): mixed
+    {
+        try {
+            return $this->directory()->exclusively($work);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     // Drops any stale boot-time load error for the given slugs so list_files() stops reporting

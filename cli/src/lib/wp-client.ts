@@ -130,6 +130,13 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
   const status = err.response?.statusCode
 
   if (status === 401 || status === 403) {
+    // A Loopress controller's own `{"error": ...}` on a 403 is a deliberate refusal of this one
+    // request (e.g. OptionsController protecting a secret-looking option), not bad credentials:
+    // pointing at `lps project config` there sends the user the wrong way. WordPress core's own
+    // auth failures use `{code, message}` instead and keep the credentials hint.
+    const refusal = extractLoopressError(err.response?.body)
+    if (refusal) return `Request refused (${status}) on ${url}: ${refusal}`
+
     return `Authentication failed (${status}) on ${url}. Check your credentials with \`lps project config\`.`
   }
 
@@ -152,6 +159,29 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
   return `Request to ${url} failed: ${err.message ?? String(error)}`
 }
 
+function extractLoopressError(body: string | undefined): string | undefined {
+  if (!body) return undefined
+
+  try {
+    const {error} = JSON.parse(body) as {error?: unknown}
+    return typeof error === 'string' && error.trim() ? decodeEntities(error) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+// Plugin exception messages go through esc_html() (WordPress coding standards require it for
+// anything thrown), so quotes and ampersands reach the JSON body as entities. They're meant for
+// a terminal here, not an HTML page. `&amp;` last, so "&amp;quot;" stays a literal "&quot;".
+function decodeEntities(text: string): string {
+  return text
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#039;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&')
+}
+
 // The Loopress plugin's own controllers reply with `{"error": "..."}`; a WP_Error-based
 // core response (e.g. an uncaught fatal formatted by WordPress itself) uses `{"message": "..."}`.
 // Surfacing this is what makes a deliberately clear server-side error (e.g. "Multiple snippet
@@ -159,7 +189,7 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
 //
 // Some controllers (ComposerController::sync(), notably) pair a short, generic `error` (e.g.
 // "Sync failed.") with the real detail in a separate `output` field (the raw Composer trace),
-// specifically so a caller that only reads `error` doesn't see it — which is exactly what this
+// specifically so a caller that only reads `error` doesn't see it, which is exactly what this
 // function used to do, hiding the one piece of text that actually explains the failure.
 function extractServerErrorMessage(body: string | undefined): string | undefined {
   if (!body) return undefined
@@ -174,7 +204,7 @@ function extractServerErrorMessage(body: string | undefined): string | undefined
     if (parsed.code === 'rest_no_route') return undefined
 
     const reason = parsed.error ?? parsed.message
-    const summary = typeof reason === 'string' && reason.trim() ? reason : undefined
+    const summary = typeof reason === 'string' && reason.trim() ? decodeEntities(reason) : undefined
     const detail = typeof parsed.output === 'string' && parsed.output.trim() ? parsed.output.trim() : undefined
 
     if (summary && detail) return `${summary}\n${detail}`

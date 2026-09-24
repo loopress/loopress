@@ -50,6 +50,33 @@ describe('validateLocal', () => {
     expect(result.checked).toBe(9)
   })
 
+  it('checks JSON files nested in resource subdirectories (acf/<type>/, seo/post-meta/<type>/, seo/redirects/)', async () => {
+    write('acf/field-groups/group_1.json', '{not json')
+    write('seo/post-meta/page/about.json', '[]')
+    write('seo/redirects/3-old.json', JSON.stringify({id: 3}))
+
+    const result = await validateLocal(dir)
+
+    expect(result.checked).toBe(4)
+    expect(result.problems).toEqual([
+      {file: join(dir, 'acf', 'field-groups', 'group_1.json'), message: expect.stringContaining('not valid JSON')},
+      {file: join(dir, 'seo', 'post-meta', 'page', 'about.json'), message: 'expected a JSON object'},
+    ])
+  })
+
+  it('checks tracked option files have a name, an autoload and a value', async () => {
+    write('options/blogname.json', JSON.stringify({autoload: 'on', name: 'blogname', value: 'Acme'}))
+    write('options/broken.json', JSON.stringify({autoload: 'on', name: 'broken'}))
+    write('theme/twentytwentyfive.json', '"not an object"')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([
+      {file: join(dir, 'theme', 'twentytwentyfive.json'), message: 'expected a JSON object'},
+      {file: join(dir, 'options', 'broken.json'), message: 'missing a "value" field'},
+    ])
+  })
+
   it('ignores stray non-.json files in resource dirs and non-.php files in api/hooks', async () => {
     write('acf/notes.txt', 'not json, not counted')
     write('acf/group_1.json', JSON.stringify({key: 'group_1'}))

@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -51,6 +51,22 @@ describe('snapshot-store', () => {
     expect(snapshot.environment).toBe('staging')
     expect(snapshot.beforeState).toEqual({7: {name: 'old'}})
     expect(snapshot.afterState).toEqual({7: {name: 'new'}})
+  })
+
+  it('makes .loopress/ ignore itself in git, without overwriting an existing .gitignore there', async () => {
+    const base = {afterState: new Map(), beforeState: new Map(), environment: 'local', resource: 'snippet'}
+    await writeSnapshot({...base, rootDir})
+    expect(readFileSync(join(rootDir, '.loopress', '.gitignore'), 'utf8')).toMatch(/^\*$/m)
+
+    const other = mkdtempSync(join(tmpdir(), 'lps-snapshot-store-own-ignore-'))
+    try {
+      mkdirSync(join(other, '.loopress'))
+      writeFileSync(join(other, '.loopress', '.gitignore'), 'snapshots/\n')
+      await writeSnapshot({...base, rootDir: other})
+      expect(readFileSync(join(other, '.loopress', '.gitignore'), 'utf8')).toBe('snapshots/\n')
+    } finally {
+      rmSync(other, {force: true, recursive: true})
+    }
   })
 
   it('readSnapshot with no id reads the most recent snapshot', async () => {

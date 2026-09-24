@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
+import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
 import {parseType} from '../utils/snippet-format.js'
 import {loadSnippets} from './load-snippets.js'
@@ -16,8 +17,8 @@ export type ValidateResult = {
 }
 
 // Directories holding one JSON document per resource. Snippets (code file plus JSON sidecar)
-// and api routes (`.php`, not JSON) are checked separately.
-const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir', 'menuDir'] as const
+// and api routes (`.php`, not JSON) are checked separately, options too (a stricter shape).
+const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir', 'menuDir', 'themeStylesDir'] as const
 
 const DEFAULT_DIR: Record<string, string> = {
   acfDir: 'acf',
@@ -25,9 +26,11 @@ const DEFAULT_DIR: Record<string, string> = {
   formDir: 'forms',
   hooksDir: 'hooks',
   menuDir: 'menus',
+  optionsDir: 'options',
   pageDir: 'pages',
   seoDir: 'seo',
   snippetsDir: 'snippets',
+  themeStylesDir: 'theme',
 }
 
 // Inspects the local tracked files under `cwd` without contacting WordPress: JSON files parse
@@ -53,6 +56,10 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   for (const key of JSON_RESOURCE_DIRS) {
     checked += await checkJsonDir(resolve(key), problems)
   }
+
+  // Same reader `option push` uses: a file missing "name", "autoload" or "value" is skipped
+  // there with a warning, so it's a problem here.
+  checked += await checkJsonDir(resolve('optionsDir'), problems, parseLocalOption)
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')
@@ -114,16 +121,23 @@ async function checkComposerJson(cwd: string, problems: Problem[]): Promise<numb
   return 1
 }
 
-async function checkJsonDir(dir: string, problems: Problem[]): Promise<number> {
-  const files = (await readdirTolerant(dir)).filter((file) => file.endsWith('.json'))
+// Recursive: ACF keeps one subdirectory per object type (acf/field-groups/*.json) and SEO its
+// post meta and redirects (seo/post-meta/<type>/*.json, seo/redirects/*.json); a top-level-only
+// scan silently never checked any of those. `shape` runs on files that are JSON objects and
+// throws to report a resource-specific problem.
+async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: string) => unknown): Promise<number> {
+  const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})
   let checked = 0
 
-  for (const file of files) {
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue
     checked += 1
-    const filePath = join(dir, file)
+    // parentPath, not dir: see checkPhpDir.
+    const filePath = join(entry.parentPath, entry.name)
+    const raw = await readFile(filePath, 'utf8')
     let parsed: unknown
     try {
-      parsed = JSON.parse(await readFile(filePath, 'utf8'))
+      parsed = JSON.parse(raw)
     } catch (error) {
       problems.push({file: filePath, message: `not valid JSON: ${(error as Error).message}`})
       continue
@@ -131,6 +145,13 @@ async function checkJsonDir(dir: string, problems: Problem[]): Promise<number> {
 
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       problems.push({file: filePath, message: 'expected a JSON object'})
+      continue
+    }
+
+    try {
+      shape?.(raw)
+    } catch (error) {
+      problems.push({file: filePath, message: (error as Error).message})
     }
   }
 

@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -15,6 +15,8 @@ const forceFlag = z
   .describe('Allow downgrades and take over themes installed outside Loopress')
 
 export function registerThemeTools(server: McpServer): void {
+  registerAddTool(server, {exampleSlug: 'generatepress', resource: 'theme'})
+
   server.registerTool(
     'theme_push',
     {

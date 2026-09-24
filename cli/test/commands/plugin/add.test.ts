@@ -44,6 +44,21 @@ describe('plugin add', () => {
     expect(written.plugins).toEqual({woocommerce: 'latest'})
   })
 
+  it('returns a structured result for --json and the MCP plugin_add tool', async () => {
+    expect(await make(['woocommerce']).cmd.run()).toEqual({slug: 'woocommerce', status: 'added', version: 'latest'})
+    expect(await make(['woocommerce'], {plugins: {woocommerce: 'latest'}}).cmd.run()).toEqual({
+      slug: 'woocommerce',
+      status: 'unchanged',
+      version: 'latest',
+    })
+    expect(await make(['woocommerce', '--version', '9.4.2'], {plugins: {woocommerce: 'latest'}}).cmd.run()).toEqual({
+      slug: 'woocommerce',
+      status: 'updated',
+      version: '9.4.2',
+    })
+    expect(await make(['akismet'], {}, true).cmd.run()).toEqual({slug: 'akismet', status: 'dry-run', version: 'latest'})
+  })
+
   it('pins an exact version with --version', async () => {
     const {cmd} = make(['woocommerce', '--version', '9.4.2'])
 

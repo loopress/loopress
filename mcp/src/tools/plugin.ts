@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -22,6 +22,8 @@ const pruneFlag = z
   .describe('Deactivate plugins that are active on the site but absent from loopress.json')
 
 export function registerPluginTools(server: McpServer): void {
+  registerAddTool(server, {exampleSlug: 'woocommerce', resource: 'plugin'})
+
   server.registerTool(
     'plugin_push',
     {
