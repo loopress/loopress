@@ -47,13 +47,13 @@ export function Problem() {
 function ComparisonCard() {
   const today = [
     "FTP into prod, edit the theme in place",
-    "Snippets pasted into the admin",
+    "Custom PHP pasted into the admin",
     '"which plugin version is on staging?"',
     "DB export to move anything",
   ];
   const withLps = [
     "git clone, edit, git push",
-    "Snippets and hooks as .php files",
+    "Hooks and API routes as .php files",
     "Versions pinned in loopress.json",
     "Content stays put, only code moves",
   ];

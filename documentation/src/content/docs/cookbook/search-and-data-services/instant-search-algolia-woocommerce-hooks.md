@@ -2,6 +2,7 @@
 title: Typo-Tolerant Instant Search in WooCommerce with Algolia
 description: Index a WooCommerce catalog into Algolia with a Hook, then query it straight from a React single-page app using algolia/algoliasearch-client-php and the official Algolia JS client.
 kind: app
+youtubeId: vRuUAiyXhew
 ---
 
 A product catalog's search box uses WordPress's default search, `s=` against `WP_Query`, which under the hood is a `LIKE '%term%'` scan of `post_title` and `post_content`. It has no concept of relevance, "leather bag" and "bag leather brown" score the same, no typo tolerance, "levis" finds nothing if the product is titled "Levi's", and it gets slower as the catalog grows because there's no index built for search, just a table scan with wildcards on either side of the term.

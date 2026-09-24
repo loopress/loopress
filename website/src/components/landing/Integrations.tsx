@@ -1,11 +1,9 @@
 import { SectionLabel } from "./Problem";
 
 const AVAILABLE = [
-  { name: "Code Snippets", desc: "Pull, push, and list snippets via the CLI." },
-  { name: "WPCode", desc: "Same CLI commands, targets WPCode instead." },
   {
-    name: "Plugin Directory",
-    desc: "Install and version any plugin from the WordPress.org directory.",
+    name: "WordPress.org",
+    desc: "Install and version any plugin or theme from the WordPress.org directory.",
   },
   { name: "Packagist", desc: "Install any public Composer package from the admin." },
   {
@@ -14,10 +12,13 @@ const AVAILABLE = [
   },
   { name: "Rank Math", desc: "Titles, schema defaults, post meta, and redirects synced via CLI." },
   { name: "Yoast SEO", desc: "Titles, meta, and post-level SEO fields synced via CLI." },
+  { name: "WPForms", desc: "Forms as JSON files, pulled and pushed via CLI." },
+  { name: "Nav Menus", desc: "Menus and menu locations as JSON, resolved by slug, never by id." },
+  { name: "Global Styles", desc: "A block theme's Site Editor colors, typography and spacing." },
+  { name: "Site Options", desc: "Tracked WordPress options and site settings as code." },
 ];
 
 const SOON = [
-  { name: "Site Options", desc: "WordPress options and site settings as code." },
   { name: "Roles & Caps", desc: "User roles and capabilities as code." },
   { name: "WooCommerce", desc: "Settings and shipping zones as code." },
 ];

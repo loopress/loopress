@@ -43,15 +43,11 @@ const FAQS = [
     ],
   },
   {
-    section: "Hooks and Snippets",
+    section: "Hooks",
     items: [
       {
         q: "What are Hooks?",
-        a: "Hooks let you declare WordPress actions and filters as PHP 8 classes with attributes, versioned as files. Loopress loads and wires each file onto native add_action / add_filter, with no admin paste box and no runtime of its own. It is in active development.",
-      },
-      {
-        q: "Should I use Snippets or Hooks?",
-        a: "Use Snippets to pull what already lives in Code Snippets or WPCode into Git, for a one-off edit or as a migration step. For behavior you intend to keep, Hooks is the durable home: it is a plain file in your repo, wired through native WordPress primitives. The Snippets commands are not going anywhere; they interoperate with the plugins you already run.",
+        a: "Hooks let you declare WordPress actions and filters as PHP 8 classes with attributes, versioned as files. Loopress loads and wires each file onto native add_action / add_filter, with no admin paste box and no runtime of its own.",
       },
     ],
   },
@@ -60,7 +56,7 @@ const FAQS = [
     items: [
       {
         q: "What does the CLI do?",
-        a: "lps pull writes the live state of a site's resources to local files (plugins, Composer, ACF, API routes, forms, pages, SEO, snippets); you commit and review them in Git; lps push reconciles the site with what the files say. Individual resource commands (lps plugin, lps api, lps app, and so on) do the same for one resource at a time.",
+        a: "lps pull writes the live state of a site's resources to local files (plugins, Composer, ACF, API routes, forms, pages, SEO, menus); you commit and review them in Git; lps push reconciles the site with what the files say. Individual resource commands (lps plugin, lps api, lps app, and so on) do the same for one resource at a time.",
       },
       {
         q: "How do I authenticate?",
@@ -73,27 +69,6 @@ const FAQS = [
       {
         q: "Does it work with any WordPress installation?",
         a: "It works with any self-hosted WordPress site that has the Loopress plugin installed and the REST API enabled.",
-      },
-    ],
-  },
-  {
-    section: "Snippets",
-    items: [
-      {
-        q: "Which snippet plugins are supported?",
-        a: "Code Snippets and WPCode are both supported. Loopress detects whichever one is active on the site, no configuration needed.",
-      },
-      {
-        q: "What happens when I push a snippet?",
-        a: "Loopress reads the metadata from the .json sidecar file (id, name, tags, active status) and creates or updates the corresponding snippet in WordPress via the REST API.",
-      },
-      {
-        q: "Can I create new snippets from the CLI?",
-        a: "Yes. Any snippet file without an id in its .json sidecar will be created as a new snippet. The generated id is written back into the .json metadata file after creation.",
-      },
-      {
-        q: "Can I share the same snippet across multiple sites?",
-        a: "lps snippet publish uploads a project's snippets to your Loopress account, separately from any single WordPress site, so they can be deployed to other projects from the console. Requires being logged in (lps login) and the project synced (lps project sync).",
       },
     ],
   },

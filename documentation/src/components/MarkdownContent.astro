@@ -8,7 +8,7 @@ const { entry } = Astro.locals.starlightRoute;
 const isBlogPost = entry.id.startsWith("blog/");
 const isCookbookIndex = entry.id === "cookbook";
 const isCookbookRecipe = entry.id.startsWith("cookbook/");
-const { cliVersion, wordpressPluginVersion, kind } = entry.data;
+const { cliVersion, wordpressPluginVersion, kind, youtubeId } = entry.data;
 
 // Cookbook-only copy, keyed by `kind`, feeding both the intro Aside and the closing CTA below.
 const cookbookKindCopy = {
@@ -111,6 +111,20 @@ if (isCookbookIndex) {
 	)
 }
 {
+	isCookbookRecipe && youtubeId && (
+		<div class="recipe-video not-content">
+			<iframe
+				src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+				title={`Video: ${entry.data.title}`}
+				loading="lazy"
+				allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+				referrerpolicy="strict-origin-when-cross-origin"
+				allowfullscreen
+			></iframe>
+		</div>
+	)
+}
+{
 	isBlogPost ? (
 		<StarlightBlogMarkdownContent>
 			<slot />
@@ -168,6 +182,16 @@ if (isCookbookIndex) {
 	}
 	/* .not-content opts this block out of Starlight's own vertical rhythm
 	   (.sl-markdown-content), so it's reapplied here to match. */
+	.recipe-video {
+		margin-block: 1.5rem;
+	}
+	.recipe-video iframe {
+		display: block;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		border: 0;
+		border-radius: 0.5rem;
+	}
 	.cookbook-cta > :not(:first-child) {
 		margin-top: var(--sl-content-gap-y);
 	}

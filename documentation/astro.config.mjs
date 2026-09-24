@@ -207,6 +207,11 @@ export default defineConfig({
 					label: "GitHub",
 					href: "https://github.com/loopress",
 				},
+				{
+					icon: "youtube",
+					label: "YouTube",
+					href: "https://www.youtube.com/channel/UC3KPcEgjK0kTtn0nQ2maSfA",
+				},
 			],
 		}),
 		sitemap(),

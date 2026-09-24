@@ -20,6 +20,12 @@ export function Footer() {
           <a href="https://github.com/loopress" className="hover:text-foreground">
             GitHub
           </a>
+          <a
+            href="https://www.youtube.com/channel/UC3KPcEgjK0kTtn0nQ2maSfA"
+            className="hover:text-foreground"
+          >
+            YouTube
+          </a>
           <a href="/faq" className="hover:text-foreground">
             FAQ
           </a>

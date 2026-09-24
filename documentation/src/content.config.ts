@@ -18,6 +18,9 @@ export const collections = {
 					// Cookbook recipes only: which Loopress mechanism the recipe is built on, drives
 					// the closing CTA that MarkdownContent.astro appends automatically.
 					kind: z.enum(['route', 'snippet', 'app']).optional(),
+					// Cookbook recipes only: the matching video on the Loopress YouTube channel,
+					// embedded above the recipe by MarkdownContent.astro.
+					youtubeId: z.string().optional(),
 				}),
 		}),
 	}),

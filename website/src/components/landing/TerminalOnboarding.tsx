@@ -21,7 +21,7 @@ export function TerminalOnboarding() {
         <div>
           <div className="text-muted-foreground">$ lps pull</div>
           <div className="text-success-ink">
-            ✓ plugins, ACF, API routes, snippets pulled to files
+            ✓ plugins, hooks, ACF, SEO, menus, API routes pulled to files
           </div>
         </div>
       </div>

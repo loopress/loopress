@@ -2,6 +2,7 @@
 title: Rendering a WordPress Post as a Downloadable PDF
 description: A Custom API Route that turns any published post's rendered content into a PDF on request, using dompdf, for a "Download as PDF" button that doesn't need a plugin.
 kind: route
+youtubeId: N6z3KOsJpVE
 ---
 
 A recipe site, a documentation page, a long-form guide, readers keep asking for a "Download as PDF" button so they can read it offline or print it without the theme's header, sidebar, and comment thread fighting for space on the same page. WordPress already renders a post as HTML on every request, turning that same content into a PDF instead of a webpage is a different rendering target, and it's one core has no opinion on.
