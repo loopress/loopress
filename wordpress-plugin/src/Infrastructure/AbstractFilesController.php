@@ -210,7 +210,7 @@ abstract class AbstractFilesController
 
         // Under the directory lock: the revision check and the write must not interleave with a
         // concurrent batch (see AbstractFilesDirectory::exclusively()).
-        $result = $this->directory()->exclusively(fn (): array|WP_REST_Response => $this->validateAndWrite(
+        $result = $this->locked(fn (): array|WP_REST_Response => $this->validateAndWrite(
             $filename,
             $content,
             $expectedRevision,
@@ -274,7 +274,7 @@ abstract class AbstractFilesController
 
         // The whole begin/stage/commit sequence holds the directory lock: see
         // AbstractFilesDirectory::exclusively() for what two interleaved batches would do.
-        return $this->directory()->exclusively(fn (): WP_REST_Response => $this->runBatch($files, $prune));
+        return $this->locked(fn (): WP_REST_Response => $this->runBatch($files, $prune));
     }
 
     /**
@@ -475,13 +475,36 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => 'Invalid filename'], 400);
         }
 
-        if (!$this->directory()->exclusively(fn (): bool => $this->directory()->delete($filename))) {
+        $deleted = $this->locked(fn (): bool => $this->directory()->delete($filename));
+        if ($deleted instanceof WP_REST_Response) {
+            return $deleted;
+        }
+
+        if (!$deleted) {
             return new WP_REST_Response(['error' => 'File not found'], 404);
         }
 
         $this->clearLoadErrorsFor([$filename]);
 
         return new WP_REST_Response(['filename' => $filename, 'deleted' => true], 200);
+    }
+
+    /**
+     * exclusively() throws when the lock itself can't be taken (e.g. wp-content/loopress/ not
+     * writable). WordPress REST doesn't catch callback exceptions, so without this the CLI gets
+     * a bare PHP fatal instead of the same JSON 500 as every other filesystem failure here.
+     *
+     * @template T
+     * @param callable(): T $work
+     * @return T|WP_REST_Response
+     */
+    private function locked(callable $work): mixed
+    {
+        try {
+            return $this->directory()->exclusively($work);
+        } catch (\RuntimeException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     // Drops any stale boot-time load error for the given slugs so list_files() stops reporting

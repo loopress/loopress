@@ -31,9 +31,12 @@ describe('plugin_add / theme_add', () => {
     const registered = tools()
     await registered.get('plugin_add')!.handler({slug: 'woocommerce'})
     await registered.get('theme_add')!.handler({slug: 'generatepress', version: '3.4.0'})
+    // An explicit empty version is forwarded for the CLI to reject, never silently turned into "latest".
+    await registered.get('plugin_add')!.handler({slug: 'woocommerce', version: ''})
 
     expect(runLps).toHaveBeenNthCalledWith(1, ['plugin', 'add', 'woocommerce'])
     expect(runLps).toHaveBeenNthCalledWith(2, ['theme', 'add', 'generatepress', '--version', '3.4.0'])
+    expect(runLps).toHaveBeenNthCalledWith(3, ['plugin', 'add', 'woocommerce', '--version', ''])
   })
 
   it('rejects a slug that could be read as a flag', () => {

@@ -539,6 +539,29 @@ class ApiFilesControllerTest extends TestCase
         $this->assertSame(404, $response->status);
     }
 
+    // Regression test for a CodeRabbit finding on PR #250: a lock failure used to escape as an
+    // uncaught exception, which WordPress REST turns into a bare PHP fatal instead of JSON.
+    public function test_every_writer_returns_a_json_500_when_the_directory_lock_fails(): void
+    {
+        $directory = $this->createMock(ApiDirectory::class);
+        $directory->method('exclusively')->willThrowException(new \RuntimeException('Failed to lock api for writing.'));
+        $directory->method('maxFileBytes')->willReturn(512 * 1024);
+        $directory->expects($this->never())->method('write');
+        $directory->expects($this->never())->method('delete');
+        $controller = new ApiFilesController($directory);
+
+        $responses = [
+            $controller->push_file(new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"])),
+            $controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']])),
+            $controller->delete_file(new WP_REST_Request(['filename' => 'hello'])),
+        ];
+
+        foreach ($responses as $response) {
+            $this->assertSame(500, $response->status);
+            $this->assertSame(['error' => 'Failed to lock api for writing.'], $response->data);
+        }
+    }
+
     public function test_delete_file_returns_400_for_an_invalid_filename_without_touching_the_directory(): void
     {
         $this->directory->expects($this->never())->method('delete');

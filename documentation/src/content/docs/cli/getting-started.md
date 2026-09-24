@@ -31,7 +31,7 @@ npm install -g @loopress/cli
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22+
 - The [Loopress WordPress plugin](/wordpress-plugin/), installed and active on the site you want to manage. `lps project config` installs it for you automatically if it's missing, see below.
 - A WordPress installation with either [WPCode](https://wpcode.com/) or [Code Snippets](https://wordpress.org/plugins/code-snippets/) active (for snippet commands; the Loopress WordPress plugin detects whichever one is installed)
 - A WordPress administrator account. `lps project config` creates the [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/) used for authentication automatically, no manual setup needed

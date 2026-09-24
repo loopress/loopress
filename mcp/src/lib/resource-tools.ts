@@ -95,7 +95,7 @@ export function registerAddTool(server: McpServer, {exampleSlug, resource}: {exa
     },
     async ({slug, version}) => {
       const args = [resource, 'add', slug]
-      if (version) args.push('--version', version)
+      if (version !== undefined) args.push('--version', version)
       return toCallToolResult(unwrap(await runLps(args)))
     },
   )
