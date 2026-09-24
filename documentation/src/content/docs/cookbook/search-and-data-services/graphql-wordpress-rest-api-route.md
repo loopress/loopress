@@ -1,6 +1,6 @@
 ---
-title: A Curated GraphQL Layer Over WordPress Data, in One Route File
-description: A Custom API Route that answers GraphQL queries against a couple of WordPress types, using webonyx/graphql-php, without installing a full GraphQL plugin.
+title: Query ACF Fields with GraphQL, in Your Own API Route
+description: A Custom API Route that answers GraphQL queries against ACF fields deployed by Loopress, using webonyx/graphql-php, without installing a full GraphQL plugin.
 kind: route
 ---
 
