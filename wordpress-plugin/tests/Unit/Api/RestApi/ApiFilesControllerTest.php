@@ -783,7 +783,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_batch_returns_400_and_aborts_for_an_invalid_prune_filename(): void
     {
-        $this->directory->expects($this->once())->method('stageWrite');
+        $this->directory->expects($this->never())->method('stageWrite');
         $this->directory->expects($this->never())->method('stageDelete');
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
@@ -792,6 +792,26 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_replaces_a_flat_route_by_its_nested_index_in_one_batch(): void
+    {
+        // The staged batch mirrors the live directory: 'orders' is listed until its prune is
+        // staged, which has to happen before 'orders/index' runs its same-route check.
+        $staged = ['orders'];
+        $this->directory->method('stageDelete')->willReturnCallback(static function (string $slug) use (&$staged): void {
+            $staged = array_values(array_diff($staged, [$slug]));
+        });
+        $this->directory->method('listStagedSlugs')->willReturnCallback(static function () use (&$staged): array {
+            return $staged;
+        });
+        $this->directory->expects($this->once())->method('stageWrite')->with('orders/index', $this->anything());
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile('orders/index', 'Orders')], 'prune' => ['orders']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
     }
 
     public function test_push_batch_stages_prune_deletions_and_commits_alongside_the_pushed_files(): void

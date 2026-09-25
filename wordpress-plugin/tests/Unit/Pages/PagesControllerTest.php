@@ -312,6 +312,22 @@ class PagesControllerTest extends TestCase
         $this->assertSame('set', $response->get_data()['frontPage']);
     }
 
+    public function test_the_push_response_links_to_the_site_root_once_index_is_the_front_page(): void
+    {
+        $options = ['show_on_front' => 'posts', 'page_on_front' => 0];
+        $this->withReadingOptions($options);
+        // get_permalink() mirrors WordPress: the front page's permalink is the site root.
+        Functions\when('get_permalink')->alias(static function (WP_Post $post) use (&$options): string {
+            return $options['show_on_front'] === 'page' && (int) $options['page_on_front'] === $post->ID
+                ? 'https://example.test/'
+                : "https://example.test/{$post->post_name}/";
+        });
+
+        $response = $this->put('index', '<h1>Home</h1>', 'publish');
+
+        $this->assertSame('https://example.test/', $response->get_data()['link']);
+    }
+
     public function test_repushing_the_published_front_page_leaves_the_reading_settings_alone(): void
     {
         $this->pages[7] = ['name' => 'index', 'status' => 'publish', 'managed' => true, 'html' => 'old'];

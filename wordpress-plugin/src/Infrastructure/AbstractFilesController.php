@@ -289,17 +289,10 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        $pushed = [];
-        foreach ($files as $file) {
-            $outcome = $this->stageBatchFile($file);
-            if ($outcome instanceof WP_REST_Response) {
-                $this->directory()->abortBatch();
-                return $outcome;
-            }
-
-            $pushed[] = $outcome;
-        }
-
+        // Prunes are staged first, so every pushed file's collision checks (class name, same
+        // route) run against the batch's final file set: replacing orders.php with
+        // orders/index.php in one batch must not collide with the orders.php it removes.
+        // push_batch() already refuses a filename that is both pushed and pruned.
         $pruned = [];
         foreach ($prune as $filename) {
             if (!is_string($filename) || !static::isValidFilename($filename)) {
@@ -310,6 +303,17 @@ abstract class AbstractFilesController
 
             $this->directory()->stageDelete($filename);
             $pruned[] = $filename;
+        }
+
+        $pushed = [];
+        foreach ($files as $file) {
+            $outcome = $this->stageBatchFile($file);
+            if ($outcome instanceof WP_REST_Response) {
+                $this->directory()->abortBatch();
+                return $outcome;
+            }
+
+            $pushed[] = $outcome;
         }
 
         try {

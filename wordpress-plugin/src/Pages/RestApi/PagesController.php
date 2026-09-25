@@ -180,13 +180,13 @@ class PagesController
             return $this->error(500, $result->get_error_message());
         }
 
-        $id   = (int) $result;
-        $data = $this->toArray($id);
-        if ($slug === self::FRONT_PAGE_SLUG) {
-            $frontPage = $this->syncFrontPage($id, $status);
-            if ($frontPage !== null) {
-                $data['frontPage'] = $frontPage;
-            }
+        // Reading settings synced before toArray(): get_permalink() answers the site root only
+        // once this page is the front page, and /index/ again once it no longer is.
+        $id        = (int) $result;
+        $frontPage = $slug === self::FRONT_PAGE_SLUG ? $this->syncFrontPage($id, $status) : null;
+        $data      = $this->toArray($id);
+        if ($frontPage !== null) {
+            $data['frontPage'] = $frontPage;
         }
 
         return new WP_REST_Response($data, $existingId === null ? 201 : 200);
