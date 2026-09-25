@@ -509,10 +509,11 @@ export const API_FILES_RESOURCE: PhpFilesResource = {
   emptyListMessage: 'No API route files found',
   endpoint: 'loopress/v1/api-files',
   // Mirrors ApiFilesController::isValidFilename(): kebab-case segments or a bracketed dynamic
-  // segment like [order_id], joined by '/'.
-  filenamePattern: /^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/,
+  // segment like [order_id], joined by '/', and never a root "index" (api/index.php is
+  // reserved; a nested orders/index.php is the /orders route).
+  filenamePattern: /^(?!index$)(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/,
   invalidFilenameHint:
-    'each path segment must be lowercase letters, digits, and hyphens, or a bracketed dynamic segment like "[order_id]" (e.g. "invoice-pdf/[order_id].php")',
+    'each path segment must be lowercase letters, digits, and hyphens, or a bracketed dynamic segment like "[order_id]" (e.g. "invoice-pdf/[order_id].php"), and a root "index.php" is reserved: name the file, or nest it (orders/index.php is the /orders route)',
   label: 'API routes',
   listDescription: 'List custom API route files from WordPress',
   noun: 'route file',

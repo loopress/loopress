@@ -289,17 +289,10 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
 
-        $pushed = [];
-        foreach ($files as $file) {
-            $outcome = $this->stageBatchFile($file);
-            if ($outcome instanceof WP_REST_Response) {
-                $this->directory()->abortBatch();
-                return $outcome;
-            }
-
-            $pushed[] = $outcome;
-        }
-
+        // Prunes are staged first, so every pushed file's collision checks (class name, same
+        // route) run against the batch's final file set: replacing orders.php with
+        // orders/index.php in one batch must not collide with the orders.php it removes.
+        // push_batch() already refuses a filename that is both pushed and pruned.
         $pruned = [];
         foreach ($prune as $filename) {
             if (!is_string($filename) || !static::isValidFilename($filename)) {
@@ -310,6 +303,17 @@ abstract class AbstractFilesController
 
             $this->directory()->stageDelete($filename);
             $pruned[] = $filename;
+        }
+
+        $pushed = [];
+        foreach ($files as $file) {
+            $outcome = $this->stageBatchFile($file);
+            if ($outcome instanceof WP_REST_Response) {
+                $this->directory()->abortBatch();
+                return $outcome;
+            }
+
+            $pushed[] = $outcome;
         }
 
         try {
@@ -536,6 +540,14 @@ abstract class AbstractFilesController
         }
     }
 
+    // Two different slugs that the loader would still treat as the same thing (see
+    // ApiFilesController: 'orders' and 'orders/index' are one route). Default: none, a hook
+    // slug is only ever itself.
+    protected function pathCollision(string $filename, string $otherSlug): ?string // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- the seam ApiFilesController reads
+    {
+        return null;
+    }
+
     // Catches at push time what the loader would otherwise only discover, silently, at the
     // next boot. Two sources checked, in order:
     // 1. Another file in the same batch (or, for push_file(), already live) declaring the same
@@ -567,6 +579,11 @@ abstract class AbstractFilesController
         foreach ($listSlugs() as $slug) {
             if ($slug === $filename) {
                 continue; // re-pushing the same file is an update, never a collision with itself
+            }
+
+            $pathCollision = $this->pathCollision($filename, $slug);
+            if ($pathCollision !== null) {
+                return $pathCollision;
             }
 
             $size = $fileSize($slug);

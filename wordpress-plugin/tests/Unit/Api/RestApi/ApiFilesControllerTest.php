@@ -54,6 +54,19 @@ class ApiFilesControllerTest extends TestCase
         $this->assertTrue(ApiFilesController::isValidFilename('orders/[order_id]/items/[item_id]'));
     }
 
+    // api/index.php is the anti-listing guard, and as a route it would claim '/', the
+    // namespace discovery index: a root 'index' is refused, a nested one is the parent route.
+    public function test_isValidFilename_rejects_a_root_index(): void
+    {
+        $this->assertFalse(ApiFilesController::isValidFilename('index'));
+    }
+
+    public function test_isValidFilename_accepts_a_nested_index(): void
+    {
+        $this->assertTrue(ApiFilesController::isValidFilename('orders/index'));
+        $this->assertTrue(ApiFilesController::isValidFilename('orders/[order_id]/index'));
+    }
+
     public function test_isValidFilename_rejects_path_traversal(): void
     {
         $this->assertFalse(ApiFilesController::isValidFilename('../../../wp-config'));
@@ -424,6 +437,33 @@ class ApiFilesControllerTest extends TestCase
         $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
     }
 
+    /** @return array<string, array{string, string}> */
+    public static function sameRouteProvider(): array
+    {
+        return [
+            'nested index pushed next to its flat twin' => ['orders/index', 'orders'],
+            'flat file pushed next to its nested index' => ['orders', 'orders/index'],
+        ];
+    }
+
+    #[DataProvider('sameRouteProvider')]
+    public function test_push_file_returns_400_when_another_file_resolves_to_the_same_route(string $filename, string $existing): void
+    {
+        $request = new WP_REST_Request([
+            'filename' => $filename,
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Orders {}\n",
+        ]);
+
+        $this->directory->method('listSlugs')->willReturn([$existing]);
+        $this->directory->expects($this->never())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString("api/{$existing}.php", (string) $response->data['error']);
+        $this->assertStringContainsString('same route', (string) $response->data['error']);
+    }
+
     public function test_push_file_returns_400_when_the_class_collides_with_another_api_file_differing_only_by_case(): void
     {
         // PHP resolves class names case-insensitively (a real "Cannot redeclare class" fatal
@@ -743,7 +783,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_batch_returns_400_and_aborts_for_an_invalid_prune_filename(): void
     {
-        $this->directory->expects($this->once())->method('stageWrite');
+        $this->directory->expects($this->never())->method('stageWrite');
         $this->directory->expects($this->never())->method('stageDelete');
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
@@ -752,6 +792,26 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);
+    }
+
+    public function test_push_batch_replaces_a_flat_route_by_its_nested_index_in_one_batch(): void
+    {
+        // The staged batch mirrors the live directory: 'orders' is listed until its prune is
+        // staged, which has to happen before 'orders/index' runs its same-route check.
+        $staged = ['orders'];
+        $this->directory->method('stageDelete')->willReturnCallback(static function (string $slug) use (&$staged): void {
+            $staged = array_values(array_diff($staged, [$slug]));
+        });
+        $this->directory->method('listStagedSlugs')->willReturnCallback(static function () use (&$staged): array {
+            return $staged;
+        });
+        $this->directory->expects($this->once())->method('stageWrite')->with('orders/index', $this->anything());
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $request  = new WP_REST_Request(['files' => [$this->validFile('orders/index', 'Orders')], 'prune' => ['orders']]);
+        $response = $this->controller->push_batch($request);
+
+        $this->assertSame(200, $response->status);
     }
 
     public function test_push_batch_stages_prune_deletions_and_commits_alongside_the_pushed_files(): void

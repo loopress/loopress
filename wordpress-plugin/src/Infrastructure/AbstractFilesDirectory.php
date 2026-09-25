@@ -355,6 +355,14 @@ abstract class AbstractFilesDirectory
         }
     }
 
+    // Default: any index.php, at any depth, is never a slug. The anti-listing guard is only
+    // ever written at the root (ensureExists(), beginBatch()), so ApiDirectory narrows this to
+    // the root one: a nested api/orders/index.php is a route (/orders), not a guard.
+    protected function isIgnoredFile(string $relativePath): bool
+    {
+        return basename($relativePath) === 'index.php';
+    }
+
     // Shared walk behind listSlugs()/listStagedSlugs(): identical RecursiveIteratorIterator
     // scan, only the root directory differs.
     /** @return string[] */
@@ -372,7 +380,7 @@ abstract class AbstractFilesDirectory
 
         $slugs = [];
         foreach ($files as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php' || $file->getFilename() === 'index.php') {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
 
@@ -380,7 +388,11 @@ abstract class AbstractFilesDirectory
             // is always explode()d on '/', so a slug carrying '\' would be read as one single
             // segment instead of the intended nested path.
             $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($root)));
-            $slugs[]  = substr($relative, 0, -4); // strip the trailing '.php'
+            if ($this->isIgnoredFile($relative)) {
+                continue;
+            }
+
+            $slugs[] = substr($relative, 0, -4); // strip the trailing '.php'
         }
 
         return $slugs;

@@ -1,7 +1,7 @@
 import {Args} from '@oclif/core'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalPages, type RemotePage} from '../../utils/page-format.js'
+import {formatPageProblems, frontPageNote, type Page, PAGES_ENDPOINT, type PushedPage, readLocalPages} from '../../utils/page-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
 
@@ -72,8 +72,8 @@ export default class Push extends PushCommand {
     }
 
     try {
-      const result = await this.wp.put<RemotePage>(PAGES_ENDPOINT, page)
-      if (task) task.output = `Pushed: ${page.slug} (${result.status}) ${result.link}`
+      const result = await this.wp.put<PushedPage>(PAGES_ENDPOINT, page)
+      if (task) task.output = `Pushed: ${page.slug} (${result.status}) ${result.link}${frontPageNote(result)}`
     } catch (error) {
       this.reportTaskFailure(`Failed to push ${page.slug}: ${(error as Error).message}`, error, task)
     }

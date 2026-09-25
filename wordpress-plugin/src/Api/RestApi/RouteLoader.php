@@ -41,6 +41,12 @@ class RouteLoader extends AbstractFileLoader
     // match any request, with nothing pointing at why.
     private const DYNAMIC_SEGMENT_PATTERN = '/^\[([A-Za-z_]\w*)\]$/';
 
+    // route => slug that registered it, over one loadAndRegister() pass: 'orders.php' and
+    // 'orders/index.php' resolve to the same route, and WP would silently merge the second's
+    // endpoints into the first's instead of refusing it.
+    /** @var array<string, string> */
+    private array $registeredRoutes = [];
+
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
     protected function directory(): AbstractFilesDirectory
@@ -96,7 +102,7 @@ class RouteLoader extends AbstractFileLoader
     /** @return non-falsy-string always starts with '/', what register_rest_route() requires. */
     private static function routeFor(string $slug): string
     {
-        return '/' . implode('/', array_map(self::segmentToRegex(...), explode('/', $slug)));
+        return '/' . implode('/', array_map(self::segmentToRegex(...), explode('/', ApiDirectory::routeSlug($slug))));
     }
 
     /**
@@ -330,6 +336,13 @@ class RouteLoader extends AbstractFileLoader
             return;
         }
 
-        register_rest_route(ApiNamespace::current(), self::routeFor($slug), $endpoints);
+        $route = self::routeFor($slug);
+        if (isset($this->registeredRoutes[$route])) {
+            $this->fail($slug, "route already registered by api/{$this->registeredRoutes[$route]}.php");
+            return;
+        }
+
+        $this->registeredRoutes[$route] = $slug;
+        register_rest_route(ApiNamespace::current(), $route, $endpoints);
     }
 }
