@@ -2,6 +2,7 @@
 title: Exporting WooCommerce Orders to XLSX with PhpSpreadsheet
 description: A Custom API Route that turns a WooCommerce orders query into a downloadable Excel file, using PhpSpreadsheet, for the client who just wants "the numbers in a spreadsheet."
 kind: route
+youtubeId: spDsmvUnBHM
 ---
 
 Somewhere in most WooCommerce projects, a client asks for a spreadsheet. Not a CSV they'll paste into Excel, an actual `.xlsx` file with a proper sheet name, formatted headers, and columns that don't need re-parsing. A monthly export of completed orders, one row per order with the total and the customer's email, exactly the kind of thing a store manager wants without touching wp-admin. Turning a list of orders into a real spreadsheet file is a different problem, and it's one core (or WooCommerce itself) has no opinion on.
@@ -41,7 +42,7 @@ class OrdersExport
             $sheet->fromArray([
                 $order->get_id(),
                 $order->get_date_created()?->format('Y-m-d'),
-                $order->get_total(),
+                (float) $order->get_total(),
                 $order->get_billing_email(),
             ], null, "A{$row}");
             $row++;
