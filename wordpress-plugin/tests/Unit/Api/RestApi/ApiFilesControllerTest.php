@@ -54,6 +54,19 @@ class ApiFilesControllerTest extends TestCase
         $this->assertTrue(ApiFilesController::isValidFilename('orders/[order_id]/items/[item_id]'));
     }
 
+    // api/index.php is the anti-listing guard, and as a route it would claim '/', the
+    // namespace discovery index: a root 'index' is refused, a nested one is the parent route.
+    public function test_isValidFilename_rejects_a_root_index(): void
+    {
+        $this->assertFalse(ApiFilesController::isValidFilename('index'));
+    }
+
+    public function test_isValidFilename_accepts_a_nested_index(): void
+    {
+        $this->assertTrue(ApiFilesController::isValidFilename('orders/index'));
+        $this->assertTrue(ApiFilesController::isValidFilename('orders/[order_id]/index'));
+    }
+
     public function test_isValidFilename_rejects_path_traversal(): void
     {
         $this->assertFalse(ApiFilesController::isValidFilename('../../../wp-config'));
@@ -422,6 +435,33 @@ class ApiFilesControllerTest extends TestCase
 
         $this->assertSame(400, $response->status);
         $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function sameRouteProvider(): array
+    {
+        return [
+            'nested index pushed next to its flat twin' => ['orders/index', 'orders'],
+            'flat file pushed next to its nested index' => ['orders', 'orders/index'],
+        ];
+    }
+
+    #[DataProvider('sameRouteProvider')]
+    public function test_push_file_returns_400_when_another_file_resolves_to_the_same_route(string $filename, string $existing): void
+    {
+        $request = new WP_REST_Request([
+            'filename' => $filename,
+            'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Orders {}\n",
+        ]);
+
+        $this->directory->method('listSlugs')->willReturn([$existing]);
+        $this->directory->expects($this->never())->method('write');
+
+        $response = $this->controller->push_file($request);
+
+        $this->assertSame(400, $response->status);
+        $this->assertStringContainsString("api/{$existing}.php", (string) $response->data['error']);
+        $this->assertStringContainsString('same route', (string) $response->data['error']);
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_api_file_differing_only_by_case(): void

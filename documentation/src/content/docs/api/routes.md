@@ -40,7 +40,9 @@ Two things tie everything together:
 | Element | Rule | Example |
 |---------|------|---------|
 | Filename | Lowercase kebab-case path segments (letters, digits, hyphens), optionally nested in subdirectories, `.php` extension | `hello-world.php` |
-| Route | The path without extension, under the [namespace](#the-route-namespace) | `/loopress-api/v1/hello-world` |
+| Route | The path without extension, under the [namespace](#the-route-namespace). A nested `index.php` answers at its directory's path | `/loopress-api/v1/hello-world` |
+
+**A nested `index.php` is its directory's route.** `api/orders/index.php` answers at `/loopress-api/v1/orders`, the same way `api/orders/[order_id]/index.php` answers at `/loopress-api/v1/orders/482`. It's a convenience for grouping a resource's files in one directory, not a second way to declare a route: `api/orders.php` and `api/orders/index.php` resolve to the same path, so pushing both is rejected. At the root, `api/index.php` is reserved (the directory's own anti-listing guard, and `/loopress-api/v1/` is already the namespace's discovery index): give the file a name instead.
 
 **The class can be named anything.** There's no filename-to-class-name formula to get right: the plugin reads the file to find out what class it declares (via PHP's own tokenizer, never by executing the file), so `HelloWorld`, `Handler`, or anything else all work identically. The one rule that matters: **exactly one class per file**. Zero classes, or more than one, is rejected.
 
@@ -49,7 +51,8 @@ Several structural requirements are enforced at push time, with a clear error if
 - The file must contain `declare(strict_types=1);` exactly once. More than once (even inside a comment) or zero times is rejected.
 - The file must declare exactly one class. `lps api push` rejects zero or several immediately, before anything is written; put code shared between several route files in [`lib/`](#sharing-code-between-route-files-and-snippets) instead of a second class in the same file.
 - The class name must not already be taken by another `api/` file, WordPress core, or another active plugin. `lps api push` checks all three and rejects the push immediately if any collide.
-- Every path segment must match the kebab-case pattern, or be a dynamic segment (see below). The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+- Every path segment must match the kebab-case pattern, or be a dynamic segment (see below), and the file can't be a root `api/index.php`. The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
+- Two files can't resolve to the same route: `api/orders.php` next to `api/orders/index.php` is rejected at push time. A file deployed some other way (Git, rsync) that collides is skipped when routes load and reported by [`lps api list`](/api/cli/).
 - Each file must be at most 512 KB. A single-class route file is never legitimately near that; the cap keeps an oversized file from exhausting memory when the plugin tokenises and loads it. Raise it with the `loopress_max_file_bytes` filter (`add_filter('loopress_max_file_bytes', fn($bytes, $subdir) => $subdir === 'api' ? 1024 * 1024 : $bytes, 10, 2)`) if you genuinely need to.
 
 ## Dynamic path segments
@@ -431,7 +434,7 @@ Most of these never make it that far: `lps api push` rejects the same problems i
 Pushed files are stored in `wp-content/loopress/api/`, one `{filename}.php` per route. Details that matter operationally:
 
 - **Direct access is blocked.** `wp-content/` is publicly reachable over HTTP, so on push the plugin injects a standard `ABSPATH` guard right after the `declare` line. A direct browser request to the file exits immediately; the code only runs through the REST API. The guard is stripped again when the CLI pulls or lists files, so your local copies stay exactly as you wrote them.
-- **Directory listing is blocked** by an empty `index.php`.
+- **Directory listing is blocked** by an empty `index.php` at the root of `wp-content/loopress/api/`, which is why a root `api/index.php` route is refused.
 - **Writes are atomic.** Files are written to a temp file and renamed, so a REST request arriving mid-push never loads a half-written file.
 - **Removal goes through the product.** Because these files sit outside the plugin directory, deactivating the plugin does not delete them. Use [`lps api rm <slug>`](/api/cli/#lps-api-rm) to remove one, or [`lps api push --prune`](/api/cli/#lps-api-push) to remove every route absent locally. Uninstalling the plugin (deleting it, not just deactivating) removes the whole `wp-content/loopress/` tree, route files included.
 

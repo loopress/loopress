@@ -536,6 +536,14 @@ abstract class AbstractFilesController
         }
     }
 
+    // Two different slugs that the loader would still treat as the same thing (see
+    // ApiFilesController: 'orders' and 'orders/index' are one route). Default: none, a hook
+    // slug is only ever itself.
+    protected function pathCollision(string $filename, string $otherSlug): ?string // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- the seam ApiFilesController reads
+    {
+        return null;
+    }
+
     // Catches at push time what the loader would otherwise only discover, silently, at the
     // next boot. Two sources checked, in order:
     // 1. Another file in the same batch (or, for push_file(), already live) declaring the same
@@ -567,6 +575,11 @@ abstract class AbstractFilesController
         foreach ($listSlugs() as $slug) {
             if ($slug === $filename) {
                 continue; // re-pushing the same file is an update, never a collision with itself
+            }
+
+            $pathCollision = $this->pathCollision($filename, $slug);
+            if ($pathCollision !== null) {
+                return $pathCollision;
             }
 
             $size = $fileSize($slug);

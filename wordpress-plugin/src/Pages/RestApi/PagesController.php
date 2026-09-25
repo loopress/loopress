@@ -26,6 +26,10 @@ class PagesController
     // slug than the file's and break the file/page identity.
     private const SLUG_PATTERN = '^[a-z0-9]+(-[a-z0-9]+)*$';
 
+    // pages/index.html is the site's front page, not a /index/ page: once published, pushing it
+    // points Settings > Reading at it, replacing whatever was there (the file is the source).
+    private const FRONT_PAGE_SLUG = 'index';
+
     // Label passed to the loopress_max_file_bytes / loopress_max_files_total_bytes filters,
     // alongside 'api' and 'hooks', so a site can tune pages separately.
     private const SIZE_FILTER_SUBJECT = 'pages';
@@ -176,7 +180,39 @@ class PagesController
             return $this->error(500, $result->get_error_message());
         }
 
-        return new WP_REST_Response($this->toArray((int) $result), $existingId === null ? 201 : 200);
+        $id   = (int) $result;
+        $data = $this->toArray($id);
+        if ($slug === self::FRONT_PAGE_SLUG) {
+            $frontPage = $this->syncFrontPage($id, $status);
+            if ($frontPage !== null) {
+                $data['frontPage'] = $frontPage;
+            }
+        }
+
+        return new WP_REST_Response($data, $existingId === null ? 201 : 200);
+    }
+
+    // Returns what changed on the Reading settings, null when nothing did. Only a published page
+    // becomes the front page: a draft one would show visitors an empty home. Going back to draft
+    // while it is the front page reverts to the latest posts, the same reset WordPress itself
+    // applies when a front page is trashed (_reset_front_page_settings_for_post()).
+    private function syncFrontPage(int $id, string $status): ?string
+    {
+        $isFrontPage = get_option('show_on_front') === 'page' && (int) get_option('page_on_front') === $id;
+
+        if ($status === 'publish' && !$isFrontPage) {
+            update_option('show_on_front', 'page');
+            update_option('page_on_front', $id);
+            return 'set';
+        }
+
+        if ($status !== 'publish' && $isFrontPage) {
+            update_option('show_on_front', 'posts');
+            update_option('page_on_front', 0);
+            return 'unset';
+        }
+
+        return null;
     }
 
     /** @return int[] */

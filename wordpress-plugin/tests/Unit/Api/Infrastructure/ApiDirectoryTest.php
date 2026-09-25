@@ -243,13 +243,22 @@ class ApiDirectoryTest extends TestCase
         $this->assertSame(['hello', 'invoice-pdf/[order_id]'], $slugs);
     }
 
-    public function test_listSlugs_ignores_a_nested_index_php(): void
+    // Only the root index.php is the anti-listing guard: a nested one is the route for its
+    // directory (api/orders/index.php is /orders).
+    public function test_listSlugs_includes_a_nested_index_php(): void
     {
         $dir = new ApiDirectory();
-        $dir->write('invoice-pdf/[order_id]', '<?php');
-        file_put_contents($dir->filePath('invoice-pdf/index'), '<?php // not a route');
+        $dir->write('orders/index', '<?php');
 
-        $this->assertSame(['invoice-pdf/[order_id]'], $dir->listSlugs());
+        $this->assertSame(['orders/index'], $dir->listSlugs());
+    }
+
+    public function test_routeSlug_drops_a_trailing_index_segment(): void
+    {
+        $this->assertSame('orders', ApiDirectory::routeSlug('orders/index'));
+        $this->assertSame('orders/[order_id]', ApiDirectory::routeSlug('orders/[order_id]/index'));
+        $this->assertSame('index-page', ApiDirectory::routeSlug('index-page'));
+        $this->assertSame('orders/index-page', ApiDirectory::routeSlug('orders/index-page'));
     }
 
     // ── batch staging / atomic swap (#236) ─────────────────────────────────────

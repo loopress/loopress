@@ -40,6 +40,23 @@ class ApiFilesController extends AbstractFilesController
         return '/^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/';
     }
 
+    // A root 'index' is refused: api/index.php is the anti-listing guard ApiDirectory writes
+    // itself (and never lists), and as a route it would claim '/', the namespace discovery
+    // index WP already serves. A nested 'orders/index' is fine, it is the /orders route.
+    public static function isValidFilename(mixed $value): bool
+    {
+        return parent::isValidFilename($value) && $value !== 'index';
+    }
+
+    protected function pathCollision(string $filename, string $otherSlug): ?string
+    {
+        if (ApiDirectory::routeSlug($filename) !== ApiDirectory::routeSlug($otherSlug)) {
+            return null;
+        }
+
+        return "api/{$filename}.php and api/{$otherSlug}.php resolve to the same route. Keep only one of them.";
+    }
+
     // Flags a route whose permission is open: `#[Permission(public: true)]` on the class or a
     // verb method means the route runs for anyone on the internet, with no authentication
     // (F1). Detected lexically from the source, see PermissionScanner for the blind spots.

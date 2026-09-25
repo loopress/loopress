@@ -22,4 +22,19 @@ class ApiDirectory extends AbstractFilesDirectory
     // list_files() to annotate the "API Routes" view with per-file load failures (see US-5 in
     // the plugin's "Extensions proposées (2e vague)" doc).
     public const LOAD_ERRORS_OPTION = 'loopress_api_load_errors';
+
+    // Only the root index.php is the anti-listing guard; a nested one is a route file.
+    protected function isIgnoredFile(string $relativePath): bool
+    {
+        return $relativePath === 'index.php';
+    }
+
+    // The route a slug resolves to, before RouteLoader turns each segment into a regex: a
+    // trailing 'index' segment names its parent directory, so 'orders/index' and 'orders' are
+    // the same route. Shared by RouteLoader (registration) and ApiFilesController (push-time
+    // collision check) so both agree on what "the same route" means.
+    public static function routeSlug(string $slug): string
+    {
+        return preg_replace('#/index$#', '', $slug) ?? $slug;
+    }
 }

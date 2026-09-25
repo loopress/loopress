@@ -154,6 +154,27 @@ describe('api push', () => {
       expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(dynamicFile); }).not.toThrow()
     })
 
+    it('rejects a root index file, mirroring the server rule', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const rootIndex: ApiFile = {content: '<?php', filename: 'index'}
+
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(rootIndex); }).toThrow(
+        'Invalid filename "index"',
+      )
+    })
+
+    it('accepts a nested index file', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const nestedIndex: ApiFile = {
+        content: '<?php\n\ndeclare(strict_types=1);\n\nfinal class Orders {}\n',
+        filename: 'orders/index',
+      }
+
+      expect(() => { (cmd as unknown as PushWithValidateFileLocally).validateFileLocally(nestedIndex); }).not.toThrow()
+    })
+
     it('rejects a dynamic segment starting with a digit, mirroring the server rule', async () => {
       // Regression for the QA 7th-pass MEDIUM finding: the client pattern used to accept
       // any \w+ inside brackets, including a leading digit, while the server (matching

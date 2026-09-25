@@ -32,6 +32,14 @@ function parseBoolean(key: string, value: string | undefined): boolean {
 
 export type RemotePage = Page & {link: string}
 
+// Only on a push of pages/index.html that changed Settings > Reading (see PagesController).
+export type PushedPage = RemotePage & {frontPage?: 'set' | 'unset'}
+
+const FRONT_PAGE_NOTES = {
+  set: 'now the site front page',
+  unset: 'no longer the front page, the site shows its latest posts',
+} as const
+
 export type PageProblem = {file: string; message: string}
 
 export function formatPageProblems(problems: PageProblem[]): string {
@@ -135,4 +143,8 @@ export async function readLocalPages(dir: string): Promise<{pages: Page[]; probl
   }
 
   return {pages, problems}
+}
+
+export function frontPageNote(page: PushedPage): string {
+  return page.frontPage === undefined ? '' : ` (${FRONT_PAGE_NOTES[page.frontPage]})`
 }

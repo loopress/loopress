@@ -288,6 +288,74 @@ class PagesControllerTest extends TestCase
         $this->assertSame([], $this->writes);
     }
 
+    /** @param array<string, mixed> $options */
+    private function withReadingOptions(array &$options): void
+    {
+        Functions\when('get_option')->alias(static function (string $name) use (&$options): mixed {
+            return $options[$name] ?? false;
+        });
+        Functions\when('update_option')->alias(static function (string $name, mixed $value) use (&$options): bool {
+            $options[$name] = $value;
+            return true;
+        });
+    }
+
+    public function test_publishing_index_makes_it_the_front_page_replacing_the_previous_one(): void
+    {
+        $options = ['show_on_front' => 'page', 'page_on_front' => 42];
+        $this->withReadingOptions($options);
+
+        $response = $this->put('index', '<h1>Home</h1>', 'publish');
+
+        $this->assertSame(201, $response->status);
+        $this->assertSame(['show_on_front' => 'page', 'page_on_front' => 100], $options);
+        $this->assertSame('set', $response->get_data()['frontPage']);
+    }
+
+    public function test_repushing_the_published_front_page_leaves_the_reading_settings_alone(): void
+    {
+        $this->pages[7] = ['name' => 'index', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
+        $options        = ['show_on_front' => 'page', 'page_on_front' => '7'];
+        $this->withReadingOptions($options);
+        Functions\expect('update_option')->never();
+
+        $response = $this->put('index', 'new', 'publish');
+
+        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+    }
+
+    public function test_a_draft_index_never_becomes_the_front_page(): void
+    {
+        $options = ['show_on_front' => 'posts', 'page_on_front' => 0];
+        $this->withReadingOptions($options);
+
+        $response = $this->put('index', '<h1>Home</h1>', 'draft');
+
+        $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
+        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+    }
+
+    public function test_switching_the_front_page_back_to_draft_reverts_to_the_latest_posts(): void
+    {
+        $this->pages[7] = ['name' => 'index', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
+        $options        = ['show_on_front' => 'page', 'page_on_front' => '7'];
+        $this->withReadingOptions($options);
+
+        $response = $this->put('index', 'new', 'draft');
+
+        $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
+        $this->assertSame('unset', $response->get_data()['frontPage']);
+    }
+
+    public function test_publishing_any_other_slug_never_touches_the_front_page(): void
+    {
+        Functions\expect('update_option')->never();
+
+        $response = $this->put('about', '<h1>Hi</h1>', 'publish');
+
+        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+    }
+
     public function test_lists_only_managed_pages(): void
     {
         $this->pages[1] = ['name' => 'about', 'status' => 'publish', 'managed' => true, 'html' => '<p>a</p>'];

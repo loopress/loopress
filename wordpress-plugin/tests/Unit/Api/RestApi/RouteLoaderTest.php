@@ -485,6 +485,52 @@ class RouteLoaderTest extends TestCase
         $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
+    public function test_loadAndRegister_registers_a_nested_index_file_as_its_directory_route(): void
+    {
+        $this->directory->write(
+            'orders/[order_id]/index',
+            "<?php\nfinal class OrderIndex\n{\n    public function get(): array { return []; }\n}\n",
+        );
+
+        Functions\expect('register_rest_route')
+            ->once()
+            ->with(ApiNamespace::DEFAULT, '/orders/(?P<order_id>[^/]+)', \Mockery::type('array'))
+            ->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('update_option')->justReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+    }
+
+    // Deployed outside `lps api push` (Git, rsync), so the push-time check never ran: WP would
+    // merge the second file's endpoints into the first's route instead of refusing it.
+    public function test_loadAndRegister_skips_a_second_file_resolving_to_the_same_route(): void
+    {
+        $this->directory->write('orders', "<?php\nfinal class OrdersFlat\n{\n    public function get(): array { return []; }\n}\n");
+        $this->directory->write('orders/index', "<?php\nfinal class OrdersNested\n{\n    public function get(): array { return []; }\n}\n");
+
+        Functions\expect('register_rest_route')->once()->andReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        Functions\expect('update_option')
+            ->once()
+            ->with(
+                ApiDirectory::LOAD_ERRORS_OPTION,
+                \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
+                    && count($errors) === 1
+                    && str_contains((string) reset($errors), 'route already registered')),
+                false,
+            )
+            ->andReturn(true);
+
+        $loader = new RouteLoader($this->directory, $this->environment);
+        $loader->loadAndRegister();
+
+        $this->assertTrue(true); // Mockery verifies both expectations in tearDown
+    }
+
     public function test_loadAndRegister_registers_a_route_even_though_its_permission_would_throw(): void
     {
         // permission() now runs lazily at dispatch (see endpointsFor()'s wrapPermission()),
