@@ -121,10 +121,14 @@ describe('runLps', () => {
       pid: 42,
     })
     exec.mockReturnValueOnce(child as never)
+    // On Windows runLps kills through taskkill (see killTree), which ends the child just the same.
+    vi.mocked(execFile).mockImplementationOnce((() => {
+      settle()
+    }) as never)
 
     const result = await runLps(['composer', 'push'], {timeoutMs: 20})
 
-    expect(child.kill).toHaveBeenCalledOnce()
+    expect(process.platform === 'win32' ? execFile : child.kill).toHaveBeenCalledOnce()
     expect(result).toEqual({error: {message: 'lps composer push timed out after 0.02s.', name: 'TIMEOUT'}, ok: false})
   })
 
