@@ -10,8 +10,9 @@ It does not reimplement any of that logic: every tool runs the CLI with `--json`
 stdout. The CLI is an optional peer dependency: `@loopress/cli`'s `bin/run.js` is resolved next to
 this package and started with the running Node (never the `lps` shim, which Windows can't spawn
 without a shell), falling back to `lps` on `PATH` when it can't be resolved (pnpm, Volta, a
-separate npm prefix). The fallback goes through [`tinyexec`](https://github.com/tinylibs/tinyexec),
-which resolves `lps.cmd` and escapes arguments for `cmd.exe` on Windows.
+separate npm prefix). That fallback is looked up in absolute `PATH` entries only, never the
+working directory, then run through [`tinyexec`](https://github.com/tinylibs/tinyexec), which
+escapes arguments for `cmd.exe` on Windows. On timeout the whole process tree is killed.
 
 ## Requirements
 

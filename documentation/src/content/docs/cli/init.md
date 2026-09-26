@@ -21,7 +21,7 @@ The command is interactive: it prompts you for each field and writes the result 
 | Other features | Optional multi-select for ACF, SEO, Menus, Forms, custom API routes, hooks, single-page apps, and static pages. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `menus`, `forms`, `api`, `hooks`, `apps`, `pages`). |
 | Snippet provider | The WordPress plugin used to manage snippets: [Code Snippets](https://wordpress.org/plugins/code-snippets/), [WPCode](https://wpcode.com/), or none if it's already installed. When you pick one, it's added to `plugins`. |
 
-It also adds `* text=auto eol=lf` to a `.gitattributes` file next to `loopress.json`, creating the file if needed and leaving it alone if the rule is already there. Git for Windows checks files out with CRLF line endings by default, so without this rule a snippet cloned on Windows would no longer match, byte for byte, what `pull` writes.
+It also adds `* text=auto eol=lf` at the top of a `.gitattributes` file next to `loopress.json`. It creates the file if needed, leaves it alone if the rule is already there, and keeps your own rules after it so they still take precedence (for example `*.bat text eol=crlf`). Git for Windows checks files out with CRLF line endings by default, so without this rule a snippet cloned on Windows would no longer match, byte for byte, what `pull` writes.
 
 The final summary lists everything that was configured and the next useful command.
 

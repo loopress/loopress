@@ -1,12 +1,17 @@
+import {execFile} from 'node:child_process'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {delimiter, join} from 'node:path'
 import {x} from 'tinyexec'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {resolveLps, runLps} from '../../src/lib/run-lps.js'
+import {findOnPath, killTree, resolveLps, runLps} from '../../src/lib/run-lps.js'
 
 vi.mock('tinyexec', () => ({x: vi.fn()}))
+vi.mock('node:child_process', () => ({execFile: vi.fn()}))
 
 const exec = vi.mocked(x)
-const {file, pre} = resolveLps()
+const {file, pre} = resolveLps()!
 
 function exits(exitCode: number, stdout: string, stderr = ''): void {
   exec.mockResolvedValueOnce({exitCode, stderr, stdout} as never)
@@ -23,6 +28,64 @@ describe('resolveLps', () => {
 
   it("defaults to the installed CLI's bin/run.js under Node, resolved next to this package", () => {
     expect(resolveLps('')).toEqual({file: process.execPath, pre: [expect.stringMatching(/cli[\\/]bin[\\/]run\.js$/)]})
+  })
+})
+
+describe('findOnPath', () => {
+  let dir: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'lps-path-'))
+    mkdirSync(join(dir, 'bin'))
+  })
+
+  afterEach(() => {
+    rmSync(dir, {force: true, recursive: true})
+    vi.restoreAllMocks()
+  })
+
+  it('returns the absolute path of the first match on PATH', () => {
+    writeFileSync(join(dir, 'bin', 'lps'), '')
+
+    expect(findOnPath('lps', {PATH: ['/nowhere', join(dir, 'bin')].join(delimiter)}, 'linux')).toBe(join(dir, 'bin', 'lps'))
+  })
+
+  it('ignores relative PATH entries, so the working directory can never supply its own lps', () => {
+    writeFileSync(join(dir, 'lps'), '')
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+
+    expect(findOnPath('lps', {PATH: ['.', 'bin'].join(delimiter)}, 'linux')).toBeUndefined()
+  })
+
+  it('on Windows, picks the PATHEXT shim over the extensionless sh script npm writes next to it', () => {
+    writeFileSync(join(dir, 'bin', 'lps'), '')
+    writeFileSync(join(dir, 'bin', 'lps.cmd'), '')
+
+    expect(findOnPath('lps', {PATH: join(dir, 'bin'), PATHEXT: '.EXE;.cmd'}, 'win32')).toBe(join(dir, 'bin', 'lps.cmd'))
+  })
+
+  it('returns undefined when nothing matches', () => {
+    expect(findOnPath('lps', {PATH: join(dir, 'bin')}, 'linux')).toBeUndefined()
+  })
+})
+
+describe('killTree', () => {
+  it('kills the child directly outside Windows', () => {
+    const child = {kill: vi.fn(() => true), pid: 42}
+
+    killTree(child, 'linux')
+
+    expect(child.kill).toHaveBeenCalledOnce()
+    expect(execFile).not.toHaveBeenCalled()
+  })
+
+  it('on Windows, kills the whole tree with taskkill (cmd.exe alone would leave the CLI running)', () => {
+    const child = {kill: vi.fn(() => true), pid: 42}
+
+    killTree(child, 'win32')
+
+    expect(child.kill).not.toHaveBeenCalled()
+    expect(execFile).toHaveBeenCalledWith(expect.stringMatching(/taskkill\.exe$/), ['/pid', '42', '/T', '/F'], expect.any(Function))
   })
 })
 
@@ -48,16 +111,20 @@ describe('runLps', () => {
     expect(exec).toHaveBeenCalledWith(file, expect.any(Array), expect.objectContaining({nodeOptions: {cwd: '/snapshot'}}))
   })
 
-  it('reports a child still running at the deadline as a TIMEOUT error instead of a generic ExecError', async () => {
-    exec.mockImplementationOnce(
-      (_file, _args, options) =>
-        new Promise((_resolve, reject) => {
-          options!.signal!.addEventListener('abort', () => { reject(new Error('The operation was aborted')); })
-        }) as never,
-    )
+  it('kills a child still running at the deadline and reports a TIMEOUT instead of a generic ExecError', async () => {
+    let settle = (): void => {}
+    const child = Object.assign(new Promise((resolve) => { settle = () => { resolve({exitCode: undefined, stderr: '', stdout: ''}); } }), {
+      kill: vi.fn(() => {
+        settle()
+        return true
+      }),
+      pid: 42,
+    })
+    exec.mockReturnValueOnce(child as never)
 
     const result = await runLps(['composer', 'push'], {timeoutMs: 20})
 
+    expect(child.kill).toHaveBeenCalledOnce()
     expect(result).toEqual({error: {message: 'lps composer push timed out after 0.02s.', name: 'TIMEOUT'}, ok: false})
   })
 

@@ -79,11 +79,11 @@ describe('loopress-config', () => {
       expect(read()).toBe('* text=auto eol=lf\n')
     })
 
-    it('appends to an existing file without touching its rules, on a new line', async () => {
-      writeFileSync(join(tmpDir, '.gitattributes'), '*.png binary')
+    it('puts the rule before existing rules, so a later exception like *.bat eol=crlf still wins', async () => {
+      writeFileSync(join(tmpDir, '.gitattributes'), '*.bat text eol=crlf')
 
       expect(await ensureLfGitattributes()).toBe(true)
-      expect(read()).toBe('*.png binary\n* text=auto eol=lf\n')
+      expect(read()).toBe('* text=auto eol=lf\n*.bat text eol=crlf')
     })
 
     it('leaves the file alone when the rule is already there (re-running init)', async () => {
