@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {isInteractive} from '../lib/interactive.js'
-import {type LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
+import {ensureLfGitattributes, type LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
 
 // WordPress.org slugs for the two snippet plugins the Loopress WordPress plugin supports
 // (see SnippetModule.php, which wires up both providers and auto-detects the active one).
@@ -84,6 +84,7 @@ export default class Init extends Command {
     }
 
     await writeLocalConfig(config)
+    const isGitattributesUpdated = await ensureLfGitattributes()
 
     let isProviderAdded = false
     if (providerChoice !== '__none__') {
@@ -106,6 +107,10 @@ export default class Init extends Command {
 
     if (isProviderAdded) {
       this.log(`  Plugin:   ${providerChoice}`)
+    }
+
+    if (isGitattributesUpdated) {
+      this.log('✓ .gitattributes: LF line endings, so files match across macOS, Linux and Windows')
     }
 
     this.log('\n→ Next: run `lps snippet pull` to fetch what is already on the site, or `lps doctor` to verify the connection.')

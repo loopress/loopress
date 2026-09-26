@@ -1,9 +1,9 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
+import {ensureLfGitattributes, readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
 
 // readLocalConfig / writeLocalConfig resolve against process.cwd(), so we
 // mock it for each test instead of process.chdir(), which worker threads disallow.
@@ -68,6 +68,29 @@ describe('loopress-config', () => {
       const content = await readFile(join(tmpDir, 'loopress.json'), 'utf8')
       const parsed = JSON.parse(content)
       expect(parsed.plugins).toEqual({hello: '1.0.0'})
+    })
+  })
+
+  describe('ensureLfGitattributes', () => {
+    const read = () => readFileSync(join(tmpDir, '.gitattributes'), 'utf8')
+
+    it('creates .gitattributes with the LF rule', async () => {
+      expect(await ensureLfGitattributes()).toBe(true)
+      expect(read()).toBe('* text=auto eol=lf\n')
+    })
+
+    it('appends to an existing file without touching its rules, on a new line', async () => {
+      writeFileSync(join(tmpDir, '.gitattributes'), '*.png binary')
+
+      expect(await ensureLfGitattributes()).toBe(true)
+      expect(read()).toBe('*.png binary\n* text=auto eol=lf\n')
+    })
+
+    it('leaves the file alone when the rule is already there (re-running init)', async () => {
+      writeFileSync(join(tmpDir, '.gitattributes'), '*.png binary\r\n* text=auto eol=lf\r\n')
+
+      expect(await ensureLfGitattributes()).toBe(false)
+      expect(read()).toBe('*.png binary\r\n* text=auto eol=lf\r\n')
     })
   })
 })

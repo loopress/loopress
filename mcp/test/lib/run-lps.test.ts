@@ -1,64 +1,68 @@
-import {execFile} from 'node:child_process'
+import {x} from 'tinyexec'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {runLps} from '../../src/lib/run-lps.js'
+import {resolveLps, runLps} from '../../src/lib/run-lps.js'
 
-const PROMISIFY_CUSTOM = Symbol.for('nodejs.util.promisify.custom')
+vi.mock('tinyexec', () => ({x: vi.fn()}))
 
-// `runLps` calls `promisify(execFile)`; Node's own child_process module defines a custom
-// promisify implementation for execFile (resolving `{stdout, stderr}`, and attaching stdout to
-// a rejection when the child exits non-zero). Mocking that custom-promisify slot, rather than
-// the callback-style export, is what lets the mock behave like the real thing.
-vi.mock('node:child_process', () => ({
-  execFile: Object.assign(vi.fn(), {[Symbol.for('nodejs.util.promisify.custom')]: vi.fn()}),
-}))
+const exec = vi.mocked(x)
+const {file, pre} = resolveLps()
 
-const execFileCustom = (execFile as unknown as Record<symbol, ReturnType<typeof vi.fn>>)[PROMISIFY_CUSTOM]
+function exits(exitCode: number, stdout: string, stderr = ''): void {
+  exec.mockResolvedValueOnce({exitCode, stderr, stdout} as never)
+}
+
+describe('resolveLps', () => {
+  it('runs a .js LPS_BIN under the current Node, so Windows never has to spawn a .cmd shim', () => {
+    expect(resolveLps('/x/cli/bin/dev.js')).toEqual({file: process.execPath, pre: ['/x/cli/bin/dev.js']})
+  })
+
+  it('spawns any other LPS_BIN as is', () => {
+    expect(resolveLps('/usr/local/bin/lps')).toEqual({file: '/usr/local/bin/lps', pre: []})
+  })
+
+  it("defaults to the installed CLI's bin/run.js under Node, resolved next to this package", () => {
+    expect(resolveLps('')).toEqual({file: process.execPath, pre: [expect.stringMatching(/cli[\\/]bin[\\/]run\.js$/)]})
+  })
+})
 
 describe('runLps', () => {
   beforeEach(() => {
-    execFileCustom.mockReset()
+    exec.mockReset()
   })
 
   it('parses stdout as JSON and appends --json to the argv', async () => {
-    execFileCustom.mockResolvedValueOnce({stderr: '', stdout: '{"status":"success"}'})
+    exits(0, '{"status":"success"}')
 
     const result = await runLps(['snippet', 'push'])
 
     expect(result).toEqual({data: {status: 'success'}, ok: true})
-    expect(execFileCustom).toHaveBeenCalledWith('lps', ['snippet', 'push', '--json'], expect.objectContaining({cwd: process.cwd()}))
+    expect(exec).toHaveBeenCalledWith(file, [...pre, 'snippet', 'push', '--json'], expect.objectContaining({nodeOptions: {cwd: process.cwd()}}))
   })
 
-  it('passes a default timeout to execFile, so a hung child cannot block forever', async () => {
-    execFileCustom.mockResolvedValueOnce({stderr: '', stdout: '{"status":"success"}'})
+  it('runs from the requested cwd (the mutating handshake points it at a frozen snapshot)', async () => {
+    exits(0, '{}')
 
-    await runLps(['snippet', 'push'])
+    await runLps(['snippet', 'push'], {cwd: '/snapshot'})
 
-    expect(execFileCustom).toHaveBeenCalledWith('lps', expect.any(Array), expect.objectContaining({timeout: 120_000}))
+    expect(exec).toHaveBeenCalledWith(file, expect.any(Array), expect.objectContaining({nodeOptions: {cwd: '/snapshot'}}))
   })
 
-  it('forwards an explicit timeoutMs override (e.g. composer_push needing longer than the default)', async () => {
-    execFileCustom.mockResolvedValueOnce({stderr: '', stdout: '{"status":"success"}'})
+  it('reports a child still running at the deadline as a TIMEOUT error instead of a generic ExecError', async () => {
+    exec.mockImplementationOnce(
+      (_file, _args, options) =>
+        new Promise((_resolve, reject) => {
+          options!.signal!.addEventListener('abort', () => { reject(new Error('The operation was aborted')); })
+        }) as never,
+    )
 
-    await runLps(['composer', 'push'], {timeoutMs: 620_000})
+    const result = await runLps(['composer', 'push'], {timeoutMs: 20})
 
-    expect(execFileCustom).toHaveBeenCalledWith('lps', expect.any(Array), expect.objectContaining({timeout: 620_000}))
+    expect(result).toEqual({error: {message: 'lps composer push timed out after 0.02s.', name: 'TIMEOUT'}, ok: false})
   })
 
-  it('reports a timed-out child as a TIMEOUT error instead of a generic ExecError', async () => {
-    const error = Object.assign(new Error('Command failed'), {killed: true, signal: 'SIGTERM'})
-    execFileCustom.mockRejectedValueOnce(error)
-
-    const result = await runLps(['composer', 'push'], {timeoutMs: 1000})
-
-    expect(result).toEqual({error: {message: 'lps composer push timed out after 1s.', name: 'TIMEOUT'}, ok: false})
-  })
-
-  it("reads oclif's structured error envelope off the rejection's stdout", async () => {
-    const error = Object.assign(new Error('Command failed'), {
-      stdout: '{"error":{"message":"No composer.json found","name":"Error"}}',
-    })
-    execFileCustom.mockRejectedValueOnce(error)
+  it("reads oclif's structured error envelope off stdout when the child exits non-zero", async () => {
+    exits(2, '{"error":{"message":"No composer.json found","name":"Error"}}')
 
     const result = await runLps(['composer', 'push'])
 
@@ -66,28 +70,34 @@ describe('runLps', () => {
   })
 
   it('returns the payload of a non-zero exit that is not an error envelope (e.g. diff exiting 1 on drift)', async () => {
-    const error = Object.assign(new Error('Command failed'), {stdout: '{"drift":true,"resources":{}}'})
-    execFileCustom.mockRejectedValueOnce(error)
+    exits(1, '{"drift":true,"resources":{}}')
 
     const result = await runLps(['page', 'diff'])
 
     expect(result).toEqual({data: {drift: true, resources: {}}, ok: true})
   })
 
-  it('falls back to a generic error when the child never got as far as printing JSON (e.g. lps not found)', async () => {
-    execFileCustom.mockRejectedValueOnce(new Error('spawn lps ENOENT'))
+  it('reports a child that could not start at all (e.g. lps not found) as a generic error', async () => {
+    exec.mockRejectedValueOnce(new Error('spawn lps ENOENT'))
 
     const result = await runLps(['snippet', 'list'])
 
     expect(result).toEqual({error: {message: 'spawn lps ENOENT', name: 'ExecError'}, ok: false})
   })
 
-  it('falls back to a generic error when stdout on the rejection is not valid JSON', async () => {
-    const error = Object.assign(new Error('Command failed'), {stdout: 'not json'})
-    execFileCustom.mockRejectedValueOnce(error)
+  it('surfaces stderr when stdout is not JSON (the process crashed before oclif handled the error)', async () => {
+    exits(1, 'not json', 'TypeError: boom\n')
 
     const result = await runLps(['snippet', 'list'])
 
-    expect(result).toEqual({error: {message: 'Command failed', name: 'ExecError'}, ok: false})
+    expect(result).toEqual({error: {message: 'TypeError: boom', name: 'ExecError'}, ok: false})
+  })
+
+  it('falls back to the exit code when a non-JSON failure printed nothing on stderr either', async () => {
+    exits(1, '')
+
+    const result = await runLps(['snippet', 'list'])
+
+    expect(result).toEqual({error: {message: 'lps snippet list exited with code 1 without JSON output.', name: 'ExecError'}, ok: false})
   })
 })
