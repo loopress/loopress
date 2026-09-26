@@ -32,7 +32,7 @@ function parseBoolean(key: string, value: string | undefined): boolean {
 
 export type RemotePage = Page & {link: string}
 
-// Only on a push of pages/index.html that changed Settings > Reading (see PagesController).
+// Only on a push of pages/home.html that changed Settings > Reading (see PagesController).
 export type PushedPage = RemotePage & {frontPage?: 'set' | 'unset'}
 
 const FRONT_PAGE_NOTES = {

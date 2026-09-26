@@ -26,9 +26,9 @@ class PagesController
     // slug than the file's and break the file/page identity.
     private const SLUG_PATTERN = '^[a-z0-9]+(-[a-z0-9]+)*$';
 
-    // pages/index.html is the site's front page, not a /index/ page: once published, pushing it
+    // pages/home.html is the site's front page, not a /home/ page: once published, pushing it
     // points Settings > Reading at it, replacing whatever was there (the file is the source).
-    private const FRONT_PAGE_SLUG = 'index';
+    private const FRONT_PAGE_SLUG = 'home';
 
     // Label passed to the loopress_max_file_bytes / loopress_max_files_total_bytes filters,
     // alongside 'api' and 'hooks', so a site can tune pages separately.
@@ -181,7 +181,7 @@ class PagesController
         }
 
         // Reading settings synced before toArray(): get_permalink() answers the site root only
-        // once this page is the front page, and /index/ again once it no longer is.
+        // once this page is the front page, and /home/ again once it no longer is.
         $id        = (int) $result;
         $frontPage = $slug === self::FRONT_PAGE_SLUG ? $this->syncFrontPage($id, $status) : null;
         $data      = $this->toArray($id);

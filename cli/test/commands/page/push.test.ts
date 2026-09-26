@@ -45,14 +45,14 @@ describe('page push', () => {
       expect(task.output).toBe('Pushed: about (draft) https://example.test/about/')
     })
 
-    it('says when the push made index the site front page', async () => {
+    it('says when the push made home the site front page', async () => {
       const put = vi.fn().mockResolvedValueOnce({...page, frontPage: 'set', link: 'https://example.test/', status: 'publish'})
       const cmd = makeCommand(put)
       const task = {output: ''}
 
-      await cmd.pushPage({...page, slug: 'index', status: 'publish'}, task)
+      await cmd.pushPage({...page, slug: 'home', status: 'publish'}, task)
 
-      expect(task.output).toBe('Pushed: index (publish) https://example.test/ (now the site front page)')
+      expect(task.output).toBe('Pushed: home (publish) https://example.test/ (now the site front page)')
     })
 
     it('surfaces the server refusal and counts the failure', async () => {

@@ -300,19 +300,19 @@ class PagesControllerTest extends TestCase
         });
     }
 
-    public function test_publishing_index_makes_it_the_front_page_replacing_the_previous_one(): void
+    public function test_publishing_home_makes_it_the_front_page_replacing_the_previous_one(): void
     {
         $options = ['show_on_front' => 'page', 'page_on_front' => 42];
         $this->withReadingOptions($options);
 
-        $response = $this->put('index', '<h1>Home</h1>', 'publish');
+        $response = $this->put('home', '<h1>Home</h1>', 'publish');
 
         $this->assertSame(201, $response->status);
         $this->assertSame(['show_on_front' => 'page', 'page_on_front' => 100], $options);
         $this->assertSame('set', $response->get_data()['frontPage']);
     }
 
-    public function test_the_push_response_links_to_the_site_root_once_index_is_the_front_page(): void
+    public function test_the_push_response_links_to_the_site_root_once_home_is_the_front_page(): void
     {
         $options = ['show_on_front' => 'posts', 'page_on_front' => 0];
         $this->withReadingOptions($options);
@@ -323,29 +323,29 @@ class PagesControllerTest extends TestCase
                 : "https://example.test/{$post->post_name}/";
         });
 
-        $response = $this->put('index', '<h1>Home</h1>', 'publish');
+        $response = $this->put('home', '<h1>Home</h1>', 'publish');
 
         $this->assertSame('https://example.test/', $response->get_data()['link']);
     }
 
     public function test_repushing_the_published_front_page_leaves_the_reading_settings_alone(): void
     {
-        $this->pages[7] = ['name' => 'index', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
+        $this->pages[7] = ['name' => 'home', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
         $options        = ['show_on_front' => 'page', 'page_on_front' => '7'];
         $this->withReadingOptions($options);
         Functions\expect('update_option')->never();
 
-        $response = $this->put('index', 'new', 'publish');
+        $response = $this->put('home', 'new', 'publish');
 
         $this->assertArrayNotHasKey('frontPage', $response->get_data());
     }
 
-    public function test_a_draft_index_never_becomes_the_front_page(): void
+    public function test_a_draft_home_never_becomes_the_front_page(): void
     {
         $options = ['show_on_front' => 'posts', 'page_on_front' => 0];
         $this->withReadingOptions($options);
 
-        $response = $this->put('index', '<h1>Home</h1>', 'draft');
+        $response = $this->put('home', '<h1>Home</h1>', 'draft');
 
         $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
         $this->assertArrayNotHasKey('frontPage', $response->get_data());
@@ -353,11 +353,11 @@ class PagesControllerTest extends TestCase
 
     public function test_switching_the_front_page_back_to_draft_reverts_to_the_latest_posts(): void
     {
-        $this->pages[7] = ['name' => 'index', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
+        $this->pages[7] = ['name' => 'home', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
         $options        = ['show_on_front' => 'page', 'page_on_front' => '7'];
         $this->withReadingOptions($options);
 
-        $response = $this->put('index', 'new', 'draft');
+        $response = $this->put('home', 'new', 'draft');
 
         $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
         $this->assertSame('unset', $response->get_data()['frontPage']);
