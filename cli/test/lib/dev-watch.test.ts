@@ -72,26 +72,27 @@ describe('buildWatchTargets', () => {
   })
 })
 
+// Built with join: real watcher paths use the OS separator, which resourceTypeForPath matches on.
 describe('resourceTypeForPath', () => {
   const targets = [
-    {commandId: 'snippet:push', path: '/proj/snippets', type: 'snippets' as const},
-    {commandId: 'plugin:push', path: '/proj/loopress.json', type: 'plugins' as const},
+    {commandId: 'snippet:push', path: join('/proj', 'snippets'), type: 'snippets' as const},
+    {commandId: 'plugin:push', path: join('/proj', 'loopress.json'), type: 'plugins' as const},
   ]
 
   it('matches a file inside a directory target', () => {
-    expect(resourceTypeForPath('/proj/snippets/hello.php', targets)).toBe('snippets')
+    expect(resourceTypeForPath(join('/proj', 'snippets', 'hello.php'), targets)).toBe('snippets')
   })
 
   it('does not match a sibling directory that merely shares a prefix', () => {
-    expect(resourceTypeForPath('/proj/snippets-extra/hello.php', targets)).toBeUndefined()
+    expect(resourceTypeForPath(join('/proj', 'snippets-extra', 'hello.php'), targets)).toBeUndefined()
   })
 
   it('matches the file target by exact equality', () => {
-    expect(resourceTypeForPath('/proj/loopress.json', targets)).toBe('plugins')
+    expect(resourceTypeForPath(join('/proj', 'loopress.json'), targets)).toBe('plugins')
   })
 
   it('returns undefined for a path outside every target', () => {
-    expect(resourceTypeForPath('/proj/api/ping.php', targets)).toBeUndefined()
+    expect(resourceTypeForPath(join('/proj', 'api', 'ping.php'), targets)).toBeUndefined()
   })
 })
 

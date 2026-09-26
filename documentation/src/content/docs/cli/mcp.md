@@ -5,7 +5,7 @@ description: Connect an AI agent to your WordPress site with the Loopress MCP se
 
 `@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
-It doesn't reimplement any sync logic: every tool shells out to the `lps` binary already on your `PATH`, the same one used by the [CLI](/cli/).
+It doesn't reimplement any sync logic: every tool runs the [CLI](/cli/) installed alongside it (both installed globally with `npm install -g`), falling back to the `lps` binary on your `PATH`.
 
 ## Requirements
 
@@ -36,6 +36,8 @@ In a JSON-based client config (Claude Desktop and similar):
   }
 }
 ```
+
+On Windows, npm installs `lps-mcp` as a `.cmd` shim, so launch it through `cmd`: `claude mcp add loopress -- cmd /c lps-mcp`, or `"command": "cmd", "args": ["/c", "lps-mcp"]` in a JSON config.
 
 The server communicates over stdio from the directory your client launches it in, and takes no arguments of its own.
 

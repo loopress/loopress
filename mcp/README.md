@@ -6,8 +6,13 @@ plugins and Composer dependencies on a WordPress site (plus push, list and diff 
 don't support pull), one resource at a time or all at once, plus check project status. Ships as the
 `lps-mcp` binary.
 
-It does not reimplement any of that logic: every tool shells out to the `lps` binary already on
-`PATH` with `--json`, and parses its stdout. No direct dependency on `@loopress/cli`.
+It does not reimplement any of that logic: every tool runs the CLI with `--json` and parses its
+stdout. The CLI is an optional peer dependency: `@loopress/cli`'s `bin/run.js` is resolved next to
+this package and started with the running Node (never the `lps` shim, which Windows can't spawn
+without a shell), falling back to `lps` on `PATH` when it can't be resolved (pnpm, Volta, a
+separate npm prefix). That fallback is looked up in absolute `PATH` entries only, never the
+working directory, then run through [`tinyexec`](https://github.com/tinylibs/tinyexec), which
+escapes arguments for `cmd.exe` on Windows. On timeout the whole process tree is killed.
 
 ## Requirements
 
@@ -40,6 +45,10 @@ Or in a JSON-based client config (Claude Desktop, etc.):
   }
 }
 ```
+
+On Windows, npm installs `lps-mcp` as a `.cmd` shim, so launch it through `cmd`:
+`claude mcp add loopress -- cmd /c lps-mcp`, or `"command": "cmd", "args": ["/c", "lps-mcp"]` in a
+JSON config.
 
 The server communicates over stdio and takes no CLI arguments of its own.
 
@@ -168,7 +177,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Variable | Description |
 |----------|--------------|
-| `LPS_BIN` | Overrides the `lps` binary invoked (default `lps` on `PATH`). Used by tests and to run against the workspace's dev build. |
+| `LPS_BIN` | Overrides the CLI invoked (default: the installed `@loopress/cli`, else `lps` on `PATH`). A `.js`/`.mjs`/`.cjs` path (e.g. `cli/bin/dev.js`) runs under the current Node, anything else is spawned as is. |
 
 ## Development
 

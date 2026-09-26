@@ -82,7 +82,7 @@ describe('page push', () => {
       writeFileSync(join(dir, 'evil.php'), '<?php')
       const put = vi.fn()
       const cmd = makeCommand(put)
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
 
       await expect(cmd.run()).rejects.toThrow('only .html files are allowed')
@@ -94,7 +94,7 @@ describe('page push', () => {
       writeFileSync(join(dir, 'contact.html'), '<p>c</p>')
       const put = vi.fn().mockResolvedValue({link: '', status: 'publish'})
       const cmd = makeCommand(put)
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {slug: 'about'}})
 
       const result = await cmd.run()

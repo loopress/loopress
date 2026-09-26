@@ -17,7 +17,8 @@ describe('json-file', () => {
   })
 
   describe('writeJsonFileAtomic', () => {
-    it('writes the file with owner-only permissions (0600)', () => {
+    // Windows has no POSIX mode bits (NTFS ACLs protect the user profile instead): Node reports 0o666.
+    it.skipIf(process.platform === 'win32')('writes the file with owner-only permissions (0600)', () => {
       const filePath = join(dir, 'auth.json')
       writeJsonFileAtomic(filePath, {token: 'secret'})
 

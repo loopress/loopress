@@ -5,7 +5,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Init from '../../src/commands/init.js'
 import {configManager} from '../../src/config/project-config.manager.js'
-import {writeLocalConfig} from '../../src/utils/loopress-config.js'
+import {ensureLfGitattributes, writeLocalConfig} from '../../src/utils/loopress-config.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeListedProject} from '../helpers/project-fixtures.js'
 
@@ -28,6 +28,7 @@ vi.mock('node:fs', () => ({
 }))
 
 vi.mock('../../src/utils/loopress-config.js', () => ({
+  ensureLfGitattributes: vi.fn(),
   writeLocalConfig: vi.fn(),
 }))
 
@@ -68,6 +69,23 @@ describe('init', () => {
 
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:add', ['code-snippets'])
     expect(log).toHaveBeenCalledWith('  Plugin:   code-snippets')
+  })
+
+  it.each([
+    [true, 'reports it'],
+    [false, 'stays quiet'],
+  ])('pins LF line endings in .gitattributes (changed: %s, %s)', async (isChanged) => {
+    vi.mocked(ensureLfGitattributes).mockResolvedValueOnce(isChanged)
+    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+
+    expect(ensureLfGitattributes).toHaveBeenCalledOnce()
+    const reported = log.mock.calls.some(([line]) => String(line).includes('.gitattributes'))
+    expect(reported).toBe(isChanged)
   })
 
   it('does not run plugin:add when the user has no snippet provider to configure', async () => {

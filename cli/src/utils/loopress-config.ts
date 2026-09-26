@@ -26,3 +26,19 @@ export async function writeLocalConfig(config: LoopressLocalConfig): Promise<voi
   const configPath = join(process.cwd(), 'loopress.json')
   await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8')
 }
+
+// Git for Windows checks text files out as CRLF by default (core.autocrlf=true), so the same
+// snippet would differ byte for byte between a Windows checkout and what `pull` writes (LF).
+// Pinning LF in the repo keeps synced files identical on every OS. Returns false when the rule
+// is already there, so re-running `lps init` never duplicates it. The rule goes first: in
+// .gitattributes a later line wins, so existing exceptions (`*.bat text eol=crlf`) keep theirs.
+const LF_RULE = '* text=auto eol=lf'
+
+export async function ensureLfGitattributes(): Promise<boolean> {
+  const path = join(process.cwd(), '.gitattributes')
+  const current = existsSync(path) ? await readFile(path, 'utf8') : ''
+  if (current.split(/\r?\n/).some((line) => line.trim() === LF_RULE)) return false
+
+  await writeFile(path, `${LF_RULE}\n${current}`, 'utf8')
+  return true
+}

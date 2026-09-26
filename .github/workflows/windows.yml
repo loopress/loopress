@@ -1,0 +1,78 @@
+name: 🪟 Windows
+
+# Runs the CLI and MCP on Windows, where npm installs binaries as `.cmd` shims and Git checks
+# files out as CRLF by default. Limited to the packages that run on the user's machine: the
+# WordPress plugin and the E2E suite (Docker) stay on Linux in ci.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - "mcp/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - "mcp/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: CLI + MCP on Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @loopress/cli... --filter @loopress/mcp...
+
+      - name: Build CLI
+        working-directory: cli
+        run: pnpm build
+
+      - name: Build MCP
+        working-directory: mcp
+        run: pnpm build
+
+      - name: Run CLI unit tests
+        working-directory: cli
+        run: pnpm test
+
+      - name: Run MCP unit tests
+        working-directory: mcp
+        run: pnpm test
+
+      # Unit tests mock the spawn. This installs both packages globally from their tarballs, like
+      # a user would, so the real `lps.cmd` / `lps-mcp.cmd` shims exist, then drives `lps-mcp`
+      # through an MCP client.
+      - name: Install CLI and MCP globally
+        shell: bash
+        run: |
+          (cd cli && pnpm pack --pack-destination ../packs)
+          (cd mcp && pnpm pack --pack-destination ../packs)
+          npm install -g ./packs/*.tgz
+
+      - name: Smoke test the global install through an MCP client
+        working-directory: mcp
+        run: node scripts/smoke-global.mjs
