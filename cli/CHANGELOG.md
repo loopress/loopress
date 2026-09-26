@@ -1,5 +1,28 @@
 # @loopress/cli
 
+## 0.27.0
+
+### Minor Changes
+
+- d043549: `lps api push` refuses a root `api/index.php` before any network call, with a message pointing to a named or nested file (`orders/index.php` is the `/orders` route). `lps page push` says when a pushed `pages/home.html` became, or stopped being, the site's front page.
+- bb32133: The CLI now requires Node.js 22 or later (previously declared as 18+, but `lps validate` already relied on Node 20.12+ APIs). Node 22 is the oldest release line still receiving security fixes.
+
+### Patch Changes
+
+- 1cd51fc: `lps api push` now follows a symlink to a route file instead of silently skipping it ("Found 0 route files to push"). Broken symlinks are still ignored.
+- bb32133: `lps dev` now also watches `hooks/` and pushes hook files on change. A request the Loopress plugin refuses on purpose with a 403 (for example reading a secret-looking option) now shows the plugin's own reason instead of "Authentication failed, check your credentials", and HTML entities in server messages (`&quot;`) are decoded. Errors from the Loopress cloud API now show the API's own message (validation errors included) instead of a generic "Request failed with status code 400".
+  
+  `lps validate` now checks JSON files at any depth (ACF's `acf/<type>/`, SEO's `post-meta/` and `redirects/` were silently skipped before), tracked option files (a missing `name`, `autoload` or `value` is reported), and the theme styles directory.
+  
+  `lps plugin add` and `lps theme add` support `--json`, and the MCP server gets matching `plugin_add` and `theme_add` tools (local `loopress.json` edit only).
+  
+  Rollback snapshots (`.loopress/snapshots/`, inside your project) hold the environment's full remote state; the `.loopress/` directory now writes its own `.gitignore` so they are never committed by accident.
+  
+  `lps push`, `lps pull` and `lps promote` with `--json` now print a single valid JSON document: the progress output of the resource commands they run goes to stderr instead of polluting stdout, which broke the MCP `push_all`, `pull_all` and `project_promote` tools. A failed aggregate run now lists each failed resource and its reason.
+- e042cde: Fix the MCP server on Windows: every tool failed with `ENOENT` because it spawned `lps` without a shell, and Windows installs it as `lps.cmd`, which Node refuses to run directly. The server now starts the installed CLI's `bin/run.js` with its own Node, falling back to `lps` on `PATH` through `tinyexec`, which also works on Windows. `LPS_BIN` also accepts a `.js` file. `@loopress/cli` now exports its `package.json`, and the MCP server now declares Node 22 or later, like the CLI.
+  
+  `lps init` now adds `* text=auto eol=lf` to `.gitattributes`, so a checkout on Windows (CRLF by default) keeps the same bytes as what `pull` writes.
+
 ## 0.26.0
 
 ### Minor Changes
