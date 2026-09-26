@@ -1,5 +1,28 @@
 # @loopress/mcp
 
+## 0.27.0
+
+### Patch Changes
+
+- bb32133: `lps dev` now also watches `hooks/` and pushes hook files on change. A request the Loopress plugin refuses on purpose with a 403 (for example reading a secret-looking option) now shows the plugin's own reason instead of "Authentication failed, check your credentials", and HTML entities in server messages (`&quot;`) are decoded. Errors from the Loopress cloud API now show the API's own message (validation errors included) instead of a generic "Request failed with status code 400".
+  
+  `lps validate` now checks JSON files at any depth (ACF's `acf/<type>/`, SEO's `post-meta/` and `redirects/` were silently skipped before), tracked option files (a missing `name`, `autoload` or `value` is reported), and the theme styles directory.
+  
+  `lps plugin add` and `lps theme add` support `--json`, and the MCP server gets matching `plugin_add` and `theme_add` tools (local `loopress.json` edit only).
+  
+  Rollback snapshots (`.loopress/snapshots/`, inside your project) hold the environment's full remote state; the `.loopress/` directory now writes its own `.gitignore` so they are never committed by accident.
+  
+  `lps push`, `lps pull` and `lps promote` with `--json` now print a single valid JSON document: the progress output of the resource commands they run goes to stderr instead of polluting stdout, which broke the MCP `push_all`, `pull_all` and `project_promote` tools. A failed aggregate run now lists each failed resource and its reason.
+- e042cde: Fix the MCP server on Windows: every tool failed with `ENOENT` because it spawned `lps` without a shell, and Windows installs it as `lps.cmd`, which Node refuses to run directly. The server now starts the installed CLI's `bin/run.js` with its own Node, falling back to `lps` on `PATH` through `tinyexec`, which also works on Windows. `LPS_BIN` also accepts a `.js` file. `@loopress/cli` now exports its `package.json`, and the MCP server now declares Node 22 or later, like the CLI.
+  
+  `lps init` now adds `* text=auto eol=lf` to `.gitattributes`, so a checkout on Windows (CRLF by default) keeps the same bytes as what `pull` writes.
+- Updated dependencies [1cd51fc]
+- Updated dependencies [bb32133]
+- Updated dependencies [d043549]
+- Updated dependencies [bb32133]
+- Updated dependencies [e042cde]
+  - @loopress/cli@0.27.0
+
 ## 0.26.0
 
 ### Minor Changes
