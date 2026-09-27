@@ -118,7 +118,7 @@ describe('page push', () => {
       const put = vi.fn().mockResolvedValue({link: '', status: 'draft'})
       const cmd = makeCommand(put)
       const logs = (cmd as unknown as {log: ReturnType<typeof vi.fn>}).log
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
 
       const result = await cmd.run()
@@ -132,7 +132,7 @@ describe('page push', () => {
       writeFileSync(join(dir, 'about.html'), '<p>a</p>')
       const put = vi.fn()
       const cmd = makeCommand(put)
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {slug: 'missing'}})
 
       await expect(cmd.run()).rejects.toThrow(`No page "missing" in ${dir} (expected missing.html).`)
@@ -144,7 +144,7 @@ describe('page push', () => {
       const put = vi.fn()
       const cmd = makeCommand(put)
       cmd.dryRun = true
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
 
       const result = await cmd.run()
@@ -156,7 +156,7 @@ describe('page push', () => {
     it('errors with the failed count instead of reporting success', async () => {
       writeFileSync(join(dir, 'about.html'), '<p>a</p>')
       const cmd = makeCommand(vi.fn().mockRejectedValue(new Error('boom')))
-      cmd.localConfig = {pageDir: dir, rootDir: '/'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
 
       await expect(cmd.run()).rejects.toThrow('1 page failed to push.')
