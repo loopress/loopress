@@ -1,6 +1,7 @@
 import {existsSync} from 'node:fs'
-import {readFile, writeFile} from 'node:fs/promises'
+import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
+import writeFileAtomic from 'write-file-atomic'
 
 import {type SyncIntent} from './plugin-sync.js'
 import {type MergeResult} from './plugins.js'
@@ -157,7 +158,8 @@ export async function pullIntoComposerJson(
   if (!dryRun) {
     const require = {...composerJson.require}
     for (const [slug, version] of Object.entries(result.merged)) require[prefix + slug] = version
-    await writeFile(path, stringifyLike(raw, {...composerJson, require}), 'utf8')
+    // Atomic: an interrupted write must never leave the user's committed composer.json truncated.
+    await writeFileAtomic(path, stringifyLike(raw, {...composerJson, require}), 'utf8')
   }
 
   log(`${dryRun ? '[dry-run] Would pin' : 'Pinned'} ${Object.keys(result.merged).length} ${kind}s in composer.json`)
