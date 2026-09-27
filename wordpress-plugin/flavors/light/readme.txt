@@ -8,16 +8,18 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync your ACF field groups and SEO settings with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
+Sync your ACF field groups, SEO settings, menus, and options with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
 
 == Description ==
 
-Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, and SEO settings and redirects (Yoast, RankMath), exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
+Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, SEO settings and redirects (Yoast, RankMath), navigation menus, and the WordPress options you choose to track, exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
 
 Features:
 
 * Sync ACF field groups, post types, taxonomies, and options pages: `lps acf pull` / `lps acf push` / `lps acf list`
 * Sync SEO settings and redirects (Yoast, RankMath): `lps seo pull` / `lps seo push`
+* Sync navigation menus and their items: `lps menu pull` / `lps menu push` / `lps menu list`
+* Sync the WordPress options listed in your project (Settings screens, plugin settings): `lps option pull` / `lps option push` / `lps option list`
 * Keep configuration in Git: history, diffs, code review, rollbacks
 * Move configuration between environments (local, staging, production)
 * REST API restricted to administrators, authenticated with WordPress application passwords
@@ -35,7 +37,7 @@ Need code snippet sync (Code Snippets, WPCode) or Composer dependency management
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs ACF field groups and SEO settings only. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
+Loopress Light (this plugin) syncs ACF, SEO settings, menus, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
 = Which ACF and SEO plugins are supported? =
 
@@ -43,7 +45,11 @@ Advanced Custom Fields (options pages require ACF PRO), and either Yoast SEO or 
 
 = Does the plugin execute code by itself? =
 
-No. Loopress Light only reads and writes ACF field group definitions and SEO metadata through those plugins' own APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code.
+No. Loopress Light only reads and writes ACF field group definitions, SEO metadata, menus, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code.
+
+= Which options can be synced? =
+
+Only the options your project lists. Some are always refused: options that look like stored secrets (API keys, tokens, passwords) are never read, and options that change who can access the site or where it loads from (`siteurl`, `home`, `default_role`, `users_can_register`, `cron`, Loopress's own settings) are never written. Developers can adjust both lists with the `loopress_option_readable` and `loopress_option_writable` filters.
 
 = Who can access the REST API? =
 

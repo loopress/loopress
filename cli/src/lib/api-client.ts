@@ -58,7 +58,9 @@ function formatApiError(error: unknown, url: string, timeoutMs: number): string 
   const reason = nestErrorMessage(err.response?.body)
 
   if (status === 403) {
-    return `Request rejected (${status}) on ${url}: ${reason ?? err.response?.body ?? err.message}`
+    // An empty body (not just a missing one) falls back to got's message too, never a bare ": ".
+    const body = err.response?.body === '' ? undefined : err.response?.body
+    return `Request rejected (${status}) on ${url}: ${reason ?? body ?? err.message}`
   }
 
   // Any other API refusal (a 400 validation error, a 409 conflict) carries its explanation in

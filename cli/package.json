@@ -145,6 +145,7 @@
     "schema:types": "tsx scripts/generate-config-types.ts",
     "prepack": "oclif manifest && oclif readme",
     "test": "vitest run",
+    "typecheck:test": "tsc -p test/tsconfig.json",
     "pretest:mutation": "pnpm run schema:types",
     "test:mutation": "stryker run",
     "version": "oclif manifest && oclif readme && git add README.md oclif.manifest.json",

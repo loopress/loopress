@@ -128,7 +128,7 @@ describe('status', () => {
         name: 'acme',
       }
       vi.spyOn(configManager, 'getProject').mockReturnValue(project)
-      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue({...project, id: 'id-acme', isCurrent: true})
+      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue({...project, id: 'id-acme'})
       vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('staging', 'https://staging.acme.com'))
 
       const cmd = make()

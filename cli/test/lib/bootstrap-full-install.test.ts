@@ -21,16 +21,16 @@ vi.mock('../../src/lib/browser-launch.js', () => ({launchLocalBrowser: launchLoc
 const {bootstrapLoopressFull} = await import('../../src/lib/bootstrap-full-install.js')
 
 function fakeWorkingBrowser() {
-  const element = {click: vi.fn().mockResolvedValue()}
+  const element = {click: vi.fn().mockResolvedValue(undefined)}
   const page = {
-    click: vi.fn().mockResolvedValue(),
-    fill: vi.fn().mockResolvedValue(),
-    goto: vi.fn().mockResolvedValue(),
-    setInputFiles: vi.fn().mockResolvedValue(),
-    waitForLoadState: vi.fn().mockResolvedValue(),
+    click: vi.fn().mockResolvedValue(undefined),
+    fill: vi.fn().mockResolvedValue(undefined),
+    goto: vi.fn().mockResolvedValue(undefined),
+    setInputFiles: vi.fn().mockResolvedValue(undefined),
+    waitForLoadState: vi.fn().mockResolvedValue(undefined),
     waitForSelector: vi.fn().mockResolvedValue(element),
   }
-  const browser = {close: vi.fn().mockResolvedValue(), newPage: vi.fn().mockResolvedValue(page)}
+  const browser = {close: vi.fn().mockResolvedValue(undefined), newPage: vi.fn().mockResolvedValue(page)}
   return {browser, element, page}
 }
 
@@ -44,7 +44,7 @@ describe('bootstrapLoopressFull', () => {
     // eslint-disable-next-line sonarjs/publicly-writable-directories -- mocked return value, never written to disk
     downloadLatestFullZipMock.mockResolvedValue('/tmp/lps-loopress-full-xyz/loopress-full.zip')
     createTempAdminMock.mockResolvedValue(admin)
-    deleteTempAdminMock.mockResolvedValue()
+    deleteTempAdminMock.mockResolvedValue(undefined)
   })
 
   it('installs successfully and always cleans up the temp admin', async () => {
@@ -86,7 +86,7 @@ describe('bootstrapLoopressFull', () => {
   it('falls back to manual instructions when the install fails, and still cleans up', async () => {
     launchLocalBrowserMock.mockRejectedValue(new Error('No local browser found.'))
 
-    const error: Error = await bootstrapLoopressFull(wp, 'https://example.com', log).catch((error_: unknown) => error_ as Error)
+    const error = (await bootstrapLoopressFull(wp, 'https://example.com', log).catch((error_: unknown) => error_)) as Error
 
     expect(error.message).toMatch(
       /Could not install Loopress Full automatically\..*upload \/tmp\/lps-loopress-full-xyz\/loopress-full\.zip at https:\/\/example\.com\/wp-admin\/plugin-install\.php\?tab=upload/s,
@@ -101,7 +101,7 @@ describe('bootstrapLoopressFull', () => {
     launchLocalBrowserMock.mockRejectedValue(new Error('No local browser found.'))
     deleteTempAdminMock.mockRejectedValue(new Error('Temporary admin account "lps-temp-abc" (id 7) still exists.'))
 
-    const error: Error = await bootstrapLoopressFull(wp, 'https://example.com', log).catch((error_: unknown) => error_ as Error)
+    const error = (await bootstrapLoopressFull(wp, 'https://example.com', log).catch((error_: unknown) => error_)) as Error
 
     expect(error.message).toMatch(
       /Could not install Loopress Full automatically, and the temporary admin account could not be removed.*still exists/s,

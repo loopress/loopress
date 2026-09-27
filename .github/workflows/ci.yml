@@ -49,6 +49,10 @@ jobs:
         working-directory: cli
         run: pnpm test
 
+      - name: Type-check CLI tests
+        working-directory: cli
+        run: pnpm typecheck:test
+
   mcp-unit:
     name: MCP:Unit tests (Vitest)
     runs-on: ubuntu-latest

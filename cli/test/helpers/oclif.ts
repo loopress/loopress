@@ -1,4 +1,4 @@
-import type {Config} from '@oclif/core'
+import type {Command, Config} from '@oclif/core'
 
 import {vi} from 'vitest'
 
@@ -16,7 +16,7 @@ export function resetFakeOclifConfig(): void {
   vi.mocked(fakeOclifConfig.runCommand).mockReset()
 }
 
-export function silenceLogs(cmd: {log: (...args: unknown[]) => void; warn: (...args: unknown[]) => unknown}) {
+export function silenceLogs(cmd: Pick<Command, 'log' | 'warn'>) {
   const log = vi.spyOn(cmd, 'log').mockImplementation(() => {})
   const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
   return {log, warn}

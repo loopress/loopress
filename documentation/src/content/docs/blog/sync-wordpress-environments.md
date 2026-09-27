@@ -43,7 +43,7 @@ Both environments are read live and compared resource by resource: snippets, ACF
 lps promote staging production
 ```
 
-`promote` runs `lps pull` from staging, then `lps push` to production, in one step. It asks for confirmation once, up front, and calls out production by name in that prompt. In CI, pass `--yes`. The `diff --against` above is the real preview: `--dry-run` writes nothing anywhere, but since its pull half doesn't write your files either, its push half previews your current local files rather than staging's.
+`promote` runs `lps pull` from staging, then `lps push` to production, in one step. It asks for confirmation once, up front, and calls out production by name in that prompt. In CI, pass `--yes`. `--dry-run` previews the real thing: it pulls staging into a throwaway copy of your project and dry-runs the push from there, so your own files and production stay untouched.
 
 Two behaviours make it safe to use without thinking too hard:
 

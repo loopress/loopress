@@ -5,6 +5,8 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Diff from '../../../src/commands/snippet/diff.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
+import {type DiffCommand, type DiffJson} from '../../../src/lib/diff-command.js'
+import {type CommandClass} from '../../../src/lib/php-files-command.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
@@ -13,11 +15,13 @@ import {makeEnv} from '../../helpers/project-fixtures.js'
 // temp dir instead of process.chdir(), which Stryker's worker-thread pool disallows.
 let dir: string
 
-class TestDiff extends Diff {
+// The factory is typed as the abstract base; the class it returns is concrete, with protected
+// members TypeScript can't see from here, so they're set through Object.assign.
+const ConcreteDiff = Diff as unknown as CommandClass<Omit<DiffCommand, 'run'> & {run(): Promise<DiffJson>}>
+
+class TestDiff extends ConcreteDiff {
   setup(siteConfig: EnvironmentConfig) {
-    this.siteConfig = siteConfig
-    this.projectId = 'id-acme'
-    this.localConfig = {rootDir: dir}
+    Object.assign(this, {localConfig: {rootDir: dir}, projectId: 'id-acme', siteConfig})
   }
 }
 

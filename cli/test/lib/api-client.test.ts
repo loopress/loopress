@@ -157,6 +157,15 @@ describe('ApiClient', () => {
     await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: <h1>Blocked by proxy<\/h1>$/)
   })
 
+  it('falls back to the error message of a 403 with an empty body', async () => {
+    const client = await serve((_req, res) => {
+      res.writeHead(403)
+      res.end()
+    })
+
+    await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: \S.*$/)
+  })
+
   it.each([
     ['a blank string message', {message: ' '.repeat(3)}],
     ['an empty message list', {message: []}],

@@ -44,6 +44,7 @@ describe('seo pull helpers', () => {
       expect(
         redirectFileBase({
           headerCode: 301,
+          hits: 0,
           id: 3,
           sources: [],
           status: 'active',
@@ -58,6 +59,7 @@ describe('seo pull helpers', () => {
       expect(
         redirectFileBase({
           headerCode: 301,
+          hits: 0,
           id: 9,
           sources: [],
           status: 'active',

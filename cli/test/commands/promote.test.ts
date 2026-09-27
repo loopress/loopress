@@ -1,4 +1,7 @@
 import {confirm} from '@inquirer/prompts'
+import {existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Promote from '../../src/commands/promote.js'
@@ -56,16 +59,38 @@ describe('promote', () => {
     expect(result).toEqual({from: 'staging', status: 'promoted', to: 'production'})
   })
 
-  it('forwards --dry-run to both delegated commands and skips the confirmation', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+  it('on --dry-run, really pulls into a scratch copy of the project and dry-runs the push from it', async () => {
+    const project = mkdtempSync(join(tmpdir(), 'lps-promote-test-'))
+    writeFileSync(join(project, 'loopress.json'), '{}')
+    const originalCwd = process.cwd()
+    process.chdir(project)
+    const cwds: string[] = []
+    let hadLocalConfig = false
+    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async () => {
+      cwds.push(process.cwd())
+      hadLocalConfig = existsSync('loopress.json')
+      writeFileSync('pulled.txt', 'from staging')
+      return {}
+    })
     const {cmd} = make(['staging', 'production', '--dry-run'])
 
-    const result = await cmd.run()
+    try {
+      const result = await cmd.run()
 
-    expect(confirm).not.toHaveBeenCalled()
-    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes', '--dry-run'])
-    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--dry-run'])
-    expect(result).toEqual({from: 'staging', status: 'dry-run', to: 'production'})
+      expect(confirm).not.toHaveBeenCalled()
+      expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes'])
+      expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--dry-run'])
+      expect(result).toEqual({from: 'staging', status: 'dry-run', to: 'production'})
+      expect(cwds[0]).not.toBe(realpathSync(project))
+      expect(cwds[1]).toBe(cwds[0])
+      expect(hadLocalConfig).toBe(true)
+      expect(existsSync(cwds[0])).toBe(false)
+      expect(realpathSync(process.cwd())).toBe(realpathSync(project))
+      expect(existsSync(join(project, 'pulled.txt'))).toBe(false)
+    } finally {
+      process.chdir(originalCwd)
+      rmSync(project, {force: true, recursive: true})
+    }
   })
 
   it('errors, listing the available environments, when <from> is unknown', async () => {

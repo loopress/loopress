@@ -48,8 +48,8 @@ function setUpNewProject(): void {
   vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 }
 
-function callByMessage(mockFn: {mock: {calls: unknown[][]}}, message: string): Record<string, unknown> {
-  const call = mockFn.mock.calls.find((args) => (args[0] as {message?: string}).message === message)
+function callByMessage(prompt: unknown, message: string): Record<string, unknown> {
+  const call = (prompt as {mock: {calls: unknown[][]}}).mock.calls.find((args) => (args[0] as {message?: string}).message === message)
   if (!call) throw new Error(`no call found with message "${message}"`)
   return call[0] as Record<string, unknown>
 }
