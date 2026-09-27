@@ -21,20 +21,21 @@ require_once WP_CONTENT_DIR . '/loopress/vendor/autoload.php';
 use Postmark\PostmarkClient;
 
 add_action('woocommerce_payment_complete', function (int $orderId): void {
-    $to = (string) get_post_meta($orderId, '_billing_email', true);
-    if ($to === '') {
+    // wc_get_order(), not get_post_meta(): with WooCommerce's default order storage
+    // (HPOS), orders don't live in wp_postmeta and `_billing_email` reads back empty.
+    $order = wc_get_order($orderId);
+    if (!$order instanceof WC_Order || $order->get_billing_email() === '') {
         return;
     }
 
-    $total = get_post_meta($orderId, '_order_total', true);
+    $to    = $order->get_billing_email();
+    $total = $order->get_total();
 
     try {
         $client = new PostmarkClient((string) get_option('postmark_server_token'));
 
-        // TODO: verify sendEmail()'s exact parameter order and names against
-        // wildbit/postmark-php's current docs before shipping this, it takes several
-        // optional positional parameters (tag, trackOpens, replyTo, and more) beyond the
-        // five shown here.
+        // sendEmail(from, to, subject, htmlBody, textBody, ...), checked against
+        // wildbit/postmark-php 7.0; the optional parameters after htmlBody are omitted.
         $client->sendEmail(
             'orders@your-site.com',
             $to,

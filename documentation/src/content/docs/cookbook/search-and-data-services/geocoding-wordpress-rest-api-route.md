@@ -36,9 +36,7 @@ class Geocode
 
         $httpClient = new Client();
 
-        // TODO: verify against geocoder-php/nominatim-provider's current docs whether
-        // withOpenStreetMapServer() needs a PSR-17 request factory as a third argument in the
-        // installed version, some providers in this ecosystem do.
+        // Nominatim's usage policy requires an identifying User-Agent, the second argument.
         $provider = Nominatim::withOpenStreetMapServer($httpClient, get_bloginfo('name') . ' geocoder');
         $geocoder = new StatefulGeocoder($provider);
 

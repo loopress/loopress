@@ -29,11 +29,11 @@ class DetectLanguage
             return new WP_Error('missing_text', 'The text parameter is required.', ['status' => 400]);
         }
 
-        // TODO: verify the exact return shape of detect()->close() against this package's
-        // current docs, expected here as an array of language code => confidence score,
-        // ordered highest first, but the exact code format (ISO 639-1 vs 639-3) is worth
-        // confirming before routing on it.
-        $scores      = (new Language())->detect($text)->close();
+        // Restrict detection to the languages the site actually has queues for. Without a
+        // list, ~100 profiles compete, and close relatives win on short text: this sentence's
+        // runner-up is pt-BR, and "Merci beaucoup" comes back as Indonesian.
+        // close() returns language code => score, highest first.
+        $scores      = (new Language(['fr', 'de', 'en']))->detect($text)->close();
         $topLanguage = array_key_first($scores);
 
         return ['language' => $topLanguage, 'scores' => $scores];
@@ -62,8 +62,10 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/detect-language \
 ```
 
 ```json
-{"language": "fr", "scores": {"fr": 0.98, "en": 0.31, "es": 0.22}}
+{"language": "fr", "scores": {"fr": 0.43236559139784947, "en": 0.4083870967741936, "de": 0.36379032258064514}}
 ```
+
+Real output from patrickschur/language-detection 5.3. The scores are not probabilities and don't sum to 1: the winner leads by a couple of hundredths, not by a landslide. Short messages are where it breaks, `"Merci beaucoup"` returns `en` first (0.41 against 0.39 for `fr`), even with the list narrowed to three languages.
 
 ## Permission
 

@@ -18,6 +18,7 @@ Fixing it by hand means rounding at every step, deciding how (banker's rounding,
 
 declare(strict_types=1);
 
+use Brick\Math\BigRational;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 
@@ -34,15 +35,13 @@ class Quote
 
         $price = Money::of($priceRaw, 'USD');
 
-        // TODO: verify against brick/money's current docs which operations actually require
-        // an explicit RoundingMode argument versus which infer it, multipliedBy() with a
-        // non-integer factor is shown here needing one, but the exact rule (tied to the
-        // currency's minor unit scale) is worth confirming against the installed version.
+        // Factors are exact rationals or decimal strings, never PHP floats: brick/money 0.15
+        // truncates a float factor to an int (0.15 becomes 0) instead of rejecting it.
         $discountPercent = min(100, max(0, (int) ($request->get_param('discount') ?: 0)));
-        $discounted = $price->minus($price->multipliedBy($discountPercent / 100, RoundingMode::HALF_UP));
+        $discounted = $price->minus($price->multipliedBy(BigRational::of("{$discountPercent}/100"), RoundingMode::HalfUp));
 
-        $taxRate = 0.20; // 20% VAT, hardcoded here for the example, would come from site settings in practice
-        $total   = $discounted->plus($discounted->multipliedBy($taxRate, RoundingMode::HALF_UP));
+        $taxRate = '0.20'; // 20% VAT, hardcoded here for the example, would come from site settings in practice
+        $total   = $discounted->plus($discounted->multipliedBy($taxRate, RoundingMode::HalfUp));
 
         return [
             'price'      => (string) $price,
@@ -63,7 +62,9 @@ composer require brick/money
 lps composer push
 ```
 
-`(string) $price` renders as `"19.99 USD"`, the currency travels with the amount rather than being tracked separately in another field, one less place for a price and its currency to drift apart.
+Two details that matter, both checked against brick/money 0.15. `RoundingMode` is an enum (`RoundingMode::HalfUp`), older tutorials' `RoundingMode::HALF_UP` constant is a fatal error today. And the factors are passed as a `BigRational` and a decimal string, not as `$discountPercent / 100` or `0.20`: a PHP float factor is silently truncated to an integer, so a 15% discount and a 20% tax both come out as `USD 0.00`, with only a deprecation notice in the log to show for it.
+
+`(string) $price` renders as `"USD 19.99"`, the currency travels with the amount rather than being tracked separately in another field, one less place for a price and its currency to drift apart.
 
 ## Now call it
 
@@ -72,7 +73,7 @@ curl "https://your-site.com/wp-json/loopress-api/v1/quote/482?discount=15"
 ```
 
 ```json
-{"price": "19.99 USD", "discounted": "16.99 USD", "total": "20.39 USD"}
+{"price": "USD 19.99", "discounted": "USD 16.99", "total": "USD 20.39"}
 ```
 
 ## Permission
