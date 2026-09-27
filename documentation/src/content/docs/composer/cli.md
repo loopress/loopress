@@ -23,7 +23,7 @@ lps composer init
 |------|-------------|
 | `--dry-run` / `-d` | Show where the file would be written without creating it |
 
-Once a `composer.json` exists in the repo it is authoritative for plugins and themes: `lps plugin` and `lps theme` then defer to `lps composer`, see [Where the Composer files live](/plugins/#where-the-composer-files-live). If the file already exists, `lps composer init` asks before overwriting, and does nothing in a non-interactive terminal.
+Once a `composer.json` exists in the repo it is authoritative for plugins and themes: `lps plugin pull` and `lps theme pull` then pin live versions into it, `lps plugin push` pushes it whole with its activation safety, and `lps theme push` defers to `lps composer push`, see [Where the Composer files live](/plugins/#where-the-composer-files-live). If the file already exists, `lps composer init` asks before overwriting, and does nothing in a non-interactive terminal.
 
 ---
 
@@ -73,6 +73,15 @@ lps composer pull
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
 The files are written to the path resolved from `rootDir` in `loopress.json` (defaults to the current directory). A site that has never had dependencies pushed has no `composer.lock` yet, so only `composer.json` is written in that case.
+
+:::caution[`lps composer pull` or `lps plugin pull`?]
+Both write your local `composer.json`, but they don't read the same thing:
+
+- `lps composer pull` **overwrites** it with the copy stored on the server, which is what was last pushed. Plugins and themes installed by hand in wp-admin are not in it.
+- `lps plugin pull` / `lps theme pull` **merge** what is really installed on the site into it, as `wpackagist-*` entries. Every other key, and your version constraints, are kept.
+
+To bring an existing site under Composer, use `lps plugin pull` and `lps theme pull`. Running `lps composer pull` afterwards replaces that work with the server's copy.
+:::
 
 ---
 

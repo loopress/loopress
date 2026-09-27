@@ -58,6 +58,20 @@ describe('plugin pull', () => {
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 plugins to loopress.json')
   })
 
+  it('records inactive plugins as such, so a later push does not switch them on', async () => {
+    const {cmd, get, logs} = make(false, {plugins: {'hello-dolly': '1.7.2'}})
+    get.mockResolvedValue([
+      nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
+      nativePlugin({plugin: 'hello-dolly/hello-dolly.php', status: 'inactive', version: '1.7.2'}),
+    ])
+
+    await cmd.run()
+
+    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    expect(written.plugins).toEqual({akismet: '5.3.3', 'hello-dolly': {active: false, version: '1.7.2'}})
+    expect(logs.log).toHaveBeenCalledWith('  ~ Updated: hello-dolly 1.7.2 → 1.7.2 (inactive)')
+  })
+
   it('never manages itself under any of its historical slugs', async () => {
     const {cmd, get} = make(false)
     get.mockResolvedValue([
@@ -72,16 +86,121 @@ describe('plugin pull', () => {
     expect(written.plugins).toEqual({akismet: '5.3.3'})
   })
 
-  it('bails out and warns when the project uses a composer.json', async () => {
-    writeFileSync(join(dir, 'composer.json'), '{}')
-    const {cmd, get, logs} = make(false)
+  describe('with a composer.json', () => {
+    const site = [
+      nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
+      nativePlugin({plugin: 'woocommerce/woocommerce.php', version: '9.5.0'}),
+      nativePlugin({plugin: 'redirection/redirection.php', version: '5.5.0'}),
+      nativePlugin({plugin: 'query-monitor/query-monitor.php', version: '3.1.0'}),
+      nativePlugin({plugin: 'acme-blocks/acme-blocks.php', version: '2.0.0'}),
+      nativePlugin({plugin: 'advanced-custom-fields-pro/acf.php', version: '6.3.0'}),
+    ]
+    const composerJson = {
+      name: 'acme/site',
+      require: {
+        'acme/acme-blocks': '^2.0',
+        'monolog/monolog': '^3.0',
+        'wpackagist-plugin/redirection': '5.4.0',
+        'wpackagist-plugin/woocommerce': '^9.4',
+      },
+      'require-dev': {'wpackagist-plugin/query-monitor': '3.0.0'},
+    }
+    let fetch: ReturnType<typeof vi.fn>
 
-    const result = await cmd.run()
+    beforeEach(() => {
+      writeFileSync(join(dir, 'composer.json'), JSON.stringify(composerJson))
+      // Only akismet is on WordPress.org among the undeclared slugs; ACF Pro is premium.
+      fetch = vi.fn(async (url: string) => new Response('{}', {status: url.endsWith('slug=akismet') ? 200 : 404}))
+      vi.stubGlobal('fetch', fetch)
+    })
 
-    expect(get).not.toHaveBeenCalled()
-    expect(result.status).toBe('composer-managed')
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps composer pull'))
-    expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('adds what WPackagist serves, moves exact pins, and leaves constraints and other packages alone', async () => {
+      const {cmd, get, logs} = make(false, {plugins: {ignored: '1.0.0'}})
+      get.mockResolvedValue(site)
+
+      const result = await cmd.run()
+
+      const written = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
+      expect(written).toEqual({
+        ...composerJson,
+        require: {
+          ...composerJson.require,
+          'wpackagist-plugin/akismet': '5.3.3',
+          'wpackagist-plugin/redirection': '5.5.0',
+        },
+      })
+      expect(result).toEqual({
+        added: ['akismet'],
+        merged: {akismet: '5.3.3', redirection: '5.5.0'},
+        skipped: [
+          {reason: 'keeps constraint ^9.4, live 9.5.0', slug: 'woocommerce'},
+          {reason: 'declared in require-dev', slug: 'query-monitor'},
+          {reason: 'provided by acme/acme-blocks', slug: 'acme-blocks'},
+          {reason: 'not on WordPress.org', slug: 'advanced-custom-fields-pro'},
+        ],
+        status: 'success',
+        updated: [{from: '5.4.0', slug: 'redirection', to: '5.5.0'}],
+      })
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(logs.log).toHaveBeenCalledWith('  - Skipped: advanced-custom-fields-pro (not on WordPress.org)')
+      expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
+    })
+
+    it('writes nothing on a dry run', async () => {
+      const {cmd, get, logs} = make(true)
+      get.mockResolvedValue(site)
+
+      const result = await cmd.run()
+
+      expect(result.status).toBe('dry-run')
+      expect(logs.log).toHaveBeenCalledWith('[dry-run] Would pin 2 plugins in composer.json')
+      expect(JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))).toEqual(composerJson)
+    })
+
+    it('fails with an explicit message, without touching composer.json, when WordPress.org answers an error', async () => {
+      fetch.mockResolvedValue(new Response('', {status: 503}))
+      const {cmd, get} = make(false)
+      get.mockResolvedValue(site)
+
+      await expect(cmd.run()).rejects.toThrow(
+        'Could not check whether the plugin "akismet" is on WordPress.org (HTTP 503), so composer.json was not modified.',
+      )
+      expect(JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))).toEqual(composerJson)
+    })
+
+    it('names the network error when WordPress.org is unreachable', async () => {
+      fetch.mockRejectedValue(new TypeError('fetch failed'))
+      const {cmd, get} = make(false)
+      get.mockResolvedValue(site)
+
+      await expect(cmd.run()).rejects.toThrow('(network error: fetch failed)')
+    })
+
+    it.each([
+      ['4 spaces', ' '.repeat(4)],
+      ['tabs', '\t'],
+    ])('keeps the original indentation (%s) and trailing newline', async (_label, indent) => {
+      writeFileSync(join(dir, 'composer.json'), JSON.stringify(composerJson, null, indent) + '\n')
+      const {cmd, get, logs} = make(false)
+      get.mockResolvedValue(site)
+
+      await cmd.run()
+
+      const expected = {
+        ...composerJson,
+        require: {
+          ...composerJson.require,
+          'wpackagist-plugin/akismet': '5.3.3',
+          'wpackagist-plugin/redirection': '5.5.0',
+        },
+      }
+      expect(await readFile(join(dir, 'composer.json'), 'utf8')).toBe(JSON.stringify(expected, null, indent) + '\n')
+      expect(logs.log).toHaveBeenCalledWith('Run `lps composer push` to apply.')
+    })
   })
 
   it('merges with the existing manifest, preserving plugins no longer reported by the site', async () => {

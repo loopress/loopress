@@ -61,15 +61,116 @@ describe('plugin push', () => {
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('bails out when the project uses a composer.json', async () => {
-    writeFileSync(join(dir, 'composer.json'), '{}')
-    const {cmd, get, logs} = make({plugins: {akismet: '5.3.3'}})
+  // Serves the site's plugin list, switching to `after` once the Composer sync has run, and an
+  // instance lock listing `locked`.
+  function site(
+    {get, post}: Pick<ReturnType<typeof make>, 'get' | 'post'>,
+    plugins: {after: unknown[]; before: unknown[]; locked: string[]},
+  ) {
+    const composerLock = JSON.stringify({packages: plugins.locked.map((name) => ({name: `wpackagist-plugin/${name}`}))})
+    get.mockImplementation(async (path: string) => {
+      if (path === 'loopress/v1/composer/lock') return {composerLock}
+      return post.mock.calls.length > 0 ? plugins.after : plugins.before
+    })
+  }
 
-    const result = await cmd.run()
+  const statusCalls = (put: ReturnType<typeof vi.fn>) =>
+    put.mock.calls.map(([path, body]) => `${String(path).split('/', 4)[3]} ${(body as {status: string}).status}`)
 
-    expect(result.status).toBe('composer-managed')
-    expect(get).not.toHaveBeenCalled()
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps composer push'))
+  describe('active state recorded in loopress.json', () => {
+    it('deactivates a plugin pinned inactive, and never activates one it installs inactive', async () => {
+      const {cmd, get, post, put} = make({
+        plugins: {akismet: {active: false, version: '5.3.3'}, 'hello-dolly': {active: false, version: '1.7.2'}},
+      })
+      site(
+        {get, post},
+        {
+          after: [native('hello-dolly', '1.7.2'), native('akismet', '5.3.3', 'inactive')],
+          before: [native('hello-dolly', '1.7.2')],
+          locked: ['hello-dolly'],
+        },
+      )
+
+      const result = await cmd.run()
+
+      expect(post).toHaveBeenCalledWith(
+        'loopress/v1/composer/sync',
+        {force: false, intent: {plugins: {akismet: '5.3.3', 'hello-dolly': '1.7.2'}}, lock: null},
+        expect.anything(),
+      )
+      expect(statusCalls(put)).toEqual(['hello-dolly inactive'])
+      expect(result.deactivated).toEqual(['hello-dolly'])
+      expect(result.activated).toEqual([])
+    })
+
+    it('rejects --activate, which only makes sense for composer.json', async () => {
+      const {cmd} = make({plugins: {akismet: '5.3.3'}}, ['--activate'])
+      await expect(cmd.run()).rejects.toThrow('--activate only applies to projects with a composer.json')
+    })
+  })
+
+  describe('with a composer.json', () => {
+    const composerJson = {
+      require: {
+        'monolog/monolog': '^3.0',
+        'wpackagist-plugin/akismet': '5.3.3',
+        'wpackagist-plugin/hello-dolly': '^1.7',
+        'wpackagist-plugin/woocommerce': '9.5.0',
+        'wpackagist-theme/astra': '4.1.0',
+      },
+    }
+    const before = [native('hello-dolly', '1.7.2', 'inactive'), native('woocommerce', '9.4.2')]
+    const after = [...before, native('akismet', '5.3.3', 'inactive')]
+
+    beforeEach(() => {
+      writeFileSync(join(dir, 'composer.json'), JSON.stringify(composerJson))
+    })
+
+    it('pushes the whole file, restores plugins it switched off, and activates nothing else', async () => {
+      const {cmd, get, logs, post, put} = make({plugins: {ignored: '1.0.0'}})
+      site({get, post}, {after, before, locked: ['hello-dolly', 'woocommerce']})
+
+      const result = await cmd.run()
+
+      expect(post).toHaveBeenCalledWith(
+        'loopress/v1/composer/sync',
+        {
+          force: false,
+          intent: {
+            libraries: {'monolog/monolog': '^3.0'},
+            plugins: {akismet: '5.3.3', 'hello-dolly': '^1.7', woocommerce: '9.5.0'},
+            themes: {astra: '4.1.0'},
+          },
+          lock: null,
+        },
+        expect.anything(),
+      )
+      // woocommerce is switched off for its file swap, then back on; nothing else is touched.
+      expect(statusCalls(put)).toEqual(['woocommerce inactive', 'woocommerce active'])
+      expect(result.activated).toEqual(['woocommerce'])
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('pushed whole (5 packages)'))
+      expect(logs.log).toHaveBeenCalledWith('2 plugin(s) from composer.json are inactive: hello-dolly, akismet.')
+    })
+
+    it('activates every plugin it declares with --activate', async () => {
+      const {cmd, get, post, put} = make({}, ['--activate'])
+      site({get, post}, {after, before, locked: ['hello-dolly', 'woocommerce']})
+
+      await cmd.run()
+
+      expect(statusCalls(put)).toEqual([
+        'woocommerce inactive',
+        'woocommerce active',
+        'hello-dolly active',
+        'akismet active',
+      ])
+    })
+
+    it('errors when composer.json declares no plugin', async () => {
+      writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'monolog/monolog': '^3.0'}}))
+      const {cmd} = make({})
+      await expect(cmd.run()).rejects.toThrow('No wpackagist-plugin/* package in composer.json')
+    })
   })
 
   it('errors when loopress.json has no plugins', async () => {
@@ -222,6 +323,7 @@ describe('plugin push', () => {
       expect(lines(logs)).not.toContain('\nTo take over (0):')
       expect(result).toEqual({
         activated: ['woocommerce', 'hello'],
+        deactivated: [],
         installed: ['akismet'],
         pinned: ['woocommerce'],
         pruned: [],
@@ -307,7 +409,15 @@ describe('plugin push', () => {
 
       expect(post).not.toHaveBeenCalled()
       expect(lines(logs)).toContain('Everything is already in sync.')
-      expect(result).toEqual({activated: [], installed: [], pinned: [], pruned: [], removed: [], status: 'in-sync'})
+      expect(result).toEqual({
+        activated: [],
+        deactivated: [],
+        installed: [],
+        pinned: [],
+        pruned: [],
+        removed: [],
+        status: 'in-sync',
+      })
     })
 
     it('still syncs a manifest pinned to "latest" that shows no drift, to pick up a newer release', async () => {
@@ -318,7 +428,7 @@ describe('plugin push', () => {
 
       const result = await cmd.run()
 
-      expect(lines(logs)).toContain('Refreshing plugins pinned to "latest" to their newest releases.')
+      expect(lines(logs)).toContain('Refreshing plugins not pinned to an exact version to their newest releases.')
       expect(post).toHaveBeenCalled()
       expect(result.status).toBe('success')
     })
@@ -328,7 +438,7 @@ describe('plugin push', () => {
 
       await cmd.run()
 
-      expect(lines(logs)).not.toContain('Refreshing plugins pinned to "latest" to their newest releases.')
+      expect(lines(logs)).not.toContain('Refreshing plugins not pinned to an exact version to their newest releases.')
     })
 
     it('lists the take-over section and reports collisions as installed with --force, including on a dry run', async () => {

@@ -75,15 +75,26 @@
     },
     "plugins": {
       "type": "object",
-      "description": "WordPress.org plugins managed by Loopress, installed via Composer + WPackagist on the site. Keys are plugin slugs. A value is either an exact version to pin (e.g. \"9.4.2\") or \"latest\" to track the newest release on every push. Removing an entry uninstalls the plugin on the next push. Ignored when a composer.json exists in rootDir (that file becomes authoritative).",
+      "description": "WordPress.org plugins managed by Loopress, installed via Composer + WPackagist on the site. Keys are plugin slugs. A value is either an exact version to pin (e.g. \"9.4.2\") or \"latest\" to track the newest release on every push, and the plugin is kept active. An object with \"active\": false keeps the plugin installed but inactive. Removing an entry uninstalls the plugin on the next push. Ignored when a composer.json exists in rootDir (that file becomes authoritative).",
       "additionalProperties": {
-        "type": "string",
-        "examples": ["9.4.2", "latest"]
+        "anyOf": [
+          {"type": "string", "examples": ["9.4.2", "latest"]},
+          {
+            "type": "object",
+            "properties": {
+              "version": {"type": "string", "description": "Exact version to pin, or \"latest\".", "examples": ["1.7.2", "latest"]},
+              "active": {"type": "boolean", "description": "false keeps the plugin installed but inactive. Defaults to true.", "default": true}
+            },
+            "required": ["version"],
+            "additionalProperties": false
+          }
+        ]
       },
       "examples": [
         {
           "woocommerce": "9.4.2",
-          "wordpress-seo": "latest"
+          "wordpress-seo": "latest",
+          "hello-dolly": {"version": "1.7.2", "active": false}
         }
       ]
     },

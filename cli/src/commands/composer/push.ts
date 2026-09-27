@@ -5,12 +5,11 @@ import {join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
 import {isTimeoutError} from '../../lib/wp-client.js'
-import {type ComposerJson} from '../../utils/composer.js'
+import {type ComposerJson, toIntent} from '../../utils/composer.js'
 import {
   type LockDriftEntry,
   parseCollisions,
   SYNC_TIMEOUT_MS,
-  type SyncIntent,
   type SyncResponse,
 } from '../../utils/plugin-sync.js'
 
@@ -19,25 +18,6 @@ type PushResult = {
   lockDrift: LockDriftEntry[]
   packageCount: number
   status: 'dry-run' | 'success'
-}
-
-// Split a composer.json `require` map into the three intent namespaces the sync endpoint
-// understands. `composer/installers` is owned by the server scaffold, never sent.
-function toIntent(require: Record<string, string>): SyncIntent {
-  const intent: SyncIntent = {libraries: {}, plugins: {}, themes: {}}
-
-  for (const [name, constraint] of Object.entries(require)) {
-    if (name === 'composer/installers') continue
-    if (name.startsWith('wpackagist-plugin/')) {
-      intent.plugins![name.slice('wpackagist-plugin/'.length)] = constraint
-    } else if (name.startsWith('wpackagist-theme/')) {
-      intent.themes![name.slice('wpackagist-theme/'.length)] = constraint
-    } else {
-      intent.libraries![name] = constraint
-    }
-  }
-
-  return intent
 }
 
 export default class ComposerPush extends PushCommand {

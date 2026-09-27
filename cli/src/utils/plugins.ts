@@ -1,4 +1,12 @@
-import {type InstalledPlugin, type PluginManifest, type WpNativePlugin} from '../types/plugin.js'
+import {
+  type InstalledPlugin,
+  pinActive,
+  pinVersion,
+  type PluginManifest,
+  type PluginPin,
+  type WpNativePlugin,
+} from '../types/plugin.js'
+import {isExactVersion} from './version.js'
 
 export type PluginDiff = {
   // In the manifest and installed, but the folder isn't tracked in composer.lock: it was
@@ -7,8 +15,11 @@ export type PluginDiff = {
   collisions: Array<{installedVersion: string; slug: string}>
   inSync: string[]
   toActivate: Array<{file: string; slug: string}>
+  // Pinned with "active": false but active on the site.
+  toDeactivate: Array<{file: string; slug: string}>
   toInstall: Array<{slug: string; version: string}>
-  // Installed at a version that doesn't match the pinned one (never reported for "latest").
+  // Installed at a version that doesn't match the pinned one (never reported for "latest" or a
+  // Composer constraint like ^9.4, which can't be compared to one installed version).
   toPin: Array<{from: string; slug: string; to: string}>
   // Managed by Loopress (present in composer.lock) but dropped from the manifest: the next
   // push removes it from composer.json, so `composer update` uninstalls it from the site.
@@ -18,10 +29,15 @@ export type PluginDiff = {
   untrackedActive: string[]
 }
 
-export type MergeResult = {
+export type MergeResult<P extends PluginPin = PluginPin> = {
   added: string[]
-  merged: PluginManifest
+  merged: Record<string, P>
   updated: Array<{from: string; slug: string; to: string}>
+}
+
+// "1.7.2", or "1.7.2 (inactive)" for a pin that keeps the plugin inactive.
+export function describePin(pin: PluginPin): string {
+  return pinActive(pin) ? pinVersion(pin) : `${pinVersion(pin)} (inactive)`
 }
 
 // Loopress must never manage itself: pulling it into loopress.json would make a later
@@ -31,13 +47,16 @@ export type MergeResult = {
 // "loopress-light" editions), since a given site could be running any of them.
 const LOOPRESS_PLUGIN_SLUGS = new Set(['loopress', 'loopress-full', 'loopress-light'])
 
-export function mergePluginManifest(existing: PluginManifest, incoming: PluginManifest): MergeResult {
+export function mergePluginManifest<P extends PluginPin>(
+  existing: Record<string, P>,
+  incoming: Record<string, P>,
+): MergeResult<P> {
   const merged = {...existing, ...incoming}
 
   const added = Object.keys(incoming).filter((s) => !Object.hasOwn(existing, s))
   const updated = Object.keys(incoming)
-    .filter((s) => Object.hasOwn(existing, s) && existing[s] !== incoming[s])
-    .map((s) => ({from: existing[s], slug: s, to: incoming[s]}))
+    .filter((s) => Object.hasOwn(existing, s) && describePin(existing[s]) !== describePin(incoming[s]))
+    .map((s) => ({from: describePin(existing[s]), slug: s, to: describePin(incoming[s])}))
 
   return {added, merged, updated}
 }
@@ -83,10 +102,12 @@ export function diffPlugins(
   const toInstall: PluginDiff['toInstall'] = []
   const toPin: PluginDiff['toPin'] = []
   const toActivate: PluginDiff['toActivate'] = []
+  const toDeactivate: PluginDiff['toDeactivate'] = []
   const collisions: PluginDiff['collisions'] = []
   const inSync: string[] = []
 
-  for (const [slug, wanted] of Object.entries(manifest)) {
+  for (const [slug, pin] of Object.entries(manifest)) {
+    const wanted = pinVersion(pin)
     const live = installedMap.get(slug)
 
     if (!live) {
@@ -101,13 +122,13 @@ export function diffPlugins(
       continue
     }
 
-    if (wanted !== 'latest' && live.version !== wanted) {
+    if (isExactVersion(wanted) && live.version !== wanted) {
       toPin.push({from: live.version, slug, to: wanted})
       continue
     }
 
-    if (!live.active) {
-      toActivate.push({file: live.file, slug})
+    if (live.active !== pinActive(pin)) {
+      ;(live.active ? toDeactivate : toActivate).push({file: live.file, slug})
       continue
     }
 
@@ -120,7 +141,7 @@ export function diffPlugins(
     .filter((p) => p.active && !Object.hasOwn(manifest, p.slug) && !managedSlugs.has(p.slug))
     .map((p) => p.slug)
 
-  return {collisions, inSync, toActivate, toInstall, toPin, toRemove, untrackedActive}
+  return {collisions, inSync, toActivate, toDeactivate, toInstall, toPin, toRemove, untrackedActive}
 }
 
 // wpackagist-plugin/<slug> or wpackagist-theme/<slug> entries from a composer.lock string.

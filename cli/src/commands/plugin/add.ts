@@ -1,6 +1,7 @@
 import {Args, Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {pinVersion, type PluginPin} from '../../types/plugin.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {isExactVersion} from '../../utils/version.js'
 
@@ -39,12 +40,13 @@ export default class Add extends LoopressCommand {
 
     const existing = this.localConfig.plugins ?? {}
 
-    if (existing[slug] === version) {
+    const current = existing[slug] as PluginPin | undefined
+    if (current !== undefined && pinVersion(current) === version) {
       this.log(`${slug} is already pinned to ${version} in loopress.json, nothing to do.`)
       return {slug, status: 'unchanged', version}
     }
 
-    const isUpdated = existing[slug] !== undefined
+    const isUpdated = current !== undefined
 
     if (this.dryRun) {
       this.log(`[dry-run] Would ${isUpdated ? 'update' : 'add'} ${slug} (${version}) in loopress.json`)
@@ -53,7 +55,8 @@ export default class Add extends LoopressCommand {
 
     await writeLocalConfig({
       ...this.localConfig,
-      plugins: {...existing, [slug]: version},
+      // Re-pinning a plugin recorded as inactive keeps it inactive.
+      plugins: {...existing, [slug]: typeof current === 'object' ? {...current, version} : version},
     })
 
     this.log(`${isUpdated ? 'Updated' : 'Added'} ${slug} (${version}). Run \`lps plugin push\` to apply.`)

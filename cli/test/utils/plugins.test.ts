@@ -239,7 +239,7 @@ describe('plugins', () => {
     })
 
     it('reports the full diff shape for an empty manifest and site', () => {
-      expect(diffPlugins({}, [])).toEqual({collisions: [], inSync: [], toActivate: [], toInstall: [], toPin: [], toRemove: [], untrackedActive: []})
+      expect(diffPlugins({}, [])).toEqual({collisions: [], inSync: [], toActivate: [], toDeactivate: [], toInstall: [], toPin: [], toRemove: [], untrackedActive: []})
     })
 
     it('does not report an inactive untracked plugin, nor a tracked or managed one, as untrackedActive', () => {
