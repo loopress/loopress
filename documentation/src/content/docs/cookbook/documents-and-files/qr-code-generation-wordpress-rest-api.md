@@ -2,7 +2,6 @@
 title: Generating a Ticket QR Code from a WordPress Route with Endroid QR Code
 description: A Custom API Route that renders a scannable QR code for an event ticket on request, using endroid/qr-code, instead of generating and storing an image file per ticket sold.
 kind: route
-draft: true
 ---
 
 A site sells event tickets, one `ticket` custom post per purchase. Each ticket needs a QR code a scanner at the door reads to verify it, encoding a URL like `/verify-ticket/?ticket=482`. The tempting approach is generating a PNG at purchase time and storing it as an attachment, which works until the verification URL scheme changes, a domain migration, an added query parameter, and every previously generated image now encodes a dead link. Generating the QR code from the ticket's current data on every request instead means there's nothing to regenerate, the image is never stale because it's never stored.
@@ -34,9 +33,6 @@ class TicketQr
 
         $verifyUrl = add_query_arg('ticket', $ticketId, home_url('/verify-ticket/'));
 
-        // TODO: verify Builder's exact constructor parameters against endroid/qr-code's
-        // current docs, the size/margin/errorCorrectionLevel options have shifted shape
-        // across major versions of this library.
         $builder = new Builder(
             writer: new PngWriter(),
             data: $verifyUrl,
@@ -57,9 +53,11 @@ class TicketQr
 ```
 
 ```bash
-composer require endroid/qr-code
+composer require endroid/qr-code:^6.0
 lps composer push
 ```
+
+`Builder` takes named constructor arguments since endroid/qr-code 6 (version 5 used a fluent `Builder::create()->data(...)` chain instead). The `^6.0` constraint matters on most WordPress hosts: 6.1 requires PHP 8.4, while 6.0.x runs on PHP 8.2 and up with the exact same API, and Composer on the server picks whichever one the site's PHP version allows.
 
 The verification URL is built with `add_query_arg()` and `home_url()`, ordinary WordPress functions, the QR code just encodes whatever string they produce. If the domain or the verification path changes later, every ticket's QR code reflects it on the very next scan, nothing was ever baked into a stored image to go stale.
 
@@ -86,9 +84,33 @@ public function permission(WP_REST_Request $request): bool
     }
 
     $ticketId = (int) $request->get_param('ticket_id');
-    return is_user_logged_in() && (int) get_post_meta($ticketId, '_customer_id', true) === get_current_user_id();
+    return is_user_logged_in()
+        && (int) get_post_meta($ticketId, '_customer_id', true) === get_current_user_id();
 }
 ```
+
+## Showing it to the buyer
+
+The `data_uri` is meant for an `<img>`. A small [Loopress app](/apps/) on a "My ticket" page is enough: the `[loopress_app name="ticket"]` shortcode hands the app the REST URL and a nonce, so its `fetch()` runs as the logged-in visitor and `permission()` above decides, the buyer sees their own ticket and nobody else's.
+
+```tsx title="apps/ticket/src/App.tsx"
+const config = (globalThis as { loopressApp_ticket?: { restUrl: string; restNonce: string } }).loopressApp_ticket;
+
+fetch(`${config!.restUrl}loopress-api/v1/ticket-qr/${ticketId}`, {
+  headers: { "X-WP-Nonce": config!.restNonce },
+})
+  .then(async (res) => {
+    const body = await res.json();
+    setState(res.ok ? { qr: body.data_uri } : { error: body.message });
+  });
+```
+
+```bash
+npm --prefix apps/ticket run build
+lps app push ticket
+```
+
+The full app (about forty lines of React) is in the [demo project](https://github.com/loopress/demo/tree/main/qr-code-generation-wordpress-rest-api/apps/ticket).
 
 ## A missing package is scoped to this route
 
