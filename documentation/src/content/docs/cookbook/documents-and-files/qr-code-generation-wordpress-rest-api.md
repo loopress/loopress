@@ -2,7 +2,6 @@
 title: Generating a Ticket QR Code from a WordPress Route with Endroid QR Code
 description: A Custom API Route that renders a scannable QR code for an event ticket on request, using endroid/qr-code, instead of generating and storing an image file per ticket sold.
 kind: route
-draft: true
 ---
 
 A site sells event tickets, one `ticket` custom post per purchase. Each ticket needs a QR code a scanner at the door reads to verify it, encoding a URL like `/verify-ticket/?ticket=482`. The tempting approach is generating a PNG at purchase time and storing it as an attachment, which works until the verification URL scheme changes, a domain migration, an added query parameter, and every previously generated image now encodes a dead link. Generating the QR code from the ticket's current data on every request instead means there's nothing to regenerate, the image is never stale because it's never stored.
