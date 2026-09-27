@@ -48,13 +48,13 @@ export type RemoteSeoSettings = {
 // SeoRedirectProvider) makes this endpoint fail with a clear error rather than return data, not
 // a shape difference on success.
 export type SeoRedirect = {
-  createdAt: string | undefined
+  createdAt: null | string
   headerCode: number
   hits: number
   id: number
   sources: unknown
   status: string
-  updatedAt: string | undefined
+  updatedAt: null | string
   urlTo: string
 }
 

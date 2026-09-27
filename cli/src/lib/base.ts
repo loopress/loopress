@@ -87,11 +87,23 @@ export abstract class LoopressCommand extends Command {
   // `dryRun` is excluded since rotating writes a new credential, a real side effect a
   // --dry-run run promises not to cause. `Rotate` overrides this to a no-op: its own `run()`
   // already rotates unconditionally, so the background check would only redo the same work.
+  // CI is excluded too: rotating revokes the old password, but a runner's config.json (a CI
+  // secret copy) is thrown away at the end of the job, so every later run would get a 401.
   protected async maybeAutoRotate(): Promise<void> {
     if (this.dryRun) return
 
     const {token} = this.siteConfig
     if (!token || !isAppPasswordStale(this.siteConfig.addedAt)) return
+
+    // Set by `lps promote --dry-run` around its delegated pull: a preview must not revoke anything.
+    if (process.env.LOOPRESS_NO_AUTO_ROTATE) return
+
+    if (process.env.CI) {
+      this.warn(
+        `The app password for "${this.siteConfig.name}" is older than 90 days. Auto-rotation is skipped in CI, run \`lps project rotate\` where this config.json lives, then update the CI secret.`,
+      )
+      return
+    }
 
     try {
       const rotated = await rotateAppPassword({...this.siteConfig, token})

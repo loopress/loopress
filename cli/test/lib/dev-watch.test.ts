@@ -106,7 +106,7 @@ describe('createDebouncedBatcher', () => {
   })
 
   it('batches paths queued within the debounce window into a single flush call', async () => {
-    const flush = vi.fn().mockResolvedValue()
+    const flush = vi.fn().mockResolvedValue(undefined)
     const batcher = createDebouncedBatcher(flush, 400)
 
     batcher.queue('/a')
@@ -119,7 +119,7 @@ describe('createDebouncedBatcher', () => {
   })
 
   it('resets the window on every new change, so it only fires after quiet time', async () => {
-    const flush = vi.fn().mockResolvedValue()
+    const flush = vi.fn().mockResolvedValue(undefined)
     const batcher = createDebouncedBatcher(flush, 400)
 
     batcher.queue('/a')
@@ -138,7 +138,7 @@ describe('createDebouncedBatcher', () => {
     const firstFlush = new Promise<void>((resolve) => {
       resolveFirstFlush = resolve
     })
-    const flush = vi.fn().mockReturnValueOnce(firstFlush).mockResolvedValue()
+    const flush = vi.fn().mockReturnValueOnce(firstFlush).mockResolvedValue(undefined)
     const batcher = createDebouncedBatcher(flush, 400)
 
     batcher.queue('/a')
@@ -157,7 +157,7 @@ describe('createDebouncedBatcher', () => {
   })
 
   it('cancel() stops a pending flush from firing', async () => {
-    const flush = vi.fn().mockResolvedValue()
+    const flush = vi.fn().mockResolvedValue(undefined)
     const batcher = createDebouncedBatcher(flush, 400)
 
     batcher.queue('/a')

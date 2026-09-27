@@ -30,7 +30,7 @@ function rowCells(line: string): string[] {
 }
 
 function tableRows(logs: ReturnType<typeof silenceLogs>): string[] {
-  const table = logs.log.mock.calls.map((call) => call[0] as string).find((line) => line.includes('┌'))
+  const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('┌'))
   return table!.split('\n').filter((line) => line.includes('│'))
 }
 
@@ -138,7 +138,7 @@ describe('option list', () => {
 
     await cmd.run()
 
-    const table = logs.log.mock.calls.map((call) => call[0] as string).find((line) => line.includes('blogname'))
+    const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('blogname'))
     const dataRows = table!.split('\n').filter((line) => line.includes('│'))
     // One header row and one data row: a wrapped cell would split either into two lines instead.
     expect(dataRows).toHaveLength(2)
@@ -156,7 +156,7 @@ describe('option list', () => {
     const result = await cmd.run()
 
     expect(result).toEqual([options[1]])
-    const table = logs.log.mock.calls.map((call) => call[0] as string).find((line) => line.includes('NAME'))
+    const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('NAME'))
     expect(table).not.toContain('blogname')
     expect(table).toContain('my_plugin_setting')
     expect(table).not.toContain('CORE')

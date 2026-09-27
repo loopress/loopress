@@ -118,7 +118,7 @@ describe('project push', () => {
       {...makeListedEnv('production', 'https://acme.com'), token: 'admin:app-pass'},
     ])
     post.mockResolvedValueOnce({id: 'api-project-1'}).mockResolvedValueOnce({id: 'api-env-1'})
-    put.mockResolvedValueOnce()
+    put.mockResolvedValueOnce(undefined)
     const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
     const setEnvironmentApiId = vi.spyOn(configManager, 'setEnvironmentApiId').mockImplementation(() => {})
 

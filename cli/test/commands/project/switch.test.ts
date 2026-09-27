@@ -66,7 +66,7 @@ describe('project switch', () => {
     await cmd.run()
 
     expect(select).toHaveBeenCalledTimes(1)
-    const {choices} = vi.mocked(select).mock.calls[0][0] as {choices: unknown[]}
+    const {choices} = vi.mocked(select).mock.calls[0][0] as unknown as {choices: unknown[]}
     expect(choices.filter((choice) => (choice as {type?: string}).type === 'separator')).toHaveLength(2)
     expect(setCurrent).toHaveBeenCalledWith('id-beta', 'staging')
     expect(log).toHaveBeenCalledWith('✓ Switched to "beta/staging"')

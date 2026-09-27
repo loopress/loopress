@@ -210,7 +210,7 @@ describe('LoopressCommand.init', () => {
       staging: makeEnv('staging', 'https://staging.acme.com'),
     })
     vi.spyOn(configManager, 'getProject').mockReturnValue(project)
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue({...project, isCurrent: true})
+    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(project)
     vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('staging', 'https://staging.acme.com'))
 
     const cmd = await initWith([])
@@ -240,6 +240,11 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     vi.mocked(readLocalConfig).mockResolvedValue({})
     vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
     vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
+    vi.stubEnv('CI', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('does nothing for a fresh app password', async () => {
@@ -285,6 +290,31 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     const cmd = await initWith([])
 
     expect(cmd.resolvedSiteConfig.token).toBe('user:pass')
+  })
+
+  it('does not rotate in CI and warns instead, the runner cannot persist the new password', async () => {
+    vi.stubEnv('CI', 'true')
+    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
+      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
+    )
+    const cmd = new TestCommand([], fakeOclifConfig)
+    const {warn} = silenceLogs(cmd)
+
+    await cmd.init()
+
+    expect(rotateAppPassword).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/older than 90 days.*lps project rotate/))
+  })
+
+  it('does not rotate when LOOPRESS_NO_AUTO_ROTATE is set (promote --dry-run preview)', async () => {
+    vi.stubEnv('LOOPRESS_NO_AUTO_ROTATE', '1')
+    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
+      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
+    )
+
+    await initWith([])
+
+    expect(rotateAppPassword).not.toHaveBeenCalled()
   })
 
   it('skips environments without a token', async () => {

@@ -6,6 +6,9 @@ import {stripVTControlCharacters} from 'node:util'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Rollback from '../../../src/commands/snippet/rollback.js'
+import {type LoopressCommand} from '../../../src/lib/base.js'
+import {type CommandClass} from '../../../src/lib/php-files-command.js'
+import {type RollbackResult} from '../../../src/lib/rollback-command.js'
 import {writeSnapshot} from '../../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -30,12 +33,12 @@ async function wait(ms: number): Promise<void> {
   })
 }
 
-class TestRollback extends Rollback {
+// Same as snippet/diff.test.ts: the factory is typed as the abstract base.
+const ConcreteRollback = Rollback as unknown as CommandClass<Omit<LoopressCommand, 'run'> & {run(): Promise<RollbackResult>}>
+
+class TestRollback extends ConcreteRollback {
   setup(siteConfig: EnvironmentConfig, options: {dryRun?: boolean; yes?: boolean} = {}) {
-    this.siteConfig = siteConfig
-    this.localConfig = {rootDir}
-    this.dryRun = options.dryRun ?? false
-    this.yes = options.yes ?? false
+    Object.assign(this, {dryRun: options.dryRun ?? false, localConfig: {rootDir}, siteConfig, yes: options.yes ?? false})
   }
 }
 

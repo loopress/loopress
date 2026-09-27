@@ -23,13 +23,13 @@ describe('seo-format', () => {
 
   describe('redirectFileBase', () => {
     const redirect = (urlTo: string): SeoRedirect => ({
-      createdAt: undefined,
+      createdAt: null,
       headerCode: 301,
       hits: 0,
       id: 4,
       sources: [],
       status: 'active',
-      updatedAt: undefined,
+      updatedAt: null,
       urlTo,
     })
 

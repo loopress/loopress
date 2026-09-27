@@ -193,13 +193,13 @@ describe('hook push', () => {
 
   describe('run', () => {
     class TestPush extends Push {
-      protected override async guardProductionPush(): Promise<void> {}
-      protected override async recordDeployment(): Promise<void> {}
+      // No `override`/direct field access: the factory's instance type (CommandClass) hides
+      // protected members, they only exist at runtime.
+      protected async guardProductionPush(): Promise<void> {}
+      protected async recordDeployment(): Promise<void> {}
 
       setup(localConfig: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
-        this.localConfig = localConfig
-        this.siteConfig = siteConfig
-        this.dryRun = false
+        Object.assign(this, {dryRun: false, localConfig, siteConfig})
       }
     }
 
