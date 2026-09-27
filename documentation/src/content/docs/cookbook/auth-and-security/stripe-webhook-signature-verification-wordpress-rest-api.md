@@ -50,7 +50,10 @@ class StripeWebhook
 
         if ($this->event->type === 'checkout.session.completed') {
             $session = $this->event->data->object;
-            update_post_meta((int) $session->metadata->order_id, '_payment_status', 'paid');
+            $orderId = (int) ($session->metadata->order_id ?? 0);
+            if ($orderId > 0) {
+                update_post_meta($orderId, '_payment_status', 'paid');
+            }
         }
 
         return ['ok' => true];
@@ -67,7 +70,7 @@ lps composer push
 
 ## Now call it
 
-This one isn't meant to be called by hand, Stripe's own webhook sender is the only caller that can produce a signature `permission()` accepts. The shape of what it sends still helps when reproducing an issue locally:
+This one isn't meant to be called by hand, Stripe's own webhook sender is the only caller that can produce a signature `permission()` accepts. A hand-written request proves the point:
 
 ```bash
 curl -X POST https://your-site.com/wp-json/loopress-api/v1/stripe-webhook \
@@ -77,10 +80,18 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/stripe-webhook \
 ```
 
 ```json
-{"ok": true}
+{"code": "rest_forbidden", "message": "Sorry, you are not allowed to do that.", "data": {"status": 401}}
 ```
 
-The signature above is illustrative, `constructEvent()` recomputes it from the raw body and the webhook secret and rejects anything that doesn't match, so this exact request only works against a secret it was actually signed with. Stripe's [webhook testing CLI](https://docs.stripe.com/stripe-cli/overview) is the practical way to generate a real one against a local site.
+`constructEvent()` recomputes the signature from the raw body and the webhook secret, and this one was never signed with yours. To send real, signed events, use the [Stripe CLI](https://docs.stripe.com/stripe-cli/overview):
+
+```bash
+stripe listen --forward-to https://your-site.com/wp-json/loopress-api/v1/stripe-webhook
+# prints a whsec_... signing secret: store it in the stripe_webhook_secret option
+stripe trigger checkout.session.completed
+```
+
+A triggered test session carries no `order_id` in its metadata, which is why the route checks for one before writing anything.
 
 ## Why this lives in `permission()`, not the verb method
 

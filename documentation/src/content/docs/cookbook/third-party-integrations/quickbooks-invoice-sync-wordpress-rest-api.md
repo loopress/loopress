@@ -30,10 +30,14 @@ add_action('woocommerce_order_status_changed', function (int $orderId, string $f
         return;
     }
 
-    $total = get_post_meta($orderId, '_order_total', true);
-    if (!is_numeric($total)) {
+    // wc_get_order(), not get_post_meta(): with WooCommerce's default order storage
+    // (HPOS), orders don't live in wp_postmeta and `_order_total` reads back empty.
+    $order = wc_get_order($orderId);
+    if (!$order instanceof WC_Order) {
         return;
     }
+
+    $total = $order->get_total();
 
     try {
         $dataService = DataService::Configure([
@@ -59,7 +63,7 @@ add_action('woocommerce_order_status_changed', function (int $orderId, string $f
                     'ItemRef' => ['value' => (string) get_option('quickbooks_default_item_id')],
                 ],
             ]],
-            'CustomerRef' => ['value' => (string) get_post_meta($orderId, '_quickbooks_customer_id', true)],
+            'CustomerRef' => ['value' => (string) $order->get_meta('_quickbooks_customer_id')],
         ]);
 
         $dataService->Add($invoice);

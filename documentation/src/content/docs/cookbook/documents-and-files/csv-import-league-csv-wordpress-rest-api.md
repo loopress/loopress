@@ -29,10 +29,9 @@ class ImportProducts
             return new WP_Error('missing_csv', 'No csv field in the request body.', ['status' => 400]);
         }
 
-        // TODO: verify the exact factory method name against league/csv's current docs,
-        // this has been Reader::createFromString() historically and the package has
-        // renamed factory methods across major versions.
-        $reader = Reader::createFromString($csv);
+        // fromString(), not createFromString(): the create* factories are deprecated since
+        // league/csv 9.27.
+        $reader = Reader::fromString($csv);
         $reader->setHeaderOffset(0);
 
         $created = [];
@@ -47,12 +46,19 @@ class ImportProducts
                 continue;
             }
 
-            $created[] = wp_insert_post([
-                'post_type'   => 'product',
-                'post_status' => 'draft',
-                'post_title'  => trim($record['name'] ?? $sku),
-                'meta_input'  => ['_sku' => $sku, '_price' => $price],
-            ]);
+            // WooCommerce's own product API, not wp_insert_post() with raw meta: it sets
+            // the regular price (a bare `_price` meta shows up as a product with no price),
+            // keeps WooCommerce's lookup tables in sync, and refuses a duplicate SKU.
+            try {
+                $product = new WC_Product_Simple();
+                $product->set_name(trim($record['name'] ?? '') ?: $sku);
+                $product->set_sku($sku);
+                $product->set_regular_price((string) $price);
+                $product->set_status('draft');
+                $created[] = $product->save();
+            } catch (WC_Data_Exception $e) {
+                $errors[] = "row {$offset}: {$e->getMessage()}";
+            }
         }
 
         return ['created' => $created, 'errors' => $errors];
@@ -70,6 +76,8 @@ composer require league/csv
 lps composer push
 ```
 
+Products are created through `WC_Product_Simple` rather than `wp_insert_post()`. Writing `_sku` and `_price` as raw post meta looks like it works, and gives you products with no regular price in the admin, missing from WooCommerce's lookup tables (so price filters and sorting ignore them), and duplicate SKUs on a second import. `set_sku()` throws on a SKU that already exists, which lands in `errors` like any other bad row.
+
 The route reports per-row errors instead of failing the whole import on the first bad row, one malformed price in a two-hundred-row file shouldn't cost the other one hundred ninety-nine, and the `errors` array is exactly what tells whoever ran the import which rows to go fix in the source file.
 
 ## Now call it
@@ -81,8 +89,10 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/import-products \
   -d '{"csv":"sku,name,price\nWDG-001,Widget,12.50\nWDG-002,,not-a-price\n"}'
 ```
 
+`row 2` because rows are numbered by their line in the file, the header being line 0. The id in `created` is whatever WooCommerce assigns on your site.
+
 ```json
-{"created": [301], "errors": ["row 1: missing sku or invalid price"]}
+{"created": [301], "errors": ["row 2: missing sku or invalid price"]}
 ```
 
 ## Permission

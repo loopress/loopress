@@ -25,7 +25,10 @@ add_action('woocommerce_order_status_changed', function (int $orderId, string $f
         return;
     }
 
-    $phone = (string) get_post_meta($orderId, '_billing_phone', true);
+    // wc_get_order(), not get_post_meta(): with WooCommerce's default order storage
+    // (HPOS), orders don't live in wp_postmeta and `_billing_phone` reads back empty.
+    $order = wc_get_order($orderId);
+    $phone = $order instanceof WC_Order ? $order->get_billing_phone() : '';
     if ($phone === '') {
         return;
     }

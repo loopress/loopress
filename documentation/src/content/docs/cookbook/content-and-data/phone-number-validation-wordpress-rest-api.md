@@ -67,12 +67,14 @@ The `country` parameter matters more than it looks: `parse()` uses it to interpr
 ```bash
 curl -X POST https://your-site.com/wp-json/loopress-api/v1/validate-phone \
   -H "Content-Type: application/json" \
-  -d '{"phone":"555 123 4567","country":"US"}'
+  -d '{"phone":"(415) 555-2671","country":"US"}'
 ```
 
 ```json
-{"valid": true, "e164": "+15551234567", "national": "(555) 123-4567"}
+{"valid": true, "e164": "+14155552671", "national": "(415) 555-2671"}
 ```
+
+Checked against giggsey/libphonenumber-for-php 9. Note the classic movie number `555 123 4567` comes back `{"valid": false, "reason": "not a valid number for that region"}`: 555 isn't an assigned US area code, which is exactly the kind of input a regex would wave through.
 
 ## Permission
 

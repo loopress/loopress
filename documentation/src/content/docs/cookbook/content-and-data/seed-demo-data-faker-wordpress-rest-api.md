@@ -29,12 +29,13 @@ class SeedDemoProducts
 
         $created = [];
         for ($i = 0; $i < $count; $i++) {
-            $created[] = wp_insert_post([
-                'post_type'   => 'product',
-                'post_status' => 'publish',
-                'post_title'  => ucwords((string) $faker->words(3, true)),
-                'meta_input'  => ['_price' => $faker->randomFloat(2, 5, 200)],
-            ]);
+            // WooCommerce's product API sets the regular price and the lookup tables a
+            // bare `_price` meta would leave out (no price in the admin, invisible to sorting).
+            $product = new WC_Product_Simple();
+            $product->set_name(ucwords((string) $faker->words(3, true)));
+            $product->set_regular_price((string) $faker->randomFloat(2, 5, 200));
+            $product->set_status('publish');
+            $created[] = $product->save();
         }
 
         return ['created' => $created];
@@ -42,11 +43,10 @@ class SeedDemoProducts
 
     public function permission(): bool
     {
-        // Gated the same as any other administrative route, current_user_can() alone
-        // isn't the real safeguard here though: a route that mass-creates posts on
-        // every call is exactly the kind of file worth deliberately never including in
-        // whatever gets pushed to production, not just permission-gating on staging.
-        return current_user_can('manage_options');
+        // Admin-only, and never on production: `lps push` sends every route file to
+        // every environment, so the environment check has to live in the route itself.
+        return current_user_can('manage_options')
+            && wp_get_environment_type() !== 'production';
     }
 }
 ```
@@ -73,7 +73,9 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/seed-demo-products \
 
 ## Permission, and the environment question underneath it
 
-`current_user_can('manage_options')` keeps this out of reach of anyone but an admin, the standard bar for anything mutating content in bulk. It doesn't answer a different question: whether this route should exist on production at all. It shouldn't, and that's not something `permission()` can express, it's a decision about which environment gets which files, made the same way as any other environment-specific file in a Loopress-managed project, by choosing what to push where.
+`current_user_can('manage_options')` keeps this out of reach of anyone but an admin, the standard bar for anything mutating content in bulk. It doesn't answer a different question: whether this route should work on production at all. It shouldn't, and it can't be left out of production by choice of files either: `lps api push` and `lps push` send every file in `api/` to whichever environment you target.
+
+So the route checks where it's running. [`wp_get_environment_type()`](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is WordPress core, it returns `production` unless the site sets `WP_ENVIRONMENT_TYPE` to `local`, `development`, or `staging` in `wp-config.php`. Production answers `rest_forbidden` even to an administrator. The flip side of that default: a staging site that never set the constant is `production` too, and refuses to seed until it does, which is the safe way round.
 
 ## A missing package fails the one request, not the site
 

@@ -32,8 +32,10 @@ class Image
             return new WP_Error('not_found', 'No attachment with that id.', ['status' => 404]);
         }
 
-        $width  = (int) ($request->get_param('width') ?: 400);
-        $height = (int) ($request->get_param('height') ?: 400);
+        // Clamped: this route is public, and an unbounded 20000x20000 request is a memory
+        // spike anyone can trigger.
+        $width  = min(2000, max(1, (int) ($request->get_param('width') ?: 400)));
+        $height = min(2000, max(1, (int) ($request->get_param('height') ?: 400)));
 
         $manager = new ImageManager(new Driver());
         $image   = $manager->read($path);
@@ -84,7 +86,7 @@ class Image
 }
 ```
 
-Worth noticing: nothing here validates that `width` and `height` stay within a sane range. A request for a 20000x20000 image is a valid request as far as this code is concerned, and image processing is exactly the kind of work where that turns into a slow request or a memory spike. Clamping both to a fixed maximum before they reach `cover()` is a one-line addition, and a real deployment of this route shouldn't ship without it.
+Because it's public, the route clamps `width` and `height` to 2000 pixels before they reach `cover()`. Without that, a request for a 20000x20000 image is valid as far as the code is concerned, and image processing is exactly the kind of work where that turns into a slow request or a memory spike anyone on the internet can trigger. Every request still decodes and re-encodes the original, so put a CDN or page cache in front of it before it takes real traffic; the `Cache-Control` header above is what lets them keep the result.
 
 ## A missing package fails the one request, not the site
 
