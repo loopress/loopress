@@ -306,6 +306,17 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/older than 90 days.*lps project rotate/))
   })
 
+  it('does not rotate when LOOPRESS_NO_AUTO_ROTATE is set (promote --dry-run preview)', async () => {
+    vi.stubEnv('LOOPRESS_NO_AUTO_ROTATE', '1')
+    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
+      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
+    )
+
+    await initWith([])
+
+    expect(rotateAppPassword).not.toHaveBeenCalled()
+  })
+
   it('skips environments without a token', async () => {
     const env = makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE)
     vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue({...env, token: undefined})

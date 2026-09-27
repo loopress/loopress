@@ -66,8 +66,10 @@ describe('promote', () => {
     process.chdir(project)
     const cwds: string[] = []
     let hadLocalConfig = false
+    const noRotate: Array<string | undefined> = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async () => {
       cwds.push(process.cwd())
+      noRotate.push(process.env.LOOPRESS_NO_AUTO_ROTATE)
       hadLocalConfig = existsSync('loopress.json')
       writeFileSync('pulled.txt', 'from staging')
       return {}
@@ -87,11 +89,24 @@ describe('promote', () => {
       expect(existsSync(cwds[0])).toBe(false)
       expect(realpathSync(process.cwd())).toBe(realpathSync(project))
       expect(existsSync(join(project, 'pulled.txt'))).toBe(false)
+      expect(noRotate).toEqual(['1', '1'])
+      expect(process.env.LOOPRESS_NO_AUTO_ROTATE).toBeUndefined()
     } finally {
       process.chdir(originalCwd)
       rmSync(project, {force: true, recursive: true})
     }
   })
+
+  it.each([['an absolute rootDir', {rootDir: '/elsewhere'}], ['a resource dir escaping the project', {snippetsDir: '../shared/snippets'}]])(
+    'refuses --dry-run with %s, the scratch pull would write outside the copy',
+    async (_label, localConfig) => {
+      vi.mocked(readLocalConfig).mockResolvedValue(localConfig)
+      const {cmd} = make(['staging', 'production', '--dry-run'])
+
+      await expect(cmd.run()).rejects.toThrow(/--dry-run can't preview safely: .* is outside the project\. Run `lps diff --env <from> --against <to>` instead\./)
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+    },
+  )
 
   it('errors, listing the available environments, when <from> is unknown', async () => {
     const {cmd} = make(['nope', 'production', '--yes'])

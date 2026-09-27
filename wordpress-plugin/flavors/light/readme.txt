@@ -49,7 +49,7 @@ No. Loopress Light only reads and writes ACF field group definitions, SEO metada
 
 = Which options can be synced? =
 
-Only the options your project lists. Some are always refused: options that look like stored secrets (API keys, tokens, passwords) are never read, and options that change who can access the site or where it loads from (`siteurl`, `home`, `default_role`, `users_can_register`, `cron`, Loopress's own settings) are never written. Developers can adjust both lists with the `loopress_option_readable` and `loopress_option_writable` filters.
+Only the options your project lists. By default, options whose name looks like a stored secret (API keys, tokens, passwords) are refused on read. This is best-effort matching on names and can miss some secrets (`stripe_sk`, for example), so do not track an option that holds a credential: its value would end up in the JSON you keep in Git. Options that change who can access the site or where it loads from (`siteurl`, `home`, `default_role`, `users_can_register`, `cron`, Loopress's own settings) are refused on write by default. Developers can change both lists with the `loopress_option_readable` and `loopress_option_writable` filters.
 
 = Who can access the REST API? =
 

@@ -95,6 +95,9 @@ export abstract class LoopressCommand extends Command {
     const {token} = this.siteConfig
     if (!token || !isAppPasswordStale(this.siteConfig.addedAt)) return
 
+    // Set by `lps promote --dry-run` around its delegated pull: a preview must not revoke anything.
+    if (process.env.LOOPRESS_NO_AUTO_ROTATE) return
+
     if (process.env.CI) {
       this.warn(
         `The app password for "${this.siteConfig.name}" is older than 90 days. Auto-rotation is skipped in CI, run \`lps project rotate\` where this config.json lives, then update the CI secret.`,
