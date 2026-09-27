@@ -1,6 +1,8 @@
+import {confirm} from '@inquirer/prompts'
 import {existsSync, mkdtempSync, readdirSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
+import {stripVTControlCharacters} from 'node:util'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Rollback from '../../../src/commands/snippet/rollback.js'
@@ -390,5 +392,188 @@ describe('snippet rollback', () => {
     const {cmd} = make([], vi.fn(), {siteConfig: makeEnv('production', 'https://acme.com')})
 
     await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet" on "production"/)
+  })
+
+  describe('human output', () => {
+    // Colors depend on the terminal; only the text is under test.
+    function lines(logs: ReturnType<typeof silenceLogs>): string[] {
+      return logs.log.mock.calls.map(([line]) => stripVTControlCharacters(String(line)))
+    }
+
+    it('--list prints each snapshot id and date, most recent first', async () => {
+      const id = await writeSnapshot({afterState: new Map(), beforeState: new Map(), environment: 'staging', resource: 'snippet', rootDir})
+      const {cmd, logs} = make(['--list'], vi.fn())
+
+      const result = await cmd.run()
+
+      expect(lines(logs)).toEqual([
+        'Snapshots for "snippet" on "staging" (most recent first):',
+        `  ${id}  ${result.snapshots![0].createdAt}`,
+      ])
+    })
+
+    it('--list explains where snapshots come from when there are none', async () => {
+      const {cmd, logs} = make(['--list'], vi.fn())
+
+      await cmd.run()
+
+      expect(lines(logs)).toEqual([
+        'No snapshots found for "snippet" on "staging". A snapshot is written automatically by `lps snippet push`.',
+      ])
+    })
+
+    it('--list prints nothing under --json', async () => {
+      await writeSnapshot({afterState: new Map(), beforeState: new Map(), environment: 'staging', resource: 'snippet', rootDir})
+      const {cmd, logs} = make(['--list', '--json'], vi.fn())
+
+      await cmd.run()
+
+      expect(logs.log).not.toHaveBeenCalled()
+    })
+
+    it('prints the drift and the restore plan, then confirms the rollback', async () => {
+      const id = await writeSnapshot({
+        afterState: new Map([
+          ['7', canonical({name: 'Expected after push'})],
+          ['8', canonical({name: 'Gone'})],
+        ]),
+        beforeState: new Map([['7', canonical({name: 'Before push'})]]),
+        environment: 'staging',
+        resource: 'snippet',
+        rootDir,
+      })
+      const get = vi.fn(async () => [remoteRow(7, {name: 'Changed by someone else'}), remoteRow(9, {name: 'New'})])
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make(['--yes'], get, {yes: true})
+
+      await cmd.run()
+      const output = lines(logs)
+
+      expect(output[0]).toMatch(new RegExp(String.raw`^Rolling back Snippets on https://staging\.acme\.com to the snapshot from \S+ \(${id}\)$`))
+      expect(output).toContain('Snippets has changed on https://staging.acme.com since that push:')
+      expect(output).toContain('  + 9')
+      expect(output).toContain('  - 8')
+      expect(output).toContain('  ~ 7')
+      expect(output).toContain('This would restore Snippets to:')
+      expect(output.at(-1)).toMatch(/^Rolled back Snippets to the snapshot from \S+\.$/)
+      // A patch line is indented under its "~ id" header, blank lines are left empty.
+      const patch = output[output.indexOf('  ~ 7') + 1]
+      expect(patch.split('\n').every((line) => line === '' || line.startsWith(' '.repeat(4)))).toBe(true)
+      expect(patch).toBe(patch.trimEnd())
+    })
+
+    it('prints no diff under --json', async () => {
+      await writeSnapshot({
+        afterState: new Map([['7', canonical()]]),
+        beforeState: new Map([['7', canonical({name: 'Restored'})]]),
+        environment: 'staging',
+        resource: 'snippet',
+        rootDir,
+      })
+      const {cmd, logs} = make(['--json'], vi.fn(async () => [remoteRow(7)]), {dryRun: true})
+
+      await cmd.run()
+
+      expect(lines(logs).some((line) => line.startsWith('This would restore'))).toBe(false)
+    })
+
+    it('says so when there is nothing to restore', async () => {
+      await writeSnapshot({afterState: new Map([['7', canonical()]]), beforeState: new Map([['7', canonical()]]), environment: 'staging', resource: 'snippet', rootDir})
+      const {cmd, logs} = make([], vi.fn(async () => [remoteRow(7)]))
+
+      await cmd.run()
+
+      expect(lines(logs)).toContain('Nothing to restore, the environment already matches this snapshot.')
+    })
+
+    it('names a single item that will not be removed, and refers to it as "it"', async () => {
+      await writeSnapshot({
+        afterState: new Map([
+          ['7', canonical()],
+          ['9', canonical({name: 'Added after the push'})],
+        ]),
+        beforeState: new Map([['7', canonical()]]),
+        environment: 'staging',
+        resource: 'snippet',
+        rootDir,
+      })
+      const get = vi.fn(async () => [remoteRow(7), remoteRow(9, {name: 'Added after the push'})])
+      const {cmd, logs} = make([], get, {dryRun: true})
+
+      await cmd.run()
+
+      expect(logs.warn).toHaveBeenCalledWith(
+        '1 item present now but not in this snapshot will NOT be removed (9): restoring only creates and updates, the same as `lps snippet push`. Remove it by hand if that\'s part of undoing the original push.',
+      )
+    })
+
+    it('refers to several items that will not be removed as "them"', async () => {
+      await writeSnapshot({
+        afterState: new Map([
+          ['7', canonical()],
+          ['8', canonical({name: 'A'})],
+          ['9', canonical({name: 'B'})],
+        ]),
+        beforeState: new Map([['7', canonical()]]),
+        environment: 'staging',
+        resource: 'snippet',
+        rootDir,
+      })
+      const get = vi.fn(async () => [remoteRow(7), remoteRow(8, {name: 'A'}), remoteRow(9, {name: 'B'})])
+      const {cmd, logs} = make([], get, {dryRun: true})
+
+      await cmd.run()
+
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^2 items present now .* \(8, 9\): .* Remove them by hand/))
+    })
+  })
+
+  describe('interactive drift confirmation', () => {
+    async function driftedSnapshot(): Promise<void> {
+      await writeSnapshot({
+        afterState: new Map([['7', canonical({name: 'Expected after push'})]]),
+        beforeState: new Map([['7', canonical({name: 'Before push'})]]),
+        environment: 'staging',
+        resource: 'snippet',
+        rootDir,
+      })
+    }
+
+    it('asks in a TTY and rolls back when accepted', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      await driftedSnapshot()
+      const {cmd} = make([], vi.fn(async () => [remoteRow(7, {name: 'Changed'})]))
+
+      const result = await cmd.run()
+
+      expect(confirm).toHaveBeenCalledWith({
+        default: false,
+        message: 'The environment has changed since this snapshot was taken. Roll back anyway, overwriting those later changes?',
+      })
+      expect(result.status).toBe('success')
+    })
+
+    it('asks in a TTY and aborts when declined', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+      await driftedSnapshot()
+      const {cmd} = make([], vi.fn(async () => [remoteRow(7, {name: 'Changed'})]))
+
+      await expect(cmd.run()).rejects.toThrow('Aborted.')
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+    })
+
+    it('never asks on a dry run', async () => {
+      interactive.value = true
+      await driftedSnapshot()
+      const {cmd} = make([], vi.fn(async () => [remoteRow(7, {name: 'Changed'})]), {dryRun: true})
+
+      const result = await cmd.run()
+
+      expect(confirm).not.toHaveBeenCalled()
+      expect(result.status).toBe('dry-run')
+    })
   })
 })

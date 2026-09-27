@@ -1,6 +1,8 @@
 import {describe, expect, it} from 'vitest'
 
 import {
+  buildMetaFile,
+  buildSnippetFile,
   defaultLocationForType,
   normalizeSnippet,
   parseInsertMethod,
@@ -118,6 +120,106 @@ describe('snippet-format', () => {
       const result = normalizeSnippet({code: '', id: 3, location: 'not-a-real-location', type: 'css'})
 
       expect(result.location).toBe('header')
+    })
+  })
+
+  describe('exhaustive values and coercion', () => {
+    it.each(['css', 'html', 'js', 'php', 'text'])('accepts the "%s" type', (type) => {
+      expect(parseType(type)).toBe(type)
+    })
+
+    it.each(['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'])(
+      'accepts the "%s" location',
+      (location) => {
+        expect(parseLocation(location)).toBe(location)
+      },
+    )
+
+    it('rejects an insert method in another case, unlike type and location', () => {
+      expect(parseInsertMethod('AUTO')).toBeNull()
+    })
+
+    it('never turns an object into "[object Object]"', () => {
+      expect(parseType({toString: () => 'php'})).toBeNull()
+      expect(parseLocation({})).toBeNull()
+      expect(normalizeSnippet({code: {nested: true}, id: 1, name: ['a']})).toMatchObject({code: '', name: ''})
+    })
+
+    it('stringifies numbers and booleans', () => {
+      expect(normalizeSnippet({code: 42, description: false, id: 1, name: true})).toMatchObject({
+        code: '42',
+        description: 'false',
+        name: 'true',
+      })
+    })
+
+    it('reads a numeric priority, including 0 and a numeric string, and falls back to 10 otherwise', () => {
+      expect(normalizeSnippet({id: 1, priority: 0}).priority).toBe(0)
+      expect(normalizeSnippet({id: 1, priority: '20'}).priority).toBe(20)
+      expect(normalizeSnippet({id: 1, priority: 'high'}).priority).toBe(10)
+      expect(normalizeSnippet({id: 1, priority: Infinity}).priority).toBe(10)
+    })
+
+    it('keeps a string revision and drops anything else', () => {
+      expect(normalizeSnippet({id: 1, revision: 'abc'}).revision).toBe('abc')
+      expect(normalizeSnippet({id: 1, revision: 5}).revision).toBeUndefined()
+    })
+
+    it('stringifies shortcode attributes and ignores non-array tags and attributes', () => {
+      expect(normalizeSnippet({id: 1, shortcodeAttributes: ['a', 2]}).shortcodeAttributes).toEqual(['a', '2'])
+      expect(normalizeSnippet({id: 1, shortcodeAttributes: 'a', tags: 'x'})).toMatchObject({
+        shortcodeAttributes: [],
+        tags: [],
+      })
+    })
+
+    it('reads a numeric string id and a truthy active flag', () => {
+      expect(normalizeSnippet({active: 1, id: '12'})).toMatchObject({active: true, id: 12})
+    })
+
+    it('derives the location from a valid type when none is given', () => {
+      expect(normalizeSnippet({id: 1, type: 'JS'})).toMatchObject({location: 'footer', type: 'js'})
+    })
+  })
+
+  describe('buildSnippetFile and buildMetaFile edge cases', () => {
+    const base = {
+      active: true,
+      code: 'echo 1;',
+      description: '',
+      id: 5,
+      insertMethod: 'auto',
+      location: 'everywhere',
+      name: 'Demo',
+      priority: 10,
+      shortcodeAttributes: [],
+      tags: [],
+      type: 'php',
+    } as const
+
+    it('does not prepend <?php to PHP code whose opening tag follows leading whitespace', () => {
+      expect(buildSnippetFile({...base, code: '\n  <?php echo 1;', shortcodeAttributes: [], tags: []})).toBe(
+        '\n  <?php echo 1;',
+      )
+    })
+
+    it('treats a short "<?" tag as already opened', () => {
+      expect(buildSnippetFile({...base, code: '<?= 1 ?>', shortcodeAttributes: [], tags: []})).toBe('<?= 1 ?>')
+    })
+
+    it('writes only the required fields, in order, pretty-printed with a trailing newline, for a default snippet', () => {
+      expect(buildMetaFile({...base, shortcodeAttributes: [], tags: []})).toBe(
+        '{\n  "id": 5,\n  "name": "Demo",\n  "type": "php",\n  "active": true,\n  "location": "everywhere"\n}\n',
+      )
+    })
+
+    it('writes a non-default priority of 0 and the shortcode attributes', () => {
+      const meta = JSON.parse(
+        buildMetaFile({...base, priority: 0, shortcodeAttributes: ['color'], tags: []}),
+      ) as Record<string, unknown>
+
+      expect(meta.priority).toBe(0)
+      expect(meta.shortcodeAttributes).toEqual(['color'])
     })
   })
 })

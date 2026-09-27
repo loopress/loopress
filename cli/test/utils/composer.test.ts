@@ -1,9 +1,9 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {getComposerManagedSlugs, readComposerJson} from '../../src/utils/composer.js'
+import {getComposerManagedSlugs, readComposerJson, readComposerLock} from '../../src/utils/composer.js'
 
 describe('composer utils', () => {
   describe('getComposerManagedSlugs', () => {
@@ -57,6 +57,35 @@ describe('composer utils', () => {
       writeFileSync(join(dir, 'composer.json'), '{not json')
 
       expect(await readComposerJson()).toBeNull()
+    })
+  })
+
+  describe('readComposerLock', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-composer-lock-test-'))
+      vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    it('returns composer.lock verbatim from the current directory', async () => {
+      writeFileSync(join(dir, 'composer.lock'), '{"packages": []}\n')
+
+      expect(await readComposerLock()).toBe('{"packages": []}\n')
+    })
+
+    it('returns null when there is no composer.lock', async () => {
+      expect(await readComposerLock()).toBeNull()
+    })
+
+    it('returns null when composer.lock cannot be read', async () => {
+      mkdirSync(join(dir, 'composer.lock'))
+
+      expect(await readComposerLock()).toBeNull()
     })
   })
 })

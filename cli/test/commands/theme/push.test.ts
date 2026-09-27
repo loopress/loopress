@@ -214,4 +214,139 @@ describe('theme push', () => {
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Refreshing themes pinned to "latest"'))
     expect(post).toHaveBeenCalled()
   })
+
+  describe('plan output and exact messages', () => {
+    function lines(logs: ReturnType<typeof silenceLogs>): string[] {
+      return logs.log.mock.calls.map(([line]) => String(line))
+    }
+
+    it('logs every planned change, the trimmed sync output, then success', async () => {
+      const {cmd, get, logs, post} = make({themes: {astra: '4.1.0', kadence: '1.0.0', neve: '3.0.0'}}, ['--force'])
+      get.mockImplementation(async (path: string) =>
+        path === 'loopress/v1/composer/lock'
+          ? {composerLock: lockManaging('astra', 'twentytwenty')}
+          : [native('astra', '4.0.0'), native('twentytwenty'), native('neve', '3.0.0')],
+      )
+      // No `removed` in the response: falls back to the uninstalls the plan previewed.
+      post.mockResolvedValue({...SYNC_OK, output: '  done  \n', removed: undefined})
+
+      const result = await cmd.run()
+
+      expect(lines(logs)).toEqual([
+        'Pushing themes to https://acme.com',
+        '  + kadence 1.0.0',
+        '  ~ astra 4.0.0 to 4.1.0',
+        '  - twentytwenty',
+        '  ! neve (take over)',
+        'done',
+        'Themes synced.',
+      ])
+      expect(result).toEqual({
+        installed: ['kadence', 'neve'],
+        pinned: ['astra'],
+        removed: ['twentytwenty'],
+        status: 'success',
+      })
+    })
+
+    it('does not log an empty sync output', async () => {
+      const {cmd, logs, post} = make({themes: {astra: '4.0.0'}})
+      post.mockResolvedValue({...SYNC_OK, output: '  '})
+
+      await cmd.run()
+
+      expect(lines(logs)).not.toContain('')
+      expect(lines(logs)).toContain('Themes synced.')
+    })
+
+    it('says everything is in sync without the "latest" refresh line when there is nothing to do', async () => {
+      const {cmd, get, logs, post} = make({themes: {astra: '4.0.0'}})
+      get.mockImplementation(async (path: string) =>
+        path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.0.0')],
+      )
+
+      const result = await cmd.run()
+
+      expect(lines(logs)).toContain('Everything is already in sync.')
+      expect(post).not.toHaveBeenCalled()
+      expect(result).toEqual({installed: [], pinned: [], removed: [], status: 'in-sync'})
+    })
+
+    it('does not log the "latest" refresh line when there is real drift to push', async () => {
+      const {cmd, logs} = make({themes: {astra: 'latest', kadence: '1.0.0'}})
+
+      await cmd.run()
+
+      expect(lines(logs)).not.toContain('Refreshing themes pinned to "latest" to their newest releases.')
+    })
+
+    it('names every colliding theme and its version in the refusal', async () => {
+      const {cmd, get} = make({themes: {astra: '4.0.0'}})
+      get.mockImplementation(async (path: string) =>
+        path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging()} : [native('astra', '3.9.0')],
+      )
+
+      await expect(cmd.run()).rejects.toThrow(
+        'astra (3.9.0) installed outside Loopress. Re-run with --force to take them over, or remove them from loopress.json.',
+      )
+    })
+
+    it('names the downgrade in the refusal, and lets it through with --force', async () => {
+      const refused = make({themes: {astra: '4.0.0'}})
+      const forced = make({themes: {astra: '4.0.0'}}, ['--force'])
+      for (const {get} of [refused, forced]) {
+        get.mockImplementation(async (path: string) =>
+          path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.1.0')],
+        )
+      }
+
+      await expect(refused.cmd.run()).rejects.toThrow(
+        'Refusing to downgrade: astra 4.1.0 to 4.0.0. Re-run with --force.',
+      )
+      await forced.cmd.run()
+      expect(forced.post).toHaveBeenCalledWith(
+        'loopress/v1/composer/sync',
+        {force: true, intent: {themes: {astra: '4.0.0'}}, lock: null},
+        {timeoutMs: 600_000},
+      )
+    })
+
+    it('names the active theme it refuses to remove', async () => {
+      const {cmd, get} = make({themes: {astra: '4.0.0'}})
+      get.mockImplementation(async (path: string) =>
+        path === 'loopress/v1/composer/lock'
+          ? {composerLock: lockManaging('astra', 'twentytwenty')}
+          : [native('astra', '4.0.0'), native('twentytwenty', '1.0.0', 'active')],
+      )
+
+      await expect(cmd.run()).rejects.toThrow(
+        'Refusing to uninstall "twentytwenty": it is the site\'s active theme. Switch the site to another theme, then re-run to remove it.',
+      )
+    })
+
+    it('uses the exact collision refusal message from the server', async () => {
+      const {cmd, post} = make({themes: {astra: '4.0.0'}})
+      post.mockRejectedValue(
+        new Error('conflict', {
+          cause: {
+            response: {
+              body: JSON.stringify({collisions: [{slug: 'astra'}], error: 'unmanaged_plugins_present'}),
+              statusCode: 422,
+            },
+          },
+        }),
+      )
+
+      await expect(cmd.run()).rejects.toThrow(
+        'The site rejected the push: themes installed outside Loopress. Re-run with --force.',
+      )
+    })
+
+    it('rethrows any other sync failure unchanged', async () => {
+      const {cmd, post} = make({themes: {astra: '4.0.0'}})
+      post.mockRejectedValue(new Error('composer blew up'))
+
+      await expect(cmd.run()).rejects.toThrow('composer blew up')
+    })
+  })
 })

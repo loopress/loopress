@@ -111,5 +111,69 @@ describe('page push', () => {
         title: 'About',
       })
     })
+
+    it('pushes every page when no slug is given and reports success', async () => {
+      writeFileSync(join(dir, 'about.html'), '<p>a</p>')
+      writeFileSync(join(dir, 'contact.html'), '<p>c</p>')
+      const put = vi.fn().mockResolvedValue({link: '', status: 'draft'})
+      const cmd = makeCommand(put)
+      const logs = (cmd as unknown as {log: ReturnType<typeof vi.fn>}).log
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {}})
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: ['about', 'contact'], status: 'success'})
+      expect(logs).toHaveBeenCalledWith('Found 2 pages to push')
+      expect(logs).toHaveBeenCalledWith('All pages pushed.')
+    })
+
+    it('errors on an unknown slug before any network call', async () => {
+      writeFileSync(join(dir, 'about.html'), '<p>a</p>')
+      const put = vi.fn()
+      const cmd = makeCommand(put)
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {slug: 'missing'}})
+
+      await expect(cmd.run()).rejects.toThrow(`No page "missing" in ${dir} (expected missing.html).`)
+      expect(put).not.toHaveBeenCalled()
+    })
+
+    it('returns a dry-run status without any write on a dry run', async () => {
+      writeFileSync(join(dir, 'about.html'), '<p>a</p>')
+      const put = vi.fn()
+      const cmd = makeCommand(put)
+      cmd.dryRun = true
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {}})
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: ['about'], status: 'dry-run'})
+      expect(put).not.toHaveBeenCalled()
+    })
+
+    it('errors with the failed count instead of reporting success', async () => {
+      writeFileSync(join(dir, 'about.html'), '<p>a</p>')
+      const cmd = makeCommand(vi.fn().mockRejectedValue(new Error('boom')))
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {}})
+
+      await expect(cmd.run()).rejects.toThrow('1 page failed to push.')
+    })
+  })
+
+  describe('pushPage dry run', () => {
+    it('reports the slug and status without calling WordPress', async () => {
+      const put = vi.fn()
+      const cmd = makeCommand(put)
+      cmd.dryRun = true
+      const task = {output: ''}
+
+      await cmd.pushPage(page, task)
+
+      expect(put).not.toHaveBeenCalled()
+      expect(task.output).toBe('[dry-run] Would push: about (draft)')
+    })
   })
 })

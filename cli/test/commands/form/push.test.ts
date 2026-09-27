@@ -1,13 +1,16 @@
 import type * as FsPromises from 'node:fs/promises'
 
-import {existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/form/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof FsPromises>()
@@ -361,6 +364,79 @@ describe('form push', () => {
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Failed to push')
       expect((cmd as unknown as PushWithPushForm).failedCount).toBe(1)
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = config
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    function makeRunCmd(argv: string[] = []) {
+      const cmd = new TestPush(argv, fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValue(notFoundError())
+      const post = vi.fn().mockResolvedValue({id: 12})
+      const put = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
+      return {cmd, logs, post, put}
+    }
+
+    function writeForm(name: string, data: Record<string, unknown>): void {
+      mkdirSync(join(dir, 'forms'), {recursive: true})
+      writeFileSync(join(dir, 'forms', name), JSON.stringify(data))
+    }
+
+    it('pushes every local form and reports success', async () => {
+      writeForm('contact.json', {settings: {form_title: 'Contact'}})
+      const {cmd, logs, post} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/forms', {settings: {form_title: 'Contact'}})
+      expect(existsSync(join(dir, 'forms', '12-contact.json'))).toBe(true)
+      expect(logs.log).toHaveBeenCalledWith('Pushing forms to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Forms path: ${join(dir, 'forms')}`)
+      expect(logs.log).toHaveBeenCalledWith('Found 1 form to push')
+      expect(logs.log).toHaveBeenCalledWith('All forms pushed.')
+    })
+
+    it('forwards --allow-notifications to every form payload', async () => {
+      writeForm('contact.json', {settings: {form_title: 'Contact'}})
+      const {cmd, post} = makeRunCmd(['--allow-notifications'])
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/forms', {allowNotifications: true, settings: {form_title: 'Contact'}})
+    })
+
+    it('neither writes nor reports success on a dry run', async () => {
+      writeForm('contact.json', {settings: {form_title: 'Contact'}})
+      const {cmd, logs, post} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      await cmd.run()
+
+      expect(post).not.toHaveBeenCalled()
+      expect(logs.log).not.toHaveBeenCalledWith('All forms pushed.')
+    })
+
+    it('errors with the failed count instead of reporting success', async () => {
+      writeForm('contact.json', {settings: {form_title: 'Contact'}})
+      writeForm('quote.json', {settings: {form_title: 'Quote'}})
+      const {cmd, logs, post} = makeRunCmd()
+      post.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow('2 forms failed to push.')
+      expect(logs.log).not.toHaveBeenCalledWith('All forms pushed.')
     })
   })
 })

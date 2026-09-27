@@ -200,4 +200,73 @@ describe('plugins', () => {
       expect(lockedWpackagistSlugs('{not json', 'plugin').size).toBe(0)
     })
   })
+
+  describe('edge cases', () => {
+    it.each([
+      ['https://wordpress.org/plugins/hello-dolly', 'hello-dolly'],
+      ['https://wordpress.org/plugins/hello-dolly', 'hello-dolly'],
+      ['https://wordpress.org/plugins/hello-dolly/extra/', 'hello'],
+      ['https://example.com/?u=https://wordpress.org/plugins/hello-dolly/', 'hello'],
+      ['https://wordpress.org/plugins/hello-dolly/ ', 'hello'],
+      ['https://wordpress.org/plugins//', 'hello'],
+    ])('reads the slug of a single-file plugin with Plugin URI %s as %s', (uri, slug) => {
+      expect(parseInstalledPlugins([makeNative('hello', {plugin_uri: uri})])[0].slug).toBe(slug)
+    })
+
+    it('ignores the Plugin URI of a plugin that has a folder', () => {
+      expect(parseInstalledPlugins([makeNative('hello/hello', {plugin_uri: 'https://wordpress.org/plugins/other/'})])[0].slug).toBe('hello')
+    })
+
+    it('keeps the name and version of each installed plugin', () => {
+      expect(parseInstalledPlugins([makeNative('a/b', {name: 'Alpha', version: '2.0.0'})])).toEqual([
+        {active: true, file: 'a/b', name: 'Alpha', slug: 'a', version: '2.0.0'},
+      ])
+    })
+
+    it('does not filter a plugin whose slug merely starts with "loopress"', () => {
+      expect(parseInstalledPlugins([makeNative('loopress-extras/x')]).map((p) => p.slug)).toEqual(['loopress-extras'])
+    })
+
+    it('ignores packages with no name and names that only contain the prefix elsewhere', () => {
+      const lock = JSON.stringify({packages: [{version: '1'}, {name: 'vendor/wpackagist-plugin/x'}, {name: 'wpackagist-plugin/akismet'}]})
+
+      expect([...lockedWpackagistSlugs(lock, 'plugin')]).toEqual(['akismet'])
+    })
+
+    it('treats a lock with no packages and an empty lock string as managing nothing', () => {
+      expect(lockedWpackagistSlugs('{}', 'plugin').size).toBe(0)
+      expect(lockedWpackagistSlugs('', 'plugin').size).toBe(0)
+    })
+
+    it('reports the full diff shape for an empty manifest and site', () => {
+      expect(diffPlugins({}, [])).toEqual({collisions: [], inSync: [], toActivate: [], toInstall: [], toPin: [], toRemove: [], untrackedActive: []})
+    })
+
+    it('does not report an inactive untracked plugin, nor a tracked or managed one, as untrackedActive', () => {
+      const installed = [makePlugin('dormant', '1.0.0', false), makePlugin('tracked', '1.0.0'), makePlugin('managed', '1.0.0')]
+
+      expect(diffPlugins({tracked: '1.0.0'}, installed, new Set(['managed', 'tracked'])).untrackedActive).toEqual([])
+    })
+
+    it('pins before activating: an inactive managed plugin at the wrong version is only re-pinned', () => {
+      const diff = diffPlugins({akismet: '5.3.3'}, [makePlugin('akismet', '5.0.0', false)], new Set(['akismet']))
+
+      expect(diff.toPin).toEqual([{from: '5.0.0', slug: 'akismet', to: '5.3.3'}])
+      expect(diff.toActivate).toEqual([])
+    })
+
+    it('activates an inactive managed plugin pinned to "latest"', () => {
+      const diff = diffPlugins({akismet: 'latest'}, [makePlugin('akismet', '5.0.0', false)], new Set(['akismet']))
+
+      expect(diff.toActivate).toEqual([{file: 'akismet/akismet', slug: 'akismet'}])
+    })
+
+    it('reports an existing value moved to a new version as updated, not added', () => {
+      expect(mergePluginManifest({a: '1.0.0'}, {a: '2.0.0', b: '1.0.0'})).toEqual({
+        added: ['b'],
+        merged: {a: '2.0.0', b: '1.0.0'},
+        updated: [{from: '1.0.0', slug: 'a', to: '2.0.0'}],
+      })
+    })
+  })
 })

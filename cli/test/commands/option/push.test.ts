@@ -1,8 +1,14 @@
-import {describe, expect, it, vi} from 'vitest'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/option/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {type LocalOption} from '../../../src/utils/option-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 type PushInternals = {
   dryRun: boolean
@@ -97,6 +103,104 @@ describe('option push', () => {
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Failed to push')
       expect(cmd.failedCount).toBe(1)
+    })
+  })
+
+  describe('run', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-option-push-test-'))
+      mkdirSync(join(dir, 'options'), {recursive: true})
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = config
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    function makeRunCmd() {
+      const cmd = new TestPush([], fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValue(notFoundError())
+      const put = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, put}
+      return {cmd, logs, put}
+    }
+
+    function writeOption(option: Record<string, unknown>): void {
+      writeFileSync(join(dir, 'options', `${String(option.name)}.json`), JSON.stringify(option))
+    }
+
+    it('pushes every writable option, skips readonly ones, and returns both lists', async () => {
+      writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
+      writeOption({autoload: 'no', name: 'siteurl', readonly: true, value: 'https://acme.com'})
+      writeOption({autoload: 'no', name: 'home', readonly: true, value: 'https://acme.com'})
+      const {cmd, logs, put} = makeRunCmd()
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: ['blogname'], skipped: ['home', 'siteurl'], status: 'success'})
+      expect(put).toHaveBeenCalledTimes(1)
+      expect(put).toHaveBeenCalledWith('loopress/v1/options/blogname', {autoload: 'yes', value: 'Hello'})
+      expect(logs.log).toHaveBeenCalledWith('Pushing tracked options to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Options path: ${join(dir, 'options')}`)
+      expect(logs.log).toHaveBeenCalledWith('Skipping 2 readonly options: home, siteurl')
+      expect(logs.log).toHaveBeenCalledWith('Found 1 option to push')
+      expect(logs.log).toHaveBeenCalledWith('All options pushed.')
+    })
+
+    it('does not log a "Skipping" line when no option is readonly', async () => {
+      writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
+      const {cmd, logs} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Skipping'))
+    })
+
+    it('warns about an unparseable file instead of aborting the rest', async () => {
+      writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
+      writeFileSync(join(dir, 'options', 'broken.json'), JSON.stringify({autoload: 'yes', value: 1}))
+      const {cmd, logs, put} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledTimes(1)
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('broken.json'))
+    })
+
+    it('reports a dry-run status and does not report success on a dry run', async () => {
+      writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
+      const {cmd, logs, put} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: ['blogname'], skipped: [], status: 'dry-run'})
+      expect(put).not.toHaveBeenCalled()
+      expect(logs.log).not.toHaveBeenCalledWith('All options pushed.')
+    })
+
+    it('errors with the failed count instead of reporting success', async () => {
+      writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
+      writeOption({autoload: 'yes', name: 'blogdescription', value: 'Tagline'})
+      const {cmd, logs, put} = makeRunCmd()
+      put.mockRejectedValueOnce(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow('1 option failed to push.')
+      expect(logs.log).not.toHaveBeenCalledWith('All options pushed.')
     })
   })
 })

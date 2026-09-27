@@ -7,6 +7,7 @@ import {
   optionFileName,
   parseLocalOption,
   partitionByReadonly,
+  READONLY_BY_DEFAULT_OPTION_NAMES,
 } from '../../src/utils/option-format.js'
 
 describe('option-format', () => {
@@ -79,5 +80,75 @@ describe('option-format', () => {
       expect(writable).toEqual([writableOption])
       expect(skipped).toEqual([readonlyOption])
     })
+  })
+
+  it('URL-encodes an option name that is not path-safe', () => {
+    expect(optionEndpoint('a b/c')).toBe('loopress/v1/options/a%20b%2Fc')
+  })
+
+  it.each([...READONLY_BY_DEFAULT_OPTION_NAMES])('defaults %s to readonly', (name) => {
+    expect(defaultReadonlyFor(name)).toBe(true)
+  })
+
+  it('keeps the exact readonly-by-default list', () => {
+    expect(READONLY_BY_DEFAULT_OPTION_NAMES).toEqual([
+      'siteurl',
+      'home',
+      'db_version',
+      'initial_db_version',
+      'cron',
+      'rewrite_rules',
+      'WPLANG',
+      'default_role',
+      'users_can_register',
+      'uninstall_plugins',
+      'mailserver_url',
+      'mailserver_login',
+      'mailserver_pass',
+      'mailserver_port',
+    ])
+  })
+
+  it('matches reserved and readonly names exactly, not by prefix or case', () => {
+    expect(isReservedOptionName('active_plugins_backup')).toBe(false)
+    expect(isReservedOptionName('Template')).toBe(false)
+    expect(defaultReadonlyFor('wplang')).toBe(false)
+    expect(defaultReadonlyFor('home_url')).toBe(false)
+  })
+
+  describe('parseLocalOption edge cases', () => {
+    it.each([['null'], ['42'], ['"text"']])('rejects %s as not a JSON object', (raw) => {
+      expect(() => parseLocalOption(raw)).toThrow(/^not a JSON object$/)
+    })
+
+    it.each([
+      ['an empty name', {autoload: 'yes', name: '', value: 1}],
+      ['a non-string name', {autoload: 'yes', name: 7, value: 1}],
+    ])('rejects %s', (_label, data) => {
+      expect(() => parseLocalOption(JSON.stringify(data))).toThrow(/^missing a "name" string$/)
+    })
+
+    it('reports a bad autoload as a TypeError', () => {
+      expect(() => parseLocalOption(JSON.stringify({autoload: 1, name: 'x', value: 1}))).toThrow(TypeError)
+    })
+
+    it('keeps the readonly flag and any falsy value as-is', () => {
+      expect(parseLocalOption(JSON.stringify({autoload: 'no', name: 'x', readonly: true, value: 0}))).toEqual({
+        autoload: 'no',
+        name: 'x',
+        readonly: true,
+        value: 0,
+      })
+    })
+
+    it('rejects invalid JSON', () => {
+      expect(() => parseLocalOption('{nope')).toThrow(SyntaxError)
+    })
+  })
+
+  it('treats readonly: false like an absent flag', () => {
+    const option = {autoload: 'yes', name: 'blogname', readonly: false, value: 'Hello'}
+
+    expect(partitionByReadonly([option])).toEqual({skipped: [], writable: [option]})
   })
 })

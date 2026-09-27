@@ -164,4 +164,72 @@ describe('composer push', () => {
 
     await expect(cmd.run()).rejects.toThrow(/--force/)
   })
+
+  it('logs the whole run, with a lock and the trimmed server output, for a single drifted package', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'monolog/monolog': '^3.0', 'psr/log': '^3.0'}}))
+    writeFileSync(join(dir, 'composer.lock'), '{"packages":[]}')
+    const {cmd, logs, post} = make(false, ['--force'])
+    post.mockResolvedValue({...OK, lockDrift: [{from: null, name: 'psr/log', to: '3.0.0'}], output: '  Installing psr/log  \n'})
+
+    const result = await cmd.run()
+
+    expect(logs.log.mock.calls.map(([line]) => line)).toEqual([
+      'Pushing composer.json (2 packages) to https://acme.com',
+      '  + composer.lock sent for drift comparison (the server resolves versions from composer.json)',
+      'Running Composer on the server, this can take a few minutes...',
+      'Installing psr/log',
+      'Composer run completed on the server.',
+      '',
+      'The server resolved 1 package to a different version than your local composer.lock:',
+      '  psr/log: (absent) -> 3.0.0',
+      'Run `lps composer pull` to update your local composer.json and composer.lock.',
+    ])
+    expect(post).toHaveBeenCalledWith('loopress/v1/composer/sync', expect.objectContaining({force: true, lock: '{"packages":[]}'}), {timeoutMs: 600_000})
+    expect(result).toEqual({hasLock: true, lockDrift: [{from: null, name: 'psr/log', to: '3.0.0'}], packageCount: 2, status: 'success'})
+    expect(cmd.deployments).toEqual(['success'])
+  })
+
+  it('treats a missing require map and a missing lockDrift as empty', async () => {
+    writeFileSync(join(dir, 'composer.json'), '{}')
+    const {cmd, logs, post} = make(false)
+    post.mockResolvedValue({...OK, output: ' '.repeat(3)})
+
+    const result = await cmd.run()
+
+    expect(result).toEqual({hasLock: false, lockDrift: [], packageCount: 0, status: 'success'})
+    expect(logs.log).toHaveBeenCalledWith('Pushing composer.json (0 packages) to https://acme.com')
+    expect(logs.log).not.toHaveBeenCalledWith('')
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('composer.lock sent'))
+  })
+
+  it('returns a dry-run result that still reports the local lock', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    writeFileSync(join(dir, 'composer.lock'), '{}')
+    const {cmd} = make(true)
+
+    await expect(cmd.run()).resolves.toEqual({hasLock: true, lockDrift: [], packageCount: 0, status: 'dry-run'})
+  })
+
+  it('uses the exact collision and timeout messages', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    const collision = make(false)
+    collision.post.mockRejectedValue(
+      new Error('rejected', {
+        cause: {response: {body: JSON.stringify({collisions: [{slug: 'x'}], error: 'unmanaged_plugins_present'}), statusCode: 422}},
+      }),
+    )
+    const timeout = make(false)
+    timeout.post.mockRejectedValue(new Error('Request timed out after 600s.', {cause: {name: 'TimeoutError'}}))
+
+    await expect(collision.cmd.run()).rejects.toThrow(/^Plugins or themes are installed outside Loopress\. Re-run with --force to take them over\.$/)
+    await expect(timeout.cmd.run()).rejects.toThrow(/^Request timed out after 600s\. The Composer run may still be in progress on the server\.$/)
+  })
+
+  it('rethrows any other sync failure unchanged', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {}}))
+    const {cmd, post} = make(false)
+    post.mockRejectedValue(new Error('composer blew up'))
+
+    await expect(cmd.run()).rejects.toThrow(/^composer blew up$/)
+  })
 })

@@ -183,4 +183,23 @@ describe('compareStates', () => {
     expect(diff.removed).toEqual(['gone'])
     expect(isEmptyDiff(diff)).toBe(false)
   })
+
+  it('renders a field that is undefined on one side as "undefined", not an empty string', () => {
+    const diff = compareStates(state({a: {x: 1}}), state({a: {x: 1, y: undefined}}), labels)
+
+    expect(diff.changed[0].patch).toBe('+ y: undefined')
+  })
+
+  it('keeps an object-field value of exactly the limit length whole', () => {
+    const value = 'x'.repeat(198)
+    const diff = compareStates(state({a: {v: 1}}), state({a: {v: value}}), labels)
+
+    expect(diff.changed[0].patch).toBe(`~ v: 1 → "${value}"`)
+  })
+
+  it('renders removed and changed fields with their own markers', () => {
+    const diff = compareStates(state({a: {gone: true, moved: 1}}), state({a: {moved: 2}}), labels)
+
+    expect(diff.changed[0].patch).toBe('- gone: true\n~ moved: 1 → 2')
+  })
 })

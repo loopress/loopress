@@ -1,10 +1,13 @@
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/acf/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 // loadObjects() and pushObject() are private; the cast below is the same escape hatch used
 // throughout this CLI's test suite to unit-test command internals without going through the
@@ -192,6 +195,91 @@ describe('acf push', () => {
       expect(logs.warn).not.toHaveBeenCalled()
       expect(task.output).toContain('Failed to push')
       expect((cmd as unknown as PushWithPushObject).failedCount).toBe(1)
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = config
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    function makeRunCmd(argv: string[] = []) {
+      const cmd = new TestPush(argv, fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValue(notFoundError())
+      const post = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post}
+      return {cmd, get, logs, post}
+    }
+
+    function writeObject(type: string, key: string): void {
+      mkdirSync(join(dir, 'acf', type), {recursive: true})
+      writeFileSync(join(dir, 'acf', type, `${key}.json`), JSON.stringify({key, title: key}))
+    }
+
+    it('pushes every object of every type to its own endpoint, then reports success', async () => {
+      writeObject('field-groups', 'group_1')
+      writeObject('taxonomies', 'taxonomy_1')
+      const {cmd, logs, post} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/acf/field-groups', {key: 'group_1', title: 'group_1'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/acf/taxonomies', {key: 'taxonomy_1', title: 'taxonomy_1'})
+      expect(post).toHaveBeenCalledTimes(2)
+      expect(logs.log).toHaveBeenCalledWith('Pushing ACF configuration to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`ACF path: ${join(dir, 'acf')}`)
+      expect(logs.log).toHaveBeenCalledWith('Found 1 field-groups to push')
+      expect(logs.log).toHaveBeenCalledWith('All ACF objects pushed.')
+    })
+
+    it('limits the push to the types passed with --type', async () => {
+      writeObject('field-groups', 'group_1')
+      writeObject('taxonomies', 'taxonomy_1')
+      const {cmd, post} = makeRunCmd(['--type', 'taxonomies'])
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(post).toHaveBeenCalledWith('loopress/v1/acf/taxonomies', {key: 'taxonomy_1', title: 'taxonomy_1'})
+    })
+
+    it('does not log a "Found" line for a type with no local objects', async () => {
+      writeObject('field-groups', 'group_1')
+      const {cmd, logs} = makeRunCmd()
+
+      await cmd.run()
+
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('taxonomies to push'))
+    })
+
+    it('neither writes nor reports success on a dry run', async () => {
+      writeObject('field-groups', 'group_1')
+      const {cmd, logs, post} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      await cmd.run()
+
+      expect(post).not.toHaveBeenCalled()
+      expect(logs.log).not.toHaveBeenCalledWith('All ACF objects pushed.')
+    })
+
+    it('errors with the total failed count when some pushes fail, instead of reporting success', async () => {
+      writeObject('field-groups', 'group_1')
+      writeObject('post-types', 'post_type_1')
+      const {cmd, logs, post} = makeRunCmd()
+      post.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow('2 ACF objects failed to push.')
+      expect(logs.log).not.toHaveBeenCalledWith('All ACF objects pushed.')
     })
   })
 })
