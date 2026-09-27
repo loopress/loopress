@@ -119,6 +119,21 @@ describe('plugin status', () => {
     expect(logs.log).toHaveBeenCalledWith('Pinned but inactive: akismet')
   })
 
+  it('flags a plugin recorded as inactive that is active on the site, and accepts one that is inactive', async () => {
+    const {cmd, logs} = make(
+      {plugins: {akismet: {active: false, version: '5.3.3'}, 'hello-dolly': {active: false, version: '1.7.2'}}},
+      getWith(
+        [native('akismet', '5.3.3', 'active'), native('hello-dolly', '1.7.2', 'inactive')],
+        lockManaging('akismet', 'hello-dolly'),
+      ),
+    )
+
+    await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+    expect(logs.log).toHaveBeenCalledWith('Pinned inactive but active: akismet')
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Pinned but inactive'))
+  })
+
   it('flags a plugin managed by Loopress but dropped from loopress.json', async () => {
     const {cmd, logs} = make({}, getWith([native('akismet', '5.3.3', 'active')], lockManaging('akismet')))
 
@@ -146,6 +161,7 @@ describe('plugin status', () => {
       inactive: [],
       missing: [],
       status: 'in-sync',
+      unexpectedlyActive: [],
       untrackedActive: ['woocommerce'],
       wrongVersion: [],
     })

@@ -58,7 +58,7 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `pageDir` | `pages` | Directory for static HTML pages, relative to `rootDir`. Used by `lps page push/diff`. |
 | `appsDir` | `apps` | Directory for single-page app bundles, relative to `rootDir`. Used by `lps app pull/push`. |
 | `themes` | none | WordPress.org themes managed by Loopress (slugs). Populated by `lps theme pull` and `lps theme add`. Never switches the active theme. |
-| `plugins` | none | WordPress.org plugins managed by Loopress (slugs). Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
+| `plugins` | none | WordPress.org plugins managed by Loopress (slugs), each with its pinned version and, for an inactive plugin, `"active": false`. Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
 
 ## If loopress.json already exists
 

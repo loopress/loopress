@@ -11,6 +11,8 @@ type StatusResult = {
   inactive: string[]
   missing: string[]
   status: 'composer-managed' | 'drift' | 'in-sync'
+  // Recorded as inactive in loopress.json but active on the site.
+  unexpectedlyActive?: string[]
   untrackedActive: string[]
   wrongVersion: Array<{live: string; pinned: string; slug: string}>
 }
@@ -25,8 +27,17 @@ export default class Status extends LoopressCommand {
     const {url} = this.siteConfig
 
     if (existsSync(join(process.cwd(), this.rootDir, 'composer.json'))) {
-      this.warn('This project has a composer.json, which is authoritative for plugins. Run `lps composer` commands instead.')
-      return {drift: false, inactive: [], missing: [], status: 'composer-managed', untrackedActive: [], wrongVersion: []}
+      this.warn(
+        'This project has a composer.json, which is authoritative for plugins. Run `lps composer` commands instead.',
+      )
+      return {
+        drift: false,
+        inactive: [],
+        missing: [],
+        status: 'composer-managed',
+        untrackedActive: [],
+        wrongVersion: [],
+      }
     }
 
     const manifest = this.localConfig.plugins ?? {}
@@ -40,6 +51,7 @@ export default class Status extends LoopressCommand {
     const missing = diff.toInstall.map((a) => a.slug)
     const wrongVersion = diff.toPin.map((p) => ({live: p.from, pinned: p.to, slug: p.slug}))
     const inactive = diff.toActivate.map((a) => a.slug)
+    const unexpectedlyActive = diff.toDeactivate.map((a) => a.slug)
     const {untrackedActive} = diff
     // `collisions` are also drift (Loopress doesn't own them yet); surface them under missing's
     // banner so `plugin push --force` is the obvious next step.
@@ -49,6 +61,7 @@ export default class Status extends LoopressCommand {
       missing.length > 0 ||
       wrongVersion.length > 0 ||
       inactive.length > 0 ||
+      unexpectedlyActive.length > 0 ||
       diff.toRemove.length > 0 ||
       collisions.length > 0
 
@@ -58,15 +71,26 @@ export default class Status extends LoopressCommand {
     }
 
     if (missing.length > 0) this.log(`Not installed: ${missing.join(', ')}`)
-    if (collisions.length > 0) this.log(`Installed outside Loopress (run \`plugin push --force\`): ${collisions.join(', ')}`)
+    if (collisions.length > 0)
+      this.log(`Installed outside Loopress (run \`plugin push --force\`): ${collisions.join(', ')}`)
     for (const w of wrongVersion) this.log(`Version drift: ${w.slug} is ${w.live}, loopress.json pins ${w.pinned}`)
     if (inactive.length > 0) this.log(`Pinned but inactive: ${inactive.join(', ')}`)
-    if (diff.toRemove.length > 0) this.log(`Managed by Loopress but dropped from loopress.json: ${diff.toRemove.join(', ')}`)
+    if (unexpectedlyActive.length > 0) this.log(`Pinned inactive but active: ${unexpectedlyActive.join(', ')}`)
+    if (diff.toRemove.length > 0)
+      this.log(`Managed by Loopress but dropped from loopress.json: ${diff.toRemove.join(', ')}`)
     if (untrackedActive.length > 0) this.log(`Active but untracked: ${untrackedActive.join(', ')}`)
 
     if (drift) this.exit(1)
 
-    return {drift, inactive, missing, status: drift ? 'drift' : 'in-sync', untrackedActive, wrongVersion}
+    return {
+      drift,
+      inactive,
+      missing,
+      status: drift ? 'drift' : 'in-sync',
+      unexpectedlyActive,
+      untrackedActive,
+      wrongVersion,
+    }
   }
 
   private async fetchInstanceLock(): Promise<null | string> {

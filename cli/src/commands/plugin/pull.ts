@@ -2,12 +2,14 @@ import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {type WpNativePlugin} from '../../types/plugin.js'
+import {type PluginManifest, type WpNativePlugin} from '../../types/plugin.js'
+import {type ComposerPullResult, pullIntoComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest, type MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
 
 type PullResult = MergeResult & {
-  status: 'composer-managed' | 'dry-run' | 'success'
+  skipped?: ComposerPullResult['skipped']
+  status: 'dry-run' | 'success'
 }
 
 export default class Pull extends LoopressCommand {
@@ -21,22 +23,31 @@ export default class Pull extends LoopressCommand {
   async run(): Promise<PullResult> {
     const {url} = this.siteConfig
 
-    if (existsSync(join(process.cwd(), this.rootDir, 'composer.json'))) {
-      this.warn('This project has a composer.json, which is authoritative for plugins. Run `lps composer pull` instead.')
-      return {added: [], merged: this.localConfig.plugins ?? {}, status: 'composer-managed', updated: []}
-    }
-
     this.log(`Pulling plugins from ${url}`)
 
     const raw = await this.wp.get<WpNativePlugin[]>('wp/v2/plugins')
     const installed = parseInstalledPlugins(raw)
 
-    // Pin every plugin to the version actually running on the site. A later `plugin push`
-    // installs exactly this set via Composer + WPackagist; drift only surfaces when the pinned
-    // version and the live version disagree.
-    const incoming: Record<string, string> = Object.fromEntries(installed.map((p) => [p.slug, p.version]))
+    // Pin every plugin to the version actually running on the site, and record the inactive ones
+    // as such so a later `plugin push` doesn't switch them on. A later `plugin push` installs
+    // exactly this set via Composer + WPackagist; drift only surfaces when the pinned version and
+    // the live version disagree.
+    const versions = Object.fromEntries(installed.map((p) => [p.slug, p.version]))
+    const pins: PluginManifest = Object.fromEntries(
+      installed.map((p) => [p.slug, p.active ? p.version : {active: false, version: p.version}]),
+    )
 
-    const {added, merged, updated} = mergePluginManifest(this.localConfig.plugins ?? {}, incoming)
+    // A composer.json is authoritative over loopress.json: pin the live versions there instead.
+    const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
+    if (existsSync(composerJsonPath)) {
+      const result = await pullIntoComposerJson(composerJsonPath, 'plugin', versions, {
+        dryRun: this.dryRun,
+        log: this.log.bind(this),
+      })
+      return {...result, status: this.dryRun ? 'dry-run' : 'success'}
+    }
+
+    const {added, merged, updated} = mergePluginManifest(this.localConfig.plugins ?? {}, pins)
 
     if (this.dryRun) {
       this.log(`[dry-run] Would write ${Object.keys(merged).length} plugins to loopress.json`)

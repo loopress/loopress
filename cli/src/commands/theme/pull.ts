@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {type ComposerPullResult, pullIntoComposerJson} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest} from '../../utils/plugins.js'
 import {parseInstalledThemes, type WpNativeTheme} from '../../utils/themes.js'
@@ -9,7 +10,8 @@ import {parseInstalledThemes, type WpNativeTheme} from '../../utils/themes.js'
 type PullResult = {
   added: string[]
   merged: Record<string, string>
-  status: 'composer-managed' | 'dry-run' | 'success'
+  skipped?: ComposerPullResult['skipped']
+  status: 'dry-run' | 'success'
   updated: Array<{from: string; slug: string; to: string}>
 }
 
@@ -24,16 +26,21 @@ export default class Pull extends LoopressCommand {
   async run(): Promise<PullResult> {
     const {url} = this.siteConfig
 
-    if (existsSync(join(process.cwd(), this.rootDir, 'composer.json'))) {
-      this.warn('This project has a composer.json, which is authoritative. Run `lps composer pull` instead.')
-      return {added: [], merged: this.localConfig.themes ?? {}, status: 'composer-managed', updated: []}
-    }
-
     this.log(`Pulling themes from ${url}`)
 
     const raw = await this.wp.get<WpNativeTheme[]>('wp/v2/themes')
     const installed = parseInstalledThemes(raw)
     const incoming = Object.fromEntries(installed.map((t) => [t.slug, t.version]))
+
+    // A composer.json is authoritative over loopress.json: pin the live versions there instead.
+    const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
+    if (existsSync(composerJsonPath)) {
+      const result = await pullIntoComposerJson(composerJsonPath, 'theme', incoming, {
+        dryRun: this.dryRun,
+        log: this.log.bind(this),
+      })
+      return {...result, status: this.dryRun ? 'dry-run' : 'success'}
+    }
 
     const {added, merged, updated} = mergePluginManifest(this.localConfig.themes ?? {}, incoming)
 

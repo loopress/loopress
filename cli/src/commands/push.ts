@@ -1,6 +1,11 @@
+import {existsSync} from 'node:fs'
+import {readFile} from 'node:fs/promises'
+import {join} from 'node:path'
+
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
@@ -44,7 +49,15 @@ export default class Push extends LoopressCommand {
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
 
+    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+
     for (const target of PUSH_TARGETS) {
+      if (composerPushedByPlugins && target.commandId === 'composer:push') {
+        this.log('\n→ composer: already pushed whole by plugins')
+        results.push({label: target.label, status: 'pushed'})
+        continue
+      }
+
       this.log(`\n→ Pushing ${target.label}...`)
       try {
         await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
@@ -61,7 +74,9 @@ export default class Push extends LoopressCommand {
     if (this.failedCount > 0) {
       // Each failure's own reason, not just the count: under --json the per-resource lines above
       // never reach stdout, and this message is all an MCP caller or a script gets to see.
-      const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
+      const failures = results
+        .filter((result) => result.status === 'failed')
+        .map((result) => `${result.label}: ${result.error}`)
       this.error(`${pluralize(this.failedCount, 'resource')} failed to push. ${failures.join('; ')}`)
     }
 
@@ -78,9 +93,28 @@ export default class Push extends LoopressCommand {
     return argv
   }
 
+  // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
+  // safety), so `composer:push` would only run Composer on the server a second time.
+  private async composerDeclaresPlugins(): Promise<boolean> {
+    const path = join(process.cwd(), this.rootDir, 'composer.json')
+    if (!existsSync(path)) return false
+    try {
+      const composerJson = JSON.parse(await readFile(path, 'utf8')) as ComposerJson
+      return Object.keys(wpackagistRequire(composerJson, 'plugin')).length > 0
+    } catch {
+      // Unreadable: let both commands run and report the parse error themselves.
+      return false
+    }
+  }
+
   // Guards once here (shared with PushCommand, lib/push-command.ts) rather than once per
   // delegated command.
   private async guardProductionPush(): Promise<void> {
-    await guardProductionPush({dryRun: this.dryRun, error: (message) => this.error(message), siteConfig: this.siteConfig, yes: this.yes})
+    await guardProductionPush({
+      dryRun: this.dryRun,
+      error: (message) => this.error(message),
+      siteConfig: this.siteConfig,
+      yes: this.yes,
+    })
   }
 }

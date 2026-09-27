@@ -11,8 +11,8 @@ type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pull
 
 type PullResult = {results: PullTargetResult[]}
 
-// composer before plugins: `plugin:pull` reads the local composer.json to skip
-// Composer-managed plugins, so it needs the freshly pulled one. The rest write to independent
+// composer before plugins: when a composer.json exists, `plugin:pull` merges the live plugins
+// into it, so it must run on the freshly pulled one or `composer:pull` would overwrite its work. The rest write to independent
 // directories and their order does not matter, it mirrors `lps push` for familiarity.
 const PULL_TARGETS: PullTarget[] = [
   {commandId: 'composer:pull', label: 'composer'},

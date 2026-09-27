@@ -1,6 +1,7 @@
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {pinVersion} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
 
 type Advisory = {
@@ -44,8 +45,7 @@ export default class Audit extends LoopressCommand {
     const advisories: Advisory[] = []
     const health: HealthNote[] = []
     for (const slug of slugs) {
-       
-      const found = await this.auditOne(slug, manifest[slug])
+      const found = await this.auditOne(slug, pinVersion(manifest[slug]))
       advisories.push(...found.advisories)
       health.push(...found.health)
     }
@@ -55,9 +55,7 @@ export default class Audit extends LoopressCommand {
 
   private async auditOne(slug: string, pinned: string): Promise<{advisories: Advisory[]; health: HealthNote[]}> {
     const [vulns, info] = await Promise.all([this.fetchVulnerabilities(slug), this.fetchHealth(slug)])
-    const advisories = vulns
-      .filter((v) => pinned === 'latest' || affects(pinned, v.fixedIn))
-      .map((v) => ({...v, slug}))
+    const advisories = vulns.filter((v) => pinned === 'latest' || affects(pinned, v.fixedIn)).map((v) => ({...v, slug}))
     const health = info ? describeHealth(slug, pinned, info) : []
     return {advisories, health}
   }
@@ -65,7 +63,7 @@ export default class Audit extends LoopressCommand {
   private async fetchHealth(slug: string): Promise<null | Record<string, unknown>> {
     try {
       const body = await got(WPORG_INFO, {
-        searchParams: {'action': 'plugin_information', 'request[slug]': slug},
+        searchParams: {action: 'plugin_information', 'request[slug]': slug},
         timeout: {request: 10_000},
       }).json<Record<string, unknown>>()
       return typeof body === 'object' && !('error' in body) ? body : null
@@ -138,7 +136,8 @@ function normalizeAdvisory(raw: Record<string, unknown>): Omit<Advisory, 'slug'>
 // first "< X" bound is the version the fix landed in. Best-effort: the shape varies, so a
 // missing bound just means we can't tell and the advisory is reported anyway.
 function extractFixedIn(raw: Record<string, unknown>): string | undefined {
-  const impact = raw.impact as undefined | {software?: Array<{versions?: Array<{to_compare?: string; to_version?: string}>}>}
+  const impact = raw.impact as
+    undefined | {software?: Array<{versions?: Array<{to_compare?: string; to_version?: string}>}>}
   for (const sw of impact?.software ?? []) {
     for (const v of sw.versions ?? []) {
       if (v.to_compare === '<' && typeof v.to_version === 'string') return v.to_version

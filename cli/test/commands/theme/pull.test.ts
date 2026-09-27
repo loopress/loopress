@@ -44,6 +44,7 @@ describe('theme pull', () => {
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
     rmSync(dir, {force: true, recursive: true})
   })
 
@@ -59,25 +60,42 @@ describe('theme pull', () => {
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 themes to loopress.json')
   })
 
-  it('bails out and warns when the project uses a composer.json', async () => {
-    writeFileSync(join(dir, 'composer.json'), '{}')
-    const {cmd, get, logs} = make(false)
+  it('pins live versions into composer.json instead of loopress.json when one exists', async () => {
+    writeFileSync(
+      join(dir, 'composer.json'),
+      JSON.stringify({
+        name: 'acme/site',
+        require: {'wpackagist-theme/astra': '4.0.0', 'wpackagist-plugin/akismet': '5.3.3'},
+      }),
+    )
+    const fetch = vi.fn().mockResolvedValue(new Response('{}', {status: 200}))
+    vi.stubGlobal('fetch', fetch)
+    const {cmd, get} = make(false, {themes: {ignored: '1.0.0'}})
+    get.mockResolvedValue([nativeTheme('astra', '4.1.0'), nativeTheme('generatepress', '3.4.0')])
 
     const result = await cmd.run()
 
-    expect(get).not.toHaveBeenCalled()
-    expect(result.status).toBe('composer-managed')
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps composer pull'))
+    const written = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
+    expect(written).toEqual({
+      name: 'acme/site',
+      require: {
+        'wpackagist-plugin/akismet': '5.3.3',
+        'wpackagist-theme/astra': '4.1.0',
+        'wpackagist-theme/generatepress': '3.4.0',
+      },
+    })
+    expect(result).toEqual({
+      added: ['generatepress'],
+      merged: {astra: '4.1.0', generatepress: '3.4.0'},
+      skipped: [],
+      status: 'success',
+      updated: [{from: '4.0.0', slug: 'astra', to: '4.1.0'}],
+    })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('themes/info/1.2/?action=theme_information&slug=generatepress'),
+    )
     expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
-  })
-
-  it('preserves the existing themes value on a composer-managed bail-out instead of clearing it', async () => {
-    writeFileSync(join(dir, 'composer.json'), '{}')
-    const {cmd} = make(false, {themes: {astra: '4.0.0'}})
-
-    const result = await cmd.run()
-
-    expect(result.merged).toEqual({astra: '4.0.0'})
   })
 
   it('merges with the existing manifest, preserving themes no longer reported by the site', async () => {

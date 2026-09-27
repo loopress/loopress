@@ -1,4 +1,7 @@
 import {confirm} from '@inquirer/prompts'
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../src/commands/push.js'
@@ -42,7 +45,11 @@ class TestPush extends Push {
 
 function make(options: {dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
   const cmd = new TestPush([], fakeOclifConfig)
-  cmd.setup({dryRun: options.dryRun, siteConfig: options.siteConfig ?? makeEnv('staging', 'https://staging.acme.com'), yes: options.yes})
+  cmd.setup({
+    dryRun: options.dryRun,
+    siteConfig: options.siteConfig ?? makeEnv('staging', 'https://staging.acme.com'),
+    yes: options.yes,
+  })
   const logs = silenceLogs(cmd)
   return {cmd, logs}
 }
@@ -52,6 +59,25 @@ describe('push', () => {
     resetFakeOclifConfig()
     vi.clearAllMocks()
     interactive.value = false
+  })
+
+  it('skips composer:push when plugin:push already pushes a composer.json that declares plugins', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '5.3.3'}}))
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    try {
+      await cmd.run()
+    } finally {
+      vi.mocked(process.cwd).mockRestore()
+      rmSync(dir, {force: true, recursive: true})
+    }
+
+    const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+    expect(ran).toEqual(ALL_COMMAND_IDS.filter((id) => id !== 'composer:push'))
+    expect(logs.log).toHaveBeenCalledWith('\n→ composer: already pushed whole by plugins')
   })
 
   it('delegates to every resource push, in dependency order, with the resolved env and --yes', async () => {
@@ -95,9 +121,7 @@ describe('push', () => {
   })
 
   it('continues past a failed resource and still pushes the rest', async () => {
-    vi.mocked(fakeOclifConfig.runCommand)
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValue({})
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({})
     const {cmd, logs} = make()
 
     await expect(cmd.run()).rejects.toThrow('1 resource failed to push.')
