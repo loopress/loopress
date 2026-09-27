@@ -106,4 +106,46 @@ describe('theme-styles-format', () => {
       expect(canonicalGlobalStyles({})).toEqual({settings: {}, styles: {}})
     })
   })
+
+  describe('exact values and edge cases', () => {
+    it('requires block-templates to be exactly true', () => {
+      expect(isBlockTheme({theme_supports: {'block-templates': 'true'}})).toBe(false)
+      expect(isBlockTheme({theme_supports: {'block-templates': 1}})).toBe(false)
+    })
+
+    it.each([
+      ['an empty link list', {'wp:user-global-styles': []}],
+      ['a link with an empty href', {'wp:user-global-styles': [{href: ''}]}],
+      ['a link to another route', {'wp:user-global-styles': [{href: 'https://example.com/wp-json/wp/v2/themes/7'}]}],
+      ['a link with a non-numeric id', {'wp:user-global-styles': [{href: 'https://example.com/wp-json/wp/v2/global-styles/abc'}]}],
+      ['another relation only', {self: [{href: 'https://example.com/wp-json/wp/v2/global-styles/9'}]}],
+    ])('returns null for %s', (_label, links) => {
+      expect(getUserGlobalStylesId({_links: links})).toBeNull()
+    })
+
+    it('reads a multi-digit id completely', () => {
+      expect(getUserGlobalStylesId({_links: userGlobalStylesLink(98_765)})).toBe(98_765)
+    })
+
+    it('reads the themes collection and uses the exact error messages', async () => {
+      const get = async (path: string) => {
+        expect(path).toBe('wp/v2/themes')
+        return [{status: 'active', stylesheet: 'astra'}]
+      }
+
+      await expect(getActiveThemeGlobalStyles({get} as unknown as WpClient)).rejects.toThrow(
+        'Global Styles sync only supports block themes (Full Site Editing). The active theme "astra" is a classic theme.',
+      )
+      await expect(getActiveThemeGlobalStyles(fakeWp([]))).rejects.toThrow(/^Could not determine the active theme on WordPress\.$/)
+      await expect(
+        getActiveThemeGlobalStyles(fakeWp([{status: 'active', stylesheet: 'tt4', theme_supports: {'block-templates': true}}])),
+      ).rejects.toThrow(
+        'Could not resolve the editable Global Styles post for "tt4". Requires an admin-capable account (edit_theme_options) on WordPress 5.9+.',
+      )
+    })
+
+    it('defaults only a null or missing value, keeping any other falsy one', () => {
+      expect(canonicalGlobalStyles({settings: null, styles: 0})).toEqual({settings: {}, styles: 0})
+    })
+  })
 })

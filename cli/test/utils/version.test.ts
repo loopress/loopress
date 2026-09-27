@@ -38,3 +38,28 @@ describe('compareVersions', () => {
     expect(compareVersions('9.4.2', 'nonsense')).toBeNull()
   })
 })
+
+describe('isExactVersion boundaries', () => {
+  it.each([
+    ['9', true],
+    ['1.2.3.4-beta', true],
+    ['1.2.3.4.5', false],
+    ['1.2.3.4.5-beta', false],
+    ['1.2.3-', false],
+    ['v1.2.3', false],
+    ['1.2.3 ', false],
+    [' 1.2.3', false],
+    ['1.2.3-beta 1', false],
+    ['1..2', false],
+  ])('%j is %s', (value, expected) => {
+    expect(isExactVersion(value)).toBe(expected)
+  })
+})
+
+describe('compareVersions order', () => {
+  it('returns -1, 0 and 1', () => {
+    expect(compareVersions('1.0.0', '2.0.0')).toBe(-1)
+    expect(compareVersions('2.0.0', '2.0.0')).toBe(0)
+    expect(compareVersions('2.0.1', '2.0.0')).toBe(1)
+  })
+})

@@ -222,6 +222,84 @@ describe('menu push', () => {
     })
   })
 
+  describe('pushLocations edge cases', () => {
+    it('only announces the locations file on a dry run', async () => {
+      const {cmd, logs} = makeCmd()
+      cmd.dryRun = true
+      const put = vi.fn()
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put}
+      writeFileSync(join(dir, 'menu-locations.json'), JSON.stringify({primary: 'main'}))
+
+      await cmd.pushLocations(dir)
+
+      expect(put).not.toHaveBeenCalled()
+      expect(logs.log).toHaveBeenCalledWith(`[dry-run] Would push: ${join(dir, 'menu-locations.json')}`)
+    })
+
+    it('rethrows a read error other than a missing file', async () => {
+      const {cmd} = makeCmd()
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
+      mkdirSync(join(dir, 'menu-locations.json'))
+
+      await expect(cmd.pushLocations(dir)).rejects.toThrow(/EISDIR/)
+    })
+
+    it('logs the exact pushed and failed lines', async () => {
+      const file = join(dir, 'menu-locations.json')
+      writeFileSync(file, JSON.stringify({primary: 'main'}))
+      const ok = makeCmd()
+      ok.cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn().mockResolvedValueOnce({})}
+      const ko = makeCmd()
+      ko.cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn().mockRejectedValueOnce(new Error('boom'))}
+
+      await ok.cmd.pushLocations(dir)
+      await ko.cmd.pushLocations(dir)
+
+      expect(ok.logs.log).toHaveBeenCalledWith(`Pushed: ${file}`)
+      expect(ko.logs.warn).toHaveBeenCalledWith(`Failed to push ${file}: boom`)
+    })
+  })
+
+  describe('pushMenuFile edge cases', () => {
+    it.each([
+      ['a JSON null', 'null'],
+      ['a bare number', '42'],
+    ])('rejects a file that is %s', async (_label, raw) => {
+      const {cmd} = makeCmd()
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, raw)
+      const task = {output: ''}
+
+      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('not a JSON object')
+      expect(task.output).toBe(`Failed to push ${file}: not a JSON object`)
+    })
+
+    it('sends an empty name when the file has none', async () => {
+      const {cmd} = makeCmd()
+      const post = vi.fn().mockResolvedValueOnce({items: [], name: '', revision: 'r', slug: 'main', warnings: []})
+      cmd.wpClient = {get: vi.fn().mockRejectedValueOnce(notFoundError()), post, put: vi.fn()}
+      const file = join(dir, 'main.json')
+      writeFileSync(file, JSON.stringify({items: [], name: 42, slug: 'main'}))
+
+      await cmd.pushMenuFile(file, {output: ''})
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/menus', {items: [], name: '', slug: 'main'})
+    })
+
+    it('reports the exact dry-run line', async () => {
+      const {cmd} = makeCmd()
+      cmd.dryRun = true
+      cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
+      const file = join(dir, 'main.json')
+      const task = {output: ''}
+
+      await cmd.pushMenuFile(file, task)
+
+      expect(task.output).toBe(`[dry-run] Would push: ${file}`)
+    })
+  })
+
   describe('run', () => {
     class TestPush extends Push {
       protected override async guardProductionPush(): Promise<void> {}

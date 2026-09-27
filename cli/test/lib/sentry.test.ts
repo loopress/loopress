@@ -5,6 +5,7 @@ import {
   isTelemetryDisabled,
   redactArgv,
   resolveEnvironment,
+  runtimeContext,
   scrubErrorMessage,
   scrubEvent,
 } from '../../src/lib/sentry.js'
@@ -137,6 +138,81 @@ describe('sentry', () => {
     it('is a no-op on an event with nothing sensitive', () => {
       const event = {exception: {values: [{value: 'boom'}]}}
       expect(scrubEvent(event as never)).toEqual({exception: {values: [{value: 'boom'}]}})
+    })
+  })
+
+  describe('scrubbing edge cases', () => {
+    it.each([
+      ['http and upper-case schemes', 'GET HTTP://Site.example/wp-json/wp/v2/x failed', 'GET <site>/wp-json/wp/v2/x failed'],
+      ['a site in a subdirectory', 'on https://acme.com/blog/wp-json/loopress/v1/x', 'on <site>/wp-json/loopress/v1/x'],
+      ['two REST URLs on one line', 'a https://a.example/wp-json/x b https://b.example/wp-json/y', 'a <site>/wp-json/x b <site>/wp-json/y'],
+      ['a bare site URL', 'could not reach https://acme.com/ at all', 'could not reach <site> at all'],
+      ['a URL in quotes', 'fetch "https://acme.com/page" failed', 'fetch "<site>" failed'],
+      ['a URL in parentheses', '(see https://acme.com/x)', '(see <site>)'],
+      ['a URL in angle brackets', '<https://acme.com/x>', '<<site>>'],
+      ['a URL in single quotes', "'https://acme.com/x'", "'<site>'"],
+      ['a scheme glued to a word', 'xhttps://acme.com/x', 'xhttps://acme.com/x'],
+    ])('handles %s', (_label, input, expected) => {
+      expect(scrubErrorMessage(input)).toBe(expected)
+    })
+
+    it('keeps exactly the first 300 characters', () => {
+      const line = 'a'.repeat(299) + 'bc'
+
+      expect(scrubErrorMessage(line)).toBe('a'.repeat(299) + 'b')
+    })
+
+    it('scrubs an empty message to an empty string', () => {
+      expect(scrubErrorMessage('')).toBe('')
+      expect(scrubErrorMessage('\nsecond line only')).toBe('')
+    })
+
+    it('leaves a non-string exception value and message untouched', () => {
+      const event = {exception: {values: [{type: 'Error'}]}, message: undefined}
+
+      expect(scrubEvent(event as never)).toEqual({exception: {values: [{type: 'Error'}]}, message: undefined})
+    })
+
+    it('handles an event with no exception at all', () => {
+      expect(scrubEvent({message: 'https://acme.com/x\ntrace'} as never)).toEqual({message: '<site>'})
+    })
+  })
+
+  describe('redactArgv edge cases', () => {
+    it('keeps a bare "-" style short flag and redacts an empty argument', () => {
+      expect(redactArgv(['-y', '', '--a=b=c'])).toEqual(['-y', '[REDACTED]', '--a'])
+    })
+  })
+
+  describe('runtimeContext', () => {
+    it('reports the Node version and the OS name and release', () => {
+      const context = runtimeContext()
+
+      expect(context.node).toBe(process.version)
+      expect(context.os).toMatch(/^\S+ \S+$/)
+    })
+  })
+
+  describe('resolveEnvironment edge cases', () => {
+    it('ignores an empty SENTRY_ENVIRONMENT', () => {
+      process.env.SENTRY_ENVIRONMENT = ''
+      process.env.NODE_ENV = 'development'
+
+      expect(resolveEnvironment()).toBe('development')
+    })
+
+    it('treats any other NODE_ENV as production', () => {
+      process.env.NODE_ENV = 'test'
+
+      expect(resolveEnvironment()).toBe('production')
+    })
+  })
+
+  describe('isTelemetryDisabled edge cases', () => {
+    it('only treats LOOPRESS_TELEMETRY_DISABLED=1 as disabling', () => {
+      process.env.LOOPRESS_TELEMETRY_DISABLED = 'true'
+
+      expect(isTelemetryDisabled()).toBe(false)
     })
   })
 })

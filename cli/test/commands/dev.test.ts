@@ -206,6 +206,77 @@ describe('dev', () => {
     expect(log).toHaveBeenCalledWith('\nStopped watching.')
   })
 
+  it('batches added and changed files per resource type and pushes them to local', async () => {
+    mkdirSync(join(dir, 'snippets'))
+    mkdirSync(join(dir, 'pages'))
+    vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {emit, watcher} = fakeWatcher()
+    watchMock.mockReturnValue(watcher)
+
+    const cmd = make(['--only=snippets,pages'])
+    const {log} = silenceLogs(cmd)
+
+    const runPromise = cmd.run()
+    await vi.waitFor(() => {
+      expect(log).toHaveBeenCalledWith('\nWatching for changes. Press Ctrl+C to stop.\n')
+    })
+
+    emit('add', join(dir, 'snippets', 'a.php'))
+    emit('change', join(dir, 'snippets', 'b.php'))
+    emit('change', join(dir, 'pages', 'about.html'))
+    // Outside every watch target: dropped, never pushed.
+    emit('change', join(dir, 'elsewhere', 'x.txt'))
+
+    await vi.waitFor(
+      () => {
+        expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
+      },
+      {timeout: 3000},
+    )
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('snippet:push', ['--env', 'local'])
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('page:push', ['--env', 'local'])
+    expect(log).toHaveBeenCalledWith('\n→ snippets changed (a.php, b.php), pushing to local...')
+    expect(log).toHaveBeenCalledWith('\n→ pages changed (about.html), pushing to local...')
+
+    process.emit('SIGINT')
+    await runPromise
+
+    expect(process.exitCode).toBe(0)
+  })
+
+  it.each([
+    ['.git/HEAD', true],
+    ['snippets/.git', true],
+    ['.DS_Store', true],
+    ['snippets/.DS_Store', true],
+    ['node_modules', true],
+    ['snippets/foo.php.swp', true],
+    ['snippets/foo.swp.php', false],
+    ['snippets/my.gitignore-notes.php', false],
+    ['snippets/node_modules_helper.php', false],
+  ])('ignores %s: %s', async (path, ignored) => {
+    mkdirSync(join(dir, 'snippets'))
+    vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    const {watcher} = fakeWatcher()
+    watchMock.mockReturnValue(watcher)
+    const cmd = make(['--only=snippets'])
+    const {log} = silenceLogs(cmd)
+
+    const runPromise = cmd.run()
+    await vi.waitFor(() => {
+      expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching for changes'))
+    })
+    const options = watchMock.mock.calls[0][1] as {ignored: (path: string) => boolean}
+
+    expect(options.ignored(path)).toBe(ignored)
+
+    process.emit('SIGINT')
+    await runPromise
+  })
+
   describe('parseTypeFlag', () => {
     it('trims whitespace around each resource type', () => {
       const cmd = make()

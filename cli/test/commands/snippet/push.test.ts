@@ -1,15 +1,18 @@
 import type * as FsPromises from 'node:fs/promises'
 
-import {existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/snippet/push.js'
+import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type Snippet} from '../../../src/types/snippet.js'
+import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {SNIPPETS_ENDPOINT} from '../../../src/utils/snippet-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {makeEnv} from '../../helpers/project-fixtures.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof FsPromises>()
@@ -495,6 +498,181 @@ describe('snippet push', () => {
       expect(put).not.toHaveBeenCalled()
       expect(task.output).toContain('Failed to push')
       expect(cmd.failedCount).toBe(1)
+    })
+  })
+
+  describe('pushSnippet payload', () => {
+    it('sends every snippet field, strips the PHP opening tag, and records the source path in the description', async () => {
+      writeFileSync(join(dir, '8-demo.php'), '<?php echo 1;')
+      const localSnippet: Snippet = {
+        active: true,
+        code: '<?php echo 1;',
+        id: 8,
+        insertMethod: 'shortcode',
+        location: 'frontend',
+        name: 'demo',
+        path: join(dir, '8-demo.php'),
+        priority: 5,
+        shortcodeAttributes: ['a'],
+        tags: ['t'],
+        type: 'php',
+      }
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const put = vi.fn().mockResolvedValueOnce({})
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post: vi.fn(), put}
+      const task = {output: ''}
+
+      await (cmd as unknown as PushWithPushSnippet).pushSnippet(localSnippet, task)
+
+      expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/8`, {
+        active: true,
+        code: 'echo 1;',
+        description: `Imported from ${join(dir, '8-demo.php')}`,
+        insertMethod: 'shortcode',
+        location: 'frontend',
+        name: 'demo',
+        priority: 5,
+        shortcodeAttributes: ['a'],
+        tags: ['t'],
+        type: 'php',
+      })
+      expect(task.output).toBe('Pushed: demo')
+    })
+
+    it('reports the snippet name through task.output in dry-run mode and returns its known id', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      ;(cmd as unknown as PushWithPushSnippet).dryRun = true
+      const task = {output: ''}
+
+      const id = await (cmd as unknown as PushWithPushSnippet).pushSnippet(
+        {
+          active: false,
+          code: '',
+          id: 3,
+          insertMethod: 'auto',
+          location: 'everywhere',
+          name: 'demo',
+          path: join(dir, '3-demo.php'),
+          priority: 10,
+          shortcodeAttributes: [],
+          tags: [],
+          type: 'php',
+        },
+        task,
+      )
+
+      expect(id).toBe(3)
+      expect(task.output).toBe('[dry-run] Would push: demo')
+    })
+  })
+
+  describe('ensureCanonicalFilename sidecar read errors', () => {
+    it('rethrows a sidecar read error other than a missing file', async () => {
+      writeFileSync(join(dir, 'demo.php'), '<?php echo 1;')
+      // A directory where the sidecar should be makes readFile fail with EISDIR, not ENOENT.
+      mkdirSync(join(dir, 'demo.json'))
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+
+      await expect(
+        (cmd as unknown as PushWithEnsureCanonicalFilename).ensureCanonicalFilename(
+          {
+            active: false,
+            code: '',
+            insertMethod: 'auto',
+            location: 'everywhere',
+            name: 'demo',
+            path: join(dir, 'demo.php'),
+            priority: 10,
+            shortcodeAttributes: [],
+            tags: [],
+            type: 'php',
+          },
+          9,
+          'demo',
+        ),
+      ).rejects.toThrow(/EISDIR/)
+      expect(existsSync(join(dir, 'demo.php'))).toBe(true)
+    })
+  })
+
+  describe('run', () => {
+    class TestPush extends Push {
+      protected override async guardProductionPush(): Promise<void> {}
+      protected override async recordDeployment(): Promise<void> {}
+
+      setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
+        this.localConfig = config
+        this.siteConfig = siteConfig
+        this.dryRun = false
+      }
+    }
+
+    function makeRunCmd() {
+      const cmd = new TestPush([], fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      const logs = silenceLogs(cmd)
+      const get = vi.fn().mockRejectedValue(notFoundError())
+      const post = vi.fn().mockResolvedValue({id: 42, name: 'Hello'})
+      const put = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
+      return {cmd, logs, post, put}
+    }
+
+    function writeSnippet(base: string, meta: Record<string, unknown>): void {
+      mkdirSync(join(dir, 'snippets'), {recursive: true})
+      writeFileSync(join(dir, 'snippets', `${base}.php`), '<?php echo 1;')
+      writeFileSync(join(dir, 'snippets', `${base}.json`), JSON.stringify(meta))
+    }
+
+    it('pushes every local snippet, returns their ids, and reports success', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      writeSnippet('hello', {name: 'Hello', type: 'php'})
+      const {cmd, logs, post, put} = makeRunCmd()
+
+      const result = await cmd.run()
+
+      expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/7`, expect.objectContaining({name: 'Existing'}))
+      expect(post).toHaveBeenCalledWith(SNIPPETS_ENDPOINT, expect.objectContaining({name: 'Hello'}))
+      expect(result.status).toBe('success')
+      expect(result.pushed).toEqual(expect.arrayContaining([{id: 7, name: 'Existing'}, {id: 42, name: 'Hello'}]))
+      expect(result.pushed).toHaveLength(2)
+      expect(existsSync(join(dir, 'snippets', '42-hello.php'))).toBe(true)
+      expect(logs.log).toHaveBeenCalledWith('Pushing snippets to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Snippets path: ${join(dir, 'snippets')}`)
+      expect(logs.log).toHaveBeenCalledWith('Found 2 snippets to push')
+      expect(logs.log).toHaveBeenCalledWith('All snippets pushed.')
+    })
+
+    it('returns a dry-run status without writing or reporting success', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      const {cmd, logs, post, put} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: [{id: 7, name: 'Existing'}], status: 'dry-run'})
+      expect(post).not.toHaveBeenCalled()
+      expect(put).not.toHaveBeenCalled()
+      expect(logs.log).not.toHaveBeenCalledWith('All snippets pushed.')
+    })
+
+    it('errors with the failed count instead of reporting success', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      const {cmd, logs, put} = makeRunCmd()
+      put.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow('1 snippet failed to push.')
+      expect(logs.log).not.toHaveBeenCalledWith('All snippets pushed.')
+    })
+
+    it('errors cleanly when the snippets directory cannot be read', async () => {
+      const {cmd} = makeRunCmd()
+
+      await expect(cmd.run()).rejects.toThrow(/Error loading snippets/)
     })
   })
 })

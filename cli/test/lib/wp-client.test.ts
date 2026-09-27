@@ -66,6 +66,24 @@ describe('WpClient', () => {
     expect(JSON.parse(seenBody)).toEqual({slug: 'akismet'})
   })
 
+  it('PUTs a JSON body', async () => {
+    let seen = ''
+    const {client} = await serve((req, res) => {
+      let raw = ''
+      req.on('data', (chunk: Uint8Array) => {
+        raw += Buffer.from(chunk).toString()
+      })
+      req.on('end', () => {
+        seen = `${req.method} ${req.url} ${raw}`
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end('{"ok":true}')
+      })
+    })
+
+    await expect(client.put('loopress/v1/options/blogname', {value: 'x'})).resolves.toEqual({ok: true})
+    expect(seen).toBe('PUT /wp-json/loopress/v1/options/blogname {"value":"x"}')
+  })
+
   it('DELETEs a path', async () => {
     let seenMethod = ''
     let seenUrl = ''
@@ -175,6 +193,68 @@ describe('WpClient', () => {
       })
 
       await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(500\)/)
+    })
+
+    it('starts the query string with "?" for a path without one, honouring a custom page size', async () => {
+      const seenUrls: string[] = []
+      const {client} = await serve((req, res) => {
+        seenUrls.push(req.url ?? '')
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify(pageOf(req) === 1 ? [{id: 1}, {id: 2}] : [{id: 3}]))
+      })
+
+      const all = await client.getAll<{id: number}>('wp/v2/pages', {perPage: 2})
+
+      expect(all).toEqual([{id: 1}, {id: 2}, {id: 3}])
+      expect(seenUrls).toEqual(['/wp-json/wp/v2/pages?per_page=2&page=1', '/wp-json/wp/v2/pages?per_page=2&page=2'])
+    })
+
+    it('stops on an empty page even when the previous one was full', async () => {
+      const {client} = await serve((req, res) => {
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify(pageOf(req) === 1 ? [{id: 1}] : []))
+      })
+
+      await expect(client.getAll('wp/v2/pages', {perPage: 1})).resolves.toEqual([{id: 1}])
+    })
+
+    it('stops on a page that is not an array instead of looping forever', async () => {
+      let calls = 0
+      const {client} = await serve((_req, res) => {
+        calls += 1
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify({not: 'a list'}))
+      })
+
+      await expect(client.getAll('wp/v2/pages')).resolves.toEqual([])
+      expect(calls).toBe(1)
+    })
+
+    it('rethrows a 400 whose body is not JSON, or carries another code', async () => {
+      const {client} = await serve((req, res) => {
+        res.writeHead(400, {'Content-Type': 'text/html'})
+        res.end(pageOf(req) === 1 ? '<html>bad</html>' : '')
+      })
+
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
+    })
+
+    it('rethrows a 400 with an empty body', async () => {
+      const {client} = await serve((_req, res) => {
+        res.writeHead(400)
+        res.end()
+      })
+
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
+    })
+
+    it('rethrows a 400 whose JSON code is not the pagination one', async () => {
+      const {client} = await serve((_req, res) => {
+        res.writeHead(400, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify({code: 'rest_invalid_param'}))
+      })
+
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
     })
   })
 
