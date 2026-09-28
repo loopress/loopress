@@ -5,6 +5,36 @@ export const REQUEST_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'delete' | 'get' | 'post' | 'put'
 
+// A host where http:// is acceptable because the traffic never leaves the machine (or the
+// developer's LAN via a Local by Flywheel *.local domain): loopback, the *.localhost / *.local /
+// *.test dev TLDs. Everywhere else, http means the Application Password rides the wire in the
+// clear (Basic auth is base64, not encryption), so it must be refused. Exported so the
+// `lps project config` prompt can reject a bad URL with the same rule it is enforced by.
+export function isLocalHost(hostname: string): boolean {
+  const host = hostname.replaceAll(/^\[|\]$/g, '').toLowerCase() // strip IPv6 brackets
+  if (host === 'localhost' || host === '::1') return true
+  if (host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.test')) return true
+  return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) // 127.0.0.0/8
+}
+
+// Throws when a URL would send credentials in cleartext: http:// to a non-local host. Returns
+// the trimmed URL string otherwise. The trust boundary is here, at the client, so a hand-edited
+// config.json or loopress.json cannot bypass the check the interactive prompt also applies.
+export function assertSecureSiteUrl(siteUrl: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(siteUrl)
+  } catch {
+    throw new Error(`Invalid site URL: ${siteUrl}`)
+  }
+
+  if (parsed.protocol === 'http:' && !isLocalHost(parsed.hostname)) {
+    throw new Error(
+      `Refusing to send credentials over plain HTTP to "${parsed.hostname}": the Application Password would travel in cleartext. Use HTTPS (plain HTTP is allowed only for local sites: localhost, 127.0.0.1, *.local, *.test).`,
+    )
+  }
+}
+
 /**
  * HTTP client for a WordPress site's REST API.
  * Paths are relative to `<site>/wp-json/`, e.g. `loopress/v1/snippets` or `wp/v2/plugins`.
@@ -16,6 +46,7 @@ export class WpClient {
     private readonly siteUrl: string,
     token: string,
   ) {
+    assertSecureSiteUrl(siteUrl)
     this.client = got.extend({
       headers: {Authorization: `Basic ${Buffer.from(token).toString('base64')}`},
       prefixUrl: `${siteUrl}/wp-json`,

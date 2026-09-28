@@ -6,7 +6,7 @@ import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
-import {WpClient} from '../../lib/wp-client.js'
+import {isLocalHost, WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 
@@ -65,16 +65,22 @@ export default class Config extends Command {
     const rawUrl = await input({
       message: 'WordPress URL',
       validate(value): string | true {
+        let parsed: URL
         try {
-          const parsed = new URL(value)
-          if (!['http:', 'https:'].includes(parsed.protocol)) {
-            return 'URL must start with http:// or https://'
-          }
-
-          return true
+          parsed = new URL(value)
         } catch {
           return 'Invalid URL'
         }
+
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          return 'URL must start with http:// or https://'
+        }
+
+        if (parsed.protocol === 'http:' && !isLocalHost(parsed.hostname)) {
+          return 'Plain HTTP would send the Application Password in cleartext. Use HTTPS (plain HTTP is allowed only for local sites: localhost, 127.0.0.1, *.local, *.test).'
+        }
+
+        return true
       },
     })
     let url = rawUrl

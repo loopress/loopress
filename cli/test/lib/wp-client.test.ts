@@ -3,7 +3,39 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {formatWpError, isApplicative404, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+import {assertSecureSiteUrl, formatWpError, isApplicative404, isLocalHost, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+
+/* eslint-disable unicorn/prefer-https, sonarjs/no-clear-text-protocols, sonarjs/no-hardcoded-ip -- exercising exactly the http/IP handling these functions gate on */
+describe('isLocalHost', () => {
+  it('accepts loopback and dev TLDs', () => {
+    for (const h of ['localhost', 'app.localhost', '127.0.0.1', '127.5.6.7', '::1', '27-sep-night.local', 'foo.test']) {
+      expect(isLocalHost(h)).toBe(true)
+    }
+  })
+
+  it('rejects public hosts', () => {
+    for (const h of ['example.com', 'wp.example.org', '8.8.8.8', 'notlocalhost.com', 'local.evil.com']) {
+      expect(isLocalHost(h)).toBe(false)
+    }
+  })
+})
+
+describe('assertSecureSiteUrl', () => {
+  it('allows https anywhere and http only for local hosts', () => {
+    expect(() => { assertSecureSiteUrl('https://example.com') }).not.toThrow()
+    expect(() => { assertSecureSiteUrl('http://localhost:8080') }).not.toThrow()
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local') }).not.toThrow()
+  })
+
+  it('refuses http to a non-local host (cleartext credentials)', () => {
+    expect(() => { assertSecureSiteUrl('http://example.com') }).toThrow(/cleartext/i)
+  })
+
+  it('is enforced by the WpClient constructor', () => {
+    expect(() => new WpClient('http://example.com', 'user:pw')).toThrow(/cleartext/i)
+  })
+})
+/* eslint-enable unicorn/prefer-https, sonarjs/no-clear-text-protocols, sonarjs/no-hardcoded-ip */
 
 describe('WpClient', () => {
   let server: Server | undefined

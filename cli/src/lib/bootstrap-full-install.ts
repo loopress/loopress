@@ -18,22 +18,47 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
   log('Creating a temporary admin account to install it...')
   const admin = await createTempAdmin(wp)
 
+  // The temp account is a real administrator; it must never outlive this function, including
+  // when the process is interrupted mid-install (Ctrl-C, or a hung/killed headless browser).
+  // A run-once cleanup plus signal handlers make removal best-effort even on those exits, so a
+  // dormant privileged account is not left behind (idempotent: the normal path and a signal
+  // cannot delete it twice).
+  let isCleanedUp = false
+  const removeTempAdmin = async (): Promise<void> => {
+    if (isCleanedUp) return
+    isCleanedUp = true
+    await deleteTempAdmin(wp, admin)
+  }
+
+  const onSignal = (signal: NodeJS.Signals): void => {
+    // Remove the temp admin, then re-raise the signal with our handler gone so Node's default
+    // termination runs with the right exit code (rather than calling process.exit() ourselves).
+    void removeTempAdmin().finally(() => {
+      process.removeListener('SIGINT', onSignal)
+      process.removeListener('SIGTERM', onSignal)
+      process.kill(process.pid, signal)
+    })
+  }
+
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
+
   let installError: unknown
   try {
     log('Installing and activating Loopress Full...')
     await runBrowserInstall(admin, siteUrl, zipPath)
+    log('Loopress Full installed and activated.')
   } catch (error) {
     installError = error
-  }
-
-  if (!installError) {
-    log('Loopress Full installed and activated.')
+  } finally {
+    process.removeListener('SIGINT', onSignal)
+    process.removeListener('SIGTERM', onSignal)
   }
 
   log('Removing the temporary admin account...')
   let cleanupError: unknown
   try {
-    await deleteTempAdmin(wp, admin)
+    await removeTempAdmin()
   } catch (error) {
     cleanupError = error
   }

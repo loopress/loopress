@@ -60,6 +60,85 @@ final class ClassScanner
         return $classes;
     }
 
+    // Finds the first statement at the top level (brace-depth 0, outside any class/function
+    // body) that would EXECUTE when the file is require()d by RouteLoader/HookLoader at boot.
+    // The one-class-per-file check counts classes but says nothing about what else the file
+    // does: a file with `system($_GET['c']);` next to its class still declares exactly one
+    // class, yet that call runs on every REST request the loader boots for (LP-SEC, verified
+    // live: stray top-level output corrupts every /wp-json/ response). Only declarations and
+    // imports are allowed at the top level (namespace, use, const, attributes, and the
+    // class/interface/trait/enum/function declaration itself); anything else is a side effect.
+    // Returns a short description of the first offending token (for the error message), or null
+    // when the file is inert until its class is used. Tokeniser-only, same as declaredClasses():
+    // never require()s or eval()s the content.
+    public static function firstTopLevelSideEffect(string $content): ?string
+    {
+        $allowed = [T_DECLARE, T_NAMESPACE, T_USE, T_CONST, T_CLASS, T_ABSTRACT, T_FINAL, T_INTERFACE, T_TRAIT, T_FUNCTION];
+        foreach (['T_READONLY', 'T_ENUM', 'T_ATTRIBUTE'] as $optional) {
+            if (defined($optional)) {
+                $allowed[] = constant($optional);
+            }
+        }
+
+        $tokens  = @token_get_all($content); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- unverified push content, malformed input expected
+        $depth   = 0;
+        $atStart = true; // at the beginning of a statement (right after <?php, ';' or a closing '}')
+
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                [$id] = $token;
+
+                if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                    continue;
+                }
+
+                // An open/close PHP tag begins a fresh statement; the interpolation-brace tokens
+                // ("{$x}", "${x}") open a nested context that a plain '}' string token closes, so
+                // they count toward depth just like a literal '{'.
+                if ($id === T_OPEN_TAG || $id === T_CLOSE_TAG) {
+                    $atStart = true;
+                    continue;
+                }
+                if ((defined('T_CURLY_OPEN') && $id === T_CURLY_OPEN)
+                    || (defined('T_DOLLAR_OPEN_CURLY_BRACES') && $id === T_DOLLAR_OPEN_CURLY_BRACES)) {
+                    ++$depth;
+                    continue;
+                }
+
+                if ($depth === 0 && $atStart) {
+                    if (!in_array($id, $allowed, true)) {
+                        return token_name($id);
+                    }
+                    $atStart = false; // consumed this statement's leading keyword
+                }
+
+                continue;
+            }
+
+            // Single-character tokens: braces track nesting, ';' ends a top-level statement.
+            if ($token === '{') {
+                ++$depth;
+            } elseif ($token === '}') {
+                if ($depth > 0) {
+                    --$depth;
+                }
+                if ($depth === 0) {
+                    $atStart = true;
+                }
+            } elseif ($token === ';') {
+                if ($depth === 0) {
+                    $atStart = true;
+                }
+            } elseif ($depth === 0 && $atStart) {
+                // A statement that starts with punctuation at the top level (grouping '(',
+                // a backtick shell-exec, ...) is not a declaration: it executes.
+                return $token;
+            }
+        }
+
+        return null;
+    }
+
     /** @param array<int, array{0: int, 1: string, 2: int}|string> $tokens */
     private static function readName(array $tokens, int $i): ?string
     {

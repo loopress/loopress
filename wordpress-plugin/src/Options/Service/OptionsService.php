@@ -522,7 +522,13 @@ class OptionsService
     // path (F11). Re-allow a specific name via the loopress_option_writable filter.
     private function assertWritable(string $name): void
     {
-        $denied = in_array($name, self::DENY_WRITE_NAMES, true) || str_starts_with($name, 'loopress_');
+        // `wp_user_roles` (or `<prefix>user_roles` on a custom table prefix / per-site in
+        // multisite) is the role -> capability map: writing it re-grants capabilities to any
+        // role, a privilege change. Matched categorically by suffix rather than enumerated, so a
+        // custom prefix can't slip past a hard-coded name (LP-SEC, this was writable before).
+        $denied = in_array($name, self::DENY_WRITE_NAMES, true)
+            || str_starts_with($name, 'loopress_')
+            || str_ends_with($name, 'user_roles');
 
         if (!apply_filters('loopress_option_writable', !$denied, $name)) {
             throw new ProtectedOptionException(esc_html(

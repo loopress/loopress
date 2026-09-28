@@ -69,4 +69,42 @@ class ClassScannerTest extends TestCase
 
         $this->assertSame(['Broken'], $result);
     }
+
+    public function test_firstTopLevelSideEffect_passes_a_clean_class_file(): void
+    {
+        $code = "<?php\ndeclare(strict_types=1);\nnamespace Loopress\\Api;\nuse Some\\Dep;\n#[Route('/x')]\nfinal class Orders extends Dep\n{\n    public function get(): array { echo 'inside is fine'; return []; }\n}\n";
+        $this->assertNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_allows_top_level_const_and_extra_declarations(): void
+    {
+        $code = "<?php\nnamespace Loopress\\Api;\nconst MAX = 10;\ninterface Marker {}\nfinal class Orders implements Marker {}\n";
+        $this->assertNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_flags_a_top_level_function_call(): void
+    {
+        // The exact case from the live QA: one class, but a call that runs at require() time.
+        $code = "<?php\nnamespace Loopress\\Api;\nsystem(\$_GET['c']);\nfinal class Orders {}\n";
+        $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_flags_top_level_echo_after_the_class(): void
+    {
+        $code = "<?php\nnamespace Loopress\\Api;\nfinal class Orders {}\necho 'LEAK';\n";
+        $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_flags_a_top_level_require(): void
+    {
+        $code = "<?php\nnamespace Loopress\\Api;\nrequire '/etc/passwd';\nfinal class Orders {}\n";
+        $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_is_not_fooled_by_a_statement_inside_a_method(): void
+    {
+        // Assignments, calls and control flow are fine inside the class body (depth > 0).
+        $code = "<?php\nnamespace Loopress\\Api;\nfinal class Orders\n{\n    public function run(): void { \$x = 1; if (\$x) { do_thing(); } }\n}\n";
+        $this->assertNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
 }

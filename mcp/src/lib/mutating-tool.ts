@@ -27,12 +27,41 @@ export interface MutatingToolResult {
 // files, right before applying: if the command's own preview output hasn't changed, whatever it
 // inspects on the remote side hasn't moved either, and applying is safe; if it has, the confirm
 // is refused rather than silently overwriting whatever changed in between (see #232).
+// True when the lps args target an environment named "production", either via `--env production`
+// (resource push/rm/rollback) or as promote's destination positional (`promote <from> <to>`).
+function targetsProduction(args: string[]): boolean {
+  const isProduction = (value?: string): boolean => value?.toLowerCase() === 'production'
+
+  const envIndex = args.indexOf('--env')
+  if (envIndex !== -1 && isProduction(args[envIndex + 1])) return true
+
+  // `promote <from> <to>`: the destination is the second positional after the command.
+  return args[0] === 'promote' && isProduction(args[2])
+}
+
 export async function runMutatingTool(
   tool: string,
   args: string[],
   confirmToken?: string,
   options?: RunLpsOptions,
 ): Promise<MutatingToolResult> {
+  // Production is CLI-only. The confirmToken handshake protects against drift, not against an
+  // autonomous or prompt-injected agent replaying its own token, and `--yes` (which resource
+  // rm/rollback/prune and promote pass) otherwise bypasses the CLI's production confirmation
+  // entirely. Refuse any production-targeting mutation here so a human must run it via `lps`,
+  // where the change is confirmed interactively. Non-production environments are unaffected.
+  if (targetsProduction(args)) {
+    return {
+      error: {
+        message:
+          'Refusing to change the "production" environment from the MCP server: there is no human confirmation on this path. ' +
+          'Run this command with the lps CLI, where production changes are confirmed interactively.',
+        name: 'PRODUCTION_BLOCKED',
+      },
+      status: 'error',
+    }
+  }
+
   if (!confirmToken) {
     const snapshotDir = await createSnapshot(process.cwd())
 

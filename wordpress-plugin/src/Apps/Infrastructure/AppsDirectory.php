@@ -90,6 +90,12 @@ class AppsDirectory
         DirectoryGuard::writeHtaccessIfMissing($this->path, self::HTACCESS);
     }
 
+    // Apache only; nginx ignores .htaccess, so on nginx the extension allowlist stays the real
+    // control and a Content-Security-Policy, if wanted, must go in the server config. nosniff is
+    // safe to force here (it never breaks a correctly-typed asset) and stops a mistyped upload
+    // from being sniffed into an executable type. A blanket CSP is deliberately NOT set: these
+    // are real single-page apps that must run their own JS, so any useful policy is app-specific
+    // and belongs in the app's own document, not a directory-wide rule that would break them.
     private const HTACCESS = <<<'HTACCESS'
         # Loopress: built SPA bundles are static assets. No PHP runs here.
         <IfModule mod_php.c>
@@ -101,6 +107,9 @@ class AppsDirectory
         <FilesMatch "\.(?i:php|phtml|phar|php[0-9]|pht|phps)$">
           Require all denied
         </FilesMatch>
+        <IfModule mod_headers.c>
+        Header set X-Content-Type-Options "nosniff"
+        </IfModule>
         HTACCESS;
 
     /** @return string[] app names, sorted */
@@ -152,40 +161,67 @@ class AppsDirectory
         return $assets;
     }
 
+    // Confirms an asset path physically resolves to something inside the apps root, following
+    // any symlink in its existing prefix (a symlink planted by another vector could otherwise
+    // point a valid-looking, '..'-free path outside the sandbox). Works for a path that does not
+    // exist yet (a fresh write): it resolves the nearest existing ancestor, which is enough
+    // because ASSET_PATH_PATTERN already forbids '..', so no deeper segment can climb back out.
+    // Shared by read/write/removeAsset so the containment guarantee lives in one place, behind
+    // the pattern and extension allowlist, instead of only on the read path.
+    private function assertInsideRoot(string $absPath): bool
+    {
+        $root = realpath($this->path);
+        if ($root === false) {
+            // The apps root does not exist yet (fresh install / first write): there is nothing
+            // planted to symlink through, and ASSET_PATH_PATTERN already keeps the path inside
+            // it lexically. The write's dumpFile() creates the tree fresh, so allow it.
+            return true;
+        }
+
+        $existing = $absPath;
+        while (!file_exists($existing)) {
+            $parent = \dirname($existing);
+            if ($parent === $existing) {
+                return false; // reached the filesystem root without finding an existing ancestor
+            }
+            $existing = $parent;
+        }
+
+        $real = realpath($existing);
+
+        return $real !== false && ($real === $root || str_starts_with($real, $root . DIRECTORY_SEPARATOR));
+    }
+
     public function readAsset(string $name, string $relPath): ?string
     {
         if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath)) {
             return null;
         }
 
-        // Canonicalise, then confirm the file physically resolves to something inside the
-        // apps root before touching it: neither the name nor the path is trusted to be
-        // traversal-free just because it matched a pattern.
-        $root = realpath($this->path);
-        $real = realpath($this->assetPath($name, $relPath));
-        if ($root === false || $real === false) {
-            return null;
-        }
-        if (!is_file($real) || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+        // Confirm the file resolves inside the apps root before touching it: neither the name
+        // nor the path is trusted to be traversal-free just because it matched a pattern.
+        $absPath = $this->assetPath($name, $relPath);
+        if (!is_file($absPath) || !$this->assertInsideRoot($absPath)) {
             return null;
         }
 
         // Local file confirmed inside wp-content/loopress/apps/, not a remote URL.
-        $contents = file_get_contents($real); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $contents = file_get_contents($absPath); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
         return $contents !== false ? $contents : null;
     }
 
     public function writeAsset(string $name, string $relPath, string $bytes): void
     {
-        if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath)) {
+        $absPath = $this->assetPath($name, $relPath);
+        if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath) || !$this->assertInsideRoot($absPath)) {
             throw new \InvalidArgumentException(esc_html("Refusing to write unsafe asset path: {$name}/{$relPath}"));
         }
 
         try {
             // dumpFile() writes to a temp file then renames: a concurrent front-end request
             // reading the same asset never sees a half-written file.
-            $this->filesystem->dumpFile($this->assetPath($name, $relPath), $bytes);
+            $this->filesystem->dumpFile($absPath, $bytes);
         } catch (IOExceptionInterface $e) {
             throw new \RuntimeException(esc_html("Failed to write {$name}/{$relPath}: " . $e->getMessage()));
         }
@@ -197,7 +233,7 @@ class AppsDirectory
             return;
         }
         $path = $this->assetPath($name, $relPath);
-        if (is_file($path)) {
+        if (is_file($path) && $this->assertInsideRoot($path)) {
             $this->filesystem->remove($path);
         }
     }
