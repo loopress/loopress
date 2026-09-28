@@ -48,6 +48,32 @@ describe('runMutatingTool', () => {
     expect(result.confirmToken).toEqual(expect.any(String))
   })
 
+  it('refuses to target production via --env, touching nothing (no snapshot, no lps run)', async () => {
+    const result = await runMutatingTool('option_push', ['option', 'push', '--env', 'production'])
+
+    expect(result.status).toBe('error')
+    expect(result.error?.name).toBe('PRODUCTION_BLOCKED')
+    expect(mockedCreateSnapshot).not.toHaveBeenCalled()
+    expect(mockedRunLps).not.toHaveBeenCalled()
+  })
+
+  it('refuses a promote whose destination is production (case-insensitive)', async () => {
+    const result = await runMutatingTool('project_promote', ['promote', 'staging', 'Production', '--yes'])
+
+    expect(result.status).toBe('error')
+    expect(result.error?.name).toBe('PRODUCTION_BLOCKED')
+    expect(mockedRunLps).not.toHaveBeenCalled()
+  })
+
+  it('allows a promote whose destination is not production', async () => {
+    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+
+    const result = await runMutatingTool('project_promote', ['promote', 'production', 'staging', '--yes'])
+
+    expect(result.status).toBe('preview')
+    expect(mockedRunLps).toHaveBeenCalled()
+  })
+
   it('surfaces a preview failure as an error result, minting no token and dropping the snapshot', async () => {
     mockedRunLps.mockResolvedValueOnce({error: {message: 'No credentials configured', name: 'Error'}, ok: false})
 

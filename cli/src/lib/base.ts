@@ -49,12 +49,12 @@ export abstract class LoopressCommand extends Command {
 
   protected get wp(): WpClient {
     if (!this.wpClient) {
-      const {token, url} = this.siteConfig
+      const {name, token, url} = this.siteConfig
       if (!token) {
         this.error(`No credentials configured for ${url}. Run \`lps project config\` to add them.`)
       }
 
-      this.wpClient = new WpClient(url, token)
+      this.wpClient = new WpClient(url, token, name)
     }
 
     return this.wpClient

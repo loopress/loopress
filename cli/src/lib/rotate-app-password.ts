@@ -18,7 +18,7 @@ export function isAppPasswordStale(addedAt: string): boolean {
 // the old one. Reversing this order risks locking the user out if the new one is somehow bad.
 export async function rotateAppPassword(env: EnvironmentConfig & {token: string}): Promise<EnvironmentConfig> {
   const [user] = env.token.split(':', 1)
-  const oldClient = new WpClient(env.url, env.token)
+  const oldClient = new WpClient(env.url, env.token, env.name)
 
   const old = await oldClient.get<ApplicationPasswordEntry>(`${APPLICATION_PASSWORDS_PATH}/introspect`)
   const created = await oldClient.post<ApplicationPasswordEntry>(APPLICATION_PASSWORDS_PATH, {name: 'Loopress'})
@@ -28,7 +28,7 @@ export async function rotateAppPassword(env: EnvironmentConfig & {token: string}
   }
 
   const newToken = `${user}:${created.password}`
-  const newClient = new WpClient(env.url, newToken)
+  const newClient = new WpClient(env.url, newToken, env.name)
 
   try {
     await newClient.get(`${APPLICATION_PASSWORDS_PATH}/introspect`)

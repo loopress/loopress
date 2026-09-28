@@ -425,6 +425,19 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => "File must declare exactly one class, found {$found}"], 400);
         }
 
+        // A file with exactly one class can still carry executable code at the top level, which
+        // runs on every request the loader require()s it for (RouteLoader/HookLoader boot on
+        // rest_api_init), not only when the class is used, and stray output there corrupts every
+        // REST response site-wide. Reject it here so the "one class" promise is real: only the
+        // class declaration plus namespace/use/const/attributes are allowed outside it.
+        $sideEffect = ClassScanner::firstTopLevelSideEffect($content);
+        if ($sideEffect !== null) {
+            return new WP_REST_Response([
+                'error' => 'File must contain only the class declaration (with its namespace, use imports, and attributes). ' .
+                    "Found code that would run at load time ({$sideEffect}) outside the class. Move it into the class.",
+            ], 400);
+        }
+
         $className = $classes[0];
         $collision = $this->findCollision($filename, $className, $read, $listSlugs, $fileSize);
         if ($collision !== null) {
