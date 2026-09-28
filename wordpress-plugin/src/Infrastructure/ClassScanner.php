@@ -117,6 +117,12 @@ final class ClassScanner
 
             // Single-character tokens: braces track nesting, ';' ends a top-level statement.
             if ($token === '{') {
+                // A '{' at a top-level statement boundary is a bare block ("{ system(...); }"),
+                // whose body runs at load time; only a class/function body '{' is legitimate and
+                // that always follows its declaration keyword (so $atStart is already false).
+                if ($depth === 0 && $atStart) {
+                    return '{';
+                }
                 ++$depth;
             } elseif ($token === '}') {
                 if ($depth > 0) {

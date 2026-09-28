@@ -101,6 +101,14 @@ class ClassScannerTest extends TestCase
         $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
     }
 
+    public function test_firstTopLevelSideEffect_flags_a_bare_top_level_block(): void
+    {
+        // A bare "{ ... }" block runs at load time too; its body must not be skipped just
+        // because the file still declares exactly one class.
+        $code = "<?php\ndeclare(strict_types=1);\n{ system(\$_GET['c']); }\nfinal class Orders {}\n";
+        $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
     public function test_firstTopLevelSideEffect_is_not_fooled_by_a_statement_inside_a_method(): void
     {
         // Assignments, calls and control flow are fine inside the class body (depth > 0).

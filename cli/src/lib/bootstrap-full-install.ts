@@ -20,47 +20,56 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
 
   // The temp account is a real administrator; it must never outlive this function, including
   // when the process is interrupted mid-install (Ctrl-C, or a hung/killed headless browser).
-  // A run-once cleanup plus signal handlers make removal best-effort even on those exits, so a
-  // dormant privileged account is not left behind (idempotent: the normal path and a signal
-  // cannot delete it twice).
-  let isCleanedUp = false
+  // removeTempAdmin() memoises a single deletion so the normal path and either signal handler
+  // all await the same in-flight promise instead of racing or deleting twice.
+  let cleanupPromise: Promise<void> | undefined
   const removeTempAdmin = async (): Promise<void> => {
-    if (isCleanedUp) return
-    isCleanedUp = true
-    await deleteTempAdmin(wp, admin)
+    cleanupPromise ??= deleteTempAdmin(wp, admin)
+    return cleanupPromise
   }
 
   const onSignal = (signal: NodeJS.Signals): void => {
-    // Remove the temp admin, then re-raise the signal with our handler gone so Node's default
-    // termination runs with the right exit code (rather than calling process.exit() ourselves).
-    void removeTempAdmin().finally(() => {
-      process.removeListener('SIGINT', onSignal)
-      process.removeListener('SIGTERM', onSignal)
-      process.kill(process.pid, signal)
-    })
+    // Finish (or start) the deletion, surface a manual-removal hint if it fails since the normal
+    // error path below won't run, then re-raise the signal with our handler gone so Node's
+    // default termination runs with the right exit code.
+    removeTempAdmin()
+      .catch((error: unknown) => {
+        log(
+          `Could not remove the temporary admin account "${admin.username}"; remove it manually in wp-admin. (${(error as Error).message})`,
+        )
+      })
+      .finally(() => {
+        process.removeListener('SIGINT', onSignal)
+        process.removeListener('SIGTERM', onSignal)
+        process.kill(process.pid, signal)
+      })
   }
 
   process.once('SIGINT', onSignal)
   process.once('SIGTERM', onSignal)
 
   let installError: unknown
-  try {
-    log('Installing and activating Loopress Full...')
-    await runBrowserInstall(admin, siteUrl, zipPath)
-    log('Loopress Full installed and activated.')
-  } catch (error) {
-    installError = error
-  } finally {
-    process.removeListener('SIGINT', onSignal)
-    process.removeListener('SIGTERM', onSignal)
-  }
-
-  log('Removing the temporary admin account...')
   let cleanupError: unknown
   try {
-    await removeTempAdmin()
-  } catch (error) {
-    cleanupError = error
+    try {
+      log('Installing and activating Loopress Full...')
+      await runBrowserInstall(admin, siteUrl, zipPath)
+      log('Loopress Full installed and activated.')
+    } catch (error) {
+      installError = error
+    }
+
+    log('Removing the temporary admin account...')
+    try {
+      await removeTempAdmin()
+    } catch (error) {
+      cleanupError = error
+    }
+  } finally {
+    // Only stop guarding once the deletion has settled: a signal during the removal above must
+    // still trigger (or await) cleanup rather than terminating the process with the account live.
+    process.removeListener('SIGINT', onSignal)
+    process.removeListener('SIGTERM', onSignal)
   }
 
   const manualFallback = `Install it manually: upload ${zipPath} at ${siteUrl}/wp-admin/plugin-install.php?tab=upload`
