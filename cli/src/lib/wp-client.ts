@@ -5,22 +5,20 @@ export const REQUEST_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'delete' | 'get' | 'post' | 'put'
 
-// A host where http:// is acceptable because the traffic never leaves the machine (or the
-// developer's LAN via a Local by Flywheel *.local domain): loopback, the *.localhost / *.local /
-// *.test dev TLDs. Everywhere else, http means the Application Password rides the wire in the
-// clear (Basic auth is base64, not encryption), so it must be refused. Exported so the
-// `lps project config` prompt can reject a bad URL with the same rule it is enforced by.
-export function isLocalHost(hostname: string): boolean {
-  const host = hostname.replaceAll(/^\[|\]$/g, '').toLowerCase() // strip IPv6 brackets
-  if (host === 'localhost' || host === '::1') return true
-  if (host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.test')) return true
-  return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) // 127.0.0.0/8
+// The one environment allowed to talk plain HTTP: Loopress's local dev environment, identified
+// by its config name (the same "local" environment `lps dev` targets), never by the URL's host.
+// Locality is a property of the configured environment, not of a hostname, so a real remote site
+// can never opt into cleartext just by resolving to a `.local`/loopback-looking name.
+export const LOCAL_ENVIRONMENT_NAME = 'local'
+
+export function isLocalEnvironment(environmentName: string | undefined): boolean {
+  return environmentName === LOCAL_ENVIRONMENT_NAME
 }
 
-// Throws when a URL would send credentials in cleartext: http:// to a non-local host. Returns
-// the trimmed URL string otherwise. The trust boundary is here, at the client, so a hand-edited
-// config.json or loopress.json cannot bypass the check the interactive prompt also applies.
-export function assertSecureSiteUrl(siteUrl: string): void {
+// Throws when a URL would send credentials in cleartext: http:// for any environment other than
+// the local one. The trust boundary is here, at the client, so a hand-edited config.json or
+// loopress.json cannot bypass the check the interactive prompt also applies.
+export function assertSecureSiteUrl(siteUrl: string, environmentName: string | undefined): void {
   let parsed: URL
   try {
     parsed = new URL(siteUrl)
@@ -28,9 +26,9 @@ export function assertSecureSiteUrl(siteUrl: string): void {
     throw new Error(`Invalid site URL: ${siteUrl}`)
   }
 
-  if (parsed.protocol === 'http:' && !isLocalHost(parsed.hostname)) {
+  if (parsed.protocol === 'http:' && !isLocalEnvironment(environmentName)) {
     throw new Error(
-      `Refusing to send credentials over plain HTTP to "${parsed.hostname}": the Application Password would travel in cleartext. Use HTTPS (plain HTTP is allowed only for local sites: localhost, 127.0.0.1, *.local, *.test).`,
+      `Refusing to send credentials over plain HTTP for the "${environmentName ?? 'unknown'}" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment.`,
     )
   }
 }
@@ -45,8 +43,9 @@ export class WpClient {
   constructor(
     private readonly siteUrl: string,
     token: string,
+    environmentName?: string,
   ) {
-    assertSecureSiteUrl(siteUrl)
+    assertSecureSiteUrl(siteUrl, environmentName)
     this.client = got.extend({
       headers: {Authorization: `Basic ${Buffer.from(token).toString('base64')}`},
       prefixUrl: `${siteUrl}/wp-json`,

@@ -64,7 +64,7 @@ describe('rotateAppPassword', () => {
     const {port} = server.address() as AddressInfo
     const url = `http://127.0.0.1:${port}`
 
-    return {env: {addedAt: '2024-01-01T00:00:00.000Z', name: 'production', token: OLD_TOKEN, url}, url}
+    return {env: {addedAt: '2024-01-01T00:00:00.000Z', name: 'local', token: OLD_TOKEN, url}, url}
   }
 
   it('creates, verifies, then revokes the old credential, in that order', async () => {
