@@ -95,6 +95,9 @@
                 <referencedMethod name="Loopress\Apps\Frontend\AppShortcode::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppAssetEnqueuer::__construct" />
                 <referencedMethod name="Loopress\Apps\Infrastructure\AppsDirectory::__construct" />
+                <!-- AppsDiagnostics is built through the PHP-DI container (Apps\Feature wires its
+                     ClientInterface), same untraceable-by-Psalm shape as the constructors above. -->
+                <referencedMethod name="Loopress\Apps\Service\AppsDiagnostics::__construct" />
                 <!-- Same untraceable-by-Psalm shape as the DI-container constructors above, but a
                      different reflective caller: RouteLoader::permissionAttributeFor() reads this
                      via ReflectionAttribute::newInstance(), never a literal `new Permission(...)`. -->
