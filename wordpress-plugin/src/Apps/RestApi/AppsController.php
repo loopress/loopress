@@ -7,6 +7,7 @@ namespace Loopress\Apps\RestApi;
 use Loopress\Apps\Infrastructure\AppManifest;
 use Loopress\Apps\Infrastructure\AppsDirectory;
 use Loopress\Apps\Infrastructure\AppStore;
+use Loopress\Apps\Service\AppsDiagnostics;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -34,6 +35,7 @@ class AppsController
     public function __construct(
         private AppsDirectory $directory,
         private AppStore $store,
+        private AppsDiagnostics $diagnostics,
     ) {}
 
     public function register_routes(): void
@@ -43,6 +45,14 @@ class AppsController
         register_rest_route('loopress/v1', '/apps', [
             'methods'             => 'GET',
             'callback'            => [$this, 'list_apps'],
+            'permission_callback' => $this->permissionCallback(),
+        ]);
+
+        // Registered before the /apps/<name> routes, and only for GET, so it never shadows the
+        // DELETE of an app that happens to be named "diagnostics" (that stays on the name route).
+        register_rest_route('loopress/v1', '/apps/diagnostics', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'get_diagnostics'],
             'permission_callback' => $this->permissionCallback(),
         ]);
 
@@ -81,6 +91,11 @@ class AppsController
             'callback'            => [$this, 'delete_app'],
             'permission_callback' => $this->permissionCallback(),
         ]);
+    }
+
+    public function get_diagnostics(): WP_REST_Response
+    {
+        return new WP_REST_Response($this->diagnostics->getDiagnostics(), 200);
     }
 
     public function list_apps(): WP_REST_Response

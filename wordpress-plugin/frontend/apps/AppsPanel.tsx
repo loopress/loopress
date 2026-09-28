@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
-import type { RemoteApp } from '../types';
+import type { AppsDiagnostics, RemoteApp } from '../types';
 
 // Mirrors the CLI's own formatter in cli/src/commands/app/list.ts.
 function humanBytes(bytes: number): string {
@@ -19,8 +19,24 @@ export function AppsPanel() {
         staleTime: 30_000,
     });
 
+    // Webserver-level protections Loopress can't enforce from PHP for the publicly served
+    // apps/ directory (e.g. nginx ignoring the nosniff .htaccess). Quiet unless there's an
+    // issue; a failed/absent probe simply shows nothing.
+    const { data: diagnostics } = useQuery<AppsDiagnostics>({
+        queryKey: ['apps-diagnostics'],
+        queryFn: () => apiFetch<AppsDiagnostics>('/apps/diagnostics'),
+        staleTime: 60_000,
+    });
+
     return (
         <div>
+            {diagnostics?.issues?.map((issue) => (
+                <Notice key={issue.code} status="warning" isDismissible={false}>
+                    <strong>Server configuration issue</strong>
+                    <p style={{ margin: '4px 0 0', fontSize: 13 }}>{issue.message}</p>
+                </Notice>
+            ))}
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <strong style={{ fontSize: 13 }}>Single-page apps</strong>
                 {isFetching && !isPending && <Spinner />}

@@ -27,6 +27,10 @@ export interface Diagnostics {
     issues: DiagnosticsIssue[];
 }
 
+export interface AppsDiagnostics {
+    issues: DiagnosticsIssue[];
+}
+
 export interface Settings {
     environment: string;
 }
