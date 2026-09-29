@@ -259,6 +259,20 @@ class OptionsServiceTest extends TestCase
         }
     }
 
+    public function test_update_refuses_the_role_map_and_is_not_bypassed_by_surrounding_whitespace(): void
+    {
+        // WordPress trims the option name before writing, so a denied name padded with spaces
+        // must still be refused, not silently written to its trimmed (protected) form.
+        foreach (['wp_user_roles', 'wp_user_roles ', ' default_role', "home\t"] as $name) {
+            try {
+                $this->service->updateOption($name, 'x', null);
+                $this->fail("Expected update of \"{$name}\" to be refused");
+            } catch (ProtectedOptionException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
     public function test_update_option_write_denylist_is_filterable(): void
     {
         Functions\when('update_option')->justReturn(true);

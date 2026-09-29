@@ -382,6 +382,10 @@ class OptionsService
     /** @return array{name: string, value: mixed, autoload: string, revision: string}|null */
     public function getOption(string $name): ?array
     {
+        // WordPress get_option()/update_option()/delete_option() all trim the name before
+        // touching the DB, so a trailing/leading space would otherwise let a name slip past the
+        // denylist here and still resolve to the protected option on write (e.g. "wp_user_roles ").
+        $name = trim($name);
         $this->assertReadable($name);
 
         // A unique object, never a value any option could genuinely hold, so it unambiguously
@@ -424,6 +428,9 @@ class OptionsService
      */
     public function updateOption(string $name, mixed $value, ?string $autoload, ?string $expectedRevision = null): array
     {
+        // Normalize before the denylist: WordPress update_option() trims the name, so an
+        // untrimmed one would be checked here yet written as its trimmed form (denylist bypass).
+        $name = trim($name);
         $this->assertNotReserved($name);
         $this->assertWritable($name);
 
@@ -480,6 +487,8 @@ class OptionsService
 
     public function deleteOption(string $name): void
     {
+        // Normalize before the denylist, same reason as updateOption(): delete_option() trims.
+        $name = trim($name);
         $this->assertNotReserved($name);
         $this->assertWritable($name);
 
@@ -522,7 +531,13 @@ class OptionsService
     // path (F11). Re-allow a specific name via the loopress_option_writable filter.
     private function assertWritable(string $name): void
     {
-        $denied = in_array($name, self::DENY_WRITE_NAMES, true) || str_starts_with($name, 'loopress_');
+        // `wp_user_roles` (or `<prefix>user_roles` on a custom table prefix / per-site in
+        // multisite) is the role -> capability map: writing it re-grants capabilities to any
+        // role, a privilege change. Matched categorically by suffix rather than enumerated, so a
+        // custom prefix can't slip past a hard-coded name (LP-SEC, this was writable before).
+        $denied = in_array($name, self::DENY_WRITE_NAMES, true)
+            || str_starts_with($name, 'loopress_')
+            || str_ends_with($name, 'user_roles');
 
         if (!apply_filters('loopress_option_writable', !$denied, $name)) {
             throw new ProtectedOptionException(esc_html(

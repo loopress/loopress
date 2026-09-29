@@ -37,7 +37,7 @@ class ApiFilesController extends AbstractFilesController
     /** @return non-empty-string */
     protected static function filenamePattern(): string
     {
-        return '/^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/';
+        return '/^(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*\z/';
     }
 
     // A root 'index' is refused: api/index.php is the anti-listing guard ApiDirectory writes

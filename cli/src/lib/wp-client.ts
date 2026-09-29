@@ -5,6 +5,34 @@ export const REQUEST_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'delete' | 'get' | 'post' | 'put'
 
+// The one environment allowed to talk plain HTTP: Loopress's local dev environment, identified
+// by its config name (the same "local" environment `lps dev` targets), never by the URL's host.
+// Locality is a property of the configured environment, not of a hostname, so a real remote site
+// can never opt into cleartext just by resolving to a `.local`/loopback-looking name.
+export const LOCAL_ENVIRONMENT_NAME = 'local'
+
+export function isLocalEnvironment(environmentName: string | undefined): boolean {
+  return environmentName === LOCAL_ENVIRONMENT_NAME
+}
+
+// Throws when a URL would send credentials in cleartext: http:// for any environment other than
+// the local one. The trust boundary is here, at the client, so a hand-edited config.json or
+// loopress.json cannot bypass the check the interactive prompt also applies.
+export function assertSecureSiteUrl(siteUrl: string, environmentName: string | undefined): void {
+  let parsed: URL
+  try {
+    parsed = new URL(siteUrl)
+  } catch {
+    throw new Error(`Invalid site URL: ${siteUrl}`)
+  }
+
+  if (parsed.protocol === 'http:' && !isLocalEnvironment(environmentName)) {
+    throw new Error(
+      `Refusing to send credentials over plain HTTP for the "${environmentName ?? 'unknown'}" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment.`,
+    )
+  }
+}
+
 /**
  * HTTP client for a WordPress site's REST API.
  * Paths are relative to `<site>/wp-json/`, e.g. `loopress/v1/snippets` or `wp/v2/plugins`.
@@ -15,7 +43,9 @@ export class WpClient {
   constructor(
     private readonly siteUrl: string,
     token: string,
+    environmentName?: string,
   ) {
+    assertSecureSiteUrl(siteUrl, environmentName)
     this.client = got.extend({
       headers: {Authorization: `Basic ${Buffer.from(token).toString('base64')}`},
       prefixUrl: `${siteUrl}/wp-json`,

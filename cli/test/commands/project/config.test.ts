@@ -302,7 +302,8 @@ describe('project config', () => {
     expect(confirm).toHaveBeenCalledWith({default: false, message: '"acme/production" already exists. Overwrite?'})
   })
 
-  it('accepts an http:// URL', async () => {
+  /* eslint-disable unicorn/prefer-https, sonarjs/no-clear-text-protocols -- exercising the http-vs-https rule these tests assert */
+  it('accepts https but rejects http for a non-local environment', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
@@ -322,7 +323,32 @@ describe('project config', () => {
 
     const {validate} = callByMessage(input, 'WordPress URL') as {validate: (value: string) => string | true}
     expect(validate('https://example.com')).toBe(true)
+    // production is not the "local" environment, so plain http is refused.
+    expect(validate('http://example.com')).toMatch(/HTTPS/)
   })
+
+  it('accepts an http:// URL for the local environment', async () => {
+    vi.spyOn(configManager, 'listProjects').mockReturnValue([])
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
+    vi.spyOn(configManager, 'getProject').mockReturnValue(null)
+    vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+
+    vi.mocked(select).mockResolvedValueOnce('local').mockResolvedValueOnce('manual')
+    vi.mocked(input)
+      .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('http://my-site.local')
+      .mockResolvedValueOnce('admin')
+    vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
+
+    const cmd = make()
+    silenceLogs(cmd)
+    await cmd.run()
+
+    const {validate} = callByMessage(input, 'WordPress URL') as {validate: (value: string) => string | true}
+    expect(validate('http://my-site.local')).toBe(true)
+  })
+  /* eslint-enable unicorn/prefer-https, sonarjs/no-clear-text-protocols */
 
   it('prompts for username and application password with the expected shape', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])

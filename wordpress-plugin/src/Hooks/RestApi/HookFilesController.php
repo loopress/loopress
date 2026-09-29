@@ -36,7 +36,7 @@ class HookFilesController extends AbstractFilesController
     /** @return non-empty-string */
     protected static function filenamePattern(): string
     {
-        return '/^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/';
+        return '/^[a-z0-9-]+(?:\/[a-z0-9-]+)*\z/';
     }
 
     // A slug whose last segment is literally "index" would otherwise pass the pattern, write

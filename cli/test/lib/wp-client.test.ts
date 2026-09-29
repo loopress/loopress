@@ -3,7 +3,36 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {formatWpError, isApplicative404, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+import {assertSecureSiteUrl, formatWpError, isApplicative404, isLocalEnvironment, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+
+describe('isLocalEnvironment', () => {
+  it('is true only for the environment named "local"', () => {
+    expect(isLocalEnvironment('local')).toBe(true)
+    for (const name of ['staging', 'production', 'Local', 'local2', undefined]) {
+      expect(isLocalEnvironment(name)).toBe(false)
+    }
+  })
+})
+
+/* eslint-disable unicorn/prefer-https, sonarjs/no-clear-text-protocols -- exercising exactly the http handling this function gates on */
+describe('assertSecureSiteUrl', () => {
+  it('allows https for any environment and http only for the local one', () => {
+    expect(() => { assertSecureSiteUrl('https://example.com', 'production') }).not.toThrow()
+    // Locality comes from the config, not the URL: a "local"-looking host is still refused over
+    // http when the environment is not the local one.
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'production') }).toThrow(/cleartext/i)
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'local') }).not.toThrow()
+  })
+
+  it('refuses http for a non-local environment (cleartext credentials)', () => {
+    expect(() => { assertSecureSiteUrl('http://example.com', 'staging') }).toThrow(/cleartext/i)
+  })
+
+  it('is enforced by the WpClient constructor', () => {
+    expect(() => new WpClient('http://example.com', 'user:pw', 'production')).toThrow(/cleartext/i)
+  })
+})
+/* eslint-enable unicorn/prefer-https, sonarjs/no-clear-text-protocols */
 
 describe('WpClient', () => {
   let server: Server | undefined
@@ -20,7 +49,7 @@ describe('WpClient', () => {
     })
     const {port} = server.address() as AddressInfo
     const siteUrl = `http://127.0.0.1:${port}`
-    return {client: new WpClient(siteUrl, 'user:pass'), siteUrl}
+    return {client: new WpClient(siteUrl, 'user:pass', 'local'), siteUrl}
   }
 
   it('GETs a wp-json path with basic auth and parses the JSON response', async () => {
