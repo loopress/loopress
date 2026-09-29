@@ -133,6 +133,44 @@ describe('app pull', () => {
       expect(result).toMatchObject({pulled: [{files: 2, name: 'search'}], status: 'success'})
     })
 
+    it('keeps the local assetsDir and entry, and pulls the files into that assetsDir', async () => {
+      mkdirSync(join(dir, 'engine'), {recursive: true})
+      writeFileSync(
+        join(dir, 'engine', 'loopress.app.json'),
+        JSON.stringify({assetsDir: 'dist/app', entry: {scripts: ['engine.js'], styles: []}}),
+      )
+      const {cmd, internals} = makeCmd([dir])
+      internals.wpClient = {get: remote([{committed: true, name: 'engine'}], {engine: {'engine.js': 'run()'}})}
+
+      await cmd.run()
+
+      expect(readFileSync(join(dir, 'engine', 'dist', 'app', 'engine.js'), 'utf8')).toBe('run()')
+      expect(JSON.parse(readFileSync(join(dir, 'engine', 'loopress.app.json'), 'utf8'))).toEqual({
+        assetsDir: 'dist/app',
+        entry: {scripts: ['engine.js'], styles: []},
+        mountSelector: '#loopress-app-engine',
+        name: 'engine',
+        routing: 'hash',
+      })
+    })
+
+    it('keeps the crossOrigin the site reports, so a later push does not drop it', async () => {
+      const {cmd, internals} = makeCmd([dir])
+      const get = remote([{committed: true, name: 'search'}], {search: {'index.html': '<!doctype html>'}})
+      internals.wpClient = {
+        get: vi.fn(async (path: string) => {
+          const res = await get(path)
+          return path.endsWith('/manifest') ? {...res, crossOrigin: 'same-origin'} : res
+        }),
+      }
+
+      await cmd.run()
+
+      expect(JSON.parse(readFileSync(join(dir, 'search', 'loopress.app.json'), 'utf8'))).toMatchObject({
+        crossOrigin: 'same-origin',
+      })
+    })
+
     it('writes nothing on a dry run and reports what it would pull', async () => {
       const {cmd, internals, logs} = makeCmd([dir], true)
       internals.wpClient = {

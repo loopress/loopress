@@ -116,4 +116,28 @@ class AppManifestTest extends TestCase
         $this->expectExceptionMessage('duplicate');
         AppManifest::normalize($manifest);
     }
+
+    public function test_normalize_defaults_crossOrigin_to_null(): void
+    {
+        $this->assertNull(AppManifest::normalize($this->validManifest())['crossOrigin']);
+    }
+
+    public function test_normalize_accepts_a_supported_crossOrigin(): void
+    {
+        $raw = ['crossOrigin' => 'same-origin'] + $this->validManifest();
+
+        $this->assertSame('same-origin', AppManifest::normalize($raw)['crossOrigin']);
+    }
+
+    public function test_normalize_rejects_an_unsupported_or_injected_crossOrigin(): void
+    {
+        foreach (['cross-origin', "same-origin\"\nHeader set X y", 42] as $value) {
+            try {
+                AppManifest::normalize(['crossOrigin' => $value] + $this->validManifest());
+                $this->fail('crossOrigin ' . json_encode($value) . ' should be rejected');
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('crossOrigin', $e->getMessage());
+            }
+        }
+    }
 }

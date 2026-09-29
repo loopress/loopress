@@ -139,7 +139,7 @@ class LoopressEnvironment
             wp_mkdir_p($dir);
         }
 
-        DirectoryGuard::writeHtaccessIfMissing($dir, self::VENDOR_HTACCESS);
+        DirectoryGuard::writeHtaccess($dir, self::VENDOR_HTACCESS);
 
         return $dir;
     }
@@ -304,11 +304,12 @@ class LoopressEnvironment
         }
 
         DirectoryGuard::writeIndexIfMissing($vendorDir);
-        DirectoryGuard::writeHtaccessIfMissing($vendorDir, self::VENDOR_HTACCESS);
+        DirectoryGuard::writeHtaccess($vendorDir, self::VENDOR_HTACCESS);
     }
 
     private const VENDOR_HTACCESS = <<<'HTACCESS'
         # Loopress: bundled Composer dependencies, not meant to be reached over HTTP.
+        # Updated by Loopress. To manage this file yourself, remove the line above.
         <IfModule mod_authz_core.c>
           Require all denied
         </IfModule>

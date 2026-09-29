@@ -50,6 +50,24 @@ Every field is optional.
 | `mountSelector` | `#loopress-app-<name>` | the element id the shortcode renders and your app mounts on |
 | `routing` | `hash` | only `hash` is supported (see below) |
 | `entry` | read from `dist/index.html` | `{ "scripts": [...], "styles": [...] }`, only needed when there is no `index.html` |
+| `crossOrigin` | unset | `"same-origin"` or `"same-site"`: stops other sites from embedding the app's files (see below) |
+
+### Keeping other sites from embedding your app
+
+By default, any website can load your app's files straight from your server with `<script src="https://your-site/wp-content/loopress/apps/<name>/...">`. Set `crossOrigin` to stop that:
+
+```json
+{ "crossOrigin": "same-origin" }
+```
+
+On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder that sends `Cross-Origin-Resource-Policy: same-origin` (or `same-site`) with every file, and browsers then refuse to load them from another site. Remove the setting and push again to lift it.
+
+- **`same-origin`** allows only your site's exact domain. **`same-site`** also allows its subdomains, for example `cdn.your-site.com`.
+- **CDN on another domain.** If a CDN rewrites your asset URLs to a different domain (for example `*.b-cdn.net`), browsers will refuse the app's CSS and images too. Leave `crossOrigin` unset in that case.
+- **It does not hide the code.** Anything a browser runs can be downloaded and copied. The setting only stops other sites from using your server to run it.
+- **Apache and LiteSpeed only.** nginx ignores `.htaccess`: add the header for `wp-content/loopress/apps/<name>/` in the server config instead.
+- **Plugin version.** An older Loopress plugin commits the build but ignores the setting; `lps app push` warns you when that happens.
+- **Your own rules win.** If `apps/<name>/.htaccess` on the server does not start with `# Loopress:`, Loopress leaves it untouched and `lps app push` warns that the setting was not applied.
 
 ## Constraints
 

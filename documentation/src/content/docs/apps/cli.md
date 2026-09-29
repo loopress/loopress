@@ -55,7 +55,7 @@ Pushing never deletes anything on WordPress. A build that fails to upload or com
 
 ### `lps app pull`
 
-Download every committed app into `apps/<name>/dist/`, writing a `loopress.app.json` alongside.
+Download every committed app into `apps/<name>/dist/`, writing a `loopress.app.json` alongside. When the app already has a `loopress.app.json`, its files go into its `assetsDir` and its local-only settings (`assetsDir`, `entry`) are kept: only `name`, `mountSelector`, `routing` and `crossOrigin` are refreshed from the site.
 
 ```bash
 lps app pull [path]

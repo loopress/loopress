@@ -132,6 +132,7 @@ class AppsController
             'buildId'       => $record['buildId'] ?? null,
             'routing'       => $record['routing'] ?? 'hash',
             'mountSelector' => $record['mountSelector'] ?? null,
+            'crossOrigin'   => $record['crossOrigin'] ?? null,
             'entry'         => $record['entry'] ?? ['scripts' => [], 'styles' => []],
             'files'         => $record['files'] ?? [],
         ], 200);
@@ -245,10 +246,17 @@ class AppsController
             }
         }
 
+        try {
+            $crossOriginApplied = $this->directory->writeCrossOriginPolicy($name, $manifest['crossOrigin']);
+        } catch (\RuntimeException | \InvalidArgumentException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+
         $this->store->put($name, [
             'buildId'          => $manifest['buildId'],
             'routing'          => $manifest['routing'],
             'mountSelector'    => $manifest['mountSelector'],
+            'crossOrigin'      => $manifest['crossOrigin'],
             'entry'            => $manifest['entry'],
             'files'            => $manifest['files'],
             'previousManifest' => is_array($previous) && is_array($previous['files'] ?? null) ? $previous['files'] : [],
@@ -259,6 +267,9 @@ class AppsController
             'name'      => $name,
             'buildId'   => $manifest['buildId'],
             'fileCount' => count($manifest['files']),
+            // Echoed only when applied, so the CLI warns for an older plugin (which ignores the
+            // field) and for an app .htaccess the site owner manages.
+            'crossOrigin' => $crossOriginApplied ? $manifest['crossOrigin'] : null,
             'removed'   => $removed,
         ], 200);
     }

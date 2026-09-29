@@ -168,4 +168,49 @@ class AppsDirectoryTest extends TestCase
 
         $this->assertSame(['customer-portal', 'search'], $dir->listAppNames());
     }
+
+    // ── writeCrossOriginPolicy ──────────────────────────────────────────────
+
+    public function test_writeCrossOriginPolicy_writes_the_header_and_keeps_it_out_of_the_assets(): void
+    {
+        $dir = new AppsDirectory();
+        $dir->writeAsset('search', 'index.js', 'x');
+
+        $dir->writeCrossOriginPolicy('search', 'same-origin');
+
+        $htaccess = (string) file_get_contents($dir->appPath('search') . '.htaccess');
+        $this->assertStringContainsString('Header unset Cross-Origin-Resource-Policy', $htaccess);
+        $this->assertStringContainsString('Header always set Cross-Origin-Resource-Policy "same-origin"', $htaccess);
+        $this->assertSame(['index.js'], array_keys($dir->listAssets('search')));
+    }
+
+    public function test_writeCrossOriginPolicy_null_removes_the_file(): void
+    {
+        $dir = new AppsDirectory();
+        $dir->writeAsset('search', 'index.js', 'x');
+        $dir->writeCrossOriginPolicy('search', 'same-site');
+
+        $dir->writeCrossOriginPolicy('search', null);
+
+        $this->assertFileDoesNotExist($dir->appPath('search') . '.htaccess');
+    }
+
+    public function test_writeCrossOriginPolicy_refuses_an_unsupported_value(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new AppsDirectory())->writeCrossOriginPolicy('search', "same-origin\"\nHeader set X y");
+    }
+
+    public function test_writeCrossOriginPolicy_leaves_an_app_htaccess_the_site_owner_manages(): void
+    {
+        $dir = new AppsDirectory();
+        $dir->writeAsset('search', 'index.js', 'x');
+        $file = $dir->appPath('search') . '.htaccess';
+        file_put_contents($file, "# site rules\nRequire all denied\n");
+
+        $this->assertFalse($dir->writeCrossOriginPolicy('search', 'same-origin'));
+        $this->assertFalse($dir->writeCrossOriginPolicy('search', null));
+        $this->assertSame("# site rules\nRequire all denied\n", file_get_contents($file));
+    }
 }
