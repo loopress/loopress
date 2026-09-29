@@ -44,7 +44,7 @@ class AppsDiagnosticsTest extends TestCase
     private function withOneDeployedAsset(): void
     {
         $this->directory->method('listAppNames')->willReturn(['search']);
-        $this->directory->method('listAssets')->willReturn(['assets/index-abc.js' => ['sha256' => 'x', 'size' => 1]]);
+        $this->directory->method('firstAssetPath')->willReturn('assets/index-abc.js');
     }
 
     public function test_no_issue_when_assets_are_served_with_nosniff(): void

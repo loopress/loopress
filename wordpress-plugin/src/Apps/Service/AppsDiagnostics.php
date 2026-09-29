@@ -35,9 +35,8 @@ class AppsDiagnostics
             $issues[] = [
                 'code'    => 'apps_assets_missing_nosniff',
                 'message' => 'App assets are served without the X-Content-Type-Options: nosniff header. ' .
-                    'The .htaccess written under apps/ is not being enforced by this webserver (likely nginx, ' .
-                    'or AllowOverride disabled); add "add_header X-Content-Type-Options nosniff;" for ' .
-                    'wp-content/loopress/apps/ in your server config, so an uploaded asset cannot be sniffed ' .
+                    'Configure this webserver to send it for wp-content/loopress/apps/ (an Apache "Header set" ' .
+                    'directive, or an nginx "add_header" directive), so an uploaded asset cannot be sniffed ' .
                     'into an executable content type.',
             ];
         }
@@ -79,7 +78,8 @@ class AppsDiagnostics
     private function probeUrl(): ?string
     {
         foreach ($this->directory->listAppNames() as $name) {
-            foreach (array_keys($this->directory->listAssets($name)) as $relPath) {
+            $relPath = $this->directory->firstAssetPath($name);
+            if ($relPath !== null) {
                 return content_url('loopress/apps/' . $name . '/' . ltrim($relPath, '/'));
             }
         }

@@ -152,6 +152,33 @@ class AppsDirectory
         return $assets;
     }
 
+    // The '/'-joined relative path of one deployed asset, or null when the app has none. Unlike
+    // listAssets(), it hashes nothing and stops at the first file: for a caller that only needs
+    // a single asset to probe (AppsDiagnostics), building the full manifest would scan and
+    // sha256 every bundle file on each call.
+    public function firstAssetPath(string $name): ?string
+    {
+        if (!self::isValidAppName($name)) {
+            return null;
+        }
+
+        $appPath = $this->appPath($name);
+        if (!is_dir($appPath)) {
+            return null;
+        }
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($appPath, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($files as $file) {
+            if ($file->isFile()) {
+                return str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($appPath)));
+            }
+        }
+
+        return null;
+    }
+
     public function readAsset(string $name, string $relPath): ?string
     {
         if (!self::isValidAppName($name) || !self::isValidAssetPath($relPath)) {
