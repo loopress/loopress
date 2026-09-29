@@ -1,5 +1,17 @@
 # @loopress/wordpress-plugin
 
+## 2026.13.0
+
+### Minor Changes
+
+- 4d1c8af: Apps can now stop other sites from embedding their files: set `"crossOrigin": "same-origin"` (or `"same-site"`) in `loopress.app.json`, and on `lps app push` the plugin writes an `.htaccess` in the app's folder that sends `Cross-Origin-Resource-Policy` with every file. It overrides a site-wide `cross-origin` value set by a security plugin, and is removed when the setting is dropped. `lps app pull` keeps the setting, and `lps app push` warns when it was not applied (plugin too old, or an app `.htaccess` the site owner manages, which is left untouched). Apache and LiteSpeed only (nginx ignores `.htaccess`).
+- 20a406c: Block templates and parts: `templates/<slug>.html` and `parts/<slug>.html` are written by `lps template push` as the files of a child theme of the active block theme, `<parent>-loopress`, the parent staying untouched. Any template of the hierarchy can be overridden, and a template with a `title`/`postTypes` header becomes a page template a static page picks with its `template` header (no header or footer part gives a bare page). Edits made in the Site Editor are never overwritten and show up as drift in `lps template diff` and `lps diff`. Part of `lps push` (before pages), `lps dev`, `lps init` and `lps validate`. MCP gains `template_push`, `template_list` and `template_diff`.
+
+### Patch Changes
+
+- 4d1c8af: `lps app pull` no longer overwrites an existing `loopress.app.json`: files go into its `assetsDir` and its `entry` is kept, so an app with a custom build folder or an explicit entry can still be pushed after a pull. The `.htaccess` files Loopress writes under `wp-content/loopress/` (`apps/`, `vendor/`) are now updated when a new plugin version changes them (for example the `nosniff` header on apps), instead of only being written once. The rewrite is atomic (temp file + rename), so a request never sees half-written rules. A file whose first `# Loopress:` line was removed is left alone.
+- eb417c3: The Loopress Light readme now lists menu and option sync, which Light already ships, along with the option read/write safeguards.
+
 ## 2026.12.0
 
 ### Minor Changes

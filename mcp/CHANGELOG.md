@@ -1,5 +1,24 @@
 # @loopress/mcp
 
+## 0.28.0
+
+### Minor Changes
+
+- cd9479d: `lps app push` now builds each app before pushing it: when `apps/<name>/package.json` has a `build` script, it runs with the app's package manager (from `packageManager`, else the nearest lockfile, else npm), on `--dry-run` too, so a forgotten rebuild no longer ships a stale `dist/` reported as "up to date". A failing build fails that app and uploads nothing. Pass `--no-build` (MCP: `noBuild`) when CI already built. Dependencies are never installed for you.
+- 20a406c: Block templates and parts: `templates/<slug>.html` and `parts/<slug>.html` are written by `lps template push` as the files of a child theme of the active block theme, `<parent>-loopress`, the parent staying untouched. Any template of the hierarchy can be overridden, and a template with a `title`/`postTypes` header becomes a page template a static page picks with its `template` header (no header or footer part gives a bare page). Edits made in the Site Editor are never overwritten and show up as drift in `lps template diff` and `lps diff`. Part of `lps push` (before pages), `lps dev`, `lps init` and `lps validate`. MCP gains `template_push`, `template_list` and `template_diff`.
+- 61350a3: Breaking: `lps theme-styles pull/push/diff/rollback` is now `lps theme style pull/push/diff/rollback`, grouped with the other theme commands. The `theme-styles` resource name for `lps diff --only/--skip` and the MCP tool names (`theme_styles_*`) are unchanged, and existing rollback snapshots still work.
+
+### Patch Changes
+
+- Updated dependencies [cd9479d]
+- Updated dependencies [4d1c8af]
+- Updated dependencies [4d1c8af]
+- Updated dependencies [eb417c3]
+- Updated dependencies [20a406c]
+- Updated dependencies [b1c46ac]
+- Updated dependencies [61350a3]
+  - @loopress/cli@0.28.0
+
 ## 0.27.0
 
 ### Patch Changes
