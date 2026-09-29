@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and custom block templates, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool runs the [CLI](/cli/) installed alongside it (both installed globally with `npm install -g`), falling back to the `lps` binary on your `PATH`.
 
@@ -62,6 +62,9 @@ The server communicates over stdio from the directory your client launches it in
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |
+| `template_push` | Yes | Push local custom block templates to the active block theme, or only one (`slug`) |
+| `template_list` | No | List the custom block templates managed by Loopress in the active theme |
+| `template_diff` | No | Show what differs between the local templates and WordPress |
 | `app_push` | Yes | Push built single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |

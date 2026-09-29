@@ -27,6 +27,7 @@ const ALL_COMMAND_IDS = [
   'api:push',
   'hook:push',
   'form:push',
+  'template:push',
   'page:push',
   'seo:push',
   'menu:push',

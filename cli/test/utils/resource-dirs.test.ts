@@ -31,6 +31,7 @@ describe('resolveResourceDir', () => {
     ['page', 'pageDir'],
     ['seo', 'seoDir'],
     ['snippets', 'snippetsDir'],
+    ['template', 'templateDir'],
     ['themeStyles', 'themeStylesDir'],
   ] as const)('reads %s from loopress.json "%s"', (kind, key) => {
     expect(resolveResourceDir(kind, {[key]: 'custom', rootDir: 'r'})).toBe(join('r', 'custom'))
@@ -48,6 +49,7 @@ describe('resolveResourceDir', () => {
       page: 'pages',
       seo: 'seo',
       snippets: 'snippets',
+      template: 'templates',
       themeStyles: 'theme',
     })
   })

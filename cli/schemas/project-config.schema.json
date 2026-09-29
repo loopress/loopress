@@ -54,6 +54,11 @@
       "description": "Directory where static HTML pages (one <slug>.html per WordPress page, managed by Loopress) are read from, relative to rootDir.",
       "default": "pages"
     },
+    "templateDir": {
+      "type": "string",
+      "description": "Directory where block templates (one <slug>.html per template of the active block theme, managed by Loopress) are read from, relative to rootDir. A static page uses one with its `template` header.",
+      "default": "templates"
+    },
     "optionsDir": {
       "type": "string",
       "description": "Directory where explicitly tracked WordPress options (wp_options rows) are read from and written to, relative to rootDir. Only options added via `lps option add` live here, this is never the whole options table.",

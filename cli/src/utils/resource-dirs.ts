@@ -15,6 +15,7 @@ export const RESOURCE_DIR_DEFAULTS = {
   page: 'pages',
   seo: 'seo',
   snippets: 'snippets',
+  template: 'templates',
   themeStyles: 'theme',
 } as const
 
@@ -31,6 +32,7 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   page: 'pageDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
+  template: 'templateDir',
   themeStyles: 'themeStylesDir',
 }
 

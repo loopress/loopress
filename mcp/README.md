@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
 agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus,
-plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which
+plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and custom block templates, which
 don't support pull), one resource at a time or all at once, plus check project status. Ships as the
 `lps-mcp` binary.
 
@@ -73,6 +73,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `page_push` | Yes | `env?`, `slug?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
 | `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
 | `page_diff` | No | `env?` | Show what differs (HTML, title, status) between the local pages and WordPress |
+| `template_push` | Yes | `env?`, `slug?`, `confirmToken?` | Push local custom block templates (`templates/<slug>.html`) to the active block theme, or only `slug` |
+| `template_list` | No | `env?` | List the custom block templates managed by Loopress in the active theme (slug, title) |
+| `template_diff` | No | `env?` | Show what differs (markup, title) between the local templates and WordPress |
 | `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |

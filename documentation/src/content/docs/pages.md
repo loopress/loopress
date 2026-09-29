@@ -1,6 +1,6 @@
 ---
 title: Static Pages
-description: Version-control hand-written HTML pages and push them to WordPress as regular pages rendered by your theme.
+description: Version-control hand-written HTML pages and custom block templates, and push them to WordPress as regular pages rendered by your theme.
 ---
 
 :::note
@@ -34,13 +34,46 @@ The file may start with an HTML comment of `key: value` lines. It stays valid HT
 | `status` | `draft` | `draft` or `publish`. Declarative: switching a published page back to `draft` unpublishes it on the next push. |
 | `full-width` | `false` | `true` or `false`. On a block theme, drops the theme's max-width/side-padding for this page's content only (header and footer keep theirs). Silent no-op on a classic (non-block) theme. |
 | `hide-title` | `false` | `true` or `false`. Hides the theme's own page title block, useful when your HTML already has its own heading. Same block-theme-only scope as `full-width`. |
-| `template` | Theme default | Any template slug the active theme ships (a block theme's `templates/<slug>.html`, or a classic theme's `page-<slug>.php`). Not validated: an unknown slug just falls back to the default template, WordPress never errors on it. |
+| `template` | Theme default | A template slug the active theme offers for pages: one it ships (a block theme's `templates/<slug>.html`, or a classic theme's `page-<slug>.php`), or one of your own [custom templates](#custom-templates). WordPress refuses an unknown slug, and the push of that page fails with `Invalid page template`. |
 
 Any other key, or any other status, is rejected before anything is sent to WordPress, so a typo never silently falls back to a default.
 
 File names must be lowercase letters and digits separated by single hyphens (`legal-notice.html`, not `-legal--notice.html`): WordPress would rewrite such a slug and the page would no longer match its file. Only `.html` files are allowed in `pages/` (dotfiles such as `.DS_Store` are ignored), and subdirectories are not supported yet: one file per page, at the top of the directory. A file that breaks any of these rules stops the whole push before any network call.
 
 The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/cli/init/#fields-reference) to change it.
+
+## Custom templates
+
+On a block theme, your project can declare its own templates next to its pages: one `.html` file per template in a `templates/` directory, holding block markup (what the Site Editor saves). Each file becomes a custom template of the active theme, and a page picks one with its `template` header:
+
+```html
+<!-- templates/bare-landing.html -->
+<!-- wp:group {"tagName":"main"} -->
+<main class="wp-block-group"><!-- wp:post-content /--></main>
+<!-- /wp:group -->
+```
+
+```html
+<!-- pages/launch.html -->
+<!--
+title: Launch
+status: publish
+template: bare-landing
+-->
+<section class="hero">...</section>
+```
+
+This template has no `wp:template-part` for the header or footer, so `launch` renders as a bare page. Add `<!-- wp:template-part {"slug":"header"} /-->` to keep the theme's header.
+
+- A file may start with the same comment header as a page, with a single key: `title`, the name shown in the Site Editor and the template picker. It is derived from the slug when absent (`bare-landing` → `Bare landing`). A file that opens on a block (`<!-- wp:... -->`) has no header.
+- File names follow the page rules: lowercase letters and digits separated by single hyphens, `.html` only, no subdirectories.
+- Only custom templates: a WordPress template (`page`, `single`, `index`, `front-page`...) or one the active theme already ships is refused, since overriding it would restyle every page that uses it, not only the ones that opt in.
+- A template customized in the Site Editor under the same name is never overwritten, the push is refused until you clear those customizations or rename the file.
+- Templates belong to the active theme. After switching themes, push them again.
+- The push is refused on a classic theme, which never uses block templates.
+- A template edited in the Site Editor after a push is overwritten by the next push. `lps template diff` shows the drift.
+
+The directory is `templates/` by default, set `templateDir` in [`loopress.json`](/cli/init/#fields-reference) to change it. `lps push` pushes templates before pages, so a new page can use a template pushed in the same run.
 
 ## Commands
 
@@ -49,8 +82,11 @@ The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/cli/in
 | `lps page push [SLUG]` | Push every page, or only `SLUG`. Supports `--dry-run` and `--yes`. |
 | `lps page list` | List the pages managed by Loopress on WordPress, with their status and URL. |
 | `lps page diff` | Show what differs (HTML, title, status) between `pages/` and WordPress. Also available as `lps diff --only page`. |
+| `lps template push [SLUG]` | Push every custom template, or only `SLUG`. Supports `--dry-run` and `--yes`. |
+| `lps template list` | List the custom templates managed by Loopress in the active theme. |
+| `lps template diff` | Show what differs (markup, title) between `templates/` and WordPress. Also available as `lps diff --only template`. |
 
-Pages are also part of `lps push`, `lps diff`, and `lps dev` (a saved file is pushed to your local environment right away).
+Pages and templates are also part of `lps push`, `lps diff`, and `lps dev` (a saved file is pushed to your local environment right away).
 
 When several pages are pushed, each one is pushed on its own: a refused page doesn't stop the others, and the command fails at the end with the number of pages that failed.
 
@@ -78,7 +114,7 @@ Because the editor is closed, the SEO plugin's meta box and the featured image a
 The HTML is stored in a hidden post meta, never in the page's regular content (`post_content`, which stays empty). It is inserted through the `the_content` filter, before shortcodes and embeds run, so shortcodes, oEmbed links and image lazy-loading work as on any page. Automatic paragraphs (`wpautop`) are turned off for these pages only, your markup is output as written.
 
 - **Shortcodes from other plugins may lose their styles.** Many plugins decide whether to load their CSS and JS by looking for their shortcode in `post_content`. Since it's empty, the shortcode renders but without its assets on those plugins. Plugins that load their assets from the shortcode itself are not affected.
-- **No bare page.** A page is always rendered inside your theme's layout. A page without the theme's header and footer is not supported yet.
+- **Bare pages need a block theme.** A page is rendered inside its template. For a page without the theme's header and footer, push a [custom template](#custom-templates) that leaves them out. Classic themes have no such option.
 - **WordPress search matches a page's title, not its HTML.** Core search includes `post_title`, so a page can turn up by title, but it never matches inside the pushed HTML, since that lives outside `post_content`.
 - **Deactivating Loopress** leaves these pages empty between the theme's header and footer. Nothing leaks, and `lps doctor` reports the missing plugin.
 - **Pushed HTML is not filtered.** Like [API routes](/api/) and [hooks](/hooks/), anything you push, `<script>` included, runs on the site as is. Pushing requires an administrator (`manage_options`) account.

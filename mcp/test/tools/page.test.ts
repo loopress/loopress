@@ -27,8 +27,17 @@ describe('registerPageTools', () => {
     runLps.mockClear()
   })
 
-  it('registers push, list and diff', () => {
-    expect([...register().keys()].sort()).toEqual(['page_diff', 'page_list', 'page_push'])
+  it('registers push, list and diff for pages and templates', () => {
+    expect([...register().keys()].sort()).toEqual(['page_diff', 'page_list', 'page_push', 'template_diff', 'template_list', 'template_push'])
+  })
+
+  it('template_push and template_list run the template commands', async () => {
+    const tools = register()
+    await tools.get('template_push')!.handler({slug: 'landing'})
+    await tools.get('template_list')!.handler({env: 'prod'})
+
+    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['template', 'push', 'landing'], undefined)
+    expect(runLps).toHaveBeenCalledWith(['template', 'list', '--env', 'prod'])
   })
 
   it('page_push passes the slug as a positional arg through the confirm handshake', async () => {

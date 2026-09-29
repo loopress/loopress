@@ -18,7 +18,7 @@ The command is interactive: it prompts you for each field and writes the result 
 | WordPress project | Select a project you have already configured with `lps project config`, or enter a project ID manually. When no project exists yet, `lps init` offers to run `lps project config` right away and continues with the project you create. |
 | Root directory | Base directory for the project. All other paths are resolved relative to it. Defaults to `.`. |
 | Snippets directory | Directory where snippet files are written and read. Relative to root. Defaults to `snippets`. |
-| Other features | Optional multi-select for ACF, SEO, Menus, Forms, custom API routes, hooks, single-page apps, and static pages. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `menus`, `forms`, `api`, `hooks`, `apps`, `pages`). |
+| Other features | Optional multi-select for ACF, SEO, Menus, Forms, custom API routes, hooks, single-page apps, static pages, and block templates. Only the features you pick get their directory written to `loopress.json` (defaults: `acf`, `seo`, `menus`, `forms`, `api`, `hooks`, `apps`, `pages`, `templates`). |
 | Snippet provider | The WordPress plugin used to manage snippets: [Code Snippets](https://wordpress.org/plugins/code-snippets/), [WPCode](https://wpcode.com/), or none if it's already installed. When you pick one, it's added to `plugins`. |
 
 It also adds `* text=auto eol=lf` at the top of a `.gitattributes` file next to `loopress.json`. It creates the file if needed, leaves it alone if the rule is already there, and keeps your own rules after it so they still take precedence (for example `*.bat text eol=crlf`). Git for Windows checks files out with CRLF line endings by default, so without this rule a snippet cloned on Windows would no longer match, byte for byte, what `pull` writes.
@@ -56,6 +56,7 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `optionsDir` | `options` | Directory for tracked WordPress options, relative to `rootDir`. Only options added with `lps option add` live here. |
 | `themeStylesDir` | `theme` | Directory for the active block theme's Global Styles, relative to `rootDir`. Used by `lps theme-styles pull/push`. |
 | `pageDir` | `pages` | Directory for static HTML pages, relative to `rootDir`. Used by `lps page push/diff`. |
+| `templateDir` | `templates` | Directory for custom block templates, relative to `rootDir`. Used by `lps template push/diff`. |
 | `appsDir` | `apps` | Directory for single-page app bundles, relative to `rootDir`. Used by `lps app pull/push`. |
 | `themes` | none | WordPress.org themes managed by Loopress (slugs). Populated by `lps theme pull` and `lps theme add`. Never switches the active theme. |
 | `plugins` | none | WordPress.org plugins managed by Loopress (slugs), each with its pinned version and, for an inactive plugin, `"active": false`. Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |

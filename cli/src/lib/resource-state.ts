@@ -17,6 +17,7 @@ import {
   type SeoRedirect,
 } from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
+import {readLocalTemplates, type Template, TEMPLATES_ENDPOINT} from '../utils/template-format.js'
 import {
   canonicalGlobalStyles,
   getActiveThemeGlobalStyles,
@@ -289,6 +290,27 @@ const pageProvider: ResourceStateProvider = {
   title: 'Pages',
 }
 
+// ---- Templates --------------------------------------------------------------------------
+
+function canonicalTemplate(template: Template): Record<string, unknown> {
+  return {html: template.html, title: template.title}
+}
+
+const templateProvider: ResourceStateProvider = {
+  dirKind: 'template',
+  async local(dir) {
+    const {problems, templates} = await readLocalTemplates(dir)
+    if (problems.length > 0) throw new Error(formatPageProblems(problems))
+    return new Map(templates.map((template) => [template.slug, canonicalTemplate(template)]))
+  },
+  async remote(wp) {
+    const templates = await wp.get<Template[]>(TEMPLATES_ENDPOINT)
+    return new Map(templates.map((template) => [template.slug, canonicalTemplate(template)]))
+  },
+  resource: 'template',
+  title: 'Templates',
+}
+
 // ---- SEO --------------------------------------------------------------------------------
 
 function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
@@ -518,6 +540,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   acfProvider,
   apiProvider,
   hookProvider,
+  templateProvider,
   pageProvider,
   seoProvider,
   menuProvider,

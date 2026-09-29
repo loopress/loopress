@@ -7,12 +7,14 @@ namespace Loopress\Pages\Module;
 use Loopress\Contract\Module;
 use Loopress\Pages\Frontend\PageFilters;
 use Loopress\Pages\RestApi\PagesController;
+use Loopress\Pages\RestApi\TemplatesController;
 
 class PagesModule implements Module
 {
     public function boot(): void
     {
         add_action('rest_api_init', fn() => (new PagesController())->register_routes());
+        add_action('rest_api_init', fn() => (new TemplatesController())->register_routes());
         (new PageFilters())->register();
     }
 }
