@@ -3,11 +3,11 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Push from '../../../src/commands/theme-styles/push.js'
-import {type EnvironmentConfig} from '../../../src/types/config.js'
-import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
-import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
-import {makeEnv} from '../../helpers/project-fixtures.js'
+import Push from '../../../../src/commands/theme/style/push.js'
+import {type EnvironmentConfig} from '../../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../../src/utils/loopress-config.js'
+import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
+import {makeEnv} from '../../../helpers/project-fixtures.js'
 
 class TestPush extends Push {
   protected override async guardProductionPush(): Promise<void> {}
@@ -40,7 +40,7 @@ function make(config: LoopressLocalConfig, argv: string[] = [], dryRun = false) 
   return {cmd, get, logs, post}
 }
 
-describe('theme-styles push', () => {
+describe('theme style push', () => {
   let dir: string
 
   beforeEach(() => {
@@ -70,7 +70,7 @@ describe('theme-styles push', () => {
     const {cmd, get} = make({rootDir: dir})
     get.mockResolvedValue([activeTheme('twentytwentyfour')])
 
-    await expect(cmd.run()).rejects.toThrow(/Run `lps theme-styles pull` first/)
+    await expect(cmd.run()).rejects.toThrow(/Run `lps theme style pull` first/)
   })
 
   it('fails clearly when the active theme is a classic theme', async () => {

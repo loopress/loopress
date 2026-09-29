@@ -115,10 +115,10 @@ describe('registerRollbackTool', () => {
     const {registerRollbackTool} = await import('../../src/lib/resource-tools.js')
     const {server, tools} = fakeServer()
 
-    registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme-styles', toolName: 'theme_styles'})
+    registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme style', toolName: 'theme_styles'})
 
     expect([...tools.keys()]).toEqual(['theme_styles_rollback'])
     await tools.get('theme_styles_rollback')!({})
-    expect(runMutatingTool).toHaveBeenCalledWith('theme_styles_rollback', ['theme-styles', 'rollback', '--yes'], undefined)
+    expect(runMutatingTool).toHaveBeenCalledWith('theme_styles_rollback', ['theme', 'style', 'rollback', '--yes'], undefined)
   })
 })

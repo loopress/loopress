@@ -15,7 +15,7 @@ function authHeader(wp: WpCredentials): string {
 // always available on the shared e2e instance without installing anything extra. Whatever theme
 // was active before this file ran is restored afterward, other spec files (and manual runs
 // against a persistent instance) never see their active theme changed.
-test.describe('theme-styles sync (block theme)', () => {
+test.describe('theme style sync (block theme)', () => {
   let previousActiveTheme: string
 
   test.beforeAll(async ({requestUtils, wp}) => {
@@ -59,7 +59,7 @@ test.describe('theme-styles sync (block theme)', () => {
     test.skip(!classicSlug, 'No classic theme installed on this instance to activate for this assertion.')
 
     try {
-      const result = await runCli(['theme-styles', 'pull'])
+      const result = await runCli(['theme', 'style', 'pull'])
       expect(result.exitCode).not.toBe(0)
       expect(unwrap(result.stderr)).toContain('classic theme')
     } finally {
@@ -84,7 +84,7 @@ test.describe('theme-styles sync (block theme)', () => {
     })
     expect(putResponse.ok()).toBe(true)
 
-    const pullResult = await runCli(['theme-styles', 'pull'])
+    const pullResult = await runCli(['theme', 'style', 'pull'])
     expect(pullResult.exitCode).toBe(0)
 
     const file = join(projectDir, 'theme', `${BLOCK_THEME}-global-styles.json`)
@@ -96,7 +96,7 @@ test.describe('theme-styles sync (block theme)', () => {
     mkdirSync(join(projectDir, 'theme'), {recursive: true})
     writeFileSync(file, JSON.stringify({settings: pulled.settings, styles: {color: {background: secondColor}}}))
 
-    const pushResult = await runCli(['theme-styles', 'push'])
+    const pushResult = await runCli(['theme', 'style', 'push'])
     expect(pushResult.exitCode).toBe(0)
 
     const liveResponse = await request.get(`${wp.url}/wp-json/wp/v2/global-styles/${stylesPostId}`, {
@@ -107,11 +107,11 @@ test.describe('theme-styles sync (block theme)', () => {
     expect(live.styles.color?.background).toBe(secondColor)
   })
 
-  test('theme-styles diff reports no drift right after a pull', async ({runCli}) => {
-    const pullResult = await runCli(['theme-styles', 'pull'])
+  test('theme style diff reports no drift right after a pull', async ({runCli}) => {
+    const pullResult = await runCli(['theme', 'style', 'pull'])
     expect(pullResult.exitCode).toBe(0)
 
-    const diffResult = await runCli(['theme-styles', 'diff'])
+    const diffResult = await runCli(['theme', 'style', 'diff'])
     expect(diffResult.exitCode).toBe(0)
     expect(diffResult.stdout).toContain('in sync')
   })
