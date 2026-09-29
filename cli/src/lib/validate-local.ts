@@ -5,6 +5,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
 import {parseType} from '../utils/snippet-format.js'
+import {readLocalTemplates} from '../utils/template-format.js'
 import {loadSnippets} from './load-snippets.js'
 import {readdirTolerant} from './readdir-tolerant.js'
 
@@ -28,8 +29,10 @@ const DEFAULT_DIR: Record<string, string> = {
   menuDir: 'menus',
   optionsDir: 'options',
   pageDir: 'pages',
+  partDir: 'parts',
   seoDir: 'seo',
   snippetsDir: 'snippets',
+  templateDir: 'templates',
   themeStylesDir: 'theme',
 }
 
@@ -68,6 +71,10 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   const pages = await readLocalPages(resolve('pageDir'))
   checked += pages.pages.length + pages.problems.length
   problems.push(...pages.problems)
+
+  const templates = await readLocalTemplates(resolve('templateDir'), resolve('partDir'))
+  checked += templates.templates.length + templates.parts.length + templates.problems.length
+  problems.push(...templates.problems)
 
   return {checked, problems, valid: problems.length === 0}
 }

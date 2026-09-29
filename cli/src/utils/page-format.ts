@@ -62,25 +62,11 @@ export function titleFromSlug(slug: string): string {
 //
 // A comment rather than YAML front matter so the file stays valid HTML, previewable as is in a
 // browser. The header is stripped from what gets pushed. Throws on an unknown key or status so a
-// typo never silently falls back to a default. `template` is the active theme's own template
-// slug (a block theme's templates/<slug>.html, or a classic theme's page-<slug>.php); unlike
-// `status`, it's never validated here, an unknown slug just makes WordPress fall back to the
-// default template, the same silent no-op as `full-width`/`hide-title` on a theme that doesn't
-// support them.
+// typo never silently falls back to a default. `template` is a template slug the active theme
+// offers for pages (one it ships, or a custom one from templates/); it isn't validated here,
+// WordPress itself refuses an unknown one ("Invalid page template") and fails that page's push.
 export function parsePageFile(slug: string, raw: string): Page {
-  const header = /^\s*<!--([\s\S]*?)-->\r?\n?/.exec(raw)
-  const meta: Record<string, string> = {}
-
-  if (header) {
-    for (const line of header[1].split(/\r?\n/)) {
-      if (line.trim() === '') continue
-      const colon = line.indexOf(':')
-      if (colon === -1) throw new Error(`header line "${line.trim()}" is not a "key: value" pair`)
-      const key = line.slice(0, colon).trim()
-      if (!(HEADER_KEYS as readonly string[]).includes(key)) throw new Error(`unknown header key "${key}" (allowed: ${HEADER_KEYS.join(', ')})`)
-      meta[key] = line.slice(colon + 1).trim()
-    }
-  }
+  const {body, meta} = parseHtmlHeader(raw, HEADER_KEYS)
 
   const status = meta.status ?? 'draft'
   if (!(PAGE_STATUSES as readonly string[]).includes(status)) {
@@ -90,7 +76,7 @@ export function parsePageFile(slug: string, raw: string): Page {
   return {
     fullWidth: parseBoolean('full-width', meta['full-width']),
     hideTitle: parseBoolean('hide-title', meta['hide-title']),
-    html: header ? raw.slice(header[0].length) : raw,
+    html: body,
     slug,
     status: status as PageStatus,
     template: meta.template ?? '',
@@ -98,20 +84,47 @@ export function parsePageFile(slug: string, raw: string): Page {
   }
 }
 
+// Splits the optional `key: value` HTML comment header off `raw`. Shared with templates/.
+export function parseHtmlHeader(raw: string, keys: readonly string[]): {body: string; meta: Record<string, string>} {
+  const header = /^\s*<!--([\s\S]*?)-->\r?\n?/.exec(raw)
+  const meta: Record<string, string> = {}
+  if (!header) return {body: raw, meta}
+
+  for (const line of header[1].split(/\r?\n/)) {
+    if (line.trim() === '') continue
+    const colon = line.indexOf(':')
+    if (colon === -1) throw new Error(`header line "${line.trim()}" is not a "key: value" pair`)
+    const key = line.slice(0, colon).trim()
+    if (!keys.includes(key)) throw new Error(`unknown header key "${key}" (allowed: ${keys.join(', ')})`)
+    meta[key] = line.slice(colon + 1).trim()
+  }
+
+  return {body: raw.slice(header[0].length), meta}
+}
+
 // Reads every page of `dir` and reports every problem at once instead of skipping bad files
 // like the other resources do: a page push is declarative, so anything unexpected in the
 // directory (a `.php`, a subdirectory, a bad header) must stop it before any network call.
 // Dotfiles (.DS_Store, editor droppings) are ignored. A missing directory is "no pages".
 export async function readLocalPages(dir: string): Promise<{pages: Page[]; problems: PageProblem[]}> {
+  const {files, problems} = await readLocalHtmlFiles(dir, parsePageFile)
+  return {pages: files, problems}
+}
+
+// The directory rules of readLocalPages(), for any flat folder of `<slug>.html` files.
+export async function readLocalHtmlFiles<T>(
+  dir: string,
+  parse: (slug: string, raw: string) => T,
+): Promise<{files: T[]; problems: PageProblem[]}> {
   let entries
   try {
     entries = await readdir(dir, {withFileTypes: true})
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {pages: [], problems: []}
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {files: [], problems: []}
     throw error
   }
 
-  const pages: Page[] = []
+  const files: T[] = []
   const problems: PageProblem[] = []
 
   entries.sort((a, b) => a.name.localeCompare(b.name))
@@ -120,7 +133,7 @@ export async function readLocalPages(dir: string): Promise<{pages: Page[]; probl
 
     const filePath = join(dir, entry.name)
     if (!entry.isFile()) {
-      problems.push({file: filePath, message: `subdirectories are not supported, keep every page at the top of ${dir}`})
+      problems.push({file: filePath, message: `subdirectories are not supported, keep every file at the top of ${dir}`})
       continue
     }
 
@@ -136,13 +149,13 @@ export async function readLocalPages(dir: string): Promise<{pages: Page[]; probl
     }
 
     try {
-      pages.push(parsePageFile(slug, await readFile(filePath, 'utf8')))
+      files.push(parse(slug, await readFile(filePath, 'utf8')))
     } catch (error) {
       problems.push({file: filePath, message: (error as Error).message})
     }
   }
 
-  return {pages, problems}
+  return {files, problems}
 }
 
 export function frontPageNote(page: PushedPage): string {

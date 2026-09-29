@@ -24,6 +24,8 @@ const FEATURES = [
   {dir: 'hooks', key: 'hooksDir', label: 'Hooks (actions, filters, cron)'},
   {dir: 'apps', key: 'appsDir', label: 'Single-page apps'},
   {dir: 'pages', key: 'pageDir', label: 'Static pages'},
+  {dir: 'templates', key: 'templateDir', label: 'Block templates'},
+  {dir: 'parts', key: 'partDir', label: 'Block template parts'},
 ] as const
 
 export default class Init extends Command {

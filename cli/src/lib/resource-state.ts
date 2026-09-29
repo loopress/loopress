@@ -5,7 +5,7 @@ import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
-import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalPages} from '../utils/page-format.js'
+import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
   DEFAULT_POST_TYPES,
@@ -17,6 +17,7 @@ import {
   type SeoRedirect,
 } from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme, parsePartFile, parseTemplateFile, type Part, type Template} from '../utils/template-format.js'
 import {
   canonicalGlobalStyles,
   getActiveThemeGlobalStyles,
@@ -289,6 +290,47 @@ const pageProvider: ResourceStateProvider = {
   title: 'Pages',
 }
 
+// ---- Templates and parts ---------------------------------------------------------------
+
+// Both live in the Loopress child theme (ChildThemeController), one GET answers for both. A
+// template or part edited in the Site Editor gets `siteEditor: 'customized'` on the remote side
+// only, so it always shows as drift: its database copy is what the site renders, not the file.
+async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promise<ResourceState> {
+  const child = await wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
+  const files: Array<Part | Template> = child[kind]
+  const state: ResourceState = new Map(files.map(({slug, ...rest}) => [slug, rest]))
+  for (const entry of child.customized) {
+    const [dir, slug] = entry.split('/', 2)
+    if (dir === kind) state.set(slug, {...(state.get(slug) as Record<string, unknown> | undefined), siteEditor: 'customized'})
+  }
+
+  return state
+}
+
+const templateProvider: ResourceStateProvider = {
+  dirKind: 'template',
+  async local(dir) {
+    const {files, problems} = await readLocalHtmlFiles(dir, parseTemplateFile)
+    if (problems.length > 0) throw new Error(formatPageProblems(problems))
+    return new Map(files.map(({slug, ...rest}) => [slug, rest]))
+  },
+  remote: async (wp) => childThemeState(wp, 'templates'),
+  resource: 'template',
+  title: 'Templates',
+}
+
+const partProvider: ResourceStateProvider = {
+  dirKind: 'part',
+  async local(dir) {
+    const {files, problems} = await readLocalHtmlFiles(dir, parsePartFile)
+    if (problems.length > 0) throw new Error(formatPageProblems(problems))
+    return new Map(files.map(({slug, ...rest}) => [slug, rest]))
+  },
+  remote: async (wp) => childThemeState(wp, 'parts'),
+  resource: 'part',
+  title: 'Template parts',
+}
+
 // ---- SEO --------------------------------------------------------------------------------
 
 function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
@@ -518,6 +560,8 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   acfProvider,
   apiProvider,
   hookProvider,
+  templateProvider,
+  partProvider,
   pageProvider,
   seoProvider,
   menuProvider,

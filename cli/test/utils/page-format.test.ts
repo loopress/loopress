@@ -198,7 +198,7 @@ describe('readLocalPages exact problems', () => {
         message: 'the file name must be lowercase letters and digits separated by single hyphens (e.g. "legal-notice.html")',
       },
       {file: join(dir, 'hack.php'), message: `only .html files are allowed in ${dir}`},
-      {file: join(dir, 'services'), message: `subdirectories are not supported, keep every page at the top of ${dir}`},
+      {file: join(dir, 'services'), message: `subdirectories are not supported, keep every file at the top of ${dir}`},
     ])
   })
 

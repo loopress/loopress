@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and block templates and parts, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool runs the [CLI](/cli/) installed alongside it (both installed globally with `npm install -g`), falling back to the `lps` binary on your `PATH`.
 
@@ -62,6 +62,9 @@ The server communicates over stdio from the directory your client launches it in
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |
+| `template_push` | Yes | Push local block templates and parts as the files of the Loopress child theme |
+| `template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
+| `template_diff` | No | Show what differs between the local templates and parts and WordPress, Site Editor edits included |
 | `app_push` | Yes | Push built single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |

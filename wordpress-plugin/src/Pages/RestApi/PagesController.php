@@ -158,9 +158,9 @@ class PagesController
             'post_title'    => $title,
             'post_status'   => $status,
             'post_content'  => '',
-            // The theme's own template picks up full-width/no-title support natively where it
-            // exists; an unknown or empty slug just falls back to the default template, WordPress
-            // never errors on it. Not validated here on purpose, same as page-format.ts.
+            // Validated by wp_insert_post() itself against the theme's page templates, custom
+            // ones from the Loopress child theme included: an unknown slug is a WP_Error
+            // ("Invalid page template"), returned below as the push failure.
             'page_template' => $template,
             'meta_input'    => [
                 ManagedPage::MARKER_META     => '1',

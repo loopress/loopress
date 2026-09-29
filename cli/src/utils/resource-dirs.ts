@@ -13,8 +13,10 @@ export const RESOURCE_DIR_DEFAULTS = {
   menu: 'menus',
   options: 'options',
   page: 'pages',
+  part: 'parts',
   seo: 'seo',
   snippets: 'snippets',
+  template: 'templates',
   themeStyles: 'theme',
 } as const
 
@@ -29,8 +31,10 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   menu: 'menuDir',
   options: 'optionsDir',
   page: 'pageDir',
+  part: 'partDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
+  template: 'templateDir',
   themeStyles: 'themeStylesDir',
 }
 
