@@ -65,7 +65,7 @@ The server communicates over stdio from the directory your client launches it in
 | `template_push` | Yes | Push local block templates and parts as the files of the Loopress child theme |
 | `template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
 | `template_diff` | No | Show what differs between the local templates and parts and WordPress, Site Editor edits included |
-| `app_push` | Yes | Push built single-page app bundles to WordPress |
+| `app_push` | Yes | Build and push single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |
 | `app_remove` | Yes | Remove a single-page app from WordPress |

@@ -76,7 +76,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`templates/<slug>.html`) and parts (`parts/<slug>.html`) as the files of the Loopress child theme |
 | `template_list` | No | `env?` | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
 | `template_diff` | No | `env?` | Show what differs between the local templates and parts and the child theme, Site Editor edits included |
-| `app_push` | Yes | `env?`, `name?`, `confirmToken?` | Push built single-page app bundles (`apps/<name>/dist/`) to WordPress |
+| `app_push` | Yes | `env?`, `name?`, `noBuild?`, `confirmToken?` | Build (package.json `build` script) and push single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |
 | `app_remove` | Yes | `env?`, `name`, `confirmToken?` | Remove a single-page app from WordPress |

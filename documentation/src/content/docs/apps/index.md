@@ -7,7 +7,7 @@ Single-page apps let you version-control a front-end application (Vue, React, Sv
 
 This is a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
 
-Loopress ships the **build output**, it does not run the build. You (or your CI) run `npm run build`; Loopress syncs the resulting `dist/` folder and gives you a mount helper. That keeps it in the same lane as every other Loopress command: the REST bridge between a Git repo and WordPress.
+Loopress ships the **build output**. When the app has a `package.json` with a `build` script, `lps app push` runs it first with the app's own package manager (read from `packageManager`, else from the nearest lockfile, else npm), so a forgotten rebuild never ships a stale `dist/`. Without a `build` script, the `dist/` folder is pushed as is. Loopress never installs dependencies: run the install yourself once.
 
 ## How it fits together
 
@@ -23,10 +23,10 @@ apps/
 ```
 
 ```bash
-# 1. build the app with its own toolchain
-npm --prefix apps/search run build
+# 1. install the app's dependencies, once
+npm --prefix apps/search install
 
-# 2. ship the bundle to WordPress (only changed files are uploaded)
+# 2. build and ship the bundle to WordPress (only changed files are uploaded)
 lps app push search
 
 # 3. mount it in a page
@@ -77,7 +77,7 @@ On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder
 - **Per-file size limit.** A single file over 8 MB is rejected (raise it with the `loopress_app_max_asset_bytes` filter). A typical search-page bundle is 1 to 3 MB total and well under this.
 - **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed. There is no rollback or version history.
 - **One deploy at a time per app.** Concurrent `lps app push` (or a push racing a `lps app remove`) for the *same* app are not serialized: the asset cleanup and the state write are separate steps. Deploys of different apps are independent. Run one push per app at a time, which is the normal case for a CI pipeline.
-- **Not part of `lps push`.** Apps need their build step to run first, so the aggregate `lps push` / `lps pull` / `lps promote` commands leave them alone. Deploy with `lps app push`.
+- **Not part of `lps push`.** Apps have their own build step, so the aggregate `lps push` / `lps pull` / `lps promote` commands leave them alone. Deploy with `lps app push`.
 
 ## Talking to WordPress from the app
 
