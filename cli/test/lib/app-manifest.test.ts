@@ -153,6 +153,11 @@ describe('app-manifest', () => {
       expect(parseAppConfig('{}', dir).routing).toBeUndefined()
     })
 
+    it('accepts a supported crossOrigin and rejects anything else', () => {
+      expect(parseAppConfig(JSON.stringify({crossOrigin: 'same-origin'}), dir).crossOrigin).toBe('same-origin')
+      expect(() => parseAppConfig(JSON.stringify({crossOrigin: 'cross-origin'}), dir)).toThrow('not supported')
+    })
+
     it('rejects a JSON scalar or null, not just non-JSON', () => {
       expect(() => parseAppConfig('"nope"', dir)).toThrow('must be a JSON object')
       expect(() => parseAppConfig('null', dir)).toThrow('must be a JSON object')
@@ -227,6 +232,14 @@ describe('app-manifest', () => {
       const {manifest} = await loadAppManifest(dir, 'search')
 
       expect(manifest.mountSelector).toBe('#custom')
+    })
+
+    it('carries crossOrigin into the manifest only when the config sets it', async () => {
+      scaffold({crossOrigin: 'same-site'}, '<script type="module" src="/assets/index-abc.js"></script>')
+      expect((await loadAppManifest(dir, 'search')).manifest.crossOrigin).toBe('same-site')
+
+      scaffold({}, '<script type="module" src="/assets/index-abc.js"></script>')
+      expect((await loadAppManifest(dir, 'search')).manifest).not.toHaveProperty('crossOrigin')
     })
 
     it('honours a custom assetsDir from the config instead of "dist"', async () => {

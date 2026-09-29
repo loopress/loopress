@@ -2,16 +2,17 @@ import {confirm} from '@inquirer/prompts'
 import {Args} from '@oclif/core'
 import {Buffer} from 'node:buffer'
 import {existsSync} from 'node:fs'
-import {mkdir, readdir, rm, writeFile} from 'node:fs/promises'
+import {mkdir, readdir, readFile, rm, writeFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
 
-import {APP_CONFIG_FILENAME, type AppEntry, type AppFile} from '../../lib/app-manifest.js'
+import {APP_CONFIG_FILENAME, type AppEntry, type AppFile, parseAppConfig} from '../../lib/app-manifest.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type RemoteManifest = {
   buildId: string
+  crossOrigin?: null | string
   entry: AppEntry
   files: AppFile[]
   mountSelector: string
@@ -93,7 +94,14 @@ export default class Pull extends LoopressCommand {
 
   private async pullApp(path: string, name: string): Promise<PulledApp> {
     const manifest = await this.wp.get<RemoteManifest>(`loopress/v1/apps/${name}/manifest`)
-    const distDir = join(path, name, 'dist')
+    const appDir = join(path, name)
+    const configPath = join(appDir, APP_CONFIG_FILENAME)
+
+    // WordPress doesn't know where the app builds to (assetsDir) or whether its entry is explicit:
+    // keep what the local config says, only refresh what the server is the source of truth for.
+    const local = existsSync(configPath) ? parseAppConfig(await readFile(configPath, 'utf8'), appDir) : {}
+    const assetsDir = local.assetsDir ?? 'dist'
+    const distDir = join(appDir, assetsDir)
 
     for (const file of manifest.files) {
       const {content} = await this.wp.get<{content: string}>(
@@ -105,9 +113,16 @@ export default class Pull extends LoopressCommand {
     }
 
     await writeFile(
-      join(path, name, APP_CONFIG_FILENAME),
+      configPath,
       JSON.stringify(
-        {assetsDir: 'dist', mountSelector: manifest.mountSelector, name: manifest.name, routing: manifest.routing},
+        {
+          ...local,
+          assetsDir,
+          crossOrigin: manifest.crossOrigin ?? undefined, // dropped by JSON.stringify when unset
+          mountSelector: manifest.mountSelector,
+          name: manifest.name,
+          routing: manifest.routing,
+        },
         null,
         2,
       ) + '\n',

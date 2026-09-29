@@ -134,11 +134,14 @@ export default class Push extends PushCommand {
       await this.uploadAsset(manifest.name, distDir, file)
     }
 
+    let committed: {crossOrigin?: null | string}
     try {
-      await this.wp.post(`loopress/v1/apps/${manifest.name}/commit`, manifest)
+      committed = await this.wp.post(`loopress/v1/apps/${manifest.name}/commit`, manifest)
     } catch (error) {
       this.reportTaskFailure(`${manifest.name}: commit failed: ${(error as Error).message}`, error, task)
     }
+
+    this.warnIfCrossOriginIgnored(manifest, committed)
 
     if (task) {
       task.output =
@@ -166,6 +169,16 @@ export default class Push extends PushCommand {
       await this.wp.put(`loopress/v1/apps/${name}/assets`, {content, encoding: 'base64', path: file.path})
     } catch (error) {
       this.reportTaskFailure(`${name}: failed to upload ${file.path}: ${(error as Error).message}`, error)
+    }
+  }
+
+  // An older plugin commits the build but ignores crossOrigin: say so rather than let the app
+  // look protected when it is not.
+  private warnIfCrossOriginIgnored(manifest: AppManifest, committed?: {crossOrigin?: null | string}): void {
+    if (manifest.crossOrigin && committed?.crossOrigin !== manifest.crossOrigin) {
+      this.warn(
+        `${manifest.name}: crossOrigin "${manifest.crossOrigin}" was not applied: the Loopress plugin on this site is too old to support it. Update it, then push again.`,
+      )
     }
   }
 }

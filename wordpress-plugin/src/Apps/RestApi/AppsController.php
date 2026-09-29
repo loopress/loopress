@@ -230,10 +230,17 @@ class AppsController
             }
         }
 
+        try {
+            $this->directory->writeCrossOriginPolicy($name, $manifest['crossOrigin']);
+        } catch (\RuntimeException | \InvalidArgumentException $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+
         $this->store->put($name, [
             'buildId'          => $manifest['buildId'],
             'routing'          => $manifest['routing'],
             'mountSelector'    => $manifest['mountSelector'],
+            'crossOrigin'      => $manifest['crossOrigin'],
             'entry'            => $manifest['entry'],
             'files'            => $manifest['files'],
             'previousManifest' => is_array($previous) && is_array($previous['files'] ?? null) ? $previous['files'] : [],
@@ -244,6 +251,8 @@ class AppsController
             'name'      => $name,
             'buildId'   => $manifest['buildId'],
             'fileCount' => count($manifest['files']),
+            // Echoed so the CLI can tell an older plugin (which ignores the field) from a success.
+            'crossOrigin' => $manifest['crossOrigin'],
             'removed'   => $removed,
         ], 200);
     }

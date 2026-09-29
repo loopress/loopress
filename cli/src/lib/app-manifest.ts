@@ -19,10 +19,16 @@ export type AppEntry = {
   styles: string[]
 }
 
+// Cross-Origin-Resource-Policy the server sends with the app's files. Mirrors the server's
+// AppManifest::SUPPORTED_CROSS_ORIGIN; `cross-origin` is the browser default, i.e. the field unset.
+export const CROSS_ORIGIN_POLICIES = ['same-origin', 'same-site'] as const
+export type CrossOriginPolicy = (typeof CROSS_ORIGIN_POLICIES)[number]
+
 // loopress.app.json, one per app directory. Everything is optional: sensible defaults are
 // derived from the directory name and dist/index.html.
 export type AppConfigFile = {
   assetsDir?: string
+  crossOrigin?: CrossOriginPolicy
   entry?: AppEntry
   mountSelector?: string
   name?: string
@@ -33,6 +39,7 @@ export type AppConfigFile = {
 
 export type AppManifest = {
   buildId: string
+  crossOrigin?: CrossOriginPolicy
   entry: AppEntry
   files: AppFile[]
   mountSelector: string
@@ -144,6 +151,13 @@ export function parseAppConfig(raw: string, appDir: string): AppConfigFile {
     )
   }
 
+  if (config.crossOrigin !== undefined && !CROSS_ORIGIN_POLICIES.includes(config.crossOrigin)) {
+    const supported = CROSS_ORIGIN_POLICIES.map((policy) => JSON.stringify(policy)).join(' or ')
+    throw new Error(
+      `${join(appDir, APP_CONFIG_FILENAME)}: crossOrigin "${config.crossOrigin}" is not supported, use ${supported}`,
+    )
+  }
+
   return config
 }
 
@@ -195,6 +209,7 @@ export async function loadAppManifest(
     distDir,
     manifest: {
       buildId: computeBuildId(files),
+      ...(config.crossOrigin && {crossOrigin: config.crossOrigin}),
       entry,
       files,
       mountSelector: config.mountSelector ?? `#loopress-app-${name}`,

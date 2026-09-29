@@ -160,6 +160,23 @@ describe('app push', () => {
       expect(task.output).toContain('committed build')
     })
 
+    it('warns when the plugin commits the build but does not echo the crossOrigin it was sent', async () => {
+      const appDir = scaffoldApp(dir, 'search')
+      writeFileSync(join(appDir, 'loopress.app.json'), JSON.stringify({crossOrigin: 'same-origin'}))
+      const {cmd, internals} = makeCmd()
+      internals.wpClient.get.mockRejectedValue(notFound)
+      const warn = vi.spyOn(cmd, 'warn')
+
+      await internals.pushApp(appDir, 'search', {output: ''})
+      expect(internals.wpClient.post.mock.calls[0][1]).toMatchObject({crossOrigin: 'same-origin'})
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('crossOrigin "same-origin" was not applied'))
+
+      warn.mockClear()
+      internals.wpClient.post.mockResolvedValue({crossOrigin: 'same-origin'})
+      await internals.pushApp(appDir, 'search', {output: ''})
+      expect(warn).not.toHaveBeenCalled()
+    })
+
     it('uploads nothing and makes no request on a dry run', async () => {
       const appDir = scaffoldApp(dir, 'search')
       const {internals} = makeCmd()

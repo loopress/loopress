@@ -381,4 +381,21 @@ class AppsControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertTrue($response->data['deleted']);
     }
+
+    public function test_commit_applies_and_echoes_the_crossOrigin_policy(): void
+    {
+        $this->directory->method('listAssets')->willReturn([
+            'assets/index-x.js'  => ['sha256' => self::HASH_JS, 'size' => 10],
+            'assets/index-y.css' => ['sha256' => self::HASH_CSS, 'size' => 20],
+        ]);
+        $this->directory->expects($this->once())->method('writeCrossOriginPolicy')->with('search', 'same-origin');
+
+        $request = new WP_REST_Request(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
+        $request->set_param('name', 'search');
+
+        $response = $this->controller->commit($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame('same-origin', $response->data['crossOrigin']);
+    }
 }

@@ -87,7 +87,7 @@ class AppsDirectory
         }
 
         DirectoryGuard::writeIndexIfMissing($this->path);
-        DirectoryGuard::writeHtaccessIfMissing($this->path, self::HTACCESS);
+        DirectoryGuard::writeHtaccess($this->path, self::HTACCESS);
     }
 
     // Apache only; nginx ignores .htaccess, so on nginx the extension allowlist stays the real
@@ -98,6 +98,7 @@ class AppsDirectory
     // and belongs in the app's own document, not a directory-wide rule that would break them.
     private const HTACCESS = <<<'HTACCESS'
         # Loopress: built SPA bundles are static assets. No PHP runs here.
+        # Updated by Loopress. To manage this file yourself, remove the line above.
         <IfModule mod_php.c>
         php_flag engine off
         </IfModule>
@@ -154,6 +155,9 @@ class AppsDirectory
                 continue;
             }
             $rel          = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($appPath)));
+            if ($rel === '.htaccess') {
+                continue; // written by writeCrossOriginPolicy(), not a pushed asset
+            }
             $assets[$rel] = ['sha256' => $hash, 'size' => $size];
         }
         ksort($assets);
@@ -191,6 +195,51 @@ class AppsDirectory
 
         return $real !== false && ($real === $root || str_starts_with($real, $root . DIRECTORY_SEPARATOR));
     }
+
+    /**
+     * apps/<name>/.htaccess sending Cross-Origin-Resource-Policy, so browsers refuse to load the
+     * app's files from another site through <script src>, <link> or <img> (no-cors requests).
+     * Rewritten on every commit from the manifest's `crossOrigin`, removed when the app drops it.
+     * Both mod_headers tables are reset: a site-wide `Header [always] set
+     * Cross-Origin-Resource-Policy cross-origin`, common in security plugins, would otherwise end
+     * up as a second header, and browsers ignore a duplicated CORP header. Apache and LiteSpeed
+     * only: nginx ignores .htaccess, the header then belongs in the server config.
+     */
+    public function writeCrossOriginPolicy(string $name, ?string $policy): void
+    {
+        if (!self::isValidAppName($name)) {
+            return;
+        }
+        $file = $this->appPath($name) . '.htaccess';
+
+        if ($policy === null) {
+            if (is_file($file)) {
+                $this->filesystem->remove($file);
+            }
+
+            return;
+        }
+
+        // Checked again here: the value is written into server config.
+        if (!in_array($policy, AppManifest::SUPPORTED_CROSS_ORIGIN, true)) {
+            throw new \InvalidArgumentException(esc_html("Unsupported crossOrigin: {$policy}"));
+        }
+
+        try {
+            $this->filesystem->dumpFile($file, sprintf(self::APP_HTACCESS, $policy));
+        } catch (IOExceptionInterface $e) {
+            throw new \RuntimeException(esc_html("Failed to write {$name}/.htaccess: " . $e->getMessage()));
+        }
+    }
+
+    private const APP_HTACCESS = <<<'HTACCESS'
+        # Loopress: rewritten on each `lps app push` from "crossOrigin" in loopress.app.json.
+        <IfModule mod_headers.c>
+        Header unset Cross-Origin-Resource-Policy
+        Header always set Cross-Origin-Resource-Policy "%s"
+        </IfModule>
+
+        HTACCESS;
 
     public function readAsset(string $name, string $relPath): ?string
     {

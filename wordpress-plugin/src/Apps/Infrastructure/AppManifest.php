@@ -14,6 +14,7 @@ namespace Loopress\Apps\Infrastructure;
  *     'buildId'       => '9f2a1c7b4e10',
  *     'routing'       => 'hash',
  *     'mountSelector' => '#loopress-app-search',
+ *     'crossOrigin'   => 'same-origin',   // optional, see AppsDirectory::writeCrossOriginPolicy()
  *     'entry'         => ['scripts' => ['assets/index-x.js'], 'styles' => ['assets/index-y.css']],
  *     'files'         => [['path' => 'assets/index-x.js', 'sha256' => '<64hex>', 'size' => 1234], ...],
  *   ]
@@ -29,9 +30,13 @@ class AppManifest
     // it is refused for now rather than half-supported.
     private const SUPPORTED_ROUTING = ['hash'];
 
+    // Cross-Origin-Resource-Policy values an app can opt into. `cross-origin` is the browser
+    // default, so it is simply the absence of the setting.
+    public const SUPPORTED_CROSS_ORIGIN = ['same-origin', 'same-site'];
+
     /**
      * @param array<string, mixed> $raw
-     * @return array{buildId: string, routing: string, mountSelector: string, entry: array{scripts: string[], styles: string[]}, files: array<int, array{path: string, sha256: string, size: int}>}
+     * @return array{buildId: string, routing: string, mountSelector: string, crossOrigin: string|null, entry: array{scripts: string[], styles: string[]}, files: array<int, array{path: string, sha256: string, size: int}>}
      * @throws \InvalidArgumentException on any malformed field
      */
     public static function normalize(array $raw): array
@@ -53,6 +58,13 @@ class AppManifest
             throw new \InvalidArgumentException('mountSelector must be a CSS id selector like "#loopress-app-search"');
         }
 
+        $crossOrigin = $raw['crossOrigin'] ?? null;
+        if ($crossOrigin !== null && !in_array($crossOrigin, self::SUPPORTED_CROSS_ORIGIN, true)) {
+            throw new \InvalidArgumentException(
+                'crossOrigin must be one of: ' . implode(', ', self::SUPPORTED_CROSS_ORIGIN)
+            );
+        }
+
         $files    = self::normalizeFiles($raw['files'] ?? null);
         $filePaths = array_column($files, 'path');
 
@@ -62,6 +74,7 @@ class AppManifest
             'buildId'       => $buildId,
             'routing'       => $routing,
             'mountSelector' => $mountSelector,
+            'crossOrigin'   => $crossOrigin,
             'entry'         => $entry,
             'files'         => $files,
         ];
