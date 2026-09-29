@@ -154,6 +154,23 @@ describe('app pull', () => {
       })
     })
 
+    it('keeps the crossOrigin the site reports, so a later push does not drop it', async () => {
+      const {cmd, internals} = makeCmd([dir])
+      const get = remote([{committed: true, name: 'search'}], {search: {'index.html': '<!doctype html>'}})
+      internals.wpClient = {
+        get: vi.fn(async (path: string) => {
+          const res = await get(path)
+          return path.endsWith('/manifest') ? {...res, crossOrigin: 'same-origin'} : res
+        }),
+      }
+
+      await cmd.run()
+
+      expect(JSON.parse(readFileSync(join(dir, 'search', 'loopress.app.json'), 'utf8'))).toMatchObject({
+        crossOrigin: 'same-origin',
+      })
+    })
+
     it('writes nothing on a dry run and reports what it would pull', async () => {
       const {cmd, internals, logs} = makeCmd([dir], true)
       internals.wpClient = {

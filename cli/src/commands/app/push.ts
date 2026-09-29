@@ -172,12 +172,12 @@ export default class Push extends PushCommand {
     }
   }
 
-  // An older plugin commits the build but ignores crossOrigin: say so rather than let the app
-  // look protected when it is not.
+  // An older plugin, or an app .htaccess the site owner manages, commits the build without the
+  // policy: say so rather than let the app look protected when it is not.
   private warnIfCrossOriginIgnored(manifest: AppManifest, committed?: {crossOrigin?: null | string}): void {
     if (manifest.crossOrigin && committed?.crossOrigin !== manifest.crossOrigin) {
       this.warn(
-        `${manifest.name}: crossOrigin "${manifest.crossOrigin}" was not applied: the Loopress plugin on this site is too old to support it. Update it, then push again.`,
+        `${manifest.name}: crossOrigin "${manifest.crossOrigin}" was not applied: either the Loopress plugin on this site is too old (update it, then push again) or wp-content/loopress/apps/${manifest.name}/.htaccess is managed by hand and was left untouched.`,
       )
     }
   }

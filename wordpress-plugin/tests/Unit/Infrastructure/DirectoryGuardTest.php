@@ -41,6 +41,7 @@ class DirectoryGuardTest extends TestCase
         DirectoryGuard::writeHtaccess($this->dir, "# Loopress: v2\nHeader set X-Content-Type-Options \"nosniff\"\n");
 
         $this->assertStringContainsString('nosniff', (string) file_get_contents($this->dir . '.htaccess'));
+        $this->assertSame([], glob($this->dir . '.htaccess.*'), 'no temp file left behind');
     }
 
     public function test_writeHtaccess_leaves_a_file_the_site_owner_took_over(): void

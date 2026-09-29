@@ -107,6 +107,7 @@ class AppsControllerTest extends TestCase
             'buildId'       => 'abc123def456',
             'routing'       => 'hash',
             'mountSelector' => '#loopress-app-search',
+            'crossOrigin'   => 'same-origin',
             'entry'         => ['scripts' => ['assets/index-x.js'], 'styles' => []],
             'files'         => [['path' => 'assets/index-x.js', 'sha256' => self::HASH_JS, 'size' => 10]],
         ]);
@@ -114,6 +115,7 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->get_manifest(new WP_REST_Request(['name' => 'search']));
 
         $this->assertSame(200, $response->status);
+        $this->assertSame('same-origin', $response->data['crossOrigin'], 'pull must get it back, or it drops it locally');
         $this->assertSame('search', $response->data['name']);
         $this->assertSame('abc123def456', $response->data['buildId']);
         $this->assertSame('#loopress-app-search', $response->data['mountSelector']);
@@ -388,7 +390,7 @@ class AppsControllerTest extends TestCase
             'assets/index-x.js'  => ['sha256' => self::HASH_JS, 'size' => 10],
             'assets/index-y.css' => ['sha256' => self::HASH_CSS, 'size' => 20],
         ]);
-        $this->directory->expects($this->once())->method('writeCrossOriginPolicy')->with('search', 'same-origin');
+        $this->directory->expects($this->once())->method('writeCrossOriginPolicy')->with('search', 'same-origin')->willReturn(true);
 
         $request = new WP_REST_Request(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
         $request->set_param('name', 'search');
@@ -397,5 +399,22 @@ class AppsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame('same-origin', $response->data['crossOrigin']);
+    }
+
+    public function test_commit_does_not_echo_a_crossOrigin_policy_it_could_not_apply(): void
+    {
+        $this->directory->method('listAssets')->willReturn([
+            'assets/index-x.js'  => ['sha256' => self::HASH_JS, 'size' => 10],
+            'assets/index-y.css' => ['sha256' => self::HASH_CSS, 'size' => 20],
+        ]);
+        $this->directory->method('writeCrossOriginPolicy')->willReturn(false); // site-owned .htaccess
+
+        $request = new WP_REST_Request(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
+        $request->set_param('name', 'search');
+
+        $response = $this->controller->commit($request);
+
+        $this->assertSame(200, $response->status);
+        $this->assertNull($response->data['crossOrigin']);
     }
 }

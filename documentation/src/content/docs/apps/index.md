@@ -67,6 +67,7 @@ On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder
 - **It does not hide the code.** Anything a browser runs can be downloaded and copied. The setting only stops other sites from using your server to run it.
 - **Apache and LiteSpeed only.** nginx ignores `.htaccess`: add the header for `wp-content/loopress/apps/<name>/` in the server config instead.
 - **Plugin version.** An older Loopress plugin commits the build but ignores the setting; `lps app push` warns you when that happens.
+- **Your own rules win.** If `apps/<name>/.htaccess` on the server does not start with `# Loopress:`, Loopress leaves it untouched and `lps app push` warns that the setting was not applied.
 
 ## Constraints
 

@@ -201,4 +201,16 @@ class AppsDirectoryTest extends TestCase
 
         (new AppsDirectory())->writeCrossOriginPolicy('search', "same-origin\"\nHeader set X y");
     }
+
+    public function test_writeCrossOriginPolicy_leaves_an_app_htaccess_the_site_owner_manages(): void
+    {
+        $dir = new AppsDirectory();
+        $dir->writeAsset('search', 'index.js', 'x');
+        $file = $dir->appPath('search') . '.htaccess';
+        file_put_contents($file, "# site rules\nRequire all denied\n");
+
+        $this->assertFalse($dir->writeCrossOriginPolicy('search', 'same-origin'));
+        $this->assertFalse($dir->writeCrossOriginPolicy('search', null));
+        $this->assertSame("# site rules\nRequire all denied\n", file_get_contents($file));
+    }
 }

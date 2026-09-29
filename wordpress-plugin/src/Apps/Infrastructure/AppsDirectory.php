@@ -204,20 +204,28 @@ class AppsDirectory
      * Cross-Origin-Resource-Policy cross-origin`, common in security plugins, would otherwise end
      * up as a second header, and browsers ignore a duplicated CORP header. Apache and LiteSpeed
      * only: nginx ignores .htaccess, the header then belongs in the server config.
+     *
+     * Returns false, touching nothing, when the site owner manages that .htaccess (it does not
+     * start with the Loopress marker): their rules win, and the caller reports the policy as not
+     * applied.
      */
-    public function writeCrossOriginPolicy(string $name, ?string $policy): void
+    public function writeCrossOriginPolicy(string $name, ?string $policy): bool
     {
         if (!self::isValidAppName($name)) {
-            return;
+            return false;
         }
         $file = $this->appPath($name) . '.htaccess';
+
+        if (is_file($file) && !DirectoryGuard::isLoopressManaged($file)) {
+            return false;
+        }
 
         if ($policy === null) {
             if (is_file($file)) {
                 $this->filesystem->remove($file);
             }
 
-            return;
+            return true;
         }
 
         // Checked again here: the value is written into server config.
@@ -230,6 +238,8 @@ class AppsDirectory
         } catch (IOExceptionInterface $e) {
             throw new \RuntimeException(esc_html("Failed to write {$name}/.htaccess: " . $e->getMessage()));
         }
+
+        return true;
     }
 
     private const APP_HTACCESS = <<<'HTACCESS'
