@@ -9,7 +9,7 @@ Every command below talks to REST endpoints provided by [Loopress Full](/wordpre
 
 The `app` command group syncs built single-page app bundles between a local `apps/` directory and WordPress. Each subdirectory of `apps/` is one app: a `loopress.app.json` plus a built `dist/` folder.
 
-These commands are separate from the aggregate `lps push` / `lps pull` / `lps promote`, which do not sync apps: a build has to run first, so you deploy apps explicitly with `lps app push`.
+These commands are separate from the aggregate `lps push` / `lps pull` / `lps promote`, which do not sync apps: apps have their own build step, so you deploy them explicitly with `lps app push`.
 
 ## The local directory
 
@@ -22,10 +22,10 @@ These commands are separate from the aggregate `lps push` / `lps pull` / `lps pr
 ## Typical workflow
 
 ```bash
-# build with the app's own toolchain (Loopress never runs the build)
-npm --prefix apps/search run build
+# install the app's dependencies, once (Loopress never installs them)
+npm --prefix apps/search install
 
-# ship it (only files whose content changed are uploaded, then one atomic commit)
+# build and ship it (only files whose content changed are uploaded, then one atomic commit)
 lps app push search
 
 # in a page:  [loopress_app name="search"]
@@ -35,7 +35,11 @@ lps app push search
 
 ### `lps app push`
 
-Upload the built bundle for one app, or every app in the directory when `name` is omitted. Builds a manifest of `dist/` (sha256 per file), asks the site which files it already has, uploads only the differences, then commits the new build in one step. The front end keeps serving the old build until that commit lands.
+Build and upload the bundle for one app, or every app in the directory when `name` is omitted.
+
+When the app directory has a `package.json` with a `build` script, the push runs it first (`<pm> run build` in the app directory), on a `--dry-run` too so the preview diffs a fresh `dist/`. The package manager comes from the `packageManager` field, else from the nearest lockfile up to the repository root (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `package-lock.json`), else npm. A failing build fails that app with the end of the build output, and nothing is uploaded. Without a `build` script, `dist/` is pushed as is.
+
+The push then builds a manifest of `dist/` (sha256 per file), asks the site which files it already has, uploads only the differences, then commits the new build in one step. The front end keeps serving the old build until that commit lands.
 
 ```bash
 lps app push [name]
@@ -47,6 +51,7 @@ lps app push [name]
 
 | Flag | Description |
 |------|-------------|
+| `--no-build` | Skip the `build` script and push `dist/` as is, for a CI that already built in an earlier step |
 | `--dry-run` / `-d` | List what would be uploaded and committed without touching the site |
 | `--yes` / `-y` | Skip the confirmation prompt shown when the target environment is named `production` |
 | `--json` | Print the result as JSON (`{ pushed: [{ name, buildId, uploaded }], status }`) |

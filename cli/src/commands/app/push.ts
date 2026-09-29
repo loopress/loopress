@@ -1,8 +1,9 @@
-import {Args} from '@oclif/core'
+import {Args, Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {readdir, readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {buildApp} from '../../lib/app-build.js'
 import {
   APP_CONFIG_FILENAME,
   type AppFile,
@@ -31,17 +32,26 @@ export default class Push extends PushCommand {
   }
 
   static description =
-    'Push built single-page app bundles to WordPress. Each app is an `apps/<name>/` directory holding a loopress.app.json and a built dist/ folder. Only files whose content changed are uploaded.'
+    'Build and push single-page app bundles to WordPress. Each app is an `apps/<name>/` directory holding a loopress.app.json and a dist/ folder. When the app has a package.json with a `build` script, it runs first (use --no-build to skip it). Only files whose content changed are uploaded.'
 
   static enableJsonFlag = true
-  static examples = ['$ lps app push', '$ lps app push search']
+
+  static examples = ['$ lps app push', '$ lps app push search', '$ lps app push --no-build']
   static flags = {
+    build: Flags.boolean({
+      allowNo: true,
+      default: true,
+      description: "Run the app's package.json build script before pushing",
+    }),
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
+  private build = true
+
   async run(): Promise<PushResult> {
-    const {args} = await this.parse(Push)
+    const {args, flags} = await this.parse(Push)
+    this.build = flags.build
     const {url} = this.siteConfig
     const path = this.resolveAppsPath()
 
@@ -110,6 +120,13 @@ export default class Push extends PushCommand {
     let manifest: AppManifest
     let distDir: string
     try {
+      // Built on dry runs too: the preview diffs dist/, so a stale one would make it lie.
+      if (this.build) {
+        await buildApp(appDir, (command) => {
+          if (task) task.output = `${dirName}: building (${command})`
+        })
+      }
+
       ;({distDir, manifest} = await loadAppManifest(appDir, dirName))
     } catch (error) {
       this.reportTaskFailure(`${dirName}: ${(error as Error).message}`, error, task)
