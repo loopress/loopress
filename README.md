@@ -1,12 +1,96 @@
 # Loopress
 
-Make WordPress reproducible: sync ACF field groups, SEO settings, code snippets, Composer
-dependencies, pages, forms, and custom REST routes between WordPress and a Git repository, driven
-by a single CLI. Configuration as code, version control, reproducible environments, instead of
-clicking through wp-admin and hoping staging matches production.
+[![npm](https://img.shields.io/npm/v/@loopress/cli)](https://www.npmjs.com/package/@loopress/cli)
+[![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue)](./LICENSE)
+![WordPress 6.0+](https://img.shields.io/badge/WordPress-6.0%2B-21759b)
+![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777bb4)
+
+**Build, review and ship WordPress, in one loop.**
+
+Loopress turns the parts of WordPress that are not content, configuration and code, into files in
+your repo. You edit them, review them in a PR, push them to any environment, and roll them back.
+Posts, orders and users never move.
+
+```bash
+npm i -g @loopress/cli
+lps project config   # connect a site, installs the plugin
+lps pull             # the site, as files
+```
 
 [loopress.dev](https://loopress.dev) · [Documentation](https://docs.loopress.dev) ·
-[Security policy](./SECURITY.md)
+[Demo project](https://github.com/loopress/demo) · [Security policy](./SECURITY.md)
+
+## The loop
+
+```text
+   ┌────────────── build ───────────────┐
+   │  acf/  seo/  menus/  hooks/        │
+   │  api/  apps/  loopress.json        │
+   └──────────────────┬─────────────────┘
+                      │  git commit
+   ┌────────────── review ──────────────┐
+   │  lps diff --env staging            │
+   │  a short diff, in a real PR        │
+   └──────────────────┬─────────────────┘
+                      │  merge
+   ┌─────────────── ship ───────────────┐
+   │  lps push --env staging            │
+   │  lps promote staging production    │
+   │  each push is snapshotted,         │
+   │  undo with lps <resource> rollback │
+   └──────────────────┬─────────────────┘
+                      │  meanwhile, someone edits wp-admin
+                      │  lps diff spots it, lps pull brings it back
+                      └──────────────── ↺ build
+```
+
+## Why
+
+If you look after several WordPress sites, most of what can break them lives in the database:
+field groups, SEO settings, menus, a snippet someone pasted in the admin. None of it has a
+history, a review, or an undo. Loopress gives it all three, without asking you to restructure the
+site or move hosts.
+
+## Light or Full
+
+Same plugin, two builds. Light syncs configuration and is on WordPress.org. Full adds code, which
+WordPress.org does not allow a plugin to deploy, so it ships from loopress.dev. Both are free.
+
+| | Light | Full |
+| --- | :---: | :---: |
+| ACF field groups, post types, taxonomies | ✓ | ✓ |
+| SEO (Rank Math, Yoast) | ✓ | ✓ |
+| Menus, options, block theme styles | ✓ | ✓ |
+| Hooks, filters, cron (PHP classes) | | ✓ |
+| REST API routes | | ✓ |
+| Apps (React, Vue, Svelte bundles) | | ✓ |
+| Pages, snippets, forms | | ✓ |
+| Plugin and theme lockfile, Composer | | ✓ |
+| Get it | [WordPress.org](https://wordpress.org/plugins/loopress-light/) | [loopress.dev](https://docs.loopress.dev/wordpress-plugin/) |
+
+## Code, with conventions
+
+Not a framework. Just a few rules that make WordPress code readable: one class per file,
+attributes instead of `add_action` calls scattered across `functions.php`, and a hook that throws
+is logged instead of taking the site down.
+
+```php
+// hooks/vat-notice.php
+class VatNotice
+{
+    #[Filter('woocommerce_get_price_html')]
+    public function notice(string $html): string
+    {
+        return $html . ' <small>incl. VAT</small>';
+    }
+}
+```
+
+## Status
+
+Alpha, moving fast. Issues and pull requests welcome.
+
+---
 
 ## What's in this repo
 
@@ -73,4 +157,5 @@ minor, or major bump for whichever package(s) it touches.
 
 ## License
 
-[MPL-2.0](./LICENSE)
+[MPL-2.0](./LICENSE), except the WordPress plugin, which is
+[GPL](./wordpress-plugin/LICENSE) like WordPress itself.

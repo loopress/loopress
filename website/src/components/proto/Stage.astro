@@ -1,0 +1,6 @@
+---
+const { n, label } = Astro.props as { n: string; label: string };
+---
+<div class="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">
+  <span class="h-px w-6 bg-accent-cyan/50"></span>{n} · {label}
+</div>
