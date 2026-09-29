@@ -36,7 +36,8 @@ type ResourceToolsSpec = {
 // Registers `<resource>_rollback`: restores the snapshot `<resource>_push` automatically saved
 // right before an earlier real push, or (with `list`) just lists what's available. Shared by
 // registerResourceTools below and by the resources that register their other tools directly
-// (acf, seo, option, theme-styles), since rollback's shape never varies with their extra flags.
+// (acf, seo, option, theme style), since rollback's shape never varies with their extra flags.
+// `resource` is the CLI topic, space-separated when nested (e.g. `theme style`).
 export function registerRollbackTool(
   server: McpServer,
   {pathNoun, resource, toolName = resource}: {pathNoun: string; resource: string; toolName?: string},
@@ -61,7 +62,7 @@ export function registerRollbackTool(
       },
     },
     async ({confirmToken, env, list, path, to}) => {
-      const args = buildArgs([resource, 'rollback'], {env, path})
+      const args = buildArgs([...resource.split(' '), 'rollback'], {env, path})
 
       if (list) {
         args.push('--list')

@@ -54,7 +54,7 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `hooksDir` | `hooks` | Directory for hook files (actions, filters, cron), relative to `rootDir`. Used by `lps hook pull/push`. |
 | `menuDir` | `menus` | Directory for nav menus (one JSON file per menu, plus `menu-locations.json`), relative to `rootDir`. Used by `lps menu pull/push`. |
 | `optionsDir` | `options` | Directory for tracked WordPress options, relative to `rootDir`. Only options added with `lps option add` live here. |
-| `themeStylesDir` | `theme` | Directory for the active block theme's Global Styles, relative to `rootDir`. Used by `lps theme-styles pull/push`. |
+| `themeStylesDir` | `theme` | Directory for the active block theme's Global Styles, relative to `rootDir`. Used by `lps theme style pull/push`. |
 | `pageDir` | `pages` | Directory for static HTML pages, relative to `rootDir`. Used by `lps page push/diff`. |
 | `templateDir` | `templates` | Directory for block templates, written to the Loopress child theme, relative to `rootDir`. Used by `lps template push/diff`. |
 | `partDir` | `parts` | Directory for block template parts, written to the Loopress child theme, relative to `rootDir`. Used by `lps template push/diff`. |

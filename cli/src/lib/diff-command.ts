@@ -201,7 +201,12 @@ export abstract class DiffCommand extends LoopressCommand {
 
 // Builds the `lps <resource> diff` command class for one directory-backed resource. They differ
 // only in wording and which provider they target, so the whole body lives here.
-export function resourceDiffCommand(resource: string, options: {description: string; pathNoun: string}): typeof DiffCommand {
+// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-styles).
+export function resourceDiffCommand(
+  resource: string,
+  options: {command?: string; description: string; pathNoun: string},
+): typeof DiffCommand {
+  const command = options.command ?? resource
   class ResourceDiff extends DiffCommand {
     static args = {
       path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
@@ -210,9 +215,9 @@ export function resourceDiffCommand(resource: string, options: {description: str
     static description = options.description
     static enableJsonFlag = true
     static examples = [
-      `$ lps ${resource} diff`,
-      `$ lps ${resource} diff --env staging`,
-      `$ lps ${resource} diff --env staging --against production`,
+      `$ lps ${command} diff`,
+      `$ lps ${command} diff --env staging`,
+      `$ lps ${command} diff --env staging --against production`,
     ]
 
     static flags = {...DiffCommand.againstFlag}

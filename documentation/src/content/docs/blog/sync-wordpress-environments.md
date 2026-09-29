@@ -56,7 +56,7 @@ Two behaviours make it safe to use without thinking too hard:
 
 - **Your local files are overwritten with staging's state.** That's how the pull half works. Commit or stash your work first, then look at `git diff` after the promotion: it's a precise record of what just moved to production.
 - **Static pages come from your files, not from staging.** Pages have no `pull` (the file is the source of truth), so the push half sends whatever is in your `pages/` directory.
-- **Theme styles are opt-in.** They're left out of the aggregate commands so a classic-theme site doesn't break every sync. Run `lps theme-styles pull --env staging` and `lps theme-styles push --env production` explicitly.
+- **Theme styles are opt-in.** They're left out of the aggregate commands so a classic-theme site doesn't break every sync. Run `lps theme style pull --env staging` and `lps theme style push --env production` explicitly.
 - **Menus need their targets.** A menu item pointing at a page that doesn't exist on production fails that menu rather than guessing. Create the page first.
 - **Ids don't travel.** A tracked option whose value embeds a post or user id means something else on production. Mark it `readonly` or leave it out.
 

@@ -2,14 +2,14 @@ import {Args} from '@oclif/core'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {LoopressCommand} from '../../lib/base.js'
+import {LoopressCommand} from '../../../lib/base.js'
 import {
   canonicalGlobalStyles,
   getActiveThemeGlobalStyles,
   globalStylesEndpoint,
   type GlobalStylesRecord,
   themeStylesFileName,
-} from '../../utils/theme-styles-format.js'
+} from '../../../utils/theme-styles-format.js'
 
 export default class Pull extends LoopressCommand {
   static args = {
@@ -19,7 +19,7 @@ export default class Pull extends LoopressCommand {
   static description =
     "Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file"
 
-  static examples = ['$ lps theme-styles pull']
+  static examples = ['$ lps theme style pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
   }

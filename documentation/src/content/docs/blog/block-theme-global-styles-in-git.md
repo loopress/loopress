@@ -36,7 +36,7 @@ The consequences show up where you'd expect:
 ## Pull the user layer into a file
 
 ```bash
-lps theme-styles pull
+lps theme style pull
 ```
 
 This reads the active theme's Global Styles through WordPress core's own REST API and writes them as one file, named after the theme:
@@ -48,16 +48,16 @@ theme/
 
 The file holds `settings` and `styles`, the same two keys you already know from `theme.json`. It contains only what was customized, not the whole resolved stylesheet, so a small change in the Styles screen is a small diff. WordPress bookkeeping (the post id, REST links) is left out, which keeps the file identical across environments.
 
-Commit it. The next time someone changes the brand color, `lps theme-styles pull` followed by `git diff` shows you exactly which value moved.
+Commit it. The next time someone changes the brand color, `lps theme style pull` followed by `git diff` shows you exactly which value moved.
 
 ## Push it everywhere
 
 ```bash
-lps theme-styles diff --env production   # what production's Styles screen has vs. the file
-lps theme-styles push --env production --yes
+lps theme style diff --env production   # what production's Styles screen has vs. the file
+lps theme style push --env production --yes
 ```
 
-Now staging and production share one set of customizations, and a new environment gets them on its first push instead of from someone's memory. `lps theme-styles rollback` restores the previous state if a push goes wrong, and the global `lps diff` includes theme styles, so a nightly drift check catches the next unreviewed tweak.
+Now staging and production share one set of customizations, and a new environment gets them on its first push instead of from someone's memory. `lps theme style rollback` restores the previous state if a push goes wrong, and the global `lps diff` includes theme styles, so a nightly drift check catches the next unreviewed tweak.
 
 ## Or promote them into theme.json
 
@@ -68,7 +68,7 @@ Once the customizations are in a file, you have a choice most teams never get: l
 - **Block themes only.** A classic theme has no Styles screen and no `wp_global_styles` post, so the commands fail with an explicit error instead of syncing nothing.
 - **The active theme only.** Switch themes on the site and pull again, and you get a second file for the new theme. The first one is never deleted.
 - **One style set.** Named style variations (WordPress 6.6 and later) aren't synced yet, only the active set.
-- **Opt-in, not automatic.** The aggregate `lps push` and `lps pull`, and therefore `lps promote`, leave theme styles out, so a site on a classic theme doesn't break every routine sync. Run `lps theme-styles push` and `pull` explicitly.
+- **Opt-in, not automatic.** The aggregate `lps push` and `lps pull`, and therefore `lps promote`, leave theme styles out, so a site on a classic theme doesn't break every routine sync. Run `lps theme style push` and `pull` explicitly.
 
 ---
 

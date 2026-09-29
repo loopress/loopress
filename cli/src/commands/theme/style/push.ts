@@ -2,9 +2,9 @@ import {Args} from '@oclif/core'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {PushCommand} from '../../lib/push-command.js'
-import {getResourceStateProvider} from '../../lib/resource-state.js'
-import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../utils/theme-styles-format.js'
+import {PushCommand} from '../../../lib/push-command.js'
+import {getResourceStateProvider} from '../../../lib/resource-state.js'
+import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
 
 export default class Push extends PushCommand {
   static args = {
@@ -14,7 +14,7 @@ export default class Push extends PushCommand {
   static description =
     "Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress"
 
-  static examples = ['$ lps theme-styles push']
+  static examples = ['$ lps theme style push']
   static flags = {
     ...PushCommand.dryRunFlag,
   }
@@ -34,7 +34,7 @@ export default class Push extends PushCommand {
       raw = await readFile(file, 'utf8')
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.error(`No local Global Styles file found for the active theme ("${file}"). Run \`lps theme-styles pull\` first.`)
+        this.error(`No local Global Styles file found for the active theme ("${file}"). Run \`lps theme style pull\` first.`)
       }
 
       throw error

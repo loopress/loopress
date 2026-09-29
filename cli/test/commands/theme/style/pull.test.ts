@@ -4,11 +4,11 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Pull from '../../../src/commands/theme-styles/pull.js'
-import {type EnvironmentConfig} from '../../../src/types/config.js'
-import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
-import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
-import {makeEnv} from '../../helpers/project-fixtures.js'
+import Pull from '../../../../src/commands/theme/style/pull.js'
+import {type EnvironmentConfig} from '../../../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../../../src/utils/loopress-config.js'
+import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
+import {makeEnv} from '../../../helpers/project-fixtures.js'
 
 type PullInternals = {
   dryRun: boolean
@@ -26,7 +26,7 @@ function activeTheme(stylesheet: string, isBlockTheme = true) {
   }
 }
 
-describe('theme-styles pull', () => {
+describe('theme style pull', () => {
   let dir: string
 
   function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {

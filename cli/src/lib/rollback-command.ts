@@ -50,7 +50,12 @@ function indentPatch(patch: string): string {
 // anything, this runs the equivalent of `lps <resource> diff` between the environment's current
 // state and the state the original push expected to leave behind, and requires explicit
 // confirmation (the same interactive/`--yes` shape as guardProductionPush) when they differ.
-export function resourceRollbackCommand(resource: string, options: {description: string; pathNoun: string}): typeof LoopressCommand {
+// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-styles).
+export function resourceRollbackCommand(
+  resource: string,
+  options: {command?: string; description: string; pathNoun: string},
+): typeof LoopressCommand {
+  const command = options.command ?? resource
   class ResourceRollback extends LoopressCommand {
     static args = {
       path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
@@ -59,10 +64,10 @@ export function resourceRollbackCommand(resource: string, options: {description:
     static description = options.description
     static enableJsonFlag = true
     static examples = [
-      `$ lps ${resource} rollback`,
-      `$ lps ${resource} rollback --list`,
-      `$ lps ${resource} rollback --to 1732000000000`,
-      `$ lps ${resource} rollback --dry-run`,
+      `$ lps ${command} rollback`,
+      `$ lps ${command} rollback --list`,
+      `$ lps ${command} rollback --to 1732000000000`,
+      `$ lps ${command} rollback --dry-run`,
     ]
 
     static flags = {
@@ -138,7 +143,7 @@ export function resourceRollbackCommand(resource: string, options: {description:
       if (restoreDiff.removed.length > 0) {
         this.warn(
           `${pluralize(restoreDiff.removed.length, 'item')} present now but not in this snapshot will NOT be removed ` +
-            `(${restoreDiff.removed.join(', ')}): restoring only creates and updates, the same as \`lps ${resource} push\`. Remove ${restoreDiff.removed.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
+            `(${restoreDiff.removed.join(', ')}): restoring only creates and updates, the same as \`lps ${command} push\`. Remove ${restoreDiff.removed.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
         )
       }
 
@@ -162,7 +167,7 @@ export function resourceRollbackCommand(resource: string, options: {description:
         // production guard and the drift confirmation above already covered what the delegated
         // push's own guard would ask again, same reasoning as the top-level `lps push`
         // delegating to each resource's push command in commands/push.ts.
-        await this.config.runCommand(`${resource}:push`, [tmpDir, '--env', this.siteConfig.name, '--yes'])
+        await this.config.runCommand(`${command.replaceAll(' ', ':')}:push`, [tmpDir, '--env', this.siteConfig.name, '--yes'])
       } finally {
         // A cleanup failure here must never hide a real error from the push above: warn about
         // it and let the original error (if any) keep propagating instead of being replaced.
