@@ -43,11 +43,12 @@ class ChildThemeController
     private string $themeRoot;
     private Filesystem $filesystem;
 
-    // $themeRoot is injectable so a test can point it at a temp directory.
-    public function __construct(?string $themeRoot = null)
+    // Both injectable for tests only: a temp themes directory, and a Filesystem double to make the
+    // swap fail halfway.
+    public function __construct(?string $themeRoot = null, ?Filesystem $filesystem = null)
     {
         $this->themeRoot  = rtrim($themeRoot ?? get_theme_root(), '/');
-        $this->filesystem = new Filesystem();
+        $this->filesystem = $filesystem ?? new Filesystem();
     }
 
     public function register_routes(): void
@@ -171,8 +172,14 @@ class ChildThemeController
         $staging = "{$this->themeRoot}/.{$child}-staging";
         $old     = "{$this->themeRoot}/.{$child}-old";
 
-        // ponytail: no lock, two concurrent pushes race on the staging directory and the last one
-        // wins whole. Add a flock like AbstractFilesDirectory::exclusively() if pushes overlap.
+        // Two overlapping pushes would share the staging and backup directories. flock() is
+        // released by the OS if PHP dies mid-write, so a crash never leaves a stale lock.
+        // Local lock file next to the themes, not a remote URL; flock() needs a real stream handle.
+        $lock = fopen("{$this->themeRoot}/.{$child}.lock", 'c'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        if ($lock === false || !flock($lock, LOCK_EX)) {
+            throw new \RuntimeException(esc_html("Failed to lock the child theme {$child} for writing."));
+        }
+
         try {
             $this->filesystem->remove([$staging, $old]);
             $this->filesystem->dumpFile("{$staging}/style.css", $this->styleCss($parentTheme));
@@ -185,13 +192,12 @@ class ChildThemeController
                 $this->filesystem->dumpFile("{$staging}/parts/{$part['slug']}.html", $part['html']);
             }
 
-            if (is_dir($live)) {
-                $this->filesystem->rename($live, $old);
-            }
-            $this->filesystem->rename($staging, $live);
-            $this->filesystem->remove($old);
+            $this->swap($staging, $live, $old);
         } catch (\Throwable $e) {
             throw new \RuntimeException(esc_html("Failed to write the child theme {$child}: " . $e->getMessage()));
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
         }
 
         // WordPress caches each theme's file list and its resolved theme.json.
@@ -199,6 +205,27 @@ class ChildThemeController
         if (class_exists('WP_Theme_JSON_Resolver')) {
             \WP_Theme_JSON_Resolver::clean_cached_data();
         }
+    }
+
+    // The child may be the active theme: if the new directory can't take its place, the old one
+    // goes back, a missing active theme would break the whole site.
+    private function swap(string $staging, string $live, string $old): void
+    {
+        $hadLive = is_dir($live);
+        if ($hadLive) {
+            $this->filesystem->rename($live, $old);
+        }
+
+        try {
+            $this->filesystem->rename($staging, $live);
+        } catch (\Throwable $e) {
+            if ($hadLive) {
+                $this->filesystem->rename($old, $live);
+            }
+            throw $e;
+        }
+
+        $this->filesystem->remove($old);
     }
 
     private function styleCss(string $parentTheme): string

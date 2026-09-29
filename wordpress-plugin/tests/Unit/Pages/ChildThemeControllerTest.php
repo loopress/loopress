@@ -139,6 +139,27 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame(['parts/header', 'templates/single'], $data['customized']);
     }
 
+    public function test_puts_the_previous_child_back_when_the_swap_fails(): void
+    {
+        $this->put([['slug' => 'single', 'html' => 'before']]);
+        $failingSwap = new class() extends Filesystem {
+            public function rename(string $origin, string $target, bool $overwrite = false): void
+            {
+                if (str_contains($origin, '-staging')) {
+                    throw new \Symfony\Component\Filesystem\Exception\IOException('disk full');
+                }
+                parent::rename($origin, $target, $overwrite);
+            }
+        };
+
+        $response = (new ChildThemeController($this->root, $failingSwap))
+            ->put_child_theme(new WP_REST_Request(['templates' => [['slug' => 'single', 'html' => 'after']], 'parts' => []]));
+
+        $this->assertSame(500, $response->status);
+        $this->assertStringContainsString('disk full', $response->get_data()['error']);
+        $this->assertSame('before', $this->child('templates/single.html'));
+    }
+
     public function test_refuses_a_classic_theme(): void
     {
         $this->blockTheme = false;
