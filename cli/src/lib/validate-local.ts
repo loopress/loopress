@@ -29,6 +29,7 @@ const DEFAULT_DIR: Record<string, string> = {
   menuDir: 'menus',
   optionsDir: 'options',
   pageDir: 'pages',
+  partDir: 'parts',
   seoDir: 'seo',
   snippetsDir: 'snippets',
   templateDir: 'templates',
@@ -71,8 +72,8 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += pages.pages.length + pages.problems.length
   problems.push(...pages.problems)
 
-  const templates = await readLocalTemplates(resolve('templateDir'))
-  checked += templates.templates.length + templates.problems.length
+  const templates = await readLocalTemplates(resolve('templateDir'), resolve('partDir'))
+  checked += templates.templates.length + templates.parts.length + templates.problems.length
   problems.push(...templates.problems)
 
   return {checked, problems, valid: problems.length === 0}

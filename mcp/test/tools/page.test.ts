@@ -33,10 +33,11 @@ describe('registerPageTools', () => {
 
   it('template_push and template_list run the template commands', async () => {
     const tools = register()
-    await tools.get('template_push')!.handler({slug: 'landing'})
+    await tools.get('template_push')!.handler({})
     await tools.get('template_list')!.handler({env: 'prod'})
 
-    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['template', 'push', 'landing'], undefined)
+    expect(tools.get('template_push')!.def.inputSchema.slug).toBeUndefined()
+    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['template', 'push'], undefined)
     expect(runLps).toHaveBeenCalledWith(['template', 'list', '--env', 'prod'])
   })
 

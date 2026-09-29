@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -9,78 +9,82 @@ import {makeEnv} from '../../helpers/project-fixtures.js'
 
 type PushInternals = {
   dryRun: boolean
-  failedCount: number
-  localConfig: {rootDir?: string; templateDir?: string}
-  parse: () => Promise<{args: {slug?: string}}>
+  localConfig: {partDir?: string; rootDir?: string; templateDir?: string}
+  parse: () => Promise<unknown>
   recordSuccess: () => Promise<void>
   run(): Promise<unknown>
   siteConfig: unknown
+  warn: ReturnType<typeof vi.fn>
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
+
+const child = {active: true, customized: [], exists: true, parent: 'twentytwentyfive', parts: [], stylesheet: 'twentytwentyfive-loopress', templates: []}
 
 describe('template push', () => {
   let dir: string
 
-  function makeCommand(put = vi.fn(), slug?: string): PushInternals {
+  function makeCommand(put = vi.fn().mockResolvedValue(child)): PushInternals {
     const cmd = new Push([], fakeOclifConfig)
     silenceLogs(cmd)
     const internals = cmd as unknown as PushInternals
     internals.wpClient = {put}
     internals.siteConfig = makeEnv('local')
     internals.recordSuccess = async () => {}
-    internals.localConfig = {rootDir: dir, templateDir: '.'}
-    internals.parse = async () => ({args: {slug}})
+    internals.localConfig = {rootDir: dir}
+    internals.parse = async () => ({})
+    internals.warn = vi.fn()
     return internals
   }
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-template-push-test-'))
+    mkdirSync(join(dir, 'templates'))
+    mkdirSync(join(dir, 'parts'))
   })
 
   afterEach(() => {
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('PUTs slug, title and markup to loopress/v1/templates', async () => {
-    writeFileSync(join(dir, 'landing.html'), '<!-- title: Landing page -->\n<!-- wp:post-content /-->')
-    writeFileSync(join(dir, 'bare.html'), '<!-- wp:post-content /-->')
-    const put = vi.fn().mockResolvedValue({})
+  it('PUTs every template and part to the child theme endpoint in one request', async () => {
+    writeFileSync(join(dir, 'templates', 'single.html'), '<!-- wp:post-content /-->')
+    writeFileSync(join(dir, 'parts', 'header.html'), '<p>h</p>')
+    const put = vi.fn().mockResolvedValue(child)
 
-    const result = await makeCommand(put, 'landing').run()
+    const result = await makeCommand(put).run()
 
-    expect(result).toEqual({pushed: ['landing'], status: 'success'})
-    expect(put).toHaveBeenCalledTimes(1)
-    expect(put).toHaveBeenCalledWith('loopress/v1/templates', {html: '<!-- wp:post-content /-->', slug: 'landing', title: 'Landing page'})
+    expect(put).toHaveBeenCalledWith('loopress/v1/child-theme', {
+      parts: [{area: 'header', html: '<p>h</p>', slug: 'header', title: 'Header'}],
+      templates: [{html: '<!-- wp:post-content /-->', slug: 'single'}],
+    })
+    expect(result).toEqual({active: true, customized: [], parts: ['header'], status: 'success', stylesheet: 'twentytwentyfive-loopress', templates: ['single']})
   })
 
-  it('refuses the whole push before any network call when the directory holds a bad file', async () => {
-    writeFileSync(join(dir, 'landing.html'), '<!-- status: publish -->\n<p/>')
-    const put = vi.fn()
+  it('warns when the child is not active and when the Site Editor still overrides a file', async () => {
+    writeFileSync(join(dir, 'templates', 'single.html'), '<p/>')
+    const cmd = makeCommand(vi.fn().mockResolvedValue({...child, active: false, customized: ['templates/single']}))
 
-    await expect(makeCommand(put).run()).rejects.toThrow('unknown header key "status" (allowed: title)')
-    expect(put).not.toHaveBeenCalled()
+    await cmd.run()
+
+    expect(cmd.warn).toHaveBeenCalledWith(expect.stringContaining('is not the active theme'))
+    expect(cmd.warn).toHaveBeenCalledWith(expect.stringContaining('templates/single'))
   })
 
-  it('errors on an unknown slug before any network call', async () => {
+  it('refuses the whole push before any network call when a file is invalid', async () => {
+    writeFileSync(join(dir, 'templates', 'single.html'), '<!-- wp:template-part {"slug":"header","theme":"twentytwentyfive"} /-->')
     const put = vi.fn()
 
-    await expect(makeCommand(put, 'missing').run()).rejects.toThrow(`No template "missing" in ${dir} (expected missing.html).`)
+    await expect(makeCommand(put).run()).rejects.toThrow('"theme" attribute')
     expect(put).not.toHaveBeenCalled()
   })
 
   it('writes nothing on a dry run', async () => {
-    writeFileSync(join(dir, 'landing.html'), '<p/>')
+    writeFileSync(join(dir, 'templates', 'single.html'), '<p/>')
     const put = vi.fn()
     const cmd = makeCommand(put)
     cmd.dryRun = true
 
-    expect(await cmd.run()).toEqual({pushed: ['landing'], status: 'dry-run'})
+    expect(await cmd.run()).toEqual({parts: [], status: 'dry-run', templates: ['single']})
     expect(put).not.toHaveBeenCalled()
-  })
-
-  it('errors with the failed count when the server refuses', async () => {
-    writeFileSync(join(dir, 'landing.html'), '<p/>')
-
-    await expect(makeCommand(vi.fn().mockRejectedValue(new Error('not a block theme'))).run()).rejects.toThrow('1 template failed to push.')
   })
 })

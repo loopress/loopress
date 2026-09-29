@@ -10,10 +10,11 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 type HtmlResource = {
   descriptions: {diff: string; list: string; push: string}
   kind: 'page' | 'template'
-  slugExample: string
+  // Pages push one by slug; templates and parts always push whole (the child theme mirrors them).
+  slugExample?: string
 }
 
-// Pages and custom block templates share one shape: a flat folder of <slug>.html pushed by slug.
+// Pages and block templates share one shape: flat folders of <slug>.html files.
 const RESOURCES: HtmlResource[] = [
   {
     descriptions: {
@@ -26,17 +27,15 @@ const RESOURCES: HtmlResource[] = [
   },
   {
     descriptions: {
-      diff: 'Show what differs (markup, title) between the local templates/ directory and the custom block templates managed by Loopress on WordPress.',
-      list: 'List the custom block templates managed by Loopress in the active theme (slug, title).',
-      push: 'Push local custom block templates (templates/<slug>.html) to the active block theme, or only one when slug is given. A static page uses one with its template header.',
+      diff: 'Show what differs between the local templates/ and parts/ directories and the Loopress child theme on WordPress, including templates and parts edited in the Site Editor.',
+      list: 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor.',
+      push: 'Push local block templates (templates/<slug>.html) and template parts (parts/<slug>.html) as the files of the child theme <parent>-loopress, mirroring them. The child is never activated.',
     },
     kind: 'template',
-    slugExample: 'landing',
   },
 ]
 
-// Not registerResourceTools: `lps page push` / `lps template push` take a slug rather than a
-// directory path, there is no pull yet, and both have a diff tool.
+// Not registerResourceTools: no directory path argument, no pull yet, and both have a diff tool.
 export function registerPageTools(server: McpServer): void {
   for (const {descriptions, kind, slugExample} of RESOURCES) {
     server.registerTool(
@@ -46,15 +45,19 @@ export function registerPageTools(server: McpServer): void {
         inputSchema: {
           confirmToken: confirmTokenFlag,
           env: envFlag,
-          slug: z
-            .string()
-            // Same pattern as the CLI's file names, which also keeps it from reading as a flag.
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must be lowercase letters and digits separated by single hyphens')
-            .optional()
-            .describe(`Push only this ${kind}, its file name without .html (e.g. "${slugExample}")`),
+          ...(slugExample === undefined
+            ? {}
+            : {
+                slug: z
+                  .string()
+                  // Same pattern as the CLI's file names, which also keeps it from reading as a flag.
+                  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must be lowercase letters and digits separated by single hyphens')
+                  .optional()
+                  .describe(`Push only this ${kind}, its file name without .html (e.g. "${slugExample}")`),
+              }),
         },
       },
-      async ({confirmToken, env, slug}) =>
+      async ({confirmToken, env, slug}: {confirmToken?: string; env?: string; slug?: string}) =>
         toCallToolResult(await runMutatingTool(`${kind}_push`, buildArgs(slug ? [kind, 'push', slug] : [kind, 'push'], {env}), confirmToken)),
     )
 

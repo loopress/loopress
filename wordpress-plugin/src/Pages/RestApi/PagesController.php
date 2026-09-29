@@ -159,7 +159,7 @@ class PagesController
             'post_status'   => $status,
             'post_content'  => '',
             // Validated by wp_insert_post() itself against the theme's page templates, custom
-            // ones pushed by TemplatesController included: an unknown slug is a WP_Error
+            // ones from the Loopress child theme included: an unknown slug is a WP_Error
             // ("Invalid page template"), returned below as the push failure.
             'page_template' => $template,
             'meta_input'    => [

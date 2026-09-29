@@ -1,82 +1,65 @@
-import {Args} from '@oclif/core'
-
 import {PushCommand} from '../../lib/push-command.js'
 import {formatPageProblems} from '../../utils/page-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
-import {readLocalTemplates, type Template, TEMPLATES_ENDPOINT} from '../../utils/template-format.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme, readLocalTemplates} from '../../utils/template-format.js'
 
 type PushResult = {
-  pushed: string[]
+  active?: boolean
+  customized?: string[]
+  parts: string[]
   status: 'dry-run' | 'success'
+  stylesheet?: string
+  templates: string[]
 }
 
 export default class Push extends PushCommand {
-  static args = {
-    slug: Args.string({description: 'Push only this template (its file name without .html). Pushes every template when omitted.'}),
-  }
-
   static description =
-    'Push block templates (templates/<slug>.html) to the active block theme. A static page uses one with its `template` header.'
+    'Push block templates (templates/<slug>.html) and template parts (parts/<slug>.html) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is never activated for you.'
 
   static enableJsonFlag = true
-  static examples = ['$ lps template push', '$ lps template push landing', '$ lps template push --dry-run']
+  static examples = ['$ lps template push', '$ lps template push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
   async run(): Promise<PushResult> {
-    const {args} = await this.parse(Push)
-    const path = resolveResourceDir('template', this.localConfig)
+    await this.parse(Push)
+    const templatesPath = resolveResourceDir('template', this.localConfig)
+    const partsPath = resolveResourceDir('part', this.localConfig)
 
-    this.log(`Pushing templates to ${this.siteConfig.url}`)
-    this.log(`Templates path: ${path}`)
+    this.log(`Pushing templates and parts to ${this.siteConfig.url}`)
+    this.log(`Templates path: ${templatesPath}, parts path: ${partsPath}`)
 
-    const {problems, templates} = await readLocalTemplates(path)
+    const {parts, problems, templates} = await readLocalTemplates(templatesPath, partsPath)
     if (problems.length > 0) {
-      this.error(`Nothing was pushed, fix these templates first:\n  ${formatPageProblems(problems)}`)
+      this.error(`Nothing was pushed, fix these files first:\n  ${formatPageProblems(problems)}`)
     }
 
-    const selected = args.slug === undefined ? templates : templates.filter((template) => template.slug === args.slug)
-    if (args.slug !== undefined && selected.length === 0) {
-      this.error(`No template "${args.slug}" in ${path} (expected ${args.slug}.html).`)
-    }
+    const names = {parts: parts.map((part) => part.slug), templates: templates.map((template) => template.slug)}
+    this.log(`Found ${pluralize(templates.length, 'template')} and ${pluralize(parts.length, 'part')}`)
 
-    this.log(`Found ${pluralize(selected.length, 'template')} to push`)
-
-    const pushed: string[] = []
-    await this.runPushTasks(
-      selected,
-      (template) => template.slug,
-      async (template, task) => {
-        await this.pushTemplate(template, task)
-        pushed.push(template.slug)
-      },
-    )
-
-    if (this.failedCount > 0) {
-      this.error(`${pluralize(this.failedCount, 'template')} failed to push.`)
-    }
-
-    if (this.dryRun) return {pushed, status: 'dry-run'}
-
-    await this.recordSuccess()
-    this.log('All templates pushed.')
-    return {pushed, status: 'success'}
-  }
-
-  private async pushTemplate(template: Template, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
-      if (task) task.output = `[dry-run] Would push: ${template.slug}`
-      return
+      this.log('[dry-run] Would rewrite the child theme with them.')
+      return {...names, status: 'dry-run'}
     }
 
-    try {
-      await this.wp.put<Template>(TEMPLATES_ENDPOINT, template)
-      if (task) task.output = `Pushed: ${template.slug}`
-    } catch (error) {
-      this.reportTaskFailure(`Failed to push ${template.slug}: ${(error as Error).message}`, error, task)
+    const child = await this.wp.put<ChildTheme>(CHILD_THEME_ENDPOINT, {parts, templates})
+    await this.recordSuccess()
+    this.log(`Child theme ${child.stylesheet} written.`)
+
+    if (!child.active) {
+      this.warn(`${child.stylesheet} is not the active theme, so nothing changed on the site yet. Activate it in Appearance > Themes.`)
     }
+
+    if (child.customized.length > 0) {
+      this.warn(
+        `Edited in the Site Editor, their database copy still wins over the pushed file: ${child.customized.join(', ')}. ` +
+          'Clear their customizations in Appearance > Editor to use the pushed version.',
+      )
+    }
+
+    return {...names, active: child.active, customized: child.customized, status: 'success', stylesheet: child.stylesheet}
   }
 }
