@@ -1,7 +1,7 @@
 import {confirm} from '@inquirer/prompts'
-import {existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Promote from '../../src/commands/promote.js'
@@ -62,16 +62,20 @@ describe('promote', () => {
   it('on --dry-run, really pulls into a scratch copy of the project and dry-runs the push from it', async () => {
     const project = mkdtempSync(join(tmpdir(), 'lps-promote-test-'))
     writeFileSync(join(project, 'loopress.json'), '{}')
-    const originalCwd = process.cwd()
-    process.chdir(project)
+    // Stryker's worker-thread pool disallows process.chdir(), so the cwd is faked instead.
+    let cwd = project
+    vi.spyOn(process, 'cwd').mockImplementation(() => cwd)
+    vi.spyOn(process, 'chdir').mockImplementation((dir) => {
+      cwd = resolve(dir)
+    })
     const cwds: string[] = []
     let hadLocalConfig = false
     const noRotate: Array<string | undefined> = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async () => {
       cwds.push(process.cwd())
       noRotate.push(process.env.LOOPRESS_NO_AUTO_ROTATE)
-      hadLocalConfig = existsSync('loopress.json')
-      writeFileSync('pulled.txt', 'from staging')
+      hadLocalConfig = existsSync(join(cwd, 'loopress.json'))
+      writeFileSync(join(cwd, 'pulled.txt'), 'from staging')
       return {}
     })
     const {cmd} = make(['staging', 'production', '--dry-run'])
@@ -83,16 +87,15 @@ describe('promote', () => {
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes'])
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--dry-run'])
       expect(result).toEqual({from: 'staging', status: 'dry-run', to: 'production'})
-      expect(cwds[0]).not.toBe(realpathSync(project))
+      expect(cwds[0]).not.toBe(project)
       expect(cwds[1]).toBe(cwds[0])
       expect(hadLocalConfig).toBe(true)
       expect(existsSync(cwds[0])).toBe(false)
-      expect(realpathSync(process.cwd())).toBe(realpathSync(project))
+      expect(cwd).toBe(project)
       expect(existsSync(join(project, 'pulled.txt'))).toBe(false)
       expect(noRotate).toEqual(['1', '1'])
       expect(process.env.LOOPRESS_NO_AUTO_ROTATE).toBeUndefined()
     } finally {
-      process.chdir(originalCwd)
       rmSync(project, {force: true, recursive: true})
     }
   })
