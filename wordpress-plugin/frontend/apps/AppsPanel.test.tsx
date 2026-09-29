@@ -74,4 +74,20 @@ describe('AppsPanel', () => {
         render(<AppsPanel />, { wrapper: errorWrapper });
         expect(await screen.findByText('Failed to load apps.')).toBeInTheDocument();
     });
+
+    test('surfaces a server-configuration issue from the diagnostics probe', () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        client.setQueryData(['apps'], [committed]);
+        client.setQueryData(['apps-diagnostics'], {
+            issues: [{ code: 'apps_assets_missing_nosniff', message: 'App assets are served without the X-Content-Type-Options: nosniff header.' }],
+        });
+        render(<AppsPanel />, {
+            wrapper: ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={client}>{children}</QueryClientProvider>
+            ),
+        });
+
+        expect(screen.getByText('Server configuration issue')).toBeInTheDocument();
+        expect(screen.getByText(/nosniff/)).toBeInTheDocument();
+    });
 });

@@ -9,6 +9,7 @@ use Brain\Monkey\Functions;
 use Loopress\Apps\Infrastructure\AppsDirectory;
 use Loopress\Apps\Infrastructure\AppStore;
 use Loopress\Apps\RestApi\AppsController;
+use Loopress\Apps\Service\AppsDiagnostics;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
@@ -17,6 +18,7 @@ class AppsControllerTest extends TestCase
 {
     private AppsDirectory&MockObject $directory;
     private AppStore&MockObject $store;
+    private AppsDiagnostics&MockObject $diagnostics;
     private AppsController $controller;
 
     protected function setUp(): void
@@ -24,9 +26,10 @@ class AppsControllerTest extends TestCase
         parent::setUp();
         Monkey\setUp();
 
-        $this->directory  = $this->createMock(AppsDirectory::class);
-        $this->store      = $this->createMock(AppStore::class);
-        $this->controller = new AppsController($this->directory, $this->store);
+        $this->directory   = $this->createMock(AppsDirectory::class);
+        $this->store       = $this->createMock(AppStore::class);
+        $this->diagnostics = $this->createMock(AppsDiagnostics::class);
+        $this->controller  = new AppsController($this->directory, $this->store, $this->diagnostics);
 
         // put_asset() reads a filterable per-file size cap; default is "no filter changed it".
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value = null): mixed => $value);
