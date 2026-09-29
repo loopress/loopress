@@ -1,5 +1,24 @@
 # @loopress/cli
 
+## 0.28.0
+
+### Minor Changes
+
+- cd9479d: `lps app push` now builds each app before pushing it: when `apps/<name>/package.json` has a `build` script, it runs with the app's package manager (from `packageManager`, else the nearest lockfile, else npm), on `--dry-run` too, so a forgotten rebuild no longer ships a stale `dist/` reported as "up to date". A failing build fails that app and uploads nothing. Pass `--no-build` (MCP: `noBuild`) when CI already built. Dependencies are never installed for you.
+- 4d1c8af: Apps can now stop other sites from embedding their files: set `"crossOrigin": "same-origin"` (or `"same-site"`) in `loopress.app.json`, and on `lps app push` the plugin writes an `.htaccess` in the app's folder that sends `Cross-Origin-Resource-Policy` with every file. It overrides a site-wide `cross-origin` value set by a security plugin, and is removed when the setting is dropped. `lps app pull` keeps the setting, and `lps app push` warns when it was not applied (plugin too old, or an app `.htaccess` the site owner manages, which is left untouched). Apache and LiteSpeed only (nginx ignores `.htaccess`).
+- 20a406c: Block templates and parts: `templates/<slug>.html` and `parts/<slug>.html` are written by `lps template push` as the files of a child theme of the active block theme, `<parent>-loopress`, the parent staying untouched. Any template of the hierarchy can be overridden, and a template with a `title`/`postTypes` header becomes a page template a static page picks with its `template` header (no header or footer part gives a bare page). Edits made in the Site Editor are never overwritten and show up as drift in `lps template diff` and `lps diff`. Part of `lps push` (before pages), `lps dev`, `lps init` and `lps validate`. MCP gains `template_push`, `template_list` and `template_diff`.
+- b1c46ac: `lps plugin pull` and `lps theme pull` no longer stop when the project has a `composer.json`: they pin the live versions into its `require` as `wpackagist-plugin/<slug>` / `wpackagist-theme/<slug>` entries, leaving every other key untouched. A version constraint you wrote (`^9.4`) is kept, only exact pins move; packages in `require-dev`, provided by another package, or absent from WordPress.org (premium, custom) are skipped and listed in the output. `loopress.json` is not modified in that case. The file keeps its original indentation. If the WordPress.org check fails, the pull stops with the reason and leaves `composer.json` untouched.
+  
+  `loopress.json` now records whether each plugin is active: `lps plugin pull` writes an inactive plugin as `{"version": "1.7.2", "active": false}`, `lps plugin push` keeps it inactive (and deactivates it if it was switched on), and `lps plugin status` reports it as drift when it is active. A plain version string still means active, so existing files keep working. Before, a pull followed by a push activated every plugin that was inactive on the site.
+  
+  `lps plugin push` no longer stops on a project with a `composer.json`: it reads the `wpackagist-plugin/*` entries, pushes the whole file (themes and libraries included) and keeps its safety around the file swap, but activates nothing unless `--activate` is passed. `lps push` then skips `composer push` so Composer runs once. Composer constraints like `^9.4` are no longer reported as version drift.
+- 61350a3: Breaking: `lps theme-styles pull/push/diff/rollback` is now `lps theme style pull/push/diff/rollback`, grouped with the other theme commands. The `theme-styles` resource name for `lps diff --only/--skip` and the MCP tool names (`theme_styles_*`) are unchanged, and existing rollback snapshots still work.
+
+### Patch Changes
+
+- 4d1c8af: `lps app pull` no longer overwrites an existing `loopress.app.json`: files go into its `assetsDir` and its `entry` is kept, so an app with a custom build folder or an explicit entry can still be pushed after a pull. The `.htaccess` files Loopress writes under `wp-content/loopress/` (`apps/`, `vendor/`) are now updated when a new plugin version changes them (for example the `nosniff` header on apps), instead of only being written once. The rewrite is atomic (temp file + rename), so a request never sees half-written rules. A file whose first `# Loopress:` line was removed is left alone.
+- eb417c3: `lps promote <from> <to> --dry-run` now previews what `<from>` would really push: it pulls `<from>` into a throwaway copy of the project and dry-runs the push from there, instead of previewing your current local files. App password auto-rotation is skipped in CI (the runner can't persist the new password, so rotating would revoke the one stored in the CI secret), with a warning to run `lps project rotate` where the config lives. A 403 with an empty body now shows the underlying error instead of ending on a bare colon.
+
 ## 0.27.0
 
 ### Minor Changes
