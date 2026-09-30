@@ -2,6 +2,7 @@
 import Default from "@astrojs/starlight/components/MarkdownContent.astro";
 import StarlightBlogMarkdownContent from "starlight-blog/components/MarkdownContent.astro";
 import { Aside } from "@astrojs/starlight/components";
+import ImageZoom from "starlight-image-zoom/components/ImageZoom.astro";
 import { getCollection } from "astro:content";
 
 const { entry } = Astro.locals.starlightRoute;
@@ -78,6 +79,7 @@ if (isCookbookIndex) {
 }
 ---
 
+<ImageZoom />
 {
 	isBlogPost && (cliVersion || wordpressPluginVersion) && (
 		<p class="published-with not-content">
