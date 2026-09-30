@@ -65,9 +65,10 @@ function renderTextChange(id: string, left: string, right: string, labels: {left
 function objectFieldChanges(left: Record<string, unknown>, right: Record<string, unknown>): FieldChange[] {
   return microdiff(left, right, {cyclesFix: false}).map((change) => {
     const path = change.path.join('.')
-    if (change.type === 'CREATE') return {kind: 'added', path, to: change.value}
-    if (change.type === 'REMOVE') return {from: change.oldValue, kind: 'removed', path}
-    return {from: change.oldValue, kind: 'changed', path, to: change.value}
+    // microdiff types leaf values as `any`.
+    if (change.type === 'CREATE') return {kind: 'added', path, to: change.value as unknown}
+    if (change.type === 'REMOVE') return {from: change.oldValue as unknown, kind: 'removed', path}
+    return {from: change.oldValue as unknown, kind: 'changed', path, to: change.value as unknown}
   })
 }
 

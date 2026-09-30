@@ -26,7 +26,7 @@ export type SnapshotSummary = {createdAt: string; environment: string; id: strin
 // representation; snapshots round-trip through a plain object instead. Keys are sorted so two
 // snapshots of the same state serialize identically (stable diffs, deterministic tests).
 export function stateToRecord(state: ResourceState): Record<string, unknown> {
-  return Object.fromEntries([...state].sort(([a], [b]) => a.localeCompare(b)))
+  return Object.fromEntries([...state].toSorted(([a], [b]) => a.localeCompare(b)))
 }
 
 export function recordToState(record: Record<string, unknown>): ResourceState {
@@ -148,7 +148,7 @@ export async function listSnapshots(rootDir: string, resource: string, environme
     }
   }
 
-  return summaries.sort((a, b) => Number(b.id) - Number(a.id))
+  return summaries.toSorted((a, b) => Number(b.id) - Number(a.id))
 }
 
 // `id` undefined reads the most recent snapshot for this environment (the common

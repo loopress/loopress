@@ -76,7 +76,7 @@ describe('loadFiles', () => {
         recursive: true,
       })
 
-      expect(files.map((file) => file.filename).sort((a, b) => a.localeCompare(b))).toEqual(['hello.php', join('invoice-pdf', '[order_id].php')])
+      expect(files.map((file) => file.filename).toSorted((a, b) => a.localeCompare(b))).toEqual(['hello.php', join('invoice-pdf', '[order_id].php')])
     })
 
     it('finds files nested more than one level deep', async () => {

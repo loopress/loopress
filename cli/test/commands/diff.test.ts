@@ -210,7 +210,7 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(Object.keys(result.resources).sort((a, b) => a.localeCompare(b))).toEqual(['acf', 'snippet'])
+    expect(Object.keys(result.resources).toSorted((a, b) => a.localeCompare(b))).toEqual(['acf', 'snippet'])
   })
 
   it('compares every resource except those named by --skip', async () => {

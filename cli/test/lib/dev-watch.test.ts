@@ -134,10 +134,7 @@ describe('createDebouncedBatcher', () => {
   })
 
   it('never overlaps a flush still in flight, and drains what queued up once it finishes', async () => {
-    let resolveFirstFlush!: () => void
-    const firstFlush = new Promise<void>((resolve) => {
-      resolveFirstFlush = resolve
-    })
+    const {promise: firstFlush, resolve: resolveFirstFlush} = Promise.withResolvers<void>()
     const flush = vi.fn().mockReturnValueOnce(firstFlush).mockResolvedValue(undefined)
     const batcher = createDebouncedBatcher(flush, 400)
 

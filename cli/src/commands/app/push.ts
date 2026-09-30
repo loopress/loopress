@@ -99,7 +99,7 @@ export default class Push extends PushCommand {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .filter((name) => existsSync(join(path, name, APP_CONFIG_FILENAME)))
-      .sort((a, b) => a.localeCompare(b))
+      .toSorted((a, b) => a.localeCompare(b))
 
     if (only) {
       if (!names.includes(only)) {

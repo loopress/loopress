@@ -44,7 +44,7 @@ export abstract class PushCommand extends LoopressCommand {
       await this.recordDeployment('failure')
     }
 
-    return super.catch(err)
+    await super.catch(err)
   }
 
   protected async guardProductionPush(): Promise<void> {

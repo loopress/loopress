@@ -67,7 +67,7 @@ export function isAllowedAsset(relPath: string): boolean {
 // server would reject, so the push fails locally with a clear message instead of a 400
 // halfway through the upload.
 export async function buildFileList(distDir: string): Promise<AppFile[]> {
-  const relPaths = (await walkFiles(distDir)).sort((a, b) => a.localeCompare(b))
+  const relPaths = (await walkFiles(distDir)).toSorted((a, b) => a.localeCompare(b))
 
   const files: AppFile[] = []
   for (const path of relPaths) {
@@ -88,7 +88,7 @@ export async function buildFileList(distDir: string): Promise<AppFile[]> {
 // Used as the enqueue `?ver` (cache busting) and as the build identity in `app list`.
 export function computeBuildId(files: AppFile[]): string {
   const digest = createHash('sha256')
-  for (const file of [...files].sort((a, b) => a.path.localeCompare(b.path))) {
+  for (const file of files.toSorted((a, b) => a.path.localeCompare(b.path))) {
     digest.update(`${file.path}:${file.sha256}\n`)
   }
 

@@ -22,7 +22,7 @@ describe('readdir-tolerant', () => {
       mkdirSync(join(dir, 'sub'))
       writeFileSync(join(dir, 'sub', 'b.txt'), '')
 
-      expect((await readdirTolerant(dir)).sort((a, b) => a.localeCompare(b))).toEqual(['a.txt', 'sub'])
+      expect((await readdirTolerant(dir)).toSorted((a, b) => a.localeCompare(b))).toEqual(['a.txt', 'sub'])
     })
 
     it('returns Dirents with withFileTypes, recursing on demand', async () => {
@@ -31,7 +31,7 @@ describe('readdir-tolerant', () => {
 
       const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})
 
-      expect(entries.map((entry) => entry.name).sort((a, b) => a.localeCompare(b))).toEqual(['b.txt', 'sub'])
+      expect(entries.map((entry) => entry.name).toSorted((a, b) => a.localeCompare(b))).toEqual(['b.txt', 'sub'])
       expect(entries.find((entry) => entry.name === 'b.txt')?.isFile()).toBe(true)
     })
 
@@ -62,7 +62,7 @@ describe('readdir-tolerant', () => {
       mkdirSync(join(dir, 'v1', 'users'), {recursive: true})
       writeFileSync(join(dir, 'v1', 'users', 'get.php'), '')
 
-      expect((await walkFiles(dir)).sort((a, b) => a.localeCompare(b))).toEqual(['a.php', 'v1/users/get.php'])
+      expect((await walkFiles(dir)).toSorted((a, b) => a.localeCompare(b))).toEqual(['a.php', 'v1/users/get.php'])
     })
 
     it('follows a symlink to a file, and skips a broken one or one to a directory', async () => {

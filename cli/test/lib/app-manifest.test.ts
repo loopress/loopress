@@ -187,7 +187,7 @@ describe('app-manifest', () => {
       expect(manifest.routing).toBe('hash')
       expect(manifest.entry).toEqual({scripts: ['assets/index-abc.js'], styles: ['assets/index-abc.css']})
       expect(manifest.buildId).toHaveLength(12)
-      expect(manifest.files.map((f) => f.path).sort((a, b) => a.localeCompare(b))).toEqual([
+      expect(manifest.files.map((f) => f.path).toSorted((a, b) => a.localeCompare(b))).toEqual([
         'assets/index-abc.css',
         'assets/index-abc.js',
         'index.html',
