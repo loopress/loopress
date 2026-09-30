@@ -1,0 +1,21 @@
+---
+// Lays out its children (typically two <figure>s) in columns, stacked on narrow screens.
+---
+
+<div class="side-by-side"><slot /></div>
+
+<style>
+	.side-by-side {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 1rem;
+		align-items: start;
+	}
+	.side-by-side > :global(*) {
+		margin: 0;
+	}
+	.side-by-side :global(figcaption) {
+		text-align: center;
+		font-size: var(--sl-text-sm);
+	}
+</style>

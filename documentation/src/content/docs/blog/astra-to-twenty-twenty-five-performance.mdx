@@ -1,0 +1,194 @@
+---
+title: "Astra vs Twenty Twenty-Five: 34% Fewer Queries on a Real Site"
+description: Switching a live site from Astra to Twenty Twenty-Five cut database queries by 34% and halved autoloaded options. With Loopress, the block theme gets Astra's features back as files in Git.
+date: 2026-09-30
+draft: false
+cliVersion: 0.28.0
+wordpressPluginVersion: 2026.13.0
+authors:
+  - maxime
+tags:
+  - performance
+  - block themes
+  - query monitor
+  - wordpress
+excerpt: My sister's tutoring site launched on Astra last year. I rebuilt it on Twenty Twenty-Five with Loopress and measured the homepage with Query Monitor before and after. A third fewer queries, 40 fewer scripts, half the autoloaded options, and a design that finally lives in Git.
+---
+
+import { Image } from 'astro:assets';
+import SideBySide from '../../../components/SideBySide.astro';
+import astraCold from '../../images/nft-performances/astra-overview-cold.png';
+import astraWarm from '../../images/nft-performances/astra-overview-warm.png';
+import astraTimeline from '../../images/nft-performances/astra-timeline.png';
+import astraAutoload from '../../images/nft-performances/astra-autoload.png';
+import astraHealth from '../../images/nft-performances/astra-site-health.png';
+import tt5Cold from '../../images/nft-performances/tt5-overview-cold.png';
+import tt5Warm from '../../images/nft-performances/tt5-overview-warm.png';
+import tt5Timeline from '../../images/nft-performances/tt5-timeline.png';
+import tt5Autoload from '../../images/nft-performances/tt5-autoload.png';
+import tt5Health from '../../images/nft-performances/tt5-site-health.png';
+
+[Native French Teacher](https://nativefrenchteacher.com) is my sister's online French tutoring business, and the site [Loopress started from](/blog/why-i-built-loopress/). It launched last year on **Astra** with the Spectra blocks plugin. I recently rebuilt it on **Twenty Twenty-Five**, the default block theme, with a new design along the way, using Loopress to manage the pages, templates and snippets from a Git repo.
+
+I didn't do it for speed. I did it so the site would live in a repository. But I had Query Monitor open before and after, so here is what it measured.
+
+## Astra was the right call, at first
+
+Let's be fair to Astra. When you launch a site for a non-technical person, it's hard to beat:
+
+- A **header and footer builder** where you drag a logo, a menu and a button into place.
+- **Global colors and typography** in the Customizer, with a live preview.
+- **Per-page layout options**: hide the title, go full width, remove the sidebar, from a panel in the editor.
+- **Starter templates** and Spectra's blocks, so a decent-looking page takes minutes.
+
+Twenty Twenty-Five on its own has none of that polish. It's a clean block theme with a Site Editor, and the Site Editor saves everything in the database, just like Astra's Customizer does. Swap one for the other and you've traded features for speed, but you still can't answer "who changed the header, and what did it look like before?"
+
+That's the gap Loopress fills.
+
+## How I measured
+
+- Same Hostinger server, same PHP, same plugin stack apart from the theme and Spectra.
+- Not the same pages: the rebuild came with a redesign. That matters most for what the browser downloads (images, fonts, layout), much less for the server work, which is mostly WordPress, the theme and the plugins.
+- Homepage only, logged in as admin (Query Monitor needs that, so the admin bar is included in both runs).
+- Several page loads per state, keeping the **median**: **cold** loads (first request after a while, OPcache and internal caches not warm) and **warm** loads (right after). The screenshots below are the loads closest to that median.
+- No page cache and no persistent object cache in either case. The site runs LiteSpeed Cache, but it doesn't serve logged-in users, so these are the numbers a logged-in visitor actually gets. The query count barely moves between cold and warm, so the difference between the two is PHP warm-up, not a cache skipping work.
+
+It's a live site, not a lab, so small differences are noise. The large ones (queries, scripts, autoload) are not.
+
+## The homepage, side by side
+
+| Metric | Astra | Twenty Twenty-Five | Change |
+|---|---|---|---|
+| Generation time, cold | 2.61 s | 1.92 s | -26% |
+| Generation time, warm | 0.69 s | 0.50 s | -28% |
+| Peak memory, cold | 78.5 MB | 65.7 MB | -16% |
+| Peak memory, warm | 59.5 MB | 47.9 MB | -19% |
+| Database queries, cold | 274 | 182 | -34% |
+| Time in database, cold | 55 ms | 38 ms | -31% |
+| Enqueued scripts | 65 | 25 | -62% |
+| Enqueued styles | 52 | 49 | -6% |
+| Object cache hits | 6,489 | 4,137 | -36% |
+
+<SideBySide>
+<figure>
+  <Image src={astraCold} alt="Query Monitor overview with Astra, cold load: 2.61 s, 78.5 MB, 274 queries" />
+  <figcaption>Astra, cold load: 2.61 s, 274 queries, 65 scripts.</figcaption>
+</figure>
+<figure>
+  <Image src={tt5Cold} alt="Query Monitor overview with Twenty Twenty-Five, cold load: 1.92 s, 65.7 MB, 182 queries" />
+  <figcaption>Twenty Twenty-Five, cold load: 1.92 s, 182 queries, 25 scripts.</figcaption>
+</figure>
+</SideBySide>
+
+<SideBySide>
+<figure>
+  <Image src={astraWarm} alt="Query Monitor overview with Astra, warm load: 0.69 s, 59.5 MB, 282 queries" />
+  <figcaption>Astra, warm load: 0.69 s. The query count barely moves, so no cache is skipping work.</figcaption>
+</figure>
+<figure>
+  <Image src={tt5Warm} alt="Query Monitor overview with Twenty Twenty-Five, warm load: 0.50 s, 47.9 MB, 182 queries" />
+  <figcaption>Twenty Twenty-Five, warm load: 0.50 s, same 182 queries.</figcaption>
+</figure>
+</SideBySide>
+
+The biggest single number is scripts: **65 down to 25**. That's mostly Astra and Spectra's own scripts no longer being enqueued. Styles barely moved, because most of them come from plugins (forms, booking, quiz), not from the theme.
+
+## Where the time went
+
+Query Monitor's timeline shows how long each WordPress hook took on a warm load.
+
+| Hook | Astra | Twenty Twenty-Five |
+|---|---|---|
+| `plugins_loaded` | 141 ms | 138 ms |
+| `after_setup_theme` | 28 ms | 26 ms |
+| `init` | 91 ms | 78 ms |
+| `wp` | 32 ms | 6 ms |
+| `template_redirect` | 16 ms | 51 ms |
+| `wp_head` | 81 ms | 31 ms |
+
+<SideBySide>
+<figure>
+  <Image src={astraTimeline} alt="Query Monitor timeline with Astra" />
+  <figcaption>Astra: <code>wp_head</code> takes 81 ms.</figcaption>
+</figure>
+<figure>
+  <Image src={tt5Timeline} alt="Query Monitor timeline with Twenty Twenty-Five" />
+  <figcaption>Twenty Twenty-Five: <code>wp_head</code> down to 31 ms, <code>template_redirect</code> up to 51 ms, <code>plugins_loaded</code> unchanged.</figcaption>
+</figure>
+</SideBySide>
+
+Three things stand out:
+
+- **`wp_head` dropped from 81 ms to 31 ms.** Most likely Astra's dynamic CSS and inline configuration, built at runtime on every request. A block theme ships its styles from `theme.json`, and WordPress only outputs the CSS for blocks actually on the page.
+- **`template_redirect` went up, from 16 ms to 51 ms.** Not everything got faster. Something hooked there now does more work, and it's on my list to look at with the per-component view.
+- **`plugins_loaded` didn't move.** At 140 ms it's the largest single chunk of the request, and changing the theme can't touch it. The remaining plugin stack is now the thing to optimize, not the theme.
+
+## The database got lighter too
+
+Every WordPress request loads all *autoloaded* options into memory, whether the page needs them or not. Astra and Spectra stored a lot of their settings that way.
+
+| | Astra | Twenty Twenty-Five |
+|---|---|---|
+| Autoloaded options size | 1,013 KB (946 options) | 519 KB |
+| Big autoloaded options | 3 | 0 |
+| Database size | 176 MB | 160 MB |
+| Site Health | Should be improved, 1 critical issue | Good |
+
+<SideBySide>
+<figure>
+  <Image src={astraAutoload} alt="Advanced DB Cleaner with Astra: autoload size is big, 1012.89 KB, 3 big options" />
+  <figcaption>Astra: 1,013 KB of options loaded on every request, 3 of them flagged as big.</figcaption>
+</figure>
+<figure>
+  <Image src={tt5Autoload} alt="Advanced DB Cleaner with Twenty Twenty-Five: autoload size is good, 518.54 KB, 0 big options" />
+  <figcaption>Twenty Twenty-Five: autoload down to 519 KB, no big options left.</figcaption>
+</figure>
+</SideBySide>
+
+Removing the theme and its companion plugin, then cleaning up what they left behind, **halved the autoloaded data**. That was also the only critical issue in Site Health ("Autoloaded options could affect performance"), and it's gone.
+
+<SideBySide>
+<figure>
+  <Image src={astraHealth} alt="Site Health with Astra: should be improved, autoloaded options critical issue" />
+  <figcaption>Astra: the autoloaded options are the one critical issue in Site Health.</figcaption>
+</figure>
+<figure>
+  <Image src={tt5Health} alt="Site Health with Twenty Twenty-Five: good" />
+  <figcaption>Twenty Twenty-Five: Site Health is back to Good.</figcaption>
+</figure>
+</SideBySide>
+
+## What about visitors?
+
+I also ran PageSpeed Insights before and after, and it showed no major change. That's not surprising: the site sits behind LiteSpeed Cache, and for visitors that's the real game changer. Most pages are served straight from the cache, so the PHP work measured above rarely runs for them.
+
+So why care about server time at all? Because not every request can be cached:
+
+- **Logged-in users.** A page cache only works for anonymous visitors. Once someone is logged in, every page they open is rendered by PHP, theme included, which is exactly what the numbers above measure. The site is going to have more logged-in users, so a theme that does less work per page is worth more every month.
+- **Cache purges.** Every purge, including the one after each deploy, means the next visitor gets an uncached page. PHP is usually still warm at that point, so that's the warm render: 0.69 s on Astra, 0.50 s now.
+- **Custom API routes.** With Loopress you can [add API routes](/api/) to WordPress, and the ones that return personal or changing data can't be cached. They don't render a template, but they still boot WordPress, autoloaded options and all.
+
+The cache hides the difference for anonymous visitors today. The lighter stack pays off for everything the cache can't cover.
+
+## Twenty Twenty-Five alone is fast. With Loopress, it's also manageable
+
+The page is about 30% faster on the server, uses a fifth less memory, runs a third fewer queries and ships 40 fewer scripts. None of it came from a caching plugin or a server upgrade: it came from removing layers.
+
+But a lean theme is only half the story. What made me comfortable dropping Astra is that everything it gave me through panels, Loopress gives me through files:
+
+| What Astra gave me | Twenty Twenty-Five + Loopress |
+|---|---|
+| Header and footer builder | Template parts as block markup in `parts/`, pushed into a child theme with [`lps template push`](/pages/#templates-and-parts). The parent theme stays untouched and keeps its updates. |
+| Per-page layout options | Custom page templates in `templates/`, picked per page with a `template:` header. A bare landing page is one file. |
+| Starter templates and Spectra blocks | Pages written as [plain HTML files](/pages/) in the repo, rendered by the theme, locked in wp-admin so Git stays the source of truth. |
+| Custom code in `functions.php` or a snippet plugin | [Hooks](/hooks/) and [snippets](/snippets/) as PHP files in Git. |
+
+That split doesn't take the editor away from my sister. She still writes her blog posts in the WordPress admin, and they live in the database like any other content. What moved to Git is the structure around them: templates, landing pages and code. She now also edits the site from Claude Desktop.
+
+Astra's features are good, but they live in the database, next to the content, invisible to Git. On Twenty Twenty-Five with Loopress, the same decisions are files: I review them, diff them, push them to staging first, and [roll them back](/blog/undo-a-wordpress-deploy/) when something goes wrong. The server does less work *and* the design got a history.
+
+That's the combo I'd pick for the next site: the default block theme for the performance, Loopress for everything Astra used to do in a panel.
+
+Still to do: install a persistent object cache (Redis is on the server, just not wired up) and look at that `template_redirect` regression.
+
+→ [Get started with the plugin](/wordpress-plugin/) or [the CLI](/cli/)
