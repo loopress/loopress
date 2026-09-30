@@ -33,6 +33,10 @@ class TestPush extends PushCommand {
 
   async run(): Promise<void> {}
 
+  setProductionConfirmed(value: boolean) {
+    this.productionConfirmed = value
+  }
+
   setRootDir(rootDir: string) {
     this.localConfig = {rootDir}
   }
@@ -120,6 +124,16 @@ describe('PushCommand', () => {
     it('lets a production push through with --yes without prompting', async () => {
       const cmd = make(false, PRODUCTION)
       cmd.setYes(true)
+
+      await cmd.testGuard()
+
+      expect(confirm).not.toHaveBeenCalled()
+    })
+
+    it('lets a production push through without prompting when an aggregate command already confirmed it', async () => {
+      interactive.value = true
+      const cmd = make(false, PRODUCTION)
+      cmd.setProductionConfirmed(true)
 
       await cmd.testGuard()
 

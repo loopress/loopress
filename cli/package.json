@@ -119,7 +119,13 @@
         "description": "Manage WordPress code snippets"
       },
       "theme": {
-        "description": "Manage WordPress.org themes tracked in loopress.json (versions only, never switches the active theme)"
+        "description": "Manage everything theme related: versions, block templates and parts, Global Styles (never switches the active theme)"
+      },
+      "theme:template": {
+        "description": "Manage block templates and template parts, written as the files of the <parent>-loopress child theme"
+      },
+      "theme:version": {
+        "description": "Manage WordPress.org themes tracked in loopress.json (versions only)"
       },
       "theme:style": {
         "description": "Manage the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing)"

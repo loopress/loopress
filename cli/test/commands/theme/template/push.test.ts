@@ -3,9 +3,9 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Push from '../../../src/commands/template/push.js'
-import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
-import {makeEnv} from '../../helpers/project-fixtures.js'
+import Push from '../../../../src/commands/theme/template/push.js'
+import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
+import {makeEnv} from '../../../helpers/project-fixtures.js'
 
 type PushInternals = {
   dryRun: boolean

@@ -32,7 +32,7 @@ Either form keeps the plugin **active**. To keep a plugin installed but inactive
 
 For a `loopress.json`-only project, the generated `composer.json` / `composer.lock` stay **on the site** (`wp-content/loopress/`), not in your repo. Exact-version pins in `loopress.json` reproduce identically on every environment; `latest` pins are resolved per push and do not.
 
-If your repo has a `composer.json` (from `lps composer init`), that file is authoritative for plugins and themes instead, `lps plugin pull` / `lps theme pull` write into it, and `lps plugin push` pushes it whole (see [below](#with-a-composerjson)). See the [`composer` command group](/composer/cli/).
+If your repo has a `composer.json` (from `lps composer init`), that file is authoritative for plugins and themes instead, `lps plugin pull` / `lps theme version pull` write into it, and `lps plugin push` pushes it whole (see [below](#with-a-composerjson)). See the [`composer` command group](/composer/cli/).
 
 ## Commands
 

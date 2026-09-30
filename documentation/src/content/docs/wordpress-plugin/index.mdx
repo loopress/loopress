@@ -67,7 +67,7 @@ Everything above, plus:
 - **Custom API routes**: version-control REST API endpoints as plain PHP files with `lps api pull/push/list`, each file becomes one route
 - **Static pages**: push hand-written HTML files as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, see [Static Pages](/pages/)
 - **Single-page apps**: ship a pre-built Vue, React or Svelte bundle to the site with `lps app push` and mount it in any page with a shortcode
-- **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme push`, via Composer and WPackagist
+- **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme version push`, via Composer and WPackagist
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install

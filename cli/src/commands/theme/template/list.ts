@@ -1,13 +1,13 @@
-import {LoopressCommand} from '../../lib/base.js'
-import {pluralize} from '../../utils/pluralize.js'
-import {CHILD_THEME_ENDPOINT, type ChildTheme} from '../../utils/template-format.js'
+import {LoopressCommand} from '../../../lib/base.js'
+import {pluralize} from '../../../utils/pluralize.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme} from '../../../utils/template-format.js'
 
 type ListResult = Omit<ChildTheme, 'parts' | 'templates'> & {parts: string[]; templates: string[]}
 
 export default class List extends LoopressCommand {
   static description = 'Show the Loopress child theme of the active block theme: its templates, parts, and those edited in the Site Editor'
   static enableJsonFlag = true
-  static examples = ['$ lps template list']
+  static examples = ['$ lps theme template list']
 
   async run(): Promise<ListResult> {
     const child = await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
@@ -15,7 +15,7 @@ export default class List extends LoopressCommand {
     const result = {...child, parts: child.parts.map((part) => part.slug), templates: child.templates.map((template) => template.slug)}
 
     if (!child.exists) {
-      this.log(`No Loopress child theme yet (${child.stylesheet}), run lps template push.`)
+      this.log(`No Loopress child theme yet (${child.stylesheet}), run lps theme template push.`)
       return result
     }
 

@@ -2,151 +2,76 @@ import {Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {confirmUninstall} from '../../lib/interactive.js'
-import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
-import {isDowngrade, parseCollisions, SYNC_TIMEOUT_MS, type SyncResponse} from '../../utils/plugin-sync.js'
-import {lockedWpackagistSlugs} from '../../utils/plugins.js'
-import {diffThemes, parseInstalledThemes, type ThemeDiff, type WpNativeTheme} from '../../utils/themes.js'
+import {LoopressCommand} from '../../lib/base.js'
+import {guardProductionPush} from '../../lib/guard-production-push.js'
+import {stdoutToStderr} from '../../lib/json-delegation.js'
+import {pluralize} from '../../utils/pluralize.js'
 
-type PushResult = {
-  installed: string[]
-  pinned: string[]
-  removed: string[]
-  status: 'composer-managed' | 'dry-run' | 'in-sync' | 'success'
-}
+type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed'}
 
-const IN_SYNC: PushResult = {installed: [], pinned: [], removed: [], status: 'in-sync'}
+type PushResult = {results: PushTargetResult[]}
 
-export default class Push extends PushCommand {
-  static description = 'Install themes on WordPress to match loopress.json (versions only, never switches the active theme)'
+// The parent theme must be installed before its child theme is written, and Global Styles
+// belong to whichever theme is active, so they go last.
+const PUSH_TARGETS = [
+  {commandId: 'theme:version:push', label: 'theme versions'},
+  {commandId: 'theme:template:push', label: 'templates and parts'},
+  {commandId: 'theme:style:push', label: 'Global Styles'},
+]
+
+export default class Push extends LoopressCommand {
+  static description = 'Push everything theme related to WordPress: theme versions, templates and parts, then Global Styles'
   static enableJsonFlag = true
-  static examples = ['$ lps theme push', '$ lps theme push --force']
+  static examples = ['$ lps theme push', '$ lps theme push --env staging', '$ lps theme push --dry-run']
   static flags = {
-    ...PushCommand.dryRunFlag,
-    ...PushCommand.yesFlag,
-    force: Flags.boolean({default: false, description: 'Allow downgrades and take over themes installed outside Loopress'}),
+    ...LoopressCommand.dryRunFlag,
+    ...LoopressCommand.yesFlag,
+    force: Flags.boolean({default: false, description: 'Passed to `lps theme version push`'}),
   }
 
   async run(): Promise<PushResult> {
     const {flags} = await this.parse(Push)
-    const {force} = flags
 
-    if (existsSync(join(process.cwd(), this.rootDir, 'composer.json'))) {
-      this.warn('This project has a composer.json, which is authoritative. Run `lps composer push` instead.')
-      return {...IN_SYNC, status: 'composer-managed'}
-    }
+    // Guarded once here, like `lps push`. Steps get --production-confirmed rather than --yes,
+    // so the versions step still asks before uninstalling themes unless the user passed --yes.
+    await guardProductionPush({
+      dryRun: this.dryRun,
+      error: (message) => this.error(message),
+      siteConfig: this.siteConfig,
+      yes: this.yes,
+    })
 
-    const manifest = this.localConfig.themes ?? {}
-    if (Object.keys(manifest).length === 0) {
-      this.error('No themes found in loopress.json. Run `lps theme pull` first.')
-    }
+    // Nothing to install and no composer.json: the versions step would only fail on an empty
+    // manifest, which must not fail a templates or styles only project.
+    const hasVersions =
+      Object.keys(this.localConfig.themes ?? {}).length > 0 || existsSync(join(process.cwd(), this.rootDir, 'composer.json'))
+    const targets = hasVersions ? PUSH_TARGETS : PUSH_TARGETS.filter((target) => target.commandId !== 'theme:version:push')
 
-    this.log(`Pushing themes to ${this.siteConfig.url}`)
-    const raw = await this.wp.get<WpNativeTheme[]>('wp/v2/themes')
-    const installed = parseInstalledThemes(raw)
-    const managed = lockedWpackagistSlugs(await this.fetchInstanceLock(), 'theme')
-    const diff = diffThemes(manifest, installed, managed)
+    const results: PushTargetResult[] = []
+    for (const target of targets) {
+      const argv = ['--env', this.siteConfig.name, '--production-confirmed']
+      if (this.yes) argv.push('--yes')
+      if (this.dryRun) argv.push('--dry-run')
+      if (flags.force && target.commandId === 'theme:version:push') argv.push('--force')
 
-    this.guardForce(diff, force)
-
-    // Uninstalling the theme WordPress is currently rendering leaves the site with no active
-    // theme, which is a hard fatal. --force does not override this: switch the active theme
-    // on the site first, then the removal is safe. A --force takeover of a collision hits the
-    // same fatal: the server moves the existing folder out of the way before reinstalling it,
-    // so the active theme is briefly missing either way, an active collision is just as
-    // dangerous as an active removal.
-    const activeRemoval = [...diff.toRemove, ...diff.collisions.map((c) => c.slug)].find(
-      (slug) => installed.find((t) => t.slug === slug)?.active,
-    )
-    if (activeRemoval) {
-      this.error(
-        `Refusing to uninstall "${activeRemoval}": it is the site's active theme. ` +
-          'Switch the site to another theme, then re-run to remove it.',
-      )
-    }
-
-    // A "latest" pin never shows as drift, but its newest upstream release may have moved, so
-    // a push must still run `composer update` to pick it up.
-    const hasLatestPin = Object.values(manifest).includes('latest')
-    if (!hasLatestPin && isNoop(diff)) {
-      this.log('Everything is already in sync.')
-      return {...IN_SYNC}
-    }
-
-    if (isNoop(diff)) this.log('Refreshing themes pinned to "latest" to their newest releases.')
-
-    for (const a of diff.toInstall) this.log(`  + ${a.slug} ${a.version}`)
-    for (const p of diff.toPin) this.log(`  ~ ${p.slug} ${p.from} to ${p.to}`)
-    for (const s of diff.toRemove) this.log(`  - ${s}`)
-    for (const c of diff.collisions) this.log(`  ! ${c.slug} (take over)`)
-
-    if (this.dryRun) return result(diff, 'dry-run', diff.toRemove, true)
-
-    if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
-
-    const response = await this.sync(manifest, force)
-    if (response.output.trim()) this.log(response.output.trim())
-    this.log('Themes synced.')
-    await this.recordSuccess()
-
-    return result(diff, 'success', response.removed ?? diff.toRemove, force)
-  }
-
-  private async fetchInstanceLock(): Promise<null | string> {
-    try {
-      const {composerLock} = await this.wp.get<{composerLock: string}>('loopress/v1/composer/lock')
-      return composerLock
-    } catch (error) {
-      if (isNotFoundError(error)) return null
-      throw error
-    }
-  }
-
-  private guardForce(diff: ThemeDiff, force: boolean): void {
-    if (force) return
-
-    if (diff.collisions.length > 0) {
-      const list = diff.collisions.map((c) => `${c.slug} (${c.installedVersion})`).join(', ')
-      this.error(`${list} installed outside Loopress. Re-run with --force to take them over, or remove them from loopress.json.`)
-    }
-
-    const downgrades = diff.toPin.filter((p) => isDowngrade(p.from, p.to))
-    if (downgrades.length > 0) {
-      const list = downgrades.map((p) => `${p.slug} ${p.from} to ${p.to}`).join(', ')
-      this.error(`Refusing to downgrade: ${list}. Re-run with --force.`)
-    }
-  }
-
-  private async sync(manifest: Record<string, string>, force: boolean): Promise<SyncResponse> {
-    try {
-      return await this.wp.post<SyncResponse>(
-        'loopress/v1/composer/sync',
-        {force, intent: {themes: manifest}, lock: null},
-        {timeoutMs: SYNC_TIMEOUT_MS},
-      )
-    } catch (error) {
-      if (parseCollisions(error)) {
-        this.error('The site rejected the push: themes installed outside Loopress. Re-run with --force.')
+      this.log(`\n→ Pushing ${target.label}...`)
+      try {
+        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
+        this.log(`✓ ${target.label} pushed`)
+        results.push({label: target.label, status: 'pushed'})
+      } catch (error) {
+        const {message} = error as Error
+        this.log(`✗ ${target.label} failed: ${message}`)
+        results.push({error: message, label: target.label, status: 'failed'})
       }
-
-      throw error
     }
-  }
-}
 
-function isNoop(diff: ThemeDiff): boolean {
-  return (
-    diff.toInstall.length === 0 && diff.toPin.length === 0 && diff.toRemove.length === 0 && diff.collisions.length === 0
-  )
-}
+    const failures = results.filter((result) => result.status === 'failed')
+    if (failures.length > 0) {
+      const reasons = failures.map((result) => `${result.label}: ${result.error}`)
+      this.error(`${pluralize(failures.length, 'theme resource')} failed to push. ${reasons.join('; ')}`)
+    }
 
-function result(diff: ThemeDiff, status: PushResult['status'], removed: string[], includeCollisions: boolean): PushResult {
-  const collisionSlugs = includeCollisions ? diff.collisions.map((c) => c.slug) : []
-  return {
-    installed: [...diff.toInstall.map((a) => a.slug), ...collisionSlugs],
-    pinned: diff.toPin.map((p) => p.slug),
-    removed,
-    status,
+    return {results}
   }
 }

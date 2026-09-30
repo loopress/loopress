@@ -108,8 +108,10 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `plugin_status` | No | `env?` | Report drift between the plugins on WordPress and `loopress.json` |
 | `plugin_audit` | No | — | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
-| `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
-| `theme_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
+| `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts, then Global Styles |
+| `theme_version_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_pull` | No | `env?` | Pull theme versions and Global Styles |
 | `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |
 | `theme_styles_push` | Yes | `env?`, `path?`, `confirmToken?` | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
 | `theme_styles_pull` | No | `env?`, `path?` | Pull the active block theme's Global Styles customizations from WordPress into a local file |
@@ -169,7 +171,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push` / `plugin_push` / `theme_push`) |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
 | `ExecError` | The `lps` process failed outside the two cases above |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |

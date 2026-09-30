@@ -97,8 +97,10 @@ The server communicates over stdio from the directory your client launches it in
 | `plugin_status` | No | Report drift between the plugins on WordPress and `loopress.json` |
 | `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
-| `theme_push` | Yes | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
-| `theme_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_version_push` | Yes | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
+| `theme_push` | Yes | Push everything theme related: versions, then templates and parts, then Global Styles |
+| `theme_version_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
+| `theme_pull` | No | Pull theme versions and Global Styles |
 | `theme_status` | No | Report version drift between the themes on WordPress and `loopress.json` |
 | `theme_styles_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
 | `theme_styles_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |

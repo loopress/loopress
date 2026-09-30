@@ -1,8 +1,8 @@
-import {PushCommand} from '../../lib/push-command.js'
-import {formatPageProblems} from '../../utils/page-format.js'
-import {pluralize} from '../../utils/pluralize.js'
-import {resolveResourceDir} from '../../utils/resource-dirs.js'
-import {CHILD_THEME_ENDPOINT, type ChildTheme, readLocalTemplates} from '../../utils/template-format.js'
+import {PushCommand} from '../../../lib/push-command.js'
+import {formatPageProblems} from '../../../utils/page-format.js'
+import {pluralize} from '../../../utils/pluralize.js'
+import {resolveResourceDir} from '../../../utils/resource-dirs.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme, readLocalTemplates} from '../../../utils/template-format.js'
 
 type PushResult = {
   active?: boolean
@@ -18,7 +18,7 @@ export default class Push extends PushCommand {
     'Push block templates (templates/<slug>.html) and template parts (parts/<slug>.html) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is never activated for you.'
 
   static enableJsonFlag = true
-  static examples = ['$ lps template push', '$ lps template push --dry-run']
+  static examples = ['$ lps theme template push', '$ lps theme template push --dry-run']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,

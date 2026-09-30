@@ -24,7 +24,7 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'hook:push', label: 'hooks'},
   {commandId: 'form:push', label: 'forms'},
   // Before pages: WordPress refuses a page whose `template` it doesn't know yet.
-  {commandId: 'template:push', label: 'templates and parts'},
+  {commandId: 'theme:template:push', label: 'templates and parts'},
   {commandId: 'page:push', label: 'pages'},
   {commandId: 'seo:push', label: 'SEO'},
   {commandId: 'menu:push', label: 'menus'},
