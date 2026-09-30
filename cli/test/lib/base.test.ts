@@ -265,8 +265,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
     const cmd = await initWith([])
 
-    expect(rotateAppPassword).toHaveBeenCalledOnce()
-    expect(rotateAppPassword).toHaveBeenCalledWith(staleEnv)
+    expect(rotateAppPassword).toHaveBeenCalledExactlyOnceWith(staleEnv)
     expect(cmd.resolvedSiteConfig.token).toBe('user:new-pass')
     expect(setEnvironment).toHaveBeenCalledWith('id-acme', 'production', rotated)
   })

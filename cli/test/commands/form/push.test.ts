@@ -144,7 +144,7 @@ describe('form push', () => {
 
       await ensureCanonicalFilename(join(dir, 'demo.json'), 8, 'demo')
 
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
     })
 
@@ -154,7 +154,7 @@ describe('form push', () => {
 
       await ensureCanonicalFilename(join(dir, '6-hello.json'), 6, 'hello')
 
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['6-hello.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['6-hello.json'])
       expect(rename).not.toHaveBeenCalled()
     })
 
@@ -163,7 +163,7 @@ describe('form push', () => {
 
       await ensureCanonicalFilename(join(dir, 'weird name.json'), 9, 'Weird Name!')
 
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['9-weird-name.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['9-weird-name.json'])
     })
 
     it('falls back to "untitled" for a title that slugifies to nothing', async () => {
@@ -171,7 +171,7 @@ describe('form push', () => {
 
       await ensureCanonicalFilename(join(dir, 'blank.json'), 4, '???')
 
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['4-untitled.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['4-untitled.json'])
     })
   })
 
@@ -226,7 +226,7 @@ describe('form push', () => {
       expect(get).toHaveBeenCalledWith('loopress/v1/forms/8')
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {expectedRevision: 'rev-1', id: 8, settings: {form_title: 'Demo'}})
       expect(task.output).toBe('Pushed: Demo')
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['8-demo.json'])
     })
 
     it('does not send allowNotifications by default, but adds it with --allow-notifications', async () => {
@@ -266,7 +266,7 @@ describe('form push', () => {
 
 
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {settings: {form_title: 'New'}})
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['42-new.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['42-new.json'])
     })
 
     it('skips the network entirely on a dry run, not even reading the current revision', async () => {
@@ -306,7 +306,7 @@ describe('form push', () => {
       expect(put).toHaveBeenCalledWith('loopress/v1/forms/8', {id: 8, settings: {form_title: 'Demo'}})
 
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {id: 8, settings: {form_title: 'Demo'}})
-      expect(readdirSync(dir).sort((a, b) => a.localeCompare(b))).toEqual(['99-demo.json'])
+      expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['99-demo.json'])
     })
 
     it('rethrows a PUT failure that is not a 404 instead of falling back to create', async () => {

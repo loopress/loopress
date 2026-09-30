@@ -214,7 +214,7 @@ async function checkSnippets(dir: string, problems: Problem[]): Promise<number> 
     const filePath = join(dir, file)
     let meta: Record<string, unknown>
     try {
-      meta = JSON.parse(await readFile(filePath, 'utf8'))
+      meta = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>
     } catch {
       problems.push({file: filePath, message: 'not valid JSON'})
       continue

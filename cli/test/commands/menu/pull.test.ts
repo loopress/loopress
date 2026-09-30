@@ -9,17 +9,6 @@ import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
-type PullInternals = {
-  dryRun: boolean
-  wpClient: {get: ReturnType<typeof vi.fn>}
-}
-
-function makeCmd(): {cmd: PullInternals; logs: ReturnType<typeof silenceLogs>} {
-  const cmd = new Pull([], fakeOclifConfig)
-  const logs = silenceLogs(cmd)
-  return {cmd: cmd as unknown as PullInternals, logs}
-}
-
 const menu = {items: [], name: 'Main Menu', revision: 'abc123', slug: 'main', warnings: []}
 
 describe('menu pull', () => {

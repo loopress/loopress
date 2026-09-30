@@ -72,17 +72,18 @@ describe('authorizeWithBrowser', () => {
 
     const forged = new URL(callbackUrl)
     forged.searchParams.set('state', 'deadbeef'.repeat(8))
-    // Captured before the triggering request: the server rejects `result` synchronously while
-    // handling it, so attaching this after `await got.post(...)` below is a real race, an
-    // unhandled rejection between the reject and this line, not just a style preference.
-    const assertion = expect(result).rejects.toThrow(/state/i)
-    const res = await got.post(forged.href, {
-      form: {password: 'evil', user_login: 'attacker'},
-      headers: {origin: RELAY_ORIGIN},
-      throwHttpErrors: false,
-    })
+    // Assertion listed before the triggering request: the server rejects `result` synchronously
+    // while handling it, so attaching it after `await got.post(...)` is a real race, an
+    // unhandled rejection between the reject and the assertion, not just a style preference.
+    const [, res] = await Promise.all([
+      expect(result).rejects.toThrow(/state/i),
+      got.post(forged.href, {
+        form: {password: 'evil', user_login: 'attacker'},
+        headers: {origin: RELAY_ORIGIN},
+        throwHttpErrors: false,
+      }),
+    ])
     expect(res.statusCode).toBe(403)
-    await assertion
 
     await expect(
       got.post(callbackUrl, {form: {password: 'p', user_login: 'u'}, headers: {origin: RELAY_ORIGIN}, retry: {limit: 0}}),
@@ -93,14 +94,15 @@ describe('authorizeWithBrowser', () => {
     const result = authorizeWithBrowser('https://example.com', () => {})
     const {callbackUrl} = await relayCallback()
 
-    const assertion = expect(result).rejects.toThrow(/cross-origin/i)
-    const res = await got.post(callbackUrl, {
-      form: {password: 'evil', user_login: 'attacker'},
-      headers: {origin: 'https://evil.example'},
-      throwHttpErrors: false,
-    })
+    const [, res] = await Promise.all([
+      expect(result).rejects.toThrow(/cross-origin/i),
+      got.post(callbackUrl, {
+        form: {password: 'evil', user_login: 'attacker'},
+        headers: {origin: 'https://evil.example'},
+        throwHttpErrors: false,
+      }),
+    ])
     expect(res.statusCode).toBe(403)
-    await assertion
   })
 
   it('rejects when the user cancels authorization in WordPress', async () => {
@@ -109,8 +111,6 @@ describe('authorizeWithBrowser', () => {
 
     const cancelUrl = new URL(callbackUrl)
     cancelUrl.searchParams.set('cancelled', '1')
-    const assertion = expect(result).rejects.toThrow(/rejected/i)
-    await got(cancelUrl.href, {throwHttpErrors: false})
-    await assertion
+    await Promise.all([expect(result).rejects.toThrow(/rejected/i), got(cancelUrl.href, {throwHttpErrors: false})])
   })
 })

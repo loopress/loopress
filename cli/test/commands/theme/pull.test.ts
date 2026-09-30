@@ -91,10 +91,7 @@ describe('theme pull', () => {
       status: 'success',
       updated: [{from: '4.0.0', slug: 'astra', to: '4.1.0'}],
     })
-    expect(fetch).toHaveBeenCalledOnce()
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('themes/info/1.2/?action=theme_information&slug=generatepress'),
-    )
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('themes/info/1.2/?action=theme_information&slug=generatepress'))
     expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
   })
 

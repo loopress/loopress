@@ -439,7 +439,7 @@ describe('resource-state providers', () => {
 
       const state = await menuProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()].sort((a, b) => a.localeCompare(b))).toEqual(['menu-locations', 'menu/main'])
+      expect([...state.keys()].toSorted((a, b) => a.localeCompare(b))).toEqual(['menu-locations', 'menu/main'])
       expect(state.get('menu-locations')).toEqual({primary: 'main'})
 
       const diff = compareStates(state, await menuProvider.local(dir, noWarn), labels)

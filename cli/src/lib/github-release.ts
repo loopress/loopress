@@ -6,7 +6,6 @@ import {join} from 'node:path'
 import {pipeline} from 'node:stream/promises'
 
 const REPO = 'loopress/loopress'
-const RELEASE_TAG_PATTERN = /^wordpress-plugin@/
 const ASSET_NAME = 'loopress-full.zip'
 
 type GithubAsset = {

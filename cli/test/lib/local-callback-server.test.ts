@@ -66,12 +66,13 @@ describe('waitForLocalCallback', () => {
     const callbackUrl = new URL(await openedCallbackUrl())
     callbackUrl.searchParams.set('state', 'nope')
 
-    // Captured before the triggering request, see wp-authorize-flow.test.ts: the rejection
-    // happens synchronously inside the request handler, before `got.post` below resolves.
-    const assertion = expect(result).rejects.toThrow(/state/i)
-    const res = await got.post(callbackUrl.href, {form: {token: 'stolen'}, throwHttpErrors: false})
+    // Assertion listed before the triggering request, see wp-authorize-flow.test.ts: the
+    // rejection happens synchronously inside the request handler, before `got.post` resolves.
+    const [, res] = await Promise.all([
+      expect(result).rejects.toThrow(/state/i),
+      got.post(callbackUrl.href, {form: {token: 'stolen'}, throwHttpErrors: false}),
+    ])
     expect(res.statusCode).toBe(403)
-    await assertion
   })
 
   describe('other callback outcomes', () => {
@@ -115,16 +116,17 @@ describe('waitForLocalCallback', () => {
       })
       const callbackUrl = await openedCallbackUrl()
 
-      const assertion = expect(result).rejects.toThrow('Rejected a cross-origin request to the login callback server.')
-      const res = await got.post(callbackUrl, {
-        form: {token: 'x'},
-        headers: {origin: 'https://evil.example'},
-        throwHttpErrors: false,
-      })
+      const [, res] = await Promise.all([
+        expect(result).rejects.toThrow('Rejected a cross-origin request to the login callback server.'),
+        got.post(callbackUrl, {
+          form: {token: 'x'},
+          headers: {origin: 'https://evil.example'},
+          throwHttpErrors: false,
+        }),
+      ])
 
       expect(res.statusCode).toBe(403)
       expect(res.body).toBe('Rejected a cross-origin request to the login callback server.')
-      await assertion
       expect(handled).toBe(false)
     })
 
@@ -133,11 +135,10 @@ describe('waitForLocalCallback', () => {
       const callbackUrl = new URL(await openedCallbackUrl())
       callbackUrl.searchParams.delete('state')
 
-      const assertion = expect(result).rejects.toThrow(
-        'Rejected a login callback with a missing or invalid state value.',
-      )
-      await got.post(callbackUrl.href, {form: {token: 'x'}, throwHttpErrors: false})
-      await assertion
+      await Promise.all([
+        expect(result).rejects.toThrow('Rejected a login callback with a missing or invalid state value.'),
+        got.post(callbackUrl.href, {form: {token: 'x'}, throwHttpErrors: false}),
+      ])
     })
 
     it("rejects with the handler's error while still serving its page", async () => {
@@ -146,11 +147,9 @@ describe('waitForLocalCallback', () => {
       })
       const callbackUrl = await openedCallbackUrl()
 
-      const assertion = expect(result).rejects.toThrow('user denied')
-      const res = await got(callbackUrl)
+      const [, res] = await Promise.all([expect(result).rejects.toThrow('user denied'), got(callbackUrl)])
 
       expect(res.body).toBe('denied page')
-      await assertion
     })
 
     it('answers 500 and rejects when the handler itself throws', async () => {
@@ -159,12 +158,13 @@ describe('waitForLocalCallback', () => {
       })
       const callbackUrl = await openedCallbackUrl()
 
-      const assertion = expect(result).rejects.toThrow('handler crashed')
-      const res = await got(callbackUrl, {throwHttpErrors: false})
+      const [, res] = await Promise.all([
+        expect(result).rejects.toThrow('handler crashed'),
+        got(callbackUrl, {throwHttpErrors: false}),
+      ])
 
       expect(res.statusCode).toBe(500)
       expect(res.body).toBe('Internal error')
-      await assertion
     })
 
     it('wraps a non-Error thrown by the handler into an Error', async () => {
@@ -174,9 +174,10 @@ describe('waitForLocalCallback', () => {
       })
       const callbackUrl = await openedCallbackUrl()
 
-      const assertion = expect(result).rejects.toThrow('plain string')
-      await got(callbackUrl, {throwHttpErrors: false})
-      await assertion
+      await Promise.all([
+        expect(result).rejects.toThrow('plain string'),
+        got(callbackUrl, {throwHttpErrors: false}),
+      ])
     })
 
     it('rejects with the timeout message when no callback arrives in time', async () => {
