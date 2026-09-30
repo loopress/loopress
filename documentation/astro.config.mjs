@@ -10,6 +10,7 @@ import { copyFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import starlightLlmsTxt from 'starlight-llms-txt'
+import starlightImageZoom from 'starlight-image-zoom'
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -69,6 +70,7 @@ export default defineConfig({
 			},
 			plugins: [
 				starlightLlmsTxt(),
+				starlightImageZoom(),
 				starlightBlog({
 					authors: {
 						maxime: {
