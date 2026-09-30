@@ -1,6 +1,14 @@
-import {type PageProblem, parseHtmlHeader, readLocalHtmlFiles, titleFromSlug} from './page-format.js'
+import {type PageProblem, parseHtmlHeader, readLocalHtmlFiles, type SlugRule, titleFromSlug} from './page-format.js'
 
 export const CHILD_THEME_ENDPOINT = 'loopress/v1/child-theme'
+
+// Mirrored server-side in ChildThemeController. Looser than a page slug: the template hierarchy
+// embeds post type and taxonomy slugs as is (`taxonomy-download_tag`, `single-my_type`), and those
+// follow sanitize_key(), so lowercase letters, digits, `_` and `-`.
+export const TEMPLATE_SLUG_RULE: SlugRule = {
+  message: 'the file name must be lowercase letters, digits, "_" and "-" (e.g. "taxonomy-download_tag.html")',
+  pattern: /^[a-z0-9_-]+$/,
+}
 
 // templates/<slug>.html. `title`/`postTypes` only when the header declares them: they become the
 // template's `customTemplates` entry in the child theme's theme.json (ChildThemeController).
@@ -63,12 +71,12 @@ export function parsePartFile(slug: string, raw: string): Part {
   return {area: meta.area || nameArea, html: body, slug, title: meta.title || titleFromSlug(slug)}
 }
 
-// Same directory rules as pages/ (flat, `.html` only, strict slugs), every problem at once.
+// Same directory rules as pages/ (flat, `.html` only), with template slugs, every problem at once.
 export async function readLocalTemplates(
   templatesDir: string,
   partsDir: string,
 ): Promise<{parts: Part[]; problems: PageProblem[]; templates: Template[]}> {
-  const templates = await readLocalHtmlFiles(templatesDir, parseTemplateFile)
-  const parts = await readLocalHtmlFiles(partsDir, parsePartFile)
+  const templates = await readLocalHtmlFiles(templatesDir, parseTemplateFile, TEMPLATE_SLUG_RULE)
+  const parts = await readLocalHtmlFiles(partsDir, parsePartFile, TEMPLATE_SLUG_RULE)
   return {parts: parts.files, problems: [...templates.problems, ...parts.problems], templates: templates.files}
 }

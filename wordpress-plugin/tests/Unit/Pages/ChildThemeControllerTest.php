@@ -199,4 +199,25 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame([], $data['templates']);
         $this->assertSame([], $data['parts']);
     }
+
+    public function test_slug_pattern_accepts_post_type_and_taxonomy_slugs(): void
+    {
+        $pattern = null;
+        Functions\when('register_rest_route')->alias(
+            static function (string $restNamespace, string $route, array $args) use (&$pattern): bool {
+                $pattern = $args[1]['args']['templates']['items']['properties']['slug']['pattern'];
+
+                return true;
+            },
+        );
+
+        $this->controller()->register_routes();
+
+        foreach (['single', 'taxonomy-download_tag', 'single-my_type', 'archive-download'] as $slug) {
+            $this->assertSame(1, preg_match("/{$pattern}/", $slug), $slug);
+        }
+        foreach (['Single', 'my page', '../single', 'single.html', ''] as $slug) {
+            $this->assertSame(0, preg_match("/{$pattern}/", $slug), $slug);
+        }
+    }
 }
