@@ -56,10 +56,10 @@ Commit this file to Git. It ties the repository to a specific Loopress project a
 | `optionsDir` | `options` | Directory for tracked WordPress options, relative to `rootDir`. Only options added with `lps option add` live here. |
 | `themeStylesDir` | `theme` | Directory for the active block theme's Global Styles, relative to `rootDir`. Used by `lps theme style pull/push`. |
 | `pageDir` | `pages` | Directory for static HTML pages, relative to `rootDir`. Used by `lps page push/diff`. |
-| `templateDir` | `templates` | Directory for block templates, written to the Loopress child theme, relative to `rootDir`. Used by `lps template push/diff`. |
-| `partDir` | `parts` | Directory for block template parts, written to the Loopress child theme, relative to `rootDir`. Used by `lps template push/diff`. |
+| `templateDir` | `templates` | Directory for block templates, written to the Loopress child theme, relative to `rootDir`. Used by `lps theme template push/diff`. |
+| `partDir` | `parts` | Directory for block template parts, written to the Loopress child theme, relative to `rootDir`. Used by `lps theme template push/diff`. |
 | `appsDir` | `apps` | Directory for single-page app bundles, relative to `rootDir`. Used by `lps app pull/push`. |
-| `themes` | none | WordPress.org themes managed by Loopress (slugs). Populated by `lps theme pull` and `lps theme add`. Never switches the active theme. |
+| `themes` | none | WordPress.org themes managed by Loopress (slugs). Populated by `lps theme version pull` and `lps theme add`. Never switches the active theme. |
 | `plugins` | none | WordPress.org plugins managed by Loopress (slugs), each with its pinned version and, for an inactive plugin, `"active": false`. Populated by the snippet provider prompt in `lps init`, and by `lps plugin pull` and `lps plugin add`. |
 
 ## If loopress.json already exists

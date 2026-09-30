@@ -37,8 +37,8 @@ describe('registerPageTools', () => {
     await tools.get('template_list')!.handler({env: 'prod'})
 
     expect(tools.get('template_push')!.def.inputSchema.slug).toBeUndefined()
-    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['template', 'push'], undefined)
-    expect(runLps).toHaveBeenCalledWith(['template', 'list', '--env', 'prod'])
+    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['theme', 'template', 'push'], undefined)
+    expect(runLps).toHaveBeenCalledWith(['theme', 'template', 'list', '--env', 'prod'])
   })
 
   it('page_push passes the slug as a positional arg through the confirm handshake', async () => {

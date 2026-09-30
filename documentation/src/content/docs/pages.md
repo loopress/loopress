@@ -46,7 +46,7 @@ The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/cli/in
 
 On a block theme, your project can also version the theme's templates and template parts, as `.html` files of block markup (what the Site Editor saves): `templates/<slug>.html` and `parts/<slug>.html`.
 
-`lps template push` writes them as the files of a **child theme** of your block theme, named after it with a `-loopress` suffix: `twentytwentyfive-loopress`, "Twenty Twenty-Five Loopress". That's the way WordPress expects a site to override a theme: the parent theme stays untouched and keeps receiving its updates, and everything the child doesn't override still comes from the parent.
+`lps theme template push` writes them as the files of a **child theme** of your block theme, named after it with a `-loopress` suffix: `twentytwentyfive-loopress`, "Twenty Twenty-Five Loopress". That's the way WordPress expects a site to override a theme: the parent theme stays untouched and keeps receiving its updates, and everything the child doesn't override still comes from the parent.
 
 ```
 templates/single.html        → twentytwentyfive-loopress/templates/single.html
@@ -82,7 +82,7 @@ parts/header.html            → twentytwentyfive-loopress/parts/header.html
 - **No `theme` attribute on a template part.** `<!-- wp:template-part {"slug":"header","theme":"twentytwentyfive"} /-->` makes WordPress load the parent's header and ignore yours, so the push refuses it. Write `{"slug":"header"}`.
 - **The child mirrors the project.** Every push rewrites it whole: a file you delete locally is removed from the child, and the parent's version comes back.
 - **Loopress never activates the child.** Switching themes moves every per-theme setting (menu locations, logo, widgets, Global Styles), so it stays your call: activate it once in **Appearance > Themes**. Until then, the push warns that nothing changed on the site.
-- **Edits made in the Site Editor** are saved by WordPress in the database, and that copy wins over the child's file. They're never overwritten: `lps template diff` and `lps diff` report them as drift (`siteEditor: "customized"`), and `lps template push` warns about them. Use **Clear customizations** in **Appearance > Editor** to go back to the pushed file.
+- **Edits made in the Site Editor** are saved by WordPress in the database, and that copy wins over the child's file. They're never overwritten: `lps theme template diff` and `lps diff` report them as drift (`siteEditor: "customized"`), and `lps theme template push` warns about them. Use **Clear customizations** in **Appearance > Editor** to go back to the pushed file.
 - Requires a block theme as the active theme (or the Loopress child itself). Another child theme can't be extended, WordPress has no grandchild themes.
 
 Same file name rules as pages. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/cli/init/#fields-reference) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
@@ -94,9 +94,9 @@ Same file name rules as pages. The directories are `templates/` and `parts/` by 
 | `lps page push [SLUG]` | Push every page, or only `SLUG`. Supports `--dry-run` and `--yes`. |
 | `lps page list` | List the pages managed by Loopress on WordPress, with their status and URL. |
 | `lps page diff` | Show what differs (HTML, title, status) between `pages/` and WordPress. Also available as `lps diff --only page`. |
-| `lps template push` | Write every template and part to the Loopress child theme. Supports `--dry-run` and `--yes`. |
-| `lps template list` | Show the child theme: active or not, its templates and parts, and those edited in the Site Editor. |
-| `lps template diff` | Show what differs between `templates/` + `parts/` and the child theme, Site Editor edits included. Also part of `lps diff` (`--only template`, `--only part`). |
+| `lps theme template push` | Write every template and part to the Loopress child theme. Supports `--dry-run` and `--yes`. |
+| `lps theme template list` | Show the child theme: active or not, its templates and parts, and those edited in the Site Editor. |
+| `lps theme template diff` | Show what differs between `templates/` + `parts/` and the child theme, Site Editor edits included. Also part of `lps diff` (`--only template`, `--only part`). |
 
 Pages and templates are also part of `lps push`, `lps diff`, and `lps dev` (a saved file is pushed to your local environment right away).
 
