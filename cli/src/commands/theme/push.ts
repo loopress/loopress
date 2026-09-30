@@ -1,4 +1,6 @@
 import {Flags} from '@oclif/core'
+import {existsSync} from 'node:fs'
+import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {guardProductionPush} from '../../lib/guard-production-push.js'
@@ -30,7 +32,8 @@ export default class Push extends LoopressCommand {
   async run(): Promise<PushResult> {
     const {flags} = await this.parse(Push)
 
-    // Guarded once here, like `lps push`, then every delegated push gets --yes.
+    // Guarded once here, like `lps push`. Steps get --production-confirmed rather than --yes,
+    // so the versions step still asks before uninstalling themes unless the user passed --yes.
     await guardProductionPush({
       dryRun: this.dryRun,
       error: (message) => this.error(message),
@@ -38,9 +41,16 @@ export default class Push extends LoopressCommand {
       yes: this.yes,
     })
 
+    // Nothing to install and no composer.json: the versions step would only fail on an empty
+    // manifest, which must not fail a templates or styles only project.
+    const hasVersions =
+      Object.keys(this.localConfig.themes ?? {}).length > 0 || existsSync(join(process.cwd(), this.rootDir, 'composer.json'))
+    const targets = hasVersions ? PUSH_TARGETS : PUSH_TARGETS.filter((target) => target.commandId !== 'theme:version:push')
+
     const results: PushTargetResult[] = []
-    for (const target of PUSH_TARGETS) {
-      const argv = ['--env', this.siteConfig.name, '--yes']
+    for (const target of targets) {
+      const argv = ['--env', this.siteConfig.name, '--production-confirmed']
+      if (this.yes) argv.push('--yes')
       if (this.dryRun) argv.push('--dry-run')
       if (flags.force && target.commandId === 'theme:version:push') argv.push('--force')
 

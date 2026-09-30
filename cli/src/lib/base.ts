@@ -16,6 +16,7 @@ import {WpClient} from './wp-client.js'
 type ParsedBaseFlags = {
   'dry-run'?: boolean
   env?: string
+  'production-confirmed'?: boolean
   yes?: boolean
 }
 
@@ -38,6 +39,8 @@ export abstract class LoopressCommand extends Command {
 
   protected dryRun = false
   protected localConfig: LoopressLocalConfig = {}
+  // Set by PushCommand's hidden --production-confirmed, see there.
+  protected productionConfirmed = false
   protected projectId!: string
   protected siteConfig!: EnvironmentConfig
   protected yes = false
@@ -73,6 +76,7 @@ export abstract class LoopressCommand extends Command {
 
     this.dryRun = Boolean(flags['dry-run'])
     this.yes = Boolean(flags.yes)
+    this.productionConfirmed = Boolean(flags['production-confirmed'])
     this.localConfig = await readLocalConfig()
 
     const resolved = this.resolveEnvironment(flags.env)

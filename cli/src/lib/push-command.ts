@@ -1,3 +1,4 @@
+import {Flags} from '@oclif/core'
 import got from 'got'
 import {Listr} from 'listr2'
 import {resolve} from 'node:path'
@@ -11,6 +12,13 @@ import {type ResourceStateProvider} from './resource-state.js'
 import {writeSnapshot} from './snapshot-store.js'
 
 export abstract class PushCommand extends LoopressCommand {
+  // Passed by an aggregate command (`lps theme push`) that already confirmed production once,
+  // so its steps skip that prompt while still asking their own confirmations (uninstalls).
+  static baseFlags = {
+    ...LoopressCommand.baseFlags,
+    'production-confirmed': Flags.boolean({hidden: true}),
+  }
+
   protected failedCount = 0
   // Refusals of the production guard never reach the site, so they must not pollute the
   // deployment history with failure records.
@@ -55,7 +63,7 @@ export abstract class PushCommand extends LoopressCommand {
         this.refusedByGuard = true
       },
       siteConfig: this.siteConfig,
-      yes: this.yes,
+      yes: this.yes || this.productionConfirmed,
     })
   }
 
