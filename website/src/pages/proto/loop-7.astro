@@ -1,0 +1,164 @@
+---
+// Prototype A7 "Terminal": dark, monospace-first, a soft cyan glow. The page reads as a
+// commented terminal session; each section is a `#` comment followed by real commands and
+// output. Light/Full is shown as a file tree, so the inclusion is literal. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+import Logo from "@/components/proto/Logo.astro";
+import LoopDiagram from "@/components/proto/LoopDiagram.astro";
+
+export const prerender = true;
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" />
+
+  <div class="term">
+    <header class="wrap flex flex-wrap items-center justify-between gap-4 py-5">
+      <a href="#top" class="font-bold"><Logo class="h-6 w-6" /></a>
+      <nav class="dim flex gap-5 text-sm">
+        <span class="hidden sm:inline">~/loopress $ cd</span>
+        <a href="#build">build</a><a href="#review">review</a><a href="#ship">ship</a><a href="#editions">editions</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="wrap grid gap-12 pt-12 pb-24 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-center">
+        <div>
+          <p class="dim"># open source · MPL-2.0</p>
+          <h1 class="mt-5">Build, review and ship WordPress, in one <span class="glow">loop</span><span class="caret" aria-hidden="true">_</span></h1>
+          <p class="mt-8 max-w-xl leading-relaxed dim-2">
+            Model your content types, write hooks and APIs in modern PHP, review every change in a
+            PR and ship it to every environment. Your content never moves.
+          </p>
+          <div class="mt-10 flex flex-wrap items-center gap-3">
+            <code class="prompt">$ npm i -g @loopress/cli</code>
+            <a href="https://github.com/loopress" class="btn">★ star on github</a>
+          </div>
+        </div>
+        <figure class="halo"><LoopDiagram /></figure>
+      </section>
+
+      <div class="wrap session">
+        <section id="build">
+          <p class="comment"># 01 build: configuration and code, side by side in one repo</p>
+          <pre>{`$ tree -L 2
+.
+├── acf/
+│   └── group_product_delivery.json`}   <span class="dim"># config, Light</span>{`
+├── hooks/
+│   └── vat-notice.php`}                <span class="dim"># code, Full</span>{`
+└── loopress.json`}</pre>
+          <pre>{`$ cat hooks/vat-notice.php
+`}<span class="k">#[Filter</span>{`('woocommerce_get_price_html')`}<span class="k">]</span>{`
+public function notice(string $html): string
+{
+    return $html . ' <small>incl. VAT</small>';
+}`}</pre>
+        </section>
+
+        <section id="review">
+          <p class="comment"># 02 review: exactly what will change. posts, orders and users are never in the diff</p>
+          <pre>{`$ lps diff --env staging
+`}<span class="add">{`+ acf   group_product_delivery  new`}</span>{`
+`}<span class="add">{`+ hook  vat-notice.php           new`}</span>{`
+2 changes · exit 1 · fails the CI check until merged`}</pre>
+        </section>
+
+        <section id="ship">
+          <p class="comment"># 03 ship: staging, then production. every push is snapshotted</p>
+          <pre>{`$ lps push --env staging
+`}<span class="add">✓ 2 resources applied</span>{`
+$ lps promote staging production
+`}<span class="add">✓ production up to date</span>{`
+
+`}<span class="dim"># friday 17:48, "the price looks weird on the cart"</span>{`
+$ lps hook rollback --env production
+`}<span class="add">✓ back to the 17:02 snapshot</span></pre>
+        </section>
+
+        <section>
+          <p class="comment glow"># ↺ and around again: the client edited a menu in wp-admin</p>
+          <pre>{`$ lps diff --env production
+`}<span class="chg">{`~ menu  primary   1 item added on the site`}</span>{`
+$ lps pull --env production
+`}<span class="add">✓ menus/primary.json updated</span>{`
+$ git commit -am "chore: sync client menu edit"`}</pre>
+          <p class="note">That return arrow is why it's a loop and not a pipeline. On WordPress the live site moves on its own.</p>
+        </section>
+
+        <section id="editions">
+          <p class="comment"># editions: Full is Light, plus your code. both free</p>
+          <pre>{`$ tree loopress-full
+`}<span class="violet">loopress-full/</span>{`                  `}<span class="dim"># loopress.dev</span>{`
+├── `}<span class="glow">loopress-light/</span>{`             `}<span class="dim"># WordPress.org, Plugins → Add New</span>{`
+│   ├── acf  seo  menus  options
+│   └── block-theme-styles
+└── `}<span class="violet">+ your code</span>{`
+    ├── hooks  api-routes  apps  pages
+    └── snippets  composer  plugin-lockfile`}</pre>
+          <p class="note">WordPress.org does not host plugins that deploy executable code, so Full ships from loopress.dev. Same plugin, code half switched on.</p>
+        </section>
+
+        <section>
+          <p class="comment"># start the loop</p>
+          <p class="install">$ npm i -g @loopress/cli<span class="caret" aria-hidden="true">_</span></p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="wrap dim flex flex-wrap items-center justify-between gap-4 py-8 text-xs">
+      <Logo class="h-4 w-4" />
+      <span>MPL-2.0 · docs · github · exit 0</span>
+    </footer>
+  </div>
+</Layout>
+
+<style>
+  /* Hallmark · macrostructure: Terminal session · tone: technical, nocturnal · anchor hue: 200 (logo cyan) */
+  .term {
+    --bg: oklch(0.14 0.015 250);
+    --bg-2: oklch(0.18 0.02 250);
+    --fg: oklch(0.93 0.01 250);
+    --dim: oklch(0.62 0.02 250);
+    --dim-2: oklch(0.78 0.015 250);
+    --cyan: oklch(0.82 0.14 210);
+    --green: oklch(0.82 0.17 150);
+    --amber: oklch(0.84 0.15 80);
+    --violet: oklch(0.76 0.15 290);
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --loop-line: var(--cyan);
+    --loop-node: var(--bg);
+    --loop-text: var(--fg);
+    --logo-accent: var(--cyan);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: clip;
+  }
+  .wrap { margin-inline: auto; max-width: 72rem; padding-inline: 1.5rem; }
+  .dim { color: var(--dim); }
+  .dim-2 { color: var(--dim-2); }
+  a:hover { color: var(--cyan); }
+  h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1.02; overflow-wrap: anywhere; }
+  .glow { color: var(--cyan); text-shadow: 0 0 18px color-mix(in oklch, var(--cyan) 55%, transparent); }
+  .caret { color: var(--cyan); animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+
+  .prompt { border: 1px solid color-mix(in oklch, var(--cyan) 35%, transparent); background: var(--bg-2); padding: 0.65rem 1rem; border-radius: 0.375rem; }
+  .btn { display: inline-flex; align-items: center; height: 2.75rem; padding-inline: 1.1rem; border-radius: 0.375rem; background: var(--cyan); color: var(--bg); font-weight: 800; }
+  .btn:hover { color: var(--bg); box-shadow: 0 0 24px color-mix(in oklch, var(--cyan) 50%, transparent); }
+  .halo { filter: drop-shadow(0 0 22px color-mix(in oklch, var(--cyan) 30%, transparent)); }
+
+  .session { border-left: 1px solid var(--bg-2); padding-bottom: 5rem; }
+  .session section { padding: 2.5rem 0 2.5rem 1.5rem; }
+  .comment { color: var(--dim); font-size: 1.05rem; }
+  .session pre { margin-top: 1rem; background: var(--bg-2); border-radius: 0.5rem; padding: 1.25rem 1.5rem; font-size: 0.82rem; line-height: 1.75; overflow-x: auto; }
+  .note { margin-top: 1rem; max-width: 40rem; color: var(--dim-2); font-size: 0.9rem; line-height: 1.6; }
+  .add { color: var(--green); }
+  .chg { color: var(--amber); }
+  .k { color: var(--violet); }
+  .violet { color: var(--violet); }
+  .install { margin-top: 1rem; font-size: clamp(1.4rem, 4.5vw, 3.5rem); font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; overflow-x: auto; }
+</style>

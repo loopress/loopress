@@ -1,0 +1,312 @@
+---
+// Prototype A4: loop-2's content with a bolder art direction. Dark ink hero on graph paper,
+// the loop drawn as a live diagram (a dot travels Build → Review → Ship and back along the
+// dashed pull-back line), oversized outlined stage numbers, a cyan pull-back strip, and a
+// giant install line to close. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+
+export const prerender = true;
+
+const stages = [
+  { id: "build", n: "01", label: "Build" },
+  { id: "review", n: "02", label: "Review" },
+  { id: "ship", n: "03", label: "Ship" },
+];
+
+const loopPath = "M70 90 H330 V290 H110 Q70 290 70 250 V90";
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <div class="min-h-screen bg-background text-foreground">
+    <!-- Hero: always dark, whatever the theme -->
+    <div class="ink graph">
+      <header class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <a href="#top" class="font-mono text-sm font-semibold">loopress<span class="text-cyan">_</span></a>
+        <nav class="hidden gap-6 font-mono text-xs opacity-70 lg:flex">
+          {stages.map((s) => <a href={`#${s.id}`} class="hover:opacity-100">{s.n} {s.label}</a>)}
+          <a href="#editions" class="hover:opacity-100">Light / Full</a>
+        </nav>
+        <a href="https://github.com/loopress" class="font-mono text-xs opacity-70 hover:opacity-100">GitHub ↗</a>
+      </header>
+
+      <section id="top" class="mx-auto grid max-w-6xl gap-12 px-6 pt-12 pb-28 lg:grid-cols-[7fr_5fr] lg:items-center">
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.25em] text-cyan">Open source · MPL-2.0</p>
+          <h1 class="mt-6 text-balance text-6xl leading-[0.95] font-semibold tracking-tighter md:text-7xl">
+            Build, review and ship WordPress, in one <span class="text-cyan italic">loop.</span>
+          </h1>
+          <p class="mt-8 max-w-xl text-lg leading-relaxed opacity-75">
+            Model your content types, write hooks and APIs in modern PHP, review every change in a PR
+            and ship it to every environment. Your content never moves.
+          </p>
+          <div class="mt-10 flex flex-wrap items-center gap-3">
+            <code class="rounded-md border border-white/15 bg-white/5 px-4 py-2.5 font-mono text-sm">
+              <span class="text-cyan">$</span> npm i -g @loopress/cli
+            </code>
+            <a href="https://github.com/loopress" class="inline-flex h-10 items-center rounded-md bg-[var(--cyan)] px-5 text-sm font-semibold text-[var(--ink)] hover:opacity-90">
+              ★ Star on GitHub
+            </a>
+          </div>
+        </div>
+
+        <!-- The loop, live -->
+        <figure class="mx-auto w-full max-w-md">
+          <svg viewBox="0 0 400 360" class="w-full" role="img" aria-label="Build, then Review, then Ship, then pull back to Build">
+            <path d="M70 90 H330 V290" fill="none" stroke="var(--cyan)" stroke-width="2" />
+            <path d="M330 290 H110 Q70 290 70 250 V90" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="6 7" opacity="0.6" />
+            <circle r="6" fill="var(--cyan)" class="loop-dot">
+              <animateMotion dur="7s" repeatCount="indefinite" path={loopPath} />
+            </circle>
+            {[
+              [70, 90, "01", "Build"],
+              [330, 90, "02", "Review"],
+              [330, 290, "03", "Ship"],
+            ].map(([x, y, n, label]) => (
+              <g>
+                <circle cx={x} cy={y} r="30" fill="var(--ink)" stroke="var(--cyan)" stroke-width="2" />
+                <text x={x} y={Number(y) + 5} text-anchor="middle" class="font-mono" font-size="14" fill="var(--cyan)">{n}</text>
+                <text x={x} y={Number(y) - 44} text-anchor="middle" font-size="18" font-weight="600" fill="currentColor">{label}</text>
+              </g>
+            ))}
+            <text x="200" y="318" text-anchor="middle" class="font-mono" font-size="12" fill="currentColor" opacity="0.7">↺ lps pull</text>
+            <text x="200" y="336" text-anchor="middle" class="font-mono" font-size="10" fill="currentColor" opacity="0.45">the client changed something in wp-admin</text>
+          </svg>
+        </figure>
+      </section>
+    </div>
+
+    <main>
+      <!-- 01 Build -->
+      <section id="build" class="mx-auto grid max-w-6xl gap-10 px-6 py-28 lg:grid-cols-[3fr_9fr]">
+        <p class="outline-num">01</p>
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.25em] text-accent-cyan-ink">Build</p>
+          <h2 class="mt-3 max-w-2xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+            Configuration and code, side by side in one repo.
+          </h2>
+          <div class="mt-10 grid gap-4 md:grid-cols-2">
+            <figure class="code">
+              <figcaption><span>acf/group_product_delivery.json</span><span class="text-cyan">Light</span></figcaption>
+              <pre>{`{
+  "title": "Delivery",
+  "fields": [{
+    "name": "delivery_date",
+    "type": "date_picker"
+  }]
+}`}</pre>
+            </figure>
+            <figure class="code">
+              <figcaption><span>hooks/vat-notice.php</span><span class="text-violet">Full</span></figcaption>
+              <pre>{`#[Filter('woocommerce_get_price_html')]
+public function notice(string $html): string
+{
+    return $html . ' <small>incl. VAT</small>';
+}`}</pre>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 Review -->
+      <section id="review" class="border-y border-border bg-card">
+        <div class="mx-auto grid max-w-6xl gap-10 px-6 py-28 lg:grid-cols-[3fr_9fr]">
+          <p class="outline-num">02</p>
+          <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <p class="font-mono text-xs uppercase tracking-[0.25em] text-accent-cyan-ink">Review</p>
+              <h2 class="mt-3 text-balance text-4xl font-semibold tracking-tight md:text-5xl">See exactly what will change.</h2>
+              <p class="mt-4 text-muted-foreground">
+                Posts, orders and users are never in the diff, so it stays short enough to read in a PR.
+              </p>
+            </div>
+            <figure class="code">
+              <pre>{`$ lps diff --env staging
+
+`}<span class="text-green">{`+ acf   group_product_delivery  new`}</span>{`
+`}<span class="text-green">{`+ hook  vat-notice.php           new`}</span>{`
+
+2 changes`}</pre>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 Ship -->
+      <section id="ship" class="mx-auto grid max-w-6xl gap-10 px-6 py-28 lg:grid-cols-[3fr_9fr]">
+        <p class="outline-num">03</p>
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.25em] text-accent-cyan-ink">Ship</p>
+          <h2 class="mt-3 max-w-2xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+            Staging, then production. On every site, the same way.
+          </h2>
+          <ol class="mt-10 divide-y divide-border border-y border-border font-mono text-sm">
+            {[
+              ["lps push --env staging", "only what changed is applied"],
+              ["lps promote staging production", "copy every tracked resource across"],
+              ["lps hook rollback --env production", "every push is snapshotted, undo is one command"],
+            ].map(([cmd, body]) => (
+              <li class="flex flex-wrap items-baseline justify-between gap-2 py-4">
+                <code><span class="text-accent-cyan-ink">$</span> {cmd}</code>
+                <span class="text-xs text-muted-foreground">{body}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <!-- ↺ The return: a cyan strip, then the story -->
+      <section class="strip" aria-hidden="true">
+        <div class="strip-track font-mono text-sm font-semibold">
+          {Array.from({ length: 12 }).map(() => <span>↺ pull back · back to build ·</span>)}
+        </div>
+      </section>
+      <section class="ink">
+        <div class="mx-auto grid max-w-6xl gap-10 px-6 py-24 lg:grid-cols-[5fr_7fr] lg:items-center">
+          <div>
+            <h2 class="text-balance text-4xl font-semibold tracking-tight">
+              The client edited a menu in wp-admin. <span class="text-cyan">Nothing is lost.</span>
+            </h2>
+            <p class="mt-4 opacity-75">
+              The live site keeps moving between releases. The diff shows the drift, one pull brings
+              it back into the repo, and the next Build starts from the real site.
+            </p>
+          </div>
+          <figure class="code code-dark">
+            <pre>{`$ lps diff --env production
+`}<span class="text-amber">{`~ menu  primary   1 item added on the site`}</span>{`
+
+$ lps pull --env production
+`}<span class="text-green">{`✓ menus/primary.json updated`}</span></pre>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Editions: Full contains Light -->
+      <section id="editions" class="mx-auto max-w-6xl px-6 py-28">
+        <p class="font-mono text-xs uppercase tracking-[0.25em] text-accent-cyan-ink">Two ways into the loop</p>
+        <h2 class="mt-3 max-w-3xl text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+          Start with your configuration. Add your code when you are ready.
+        </h2>
+
+        <div class="ink mt-12 rounded-3xl p-6 md:p-10">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <p class="font-mono text-xs text-violet">Loopress Full</p>
+              <h3 class="mt-2 text-3xl font-semibold tracking-tight">Your code, in Git, with conventions.</h3>
+            </div>
+            <p class="font-mono text-xs opacity-60">Free · from loopress.dev</p>
+          </div>
+          <div class="mt-10 grid gap-6 md:grid-cols-[5fr_7fr]">
+            <div class="rounded-2xl bg-[var(--cyan)] p-6 text-[var(--ink)]">
+              <p class="font-mono text-xs font-semibold">Loopress Light</p>
+              <h4 class="mt-2 text-2xl font-semibold tracking-tight">Your configuration, in Git.</h4>
+              <ul class="mt-5 flex flex-wrap gap-2 font-mono text-xs">
+                {["ACF", "SEO", "menus", "options", "block theme styles"].map((f) => (
+                  <li class="rounded border border-[var(--ink)]/30 px-2 py-1">{f}</li>
+                ))}
+              </ul>
+              <p class="mt-6 font-mono text-xs opacity-70">Free · from Plugins → Add New</p>
+            </div>
+            <div class="p-2 md:p-6">
+              <p class="font-mono text-xs text-violet">+ your code</p>
+              <ul class="mt-5 flex flex-wrap gap-2 font-mono text-xs">
+                {["hooks", "API routes", "apps", "pages", "snippets", "Composer", "plugin lockfile"].map((f) => (
+                  <li class="rounded border border-white/20 px-2 py-1">{f}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <p class="mt-6 max-w-2xl text-sm text-muted-foreground">
+          Full is Light with the code half switched on. WordPress.org does not host plugins that
+          deploy executable code, so Light is the one in the directory and Full ships from loopress.dev.
+        </p>
+      </section>
+
+      <!-- Close: the install line, big -->
+      <section class="border-t border-border">
+        <div class="mx-auto max-w-6xl px-6 py-28">
+          <p class="font-mono text-xs uppercase tracking-[0.25em] text-accent-cyan-ink">Start the loop</p>
+          <p class="mt-6 overflow-x-auto font-mono text-3xl font-semibold tracking-tight whitespace-nowrap md:text-5xl">
+            <span class="text-accent-cyan-ink">$</span> npm i -g @loopress/cli
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="ink px-6 py-6 text-center font-mono text-xs opacity-90">
+      loopress · MPL-2.0 · docs · github
+    </footer>
+  </div>
+</Layout>
+
+<style>
+  /* Fixed ink palette: these blocks stay dark in both themes. */
+  .ink {
+    --ink: oklch(0.16 0.03 262);
+    --cyan: oklch(0.82 0.13 200);
+    background: var(--ink);
+    color: oklch(0.96 0.01 250);
+  }
+  .graph {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .text-cyan { color: var(--cyan, var(--accent-cyan-ink)); }
+  .text-violet { color: oklch(0.75 0.16 285); }
+  .text-green { color: oklch(0.8 0.17 150); }
+  .text-amber { color: oklch(0.83 0.15 80); }
+
+  .outline-num {
+    font-family: var(--font-mono, monospace);
+    font-size: clamp(5rem, 12vw, 10rem);
+    line-height: 0.8;
+    font-weight: 700;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--accent-cyan-ink);
+  }
+
+  .code {
+    --ink: oklch(0.16 0.03 262);
+    --cyan: oklch(0.82 0.13 200);
+    border-radius: 1rem;
+    background: var(--ink);
+    color: oklch(0.92 0.01 250);
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code-dark { background: oklch(0.22 0.03 262); }
+  .code figcaption {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid oklch(1 0 0 / 0.1);
+    opacity: 0.85;
+  }
+
+  .strip {
+    overflow: hidden;
+    background: oklch(0.82 0.13 200);
+    color: oklch(0.16 0.03 262);
+    padding: 0.75rem 0;
+  }
+  .strip-track {
+    display: flex;
+    gap: 1.5rem;
+    width: max-content;
+    animation: strip 30s linear infinite;
+  }
+  @keyframes strip {
+    to { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .strip-track { animation: none; }
+    .loop-dot { display: none; }
+  }
+</style>

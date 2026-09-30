@@ -1,0 +1,40 @@
+---
+// The hero loop from /proto/loop-4: Build → Review → Ship solid, the pull back dashed, a dot
+// travelling the whole loop. Colours come from the parent through CSS variables:
+// --loop-line, --loop-node (node fill), --loop-text. Optional `square` draws square nodes.
+const { class: className = "w-full", square = false, note = "the client changed something in wp-admin" } =
+  Astro.props as { class?: string; square?: boolean; note?: string };
+
+const path = "M70 90 H330 V290 H110 Q70 290 70 250 V90";
+const nodes: [number, number, string, string][] = [
+  [70, 90, "01", "Build"],
+  [330, 90, "02", "Review"],
+  [330, 290, "03", "Ship"],
+];
+---
+<svg viewBox="0 0 420 360" class={className} role="img" aria-label="Build, then Review, then Ship, then pull back to Build">
+  <path d="M70 90 H330 V290" fill="none" stroke="var(--loop-line)" stroke-width="2" />
+  <path d="M330 290 H110 Q70 290 70 250 V90" fill="none" stroke="var(--loop-line)" stroke-width="2" stroke-dasharray="6 7" opacity="0.6" />
+  <circle r="6" fill="var(--loop-line)" class="loop-dot">
+    <animateMotion dur="7s" repeatCount="indefinite" path={path} />
+  </circle>
+  {nodes.map(([x, y, n, label]) => (
+    <g>
+      {square
+        ? <rect x={x - 30} y={y - 30} width="60" height="60" fill="var(--loop-node)" stroke="var(--loop-line)" stroke-width="2" />
+        : <circle cx={x} cy={y} r="30" fill="var(--loop-node)" stroke="var(--loop-line)" stroke-width="2" />}
+      <text x={x} y={y + 5} text-anchor="middle" font-family="var(--font-mono, monospace)" font-size="14" fill="var(--loop-line)">{n}</text>
+      {label === "Ship"
+        ? <text x={x + 42} y={y + 6} font-size="18" font-weight="600" fill="var(--loop-text)">{label}</text>
+        : <text x={x} y={y - 44} text-anchor="middle" font-size="18" font-weight="600" fill="var(--loop-text)">{label}</text>}
+    </g>
+  ))}
+  <text x="200" y="318" text-anchor="middle" font-family="var(--font-mono, monospace)" font-size="12" fill="var(--loop-text)" opacity="0.75">↺ lps pull</text>
+  <text x="200" y="336" text-anchor="middle" font-family="var(--font-mono, monospace)" font-size="10" fill="var(--loop-text)" opacity="0.5">{note}</text>
+</svg>
+
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    .loop-dot { display: none; }
+  }
+</style>
