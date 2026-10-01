@@ -1,0 +1,430 @@
+---
+// Light / Full structure as a diagram, two variants to pick from (see /proto/editions):
+// - brackets: config row + code row of module tiles, Light's bracket spans the first row, Full's
+//   spans both, so "Full contains Light" reads from the brackets alone.
+// - nested: Full is a frame, Light a filled block inside it, code modules fill the rest.
+// - hex-nested: the logo's flat-top hexagon, thin outlines. Light is a tinted hexagon inside Full's,
+//   code modules sit in the ring between the two.
+// - hex-thick: the same hexagons drawn with loop-12's thick strokes, config inside Light, code
+//   modules around the outside of Full.
+// - table: a checkmark table, one row per module, Light and Full as columns.
+// - equation: the headline drawn literally, Light + your code = Full.
+// - tree: loop-12's `tree loopress-full/`, the nesting of the folders says it.
+// - layers: a stack on top of WordPress. Content stays at the bottom, Light adds configuration,
+//   Full adds code, brackets on the side say which edition covers which layers.
+// - honeycomb: one hexagon cell per module, Light's cells cyan, Full's code cells violet.
+// - toggle: one plugin, a switch turns the code half on. CSS only (:has on a checkbox).
+// - plugins: the WordPress Plugins screen, the two editions as two rows.
+// - terminal: the real `lps project config` output when it offers Full (messages copied from
+//   cli/src/commands/project/config.ts and cli/src/lib/bootstrap-full-install.ts).
+// - meter: a 12-segment gauge, Light's bracket over the first 5, Full's under all 12.
+// Module split checked against the Full-only list in wordpress-plugin/loopress.php; each tile shows
+// its real `lps` command group. Block templates left out until their edition is confirmed.
+const { variant = "brackets" } = Astro.props as {
+  variant?:
+    | "brackets" | "nested" | "hex-nested" | "hex-thick" | "table" | "equation" | "tree" | "layers"
+    | "honeycomb" | "toggle" | "plugins" | "terminal" | "meter";
+};
+
+const config = [
+  ["ACF", "acf"],
+  ["SEO", "seo"],
+  ["Menus", "menu"],
+  ["Options", "option"],
+  ["Theme styles", "theme-styles"],
+];
+const code = [
+  ["Hooks", "hook"],
+  ["API routes", "api"],
+  ["Apps", "app"],
+  ["Pages", "page"],
+  ["Snippets", "snippet"],
+  ["Forms", "form"],
+  ["Plugins, Composer", "plugin"],
+];
+
+// Flat-top hexagon, same orientation as the logo. y grows downward.
+const hex = (r: number) =>
+  [0, 60, 120, 180, 240, 300]
+    .map((a) => `${(r * Math.cos((a * Math.PI) / 180)).toFixed(1)},${(r * Math.sin((a * Math.PI) / 180)).toFixed(1)}`)
+    .join(" ");
+// Code modules spread evenly around the centre, the first one on top.
+const around = (r: number) =>
+  code.map(([name, cmd], i) => {
+    const t = ((-90 + (360 / code.length) * i) * Math.PI) / 180;
+    const x = +(r * Math.cos(t)).toFixed(1);
+    const y = +(r * Math.sin(t)).toFixed(1);
+    return { name: name.split(",")[0], cmd, x, y, anchor: x > 20 ? "start" : x < -20 ? "end" : "middle" };
+  });
+
+// Honeycomb: 6 flat-top columns x 2 rows, odd columns shifted down half a cell. Config fills the
+// first cells column by column, code the rest.
+const cellR = 46;
+const cells = [...config.map((m) => [...m, "light"]), ...code.map((m) => [...m, "full"])].map(([name, , kind], i) => {
+  const col = Math.floor(i / 2);
+  const row = i % 2;
+  const cx = 56 + col * cellR * 1.5;
+  const cy = 52 + row * cellR * Math.sqrt(3) + (col % 2) * ((cellR * Math.sqrt(3)) / 2);
+  const pts = [0, 60, 120, 180, 240, 300]
+    .map((a) => `${(cx + (cellR - 3) * Math.cos((a * Math.PI) / 180)).toFixed(1)},${(cy + (cellR - 3) * Math.sin((a * Math.PI) / 180)).toFixed(1)}`)
+    .join(" ");
+  return { name: name.split(",")[0], kind, cx, cy, pts, lines: name.split(",")[0].split(" ") };
+});
+
+// One id per instance, the gallery renders the toggle more than once.
+const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<div class={`ed ed-${variant}`}>
+  {variant === "hex-nested" ? (
+    <svg viewBox="-240 -265 480 470" class="hexsvg" role="img" aria-label="Loopress Full is a hexagon containing the Loopress Light hexagon. Light holds configuration: ACF, SEO, menus, options, theme styles. The ring around it, Full only, holds your code: hooks, API routes, apps, pages, snippets, forms, plugins.">
+      <text x="0" y="-232" text-anchor="middle" class="h-title h-full">Loopress Full</text>
+      <text x="0" y="-213" text-anchor="middle" class="h-sub">loopress.dev · installed by lps project config</text>
+      <polygon points={hex(215)} class="ring-full" />
+      <polygon points={hex(112)} class="ring-light" />
+      <text x="0" y="-60" text-anchor="middle" class="h-title h-light">Loopress Light</text>
+      <text x="0" y="-45" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-20 + i * 17} text-anchor="middle" class="h-mod">{name}</text>)}
+      {around(150).map((m) => (
+        <>
+          <text x={m.x} y={m.y} text-anchor="middle" class="h-mod">{m.name}</text>
+          <text x={m.x} y={m.y + 13} text-anchor="middle" class="h-cmd">lps {m.cmd}</text>
+        </>
+      ))}
+    </svg>
+  ) : variant === "hex-thick" ? (
+    <svg viewBox="-330 -265 660 520" class="hexsvg" role="img" aria-label="Two hexagons drawn like the Loopress logo. The inner one, Loopress Light, holds configuration: ACF, SEO, menus, options, theme styles. The outer one, Loopress Full, adds your code around it: hooks, API routes, apps, pages, snippets, forms, plugins.">
+      <polygon points={hex(200)} class="thick thick-full" />
+      <polygon points={hex(105)} class="thick thick-light" />
+      <text x="0" y="-135" text-anchor="middle" class="h-title h-full">Full</text>
+      <text x="0" y="-119" text-anchor="middle" class="h-sub">loopress.dev</text>
+      <text x="0" y="-52" text-anchor="middle" class="h-title h-light">Light</text>
+      <text x="0" y="-38" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-15 + i * 16} text-anchor="middle" class="h-mod">{name}</text>)}
+      {around(232).map((m) => (
+        <>
+          <text x={m.x} y={m.y} text-anchor={m.anchor} class="h-mod h-big">{m.name}</text>
+          <text x={m.x} y={m.y + 15} text-anchor={m.anchor} class="h-cmd">lps {m.cmd}</text>
+        </>
+      ))}
+    </svg>
+  ) : variant === "table" ? (
+    <table class="tbl">
+      <thead>
+        <tr><th></th><th class="c-light">Light<small>WordPress.org</small></th><th class="c-full">Full<small>loopress.dev</small></th></tr>
+      </thead>
+      <tbody>
+        <tr class="grp"><td colspan="3">configuration</td></tr>
+        {config.map(([name, cmd]) => (
+          <tr><th scope="row">{name}<code>lps {cmd}</code></th><td class="yes">✓</td><td class="yes">✓</td></tr>
+        ))}
+        <tr class="grp"><td colspan="3">your code</td></tr>
+        {code.map(([name, cmd]) => (
+          <tr><th scope="row">{name}<code>lps {cmd}</code></th><td class="no" aria-label="no">·</td><td class="yes yes-full">✓</td></tr>
+        ))}
+      </tbody>
+    </table>
+  ) : variant === "equation" ? (
+    <div class="eq">
+      <div class="eq-box eq-light">
+        <p class="eq-t">Light</p>
+        <ul class="tiles">{config.map(([name]) => <li class="tile t-light">{name}</li>)}</ul>
+      </div>
+      <p class="op" aria-hidden="true">+</p>
+      <div class="eq-box eq-code">
+        <p class="eq-t">your code</p>
+        <ul class="tiles">{code.map(([name]) => <li class="tile t-full">{name}</li>)}</ul>
+      </div>
+      <p class="op" aria-hidden="true">=</p>
+      <div class="eq-box eq-full">
+        <p class="eq-t">Full</p>
+        <ul class="tiles dots">
+          {config.map(([name]) => <li class="dot d-light" title={name}></li>)}
+          {code.map(([name]) => <li class="dot d-full" title={name}></li>)}
+        </ul>
+        <small>{config.length + code.length} modules · loopress.dev</small>
+      </div>
+    </div>
+  ) : variant === "tree" ? (
+    <pre class="tr"><span class="dim">$ tree loopress-full</span>
+<span class="t-f">loopress-full/</span>              <span class="cm"># loopress.dev, via lps project config</span>
+├── <span class="t-l">loopress-light/</span>         <span class="cm"># WordPress.org</span>
+│   ├── acf/  seo/  menus/
+│   └── options/  theme/
+└── <span class="t-f">+ your code</span>
+    ├── hooks/  api/  apps/  pages/
+    ├── snippets/  forms/
+    └── composer.json          <span class="cm"># plugin lockfile</span></pre>
+  ) : variant === "layers" ? (
+    <div class="ly">
+      <div class="ly-stack">
+        <div class="slab s-code">
+          <p class="eq-t">your code</p>
+          <ul class="tiles">{code.map(([name]) => <li class="tile t-full">{name}</li>)}</ul>
+        </div>
+        <div class="slab s-config">
+          <p class="eq-t">configuration</p>
+          <ul class="tiles">{config.map(([name]) => <li class="tile t-light">{name}</li>)}</ul>
+        </div>
+        <div class="slab s-wp">
+          <p class="eq-t">WordPress</p>
+          <p class="wp-txt">posts, pages, orders, users, media · stays where it is, never in Git</p>
+        </div>
+      </div>
+      <div class="ly-br">
+        <div class="lb lb-full"><span>Full</span><small>loopress.dev</small></div>
+        <div class="lb lb-light"><span>Light</span><small>WordPress.org</small></div>
+      </div>
+    </div>
+  ) : variant === "honeycomb" ? (
+    <div class="hc">
+      <svg viewBox="0 0 520 240" class="hc-svg" role="img" aria-label="Twelve hexagon cells, one per module. Five cyan cells are Loopress Light, configuration: ACF, SEO, menus, options, theme styles. Seven violet cells are the code Loopress Full adds: hooks, API routes, apps, pages, snippets, forms, plugins.">
+        {cells.map((c) => (
+          <g>
+            <polygon points={c.pts} class={c.kind === "light" ? "hc-l" : "hc-f"} />
+            {c.lines.map((line, i) => (
+              <text x={c.cx} y={c.cy + 4 + (i - (c.lines.length - 1) / 2) * 13} text-anchor="middle" class="hc-t">{line}</text>
+            ))}
+          </g>
+        ))}
+      </svg>
+      <p class="legend"><span class="sw sw-l"></span>Light, WordPress.org: configuration <span class="sw sw-f"></span>Full, loopress.dev: Light + your code</p>
+    </div>
+  ) : variant === "toggle" ? (
+    <div class="tg">
+      <input type="checkbox" id={toggleId} class="tg-in" />
+      <label for={toggleId} class="tg-sw">
+        <span class="tg-l">Light</span>
+        <span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span>
+        <span class="tg-f">Full</span>
+      </label>
+      <p class="tg-name"><span class="when-off">Loopress Light · WordPress.org</span><span class="when-on">Loopress Full · loopress.dev</span></p>
+      <p class="rowlbl">configuration</p>
+      <ul class="tiles">{config.map(([name, cmd]) => <li class="tile t-light">{name}<code>lps {cmd}</code></li>)}</ul>
+      <p class="rowlbl">your code <span class="when-off">· switched off</span></p>
+      <ul class="tiles tg-code">{code.map(([name, cmd]) => <li class="tile t-full">{name}<code>lps {cmd}</code></li>)}</ul>
+    </div>
+  ) : variant === "plugins" ? (
+    <div class="wp">
+      <div class="wp-row">
+        <p class="wp-name">Loopress Light</p>
+        <p class="wp-desc">Configuration in Git: {config.map(([n]) => n).join(", ")}.</p>
+        <p class="wp-meta">From WordPress.org · Plugins &gt; Add New</p>
+      </div>
+      <div class="wp-row wp-active">
+        <p class="wp-name">Loopress Full</p>
+        <p class="wp-desc">Everything in Light, plus your code: {code.map(([n]) => n).join(", ")}.</p>
+        <p class="wp-meta">From loopress.dev · installed by <code>lps project config</code> · replaces Loopress Light</p>
+      </div>
+    </div>
+  ) : variant === "terminal" ? (
+    <div class="term">
+      <pre class="tr"><span class="dim">$ lps project config</span>
+<span class="cm">  # site URL, environment, authorize in your browser</span>
+✓ "bakery/production" configured
+<span class="ok">✔</span> Loopress Full was not detected on this site. Install it now? (creates a temporary admin account, removed automatically afterward) <span class="t-f">Yes</span>
+Downloading the latest Loopress Full release...
+Creating a temporary admin account to install it...
+Installing and activating Loopress Full...
+<span class="t-f">Loopress Full installed and activated.</span>
+Removing the temporary admin account...
+→ Run `lps project switch` to change the active project or environment</pre>
+      <p class="aside-ed">answer no and you stay on Light, everything it syncs keeps working.</p>
+    </div>
+  ) : variant === "meter" ? (
+    <div class="mt">
+      <div class="mt-br mt-light" style={`grid-column: 1 / span ${config.length}`}><span>Light</span> WordPress.org</div>
+      {config.map(([name]) => <div class="seg s-l">{name}</div>)}
+      {code.map(([name]) => <div class="seg s-f">{name.split(",")[0]}</div>)}
+      <div class="mt-br mt-full" style={`grid-column: 1 / span ${config.length + code.length}`}><span>Full</span> loopress.dev · Light + your code</div>
+    </div>
+  ) : variant === "brackets" ? (
+    <div class="grid">
+      <div class="br br-full"><span>Full</span><small>loopress.dev</small></div>
+      <div class="br br-light"><span>Light</span><small>WordPress.org</small></div>
+      <div class="row">
+        <p class="rowlbl">configuration</p>
+        <ul class="tiles">{config.map(([name, cmd]) => <li class="tile t-light">{name}<code>lps {cmd}</code></li>)}</ul>
+      </div>
+      <div class="row row-code">
+        <p class="rowlbl">your code</p>
+        <ul class="tiles">{code.map(([name, cmd]) => <li class="tile t-full">{name}<code>lps {cmd}</code></li>)}</ul>
+      </div>
+    </div>
+  ) : (
+    <div class="frame">
+      <p class="flbl"><span>Loopress Full</span><small>loopress.dev · installed by lps project config</small></p>
+      <div class="inner">
+        <p class="flbl"><span>Loopress Light</span><small>WordPress.org · configuration</small></p>
+        <ul class="tiles">{config.map(([name, cmd]) => <li class="tile t-light">{name}<code>lps {cmd}</code></li>)}</ul>
+      </div>
+      <p class="plus">+ your code</p>
+      <ul class="tiles">{code.map(([name, cmd]) => <li class="tile t-full">{name}<code>lps {cmd}</code></li>)}</ul>
+    </div>
+  )}
+</div>
+
+<style>
+  .ed {
+    --e-navy: oklch(0.22 0.05 255);
+    --e-cyan: oklch(0.76 0.14 215);
+    --e-cyan-ink: oklch(0.5 0.12 225);
+    --e-violet: oklch(0.55 0.18 290);
+    --e-mono: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--e-navy);
+  }
+  /* Two classes deep so a host page's list styles (DocPage's disc, indent, li + li margin) lose. */
+  .ed .tiles { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; margin: 0; }
+  .ed .tile { margin: 0; }
+  .tile { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem 0.85rem; border-radius: 0.5rem; font-weight: 800; font-size: 0.95rem; line-height: 1.2; }
+  .tile code { font-family: var(--e-mono); font-size: 0.68rem; font-weight: 500; opacity: 0.75; }
+  .t-light { background: color-mix(in oklch, var(--e-cyan) 28%, white); }
+  .t-full { background: color-mix(in oklch, var(--e-violet) 16%, white); }
+  small { display: block; font-family: var(--e-mono); font-size: 0.68rem; font-weight: 500; opacity: 0.75; }
+
+  /* Variants: hexagons */
+  .hexsvg { display: block; width: 100%; max-width: 34rem; margin-inline: auto; overflow: visible; }
+  .ring-full { fill: color-mix(in oklch, var(--e-violet) 7%, transparent); stroke: var(--e-violet); stroke-width: 3; stroke-linejoin: round; }
+  .ring-light { fill: color-mix(in oklch, var(--e-cyan) 22%, white); stroke: var(--e-cyan); stroke-width: 3; stroke-linejoin: round; }
+  .thick { fill: none; stroke-width: 20; stroke-linejoin: round; }
+  .thick-full { stroke: var(--e-violet); }
+  .thick-light { stroke: var(--e-cyan); }
+  .h-title { font-weight: 800; font-size: 17px; }
+  .h-full { fill: var(--e-violet); }
+  .h-light { fill: var(--e-cyan-ink); }
+  .h-sub, .h-cmd { font-family: var(--e-mono); font-size: 9.5px; fill: var(--e-navy); opacity: 0.7; }
+  .h-mod { font-weight: 800; font-size: 13px; fill: var(--e-navy); }
+  .h-big { font-size: 15px; }
+
+  /* Variant: table */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .tbl th, .tbl td { padding: 0.55rem 0.75rem; border-bottom: 1px solid color-mix(in oklch, currentColor 12%, transparent); text-align: left; }
+  .tbl thead th { font-weight: 800; vertical-align: bottom; }
+  .tbl tbody th { font-weight: 800; }
+  .tbl tbody th code { margin-left: 0.6rem; font-family: var(--e-mono); font-size: 0.7rem; font-weight: 500; opacity: 0.6; }
+  .tbl td, .tbl thead th:not(:first-child) { text-align: center; width: 7.5rem; }
+  .c-light { color: var(--e-cyan-ink); }
+  .c-full { color: var(--e-violet); }
+  .grp td { font-family: var(--e-mono); font-size: 0.72rem; opacity: 0.65; padding-top: 1.25rem; text-align: left !important; }
+  .yes { font-weight: 800; color: var(--e-cyan-ink); }
+  .yes-full { color: var(--e-violet); }
+  .no { opacity: 0.3; }
+
+  /* Variant: equation */
+  .eq { display: grid; gap: 1rem; align-items: center; }
+  @media (min-width: 900px) { .eq { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr) auto minmax(0, 0.9fr); } }
+  .eq-box { border-radius: 0.75rem; padding: 1rem; height: 100%; }
+  .eq-light { background: color-mix(in oklch, var(--e-cyan) 12%, white); border: 2px solid var(--e-cyan); }
+  .eq-code { background: color-mix(in oklch, var(--e-violet) 7%, white); border: 2px dashed var(--e-violet); }
+  .eq-full { background: white; border: 3px solid var(--e-violet); }
+  .eq-t { font-weight: 800; font-size: 1.05rem; margin: 0 0 0.6rem; }
+  .eq-light .eq-t { color: var(--e-cyan-ink); }
+  .eq-code .eq-t, .eq-full .eq-t { color: var(--e-violet); }
+  .eq-light .t-light { background: white; }
+  .op { font-weight: 800; font-size: 2.5rem; text-align: center; margin: 0; line-height: 1; }
+  .ed .dots { gap: 0.35rem; margin-bottom: 0.6rem; }
+  .ed .dot { width: 1.1rem; height: 1.1rem; border-radius: 0.25rem; margin: 0; }
+  .d-light { background: var(--e-cyan); }
+  .d-full { background: var(--e-violet); }
+
+  /* Variant: tree */
+  .tr { margin: 0; background: var(--e-navy); color: oklch(0.975 0.008 95); border-radius: 0.75rem; padding: 1.4rem 1.5rem; font-family: var(--e-mono); font-size: 0.85rem; line-height: 1.85; overflow-x: auto; white-space: pre; }
+  .tr .dim { opacity: 0.6; }
+  .tr .cm { opacity: 0.55; }
+  .t-l { color: var(--e-cyan); font-weight: 500; }
+  .t-f { color: oklch(0.78 0.13 290); font-weight: 500; }
+
+  /* Variant: layers */
+  .ly { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; }
+  .ly-stack { display: grid; gap: 0.5rem; }
+  .slab { border-radius: 0.6rem; padding: 0.9rem 1rem; }
+  .s-code { background: color-mix(in oklch, var(--e-violet) 7%, white); border: 2px solid var(--e-violet); margin-inline: 1.5rem; }
+  .s-config { background: color-mix(in oklch, var(--e-cyan) 12%, white); border: 2px solid var(--e-cyan); margin-inline: 0.75rem; }
+  .s-config .t-light { background: white; }
+  .s-wp { background: var(--e-navy); color: oklch(0.975 0.008 95); }
+  .s-code .eq-t { color: var(--e-violet); }
+  .s-config .eq-t { color: var(--e-cyan-ink); }
+  .wp-txt { margin: 0; font-family: var(--e-mono); font-size: 0.75rem; opacity: 0.75; }
+  .ly-br { display: grid; grid-template-columns: auto auto; grid-template-rows: 1fr 1fr 0.6fr; gap: 0.5rem 0.6rem; }
+  .lb { display: flex; flex-direction: column; justify-content: center; padding-left: 0.6rem; border-left: 4px solid; font-weight: 800; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; gap: 0.2rem; }
+  .lb small { writing-mode: vertical-rl; }
+  .lb-full { grid-column: 2; grid-row: 1 / 3; border-color: var(--e-violet); color: var(--e-violet); }
+  .lb-light { grid-column: 1; grid-row: 2; border-color: var(--e-cyan); color: var(--e-cyan-ink); }
+
+  /* Variant: honeycomb */
+  .hc-svg { display: block; width: 100%; max-width: 40rem; }
+  .hc-l { fill: color-mix(in oklch, var(--e-cyan) 30%, white); stroke: var(--e-cyan); stroke-width: 2; }
+  .hc-f { fill: color-mix(in oklch, var(--e-violet) 14%, white); stroke: var(--e-violet); stroke-width: 2; }
+  .hc-t { font-weight: 800; font-size: 12px; fill: var(--e-navy); }
+  .legend { margin-top: 0.75rem; font-family: var(--e-mono); font-size: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; }
+  .sw { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; }
+  .sw-l { background: var(--e-cyan); }
+  .sw-f { background: var(--e-violet); margin-left: 0.75rem; }
+
+  /* Variant: toggle */
+  .tg-in { position: absolute; opacity: 0; pointer-events: none; }
+  .tg-sw { display: inline-flex; align-items: center; gap: 0.6rem; cursor: pointer; font-weight: 800; user-select: none; }
+  .tg-track { position: relative; width: 3.2rem; height: 1.7rem; border-radius: 1rem; background: var(--e-cyan); transition: background 0.2s; }
+  .tg-knob { position: absolute; top: 0.2rem; left: 0.2rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .tg-in:checked + .tg-sw .tg-track { background: var(--e-violet); }
+  .tg-in:checked + .tg-sw .tg-knob { transform: translateX(1.5rem); }
+  .tg-in:focus-visible + .tg-sw .tg-track { outline: 2px solid var(--e-navy); outline-offset: 2px; }
+  .tg-l { color: var(--e-cyan-ink); }
+  .tg-f { opacity: 0.45; }
+  .tg:has(.tg-in:checked) .tg-l { opacity: 0.45; color: inherit; }
+  .tg:has(.tg-in:checked) .tg-f { opacity: 1; color: var(--e-violet); }
+  .tg-name { margin: 0.75rem 0 1.25rem; font-family: var(--e-mono); font-size: 0.8rem; }
+  .when-on { display: none; }
+  .tg:has(.tg-in:checked) .when-on { display: inline; }
+  .tg:has(.tg-in:checked) .when-off { display: none; }
+  .tg .rowlbl { margin-top: 1rem; }
+  .tg-code .tile { opacity: 0.35; background: transparent; outline: 1.5px dashed color-mix(in oklch, var(--e-violet) 60%, transparent); outline-offset: -1.5px; transition: opacity 0.2s, background 0.2s; }
+  .tg:has(.tg-in:checked) .tg-code .tile { opacity: 1; background: color-mix(in oklch, var(--e-violet) 16%, white); outline-color: transparent; }
+
+  /* Variant: plugins (the WordPress Plugins screen, restyled) */
+  .wp { border: 1px solid #c3c4c7; background: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #1d2327; }
+  .wp-row { padding: 0.8rem 1rem 0.8rem 1.1rem; border-left: 4px solid transparent; }
+  .wp-row + .wp-row { border-top: 1px solid #c3c4c7; }
+  .wp-active { background: #f0f6fc; border-left-color: #72aee6; }
+  .wp-name { margin: 0; font-weight: 600; font-size: 14px; }
+  .wp-desc { margin: 0.35rem 0 0; }
+  .wp-meta { margin: 0.35rem 0 0; color: #646970; }
+  .wp-meta code { font-family: var(--e-mono); font-size: 12px; }
+
+  /* Variant: terminal */
+  .term .tr { white-space: pre-wrap; }
+  .tr .ok { color: oklch(0.75 0.17 150); }
+  .aside-ed { margin-top: 0.9rem; font-family: var(--e-mono); font-size: 0.8rem; color: var(--e-cyan-ink); }
+  .aside-ed::before { content: "// "; opacity: 0.7; }
+
+  /* Variant: meter */
+  .mt { display: grid; grid-template-columns: repeat(12, minmax(3.6rem, 1fr)); gap: 0.25rem; overflow-x: auto; padding-bottom: 0.25rem; }
+  .seg { padding: 0.9rem 0.3rem; font-weight: 800; font-size: 0.72rem; line-height: 1.15; text-align: center; display: grid; place-items: center; }
+  .s-l { background: color-mix(in oklch, var(--e-cyan) 30%, white); }
+  .s-f { background: color-mix(in oklch, var(--e-violet) 16%, white); }
+  .seg { grid-row: 2; }
+  .mt-br { font-family: var(--e-mono); font-size: 0.72rem; padding: 0.3rem 0.4rem; }
+  .mt-br span { font-family: inherit; font-weight: 800; margin-right: 0.4rem; }
+  .mt-light { grid-row: 1; border-bottom: 3px solid var(--e-cyan); color: var(--e-cyan-ink); }
+  .mt-full { grid-row: 3; border-top: 3px solid var(--e-violet); color: var(--e-violet); }
+
+  /* Variant: brackets */
+  .grid { display: grid; grid-template-columns: auto auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 0.75rem; row-gap: 1.25rem; }
+  .row { grid-column: 3; }
+  .row-code { grid-row: 2; }
+  .rowlbl { font-family: var(--e-mono); font-size: 0.72rem; margin: 0 0 0.5rem; opacity: 0.7; }
+  .br { display: flex; flex-direction: column; justify-content: center; padding-left: 0.6rem; border-left: 4px solid; font-weight: 800; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; gap: 0.2rem; }
+  .br small { writing-mode: vertical-rl; }
+  .br-full { grid-column: 1; grid-row: 1 / 3; border-color: var(--e-violet); color: var(--e-violet); }
+  .br-light { grid-column: 2; grid-row: 1; border-color: var(--e-cyan); color: var(--e-cyan-ink); }
+
+  /* Variant: nested */
+  .frame { border: 3px solid var(--e-violet); border-radius: 1rem; padding: 1.25rem; }
+  .flbl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin: 0 0 0.9rem; }
+  .flbl span { font-weight: 800; font-size: 1.1rem; }
+  .frame > .flbl span { color: var(--e-violet); }
+  .inner { background: color-mix(in oklch, var(--e-cyan) 12%, white); border: 3px solid var(--e-cyan); border-radius: 0.75rem; padding: 1rem; }
+  .inner .flbl span { color: var(--e-cyan-ink); }
+  .inner .t-light { background: white; }
+  .plus { margin: 1.25rem 0 0.6rem; font-family: var(--e-mono); font-size: 0.8rem; font-weight: 500; color: var(--e-violet); }
+</style>

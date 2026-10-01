@@ -1,0 +1,123 @@
+---
+// Prototype: the FAQ rewritten for the loop positioning. No console, no paid tiers, solo devs as
+// the main audience. CLI facts checked in cli/ and the docs on 2026-10-01; the old
+// LOOPRESS_PRODUCTION_LOCK answer was dropped, the constant no longer exists. Throwaway, not linked.
+import DocPage from "@/components/proto/DocPage.astro";
+
+export const prerender = true;
+
+const sections = [
+  {
+    title: "The basics",
+    items: [
+      {
+        q: "What is Loopress?",
+        a: "A CLI and a WordPress plugin that turn the parts of a site that are not content, configuration and code, into files in your repo. You edit them, review them in a PR, push them to any environment, and pull back what changed on the live site.",
+      },
+      {
+        q: "Does it touch my content?",
+        a: "No, by design. Posts, page content, orders, users and media are never written to the repo and never overwritten by a push. Versioning content is what sank earlier attempts at Git for WordPress, so Loopress stays on what a diff and a rollback can safely handle.",
+      },
+      {
+        q: "Who is it for?",
+        a: "Developers who look after several WordPress sites, often on their own, and want the same workflow on all of them: one repo per site, a diff before every change, an undo after it.",
+      },
+      {
+        q: "Is it free?",
+        a: "Yes. The CLI is open source under MPL-2.0, the WordPress plugin under GPL, and both editions of the plugin are free.",
+      },
+      {
+        q: "Is it ready?",
+        a: "Alpha, moving fast. It runs real sites today, and things still change between releases. Issues and pull requests on GitHub get read.",
+      },
+    ],
+  },
+  {
+    title: "Your site",
+    items: [
+      {
+        q: "Which sites does it work with?",
+        a: "Any self-hosted site on WordPress 6.2+ and PHP 8.2+, with the REST API enabled. It works on the stock wp-content layout your host already runs: no restructuring, no host change, no SSH.",
+      },
+      {
+        q: "Light or Full?",
+        a: "Same plugin, two builds. Light puts your configuration in Git (ACF field groups, SEO, menus, options, block theme styles) and is on WordPress.org. Full adds code: hooks, API routes, apps, pages, snippets and the plugin lockfile. WordPress.org does not host plugins that deploy code, so Full ships from loopress.dev, and lps project config installs it for you.",
+      },
+      {
+        q: "How do I connect a site?",
+        a: "lps project config. By default it opens your browser and WordPress creates an Application Password for you, with manual entry as a fallback. Credentials stay on your machine. HTTPS is required, except for a local environment.",
+      },
+      {
+        q: "Several sites, several environments?",
+        a: "Yes. Each project has its own environments (local, staging, production), and lps project switch moves between them. lps promote staging production copies what you validated on staging.",
+      },
+      {
+        q: "What if I stop using Loopress?",
+        a: "Everything stays in your Git repo: configuration as plain files, hooks and API routes as plain PHP classes. Hooks use Loopress attributes, so they need the plugin to run, but the code is yours, readable, and nothing is locked on our side.",
+      },
+    ],
+  },
+  {
+    title: "Code",
+    items: [
+      {
+        q: "What are hooks?",
+        a: "WordPress actions and filters written as PHP classes, one per file, declared with attributes like #[Filter('the_title')] instead of add_filter calls scattered across functions.php. Loopress wires them onto the native hook system, no runtime of its own.",
+      },
+      {
+        q: "How does the plugin lockfile work?",
+        a: "lps plugin pull writes the plugins installed on the site, each pinned to its running version, into loopress.json (or composer.json if your repo has one). lps plugin push installs the same set through Composer and WPackagist, keeps inactive plugins inactive, and uninstalls what you removed, after a confirmation.",
+      },
+      {
+        q: "Can I use Composer packages?",
+        a: "Yes. The plugin runs Composer from PHP and installs packages from Packagist into wp-content/loopress/, with the autoloader registered for you. That is how the cookbook recipes pull in libraries like a QR code generator or a PDF renderer.",
+      },
+      {
+        q: "Can an AI agent use it?",
+        a: "Your site is files, so any coding agent can edit it, and you still review the diff. To let the agent pull and push as well, the MCP server exposes the CLI as tools: claude mcp add loopress -- lps-mcp.",
+      },
+    ],
+  },
+  {
+    title: "Compared to",
+    items: [
+      {
+        q: "Roots Bedrock?",
+        a: "Bedrock restructures the project (code into web/app, core into web/wp) and its usual deploy path, Trellis, needs SSH. A good choice when you can commit to that structure upfront. Loopress makes the opposite trade: the site stays as it is, no SSH.",
+      },
+      {
+        q: "WP Staging, Duplicator and other sync plugins?",
+        a: "They move a site as a snapshot, database included, with no diff against the last sync. Loopress pushes only what changed in your files, and never the content.",
+      },
+      {
+        q: "VersionPress?",
+        a: "VersionPress tried to put the database and content in Git and was archived before leaving developer preview. Loopress takes the opposite constraint, configuration and code only, so there is no serialized data to merge.",
+      },
+    ],
+  },
+];
+---
+
+<DocPage title="FAQ - Loopress" kicker="faq" heading="Questions, answered." lede="Something missing? Open an issue on GitHub or send a message.">
+  {sections.map((s) => (
+    <section class="faq-section">
+      <h2>{s.title}</h2>
+      <dl>
+        {s.items.map((item) => (
+          <div>
+            <dt>{item.q}</dt>
+            <dd>{item.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  ))}
+</DocPage>
+
+<style>
+  .faq-section + .faq-section { margin-top: 4rem; }
+  dl { margin-top: 1.25rem; }
+  dl > div { padding-block: 1.25rem; border-top: 1px solid color-mix(in oklch, currentColor 15%, transparent); }
+  dt { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+  dd { margin-top: 0.5rem; }
+</style>

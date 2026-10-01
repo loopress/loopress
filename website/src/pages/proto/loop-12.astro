@@ -16,6 +16,7 @@
 // Throwaway, not linked.
 import Layout from "@/layouts/Layout.astro";
 import Logo from "@/components/proto/Logo.astro";
+import Footer from "@/components/proto/Footer.astro";
 
 export const prerender = true;
 
@@ -282,10 +283,7 @@ $ git commit -am "chore: sync client menu edit"`,
       </section>
     </main>
 
-    <footer class="wrap flex flex-wrap items-center justify-between gap-4 py-8 text-sm">
-      <Logo class="h-6 w-6" />
-      <span class="mono text-xs">CLI MPL-2.0 · plugin GPL · docs · github</span>
-    </footer>
+    <Footer />
   </div>
 </Layout>
 

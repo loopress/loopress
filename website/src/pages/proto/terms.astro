@@ -1,0 +1,47 @@
+---
+// Prototype: terms rewritten for the open source first site. Fixes the live /terms, which puts the
+// plugin under MPL-2.0 (it is GPL), and drops the paid tiers. Throwaway, not linked.
+import DocPage from "@/components/proto/DocPage.astro";
+
+export const prerender = true;
+
+const LAST_UPDATED = "October 1, 2026";
+---
+
+<DocPage title="Terms - Loopress" kicker={`terms · last updated ${LAST_UPDATED}`} heading="Terms of use." lede="Short version: it's open source, it's alpha, test before production.">
+  <h2>Licenses</h2>
+  <p>
+    The CLI is licensed under the <a href="https://www.mozilla.org/en-US/MPL/2.0/">Mozilla Public License 2.0</a>,
+    the WordPress plugin under the <a href="https://www.gnu.org/licenses/gpl-2.0.html">GPL</a>. Those
+    licenses govern the code: you can read it, modify it and redistribute it under their terms.
+  </p>
+
+  <h2>Alpha</h2>
+  <p>
+    Loopress is in alpha. Commands, file formats and behaviours can change between releases. Keep
+    your own backups, and try every change on a staging site before production.
+  </p>
+
+  <h2>Your sites, your credentials</h2>
+  <p>
+    Use Loopress only on sites you are allowed to administer. You are responsible for the
+    Application Passwords you give the CLI, and you can revoke one at any time from the site's
+    admin.
+  </p>
+
+  <h2>The Loopress console</h2>
+  <p>
+    The console (console.loopress.dev) is a hosted service, free during the alpha, with no uptime or
+    durability guarantee. Don't abuse its infrastructure. We may suspend accounts that do, and you can
+    delete yours at any time through the <a href="/proto/contact">contact page</a>.
+  </p>
+
+  <h2>No warranty</h2>
+  <p>
+    Loopress is provided "as is", without warranty of any kind. To the extent permitted by law, we are
+    not liable for indirect or consequential damages, including data loss on a site you manage with it.
+  </p>
+
+  <h2>Changes</h2>
+  <p>We update this page when the terms change, and the date at the top with it.</p>
+</DocPage>

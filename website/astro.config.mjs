@@ -29,10 +29,27 @@ function loopressFavicon() {
   };
 }
 
+/**
+ * Routes that exist under `astro dev` only, never in a build: the proto component gallery.
+ * @returns {import('astro').AstroIntegration}
+ */
+function devOnlyRoutes() {
+  return {
+    name: "dev-only-routes",
+    hooks: {
+      "astro:config:setup": ({ command, injectRoute }) => {
+        if (command !== "dev") return;
+        injectRoute({ pattern: "/proto/gallery/[...kind]", entrypoint: "./src/dev/gallery.astro", prerender: false });
+      },
+    },
+  };
+}
+
 export default defineConfig({
   site: "https://loopress.dev",
   integrations: [
     loopressFavicon(),
+    devOnlyRoutes(),
     react(),
     sitemap(),
     indexnow({

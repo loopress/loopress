@@ -1,0 +1,30 @@
+---
+// Prototype: the changelog, rendered straight from the Changesets CHANGELOG.md files so it can
+// never drift from the releases. Throwaway, not linked.
+// ponytail: renders every release of each package, slice to the latest N if the page gets too long.
+import DocPage from "@/components/proto/DocPage.astro";
+import { Content as Cli } from "../../../../cli/CHANGELOG.md";
+import { Content as Plugin } from "../../../../wordpress-plugin/CHANGELOG.md";
+import { Content as Mcp } from "../../../../mcp/CHANGELOG.md";
+
+export const prerender = true;
+---
+
+<DocPage title="Changelog - Loopress" kicker="changelog" heading="What shipped." lede="Alpha, moving fast. Every release of the CLI, the WordPress plugin and the MCP server, newest first." wide>
+  <nav class="jump mono">
+    <a href="#cli">CLI</a><a href="#plugin">WordPress plugin</a><a href="#mcp">MCP server</a>
+  </nav>
+  <section id="cli" class="log"><Cli /></section>
+  <section id="plugin" class="log"><Plugin /></section>
+  <section id="mcp" class="log"><Mcp /></section>
+</DocPage>
+
+<style>
+  .jump { display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 0.85rem; }
+  .log { margin-top: 4rem; }
+  /* Changesets markdown: h1 package, h2 version, h3 Minor/Patch. */
+  .log :global(h1) { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; font-family: var(--font-mono); }
+  .log :global(h2) { margin-top: 2.5rem; font-size: 1.4rem; font-family: var(--font-mono); }
+  .log :global(h3) { margin-top: 1.25rem; font-size: 0.8rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+  .log :global(li) { font-size: 0.95rem; }
+</style>

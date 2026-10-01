@@ -1,6 +1,33 @@
 {
   "version": 1,
   "entries": {
-    "https://loopress.dev/": "sha256:8c273fefba7735513bab8949f860d36640a1f7adde764b112ca43b57b007990e"
+    "https://loopress.dev/": "sha256:cedaef865cbe92fc4a79ca8389f3e0efefaa9096faafe50ebee5c302730f2f25",
+    "https://loopress.dev/proto/brand-assets": "sha256:5cf3b1eda9aaadc26613064aa020d07dca2caeb6fc240fe3095db4f2c051e2b5",
+    "https://loopress.dev/proto/changelog": "sha256:52b8126f1733f3a852535c36152d07f2ab6a749e1c9431f56a2add7e721de6c1",
+    "https://loopress.dev/proto/contact": "sha256:da4db5cf248fdf6822ccb052c90a8b8fbbec27e8bb11117c2615c8194e00f04a",
+    "https://loopress.dev/proto/faq": "sha256:fe849e9630eca9f6098c042ca456585fe39d50a3455ba8c1a3f7518ce5ee9158",
+    "https://loopress.dev/proto/light": "sha256:7da176cba2d6f5b246de246fbf07d30b321989f33389aa7cab376cb756b41ed2",
+    "https://loopress.dev/proto/loop": "sha256:6498063712aeedcb08c716a9849c85ca7065da9e98d98320de3883d6a992c7da",
+    "https://loopress.dev/proto/loop-10": "sha256:5182e2f80f20195651dc554c919fdd02c2b5daa3551bae2ae7f33f10ec10e00d",
+    "https://loopress.dev/proto/loop-11": "sha256:c57dc9dbc7ad17ff155ff03bce93d2682cc68148a4a751564707777ca6cee379",
+    "https://loopress.dev/proto/loop-12": "sha256:3ec0ed6799b69279a3eff927fb46c27e44153f98b53c6447091c235226537f2f",
+    "https://loopress.dev/proto/loop-2": "sha256:d045f2866ce039a7b53d122de2f03adf294bdca56ca8aa7762130c84778fd370",
+    "https://loopress.dev/proto/loop-3": "sha256:3959d7a8ace55409257fb9e57f906c6accb206d7788f079785862e278a7bc384",
+    "https://loopress.dev/proto/loop-4": "sha256:a577d4356375a8a825d8be512d8c359ab757d49cf0b696d51df6631c29398457",
+    "https://loopress.dev/proto/loop-5": "sha256:70846a3329ee03d8310b62800109bc547cf5c58addc27e683979f19834a08518",
+    "https://loopress.dev/proto/loop-6": "sha256:71276454b967a7e67287227d4bc01937c65b079fb6d2d272f850021fac23bf30",
+    "https://loopress.dev/proto/loop-7": "sha256:86650f6df559ac63282bdfe6bb38792351f17ba5f85bab3e565b0ae15a265201",
+    "https://loopress.dev/proto/loop-8": "sha256:ef5648a0c241f3b6b678ed57c2ce1e5575edef15ff0abfd0864beff08faf9c3f",
+    "https://loopress.dev/proto/loop-9": "sha256:43ee1c64a986501b21b06d7a5f1ab3768864d525f4ccbdd8fda5a0cd0b7705d5",
+    "https://loopress.dev/proto/privacy": "sha256:3f15d5aaed0b3410dac0ea9ce79812ef894994ca4c79502b8d01fcf91731f22a",
+    "https://loopress.dev/proto/readme": "sha256:5a1978e8d2e7157acc06f7e66f735742aada3284e568b73ee16a19aaa3a2f155",
+    "https://loopress.dev/proto/terms": "sha256:381a8b0086c358cd395450445abd3a1893753b94e56aad8cbcc235b3cbbba776",
+    "https://loopress.dev/proto/vs/acf-local-json": "sha256:b4436d3014baff8610caaec5d5062bd17a1503bd7e175b000246f38f0c69e93c",
+    "https://loopress.dev/proto/vs/bedrock": "sha256:4de3abdc0cdd405d39732c5ef1995cdd851e015148f7473e97141fd3d4ed42fb",
+    "https://loopress.dev/proto/vs": "sha256:9219152dbc36c1f304b394ea827345c24b9527e0fcdbc3e9ff803bcdea86d3ea",
+    "https://loopress.dev/proto/vs/versionpress": "sha256:7dc8219f3f1d4b2edb0fa48ac99e6333bd78ff2afda718afdbc8a2667bc05354",
+    "https://loopress.dev/proto/vs/wp-migrate": "sha256:1fa1a0a0f7fb2afb75d6e25801f07a7e477b430297bffad3ee0abb288fa0520f",
+    "https://loopress.dev/proto/vs/wp-staging": "sha256:40f5c4cb7e4ff4b09e10500ca308676a141ef333e622386b98a4106eee8fc7b5",
+    "https://loopress.dev/proto/week": "sha256:077ec3a618bac725585c39d741ad08a9ee382a96a353997ffae28a248f8eaba6"
   }
 }

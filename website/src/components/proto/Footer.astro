@@ -1,0 +1,103 @@
+---
+// Footer shared by loop-12 and the /proto content pages. Variants (see the dev gallery, /proto/gallery):
+// - columns (default, in use): logo + licenses left, three link columns right.
+// - inline: one line, logo, links, licenses. The old site's Ft2.
+// - dark: navy band that doubles as the closing CTA, install line on top, links below.
+// - wordmark: links on one row, then the wordmark set huge across the full width.
+import Logo from "@/components/proto/Logo.astro";
+
+const { variant = "columns" } = Astro.props as { variant?: "columns" | "inline" | "dark" | "wordmark" };
+
+const groups = [
+  [["Docs", "https://docs.loopress.dev"], ["Cookbook", "https://docs.loopress.dev/cookbook/"], ["Changelog", "/proto/changelog"], ["GitHub", "https://github.com/loopress"]],
+  [["Loopress Light", "/proto/light"], ["Compare", "/proto/vs"], ["FAQ", "/proto/faq"]],
+  [["Brand", "/proto/brand-assets"], ["Contact", "/proto/contact"], ["Privacy", "/proto/privacy"], ["Terms", "/proto/terms"]],
+];
+const links = groups.flat();
+---
+
+{variant === "columns" && (
+  <footer class="pfoot ft">
+    <div class="pfoot-brand">
+      <Logo class="h-6 w-6" />
+      <span>CLI MPL-2.0 · plugin GPL</span>
+    </div>
+    <nav>
+      {groups.map((group) => (
+        <ul>{group.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+      ))}
+    </nav>
+  </footer>
+)}
+
+{variant === "inline" && (
+  <footer class="pfoot pfoot-inline ft">
+    <Logo class="h-5 w-5" />
+    <nav><ul>{links.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul></nav>
+    <span class="lic">CLI MPL-2.0 · plugin GPL</span>
+  </footer>
+)}
+
+{variant === "dark" && (
+  <footer class="pfoot-dark ft">
+    <div class="in">
+      <p class="dk-title">Open source, and yours to keep.</p>
+      <p class="dk-install">$ npm i -g @loopress/cli</p>
+      <div class="dk-row">
+        <div class="pfoot-brand">
+          <Logo class="h-6 w-6" />
+          <span>CLI MPL-2.0 · plugin GPL</span>
+        </div>
+        <nav>
+          {groups.map((group) => (
+            <ul>{group.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+          ))}
+        </nav>
+      </div>
+    </div>
+  </footer>
+)}
+
+{variant === "wordmark" && (
+  <footer class="pfoot-word ft">
+    <div class="in">
+      <nav><ul>{links.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul></nav>
+      <p class="word" aria-hidden="true"><Logo class="word-mark" wordmark={false} />loopress</p>
+      <span class="lic">CLI MPL-2.0 · plugin GPL</span>
+    </div>
+  </footer>
+)}
+
+<style>
+  footer { --f-navy: oklch(0.22 0.05 255); --f-paper: oklch(0.975 0.008 95); --f-cyan: oklch(0.76 0.14 215); --f-yellow: oklch(0.88 0.16 95); --f-mono: "JetBrains Mono", ui-monospace, monospace; font-family: var(--f-mono); font-size: 0.75rem; }
+  /* Class-level selectors so a host page's prose styles (DocPage's disc, indent, li + li margin,
+     link underline) lose when the footer sits inside it, as in the dev gallery. */
+  .ft nav ul { list-style: none; padding: 0; margin: 0; }
+  .ft nav ul li { margin: 0; }
+  .ft nav a { text-decoration: none; }
+  .ft a:hover { color: oklch(0.5 0.12 225); }
+
+  .pfoot { margin-inline: auto; max-width: 72rem; padding: 2.5rem 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem; }
+  .pfoot-brand { display: flex; flex-direction: column; gap: 0.75rem; }
+  .pfoot nav, .dk-row nav { display: flex; flex-wrap: wrap; gap: 1rem 3rem; }
+  .ft.pfoot nav li + li, .ft .dk-row nav li + li { margin-top: 0.4rem; }
+
+  .pfoot-inline { align-items: center; gap: 1rem 1.5rem; padding-block: 1.5rem; }
+  .ft.pfoot-inline nav ul { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; }
+  .ft.pfoot-inline nav li + li { margin-top: 0; }
+  .lic { opacity: 0.65; }
+
+  .pfoot-dark { background: var(--f-navy); color: var(--f-paper); --logo-accent: var(--f-cyan); }
+  .ft.pfoot-dark a:hover { color: var(--f-yellow); }
+  .in { margin-inline: auto; max-width: 72rem; padding: 3.5rem 1.5rem 2.5rem; }
+  .dk-title { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3.5vw, 2.5rem); letter-spacing: -0.03em; line-height: 1.05; }
+  .dk-install { margin-top: 1rem; font-size: clamp(1rem, 3vw, 1.75rem); color: var(--f-yellow); white-space: nowrap; overflow-x: auto; }
+  .dk-row { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid oklch(1 0 0 / 0.15); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem; }
+
+  .pfoot-word { overflow: hidden; }
+  .pfoot-word .in { padding-bottom: 1.5rem; container-type: inline-size; }
+  .ft.pfoot-word nav ul { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; }
+  /* Sized on the footer's own width (mark + 8 letters is about 4.3em), so it spans it without overflowing. */
+  .word { margin: 2rem 0 0.75rem; display: flex; align-items: center; gap: 0.12em; font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 800; font-size: 23cqw; letter-spacing: -0.06em; line-height: 0.85; }
+  .word :global(.word-mark) { width: 0.8em; height: 0.8em; }
+</style>

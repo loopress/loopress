@@ -1,0 +1,28 @@
+---
+// Prototype: contact for an open source project. GitHub first, the form for what doesn't belong in
+// a public issue. The old "agency pricing" template is gone with the paid tiers. Throwaway, not linked.
+import DocPage from "@/components/proto/DocPage.astro";
+import ContactForm from "@/components/ContactForm";
+
+export const prerender = true;
+---
+
+<DocPage title="Contact - Loopress" kicker="contact" heading="Get in touch.">
+  <h2>Bugs and ideas</h2>
+  <p>
+    Loopress is open source, so most conversations happen in public. Open an issue on
+    <a href="https://github.com/loopress/loopress/issues">GitHub</a>: it helps the next person with
+    the same question.
+  </p>
+  <p class="aside">security issue? see <a href="https://github.com/loopress/loopress/blob/main/SECURITY.md">SECURITY.md</a>, never a public issue.</p>
+
+  <h2>Everything else</h2>
+  <p>A partnership, a trademark question, something private: send a message.</p>
+  <div class="form">
+    <ContactForm client:load />
+  </div>
+</DocPage>
+
+<style>
+  .form { margin-top: 2rem; }
+</style>
