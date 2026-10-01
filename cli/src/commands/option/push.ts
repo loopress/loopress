@@ -106,6 +106,7 @@ export default class Push extends PushCommand {
       // create): falls back to today's unconditional write, same as before this existed.
       const expectedRevision = await this.currentRevision(option.name)
       const body: Record<string, unknown> = {autoload: option.autoload, value: option.value}
+      if (option.refs) body.refs = option.refs
       if (expectedRevision !== undefined) body.expectedRevision = expectedRevision
 
       await this.wp.put(optionEndpoint(option.name), body)

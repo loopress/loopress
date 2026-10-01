@@ -4,7 +4,7 @@ import {basename, join, relative, sep} from 'node:path'
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
-import {optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
+import {type LocalOption, optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
 import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
 import {
@@ -495,16 +495,17 @@ const optionsProvider: ResourceStateProvider = {
     return state
   },
   async remote(wp, onWarn, dir) {
-    const tracked = await loadFiles<string>(dir, {
+    const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',
       onSkip: onWarn,
-      parse: (raw) => parseLocalOption(raw).name,
+      parse: parseLocalOption,
     })
 
     const state: ResourceState = new Map()
-    for (const name of tracked) {
+    for (const {name, refs} of tracked) {
       try {
-        const option = await wp.get<RemoteOption>(optionEndpoint(name))
+        // With the file's refs, so post references compare as paths on both sides.
+        const option = await wp.get<RemoteOption>(optionEndpoint(name, refs))
         state.set(name, {autoload: option.autoload, value: option.value})
       } catch (error) {
         if (!isNotFoundError(error)) throw error

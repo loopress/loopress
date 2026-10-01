@@ -61,6 +61,18 @@ describe('option push', () => {
       expect(task.output).toBe('Pushed: brand_new_option')
     })
 
+    it('sends the declared refs so WordPress turns the paths back into IDs', async () => {
+      const {cmd} = makeCmd()
+      const get = vi.fn().mockRejectedValueOnce(notFoundError())
+      const put = vi.fn().mockResolvedValueOnce({})
+      cmd.wpClient = {get, put}
+      const refs = {purchase_page: 'page'}
+
+      await cmd.pushOption({autoload: 'yes', name: 'edd_settings', refs, value: {purchase_page: 'checkout'}})
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/options/edd_settings', {autoload: 'yes', refs, value: {purchase_page: 'checkout'}})
+    })
+
     it('does nothing in dry-run mode, not even reading the current revision', async () => {
       const {cmd} = makeCmd()
       cmd.dryRun = true

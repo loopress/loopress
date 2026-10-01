@@ -55,6 +55,36 @@ Some options must not be copied from one environment to another, even when you w
 
 `readonly` is a local flag only. Set it to `false` in the file to push such an option anyway, or to `true` on any option you want to track without ever pushing it.
 
+## Options that point to a page
+
+Some plugins store a page's ID in their settings: Easy Digital Downloads keeps its checkout and confirmation pages in `edd_settings`, WooCommerce its shop page in `woocommerce_shop_page_id`. IDs differ between environments, so copying them would point at the wrong page, or at nothing.
+
+Declare those values in the file with `refs`, mapping where the ID sits in the value to its post type:
+
+```json
+{
+  "name": "edd_settings",
+  "autoload": "yes",
+  "refs": {
+    "purchase_page": "page",
+    "success_page": "page"
+  },
+  "value": {
+    "purchase_page": "checkout",
+    "success_page": "checkout/purchase-confirmation"
+  }
+}
+```
+
+Then run `lps option pull`: the IDs in `value` are rewritten as page paths. From then on, `option push` turns each path back into the ID of that page on the target environment, and `lps diff` compares paths on both sides.
+
+- A key is a dot path into the value (`checkout.success_page` for a nested setting), or `.` when the whole value is the ID (`woocommerce_shop_page_id`).
+- An unset setting (`0`, an empty string, or a missing key) is left as is.
+- The push fails for that option, with a message naming the setting, when the page doesn't exist on the target, or when the file still holds an ID instead of a path.
+- Like `readonly`, `refs` is a local declaration: `option pull` keeps it.
+
+Images are not covered: a reference to an image (a logo set as `site_logo`, for instance) only resolves if that image already exists on the target environment, and Loopress doesn't sync content.
+
 ## What the plugin refuses
 
 The Loopress plugin enforces its own limits, whatever the local files say:

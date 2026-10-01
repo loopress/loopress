@@ -39,10 +39,10 @@ final class PostByPath
 
         if (count($matches) > 1) {
             $paths = array_map(static fn (\WP_Post $candidate): string => self::pathOf($candidate), $matches);
-            throw new AmbiguousPostSlugException(esc_html(
+            throw new AmbiguousPostSlugException(
                 "Several \"{$postType}\" posts have the slug \"{$path}\": " . implode(', ', $paths) .
                 '. Use the full path to pick one.',
-            ));
+            );
         }
 
         return $matches[0] ?? null;

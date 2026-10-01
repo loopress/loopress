@@ -68,6 +68,20 @@ describe('option-format', () => {
         value: null,
       })
     })
+    it('accepts refs mapping value paths to post types, and rejects anything else', () => {
+      const file = {autoload: 'yes', name: 'edd_settings', value: {}}
+      expect(parseLocalOption(JSON.stringify({...file, refs: {'.': 'page', purchase_page: 'page'}})).refs).toEqual({'.': 'page', purchase_page: 'page'})
+      for (const refs of [['purchase_page'], {purchase_page: 12}, {'': 'page'}, {purchase_page: ''}, 'page']) {
+        expect(() => parseLocalOption(JSON.stringify({...file, refs}))).toThrow('"refs" must map')
+      }
+    })
+
+    it('adds declared refs to the option endpoint as a query', () => {
+      expect(optionEndpoint('edd_settings', {purchase_page: 'page'})).toBe(
+        `loopress/v1/options/edd_settings?refs=${encodeURIComponent('{"purchase_page":"page"}')}`,
+      )
+      expect(optionEndpoint('edd_settings', {})).toBe('loopress/v1/options/edd_settings')
+    })
   })
 
   describe('partitionByReadonly', () => {
