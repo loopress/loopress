@@ -1,7 +1,7 @@
 import {describe, expect, it, vi} from 'vitest'
 
-import List from '../../../src/commands/template/list.js'
-import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import List from '../../../../src/commands/theme/template/list.js'
+import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
 
 function makeCmd(child: unknown) {
   const cmd = new List([], fakeOclifConfig)
@@ -42,6 +42,6 @@ describe('template list', () => {
 
     await cmd.run()
 
-    expect(logs.log.mock.calls.map(([line]) => line)).toEqual(['No Loopress child theme yet (twentytwentyfive-loopress), run lps template push.'])
+    expect(logs.log.mock.calls.map(([line]) => line)).toEqual(['No Loopress child theme yet (twentytwentyfive-loopress), run lps theme template push.'])
   })
 })

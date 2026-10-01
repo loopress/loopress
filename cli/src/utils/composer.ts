@@ -127,7 +127,7 @@ function planComposerPull(composerJson: ComposerJson, prefix: string, incoming: 
   return {candidates, result}
 }
 
-// `lps plugin pull` / `lps theme pull` on a project that has a composer.json: pin installed
+// `lps plugin pull` / `lps theme version pull` on a project that has a composer.json: pin installed
 // packages to their live versions as `wpackagist-<kind>/<slug>` under `require`, leaving every
 // other key untouched. The server adds the WPackagist repository and composer/installers on push.
 // - A declared version constraint (^9.4, *, ...) is the user's intent: never overwritten, only an

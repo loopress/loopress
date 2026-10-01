@@ -1,59 +1,49 @@
-import {existsSync} from 'node:fs'
-import {join} from 'node:path'
-
 import {LoopressCommand} from '../../lib/base.js'
-import {type ComposerPullResult, pullIntoComposerJson} from '../../utils/composer.js'
-import {writeLocalConfig} from '../../utils/loopress-config.js'
-import {mergePluginManifest} from '../../utils/plugins.js'
-import {parseInstalledThemes, type WpNativeTheme} from '../../utils/themes.js'
+import {stdoutToStderr} from '../../lib/json-delegation.js'
+import {pluralize} from '../../utils/pluralize.js'
 
-type PullResult = {
-  added: string[]
-  merged: Record<string, string>
-  skipped?: ComposerPullResult['skipped']
-  status: 'dry-run' | 'success'
-  updated: Array<{from: string; slug: string; to: string}>
-}
+type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled'}
+
+type PullResult = {results: PullTargetResult[]}
+
+// Templates and parts have no pull: the child theme is written from the project, never read back.
+const PULL_TARGETS = [
+  {commandId: 'theme:version:pull', label: 'theme versions'},
+  {commandId: 'theme:style:pull', label: 'Global Styles'},
+]
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull installed themes from WordPress into loopress.json, pinned to their live versions'
+  static description = 'Pull everything theme related from WordPress: theme versions and Global Styles'
   static enableJsonFlag = true
-  static examples = ['$ lps theme pull']
+  static examples = ['$ lps theme pull', '$ lps theme pull --env staging', '$ lps theme pull --dry-run']
   static flags = {
     ...LoopressCommand.dryRunFlag,
   }
 
   async run(): Promise<PullResult> {
-    const {url} = this.siteConfig
+    const argv = ['--env', this.siteConfig.name]
+    if (this.dryRun) argv.push('--dry-run')
 
-    this.log(`Pulling themes from ${url}`)
-
-    const raw = await this.wp.get<WpNativeTheme[]>('wp/v2/themes')
-    const installed = parseInstalledThemes(raw)
-    const incoming = Object.fromEntries(installed.map((t) => [t.slug, t.version]))
-
-    // A composer.json is authoritative over loopress.json: pin the live versions there instead.
-    const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
-    if (existsSync(composerJsonPath)) {
-      const result = await pullIntoComposerJson(composerJsonPath, 'theme', incoming, {
-        dryRun: this.dryRun,
-        log: this.log.bind(this),
-      })
-      return {...result, status: this.dryRun ? 'dry-run' : 'success'}
+    const results: PullTargetResult[] = []
+    for (const target of PULL_TARGETS) {
+      this.log(`\n→ Pulling ${target.label}...`)
+      try {
+        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
+        this.log(`✓ ${target.label} pulled`)
+        results.push({label: target.label, status: 'pulled'})
+      } catch (error) {
+        const {message} = error as Error
+        this.log(`✗ ${target.label} failed: ${message}`)
+        results.push({error: message, label: target.label, status: 'failed'})
+      }
     }
 
-    const {added, merged, updated} = mergePluginManifest(this.localConfig.themes ?? {}, incoming)
-
-    if (this.dryRun) {
-      this.log(`[dry-run] Would write ${Object.keys(merged).length} themes to loopress.json`)
-      return {added, merged, status: 'dry-run', updated}
+    const failures = results.filter((result) => result.status === 'failed')
+    if (failures.length > 0) {
+      const reasons = failures.map((result) => `${result.label}: ${result.error}`)
+      this.error(`${pluralize(failures.length, 'theme resource')} failed to pull. ${reasons.join('; ')}`)
     }
 
-    await writeLocalConfig({...this.localConfig, themes: merged})
-    this.log(`Wrote ${Object.keys(merged).length} themes to loopress.json`)
-    if (added.length > 0) this.log(`  + Added: ${added.join(', ')}`)
-    for (const u of updated) this.log(`  ~ Updated: ${u.slug} ${u.from} → ${u.to}`)
-
-    return {added, merged, status: 'success', updated}
+    return {results}
   }
 }

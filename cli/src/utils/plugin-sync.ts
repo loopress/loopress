@@ -1,5 +1,5 @@
 // Shared helpers for driving the server-side `loopress/v1/composer/sync` endpoint, used by
-// `lps plugin push`, `lps theme push` and `lps composer push`. The endpoint runs Composer +
+// `lps plugin push`, `lps theme version push` and `lps composer push`. The endpoint runs Composer +
 // WPackagist inside WordPress; the CLI only ever sends intent (which slugs at which versions),
 // never a composer.json, so the plugin stays the single authority on that file's shape.
 

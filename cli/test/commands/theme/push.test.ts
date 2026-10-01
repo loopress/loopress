@@ -1,352 +1,102 @@
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 
+import Pull from '../../../src/commands/theme/pull.js'
 import Push from '../../../src/commands/theme/push.js'
-import {confirmUninstall} from '../../../src/lib/interactive.js'
-import {type EnvironmentConfig} from '../../../src/types/config.js'
-import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
-import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
+import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
-vi.mock('../../../src/lib/interactive.js', () => ({confirmUninstall: vi.fn().mockResolvedValue(true)}))
-
-const SYNC_OK = {composerJson: '{}', composerLock: null, message: 'ok', output: 'Nothing to install', removed: []}
-
 class TestPush extends Push {
-  protected override async guardProductionPush(): Promise<void> {}
-  protected override async recordDeployment(): Promise<void> {}
-
-  setup(config: LoopressLocalConfig, siteConfig: EnvironmentConfig) {
-    this.localConfig = config
-    this.siteConfig = siteConfig
-    this.dryRun = false
+  setup(dryRun: boolean, yes: boolean, themes?: Record<string, string>) {
+    this.dryRun = dryRun
+    this.yes = yes
+    this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
+    this.localConfig = {themes}
   }
 }
 
-function make(config: LoopressLocalConfig, argv: string[] = []) {
-  const cmd = new TestPush(argv, fakeOclifConfig)
-  cmd.setup(config, makeEnv('production', 'https://acme.com'))
-  const logs = silenceLogs(cmd)
-  const get = vi.fn()
-  const post = vi.fn().mockResolvedValue(SYNC_OK)
-  const lock404 = new Error('nf', {cause: {response: {statusCode: 404}}})
-  get.mockImplementation(async (path: string) => {
-    if (path === 'loopress/v1/composer/lock') throw lock404
-    return []
-  })
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post}
-  return {cmd, get, logs, post}
+class TestPull extends Pull {
+  setup() {
+    this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
+    this.localConfig = {}
+  }
 }
 
-const native = (slug: string, version = '1.0.0', status: 'active' | 'inactive' = 'inactive') => ({
-  status,
-  stylesheet: slug,
-  version,
-})
-
-function lockManaging(...slugs: string[]): string {
-  return JSON.stringify({packages: slugs.map((slug) => ({name: `wpackagist-theme/${slug}`}))})
+function makePush(options: {argv?: string[]; dryRun?: boolean; themes?: Record<string, string>; yes?: boolean} = {}) {
+  const cmd = new TestPush(options.argv ?? [], fakeOclifConfig)
+  cmd.setup(options.dryRun ?? false, options.yes ?? false, options.themes ?? {astra: '4.0.0'})
+  return {cmd, logs: silenceLogs(cmd)}
 }
 
 describe('theme push', () => {
-  let dir: string
-
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'lps-theme-push-test-'))
-    vi.spyOn(process, 'cwd').mockReturnValue(dir)
-    vi.mocked(confirmUninstall).mockReset().mockResolvedValue(true)
+    resetFakeOclifConfig()
+    vi.clearAllMocks()
   })
 
-  afterEach(() => {
-    rmSync(dir, {force: true, recursive: true})
-  })
-
-  it('bails out when the project uses a composer.json', async () => {
-    writeFileSync(join(dir, 'composer.json'), '{}')
-    const {cmd, get, logs} = make({themes: {astra: '4.0.0'}})
-
-    const result = await cmd.run()
-
-    expect(result.status).toBe('composer-managed')
-    expect(get).not.toHaveBeenCalled()
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps composer push'))
-  })
-
-  it('errors when loopress.json has no themes', async () => {
-    const {cmd} = make({})
-    await expect(cmd.run()).rejects.toThrow(/No themes found/)
-  })
-
-  it('reports in-sync and posts nothing when the manifest matches a managed site', async () => {
-    const {cmd, get, post} = make({themes: {astra: '4.0.0'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.0.0')],
-    )
-
-    const result = await cmd.run()
-
-    expect(result.status).toBe('in-sync')
-    expect(post).not.toHaveBeenCalled()
-  })
-
-  it('refuses to take over an unmanaged theme folder without --force', async () => {
-    const {cmd, get} = make({themes: {astra: '4.0.0'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('astra', '4.0.0')],
-    )
-
-    await expect(cmd.run()).rejects.toThrow(/--force/)
-  })
-
-  it('refuses a downgrade without --force', async () => {
-    const {cmd, get} = make({themes: {astra: '4.0.0'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.1.0')],
-    )
-
-    await expect(cmd.run()).rejects.toThrow(/downgrade/)
-  })
-
-  it("refuses to remove the site's active theme", async () => {
-    // astra is active, installed, and managed, but absent from the manifest: it lands in
-    // toRemove. generatepress is only there so the manifest isn't empty (a different error).
-    const {cmd, get} = make({themes: {generatepress: '3.4.0'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock'
-        ? {composerLock: lockManaging('astra', 'generatepress')}
-        : [native('astra', '4.0.0', 'active'), native('generatepress', '3.4.0')],
-    )
-
-    await expect(cmd.run()).rejects.toThrow(/active theme/)
-  })
-
-  it("refuses to force-take-over the site's active theme too", async () => {
-    const {cmd, get} = make({themes: {astra: '4.0.0'}}, ['--force'])
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('astra', '4.0.0', 'active')],
-    )
-
-    await expect(cmd.run()).rejects.toThrow(/active theme/)
-  })
-
-  it('sends the themes intent to /composer/sync on a real push', async () => {
-    const {cmd, post} = make({themes: {astra: '4.0.0', generatepress: '3.4.0'}})
+  it('pushes versions, then templates and parts, then Global Styles, --force only to versions', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = makePush({argv: ['--force'], dryRun: true})
 
     await cmd.run()
 
-    expect(post).toHaveBeenCalledWith(
-      'loopress/v1/composer/sync',
-      {force: false, intent: {themes: {astra: '4.0.0', generatepress: '3.4.0'}}, lock: null},
-      {timeoutMs: 600_000},
-    )
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls).toEqual([
+      ['theme:version:push', ['--env', 'staging', '--production-confirmed', '--dry-run', '--force']],
+      ['theme:template:push', ['--env', 'staging', '--production-confirmed', '--dry-run']],
+      ['theme:style:push', ['--env', 'staging', '--production-confirmed', '--dry-run']],
+    ])
   })
 
-  it('does not call the API on a dry run', async () => {
-    const {cmd, post} = make({themes: {astra: '4.0.0'}})
-    ;(cmd as unknown as {dryRun: boolean}).dryRun = true
-
-    const result = await cmd.run()
-
-    expect(post).not.toHaveBeenCalled()
-    expect(result.status).toBe('dry-run')
-    expect(result.installed).toEqual(['astra'])
-  })
-
-  it('aborts without pushing when the uninstall confirmation is declined', async () => {
-    vi.mocked(confirmUninstall).mockResolvedValueOnce(false)
-    // astra is managed and inactive but dropped from the manifest: it lands in toRemove
-    // without tripping the active-theme guard, so confirmUninstall is what's actually gating it.
-    const {cmd, get, post} = make({themes: {generatepress: '3.4.0'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock'
-        ? {composerLock: lockManaging('astra', 'generatepress')}
-        : [native('astra', '4.0.0', 'inactive'), native('generatepress', '3.4.0')],
-    )
-
-    await expect(cmd.run()).rejects.toThrow('Aborted.')
-    expect(post).not.toHaveBeenCalled()
-  })
-
-  it('includes collisions in "installed" only when pushing with --force', async () => {
-    const {cmd} = make({themes: {astra: '4.0.0'}}, ['--force'])
-
-    const result = await cmd.run()
-
-    expect(result.installed).toEqual(['astra'])
-  })
-
-  it('rejects with a clear message when the server rejects the push over an unmanaged collision', async () => {
-    const {cmd, post} = make({themes: {astra: '4.0.0'}}, ['--force'])
-    post.mockRejectedValue(
-      new Error('conflict', {
-        cause: {
-          response: {
-            body: JSON.stringify({collisions: [{slug: 'astra'}], error: 'unmanaged_plugins_present'}),
-            statusCode: 422,
-          },
-        },
-      }),
-    )
-
-    await expect(cmd.run()).rejects.toThrow(/--force/)
-  })
-
-  it('propagates a non-404 error fetching the instance lock', async () => {
-    const {cmd, get} = make({themes: {astra: '4.0.0'}})
-    get.mockImplementation(async (path: string) => {
-      if (path === 'loopress/v1/composer/lock') throw new Error('server error', {cause: {response: {statusCode: 500}}})
-      return []
-    })
-
-    await expect(cmd.run()).rejects.toThrow('server error')
-  })
-
-  it('still refreshes when only a "latest" pin exists (no other drift)', async () => {
-    const {cmd, get, logs, post} = make({themes: {astra: 'latest'}})
-    get.mockImplementation(async (path: string) =>
-      path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.0.0')],
-    )
+  it('forwards --yes only when the user passed it, so theme uninstalls still ask by default', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = makePush({yes: true})
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Refreshing themes pinned to "latest"'))
-    expect(post).toHaveBeenCalled()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:version:push', ['--env', 'staging', '--production-confirmed', '--yes'])
   })
 
-  describe('plan output and exact messages', () => {
-    function lines(logs: ReturnType<typeof silenceLogs>): string[] {
-      return logs.log.mock.calls.map(([line]) => String(line))
-    }
+  it('skips the versions step when loopress.json has no themes and there is no composer.json', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    vi.spyOn(process, 'cwd').mockReturnValue(mkdtempSync(join(tmpdir(), 'lps-theme-push-')))
+    const {cmd} = makePush({themes: {}})
 
-    it('logs every planned change, the trimmed sync output, then success', async () => {
-      const {cmd, get, logs, post} = make({themes: {astra: '4.1.0', kadence: '1.0.0', neve: '3.0.0'}}, ['--force'])
-      get.mockImplementation(async (path: string) =>
-        path === 'loopress/v1/composer/lock'
-          ? {composerLock: lockManaging('astra', 'twentytwenty')}
-          : [native('astra', '4.0.0'), native('twentytwenty'), native('neve', '3.0.0')],
-      )
-      // No `removed` in the response: falls back to the uninstalls the plan previewed.
-      post.mockResolvedValue({...SYNC_OK, output: '  done  \n', removed: undefined})
+    await cmd.run()
 
-      const result = await cmd.run()
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['theme:template:push', 'theme:style:push'])
+  })
 
-      expect(lines(logs)).toEqual([
-        'Pushing themes to https://acme.com',
-        '  + kadence 1.0.0',
-        '  ~ astra 4.0.0 to 4.1.0',
-        '  - twentytwenty',
-        '  ! neve (take over)',
-        'done',
-        'Themes synced.',
-      ])
-      expect(result).toEqual({
-        installed: ['kadence', 'neve'],
-        pinned: ['astra'],
-        removed: ['twentytwenty'],
-        status: 'success',
-      })
-    })
+  it('continues past a failed step and reports it', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({})
+    const {cmd, logs} = makePush()
 
-    it('does not log an empty sync output', async () => {
-      const {cmd, logs, post} = make({themes: {astra: '4.0.0'}})
-      post.mockResolvedValue({...SYNC_OK, output: '  '})
+    await expect(cmd.run()).rejects.toThrow('1 theme resource failed to push. theme versions: boom')
 
-      await cmd.run()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(3)
+    expect(logs.log).toHaveBeenCalledWith('✓ Global Styles pushed')
+  })
+})
 
-      expect(lines(logs)).not.toContain('')
-      expect(lines(logs)).toContain('Themes synced.')
-    })
+describe('theme pull', () => {
+  beforeEach(() => {
+    resetFakeOclifConfig()
+    vi.clearAllMocks()
+  })
 
-    it('says everything is in sync without the "latest" refresh line when there is nothing to do', async () => {
-      const {cmd, get, logs, post} = make({themes: {astra: '4.0.0'}})
-      get.mockImplementation(async (path: string) =>
-        path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.0.0')],
-      )
+  it('pulls versions then Global Styles', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const cmd = new TestPull([], fakeOclifConfig)
+    cmd.setup()
+    silenceLogs(cmd)
 
-      const result = await cmd.run()
+    const result = await cmd.run()
 
-      expect(lines(logs)).toContain('Everything is already in sync.')
-      expect(post).not.toHaveBeenCalled()
-      expect(result).toEqual({installed: [], pinned: [], removed: [], status: 'in-sync'})
-    })
-
-    it('does not log the "latest" refresh line when there is real drift to push', async () => {
-      const {cmd, logs} = make({themes: {astra: 'latest', kadence: '1.0.0'}})
-
-      await cmd.run()
-
-      expect(lines(logs)).not.toContain('Refreshing themes pinned to "latest" to their newest releases.')
-    })
-
-    it('names every colliding theme and its version in the refusal', async () => {
-      const {cmd, get} = make({themes: {astra: '4.0.0'}})
-      get.mockImplementation(async (path: string) =>
-        path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging()} : [native('astra', '3.9.0')],
-      )
-
-      await expect(cmd.run()).rejects.toThrow(
-        'astra (3.9.0) installed outside Loopress. Re-run with --force to take them over, or remove them from loopress.json.',
-      )
-    })
-
-    it('names the downgrade in the refusal, and lets it through with --force', async () => {
-      const refused = make({themes: {astra: '4.0.0'}})
-      const forced = make({themes: {astra: '4.0.0'}}, ['--force'])
-      for (const {get} of [refused, forced]) {
-        get.mockImplementation(async (path: string) =>
-          path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.1.0')],
-        )
-      }
-
-      await expect(refused.cmd.run()).rejects.toThrow(
-        'Refusing to downgrade: astra 4.1.0 to 4.0.0. Re-run with --force.',
-      )
-      await forced.cmd.run()
-      expect(forced.post).toHaveBeenCalledWith(
-        'loopress/v1/composer/sync',
-        {force: true, intent: {themes: {astra: '4.0.0'}}, lock: null},
-        {timeoutMs: 600_000},
-      )
-    })
-
-    it('names the active theme it refuses to remove', async () => {
-      const {cmd, get} = make({themes: {astra: '4.0.0'}})
-      get.mockImplementation(async (path: string) =>
-        path === 'loopress/v1/composer/lock'
-          ? {composerLock: lockManaging('astra', 'twentytwenty')}
-          : [native('astra', '4.0.0'), native('twentytwenty', '1.0.0', 'active')],
-      )
-
-      await expect(cmd.run()).rejects.toThrow(
-        'Refusing to uninstall "twentytwenty": it is the site\'s active theme. Switch the site to another theme, then re-run to remove it.',
-      )
-    })
-
-    it('uses the exact collision refusal message from the server', async () => {
-      const {cmd, post} = make({themes: {astra: '4.0.0'}})
-      post.mockRejectedValue(
-        new Error('conflict', {
-          cause: {
-            response: {
-              body: JSON.stringify({collisions: [{slug: 'astra'}], error: 'unmanaged_plugins_present'}),
-              statusCode: 422,
-            },
-          },
-        }),
-      )
-
-      await expect(cmd.run()).rejects.toThrow(
-        'The site rejected the push: themes installed outside Loopress. Re-run with --force.',
-      )
-    })
-
-    it('rethrows any other sync failure unchanged', async () => {
-      const {cmd, post} = make({themes: {astra: '4.0.0'}})
-      post.mockRejectedValue(new Error('composer blew up'))
-
-      await expect(cmd.run()).rejects.toThrow('composer blew up')
-    })
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls).toEqual([
+      ['theme:version:pull', ['--env', 'staging']],
+      ['theme:style:pull', ['--env', 'staging']],
+    ])
+    expect(result.results.every((entry) => entry.status === 'pulled')).toBe(true)
   })
 })

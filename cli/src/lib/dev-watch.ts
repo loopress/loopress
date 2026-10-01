@@ -31,8 +31,8 @@ export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLo
     hooks: {commandId: 'hook:push', path: join(rootDir, localConfig.hooksDir ?? 'hooks'), type: 'hooks'},
     pages: {commandId: 'page:push', path: join(rootDir, localConfig.pageDir ?? 'pages'), type: 'pages'},
     plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},
-    parts: {commandId: 'template:push', path: join(rootDir, localConfig.partDir ?? 'parts'), type: 'parts'},
-    templates: {commandId: 'template:push', path: join(rootDir, localConfig.templateDir ?? 'templates'), type: 'templates'},
+    parts: {commandId: 'theme:template:push', path: join(rootDir, localConfig.partDir ?? 'parts'), type: 'parts'},
+    templates: {commandId: 'theme:template:push', path: join(rootDir, localConfig.templateDir ?? 'templates'), type: 'templates'},
     snippets: {commandId: 'snippet:push', path: join(rootDir, localConfig.snippetsDir ?? 'snippets'), type: 'snippets'},
   }
 

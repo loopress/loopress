@@ -8,6 +8,8 @@ import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 type HtmlResource = {
+  // The CLI topic: templates live under `lps theme template`.
+  command: string[]
   descriptions: {diff: string; list: string; push: string}
   kind: 'page' | 'template'
   // Pages push one by slug; templates and parts always push whole (the child theme mirrors them).
@@ -17,6 +19,7 @@ type HtmlResource = {
 // Pages and block templates share one shape: flat folders of <slug>.html files.
 const RESOURCES: HtmlResource[] = [
   {
+    command: ['page'],
     descriptions: {
       diff: 'Show what differs (HTML, title, status) between the local pages/ directory and the static pages on WordPress.',
       list: 'List the static pages managed by Loopress on WordPress (slug, status, URL).',
@@ -26,6 +29,7 @@ const RESOURCES: HtmlResource[] = [
     slugExample: 'legal-notice',
   },
   {
+    command: ['theme', 'template'],
     descriptions: {
       diff: 'Show what differs between the local templates/ and parts/ directories and the Loopress child theme on WordPress, including templates and parts edited in the Site Editor.',
       list: 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor.',
@@ -37,7 +41,7 @@ const RESOURCES: HtmlResource[] = [
 
 // Not registerResourceTools: no directory path argument, no pull yet, and both have a diff tool.
 export function registerPageTools(server: McpServer): void {
-  for (const {descriptions, kind, slugExample} of RESOURCES) {
+  for (const {command, descriptions, kind, slugExample} of RESOURCES) {
     server.registerTool(
       `${kind}_push`,
       {
@@ -58,19 +62,19 @@ export function registerPageTools(server: McpServer): void {
         },
       },
       async ({confirmToken, env, slug}: {confirmToken?: string; env?: string; slug?: string}) =>
-        toCallToolResult(await runMutatingTool(`${kind}_push`, buildArgs(slug ? [kind, 'push', slug] : [kind, 'push'], {env}), confirmToken)),
+        toCallToolResult(await runMutatingTool(`${kind}_push`, buildArgs(slug ? [...command, 'push', slug] : [...command, 'push'], {env}), confirmToken)),
     )
 
     server.registerTool(
       `${kind}_list`,
       {description: descriptions.list, inputSchema: {env: envFlag}},
-      async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([kind, 'list'], {env})))),
+      async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([...command, 'list'], {env})))),
     )
 
     server.registerTool(
       `${kind}_diff`,
       {description: descriptions.diff, inputSchema: {env: envFlag}},
-      async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([kind, 'diff'], {env})))),
+      async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([...command, 'diff'], {env})))),
     )
   }
 }
