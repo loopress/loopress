@@ -204,7 +204,6 @@ describe('plugins', () => {
   describe('edge cases', () => {
     it.each([
       ['https://wordpress.org/plugins/hello-dolly', 'hello-dolly'],
-      ['https://wordpress.org/plugins/hello-dolly', 'hello-dolly'],
       ['https://wordpress.org/plugins/hello-dolly/extra/', 'hello'],
       ['https://example.com/?u=https://wordpress.org/plugins/hello-dolly/', 'hello'],
       ['https://wordpress.org/plugins/hello-dolly/ ', 'hello'],

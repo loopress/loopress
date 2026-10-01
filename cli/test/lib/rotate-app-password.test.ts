@@ -7,7 +7,7 @@ import {isAppPasswordStale, rotateAppPassword} from '../../src/lib/rotate-app-pa
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
 const OLD_TOKEN = 'user:old-pass'
-// eslint-disable-next-line sonarjs/no-hardcoded-passwords -- mock credential fixture, not a real secret
+ 
 const NEW_TOKEN_PASSWORD = 'new-pass-123'
 const NEW_TOKEN = `user:${NEW_TOKEN_PASSWORD}`
 const OLD_UUID = 'old-uuid'
