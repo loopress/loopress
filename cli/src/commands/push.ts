@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {isLocalEnvironment} from '../lib/wp-client.js'
 import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {pluralize} from '../utils/pluralize.js'
 
@@ -102,7 +103,7 @@ export default class Push extends LoopressCommand {
     if (!existsSync(path)) return false
     try {
       const composerJson = JSON.parse(await readFile(path, 'utf8')) as ComposerJson
-      return Object.keys(wpackagistRequire(composerJson, 'plugin')).length > 0
+      return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig.name))).length > 0
     } catch {
       // Unreadable: let both commands run and report the parse error themselves.
       return false

@@ -5,7 +5,7 @@ import {join} from 'node:path'
 
 import {confirmUninstall} from '../../lib/interactive.js'
 import {PushCommand} from '../../lib/push-command.js'
-import {isNotFoundError} from '../../lib/wp-client.js'
+import {isLocalEnvironment, isNotFoundError} from '../../lib/wp-client.js'
 import {
   type InstalledPlugin,
   pinActive,
@@ -14,7 +14,7 @@ import {
   type PluginManifest,
   type WpNativePlugin,
 } from '../../types/plugin.js'
-import {type ComposerJson, toIntent, wpackagistRequire} from '../../utils/composer.js'
+import {type ComposerJson, requireToInstall, toIntent, wpackagistRequire} from '../../utils/composer.js'
 import {
   isDowngrade,
   parseCollisions,
@@ -249,14 +249,15 @@ export default class Push extends PushCommand {
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
     if (existsSync(composerJsonPath)) {
       const composerJson = JSON.parse(await readFile(composerJsonPath, 'utf8')) as ComposerJson
-      const manifest = wpackagistRequire(composerJson, 'plugin')
+      const includeDev = isLocalEnvironment(this.siteConfig.name)
+      const manifest = wpackagistRequire(composerJson, 'plugin', includeDev)
       if (Object.keys(manifest).length === 0) {
         this.error(
           'No wpackagist-plugin/* package in composer.json. Run `lps plugin pull` first, or `lps composer push` to push it as is.',
         )
       }
 
-      const require = composerJson.require ?? {}
+      const require = requireToInstall(composerJson, includeDev)
       return {file: 'composer.json', intent: toIntent(require), manifest, packageCount: Object.keys(require).length}
     }
 

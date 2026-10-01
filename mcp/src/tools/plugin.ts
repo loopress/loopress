@@ -53,11 +53,19 @@ export function registerPluginTools(server: McpServer): void {
     'plugin_pull',
     {
       description:
-        'Pull installed plugins from WordPress into loopress.json, pinned to their live versions with their active state. ' +
+        'Refresh the plugins this project already tracks from WordPress into loopress.json, pinned to their live versions ' +
+        'with their active state. Other installed plugins are listed as `untracked` and left out unless named in `plugins`. ' +
         'With a composer.json, pins them there instead (constraints kept, plugins not on WordPress.org skipped).',
-      inputSchema: {env: envFlag},
+      inputSchema: {
+        env: envFlag,
+        plugins: z.array(z.string()).optional().describe('Installed plugin slugs to start tracking too'),
+      },
     },
-    async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['plugin', 'pull'], {env})))),
+    async ({env, plugins}) => {
+      const args = buildArgs(['plugin', 'pull'], {env})
+      for (const slug of plugins ?? []) args.push('--plugin', slug)
+      return toCallToolResult(unwrap(await runLps(args)))
+    },
   )
 
   server.registerTool(

@@ -25,9 +25,9 @@ class TestPush extends Push {
   }
 }
 
-function make(config: LoopressLocalConfig, argv: string[] = []) {
+function make(config: LoopressLocalConfig, argv: string[] = [], envName = 'production') {
   const cmd = new TestPush(argv, fakeOclifConfig)
-  cmd.setup(config, makeEnv('production', 'https://acme.com'))
+  cmd.setup(config, makeEnv(envName, 'https://acme.com'))
   const logs = silenceLogs(cmd)
   const get = vi.fn()
   const post = vi.fn().mockResolvedValue(SYNC_OK)
@@ -150,6 +150,21 @@ describe('plugin push', () => {
       expect(result.activated).toEqual(['woocommerce'])
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('pushed whole (5 packages)'))
       expect(logs.log).toHaveBeenCalledWith('2 plugin(s) from composer.json are inactive: hello-dolly, akismet.')
+    })
+
+    // Query Monitor on the developer's machine, never on a remote site.
+    it.each([
+      ['production', undefined],
+      ['local', '^3.0'],
+    ])('sends require-dev plugins to the local environment only (%s)', async (envName, queryMonitor) => {
+      writeFileSync(join(dir, 'composer.json'), JSON.stringify({...composerJson, 'require-dev': {'wpackagist-plugin/query-monitor': '^3.0'}}))
+      const {cmd, get, post} = make({}, [], envName)
+      site({get, post}, {after, before, locked: ['hello-dolly', 'woocommerce']})
+
+      await cmd.run()
+
+      const {intent} = post.mock.calls[0][1] as {intent: {plugins: Record<string, string>}}
+      expect(intent.plugins['query-monitor']).toBe(queryMonitor)
     })
 
     it('activates every plugin it declares with --activate', async () => {

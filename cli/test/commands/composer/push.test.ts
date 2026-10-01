@@ -24,9 +24,9 @@ class TestComposerPush extends ComposerPush {
   }
 }
 
-function make(dryRun: boolean, argv: string[] = []) {
+function make(dryRun: boolean, argv: string[] = [], envName = 'production') {
   const cmd = new TestComposerPush(argv, fakeOclifConfig)
-  cmd.setup({dryRun, siteConfig: makeEnv('production', 'https://acme.com')})
+  cmd.setup({dryRun, siteConfig: makeEnv(envName, 'https://acme.com')})
   const logs = silenceLogs(cmd)
   const post = vi.fn().mockResolvedValue(OK)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {post}
@@ -92,6 +92,21 @@ describe('composer push', () => {
       {timeoutMs: 600_000},
     )
     expect(cmd.deployments).toEqual(['success'])
+  })
+
+  it.each([
+    ['production', {akismet: '^5.3'}],
+    ['local', {akismet: '^5.3', 'query-monitor': '^3.0'}],
+  ])('sends require-dev to the local environment only (%s)', async (envName, plugins) => {
+    writeFileSync(
+      join(dir, 'composer.json'),
+      JSON.stringify({require: {'wpackagist-plugin/akismet': '^5.3'}, 'require-dev': {'wpackagist-plugin/query-monitor': '^3.0'}}),
+    )
+    const {cmd, post} = make(false, [], envName)
+
+    await cmd.run()
+
+    expect(post.mock.calls[0][1]).toMatchObject({intent: {plugins}})
   })
 
   it('sends lock: null when composer.lock is missing', async () => {

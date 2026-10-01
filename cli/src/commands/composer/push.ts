@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
-import {isTimeoutError} from '../../lib/wp-client.js'
-import {type ComposerJson, toIntent} from '../../utils/composer.js'
+import {isLocalEnvironment, isTimeoutError} from '../../lib/wp-client.js'
+import {type ComposerJson, requireToInstall, toIntent} from '../../utils/composer.js'
 import {
   type LockDriftEntry,
   parseCollisions,
@@ -43,7 +43,7 @@ export default class ComposerPush extends PushCommand {
     }
 
     const parsed = JSON.parse(await readFile(composerJsonPath, 'utf8')) as ComposerJson
-    const require = parsed.require ?? {}
+    const require = requireToInstall(parsed, isLocalEnvironment(this.siteConfig.name))
     const packageCount = Object.keys(require).length
     const intent = toIntent(require)
 

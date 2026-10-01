@@ -93,7 +93,7 @@ The server communicates over stdio from the directory your client launches it in
 | `form_rollback` | Yes | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
 | `plugin_add` | No | Add a WordPress.org plugin to `loopress.json`, or change its pinned version (local file only) |
 | `plugin_push` | Yes | Install/pin WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
-| `plugin_pull` | No | Pull installed plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions |
+| `plugin_pull` | No | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
 | `plugin_status` | No | Report drift between the plugins on WordPress and `loopress.json` |
 | `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
