@@ -21,6 +21,8 @@ class RankMathServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // PostByPath's post_name fallback: no match unless a test says otherwise.
+        Functions\when('get_posts')->justReturn([]);
         // getPostMeta()/getSettings()'s revision hash goes through wp_json_encode(), unavailable
         // outside a real WordPress load; a plain json_encode() delegate does the same thing here.
         Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));

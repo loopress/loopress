@@ -28,6 +28,11 @@ class MenuServiceTest extends TestCase
         // WordPress load; a plain json_encode() delegate is exactly what it does for the
         // already-JSON-safe menu data reaching this point.
         Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
+        // PostByPath: a top-level page's path is its slug, and no post_name fallback matches
+        // unless a test says otherwise.
+        Functions\when('is_post_type_hierarchical')->alias(static fn (string $type): bool => $type === 'page');
+        Functions\when('get_page_uri')->alias(static fn (WP_Post $post): string => $post->post_name);
+        Functions\when('get_posts')->justReturn([]);
     }
 
     protected function tearDown(): void
@@ -75,6 +80,28 @@ class MenuServiceTest extends TestCase
         $this->assertCount(1, $menu['items'][0]['children']);
         $this->assertSame('page', $menu['items'][0]['children'][0]['object']);
         $this->assertSame('about', $menu['items'][0]['children'][0]['objectSlug']);
+    }
+
+    // Written as the full path, so a push can resolve the child page (get_page_by_path() alone
+    // misses a bare `profile`).
+    public function test_get_menu_exports_a_child_page_by_its_full_path(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'account', 'Account'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, 'Profile', '', 1)]);
+        $this->stubItemMeta([
+            1 => [
+                '_menu_item_type'             => 'post_type',
+                '_menu_item_object'           => 'page',
+                '_menu_item_object_id'        => '7',
+                '_menu_item_menu_item_parent' => '0',
+            ],
+        ]);
+        Functions\when('get_post')->justReturn($this->fakePost(7, 'profile', 'Profile', 'page'));
+        Functions\when('get_page_uri')->justReturn('account/profile');
+
+        $menu = $this->service->getMenu('account');
+
+        $this->assertSame('account/profile', $menu['items'][0]['objectSlug']);
     }
 
     public function test_get_menu_skips_a_dangling_post_type_item_and_warns(): void
