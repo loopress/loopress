@@ -12,15 +12,15 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
-    "@astrojs/starlight": "^0.42.0",
+    "@astrojs/starlight": "^0.42.4",
     "@loopress/assets": "workspace:*",
     "@vercel/analytics": "^2.0.1",
-    "astro": "^7.3.2",
+    "astro": "^7.3.5",
     "astro-indexnow": "^2.3.10",
-    "sharp": "^0.35.4",
-    "starlight-blog": "^0.29.0",
+    "sharp": "^0.35.5",
+    "starlight-blog": "^0.30.0",
     "starlight-image-zoom": "^0.16.0",
-    "starlight-llms-txt": "^0.11.0",
+    "starlight-llms-txt": "^0.12.0",
     "starlight-sidebar-topics": "^0.9.0"
   }
 }
