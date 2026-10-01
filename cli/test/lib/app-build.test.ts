@@ -15,7 +15,8 @@ describe('app-build', () => {
   })
 
   afterEach(() => {
-    rmSync(dir, {force: true, recursive: true})
+    // Windows keeps the directory locked a moment after the spawned build exits (EBUSY).
+    rmSync(dir, {force: true, maxRetries: 5, recursive: true})
   })
 
   describe('detectPackageManager', () => {
@@ -42,6 +43,9 @@ describe('app-build', () => {
   })
 
   describe('buildApp', () => {
+    // These spawn a real npm: a cold start alone can pass vitest's 5 s default on a Windows runner.
+    const SPAWN_TIMEOUT_MS = 30_000
+
     const writePackage = (scripts: Record<string, string>) => {
       writeFileSync(join(dir, 'package.json'), JSON.stringify({packageManager: 'npm@10.0.0', scripts}))
     }
@@ -60,12 +64,12 @@ describe('app-build', () => {
 
       expect(await buildApp(dir)).toBe('npm run build')
       expect(existsSync(join(dir, 'built'))).toBe(true)
-    })
+    }, SPAWN_TIMEOUT_MS)
 
     it('fails with the build output and an install hint', async () => {
       writePackage({build: 'node -e "console.error(\'boom\'); process.exit(3)"'})
 
       await expect(buildApp(dir)).rejects.toThrow(/`npm run build` failed[\s\S]*boom[\s\S]*run `npm install`/)
-    })
+    }, SPAWN_TIMEOUT_MS)
   })
 })
