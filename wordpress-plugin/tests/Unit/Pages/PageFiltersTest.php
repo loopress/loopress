@@ -113,7 +113,7 @@ class PageFiltersTest extends TestCase
 
         $this->assertStringContainsString('body.page-id-5 .wp-block-post-content { --wp--style--global--content-size: none;', $css);
         $this->assertStringContainsString(
-            'body.page-id-5 .has-global-padding:has(.wp-block-post-content) { --wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }',
+            'body.page-id-5 .has-global-padding:has(.wp-block-post-content):not(:has(.wp-block-template-part)) { --wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }',
             $css,
         );
         $this->assertStringNotContainsString('wp-block-post-title', $css);
