@@ -168,6 +168,15 @@ class PageFilters
             // the true edge.
             $rules[] = "{$selector} .wp-block-post-content { --wp--style--global--content-size: none; --wp--style--global--wide-size: none; "
                 . '--wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }';
+            // The gutter is also on the template's own wrappers around the content (Twenty
+            // Twenty-Five's page.html: <main> and a group, both .has-global-padding), which the
+            // rule above can't reach from below. :has() picks those ancestors on any block theme.
+            // A wrapper that also holds a template part (a group around header, content and
+            // footer) is skipped: the custom properties would inherit into the header and footer.
+            // Horizontal only: the template's vertical spacing is its own design, a custom page
+            // template is the way to drop it.
+            $rules[] = "{$selector} .has-global-padding:has(.wp-block-post-content):not(:has(.wp-block-template-part)) { "
+                . '--wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }';
         }
 
         if ($hideTitle) {

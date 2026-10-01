@@ -7,6 +7,14 @@ export const PAGES_ENDPOINT = 'loopress/v1/pages'
 // sanitize_title() would rewrite those, and the page would no longer match its file name.
 export const PAGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+// Which file names a flat `<slug>.html` folder accepts, and what to say when one doesn't match.
+export type SlugRule = {message: string; pattern: RegExp}
+
+const PAGE_SLUG_RULE: SlugRule = {
+  message: 'the file name must be lowercase letters and digits separated by single hyphens (e.g. "legal-notice.html")',
+  pattern: PAGE_SLUG_PATTERN,
+}
+
 export const PAGE_STATUSES = ['draft', 'publish'] as const
 export type PageStatus = (typeof PAGE_STATUSES)[number]
 
@@ -115,6 +123,7 @@ export async function readLocalPages(dir: string): Promise<{pages: Page[]; probl
 export async function readLocalHtmlFiles<T>(
   dir: string,
   parse: (slug: string, raw: string) => T,
+  slugRule: SlugRule = PAGE_SLUG_RULE,
 ): Promise<{files: T[]; problems: PageProblem[]}> {
   let entries
   try {
@@ -143,8 +152,8 @@ export async function readLocalHtmlFiles<T>(
     }
 
     const slug = basename(entry.name, '.html')
-    if (!PAGE_SLUG_PATTERN.test(slug)) {
-      problems.push({file: filePath, message: 'the file name must be lowercase letters and digits separated by single hyphens (e.g. "legal-notice.html")'})
+    if (!slugRule.pattern.test(slug)) {
+      problems.push({file: filePath, message: slugRule.message})
       continue
     }
 

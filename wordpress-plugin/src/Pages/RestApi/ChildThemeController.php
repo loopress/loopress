@@ -35,8 +35,9 @@ class ChildThemeController
     // can't tell the entries Loopress wrote from the parent's ones it copies in (see themeJson()).
     public const MANIFEST = 'loopress-manifest.json';
 
-    // Mirrored in cli/src/utils/template-format.ts, same rule as a page slug.
-    private const SLUG_PATTERN = '^[a-z0-9]+(-[a-z0-9]+)*$';
+    // Mirrored in cli/src/utils/template-format.ts. sanitize_key()'s charset, not a page slug's:
+    // the template hierarchy embeds post type and taxonomy slugs as is (taxonomy-download_tag).
+    private const SLUG_PATTERN = '^[a-z0-9_-]+$';
 
     private const SIZE_FILTER_SUBJECT = 'templates';
 

@@ -68,6 +68,22 @@ describe('readLocalTemplates', () => {
     expect(result.problems).toHaveLength(2)
   })
 
+  it('accepts the "_" of post type and taxonomy slugs, still refuses uppercase and spaces', async () => {
+    writeFileSync(join(dir, 'templates', 'taxonomy-download_tag.html'), '<p/>')
+    writeFileSync(join(dir, 'parts', 'my_header.html'), '<p/>')
+    writeFileSync(join(dir, 'templates', 'Single.html'), '<p/>')
+    writeFileSync(join(dir, 'templates', 'my page.html'), '<p/>')
+
+    const result = await readLocalTemplates(join(dir, 'templates'), join(dir, 'parts'))
+
+    expect(result.templates.map((template) => template.slug)).toEqual(['taxonomy-download_tag'])
+    expect(result.parts.map((part) => part.slug)).toEqual(['my_header'])
+    expect(result.problems.map((problem) => problem.message)).toEqual([
+      'the file name must be lowercase letters, digits, "_" and "-" (e.g. "taxonomy-download_tag.html")',
+      'the file name must be lowercase letters, digits, "_" and "-" (e.g. "taxonomy-download_tag.html")',
+    ])
+  })
+
   it('treats missing directories as empty', async () => {
     expect(await readLocalTemplates(join(dir, 'nope'), join(dir, 'nope2'))).toEqual({parts: [], problems: [], templates: []})
   })

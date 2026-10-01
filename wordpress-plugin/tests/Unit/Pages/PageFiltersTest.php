@@ -97,4 +97,25 @@ class PageFiltersTest extends TestCase
         $this->assertSame(['loopress' => 'Managed by Loopress'], $this->filters->addPostState([], $managed));
         $this->assertSame([], $this->filters->addPostState([], $regular));
     }
+
+    public function test_full_width_also_drops_the_gutter_of_the_wrappers_around_the_content(): void
+    {
+        Functions\when('is_page')->justReturn(true);
+        Functions\when('get_queried_object_id')->justReturn(5);
+        Functions\when('get_post_meta')->alias(fn(int $id, string $key): string => match ($key) {
+            ManagedPage::MARKER_META, ManagedPage::FULL_WIDTH_META => '1',
+            default => '',
+        });
+
+        ob_start();
+        $this->filters->printPageStyles();
+        $css = (string) ob_get_clean();
+
+        $this->assertStringContainsString('body.page-id-5 .wp-block-post-content { --wp--style--global--content-size: none;', $css);
+        $this->assertStringContainsString(
+            'body.page-id-5 .has-global-padding:has(.wp-block-post-content):not(:has(.wp-block-template-part)) { --wp--style--root--padding-left: 0px; --wp--style--root--padding-right: 0px; }',
+            $css,
+        );
+        $this->assertStringNotContainsString('wp-block-post-title', $css);
+    }
 }

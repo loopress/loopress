@@ -32,7 +32,7 @@ The file may start with an HTML comment of `key: value` lines. It stays valid HT
 |-----|---------|-------------|
 | `title` | Derived from the slug (`legal-notice` → `Legal notice`) | The page title, used by the theme and in `<title>`. |
 | `status` | `draft` | `draft` or `publish`. Declarative: switching a published page back to `draft` unpublishes it on the next push. |
-| `full-width` | `false` | `true` or `false`. On a block theme, drops the theme's max-width/side-padding for this page's content only (header and footer keep theirs). Silent no-op on a classic (non-block) theme. |
+| `full-width` | `false` | `true` or `false`. On a block theme, drops the theme's max-width and side padding for this page's content only, including the padding of the template's own wrappers around it (header and footer keep theirs). Horizontal only: the space the template leaves above and below the content stays, use your own [page template](#templates-and-parts) to remove it. Silent no-op on a classic (non-block) theme. |
 | `hide-title` | `false` | `true` or `false`. Hides the theme's own page title block, useful when your HTML already has its own heading. Same block-theme-only scope as `full-width`. |
 | `template` | Theme default | A template slug the active theme offers for pages: one it ships (a block theme's `templates/<slug>.html`, or a classic theme's `page-<slug>.php`), or one of your own [templates](#templates-and-parts). WordPress refuses an unknown slug, and the push of that page fails with `Invalid page template`. |
 
@@ -54,7 +54,7 @@ templates/bare-landing.html  → twentytwentyfive-loopress/templates/bare-landin
 parts/header.html            → twentytwentyfive-loopress/parts/header.html
 ```
 
-- **Any template of the [template hierarchy](https://developer.wordpress.org/themes/templates/template-hierarchy/)**: `single`, `single-post`, `archive`, `category-news`, `page-no-title`... Loopress doesn't validate the name, WordPress resolves it. Override a parent template by using its name, or add your own.
+- **Any template of the [template hierarchy](https://developer.wordpress.org/themes/templates/template-hierarchy/)**: `single`, `single-post`, `archive`, `category-news`, `taxonomy-download_tag`, `page-no-title`... WordPress resolves the name. Override a parent template by using its name, or add your own.
 - **Your own page templates**: a template with a header becomes a custom template a page can pick with its `template` header:
 
   ```html
@@ -83,9 +83,24 @@ parts/header.html            → twentytwentyfive-loopress/parts/header.html
 - **The child mirrors the project.** Every push rewrites it whole: a file you delete locally is removed from the child, and the parent's version comes back.
 - **Loopress never activates the child.** Switching themes moves every per-theme setting (menu locations, logo, widgets, Global Styles), so it stays your call: activate it once in **Appearance > Themes**. Until then, the push warns that nothing changed on the site.
 - **Edits made in the Site Editor** are saved by WordPress in the database, and that copy wins over the child's file. They're never overwritten: `lps theme template diff` and `lps diff` report them as drift (`siteEditor: "customized"`), and `lps theme template push` warns about them. Use **Clear customizations** in **Appearance > Editor** to go back to the pushed file.
+- **Shortcodes don't see the posts of a Query Loop.** WordPress runs every shortcode of a template once, on the whole file, before it renders any block. A `[price]` inside a `wp:post-template` is replaced before the loop exists, so it shows the value of the page's own post for every item. For a value per item, use a [block binding](https://developer.wordpress.org/block-editor/reference-guides/block-api/block-bindings/) (WordPress 6.5+) registered in a [hook](/hooks/), with `uses_context` so it receives each item's `postId`:
+
+  ```php
+  register_block_bindings_source('my/price', [
+      'label'              => 'Price',
+      'uses_context'       => ['postId'],
+      'get_value_callback' => fn(array $args, WP_Block $block) => my_price($block->context['postId']),
+  ]);
+  ```
+
+  ```html
+  <!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"my/price"}}}} --><p></p><!-- /wp:paragraph -->
+  ```
+
+  Dynamic blocks that read the current post when they render work in a loop as they are.
 - Requires a block theme as the active theme (or the Loopress child itself). Another child theme can't be extended, WordPress has no grandchild themes.
 
-Same file name rules as pages. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/cli/init/#fields-reference) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
+File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/cli/init/#fields-reference) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
 
 ## Commands
 

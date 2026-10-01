@@ -30,13 +30,12 @@ jobs:
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v2
         with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          runtime: node@22
+          cache: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/cli...
@@ -61,13 +60,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v2
         with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          runtime: node@22
+          cache: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/mcp...
@@ -88,13 +86,11 @@ jobs:
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v2
         with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          runtime: node@22
+          cache: true
 
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
@@ -259,13 +255,11 @@ jobs:
           # (e.g. `pnpm install` running third-party postinstall scripts) to read.
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v2
         with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          runtime: node@22
+          cache: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
@@ -286,13 +280,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 #v6.0.9 v4
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0 v4
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v2
         with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          runtime: node@22
+          cache: true
 
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:

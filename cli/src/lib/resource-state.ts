@@ -17,7 +17,7 @@ import {
   type SeoRedirect,
 } from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
-import {CHILD_THEME_ENDPOINT, type ChildTheme, parsePartFile, parseTemplateFile, type Part, type Template} from '../utils/template-format.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme, parsePartFile, parseTemplateFile, type Part, type Template, TEMPLATE_SLUG_RULE} from '../utils/template-format.js'
 import {
   canonicalGlobalStyles,
   getActiveThemeGlobalStyles,
@@ -310,7 +310,7 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
 const templateProvider: ResourceStateProvider = {
   dirKind: 'template',
   async local(dir) {
-    const {files, problems} = await readLocalHtmlFiles(dir, parseTemplateFile)
+    const {files, problems} = await readLocalHtmlFiles(dir, parseTemplateFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
     return new Map(files.map(({slug, ...rest}) => [slug, rest]))
   },
@@ -322,7 +322,7 @@ const templateProvider: ResourceStateProvider = {
 const partProvider: ResourceStateProvider = {
   dirKind: 'part',
   async local(dir) {
-    const {files, problems} = await readLocalHtmlFiles(dir, parsePartFile)
+    const {files, problems} = await readLocalHtmlFiles(dir, parsePartFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
     return new Map(files.map(({slug, ...rest}) => [slug, rest]))
   },

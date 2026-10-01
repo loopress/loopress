@@ -1,3 +1,5 @@
+import {settings} from '@oclif/core'
+import {RequestError} from 'got'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {configManager} from '../../src/config/project-config.manager.js'
@@ -80,5 +82,51 @@ describe('finally hook', () => {
     await done
 
     expect(debug).toHaveBeenCalledWith('Failed to report error to Sentry: %O', failure)
+  })
+
+  describe('the got error behind a request failure', () => {
+    // Built without a request: got's constructor needs one, the hook only checks the class.
+    const gotError = () => Object.assign(Object.create(RequestError.prototype) as RequestError, {message: 'Request failed with status code 409', name: 'HTTPError'})
+
+    afterEach(() => {
+      settings.debug = false
+    })
+
+    it('is dropped from the printed chain, after Sentry got the whole of it', async () => {
+      let causeSeenBySentry: unknown
+      sentry.captureException.mockImplementation((error: Error) => {
+        causeSeenBySentry = error.cause
+      })
+      const cause = gotError()
+      const error = new Error('Request failed (409) on https://site/wp-json/loopress/v1/child-theme: The active theme is not a block theme.', {cause})
+
+      await runHook({error}).done
+
+      expect(causeSeenBySentry).toBe(cause)
+      expect(error.cause).toBeUndefined()
+    })
+
+    it('is dropped deeper in the chain, the wrapping causes stay', async () => {
+      vi.mocked(configManager.isTelemetryDisabled).mockReturnValue(true)
+      const request = new Error('Request failed (409) on https://site: nope', {cause: gotError()})
+      const error = new Error('Failed to remove the temporary admin account', {cause: request})
+
+      await runHook({error}).done
+
+      expect(error.cause).toBe(request)
+      expect(request.cause).toBeUndefined()
+    })
+
+    it('stays with DEBUG, and any other cause always stays', async () => {
+      vi.mocked(configManager.isTelemetryDisabled).mockReturnValue(true)
+      const plain = new Error('install failed', {cause: new Error('zip missing')})
+      await runHook({error: plain}).done
+      expect(plain.cause).toEqual(new Error('zip missing'))
+
+      settings.debug = true
+      const debugged = new Error('Request failed (409)', {cause: gotError()})
+      await runHook({error: debugged}).done
+      expect(debugged.cause).toBeInstanceOf(RequestError)
+    })
   })
 })
