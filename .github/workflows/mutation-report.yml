@@ -27,7 +27,6 @@ jobs:
         with:
           runtime: node@22
           cache: true
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/cli...
 
