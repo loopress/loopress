@@ -1,0 +1,88 @@
+---
+// Prototype D: "README as homepage". One column, reads like a good open source README:
+// what it is, install, the loop, what is and is not tracked, Light vs Full. No marketing
+// sections, no scroll story. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+
+export const prerender = true;
+
+const tracked = [
+  ["ACF field groups", "Light"],
+  ["SEO, menus, options", "Light"],
+  ["Block theme styles", "Light"],
+  ["Hooks, API routes", "Full"],
+  ["Apps, pages", "Full"],
+  ["Plugin lockfile", "Full"],
+  ["Composer", "Full"],
+];
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <div class="min-h-screen bg-background text-foreground">
+    <main class="mx-auto max-w-2xl px-6 py-16">
+      <p class="font-mono text-sm font-semibold">loopress</p>
+      <h1 class="mt-8 text-balance text-4xl font-semibold tracking-tight">
+        Build, review and ship WordPress, in one loop.
+      </h1>
+      <p class="mt-4 font-mono text-xs text-muted-foreground">
+        MPL-2.0 · CLI on npm · plugin on WordPress.org · <a href="https://github.com/loopress" class="underline hover:text-foreground">GitHub</a>
+      </p>
+
+      <p class="mt-8 leading-relaxed text-muted-foreground">
+        Loopress puts everything but the content of a WordPress site into Git: fields, SEO,
+        menus, options, hooks, API routes. You edit files, review a diff, push to staging, then to
+        production. Posts, orders and users never move.
+      </p>
+
+      <h2 class="mt-14 text-xl font-semibold">Install</h2>
+      <pre class="mt-4 overflow-x-auto rounded-lg border border-border bg-card p-4 font-mono text-sm leading-relaxed">{`npm i -g @loopress/cli
+lps init
+lps pull --env production`}</pre>
+      <p class="mt-3 text-sm text-muted-foreground">
+        Then install the Loopress plugin on the site, from Plugins → Add New.
+      </p>
+
+      <h2 class="mt-14 text-xl font-semibold">The loop</h2>
+      <pre class="mt-4 overflow-x-auto rounded-lg border border-border bg-card p-4 font-mono text-sm leading-relaxed">{`  build ──▶ review ──▶ ship
+    ▲                    │
+    └──── lps pull ◀─────┘
+          (the site changed in wp-admin)`}</pre>
+      <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
+        <li><span class="font-mono text-foreground">build</span> · edit JSON and PHP files in your repo</li>
+        <li><span class="font-mono text-foreground">review</span> · <code class="font-mono">lps diff --env staging</code>, exit 1 on drift, CI-friendly</li>
+        <li><span class="font-mono text-foreground">ship</span> · <code class="font-mono">lps push</code>, <code class="font-mono">lps promote staging production</code>, rollback if needed</li>
+      </ul>
+
+      <h2 class="mt-14 text-xl font-semibold">What is tracked</h2>
+      <table class="mt-4 w-full text-sm">
+        <tbody>
+          {tracked.map(([what, edition]) => (
+            <tr class="border-b border-border/60">
+              <td class="py-2">{what}</td>
+              <td class={`py-2 text-right font-mono text-xs ${edition === "Full" ? "text-accent-violet" : "text-accent-cyan-ink"}`}>{edition}</td>
+            </tr>
+          ))}
+          <tr>
+            <td class="py-2 text-muted-foreground">Posts, orders, users, media</td>
+            <td class="py-2 text-right font-mono text-xs text-muted-foreground">never</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 class="mt-14 text-xl font-semibold">Light or Full?</h2>
+      <p class="mt-4 leading-relaxed text-muted-foreground">
+        Both are free. <strong class="text-foreground">Light</strong> is on WordPress.org and syncs
+        configuration. <strong class="text-foreground">Full</strong> adds code (hooks, routes, apps),
+        which WordPress.org does not allow, so it is downloaded from loopress.dev. Start with Light,
+        switch when you want your code in the loop too.
+      </p>
+
+      <h2 class="mt-14 text-xl font-semibold">Links</h2>
+      <ul class="mt-4 space-y-1 font-mono text-sm">
+        <li><a href="/docs" class="text-accent-cyan-ink hover:underline">Documentation</a></li>
+        <li><a href="/cookbook" class="text-accent-cyan-ink hover:underline">Cookbook</a></li>
+        <li><a href="https://github.com/loopress" class="text-accent-cyan-ink hover:underline">Source and issues</a></li>
+      </ul>
+    </main>
+  </div>
+</Layout>

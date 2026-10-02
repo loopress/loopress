@@ -1,0 +1,301 @@
+---
+// Prototype A: "The Loop". The page follows one change around the loop (Build, Review,
+// Ship), then back to Build when the live site changes in wp-admin. Each stage is told as a
+// solo dev's real situation. Rollback is Ship's safety net, not a stage. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+import Stage from "@/dev/components/Stage.astro";
+
+export const prerender = true;
+
+const stages = [
+  { id: "build", n: "01", label: "Build" },
+  { id: "review", n: "02", label: "Review" },
+  { id: "ship", n: "03", label: "Ship" },
+  { id: "pull", n: "↺", label: "Pull back" },
+];
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <div class="min-h-screen bg-background text-foreground">
+    <header class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+      <a href="#top" class="font-mono text-sm font-semibold">loopress</a>
+      <nav class="hidden gap-6 font-mono text-xs text-muted-foreground md:flex">
+        {stages.map((s) => <a href={`#${s.id}`} class="hover:text-foreground">{s.n} {s.label}</a>)}
+        <a href="#editions" class="hover:text-foreground">Light / Full</a>
+      </nav>
+      <a href="https://github.com/loopress" class="font-mono text-xs text-muted-foreground hover:text-foreground">GitHub ↗</a>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="mx-auto grid max-w-6xl gap-12 px-6 pt-16 pb-24 lg:grid-cols-[7fr_5fr] lg:items-center">
+        <div>
+          <p class="font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">Open source · MPL-2.0</p>
+          <h1 class="mt-4 text-balance text-5xl font-semibold tracking-tight md:text-6xl">
+            Build, review and ship WordPress, in one loop.
+          </h1>
+          <p class="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Model your content types, write hooks and APIs in modern PHP, review every change in a
+            PR and ship it to every environment. When the live site changes, pull it back and go
+            around again. Your content never moves.
+          </p>
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <code class="rounded-md border border-border bg-card px-4 py-2.5 font-mono text-sm">
+              <span class="text-muted-foreground">$</span> npm i -g @loopress/cli
+            </code>
+            <a href="https://github.com/loopress" class="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90">
+              Star on GitHub
+            </a>
+          </div>
+        </div>
+
+        <!-- The loop itself -->
+        <div class="relative mx-auto aspect-square w-full max-w-sm">
+          <svg viewBox="0 0 200 200" class="h-full w-full" aria-hidden="true">
+            <circle cx="100" cy="100" r="78" fill="none" stroke="var(--border)" stroke-width="1.5" />
+            <circle cx="100" cy="100" r="78" fill="none" stroke="var(--accent-cyan)" stroke-width="2"
+              stroke-dasharray="120 370" stroke-linecap="round" class="loop-spin" />
+          </svg>
+          {stages.map((s, i) => {
+            const pos = ["top-0 left-1/2 -translate-x-1/2", "right-0 top-1/2 -translate-y-1/2", "bottom-0 left-1/2 -translate-x-1/2", "left-0 top-1/2 -translate-y-1/2"][i];
+            return (
+              <a href={`#${s.id}`} class={`absolute ${pos} rounded-full border bg-background px-3 py-1.5 font-mono text-xs hover:border-accent-cyan ${s.id === "pull" ? "border-dashed border-border text-muted-foreground" : "border-border"}`}>
+                <span class="text-accent-cyan-ink">{s.n}</span> {s.label}
+              </a>
+            );
+          })}
+          <p class="absolute inset-0 flex items-center justify-center text-center font-mono text-[11px] leading-relaxed text-muted-foreground">
+            config + code<br />never content
+          </p>
+        </div>
+      </section>
+
+      <!-- 01 Build -->
+      <section id="build" class="border-t border-border/60">
+        <div class="mx-auto max-w-6xl px-6 py-24">
+          <Stage n="01" label="Build" />
+          <p class="mt-6 font-mono text-xs text-muted-foreground">Tuesday, 9:12 · client site #3</p>
+          <h2 class="mt-2 max-w-3xl text-balance text-4xl font-semibold tracking-tight">
+            "Can we show a delivery date on products, and add a VAT notice under the price?"
+          </h2>
+          <p class="mt-4 max-w-2xl text-muted-foreground">
+            One request, two kinds of change. A field is configuration. The notice is behavior. Both
+            end up as files in the same repo, next to each other.
+          </p>
+
+          <div class="mt-12 grid gap-6 md:grid-cols-2">
+            <figure class="rounded-xl border border-border bg-card/50 p-6">
+              <figcaption class="flex items-center justify-between font-mono text-xs">
+                <span>acf/group_product_delivery.json</span>
+                <span class="rounded border border-accent-cyan/40 px-1.5 py-0.5 text-accent-cyan-ink">Config · Light</span>
+              </figcaption>
+              <pre class="mt-4 overflow-x-auto font-mono text-xs leading-relaxed text-foreground/90">{`{
+  "title": "Delivery",
+  "fields": [{
+    "name": "delivery_date",
+    "type": "date_picker"
+  }],
+  "location": [[{
+    "param": "post_type",
+    "value": "product"
+  }]]
+}`}</pre>
+              <p class="mt-4 font-mono text-xs text-muted-foreground">$ lps acf pull · edit · lps acf push</p>
+            </figure>
+
+            <figure class="rounded-xl border border-border bg-card/50 p-6">
+              <figcaption class="flex items-center justify-between font-mono text-xs">
+                <span>hooks/vat-notice.php</span>
+                <span class="rounded border border-accent-violet/40 px-1.5 py-0.5 text-accent-violet">Code · Full</span>
+              </figcaption>
+              <pre class="mt-4 overflow-x-auto font-mono text-xs leading-relaxed text-foreground/90">{`class VatNotice
+{
+    #[Filter('woocommerce_get_price_html')]
+    public function notice(string $html): string
+    {
+        return $html . ' <small>incl. VAT</small>';
+    }
+}`}</pre>
+              <p class="mt-4 font-mono text-xs text-muted-foreground">One class per file. A throwing hook is logged, never a white screen.</p>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 Review -->
+      <section id="review" class="border-t border-border/60 bg-card/20">
+        <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-2 lg:items-start">
+          <div>
+            <Stage n="02" label="Review" />
+            <h2 class="mt-6 text-balance text-4xl font-semibold tracking-tight">
+              See exactly what will change. Nothing else.
+            </h2>
+            <p class="mt-4 text-muted-foreground">
+              Loopress diffs your files against the live site, or one environment against another.
+              Posts, orders and users are never part of the diff, so it stays short enough to read
+              in a PR.
+            </p>
+            <ul class="mt-8 space-y-2 font-mono text-sm">
+              <li><span class="text-success-ink">in the loop</span> · fields, SEO, menus, options, styles, hooks, routes, apps, plugins</li>
+              <li><span class="text-muted-foreground">never touched</span> · posts, pages content, orders, users, media</li>
+            </ul>
+          </div>
+          <pre class="overflow-x-auto rounded-xl border border-border bg-background p-6 font-mono text-xs leading-relaxed">{`$ lps diff --env staging
+
+`}<span class="text-success-ink">{`+ acf     group_product_delivery   new`}</span>{`
+`}<span class="text-success-ink">{`+ hook    vat-notice.php            new`}</span>{`
+`}<span class="text-warning-ink">{`~ option  woocommerce_currency_pos  left → right_space`}</span>{`
+
+3 changes · exit 1 (drift), fails the CI check`}</pre>
+        </div>
+      </section>
+
+      <!-- 03 Ship -->
+      <section id="ship" class="border-t border-border/60">
+        <div class="mx-auto max-w-6xl px-6 py-24">
+          <Stage n="03" label="Ship" />
+          <h2 class="mt-6 max-w-3xl text-balance text-4xl font-semibold tracking-tight">
+            Staging, then production. On every site, the same way.
+          </h2>
+          <p class="mt-4 max-w-2xl text-muted-foreground">
+            You run six client sites. Before, each one had its own ritual: FTP here, a plugin upload
+            there, a note in a doc somewhere. Now every site ships the same way.
+          </p>
+          <div class="mt-12 grid gap-4 md:grid-cols-2">
+            {[
+              ["lps push --env staging", "Push the files you just reviewed. Only what changed is applied."],
+              ["lps promote staging production", "Happy with staging? Copy every tracked resource across."],
+            ].map(([cmd, body]) => (
+              <div class="rounded-xl border border-border bg-card/40 p-6">
+                <code class="font-mono text-sm text-accent-cyan-ink">$ {cmd}</code>
+                <p class="mt-3 text-sm text-muted-foreground">{body}</p>
+              </div>
+            ))}
+          </div>
+
+          <!-- Safety net: part of Ship, not a stage of its own -->
+          <div class="mt-16 grid gap-12 rounded-xl border border-border bg-card/20 p-8 lg:grid-cols-2 lg:items-center">
+            <div>
+              <p class="font-mono text-xs uppercase tracking-widest text-muted-foreground">Safety net</p>
+              <p class="mt-4 font-mono text-xs text-muted-foreground">Friday, 17:48 · client site #3</p>
+              <h3 class="mt-2 text-balance text-2xl font-semibold tracking-tight">
+                "The price looks weird on the cart page."
+              </h3>
+              <p class="mt-3 text-sm text-muted-foreground">
+                Every push saves a snapshot of what it replaced, so shipping on a Friday is not a
+                bet. Undo is one command, the proper fix waits for Monday.
+              </p>
+            </div>
+            <pre class="overflow-x-auto rounded-xl border border-border bg-background p-6 font-mono text-xs leading-relaxed">{`$ lps hook rollback --env production
+
+Restoring snapshot from 17:02 (vat-notice.php)
+`}<span class="text-success-ink">{`✓ production is back to its previous state`}</span></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ↺ Pull back: what closes the loop -->
+      <section id="pull" class="border-t border-border/60 bg-card/20">
+        <div class="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-2 lg:items-center">
+          <div>
+            <Stage n="↺" label="Pull back" />
+            <p class="mt-6 font-mono text-xs text-muted-foreground">Next Wednesday · client site #3</p>
+            <h2 class="mt-2 text-balance text-4xl font-semibold tracking-tight">
+              Meanwhile, the client added a menu item in wp-admin.
+            </h2>
+            <p class="mt-4 text-muted-foreground">
+              That is WordPress: the live site keeps changing between your releases. Run
+              <code class="font-mono text-sm">lps diff</code> in CI or before you push, and the
+              drift shows up. One pull brings it back into the repo, and the loop starts again from
+              the real state of the site.
+            </p>
+          </div>
+          <pre class="overflow-x-auto rounded-xl border border-border bg-background p-6 font-mono text-xs leading-relaxed">{`$ lps diff --env production
+`}<span class="text-warning-ink">{`~ menu  primary   1 item added on the site`}</span>{`
+1 change · exit 1 (drift), fails the CI check
+
+$ lps pull --env production
+`}<span class="text-success-ink">{`✓ menus/primary.json updated`}</span>{`
+
+$ git commit -am "chore: sync client menu edit"`}</pre>
+        </div>
+      </section>
+
+      <!-- Editions: Full drawn as a box that contains Light, so the inclusion is visible -->
+      <section id="editions" class="border-t border-border/60">
+        <div class="mx-auto max-w-6xl px-6 py-24">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">Two ways into the loop</p>
+          <h2 class="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight">
+            Start with your configuration. Add your code when you are ready.
+          </h2>
+
+          <div class="mt-12 rounded-2xl border border-accent-violet/50 p-6 md:p-8">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p class="font-mono text-xs text-accent-violet">Loopress Full</p>
+                <h3 class="mt-2 text-2xl font-semibold">Your code, in Git, with conventions.</h3>
+              </div>
+              <p class="font-mono text-xs text-muted-foreground">Free · from loopress.dev</p>
+            </div>
+
+            <div class="mt-8 grid gap-6 md:grid-cols-[5fr_7fr] md:items-stretch">
+              <div class="rounded-xl border border-accent-cyan/50 bg-background p-6">
+                <p class="font-mono text-xs text-accent-cyan-ink">Loopress Light</p>
+                <h4 class="mt-2 text-xl font-semibold">Your configuration, in Git.</h4>
+                <ul class="mt-4 flex flex-wrap gap-2 font-mono text-xs">
+                  {["ACF", "SEO", "menus", "options", "block theme styles"].map((f) => (
+                    <li class="rounded border border-border px-2 py-1">{f}</li>
+                  ))}
+                </ul>
+                <p class="mt-6 font-mono text-xs text-muted-foreground">Free · from Plugins → Add New</p>
+              </div>
+              <div class="p-2 md:p-6">
+                <p class="font-mono text-xs text-accent-violet">+ your code</p>
+                <ul class="mt-4 flex flex-wrap gap-2 font-mono text-xs">
+                  {["hooks", "API routes", "apps", "pages", "Composer", "plugin lockfile"].map((f) => (
+                    <li class="rounded border border-accent-violet/40 px-2 py-1">{f}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-6 max-w-2xl text-sm text-muted-foreground">
+            Full is Light with the code half switched on. WordPress.org does not host plugins that
+            deploy executable code, so Light is the one in the directory and Full ships from loopress.dev.
+          </p>
+        </div>
+      </section>
+
+      <!-- Back to the top of the loop -->
+      <section class="border-t border-border/60">
+        <div class="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 py-24 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-3xl font-semibold tracking-tight">Open source, and yours to keep.</h2>
+            <p class="mt-2 text-muted-foreground">Your files live in your repo. No account needed to start the loop.</p>
+          </div>
+          <a href="#top" class="inline-flex h-11 items-center rounded-md border border-border px-5 font-mono text-sm hover:bg-card">
+            ↺ back to 01 Build
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-border/60 px-6 py-6 text-center font-mono text-xs text-muted-foreground">
+      loopress · MPL-2.0 · docs · github
+    </footer>
+  </div>
+</Layout>
+
+<style>
+  .loop-spin {
+    transform-origin: 100px 100px;
+    animation: loop-spin 6s linear infinite;
+  }
+  @keyframes loop-spin {
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .loop-spin { animation: none; }
+  }
+</style>

@@ -1,0 +1,82 @@
+---
+// Stage eyebrow, one per loop step. Variants (see the dev gallery, /dev/gallery):
+// - numbered (default, used by loop..loop-3): "01 · Build". Numbering was later dropped, a loop has
+//   no step 1.
+// - hex: a mini logo hexagon with the stage's vertex lit, same mapping as loop-12's hero
+//   (Build left, Review top left, Ship top right, Pull back bottom right).
+// - pill: loop-12's timeline tag, with an optional `meta` line ("Monday 9:10 · bakery").
+// - trail: the whole loop as a breadcrumb, the current stage inked, so position reads without numbers.
+const { n = "", label, variant = "numbered", meta } = Astro.props as {
+  n?: string;
+  label: "Build" | "Review" | "Ship" | "Pull back" | string;
+  variant?: "numbered" | "hex" | "pill" | "trail";
+  meta?: string;
+};
+
+const stages = ["Build", "Review", "Ship", "Pull back"];
+const [R, BR, BL, L, TL, TR] = [0, 60, 120, 180, 240, 300].map((a) => {
+  const t = (a * Math.PI) / 180;
+  return [+(200 + 130 * Math.cos(t)).toFixed(1), +(200 + 130 * Math.sin(t)).toFixed(1)] as const;
+});
+const vertex: Record<string, readonly [number, number]> = { Build: L, Review: TL, Ship: TR, "Pull back": BR };
+const isPull = label === "Pull back";
+---
+
+{variant === "numbered" && (
+  <div class="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">
+    <span class="h-px w-6 bg-accent-cyan/50"></span>{n} · {label}
+  </div>
+)}
+
+{variant === "hex" && (
+  <div class="st st-hex">
+    <svg viewBox="40 40 320 320" aria-hidden="true">
+      <path d={`M${BR} L${BL} L${L} L${TL} L${TR}`} class="hx-repo" />
+      <path d={`M${TR} L${R} L${BR}`} class="hx-site" />
+      {vertex[label] && <circle cx={vertex[label][0]} cy={vertex[label][1]} r="48" class:list={["hx-on", { "hx-on-pull": isPull }]} />}
+    </svg>
+    <span>{label}</span>
+    {meta && <small>{meta}</small>}
+  </div>
+)}
+
+{variant === "pill" && (
+  <p class="st st-pill">
+    <span class:list={["pill", { "pill-pull": isPull }]}>{label}</span>
+    {meta && <span class="meta">{meta}</span>}
+  </p>
+)}
+
+{variant === "trail" && (
+  <p class="st st-trail">
+    {stages.map((s, i) => (
+      <>
+        {i > 0 && <span class="sep" aria-hidden="true">{s === "Pull back" ? "↺" : "→"}</span>}
+        <span class:list={["step", { on: s === label }]} aria-current={s === label ? "step" : undefined}>{s}</span>
+      </>
+    ))}
+  </p>
+)}
+
+<style>
+  .st { --s-navy: oklch(0.22 0.05 255); --s-cyan: oklch(0.76 0.14 215); --s-cyan-ink: oklch(0.5 0.12 225); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.8rem; color: var(--s-navy); margin: 0; }
+
+  .st-hex { display: flex; align-items: center; gap: 0.6rem; font-weight: 500; }
+  .st-hex svg { width: 1.9rem; height: 1.9rem; flex: none; }
+  .st-hex small { opacity: 0.65; font-size: 0.75rem; }
+  .hx-repo, .hx-site { fill: none; stroke-width: 40; stroke-linejoin: round; stroke-linecap: round; }
+  .hx-repo { stroke: color-mix(in oklch, var(--s-navy) 25%, transparent); }
+  .hx-site { stroke: color-mix(in oklch, var(--s-cyan) 50%, transparent); }
+  .hx-on { fill: var(--s-navy); }
+  .hx-on-pull { fill: var(--s-cyan-ink); }
+
+  .st-pill { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+  .pill { font-weight: 500; background: var(--s-navy); color: oklch(0.975 0.008 95); padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
+  .pill-pull { background: var(--s-cyan); color: var(--s-navy); }
+  .meta { opacity: 0.75; }
+
+  .st-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+  .step { opacity: 0.4; }
+  .step.on { opacity: 1; font-weight: 500; border-bottom: 2px solid var(--s-cyan); }
+  .sep { opacity: 0.35; }
+</style>

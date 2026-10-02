@@ -1,15 +1,15 @@
 ---
-// Component gallery: every /proto component and its variants, one page per kind
-// (/proto/gallery/editions, ...) and an index at /proto/gallery. Kept so a discarded variant is one
+// Component gallery: every site component and its variants, one page per kind
+// (/dev/gallery/editions, ...) and an index at /dev/gallery. Kept so a discarded variant is one
 // prop away if we change our minds. Lives outside src/pages on purpose: the devOnlyRoutes
-// integration in astro.config.mjs routes /proto/gallery/[...kind] here under `astro dev` only, so
+// integration in astro.config.mjs routes /dev/gallery/[...kind] here under `astro dev` only, so
 // `astro build` never sees it. Add a section (and a `kinds` entry) whenever a component gains a variant.
-import DocPage from "@/components/proto/DocPage.astro";
-import Editions from "@/components/proto/Editions.astro";
-import LoopDiagram from "@/components/proto/LoopDiagram.astro";
-import Logo from "@/components/proto/Logo.astro";
-import Stage from "@/components/proto/Stage.astro";
-import Footer from "@/components/proto/Footer.astro";
+import DocPage from "@/components/site/DocPage.astro";
+import Editions from "@/components/site/Editions.astro";
+import LoopDiagram from "@/dev/components/LoopDiagram.astro";
+import Logo from "@/components/site/Logo.astro";
+import Stage from "@/dev/components/Stage.astro";
+import Footer from "@/components/site/Footer.astro";
 
 // The loop drawings live inline in each prototype page, not as components, so they are previewed
 // through a scaled iframe of the page's hero. Order and notes follow obsidian/marketing/Positioning.md.
@@ -49,14 +49,14 @@ if (kind && !current) return new Response(null, { status: 404 });
   wide
 >
   <nav class="toc mono">
-    <a href="/proto/gallery" aria-current={!current ? "page" : undefined}>All</a>
-    {kinds.map(([slug, label]) => <a href={`/proto/gallery/${slug}`} aria-current={slug === kind ? "page" : undefined}>{label}</a>)}
+    <a href="/dev/gallery" aria-current={!current ? "page" : undefined}>All</a>
+    {kinds.map(([slug, label]) => <a href={`/dev/gallery/${slug}`} aria-current={slug === kind ? "page" : undefined}>{label}</a>)}
   </nav>
 
   {!current && (
     <ul class="index">
       {kinds.map(([slug, label, note]) => (
-        <li><a href={`/proto/gallery/${slug}`}><strong>{label}</strong></a><span>{note}</span></li>
+        <li><a href={`/dev/gallery/${slug}`}><strong>{label}</strong></a><span>{note}</span></li>
       ))}
     </ul>
   )}
@@ -67,8 +67,8 @@ if (kind && !current) return new Response(null, { status: 404 });
     <div class="loops">
       {loops.map(([slug, note]) => (
         <figure>
-          <figcaption class="mono"><a href={`/proto/${slug}`}>/proto/{slug}</a> · {note}</figcaption>
-          <div class="frame"><iframe src={`/proto/${slug}`} title={`/proto/${slug} hero`} loading="lazy" tabindex="-1"></iframe></div>
+          <figcaption class="mono"><a href={`/dev/${slug}`}>/dev/{slug}</a> · {note}</figcaption>
+          <div class="frame"><iframe src={`/dev/${slug}`} title={`/dev/${slug} hero`} loading="lazy" tabindex="-1"></iframe></div>
         </figure>
       ))}
     </div>
@@ -77,7 +77,7 @@ if (kind && !current) return new Response(null, { status: 404 });
 
   {kind === "editions" && (
   <section id="editions">
-    <p>Light / Full structure. <code>components/proto/Editions.astro</code></p>
+    <p>Light / Full structure. <code>components/site/Editions.astro</code></p>
     <div class="variants">
       <figure>
         <figcaption class="mono">variant="brackets"</figcaption>
@@ -137,7 +137,7 @@ if (kind && !current) return new Response(null, { status: 404 });
 
   {kind === "loop-diagram" && (
   <section id="loop-diagram">
-    <p>The numbered square loop from loop-4. Superseded by the hexagon (inline in loop-9 to loop-12), kept for reference. <code>components/proto/LoopDiagram.astro</code></p>
+    <p>The numbered square loop from loop-4. Superseded by the hexagon (inline in loop-9 to loop-12), kept for reference. <code>components/site/LoopDiagram.astro</code></p>
     <div class="variants two">
       <figure>
         <figcaption class="mono">default</figcaption>
@@ -153,7 +153,7 @@ if (kind && !current) return new Response(null, { status: 404 });
 
   {kind === "logo" && (
   <section id="logo">
-    <p>The mark never changes, only the lockup or treatment. <code>components/proto/Logo.astro</code>, prop <code>variant</code>.</p>
+    <p>The mark never changes, only the lockup or treatment. <code>components/site/Logo.astro</code>, prop <code>variant</code>.</p>
     <div class="variants three">
       <figure>
         <figcaption class="mono">variant="horizontal" (default, in use)</figcaption>
@@ -209,7 +209,7 @@ if (kind && !current) return new Response(null, { status: 404 });
 
   {kind === "stage" && (
   <section id="stage">
-    <p>Eyebrow for a loop step. <code>components/proto/Stage.astro</code>, prop <code>variant</code>.</p>
+    <p>Eyebrow for a loop step. <code>components/site/Stage.astro</code>, prop <code>variant</code>.</p>
     <div class="variants two">
       <figure>
         <figcaption class="mono">variant="numbered" (default, loop to loop-3, numbering dropped since)</figcaption>
@@ -244,7 +244,7 @@ if (kind && !current) return new Response(null, { status: 404 });
 
   {kind === "footer" && (
   <section id="footer">
-    <p><code>components/proto/Footer.astro</code>, prop <code>variant</code>.</p>
+    <p><code>components/site/Footer.astro</code>, prop <code>variant</code>.</p>
     <figure class="wide">
       <figcaption class="mono">variant="columns" (default, in use on loop-12 and every content page)</figcaption>
       <div class="card flush"><Footer /></div>

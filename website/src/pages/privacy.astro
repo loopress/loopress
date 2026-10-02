@@ -1,121 +1,65 @@
 ---
-import Layout from "@/layouts/Layout.astro";
-import { Nav } from "@/components/landing/Nav";
-import { Footer } from "@/components/landing/Footer";
+// Privacy policy for the open source first site. It discloses the CLI's Sentry crash reports (on by default, see cli/src/lib/sentry.ts) and Full's
+// opt-in error reporting (wordpress-plugin/src/Sentry/Consent.php). The console section stays as
+// long as the console runs, even though the site no longer promotes it.
+import DocPage from "@/components/site/DocPage.astro";
 
-const LAST_UPDATED = "July 4, 2026";
+export const prerender = true;
+
+const LAST_UPDATED = "October 1, 2026";
 ---
 
-<Layout
-  title="Privacy Policy - Loopress WordPress Developer Tools"
-  description="Read the Loopress privacy policy to understand how we collect, use, and protect your personal data as a user of our WordPress developer tools."
-  canonical="https://loopress.dev/privacy"
->
-  <div class="min-h-screen bg-background text-foreground">
-    <Nav client:load />
-    <main class="mx-auto max-w-3xl px-6 py-24">
-      <h1 class="text-2xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p class="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
+<DocPage title="Privacy - Loopress" kicker={`privacy · last updated ${LAST_UPDATED}`} heading="Privacy." lede="Loopress runs on your machine and your sites. Here is the little that reaches us, and how to turn it off.">
+  <h2>The CLI</h2>
+  <p>
+    <code>lps</code> talks to your WordPress sites directly. Your files, credentials and site data
+    never pass through Loopress servers.
+  </p>
+  <p>
+    When the CLI crashes, it sends an error report to Sentry so we can fix it. Before it leaves your
+    machine, the report is scrubbed: arguments and flag values are removed (only flag names are
+    kept), site URLs are blanked, and server responses are dropped. Turn it off with
+    <code>lps telemetry disable</code>, or for a single run with <code>LOOPRESS_TELEMETRY_DISABLED=1</code>.
+  </p>
 
-      <p class="mt-6 text-sm leading-relaxed text-muted-foreground">
-        Loopress ("we", "us") is currently in alpha. This policy describes the data we
-        collect today, at this stage of the product, and will be updated as new features (paid
-        plans, team accounts) ship. Questions? <a href="/contact" class="underline underline-offset-2 hover:text-foreground">Contact us</a>.
-      </p>
+  <h2>The WordPress plugin</h2>
+  <ul>
+    <li><strong>Light</strong> sends nothing to Loopress.</li>
+    <li>
+      <strong>Full</strong> can report its own errors to Sentry, only after an administrator says yes in
+      the plugin's Settings tab. It also checks loopress.dev for new versions, like any plugin update
+      check.
+    </li>
+  </ul>
 
-      <div class="mt-10 space-y-10 text-sm leading-relaxed text-muted-foreground">
-        <section>
-          <h2 class="text-base font-medium text-foreground">What we collect</h2>
-          <ul class="mt-3 list-disc space-y-2 pl-5">
-            <li>
-              <strong class="text-foreground/90">Alpha waitlist:</strong> if you leave your email to join the alpha,
-              we store it with our email provider (Brevo) to notify you about product updates.
-            </li>
-            <li>
-              <strong class="text-foreground/90">Contact form:</strong> name, email, subject, and message, sent to
-              our team and used only to reply to your request.
-            </li>
-            <li>
-              <strong class="text-foreground/90">Loopress account:</strong> if you sign in to the Loopress console
-              with Google, we store your email address and a Google account identifier. We do not
-              request or store your Google password.
-            </li>
-            <li>
-              <strong class="text-foreground/90">CLI usage:</strong> the CLI and WordPress plugin run against your
-              own WordPress site. Nothing is sent to Loopress unless you run <code class="rounded bg-card px-1 py-0.5 font-mono text-xs">lps login</code>
-              to connect a project to your account, in which case project metadata and WordPress
-              credentials (encrypted at rest) are synced so CI deployments don't need separate secrets.
-            </li>
-            <li>
-              <strong class="text-foreground/90">Website analytics:</strong> we use Vercel Analytics, which does not
-              use cookies and reports aggregated, non-identifying traffic data.
-            </li>
-          </ul>
-        </section>
+  <h2>This website</h2>
+  <ul>
+    <li><strong>Contact form</strong>: your name, email and message, used only to reply.</li>
+    <li><strong>Newsletter</strong>: if you subscribe, your email is stored with Brevo. Every email has an unsubscribe link.</li>
+    <li><strong>Analytics</strong>: Vercel Analytics, aggregated and without cookies.</li>
+    <li><strong>Theme</strong>: one local storage entry remembers light or dark mode. No tracking or advertising cookies.</li>
+  </ul>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">How we use it</h2>
-          <p class="mt-3">
-            To operate the service, respond to your messages, send product updates you've opted
-            into, and understand how the site is used so we can improve it. We do not sell your
-            data, and we do not share it with third parties for their own marketing purposes.
-          </p>
-        </section>
+  <h2>The Loopress console</h2>
+  <p>
+    If you sign in to console.loopress.dev with Google, we store your email address and a Google
+    account identifier, never your Google password. Running <code>lps login</code> connects a project
+    to that account and syncs its metadata and WordPress credentials, encrypted at rest.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Third-party services</h2>
-          <p class="mt-3">
-            We rely on a small number of providers to run Loopress: <strong class="text-foreground/90">Brevo</strong> (email
-            and contact form delivery), <strong class="text-foreground/90">Google</strong> (sign-in), <strong class="text-foreground/90">Vercel</strong> (hosting
-            and analytics), and <strong class="text-foreground/90">GitHub</strong> (distribution of the open-source CLI and
-            plugin). Each processes data under its own privacy policy.
-          </p>
-        </section>
+  <h2>Who processes it</h2>
+  <p>
+    Sentry (error reports), Brevo (email), Vercel (hosting and analytics), Google (console sign-in)
+    and GitHub (code and releases), each under its own privacy policy. We do not sell your data or
+    share it for anyone's marketing.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Data retention</h2>
-          <p class="mt-3">
-            We keep account and contact data for as long as your account is active, or as needed
-            to respond to your request. You can ask us to delete your data at any time via the
-            <a href="/contact" class="underline underline-offset-2 hover:text-foreground">contact page</a>.
-          </p>
-        </section>
+  <h2>Your rights</h2>
+  <p>
+    You can ask to access, correct, export or delete your data at any time through the
+    <a href="/contact">contact page</a>. We keep it while your account is active or as long as
+    needed to answer you.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Your rights</h2>
-          <p class="mt-3">
-            Depending on where you live, you may have the right to access, correct, export, or
-            delete your personal data. Reach out via the <a href="/contact" class="underline underline-offset-2 hover:text-foreground">contact page</a>
-            and we'll act on it.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Cookies &amp; local storage</h2>
-          <p class="mt-3">
-            The website does not use tracking or advertising cookies. It stores a single local
-            storage entry on your device to remember your light/dark theme preference.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Children</h2>
-          <p class="mt-3">
-            Loopress is a developer tool and is not directed at, or knowingly used to collect data
-            from, children under 16.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Changes to this policy</h2>
-          <p class="mt-3">
-            As Loopress moves out of alpha and adds paid plans and team features, this policy will
-            be updated to reflect what's actually collected. We'll update the date at the top when
-            that happens.
-          </p>
-        </section>
-      </div>
-    </main>
-    <Footer />
-  </div>
-</Layout>
+  <p class="aside">loopress is a developer tool, not aimed at children under 16.</p>
+</DocPage>

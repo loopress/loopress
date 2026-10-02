@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import sitemap from "@astrojs/sitemap";
 import { createRequire } from "module";
-import { copyFileSync, mkdirSync } from "fs";
+import { copyFileSync, mkdirSync, readdirSync } from "fs";
 import { resolve, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -30,7 +30,8 @@ function loopressFavicon() {
 }
 
 /**
- * Routes that exist under `astro dev` only, never in a build: the proto component gallery.
+ * Routes that exist under `astro dev` only, never in a build: the earlier homepage iterations in
+ * src/dev/pages (src/dev/pages/loop-9.astro → /dev/loop-9) and the component gallery.
  * @returns {import('astro').AstroIntegration}
  */
 function devOnlyRoutes() {
@@ -39,7 +40,13 @@ function devOnlyRoutes() {
     hooks: {
       "astro:config:setup": ({ command, injectRoute }) => {
         if (command !== "dev") return;
-        injectRoute({ pattern: "/proto/gallery/[...kind]", entrypoint: "./src/dev/gallery.astro", prerender: false });
+        const pagesDir = join(__dirname, "src/dev/pages");
+        for (const file of readdirSync(pagesDir, { recursive: true })) {
+          if (!file.endsWith(".astro")) continue;
+          const route = file.replace(/\.astro$/, "").replace(/(^|\/)index$/, "");
+          injectRoute({ pattern: `/dev/${route}`, entrypoint: `./src/dev/pages/${file}`, prerender: false });
+        }
+        injectRoute({ pattern: "/dev/gallery/[...kind]", entrypoint: "./src/dev/gallery.astro", prerender: false });
       },
     },
   };

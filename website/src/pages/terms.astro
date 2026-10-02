@@ -1,115 +1,46 @@
 ---
-import Layout from "@/layouts/Layout.astro";
-import { Nav } from "@/components/landing/Nav";
-import { Footer } from "@/components/landing/Footer";
+// Terms for the open source first site: the plugin is GPL (the old page said MPL-2.0), no paid tiers.
+import DocPage from "@/components/site/DocPage.astro";
 
-const LAST_UPDATED = "July 4, 2026";
+export const prerender = true;
+
+const LAST_UPDATED = "October 1, 2026";
 ---
 
-<Layout
-  title="Terms of Service - Loopress WordPress Developer Tools"
-  description="The terms governing use of the Loopress CLI, WordPress plugin, and console, currently in alpha."
-  canonical="https://loopress.dev/terms"
->
-  <div class="min-h-screen bg-background text-foreground">
-    <Nav client:load />
-    <main class="mx-auto max-w-3xl px-6 py-24">
-      <h1 class="text-2xl font-semibold tracking-tight">Terms of Service</h1>
-      <p class="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
+<DocPage title="Terms - Loopress" kicker={`terms · last updated ${LAST_UPDATED}`} heading="Terms of use." lede="Short version: it's open source, it's alpha, test before production.">
+  <h2>Licenses</h2>
+  <p>
+    The CLI is licensed under the <a href="https://www.mozilla.org/en-US/MPL/2.0/">Mozilla Public License 2.0</a>,
+    the WordPress plugin under the <a href="https://www.gnu.org/licenses/gpl-2.0.html">GPL</a>. Those
+    licenses govern the code: you can read it, modify it and redistribute it under their terms.
+  </p>
 
-      <p class="mt-6 text-sm leading-relaxed text-muted-foreground">
-        Loopress is currently in alpha. These terms cover the CLI, the WordPress plugin,
-        and the Loopress console. By using any of them, you agree to what's below. Questions?
-        <a href="/contact" class="underline underline-offset-2 hover:text-foreground">Contact us</a>.
-      </p>
+  <h2>Alpha</h2>
+  <p>
+    Loopress is in alpha. Commands, file formats and behaviours can change between releases. Keep
+    your own backups, and try every change on a staging site before production.
+  </p>
 
-      <div class="mt-10 space-y-10 text-sm leading-relaxed text-muted-foreground">
-        <section>
-          <h2 class="text-base font-medium text-foreground">The service</h2>
-          <p class="mt-3">
-            The Loopress CLI and WordPress plugin are open source, licensed under the
-            <a href="https://www.mozilla.org/en-US/MPL/2.0/" class="underline underline-offset-2 hover:text-foreground">Mozilla Public License 2.0</a>.
-            You can inspect, self-host, and modify them under that license. The Loopress console
-            (<a href="https://console.loopress.dev" class="underline underline-offset-2 hover:text-foreground">console.loopress.dev</a>)
-            is a hosted service, currently free during the alpha.
-          </p>
-        </section>
+  <h2>Your sites, your credentials</h2>
+  <p>
+    Use Loopress only on sites you are allowed to administer. You are responsible for the
+    Application Passwords you give the CLI, and you can revoke one at any time from the site's
+    admin.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Alpha status</h2>
-          <p class="mt-3">
-            The console is in active development. Features, limits, and pricing described on this
-            site may change without notice. We don't guarantee uptime or data durability during
-            the alpha, and recommend keeping your own backups of anything Loopress manages on your
-            WordPress sites.
-          </p>
-        </section>
+  <h2>The Loopress console</h2>
+  <p>
+    The console (console.loopress.dev) is a hosted service, free during the alpha, with no uptime or
+    durability guarantee. Don't abuse its infrastructure. We may suspend accounts that do, and you can
+    delete yours at any time through the <a href="/contact">contact page</a>.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Your account</h2>
-          <p class="mt-3">
-            You're responsible for the WordPress application passwords and Loopress account
-            credentials you use with the service, and for any activity performed with your
-            projects. Application passwords are scoped by WordPress itself; revoke one at any
-            time from your site's admin if you suspect it's compromised.
-          </p>
-        </section>
+  <h2>No warranty</h2>
+  <p>
+    Loopress is provided "as is", without warranty of any kind. To the extent permitted by law, we are
+    not liable for indirect or consequential damages, including data loss on a site you manage with it.
+  </p>
 
-        <section>
-          <h2 class="text-base font-medium text-foreground">Acceptable use</h2>
-          <p class="mt-3">
-            Use Loopress to manage WordPress sites you're authorized to administer. Don't use it
-            to attack, scan, or gain unauthorized access to sites you don't control, and don't
-            abuse the console's infrastructure (excessive automated load, credential stuffing,
-            and similar).
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Fees</h2>
-          <p class="mt-3">
-            The CLI and plugin are free and open source. The console is free during the alpha.
-            Paid tiers (Pro, Agency) are planned; if you're on one when it launches, separate
-            billing terms will apply and you'll be asked to accept them before being charged.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Disclaimer of warranties</h2>
-          <p class="mt-3">
-            Loopress is provided "as is," without warranties of any kind, express or implied,
-            including fitness for a particular purpose. You're responsible for testing changes
-            (hooks, plugins, dependencies) before applying them to a production site.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Limitation of liability</h2>
-          <p class="mt-3">
-            To the extent permitted by law, Loopress is not liable for indirect, incidental, or
-            consequential damages arising from use of the CLI, plugin, or console, including data
-            loss on a WordPress site you manage with them.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Termination</h2>
-          <p class="mt-3">
-            You can stop using Loopress and delete your account at any time via the
-            <a href="/contact" class="underline underline-offset-2 hover:text-foreground">contact page</a>.
-            We may suspend console access for accounts that violate the acceptable use terms above.
-          </p>
-        </section>
-
-        <section>
-          <h2 class="text-base font-medium text-foreground">Changes to these terms</h2>
-          <p class="mt-3">
-            We'll update this page as the product moves out of alpha and paid plans launch, and
-            update the date at the top when we do.
-          </p>
-        </section>
-      </div>
-    </main>
-    <Footer />
-  </div>
-</Layout>
+  <h2>Changes</h2>
+  <p>We update this page when the terms change, and the date at the top with it.</p>
+</DocPage>

@@ -1,36 +1,26 @@
 ---
-import Layout from "@/layouts/Layout.astro";
-import { Nav } from "@/components/landing/Nav";
-import { Footer } from "@/components/landing/Footer";
+// Brand assets and trademark policy, plus the mark itself on light and dark.
+import DocPage from "@/components/site/DocPage.astro";
+import Logo from "@/components/site/Logo.astro";
 import licenseText from "@loopress/assets/LICENSE?raw";
+
+export const prerender = true;
 ---
 
-<Layout
-  title="Loopress Brand Assets and Trademark Usage Policy"
-  description="Trademark and brand asset usage policy for the Loopress name and logos. Learn how to properly reference Loopress in your projects and content."
-  canonical="https://loopress.dev/brand-assets"
->
-  <div class="min-h-screen bg-background text-foreground">
-    <Nav client:load />
-    <main class="mx-auto max-w-3xl px-6 py-24">
-      <div class="mb-10">
-        <h1 class="text-2xl font-semibold tracking-tight">Brand Assets</h1>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Trademark and usage policy for the Loopress name and logos.
-        </p>
-      </div>
-      <h2 class="mb-4 text-lg font-medium tracking-tight">Trademark License</h2>
-      <pre
-        class="whitespace-pre-wrap rounded-lg border border-border bg-card/40 px-6 py-6 font-mono text-sm leading-relaxed text-foreground/80"
-        >{licenseText}</pre
-      >
-      <p class="mt-8 text-sm text-muted-foreground">
-        To request permission for uses not listed above, use the{" "}
-        <a href="/contact" class="underline underline-offset-2 hover:text-foreground">
-          contact form
-        </a>.
-      </p>
-    </main>
-    <Footer />
+<DocPage title="Brand assets - Loopress" description="Trademark and brand asset usage policy for the Loopress name and logo. How to reference Loopress in your projects and content." kicker="brand assets" heading="The Loopress mark." lede="An open hexagon: a loop, with an opening. Here is how to use it." wide>
+  <div class="marks">
+    <div class="mark light"><Logo class="h-20 w-20" wordmark={false} /></div>
+    <div class="mark dark"><Logo class="h-20 w-20" wordmark={false} /></div>
   </div>
-</Layout>
+
+  <h2>Trademark license</h2>
+  <pre>{licenseText}</pre>
+  <p>For a use not covered above, <a href="/contact">ask first</a>.</p>
+</DocPage>
+
+<style>
+  .marks { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin-bottom: 1rem; }
+  .mark { display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 0.75rem; }
+  .light { background: white; color: oklch(0.22 0.05 255); border: 1px solid color-mix(in oklch, currentColor 15%, transparent); }
+  .dark { background: oklch(0.22 0.05 255); color: oklch(0.975 0.008 95); }
+</style>
