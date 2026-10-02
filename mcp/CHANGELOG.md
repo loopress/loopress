@@ -1,5 +1,25 @@
 # @loopress/mcp
 
+## 0.29.0
+
+### Minor Changes
+
+- cc5ede1: `lps plugin pull` no longer adds every plugin installed on the site. Plugins the project already tracks are refreshed, and the others are offered as a list to tick, unticked by default, so a pull from production doesn't bring its cache, security or backup plugins into the project. Without a terminal (`--yes`, `--json`, CI, the MCP server), only tracked plugins and those named with the new `--plugin <slug>` flag are written; the MCP `plugin_pull` tool takes them as `plugins`.
+  
+  Plugins under `require-dev` in `composer.json` are now installed on the `local` environment by `lps plugin push` and `lps composer push`, and still never on a remote site: use it for Query Monitor, or for a premium plugin's free edition while production runs the paid one.
+- bee1b73: Breaking: everything theme related now lives under `lps theme`. `lps template push/list/diff` is now `lps theme template push/list/diff`, and the versions-only `lps theme push/pull` is now `lps theme version push/pull`. `lps theme push` now pushes the whole topic in order (versions, then templates and parts, then Global Styles), and `lps theme pull` pulls versions and Global Styles. `lps theme style push` accepts `--yes`. In the MCP server, `theme_push`/`theme_pull` now wrap the whole topic, the new `theme_version_push`/`theme_version_pull` keep the versions-only behavior, and the `template_*` tool names are unchanged. The `template` and `part` resource names for `lps diff --only/--skip` are unchanged.
+
+### Patch Changes
+
+- cc5ede1: A push's `--dry-run` now reads the target site, the same way `lps diff` does, instead of staying local. It used to announce ACF, SEO, forms or snippets as pushed on a site that would refuse them (plugin missing), and the real push then failed; the dry run now fails the same way. The MCP server's preview and pre-apply check, built on the dry run, benefit too. `lps push --dry-run` also says "would push" instead of "pushed".
+- Updated dependencies [cc5ede1]
+- Updated dependencies [426df4b]
+- Updated dependencies [cc5ede1]
+- Updated dependencies [cc5ede1]
+- Updated dependencies [426df4b]
+- Updated dependencies [bee1b73]
+  - @loopress/cli@0.29.0
+
 ## 0.28.0
 
 ### Minor Changes
