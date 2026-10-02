@@ -32,8 +32,9 @@ final class OptionReferences
 
                 $post = is_numeric($id) ? get_post((int) $id) : null;
                 if (!$post instanceof \WP_Post || $post->post_type !== $postType) {
+                    $shown = is_scalar($id) ? (string) $id : gettype($id);
                     throw new UnresolvedOptionReferenceException(
-                        "\"{$path}\" holds \"{$postType}\" ID " . wp_json_encode($id) . ', which does not exist on this environment.',
+                        "\"{$path}\" holds \"{$postType}\" ID {$shown}, which does not exist on this environment.",
                     );
                 }
 

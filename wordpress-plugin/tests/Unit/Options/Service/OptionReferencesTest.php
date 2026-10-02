@@ -19,7 +19,6 @@ class OptionReferencesTest extends TestCase
         Monkey\setUp();
         Functions\when('is_post_type_hierarchical')->alias(static fn (string $type): bool => $type === 'page');
         Functions\when('get_page_uri')->alias(static fn (WP_Post $post): string => $post->ID === 7 ? 'account/checkout' : $post->post_name);
-        Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
         Functions\when('get_posts')->justReturn([]);
     }
 
