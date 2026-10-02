@@ -1,5 +1,17 @@
 # @loopress/wordpress-plugin
 
+## 2026.14.0
+
+### Minor Changes
+
+- cc5ede1: Options that store a page ID (EDD's checkout pages in `edd_settings`, WooCommerce's `woocommerce_shop_page_id`...) can now be synced between environments. Declare them in the option file with `"refs": {"purchase_page": "page"}`, then `lps option pull` writes the page's path instead of its ID, and `lps option push` turns it back into the ID of that page on the target. A page missing on the target fails the push for that option with a clear message.
+
+### Patch Changes
+
+- cc5ede1: Menus and SEO meta now find child pages. A menu item pointing to `account/profile` used to fail on push with `No "page" post with slug "profile" was found`, and SEO meta for a child page did too. `lps menu pull` now writes a child page's full path (`account/profile`), so menu files pulled before this change get a one-time diff. A bare slug still works when exactly one page has it; when several do (`account/profile` and `team/profile`), the push fails with a 409 listing the paths to choose from.
+- 426df4b: `full-width: true` now reaches the true edge on Twenty Twenty-Five's page template: the side padding of the template's own wrappers around the content (`<main>` and its group) is dropped too, on any block theme. The header and footer keep theirs, and the template's vertical spacing is unchanged.
+- 426df4b: Template and part file names now accept `_`, like the post type and taxonomy slugs the template hierarchy embeds: `templates/taxonomy-download_tag.html` or `templates/single-my_type.html` no longer stop `lps theme template push`. Page file names keep their stricter rule.
+
 ## 2026.13.0
 
 ### Minor Changes
