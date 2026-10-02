@@ -39,6 +39,8 @@ lps composer push
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be sent without making any changes |
 
+Only `require` is sent to a remote site. `require-dev` is added for the `local` environment only, see [local-only plugins](/plugins/#local-only-plugins).
+
 The server always resolves `composer.json` itself, against its own Packagist and WPackagist repositories. It never installs from an uploaded `composer.lock`: a hand-crafted lock could point package downloads at arbitrary hosts, so the plugin stays the sole authority on where dependencies come from. Pin exact versions in `composer.json` if you need a specific build.
 
 If a local `composer.lock` is present it is still sent, but only so the server can report which of your pinned versions its own resolution moved. The command prints that drift and tells you to run `lps composer pull` to bring the server-resolved `composer.lock` back down.

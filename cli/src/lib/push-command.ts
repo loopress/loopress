@@ -25,13 +25,17 @@ export abstract class PushCommand extends LoopressCommand {
   private refusedByGuard = false
 
   // Reads `provider`'s remote state right before a real push, for `writeAfterPushSnapshot` to
-  // pair with the actual post-push remote state once the push completes. A dry run changes
-  // nothing, so there is nothing to snapshot. Best-effort: a read failure (the site briefly
-  // unreachable) must never block the push itself, the same "never interrupt the push flow"
-  // stance recordDeployment takes; `undefined` tells `writeAfterPushSnapshot` there is no
-  // restore point to complete.
+  // pair with the actual post-push remote state once the push completes. Best-effort: a read
+  // failure (the site briefly unreachable) must never block the push itself, the same "never
+  // interrupt the push flow" stance recordDeployment takes; `undefined` tells
+  // `writeAfterPushSnapshot` there is no restore point to complete.
+  //
+  // On a dry run, the same read is the preview's check against the site (see previewRemote).
   protected async captureBeforePushState(provider: ResourceStateProvider, dir: string): Promise<ResourceState | undefined> {
-    if (this.dryRun) return undefined
+    if (this.dryRun) {
+      await this.previewRemote(provider, dir)
+      return undefined
+    }
 
     try {
       return await provider.remote(
@@ -70,6 +74,18 @@ export abstract class PushCommand extends LoopressCommand {
   async init(): Promise<void> {
     await super.init()
     await this.guardProductionPush()
+  }
+
+  // A dry run used to stay local, so it announced "pushed" for a resource the site would refuse
+  // (ACF or Rank Math missing: a 400 or 409 on the real push). It now reads the site the same way
+  // `lps diff` does and fails the same way, so the preview, and the MCP server's preview and
+  // pre-apply check built on it, see what the real push will hit.
+  protected async previewRemote(provider: ResourceStateProvider, dir: string): Promise<void> {
+    try {
+      await provider.remote(this.wp, () => {}, dir)
+    } catch (error) {
+      this.error(`The site would refuse this push: ${(error as Error).message}`)
+    }
   }
 
   protected async recordDeployment(status: 'failure' | 'success'): Promise<void> {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Menu\Service;
 
+use Loopress\Infrastructure\PostByPath;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
 
 // Syncs WordPress nav menus (a `nav_menu` term plus its `nav_menu_item` posts) as a portable
@@ -329,7 +330,8 @@ class MenuService
     {
         $post = get_post($postId);
 
-        return $post instanceof \WP_Post && $post->post_type === $postType && $post->post_status !== 'trash' ? $post->post_name : null;
+        // The full path for a child page (`account/profile`), what resolveObjectId() resolves.
+        return $post instanceof \WP_Post && $post->post_type === $postType && $post->post_status !== 'trash' ? PostByPath::pathOf($post) : null;
     }
 
     private function termSlug(int $termId, string $taxonomy): ?string
@@ -455,8 +457,7 @@ class MenuService
 
     // The identity resolution this whole service exists for: never trust a raw
     // `_menu_item_object_id` from another environment, always re-look-up the target by its
-    // stable slug on THIS environment (mirrors AbstractSeoService::findPost()'s
-    // get_page_by_path() use for the same reason).
+    // stable slug on THIS environment (PostByPath, shared with AbstractSeoService::findPost()).
     private function resolveObjectId(string $type, string $objectType, string $objectSlug): int
     {
         if ($type === 'taxonomy') {
@@ -471,8 +472,8 @@ class MenuService
             return (int) $term->term_id;
         }
 
-        $post = get_page_by_path($objectSlug, OBJECT, $objectType);
-        if (!$post instanceof \WP_Post) {
+        $post = PostByPath::find($objectSlug, $objectType);
+        if ($post === null) {
             throw new \RuntimeException(esc_html(
                 "No \"{$objectType}\" post with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
                 'identity, they cannot reference content that does not exist here.',

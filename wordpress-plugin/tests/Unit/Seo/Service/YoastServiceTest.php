@@ -19,6 +19,8 @@ class YoastServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // PostByPath's post_name fallback: no match unless a test says otherwise.
+        Functions\when('get_posts')->justReturn([]);
         // getPostMeta()/getSettings()'s revision hash goes through wp_json_encode(), unavailable
         // outside a real WordPress load; a plain json_encode() delegate does the same thing here.
         Functions\when('wp_json_encode')->alias(static fn (mixed $value): string|false => json_encode($value));
@@ -83,7 +85,9 @@ class YoastServiceTest extends TestCase
 
     public function test_get_post_meta_returns_the_post_when_found(): void
     {
-        Functions\when('get_page_by_path')->justReturn($this->fakePost(3, 'about', 'About'));
+        $about            = $this->fakePost(3, 'about', 'About');
+        $about->post_type = 'page';
+        Functions\when('get_page_by_path')->justReturn($about);
         Functions\when('get_post_meta')->justReturn(['_yoast_wpseo_title' => ['About us']]);
 
         $result = $this->service->getPostMeta('page', 'about');

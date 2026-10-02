@@ -422,6 +422,7 @@ describe('form push', () => {
       writeForm('contact.json', {settings: {form_title: 'Contact'}})
       const {cmd, logs, post} = makeRunCmd()
       ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue([])
 
       await cmd.run()
 

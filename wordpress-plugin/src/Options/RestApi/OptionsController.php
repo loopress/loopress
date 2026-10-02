@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Loopress\Options\RestApi;
 
+use Loopress\Infrastructure\AmbiguousPostSlugException;
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\StaleOptionRevisionException;
+use Loopress\Options\Exception\UnresolvedOptionReferenceException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
+use Loopress\Options\Service\OptionReferences;
 use Loopress\Options\Service\OptionsService;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
@@ -20,10 +23,12 @@ class OptionsController
     use RequiresManageOptionsCapability;
 
     private const STATUSES = [
-        ReservedOptionNameException::class     => 409,
-        ProtectedOptionException::class        => 403,
-        UnsupportedOptionValueException::class => 422,
-        StaleOptionRevisionException::class    => 412,
+        ReservedOptionNameException::class        => 409,
+        ProtectedOptionException::class           => 403,
+        UnsupportedOptionValueException::class    => 422,
+        StaleOptionRevisionException::class       => 412,
+        UnresolvedOptionReferenceException::class => 422,
+        AmbiguousPostSlugException::class         => 409,
     ];
 
     public function __construct(private OptionsService $optionsService) {}
@@ -72,12 +77,23 @@ class OptionsController
 
     public function get_option(WP_REST_Request $request): WP_REST_Response
     {
-        return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $option = $this->optionsService->getOption((string) $request->get_param('name'));
+        // `refs` (see OptionReferences) arrives JSON-encoded in the query string on a GET.
+        $rawRefs = $request->get_param('refs');
+        $refs    = $this->refs($rawRefs === null ? [] : json_decode((string) $rawRefs, true));
+        if ($refs === null) {
+            return self::invalidRefsResponse();
+        }
 
-            return $option === null
-                ? new WP_REST_Response(['error' => 'Option not found'], 404)
-                : new WP_REST_Response($option, 200);
+        return $this->mapServiceExceptions(function () use ($request, $refs): WP_REST_Response {
+            $option = $this->optionsService->getOption((string) $request->get_param('name'));
+            if ($option === null) {
+                return new WP_REST_Response(['error' => 'Option not found'], 404);
+            }
+
+            // `revision` stays the stored value's: it is only ever compared against a later read.
+            $option['value'] = OptionReferences::toPaths($option['value'], $refs);
+
+            return new WP_REST_Response($option, 200);
         }, self::STATUSES);
     }
 
@@ -103,13 +119,41 @@ class OptionsController
             return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }
 
-        return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response(
-                $this->optionsService->updateOption((string) $request->get_param('name'), $body['value'], $autoload, $expectedRevision),
-                200,
-            ),
-            self::STATUSES,
-        );
+        $refs = $this->refs($body['refs'] ?? []);
+        if ($refs === null) {
+            return self::invalidRefsResponse();
+        }
+
+        return $this->mapServiceExceptions(function () use ($request, $body, $autoload, $expectedRevision, $refs): WP_REST_Response {
+            $name   = (string) $request->get_param('name');
+            $option = $this->optionsService->updateOption($name, OptionReferences::toIds($body['value'], $refs), $autoload, $expectedRevision);
+            $option['value'] = OptionReferences::toPaths($option['value'], $refs);
+
+            return new WP_REST_Response($option, 200);
+        }, self::STATUSES);
+    }
+
+    /** @return array<string, string>|null null when malformed: refs must map a path to a post type */
+    private function refs(mixed $raw): ?array
+    {
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        $refs = [];
+        foreach ($raw as $path => $postType) {
+            if (!is_string($path) || $path === '' || !is_string($postType) || $postType === '') {
+                return null;
+            }
+            $refs[$path] = $postType;
+        }
+
+        return $refs;
+    }
+
+    private static function invalidRefsResponse(): WP_REST_Response
+    {
+        return new WP_REST_Response(['error' => 'If present, "refs" must map a value path to a post type, e.g. {"purchase_page": "page"}.'], 400);
     }
 
     public function delete_option(WP_REST_Request $request): WP_REST_Response

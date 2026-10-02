@@ -50,10 +50,20 @@ lps plugin add woocommerce --version 9.4.2 # pins an exact version
 
 ### `lps plugin pull`
 
-Snapshot the installed plugins into `loopress.json`, each **pinned to the version running on the site**, with its active state: an inactive plugin is written as `{"version": "…", "active": false}` so the next push leaves it inactive.
+Snapshot the project's plugins into `loopress.json`, each **pinned to the version running on the site**, with its active state: an inactive plugin is written as `{"version": "…", "active": false}` so the next push leaves it inactive.
+
+Plugins the project already tracks are always refreshed. Every other plugin installed on the site is offered as a list to tick, **unticked by default**: a pull from production should not bring its cache, security or backup plugins (LiteSpeed Cache, Wordfence, UpdraftPlus) into the project. Leave them unticked: `lps plugin push` leaves a plugin the project doesn't track installed and active (only `--prune` deactivates it), so production keeps them and other environments never get them.
+
+| Flag | Description |
+|------|-------------|
+| `--plugin <slug>` | Start tracking this installed plugin too, without asking. Repeatable |
+| `--yes` / `-y` | Don't ask: refresh the tracked plugins and those named with `--plugin` only |
+
+Without a terminal (CI, `--json`, the MCP server) nothing is asked either: only the tracked plugins and the ones named with `--plugin` are written. The others are listed as not tracked.
 
 ```console
 Pulling plugins from https://example.com
+  - Not tracked: wordfence, litespeed-cache (add one with `lps plugin pull --plugin <slug>`)
 Wrote 4 plugins to loopress.json
   + Added: contact-form-7
   ~ Updated: woocommerce 9.4.2 → 9.5.0
@@ -62,7 +72,7 @@ Wrote 4 plugins to loopress.json
 If the repo has a `composer.json`, the live versions are pinned there instead, as `wpackagist-plugin/<slug>` entries under `require`. Every other key is left as is. Some plugins are listed as skipped instead of pinned:
 
 - a version constraint you wrote (`^9.4`, `*`) is kept, only an exact pin moves to the live version;
-- a plugin declared in `require-dev` stays there;
+- a plugin declared in `require-dev` stays there (see [local-only plugins](#local-only-plugins));
 - a plugin provided by another package (`acme/<slug>`) is not duplicated;
 - a plugin that isn't on WordPress.org (premium or custom, so not on WPackagist) is not added, since it would make the whole `composer update` fail.
 
@@ -112,6 +122,18 @@ A `composer.json` has no notion of active or inactive, so the push **activates n
 
 `lps push` runs `plugin push` and skips `composer push` in that case, so Composer only runs once on the server.
 
+#### Local-only plugins
+
+Plugins under `require-dev` are installed on the `local` environment only, never on a remote site, like `composer install --no-dev` on a production server. Use it for development tools such as Query Monitor:
+
+```json
+"require-dev": {
+  "wpackagist-plugin/query-monitor": "^3.16"
+}
+```
+
+It also helps with a premium plugin you can't install from WordPress.org: put its free edition in `require-dev` (for example `wpackagist-plugin/easy-digital-downloads` while production runs EDD Pro). Not every premium feature can be tested that way, but the local site gets the plugin's core.
+
 ### `lps plugin status`
 
 Compare the site against `loopress.json` and exit non-zero on drift (usable in CI):
@@ -129,6 +151,6 @@ Check every pinned plugin against a WordPress vulnerability database ([wpvulnera
 
 ## Limits
 
-- **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` writes them into `loopress.json` (delete those lines by hand), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
+- **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` offers them like any other plugin (leave them unticked), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
 - **No rollback of database migrations.** A downgrade replaces files only.
 - **Multisite** plugin pinning is not supported yet.

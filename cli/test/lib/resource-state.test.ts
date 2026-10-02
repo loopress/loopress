@@ -591,6 +591,22 @@ describe('resource-state providers', () => {
       expect(isEmptyDiff(diff)).toBe(true)
     })
 
+    it('reads an option with its declared refs, so post references compare as paths', async () => {
+      const refs = {purchase_page: 'page'}
+      const remote = fakeWp({
+        [`loopress/v1/options/edd_settings?refs=${encodeURIComponent(JSON.stringify(refs))}`]: {
+          autoload: 'yes',
+          name: 'edd_settings',
+          value: {purchase_page: 'checkout'},
+        },
+      })
+      writeFileSync(join(dir, 'edd_settings.json'), JSON.stringify({autoload: 'yes', name: 'edd_settings', refs, value: {purchase_page: 'checkout'}}))
+
+      const diff = compareStates(await optionsProvider.remote(remote, noWarn, dir), await optionsProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
     // A tracked option that no longer exists on this environment (never pushed here, or
     // deleted there) is left out of the remote map entirely, rather than erroring the whole
     // comparison: it reads as "added" (present locally, not on this site), the same signal a

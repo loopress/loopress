@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Seo\Service;
 
+use Loopress\Infrastructure\PostByPath;
 use Loopress\RestApi\SyncSanitizer;
 use Loopress\Seo\Contract\SeoProvider;
 use Loopress\Seo\Exception\StaleSeoRevisionException;
@@ -99,9 +100,7 @@ abstract class AbstractSeoService implements SeoProvider
 
     private function findPost(string $postType, string $slug): ?\WP_Post
     {
-        $post = get_page_by_path($slug, OBJECT, $postType);
-
-        return $post instanceof \WP_Post ? $post : null;
+        return PostByPath::find($slug, $postType);
     }
 
     /** @return array<string, mixed> */

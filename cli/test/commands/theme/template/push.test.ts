@@ -83,6 +83,7 @@ describe('template push', () => {
     const put = vi.fn()
     const cmd = makeCommand(put)
     cmd.dryRun = true
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({customized: [], parts: [], templates: []})
 
     expect(await cmd.run()).toEqual({parts: [], status: 'dry-run', templates: ['single']})
     expect(put).not.toHaveBeenCalled()

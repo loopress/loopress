@@ -53,6 +53,19 @@ describe('option pull', () => {
       expect(written).toMatchObject({readonly: true, value: {new: true}})
     })
 
+    it('asks for declared refs as paths and keeps them in the file', async () => {
+      const {internals} = makeCmd([])
+      const get = vi.fn().mockResolvedValueOnce({autoload: 'yes', name: 'edd_settings', value: {purchase_page: 'checkout'}})
+      internals.wpClient = {get}
+      const refs = {purchase_page: 'page'}
+
+      await internals.pullOption(dir, {autoload: 'yes', name: 'edd_settings', refs, value: {purchase_page: 'checkout'}})
+
+      expect(get).toHaveBeenCalledWith(`loopress/v1/options/edd_settings?refs=${encodeURIComponent('{"purchase_page":"page"}')}`)
+      const written = JSON.parse(readFileSync(join(dir, 'edd_settings.json'), 'utf8')) as Record<string, unknown>
+      expect(written).toMatchObject({refs, value: {purchase_page: 'checkout'}})
+    })
+
     it('returns null (does not write) when the option 404s on this environment', async () => {
       const {internals} = makeCmd([])
       const get = vi.fn().mockRejectedValueOnce(notFound())

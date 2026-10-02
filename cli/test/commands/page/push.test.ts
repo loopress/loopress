@@ -144,6 +144,7 @@ describe('page push', () => {
       const put = vi.fn()
       const cmd = makeCommand(put)
       cmd.dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue([])
       cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
 

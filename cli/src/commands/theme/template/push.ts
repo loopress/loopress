@@ -1,4 +1,5 @@
 import {PushCommand} from '../../../lib/push-command.js'
+import {getResourceStateProvider} from '../../../lib/resource-state.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
 import {pluralize} from '../../../utils/pluralize.js'
 import {resolveResourceDir} from '../../../utils/resource-dirs.js'
@@ -41,6 +42,7 @@ export default class Push extends PushCommand {
     this.log(`Found ${pluralize(templates.length, 'template')} and ${pluralize(parts.length, 'part')}`)
 
     if (this.dryRun) {
+      await this.previewRemote(getResourceStateProvider('template'), templatesPath)
       this.log('[dry-run] Would rewrite the child theme with them.')
       return {...names, status: 'dry-run'}
     }

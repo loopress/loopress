@@ -7,6 +7,9 @@ import {type SyncIntent} from './plugin-sync.js'
 import {type MergeResult} from './plugins.js'
 import {isExactVersion} from './version.js'
 
+// Why pullIntoComposerJson skips a plugin it can't install: premium or custom, not on WPackagist.
+export const NOT_ON_WORDPRESS_ORG = 'not on WordPress.org'
+
 export type ComposerJson = {
   config?: {
     'allow-plugins'?: Record<string, boolean>
@@ -151,7 +154,7 @@ export async function pullIntoComposerJson(
       result.added.push(slug)
       result.merged[slug] = incoming[slug]
     } else {
-      result.skipped.push({reason: 'not on WordPress.org', slug})
+      result.skipped.push({reason: NOT_ON_WORDPRESS_ORG, slug})
     }
   }
 
@@ -190,12 +193,19 @@ export function toIntent(require: Record<string, string>): SyncIntent {
   return intent
 }
 
-// The `wpackagist-<kind>/<slug>` entries of a composer.json `require`, keyed by slug, with the
-// version or constraint as written.
-export function wpackagistRequire(composerJson: ComposerJson, kind: 'plugin' | 'theme'): Record<string, string> {
+// What a push installs: `require`, plus `require-dev` on the local environment only (Query
+// Monitor, or a premium plugin's free edition to develop against). A remote site never gets
+// `require-dev`, the same split as `composer install --no-dev` on a production server.
+export function requireToInstall(composerJson: ComposerJson, includeDev: boolean): Record<string, string> {
+  return includeDev ? {...composerJson.require, ...composerJson['require-dev']} : {...composerJson.require}
+}
+
+// The `wpackagist-<kind>/<slug>` entries of what a push installs (see requireToInstall), keyed
+// by slug, with the version or constraint as written.
+export function wpackagistRequire(composerJson: ComposerJson, kind: 'plugin' | 'theme', includeDev = false): Record<string, string> {
   const prefix = `wpackagist-${kind}/`
   return Object.fromEntries(
-    Object.entries(composerJson.require ?? {})
+    Object.entries(requireToInstall(composerJson, includeDev))
       .filter(([name]) => name.startsWith(prefix))
       .map(([name, version]) => [name.slice(prefix.length), version]),
   )

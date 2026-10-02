@@ -5,7 +5,7 @@ description: Push, pull and list WordPress nav menus and the active theme's menu
 
 The `menu` command group lets you version-control WordPress nav menus (Appearance > Menus) as plain JSON files in Git, one file per menu, plus the active theme's menu locations.
 
-A menu item's `post_type`/`taxonomy` target is never synced by its raw WordPress id, ids are not the same on two environments. Instead each item is resolved by identity: a post type or taxonomy slug (`object`) plus the target's own slug (`objectSlug`). `menu push` re-resolves that identity on the target environment every time; if the target doesn't exist there, the push fails clearly instead of guessing or silently dropping the item.
+A menu item's `post_type`/`taxonomy` target is never synced by its raw WordPress id, ids are not the same on two environments. Instead each item is resolved by identity: a post type or taxonomy slug (`object`) plus the target's own slug (`objectSlug`). For a child page, `objectSlug` is its full path (`account/profile`), since several pages can share the slug `profile` under different parents. A bare slug still resolves when exactly one page has it, and fails with the list of matching paths when several do. `menu push` re-resolves that identity on the target environment every time; if the target doesn't exist there, the push fails clearly instead of guessing or silently dropping the item.
 
 Menu locations (which menu is assigned to "Primary Navigation", "Footer", etc.) are a per-theme setting in WordPress, not a site-wide one. `menu pull`/`menu push` read and write them for whichever theme is active at the time.
 

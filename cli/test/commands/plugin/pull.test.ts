@@ -11,6 +11,10 @@ import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+const prompts = vi.hoisted(() => ({checkbox: vi.fn(), interactive: false}))
+vi.mock('@inquirer/prompts', () => ({checkbox: prompts.checkbox}))
+vi.mock('../../../src/lib/interactive.js', () => ({isInteractive: () => prompts.interactive}))
+
 type PullInternals = {
   dryRun: boolean
   localConfig: LoopressLocalConfig
@@ -25,8 +29,8 @@ function nativePlugin(overrides: Partial<WpNativePlugin> & {plugin: string}): Wp
 describe('plugin pull', () => {
   let dir: string
 
-  function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}) {
-    const cmd = new Pull([], fakeOclifConfig)
+  function make(dryRun: boolean, localConfig: LoopressLocalConfig = {}, argv: string[] = []) {
+    const cmd = new Pull(argv, fakeOclifConfig)
     const internals = cmd as unknown as PullInternals
     internals.dryRun = dryRun
     internals.localConfig = localConfig
@@ -40,14 +44,16 @@ describe('plugin pull', () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-plugin-pull-test-'))
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    prompts.interactive = false
+    prompts.checkbox.mockReset()
   })
 
   afterEach(() => {
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('pins every installed plugin to the version running on the site', async () => {
-    const {cmd, get, logs} = make(false)
+  it('pins the selected plugins to the version running on the site', async () => {
+    const {cmd, get, logs} = make(false, {}, ['--plugin', 'akismet'])
     get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
@@ -59,7 +65,7 @@ describe('plugin pull', () => {
   })
 
   it('records inactive plugins as such, so a later push does not switch them on', async () => {
-    const {cmd, get, logs} = make(false, {plugins: {'hello-dolly': '1.7.2'}})
+    const {cmd, get, logs} = make(false, {plugins: {'hello-dolly': '1.7.2'}}, ['--plugin', 'akismet'])
     get.mockResolvedValue([
       nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
       nativePlugin({plugin: 'hello-dolly/hello-dolly.php', status: 'inactive', version: '1.7.2'}),
@@ -73,7 +79,7 @@ describe('plugin pull', () => {
   })
 
   it('never manages itself under any of its historical slugs', async () => {
-    const {cmd, get} = make(false)
+    const {cmd, get} = make(false, {}, ['--plugin', 'akismet', '--plugin', 'loopress', '--plugin', 'loopress-full'])
     get.mockResolvedValue([
       nativePlugin({plugin: 'loopress/loopress.php'}),
       nativePlugin({plugin: 'loopress-full/loopress-full.php'}),
@@ -119,7 +125,7 @@ describe('plugin pull', () => {
     })
 
     it('adds what WPackagist serves, moves exact pins, and leaves constraints and other packages alone', async () => {
-      const {cmd, get, logs} = make(false, {plugins: {ignored: '1.0.0'}})
+      const {cmd, get, logs} = make(false, {plugins: {ignored: '1.0.0'}}, ['--plugin', 'akismet', '--plugin', 'acme-blocks', '--plugin', 'advanced-custom-fields-pro'])
       get.mockResolvedValue(site)
 
       const result = await cmd.run()
@@ -143,6 +149,8 @@ describe('plugin pull', () => {
           {reason: 'not on WordPress.org', slug: 'advanced-custom-fields-pro'},
         ],
         status: 'success',
+        // Ticked, but premium: Composer can't install it, so the project still doesn't track it.
+        untracked: ['advanced-custom-fields-pro'],
         updated: [{from: '5.4.0', slug: 'redirection', to: '5.5.0'}],
       })
       expect(fetch).toHaveBeenCalledTimes(2)
@@ -151,7 +159,7 @@ describe('plugin pull', () => {
     })
 
     it('writes nothing on a dry run', async () => {
-      const {cmd, get, logs} = make(true)
+      const {cmd, get, logs} = make(true, {}, ['--plugin', 'akismet', '--plugin', 'acme-blocks', '--plugin', 'advanced-custom-fields-pro'])
       get.mockResolvedValue(site)
 
       const result = await cmd.run()
@@ -163,7 +171,7 @@ describe('plugin pull', () => {
 
     it('fails with an explicit message, without touching composer.json, when WordPress.org answers an error', async () => {
       fetch.mockResolvedValue(new Response('', {status: 503}))
-      const {cmd, get} = make(false)
+      const {cmd, get} = make(false, {}, ['--plugin', 'akismet', '--plugin', 'acme-blocks', '--plugin', 'advanced-custom-fields-pro'])
       get.mockResolvedValue(site)
 
       await expect(cmd.run()).rejects.toThrow(
@@ -174,7 +182,7 @@ describe('plugin pull', () => {
 
     it('names the network error when WordPress.org is unreachable', async () => {
       fetch.mockRejectedValue(new TypeError('fetch failed'))
-      const {cmd, get} = make(false)
+      const {cmd, get} = make(false, {}, ['--plugin', 'akismet', '--plugin', 'acme-blocks', '--plugin', 'advanced-custom-fields-pro'])
       get.mockResolvedValue(site)
 
       await expect(cmd.run()).rejects.toThrow('(network error: fetch failed)')
@@ -185,7 +193,7 @@ describe('plugin pull', () => {
       ['tabs', '\t'],
     ])('keeps the original indentation (%s) and trailing newline', async (_label, indent) => {
       writeFileSync(join(dir, 'composer.json'), JSON.stringify(composerJson, null, indent) + '\n')
-      const {cmd, get, logs} = make(false)
+      const {cmd, get, logs} = make(false, {}, ['--plugin', 'akismet', '--plugin', 'acme-blocks', '--plugin', 'advanced-custom-fields-pro'])
       get.mockResolvedValue(site)
 
       await cmd.run()
@@ -204,7 +212,7 @@ describe('plugin pull', () => {
   })
 
   it('merges with the existing manifest, preserving plugins no longer reported by the site', async () => {
-    const {cmd, get} = make(false, {plugins: {'gravity-forms': '2.8.0'}})
+    const {cmd, get} = make(false, {plugins: {'gravity-forms': '2.8.0'}}, ['--plugin', 'akismet'])
     get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
@@ -225,7 +233,7 @@ describe('plugin pull', () => {
   })
 
   it('returns the added/merged/updated/status result shape on a real run', async () => {
-    const {cmd, get} = make(false, {plugins: {woocommerce: '9.4.2'}})
+    const {cmd, get} = make(false, {plugins: {woocommerce: '9.4.2'}}, ['--plugin', 'akismet'])
     get.mockResolvedValue([
       nativePlugin({plugin: 'woocommerce/woocommerce.php', version: '9.4.2'}),
       nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'}),
@@ -237,17 +245,74 @@ describe('plugin pull', () => {
       added: ['akismet'],
       merged: {akismet: '5.3.3', woocommerce: '9.4.2'},
       status: 'success',
+      untracked: [],
       updated: [],
     })
   })
 
   it('writes nothing to loopress.json on a dry run', async () => {
-    const {cmd, get, logs} = make(true)
+    const {cmd, get, logs} = make(true, {}, ['--plugin', 'akismet'])
     get.mockResolvedValue([nativePlugin({plugin: 'akismet/akismet.php', version: '5.3.3'})])
 
     await cmd.run()
 
     expect(existsSync(join(dir, 'loopress.json'))).toBe(false)
     expect(logs.log).toHaveBeenCalledWith('[dry-run] Would write 1 plugins to loopress.json')
+  })
+
+  describe('choosing which plugins to track', () => {
+    const site = [
+      nativePlugin({plugin: 'woocommerce/woocommerce.php', version: '9.5.0'}),
+      nativePlugin({plugin: 'wordfence/wordfence.php', version: '8.0.0'}),
+      nativePlugin({plugin: 'akismet/akismet.php', status: 'inactive', version: '5.3.3'}),
+    ]
+
+    it('without a terminal, refreshes tracked plugins only and lists the others as untracked', async () => {
+      const {cmd, get, logs} = make(false, {plugins: {woocommerce: '9.4.0'}})
+      get.mockResolvedValue(site)
+
+      const result = await cmd.run()
+
+      expect(prompts.checkbox).not.toHaveBeenCalled()
+      expect(result.untracked).toEqual(['wordfence', 'akismet'])
+      const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+      expect(written.plugins).toEqual({woocommerce: '9.5.0'})
+      expect(logs.log).toHaveBeenCalledWith('  - Not tracked: wordfence, akismet (add one with `lps plugin pull --plugin <slug>`)')
+    })
+
+    it('offers only the untracked plugins, unticked, and tracks the ones picked', async () => {
+      prompts.interactive = true
+      prompts.checkbox.mockResolvedValue(['akismet'])
+      const {cmd, get} = make(false, {plugins: {woocommerce: '9.5.0'}})
+      get.mockResolvedValue(site)
+
+      const result = await cmd.run()
+
+      const {choices} = prompts.checkbox.mock.calls[0][0] as {choices: Array<{checked?: boolean; value: string}>}
+      expect(choices.map((choice) => choice.value)).toEqual(['wordfence', 'akismet'])
+      expect(choices.some((choice) => choice.checked)).toBe(false)
+      expect(result.untracked).toEqual(['wordfence'])
+      const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+      expect(written.plugins).toEqual({akismet: {active: false, version: '5.3.3'}, woocommerce: '9.5.0'})
+    })
+
+    it('does not ask with --yes, even in a terminal', async () => {
+      prompts.interactive = true
+      const {cmd, get} = make(false, {plugins: {woocommerce: '9.5.0'}}, ['--yes'])
+      get.mockResolvedValue(site)
+
+      await cmd.run()
+
+      expect(prompts.checkbox).not.toHaveBeenCalled()
+    })
+
+    it('warns about a --plugin that is not installed on this environment', async () => {
+      const {cmd, get, logs} = make(false, {}, ['--plugin', 'ghost'])
+      get.mockResolvedValue(site)
+
+      await cmd.run()
+
+      expect(logs.warn).toHaveBeenCalledWith('--plugin ghost: not installed on this environment, skipped.')
+    })
   })
 })

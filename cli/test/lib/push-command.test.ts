@@ -238,14 +238,30 @@ describe('PushCommand', () => {
       expect(beforeState).toEqual(new Map([['1', {name: 'on site now'}]]))
     })
 
-    it('captureBeforePushState does nothing on a dry run', async () => {
+    // The dry run's check against the site: the same read `lps diff` does, no snapshot.
+    it('captureBeforePushState reads the site on a dry run but keeps no snapshot', async () => {
       const cmd = makeWithClient(true, SITE)
       const remote = vi.fn(async () => new Map())
 
       const beforeState = await cmd.testCaptureBeforePushState(fakeProvider({remote}), rootDir)
 
-      expect(remote).not.toHaveBeenCalled()
+      expect(remote).toHaveBeenCalledOnce()
       expect(beforeState).toBeUndefined()
+    })
+
+    it('captureBeforePushState fails a dry run when the site refuses the read', async () => {
+      const cmd = makeWithClient(true, SITE)
+
+      await expect(
+        cmd.testCaptureBeforePushState(
+          fakeProvider({
+            async remote() {
+              throw new Error('No supported SEO plugin is active')
+            },
+          }),
+          rootDir,
+        ),
+      ).rejects.toThrow('The site would refuse this push: No supported SEO plugin is active')
     })
 
     it('captureBeforePushState warns and returns undefined when the remote read fails', async () => {

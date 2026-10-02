@@ -1,7 +1,9 @@
 export const OPTIONS_ENDPOINT = 'loopress/v1/options'
 
-export function optionEndpoint(name: string): string {
-  return `${OPTIONS_ENDPOINT}/${encodeURIComponent(name)}`
+// `refs` asks WordPress to return the declared post references as paths (see OptionRefs).
+export function optionEndpoint(name: string, refs?: OptionRefs): string {
+  const endpoint = `${OPTIONS_ENDPOINT}/${encodeURIComponent(name)}`
+  return refs && Object.keys(refs).length > 0 ? `${endpoint}?refs=${encodeURIComponent(JSON.stringify(refs))}` : endpoint
 }
 
 // Mirrors OptionsService::RESERVED_NAMES on the WordPress side (the actual, unbypassable
@@ -33,10 +35,17 @@ export const READONLY_BY_DEFAULT_OPTION_NAMES = [
   'mailserver_port',
 ] as const
 
+// Values of the option that hold a post ID, keyed by dot path into the value (`.` for the whole
+// value), e.g. `{"purchase_page": "page"}` for EDD's settings. IDs differ between environments,
+// so these travel as the post's path and WordPress resolves them again on each side
+// (OptionReferences in the plugin). Like `readonly`, a local declaration: never pulled.
+export type OptionRefs = Record<string, string>
+
 export type LocalOption = {
   autoload: string
   name: string
   readonly?: boolean
+  refs?: OptionRefs
   value: unknown
 }
 
@@ -96,7 +105,7 @@ export function parseLocalOption(raw: string): LocalOption {
     throw new Error('not a JSON object')
   }
 
-  const {autoload, name, value} = parsed as {autoload?: unknown; name?: unknown; value?: unknown}
+  const {autoload, name, refs, value} = parsed as {autoload?: unknown; name?: unknown; refs?: unknown; value?: unknown}
   if (typeof name !== 'string' || name === '') {
     throw new Error('missing a "name" string')
   }
@@ -112,5 +121,18 @@ export function parseLocalOption(raw: string): LocalOption {
     throw new Error('missing a "value" field')
   }
 
+  if (refs !== undefined && !isOptionRefs(refs)) {
+    throw new TypeError('"refs" must map a value path to a post type, e.g. {"purchase_page": "page"}')
+  }
+
   return parsed as LocalOption
+}
+
+function isOptionRefs(refs: unknown): refs is OptionRefs {
+  return (
+    typeof refs === 'object' &&
+    refs !== null &&
+    !Array.isArray(refs) &&
+    Object.entries(refs).every(([path, postType]) => path !== '' && typeof postType === 'string' && postType !== '')
+  )
 }

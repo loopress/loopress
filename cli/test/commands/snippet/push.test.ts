@@ -651,6 +651,7 @@ describe('snippet push', () => {
       writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
       const {cmd, logs, post, put} = makeRunCmd()
       ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue([])
 
       const result = await cmd.run()
 

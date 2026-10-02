@@ -70,18 +70,18 @@ export default class Pull extends LoopressCommand {
 
   // Returns the refreshed option (and writes it to disk), or null when the tracked name is a
   // 404 on this environment: absent, not a failure (see the orphan reconciliation in run()).
-  // readonly is a local policy flag with no WordPress counterpart, always preserved from the
-  // existing file rather than overwritten by the pulled value.
+  // readonly and refs are local declarations with no WordPress counterpart, always preserved
+  // from the existing file rather than overwritten by the pulled value.
   private async pullOption(dir: string, option: LocalOption): Promise<LocalOption | null> {
     let remote: RemoteOption
     try {
-      remote = await this.wp.get<RemoteOption>(optionEndpoint(option.name))
+      remote = await this.wp.get<RemoteOption>(optionEndpoint(option.name, option.refs))
     } catch (error) {
       if (isNotFoundError(error)) return null
       throw error
     }
 
-    const local: LocalOption = {...remote, readonly: option.readonly}
+    const local: LocalOption = {...remote, readonly: option.readonly, refs: option.refs}
     await writeFile(join(dir, optionFileName(option.name)), JSON.stringify(local, null, 2) + '\n')
     return local
   }

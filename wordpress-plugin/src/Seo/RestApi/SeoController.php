@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Seo\RestApi;
 
+use Loopress\Infrastructure\AmbiguousPostSlugException;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Seo\Exception\InvalidRedirectException;
@@ -24,6 +25,7 @@ class SeoController
     private const POST_META_STATUSES = [
         NoActiveSeoPluginException::class => 409,
         StaleSeoRevisionException::class  => 412,
+        AmbiguousPostSlugException::class => 409,
     ];
     private const REDIRECT_STATUSES  = [
         RedirectsUnavailableException::class => 400,

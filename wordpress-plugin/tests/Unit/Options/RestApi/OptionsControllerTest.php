@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Options\RestApi;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\StaleOptionRevisionException;
@@ -12,6 +13,7 @@ use Loopress\Options\RestApi\OptionsController;
 use Loopress\Options\Service\OptionsService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use WP_Post;
 use WP_REST_Request;
 
 class OptionsControllerTest extends TestCase
@@ -26,6 +28,8 @@ class OptionsControllerTest extends TestCase
 
         $this->optionsService = $this->createMock(OptionsService::class);
         $this->controller     = new OptionsController($this->optionsService);
+        Functions\when('is_post_type_hierarchical')->justReturn(true);
+        Functions\when('get_page_uri')->alias(static fn (WP_Post $post): string => $post->post_name);
     }
 
     protected function tearDown(): void
@@ -66,6 +70,29 @@ class OptionsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1'], $response->data);
+    }
+
+    // US-7: page references declared in the file travel as paths, the stored IDs stay local.
+    public function test_get_option_returns_declared_references_as_paths(): void
+    {
+        Functions\when('get_post')->alias(fn (int $id): WP_Post => $this->page($id, 'checkout'));
+        $this->optionsService->method('getOption')
+            ->willReturn(['name' => 'edd_settings', 'value' => ['purchase_page' => 7], 'autoload' => 'yes', 'revision' => 'rev-1']);
+
+        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'edd_settings', 'refs' => '{"purchase_page":"page"}']));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['purchase_page' => 'checkout'], $response->data['value']);
+        $this->assertSame('rev-1', $response->data['revision']);
+    }
+
+    public function test_get_option_returns_400_for_malformed_refs(): void
+    {
+        $this->optionsService->expects($this->never())->method('getOption');
+
+        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'edd_settings', 'refs' => 'not json']));
+
+        $this->assertSame(400, $response->status);
     }
 
     // ── update ───────────────────────────────────────────────────────────────
@@ -109,6 +136,40 @@ class OptionsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1'], $response->data);
+    }
+
+    public function test_update_option_writes_ids_and_returns_paths_for_declared_references(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->page(41, 'checkout'));
+        Functions\when('get_post')->alias(fn (int $id): WP_Post => $this->page($id, 'checkout'));
+        $this->optionsService->expects($this->once())
+            ->method('updateOption')
+            ->with('edd_settings', ['purchase_page' => 41], null, null)
+            ->willReturn(['name' => 'edd_settings', 'value' => ['purchase_page' => 41], 'autoload' => 'yes', 'revision' => 'rev-2']);
+
+        $response = $this->controller->update_option(new WP_REST_Request([
+            'name'  => 'edd_settings',
+            'value' => ['purchase_page' => 'checkout'],
+            'refs'  => ['purchase_page' => 'page'],
+        ]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['purchase_page' => 'checkout'], $response->data['value']);
+    }
+
+    public function test_update_option_returns_422_when_a_reference_does_not_resolve(): void
+    {
+        Functions\when('get_page_by_path')->justReturn(null);
+        Functions\when('get_posts')->justReturn([]);
+        $this->optionsService->expects($this->never())->method('updateOption');
+
+        $response = $this->controller->update_option(new WP_REST_Request([
+            'name'  => 'edd_settings',
+            'value' => ['purchase_page' => 'ghost'],
+            'refs'  => ['purchase_page' => 'page'],
+        ]));
+
+        $this->assertSame(422, $response->status);
     }
 
     // Regression coverage: a name already owned by `plugin`/`theme` must surface as a client-
@@ -260,5 +321,15 @@ class OptionsControllerTest extends TestCase
         $response = $this->controller->update_option(new WP_REST_Request(['name' => 'default_role', 'value' => 'administrator']));
 
         $this->assertSame(403, $response->status);
+    }
+
+    private function page(int $id, string $slug): WP_Post
+    {
+        $post            = new WP_Post();
+        $post->ID        = $id;
+        $post->post_name = $slug;
+        $post->post_type = 'page';
+
+        return $post;
     }
 }

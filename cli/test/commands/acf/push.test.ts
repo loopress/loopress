@@ -263,13 +263,25 @@ describe('acf push', () => {
 
     it('neither writes nor reports success on a dry run', async () => {
       writeObject('field-groups', 'group_1')
-      const {cmd, logs, post} = makeRunCmd()
+      const {cmd, get, logs, post} = makeRunCmd()
       ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      get.mockResolvedValue([])
 
       await cmd.run()
 
       expect(post).not.toHaveBeenCalled()
       expect(logs.log).not.toHaveBeenCalledWith('All ACF objects pushed.')
+    })
+
+    // The local site without ACF: the dry run used to announce "pushed", the real push got a 409.
+    it('fails the dry run the way the real push would when the site refuses the read', async () => {
+      writeObject('field-groups', 'group_1')
+      const {cmd, get, post} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      get.mockRejectedValue(new Error('ACF is not active', {cause: {response: {statusCode: 409}}}))
+
+      await expect(cmd.run()).rejects.toThrow('The site would refuse this push: ACF is not active')
+      expect(post).not.toHaveBeenCalled()
     })
 
     it('errors with the total failed count when some pushes fail, instead of reporting success', async () => {

@@ -150,6 +150,8 @@ lps snippet push --dry-run
 lps composer push --dry-run
 ```
 
+A push's dry run still reads the target site, the same way `lps diff` does, so it fails when the real push would be refused: for example `lps acf push --dry-run` on a site where ACF isn't active.
+
 ## CI and non-interactive use
 
 Without a TTY, or when the `CI` environment variable is set, the CLI never hangs waiting for a prompt:

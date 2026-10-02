@@ -16,17 +16,12 @@ test('plugin pull never lists the Loopress plugin itself', async ({request, runC
   const installed = (await installedResponse.json()) as Array<{plugin: string}>
   expect(installed.map((plugin) => plugin.plugin)).toContain('loopress-full/loopress')
 
-  const result = await runCli(['plugin', 'pull', '--dry-run'])
+  // Without a terminal, plugins not tracked yet are reported as `untracked` instead of added:
+  // Loopress must appear in neither list.
+  const result = await runCli(['plugin', 'pull', '--dry-run', '--json'])
 
   expect(result.exitCode).toBe(0)
-
-  // The site URL and "loopress.json" both legitimately contain the substring "loopress", so
-  // check the parsed slug list from the "+ slug, slug, ..." line rather than the raw output.
-  const addedLine = result.stdout.split('\n').find((line) => line.trim().startsWith('+'))
-  expect(addedLine).toBeDefined()
-  const slugs = addedLine!
-    .replace('+', '')
-    .split(',')
-    .map((slug) => slug.trim())
-  expect(slugs).not.toContain('loopress-full')
+  const {added, untracked} = JSON.parse(result.stdout) as {added: string[]; untracked: string[]}
+  expect([...added, ...untracked]).not.toContain('loopress-full')
+  expect([...added, ...untracked]).not.toContain('loopress')
 })
