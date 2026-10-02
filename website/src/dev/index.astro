@@ -1,0 +1,295 @@
+---
+// Component gallery: every site component and its variants, one page per kind
+// (/dev/gallery/editions, ...) and an index at /dev/gallery. Kept so a discarded variant is one
+// prop away if we change our minds. Lives outside src/pages on purpose: the devOnlyRoutes
+// integration in astro.config.mjs routes /dev/gallery/[...kind] here under `astro dev` only, so
+// `astro build` never sees it. Add a section (and a `kinds` entry) whenever a component gains a variant.
+import DocPage from "@/components/site/DocPage.astro";
+import Editions from "@/components/site/Editions.astro";
+import LoopDiagram from "@/dev/components/LoopDiagram.astro";
+import Logo from "@/components/site/Logo.astro";
+import Stage from "@/dev/components/Stage.astro";
+import Footer from "@/components/site/Footer.astro";
+
+// The loop drawings live inline in each prototype page, not as components, so they are previewed
+// through a scaled iframe of the page's hero. Order and notes follow obsidian/marketing/Positioning.md.
+const loops = [
+  ["loop", "A: the loop as 4 steps, pull back as the 4th"],
+  ["loop-2", "pull back as the return arrow, split hero, loop drawn vertically"],
+  ["loop-3", "headline full width, CTA left of the loop row"],
+  ["loop-4", "dark ink hero on graph paper, numbered square loop"],
+  ["loop-5", "Atelier: warm paper, serif, handwritten notes"],
+  ["loop-6", "Brutal: heavy grotesk, thick borders, hard shadows"],
+  ["loop-7", "Terminal: dark, monospace-first, cyan glow"],
+  ["loop-8", "Poster: hexagon pattern and badges"],
+  ["loop-9", "the loop is the logo's hexagon, pull back along the base"],
+  ["loop-10", "loop-9's hexagon, the most complete page"],
+  ["loop-11", "loop-10 with a dark hero, judged weaker"],
+  ["loop-12", "two places, two crossings: Ship on top, Pull back at the bottom (in use)"],
+];
+
+const kinds = [
+  ["loops", "Loops", "the hero loop of every prototype page"],
+  ["editions", "Editions", "Light / Full structure, 13 variants"],
+  ["logo", "Logo", "lockups and treatments of the mark"],
+  ["stage", "Stage", "eyebrow for a loop step"],
+  ["footer", "Footer", "4 layouts"],
+  ["loop-diagram", "LoopDiagram", "the numbered square loop, superseded"],
+];
+const kind = Astro.params.kind;
+const current = kinds.find(([slug]) => slug === kind);
+if (kind && !current) return new Response(null, { status: 404 });
+---
+
+<DocPage
+  title={`${current ? `${current[1]} - ` : ""}Gallery - Loopress proto`}
+  kicker="dev only · not built"
+  heading={current ? `${current[1]}.` : "Component gallery."}
+  lede={current ? undefined : "Every proto component and its variants, one page per kind. In use = picked for loop-12 or the content pages, the rest is kept in reserve."}
+  wide
+>
+  <nav class="toc mono">
+    <a href="/dev/gallery" aria-current={!current ? "page" : undefined}>All</a>
+    {kinds.map(([slug, label]) => <a href={`/dev/gallery/${slug}`} aria-current={slug === kind ? "page" : undefined}>{label}</a>)}
+  </nav>
+
+  {!current && (
+    <ul class="index">
+      {kinds.map(([slug, label, note]) => (
+        <li><a href={`/dev/gallery/${slug}`}><strong>{label}</strong></a><span>{note}</span></li>
+      ))}
+    </ul>
+  )}
+
+  {kind === "loops" && (
+  <section id="loops">
+    <p>The hero loop of every prototype, top of each page. Click through for the full page.</p>
+    <div class="loops">
+      {loops.map(([slug, note]) => (
+        <figure>
+          <figcaption class="mono"><a href={`/dev/${slug}`}>/dev/{slug}</a> · {note}</figcaption>
+          <div class="frame"><iframe src={`/dev/${slug}`} title={`/dev/${slug} hero`} loading="lazy" tabindex="-1"></iframe></div>
+        </figure>
+      ))}
+    </div>
+  </section>
+  )}
+
+  {kind === "editions" && (
+  <section id="editions">
+    <p>Light / Full structure. <code>components/site/Editions.astro</code></p>
+    <div class="variants">
+      <figure>
+        <figcaption class="mono">variant="brackets"</figcaption>
+        <div class="card"><Editions variant="brackets" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="nested"</figcaption>
+        <div class="card"><Editions variant="nested" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="hex-nested"</figcaption>
+        <div class="card"><Editions variant="hex-nested" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="hex-thick"</figcaption>
+        <div class="card"><Editions variant="hex-thick" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="table" · checkmarks, row by row</figcaption>
+        <div class="card"><Editions variant="table" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="equation" · Light + your code = Full</figcaption>
+        <div class="card"><Editions variant="equation" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="tree" · loop-12's folder tree</figcaption>
+        <div class="card"><Editions variant="tree" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="layers" · a stack on top of WordPress, content at the bottom</figcaption>
+        <div class="card"><Editions variant="layers" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="honeycomb" · one hexagon cell per module</figcaption>
+        <div class="card"><Editions variant="honeycomb" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="toggle" · one plugin, switch the code half on (click it)</figcaption>
+        <div class="card"><Editions variant="toggle" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="plugins" · the WordPress Plugins screen</figcaption>
+        <div class="card"><Editions variant="plugins" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="terminal" · the real lps project config output</figcaption>
+        <div class="card"><Editions variant="terminal" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="meter" · a 12-segment gauge</figcaption>
+        <div class="card"><Editions variant="meter" /></div>
+      </figure>
+    </div>
+  </section>
+  )}
+
+  {kind === "loop-diagram" && (
+  <section id="loop-diagram">
+    <p>The numbered square loop from loop-4. Superseded by the hexagon (inline in loop-9 to loop-12), kept for reference. <code>components/site/LoopDiagram.astro</code></p>
+    <div class="variants two">
+      <figure>
+        <figcaption class="mono">default</figcaption>
+        <div class="card loopvars"><LoopDiagram /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">square</figcaption>
+        <div class="card loopvars"><LoopDiagram square /></div>
+      </figure>
+    </div>
+  </section>
+  )}
+
+  {kind === "logo" && (
+  <section id="logo">
+    <p>The mark never changes, only the lockup or treatment. <code>components/site/Logo.astro</code>, prop <code>variant</code>.</p>
+    <div class="variants three">
+      <figure>
+        <figcaption class="mono">variant="horizontal" (default, in use)</figcaption>
+        <div class="card center"><Logo class="h-10 w-10" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">wordmark=&#123;false&#125;</figcaption>
+        <div class="card center"><Logo class="h-12 w-12" wordmark={false} /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="stacked"</figcaption>
+        <div class="card center"><Logo variant="stacked" class="h-14 w-14" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="mono"</figcaption>
+        <div class="card center"><Logo variant="mono" class="h-10 w-10" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="outline"</figcaption>
+        <div class="card center"><Logo variant="outline" class="h-10 w-10" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="inline-o" · the loop inside the name</figcaption>
+        <div class="card center"><span class="big"><Logo variant="inline-o" /></span></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="badge" · app icon, avatar</figcaption>
+        <div class="card center"><Logo variant="badge" class="h-16 w-16" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="animated" · the loop in motion</figcaption>
+        <div class="card center"><Logo variant="animated" class="h-16 w-16" wordmark={false} /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">on dark</figcaption>
+        <div class="card center dark"><Logo class="h-10 w-10" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="mono" on dark</figcaption>
+        <div class="card center dark"><Logo variant="mono" class="h-10 w-10" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="inline-o" on dark</figcaption>
+        <div class="card center dark"><span class="big"><Logo variant="inline-o" /></span></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="animated" on dark</figcaption>
+        <div class="card center dark"><Logo variant="animated" class="h-16 w-16" wordmark={false} /></div>
+      </figure>
+    </div>
+  </section>
+  )}
+
+  {kind === "stage" && (
+  <section id="stage">
+    <p>Eyebrow for a loop step. <code>components/site/Stage.astro</code>, prop <code>variant</code>.</p>
+    <div class="variants two">
+      <figure>
+        <figcaption class="mono">variant="numbered" (default, loop to loop-3, numbering dropped since)</figcaption>
+        <div class="card stack"><Stage n="01" label="Build" /><Stage n="↺" label="Pull back" /></div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="hex" · the stage's vertex lit on the logo</figcaption>
+        <div class="card stack">
+          <Stage variant="hex" label="Build" />
+          <Stage variant="hex" label="Review" />
+          <Stage variant="hex" label="Ship" meta="Tuesday 14:00 · bakery" />
+          <Stage variant="hex" label="Pull back" />
+        </div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="pill" · loop-12's timeline tag</figcaption>
+        <div class="card stack">
+          <Stage variant="pill" label="Build" meta="Monday 9:10 · bakery" />
+          <Stage variant="pill" label="Pull back" meta="Wednesday 10:05 · law-firm" />
+        </div>
+      </figure>
+      <figure>
+        <figcaption class="mono">variant="trail" · where you are in the loop</figcaption>
+        <div class="card stack">
+          <Stage variant="trail" label="Review" />
+          <Stage variant="trail" label="Pull back" />
+        </div>
+      </figure>
+    </div>
+  </section>
+  )}
+
+  {kind === "footer" && (
+  <section id="footer">
+    <p><code>components/site/Footer.astro</code>, prop <code>variant</code>.</p>
+    <figure class="wide">
+      <figcaption class="mono">variant="columns" (default, in use on loop-12 and every content page)</figcaption>
+      <div class="card flush"><Footer /></div>
+    </figure>
+    <figure class="wide">
+      <figcaption class="mono">variant="inline" · one line, the old site's Ft2</figcaption>
+      <div class="card flush"><Footer variant="inline" /></div>
+    </figure>
+    <figure class="wide">
+      <figcaption class="mono">variant="dark" · doubles as the closing CTA</figcaption>
+      <div class="card flush clip"><Footer variant="dark" /></div>
+    </figure>
+    <figure class="wide">
+      <figcaption class="mono">variant="wordmark" · links, then the name set huge</figcaption>
+      <div class="card flush clip"><Footer variant="wordmark" /></div>
+    </figure>
+  </section>
+  )}
+</DocPage>
+
+<style>
+  .toc { display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 0.85rem; }
+  .toc a[aria-current] { text-decoration-thickness: 3px; text-decoration-color: oklch(0.76 0.14 215); }
+  .index { list-style: none !important; padding: 0 !important; margin-top: 3rem; }
+  .index li { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; padding-block: 1rem; border-top: 1px solid color-mix(in oklch, currentColor 15%, transparent); margin: 0 !important; }
+  .index strong { font-size: 1.3rem; }
+  .index span { opacity: 0.7; }
+  section { margin-top: 3rem; }
+  section > p { margin-top: 0.5rem; }
+  .variants { margin-top: 1.5rem; display: grid; gap: 2rem; }
+  .variants.two { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .variants.three { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+  figcaption { font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.75; }
+  .card { border: 1px dashed color-mix(in oklch, currentColor 30%, transparent); border-radius: 0.75rem; padding: 1.5rem; margin-top: 1rem; }
+  figure .card { margin-top: 0; }
+  .center { display: grid; place-items: center; min-height: 7rem; }
+  .dark { background: oklch(0.22 0.05 255); color: oklch(0.975 0.008 95); }
+  .flush { padding: 0; }
+  .big { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 2.5rem; }
+  .clip { overflow: hidden; }
+  .stack { display: flex; flex-direction: column; gap: 1rem; }
+  figure.wide { margin-top: 1.5rem; }
+  /* Each iframe is 4x the card and scaled down by 4, so a ~350px card shows a ~1400px desktop viewport. */
+  .loops { margin-top: 1.5rem; display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
+  .frame { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 0.75rem; border: 1px solid color-mix(in oklch, currentColor 20%, transparent); }
+  .frame iframe { position: absolute; top: 0; left: 0; width: 400%; height: 400%; border: 0; transform-origin: 0 0; transform: scale(0.25); pointer-events: none; }
+  .loopvars { --loop-line: oklch(0.22 0.05 255); --loop-node: oklch(0.975 0.008 95); --loop-text: oklch(0.22 0.05 255); }
+</style>

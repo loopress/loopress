@@ -1,50 +1,28 @@
 ---
-import Layout from "@/layouts/Layout.astro";
-import { Nav } from "@/components/landing/Nav";
-import { Footer } from "@/components/landing/Footer";
+// Contact for an open source project. GitHub first, the form for what doesn't belong in
+// a public issue. The old "agency pricing" template is gone with the paid tiers.
+import DocPage from "@/components/site/DocPage.astro";
 import ContactForm from "@/components/ContactForm";
 
-const topic = Astro.url.searchParams.get("topic");
-
-const templates: Record<string, { subject: string; message: string }> = {
-  agency: {
-    subject: "Agency pricing",
-    message:
-      "Hi, we manage multiple WordPress projects and would like to know more about Agency tier pricing.\n\nNumber of projects: \nTeam size: ",
-  },
-};
-
-const template = topic ? templates[topic] : undefined;
+export const prerender = true;
 ---
 
-<Layout
-  title="Contact the Loopress Team - Partnerships and Support"
-  description="Get in touch with the Loopress team for partnership requests, trademark inquiries, or general support. We'll get back to you as soon as possible."
-  canonical="https://loopress.dev/contact"
->
-  <div class="min-h-screen bg-background text-foreground">
-    <Nav client:load />
-    <main class="mx-auto max-w-xl px-6 py-24">
-      <div class="mb-10">
-        <h1 class="text-2xl font-semibold tracking-tight">Contact</h1>
-        <p class="mt-2 text-sm text-muted-foreground">
-          A question, a partnership request, or a trademark inquiry? Send us a message and we will
-          get back to you.
-        </p>
-      </div>
-      <h2 class="sr-only">Contact form</h2>
-      <ContactForm
-        client:load
-        defaultSubject={template?.subject}
-        defaultMessage={template?.message}
-      />
-      <p class="mt-8 text-center text-xs text-muted-foreground">
-        For trademark or brand asset requests, see the{" "}
-        <a href="/brand-assets" class="underline underline-offset-2 hover:text-foreground">
-          usage policy
-        </a>.
-      </p>
-    </main>
-    <Footer />
+<DocPage title="Contact - Loopress" description="Get in touch with the Loopress team: bugs and ideas on GitHub, partnerships, trademark questions and anything private through the form." kicker="contact" heading="Get in touch.">
+  <h2>Bugs and ideas</h2>
+  <p>
+    Loopress is open source, so most conversations happen in public. Open an issue on
+    <a href="https://github.com/loopress/loopress/issues">GitHub</a>: it helps the next person with
+    the same question.
+  </p>
+  <p class="aside">security issue? see <a href="https://github.com/loopress/loopress/blob/main/SECURITY.md">SECURITY.md</a>, never a public issue.</p>
+
+  <h2>Everything else</h2>
+  <p>A partnership, a trademark question, something private: send a message.</p>
+  <div class="form">
+    <ContactForm client:load />
   </div>
-</Layout>
+</DocPage>
+
+<style>
+  .form { margin-top: 2rem; }
+</style>

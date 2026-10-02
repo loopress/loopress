@@ -1,0 +1,119 @@
+---
+// Prototype B: "One week, five sites". The page is a solo dev's week as a timeline. Each
+// entry is a real situation on one of five client sites, tagged with the loop step it
+// exercises. The loop is shown by use, not explained. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+
+export const prerender = true;
+
+const sites = ["bakery", "law-firm", "shop", "school", "studio"];
+
+const week = [
+  {
+    day: "Mon 9:10", site: "shop", step: "Build",
+    ask: "Show a delivery date on products.",
+    term: `$ lps acf pull --env staging
+$ $EDITOR acf/group_product_delivery.json`,
+  },
+  {
+    day: "Mon 11:30", site: "shop", step: "Review",
+    ask: "Open the PR, let CI check it.",
+    term: `$ lps diff --env staging
++ acf  group_product_delivery  new
+1 change`,
+  },
+  {
+    day: "Tue 14:00", site: "shop", step: "Ship",
+    ask: "Client approved on staging.",
+    term: `$ lps promote staging production
+✓ production up to date`,
+  },
+  {
+    day: "Wed 10:05", site: "law-firm", step: "Pull back",
+    ask: "The client added a menu item themselves.",
+    term: `$ lps diff --env production
+~ menu  primary  1 item added on the site
+$ lps pull --env production`,
+  },
+  {
+    day: "Thu 16:20", site: "all five", step: "Ship",
+    ask: "Same SEO fix on every site.",
+    term: `$ for s in bakery law-firm shop school studio; do
+    (cd $s && lps seo push --env production)
+  done`,
+  },
+  {
+    day: "Fri 17:48", site: "shop", step: "Rollback",
+    ask: "\"The price looks weird on the cart.\"",
+    term: `$ lps hook rollback --env production
+✓ back to the 17:02 snapshot`,
+  },
+];
+
+const tone: Record<string, string> = {
+  Build: "text-accent-cyan-ink border-accent-cyan/40",
+  Review: "text-accent-cyan-ink border-accent-cyan/40",
+  Ship: "text-accent-cyan-ink border-accent-cyan/40",
+  "Pull back": "text-warning-ink border-warning-ink/40 border-dashed",
+  Rollback: "text-muted-foreground border-border",
+};
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <div class="min-h-screen bg-background text-foreground">
+    <header class="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+      <span class="font-mono text-sm font-semibold">loopress</span>
+      <a href="https://github.com/loopress" class="font-mono text-xs text-muted-foreground hover:text-foreground">GitHub ↗</a>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-6">
+      <section class="pt-16 pb-16">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent-cyan-ink">One week · five client sites · one person</p>
+        <h1 class="mt-4 max-w-3xl text-balance text-5xl font-semibold tracking-tight md:text-6xl">
+          Build, review and ship WordPress, in one loop.
+        </h1>
+        <p class="mt-6 max-w-2xl text-lg text-muted-foreground">
+          Here is what that looks like when you run a handful of client sites on your own. Same
+          commands, every site, every week.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-2 font-mono text-xs">
+          {sites.map((s) => <span class="rounded border border-border px-2 py-1 text-muted-foreground">{s}</span>)}
+        </div>
+      </section>
+
+      <ol class="relative border-l border-border pb-24">
+        {week.map((e) => (
+          <li class="relative ml-6 grid gap-6 border-b border-border/60 py-10 md:ml-10 md:grid-cols-[1fr_1.2fr]">
+            <span class="absolute top-12 -left-[1.9rem] h-2.5 w-2.5 rounded-full bg-accent-cyan md:-left-[2.9rem]" aria-hidden="true"></span>
+            <div>
+              <p class="font-mono text-xs text-muted-foreground">{e.day} · {e.site}</p>
+              <p class="mt-2 text-xl font-semibold">{e.ask}</p>
+              <span class={`mt-3 inline-block rounded border px-1.5 py-0.5 font-mono text-xs ${tone[e.step]}`}>{e.step}</span>
+            </div>
+            <pre class="overflow-x-auto rounded-xl border border-border bg-card/40 p-5 font-mono text-xs leading-relaxed">{e.term}</pre>
+          </li>
+        ))}
+      </ol>
+
+      <section class="border-t border-border/60 py-20">
+        <h2 class="text-3xl font-semibold tracking-tight">Next Monday, same loop.</h2>
+        <p class="mt-3 max-w-2xl text-muted-foreground">
+          Configuration with Loopress Light, from WordPress.org. Code too with Loopress Full, from
+          loopress.dev. Both free. Your content never moves.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <code class="rounded-md border border-border bg-card px-4 py-2.5 font-mono text-sm">
+            <span class="text-muted-foreground">$</span> npm i -g @loopress/cli
+          </code>
+          <a href="https://github.com/loopress" class="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90">
+            Star on GitHub
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-border/60 px-6 py-6 text-center font-mono text-xs text-muted-foreground">
+      loopress · MPL-2.0 · docs · github
+    </footer>
+  </div>
+</Layout>

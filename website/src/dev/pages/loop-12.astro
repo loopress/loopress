@@ -1,30 +1,25 @@
 ---
-// Home. The loop is the logo: the dark C is your repo (Build, Review), the cyan chevron the live
-// site, Ship and Pull back are the two joints between them. Below, what's in Git, a week of five
-// client sites as tabs (radio inputs + CSS, no JS), one scenario per kind of WordPress project,
-// and the Light / Full toggle. Earlier iterations live under /dev (astro dev only).
+// Prototype A12: loop-10 with the loop re-cut on the logo's own structure, "two places, two
+// crossings". The dark C is your repo, the cyan chevron is the live site. The two joints between
+// the pieces are the two crossings: Ship (repo → site) at the top, Pull back (site → repo) at the
+// bottom. Build (left vertex) and Review sit on the repo side, the repo label sits bottom-left. Every stage is a point, never a segment.
+// Below, same as loop-10: the best of loop..loop-9, week and readme, mixed.
+// - loop-9: the loop drawn as the logo's hexagon, the week told as moments with mini-hexagon
+//   markers, plain-text `//` dev voice, onboarding line under the CTA.
+// - readme: the "what is tracked" table (Light / Full / never).
+// - loop-7: `tree` of a real project, so you see what "in Git" looks like.
+// - week: the same fix on five sites with a for loop, the site chips.
+// - loop: the "every site had its own ritual" pain, Friday 17:48 rollback as Ship's safety net,
+//   "Open source, and yours to keep".
+// - loop-6/8: "Full = Light + your code", nested hexagons. loop-4/7: giant install line + caret.
 // Every command, flag, path and behaviour shown here was checked in cli/ and the docs.
+// Throwaway, not linked.
 import Layout from "@/layouts/Layout.astro";
 import Logo from "@/components/site/Logo.astro";
 import Editions from "@/components/site/Editions.astro";
 import Footer from "@/components/site/Footer.astro";
 
 export const prerender = true;
-
-const description =
-  "Model your content types, write hooks and APIs in modern PHP, review every change in a PR and ship it to every environment. When the live site changes, pull it back. Your content never moves.";
-
-const structuredData = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Loopress",
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "Web",
-  description,
-  url: "https://loopress.dev",
-  author: { "@id": "https://loopress.dev/#organization" },
-  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-};
 
 // Flat-top hexagon, same orientation and proportions as the logo.
 const hexPoints = (cx: number, cy: number, r: number) =>
@@ -76,14 +71,12 @@ type Moment = {
   note: string;
 };
 
-// One scenario per site, each one around the whole loop.
-const scenarios: Record<string, Moment[]> = {
-  bakery: [
-    {
-      stage: "Build", when: "Monday 9:10", site: "bakery",
-      ask: "“Can we show a delivery date, and say prices include VAT?”",
-      body: "One request, two kinds of change. The delivery date is an ACF field on the product, the notice is a WooCommerce hook. Both land as files in the same repo, next to each other.",
-      code: `// hooks/vat-notice.php
+const week: Moment[] = [
+  {
+    stage: "Build", when: "Monday 9:10", site: "bakery",
+    ask: "“Can we show a delivery date, and say prices include VAT?”",
+    body: "One request, two kinds of change. The field is configuration, the notice is code. Both land as files in the same repo, next to each other.",
+    code: `// hooks/vat-notice.php
 use Loopress\\Hooks\\Attribute\\Filter;
 
 class VatNotice
@@ -94,230 +87,59 @@ class VatNotice
         return $html . ' <small>incl. VAT</small>';
     }
 }`,
-      note: "no add_filter, no functions.php. one class per file.",
-    },
-    {
-      stage: "Review", when: "Monday 11:30", site: "bakery",
-      ask: "Open the PR, let CI look first.",
-      body: "The diff is only configuration and code. Products, orders and customers are never in it, so it stays short enough to actually read.",
-      code: `$ lps diff --env staging`,
-      note: "exit 1 on drift, so CI says no before you do.",
-    },
-    {
-      stage: "Ship", when: "Tuesday 14:00", site: "bakery",
-      ask: "The client approved staging.",
-      body: "Push what you reviewed, then promote staging to production. Every push takes a snapshot first.",
-      code: `$ lps push --env staging
+    note: "no add_filter, no functions.php. one class per file.",
+  },
+  {
+    stage: "Review", when: "Monday 11:30", site: "bakery",
+    ask: "Open the PR, let CI look first.",
+    body: "The diff is only configuration and code. Posts, orders and users are never in it, so it stays short enough to actually read.",
+    code: `$ lps diff --env staging`,
+    note: "exit 1 on drift, so CI says no before you do.",
+  },
+  {
+    stage: "Ship", when: "Tuesday 14:00", site: "bakery",
+    ask: "The client approved staging.",
+    body: "Push what you reviewed, then promote staging to production. Every push takes a snapshot first.",
+    code: `$ lps push --env staging
 $ lps promote staging production`,
-      note: "same two commands on every site.",
-    },
-    {
-      stage: "Pull back", when: "Wednesday 15:40", site: "bakery",
-      ask: "The shop manager renamed the delivery date field in wp-admin.",
-      body: "Fair enough, it's their shop. The diff shows the field group moved on the live site, one pull brings the new label into the repo before anyone builds on the old one.",
-      code: `$ lps acf diff --env production
-$ lps acf pull --env production --type field-groups
-$ git commit -am "chore: sync delivery date label"`,
-      note: "the repo follows the site, not the other way round.",
-    },
-    {
-      stage: "Ship", tag: "Ship · safety net", when: "Friday 17:48", site: "bakery",
-      ask: "“The price looks weird on the cart page.”",
-      body: "Roll the hook back to the snapshot taken before Tuesday's push. Loopress first checks nobody changed it on the site since, so the undo can't clobber someone else's edit.",
-      code: `$ lps hook rollback --env production`,
-      note: "undo now, the proper fix waits for Monday.",
-    },
-  ],
-  "law-firm": [
-    {
-      stage: "Build", when: "Monday 10:00", site: "law-firm",
-      ask: "“We need an intake form, and practice area pages with the same fields.”",
-      body: "Build the WPForms form and the ACF field group on staging, where you can click through them. Then pull both down: they are JSON files in the repo from now on.",
-      code: `$ lps form pull --env staging
-$ lps acf pull --env staging --type field-groups
-$ git status --short
-?? acf/field-groups/group_practice_area.json
-?? forms/14-client-intake.json`,
-      note: "built in the admin, kept in Git.",
-    },
-    {
-      stage: "Review", when: "Tuesday 9:30", site: "law-firm",
-      ask: "“Can the partners check the form before it goes live?”",
-      body: "They read the PR, not a screenshot. The diff against production shows the new form and the new field group, nothing else.",
-      code: `$ lps diff --env production --only form --only acf`,
-      note: "one question in the PR instead of three calls.",
-    },
-    {
-      stage: "Ship", when: "Tuesday 15:00", site: "law-firm",
-      ask: "Approved, the intake goes to the new partner.",
-      body: "A form push leaves notification settings alone by default, so a stray push can't redirect where submissions go. Here the new recipient is the point, so you say so.",
-      code: `$ lps acf push --env production
-$ lps form push --env production --allow-notifications`,
-      note: "recipients are validated, the sender stays on the site's own domain.",
-    },
-    {
-      stage: "Pull back", when: "Wednesday 10:05", site: "law-firm",
-      ask: "The client added a menu item in wp-admin, on their own.",
-      body: "That is WordPress, the live site moves between your releases. The diff shows the drift, one pull brings it back into the repo, and the next Build starts from the real site.",
-      code: `$ lps diff --env production
+    note: "same two commands on every site.",
+  },
+  {
+    stage: "Pull back", when: "Wednesday 10:05", site: "law-firm",
+    ask: "The client added a menu item in wp-admin, on their own.",
+    body: "That is WordPress, the live site moves between your releases. The diff shows the drift, one pull brings it back into the repo, and the next Build starts from the real site.",
+    code: `$ lps diff --env production
 $ lps pull --env production
 $ git commit -am "chore: sync client menu edit"`,
-      note: "this is why it's a loop and not a pipeline.",
-    },
-  ],
-  shop: [
-    {
-      stage: "Build", when: "Monday 14:20", site: "shop",
-      ask: "“WooCommerce wants to update itself again.”",
-      body: "Plugins are a lockfile in loopress.json. Bump the pin in the repo instead of clicking update on the site, and every environment installs the exact same version.",
-      code: `$ lps plugin add woocommerce --version 9.5.0
-$ git diff loopress.json
--    "woocommerce": "9.4.2",
-+    "woocommerce": "9.5.0",`,
-      note: "the update is a one-line diff.",
-    },
-    {
-      stage: "Review", when: "Monday 14:45", site: "shop",
-      ask: "CI checks the new set before anyone merges.",
-      body: "The audit checks every pinned version against a vulnerability database and WordPress.org's health signals. Status shows how far staging is from the lockfile.",
-      code: `$ lps plugin audit
-$ lps plugin status --env staging`,
-      note: "the audit exits non-zero on a known vulnerability.",
-    },
-    {
-      stage: "Ship", when: "Wednesday 9:00", site: "shop",
-      ask: "Staging ran the new version for a day, all good.",
-      body: "Install the lockfile on staging, then promote it: production gets the versions staging actually ran, installed by Composer on the site, no SSH.",
-      code: `$ lps plugin push --env staging
-$ lps promote staging production`,
-      note: "same plugins, same versions, everywhere.",
-    },
-    {
-      stage: "Pull back", when: "Thursday 11:15", site: "shop",
-      ask: "Someone installed a plugin by hand on production.",
-      body: "Status spots it. Keep it, and a pull pins it into the lockfile at the version running on the site. Or don't, and the next push with --prune deactivates it.",
-      code: `$ lps plugin status --env production
-Active but untracked: hello-dolly
-$ lps plugin pull --env production`,
-      note: "keep it or prune it, never leave it untracked.",
-    },
-    {
-      stage: "Ship", tag: "Ship · safety net", when: "Friday 16:30", site: "shop",
-      ask: "“Checkout feels slower since Wednesday.”",
-      body: "Pin the previous version back. Downgrades need --force, because the old files come back but the database migrations the new version ran don't.",
-      code: `$ lps plugin add woocommerce --version 9.4.2
-$ lps plugin push --env production --force`,
-      note: "read the changelog before you downgrade.",
-    },
-  ],
-  school: [
-    {
-      stage: "Build", when: "Monday 16:00", site: "school",
-      ask: "“Parents want their kid's timetable, on the site and on their phone.”",
-      body: "A custom REST route, written as a plain class. The file path is the route, the bracketed segment is a parameter, and the attribute opens it to visitors.",
-      code: `// api/timetable/[class_id].php
-use Loopress\\Api\\Attribute\\Permission;
-
-class Timetable
-{
-    #[Permission(public: true)]
-    public function get(WP_REST_Request $request): array
-    {
-        $class = $request->get_param('class_id');
-        return get_option("timetable_{$class}", []);
-    }
-}`,
-      note: "answers at /wp-json/loopress-api/v1/timetable/6b.",
-    },
-    {
-      stage: "Review", when: "Tuesday 10:00", site: "school",
-      ask: "The timetable page is a small Vue app, reviewed like the rest.",
-      body: "The route file and the app's source sit in the same PR. CI builds the app and diffs the route against staging, so the reviewer sees both halves of the feature.",
-      code: `$ npm --prefix apps/timetable run build
-$ lps diff --env staging --only api`,
-      note: "front and back in one review.",
-    },
-    {
-      stage: "Ship", when: "Wednesday 13:00", site: "school",
-      ask: "Ready for the parents' evening.",
-      body: "Push the route, then the app. The app mounts in any page with a shortcode, the office can place it themselves.",
-      code: `$ lps api push --env production
-$ lps app push timetable --env production
-
-[loopress_app name="timetable"]`,
-      note: "apps have their own build, so they ship with their own command.",
-    },
-    {
-      stage: "Pull back", when: "Thursday 9:20", site: "school",
-      ask: "A contractor hot-fixed the route on the server, over SFTP.",
-      body: "The fix works, but only on production. The diff shows it, one pull puts it in the repo, so the next push doesn't quietly undo it.",
-      code: `$ lps api diff --env production
-$ lps api pull --env production
-$ git commit -am "fix: keep the timetable hotfix"`,
-      note: "the hotfix lives in Git now, not just on the server.",
-    },
-  ],
-  studio: [
-    {
-      stage: "Build", when: "Monday 11:00", site: "studio",
-      ask: "“New brand: a new accent color, and no sidebar on blog posts.”",
-      body: "Global Styles are one JSON file, the Site Editor's Styles screen in text. Templates are block markup files, the same HTML the Site Editor saves.",
-      code: `// theme/twentytwentyfive-global-styles.json
-{
-  "settings": {
-    "color": {
-      "palette": {
-        "custom": [
-          {"slug": "brand", "name": "Brand", "color": "#ff5a36"}
-        ]
-      }
-    }
-  }
-}`,
-      note: "plus templates/single.html, without the sidebar.",
-    },
-    {
-      stage: "Review", when: "Tuesday 11:00", site: "studio",
-      ask: "The client's designer reviews the PR.",
-      body: "The diff covers the styles file and the template, and it includes edits someone made in the Site Editor on staging, so nothing gets overwritten by surprise.",
-      code: `$ lps diff --env staging`,
-      note: "a color change reads as a color change.",
-    },
-    {
-      stage: "Ship", when: "Wednesday 17:00", site: "studio",
-      ask: "Signed off.",
-      body: "Theme push sends templates and parts as a child theme of the active one, then the Global Styles. The parent theme stays untouched and keeps its updates.",
-      code: `$ lps theme push --env production`,
-      note: "the child theme is activated once, by you, never by Loopress.",
-    },
-    {
-      stage: "Pull back", when: "Thursday 14:30", site: "studio",
-      ask: "The designer nudged the heading size in the Site Editor.",
-      body: "Their tweak is good, keep it. The diff shows it, one pull writes it into the styles file, and the next push doesn't undo it.",
-      code: `$ lps diff --env production
-$ lps theme pull --env production`,
-      note: "templates have no pull: Site Editor edits show in the diff, you copy them over.",
-    },
-  ],
-};
-
+    note: "this is why it's a loop and not a pipeline.",
+  },
+  {
+    stage: "Ship", when: "Thursday 16:20", site: "all five",
+    ask: "The same SEO fix, on every site.",
+    body: "Each site used to have its own ritual: FTP here, a plugin upload there, a note in a doc somewhere. Now they all ship the same way.",
+    code: `$ for s in ${sites.join(" ")}; do
+    (cd $s && lps seo push --env production)
+  done`,
+    note: "five sites, one for loop.",
+  },
+  {
+    stage: "Ship", tag: "Ship · safety net", when: "Friday 17:48", site: "bakery",
+    ask: "“The price looks weird on the cart page.”",
+    body: "Roll the hook back to the snapshot taken before Tuesday's push. Loopress first checks nobody changed it on the site since, so the undo can't clobber someone else's edit.",
+    code: `$ lps hook rollback --env production`,
+    note: "undo now, the proper fix waits for Monday.",
+  },
+];
 ---
 
-<Layout
-  title="Loopress - Build, review and ship WordPress, in one loop"
-  description={description}
-  canonical="https://loopress.dev/"
-  ogTitle="Loopress - Build, review and ship WordPress, in one loop"
-  ogDescription={description}
-  structuredData={structuredData}
->
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@500&display=swap" />
 
   <div class="page">
     <header class="wrap flex items-center justify-between gap-4 py-6">
       <a href="#top" class="text-lg font-extrabold"><Logo class="h-9 w-9" /></a>
       <nav class="topnav hidden text-sm font-medium md:flex">
-        <a href="#scope">What's in Git</a><a href="#week">A week in the loop</a><a href="#editions">Light & Full</a><a href="https://docs.loopress.dev">Docs</a>
+        <a href="#scope">What's in Git</a><a href="#week">A week in the loop</a><a href="#editions">Light & Full</a><a href="/docs">Docs</a>
       </nav>
       <a href="https://github.com/loopress" class="mono text-xs">★ GitHub</a>
     </header>
@@ -334,7 +156,7 @@ $ lps theme pull --env production`,
           </p>
           <div class="ctas">
             <code class="chip">$ npm i -g @loopress/cli</code>
-            <a href="https://docs.loopress.dev/getting-started/" class="btn">Get started</a>
+            <a href="/docs" class="btn">Get started</a>
           </div>
           <p class="mono hint">then <code>lps project config</code> connects your site and installs the plugin for you.</p>
         </div>
@@ -399,46 +221,36 @@ $ lps theme pull --env production`,
       <section id="week" class="week">
         <div class="wrap py-24">
           <h2 class="max-w-3xl">One week, five client sites, the same loop every time.</h2>
-          <p class="body mt-6">Each site used to have its own ritual: FTP here, a plugin upload there, a note in a doc somewhere. Now they all go around the same loop.</p>
-          <!-- Site picker: radio inputs + CSS (:has), no JS. Arrow keys move between sites. -->
-          <fieldset class="sites mt-8">
-            <legend class="sr-only">Client site</legend>
-            {sites.map((s, i) => (
-              <label>
-                <input type="radio" name="week-site" id={`site-${s}`} value={s} checked={i === 0} class="sr-only" />
-                <span>{s}</span>
-              </label>
+          <ul class="sites mt-8">
+            {sites.map((s) => <li>{s}</li>)}
+          </ul>
+          <ol class="timeline mt-16">
+            {week.map((e) => (
+              <li class={e.stage === "Pull back" ? "is-pull" : ""}>
+                <svg viewBox="0 10 400 380" class="minihex" aria-hidden="true">
+                  <path d={repoSide} class="mini-repo" />
+                  <path d={siteSide} class="mini-site" />
+                  <circle cx={stageAt[e.stage][0]} cy={stageAt[e.stage][1]} r="54" class="mini-on" />
+                </svg>
+                <div>
+                  <p class="mono meta"><span class="stage">{e.tag ?? e.stage}</span> · {e.when} · {e.site}</p>
+                  <h3>{e.ask}</h3>
+                  <p class="body">{e.body}</p>
+                </div>
+                <div class="side">
+                  <pre>{e.code}</pre>
+                  <p class="aside">{e.note}</p>
+                </div>
+              </li>
             ))}
-          </fieldset>
-          {sites.map((id) => (
-            <ol class="timeline panel mt-16" id={`week-${id}`}>
-              {scenarios[id].map((e) => (
-                <li class={e.stage === "Pull back" ? "is-pull" : ""}>
-                  <svg viewBox="0 10 400 380" class="minihex" aria-hidden="true">
-                    <path d={repoSide} class="mini-repo" />
-                    <path d={siteSide} class="mini-site" />
-                    <circle cx={stageAt[e.stage][0]} cy={stageAt[e.stage][1]} r="54" class="mini-on" />
-                  </svg>
-                  <div>
-                    <p class="mono meta"><span class="stage">{e.tag ?? e.stage}</span> · {e.when} · {e.site}</p>
-                    <h3>{e.ask}</h3>
-                    <p class="body">{e.body}</p>
-                  </div>
-                  <div class="side">
-                    <pre>{e.code}</pre>
-                    <p class="aside">{e.note}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          ))}
+          </ol>
         </div>
       </section>
 
       <!-- Editions: one plugin, a switch turns the code half on (Editions toggle variant). -->
       <section id="editions" class="wrap editions">
         <div>
-          <h2><span class="h-light">Config first.</span><br /><span class="h-full">Code later.</span></h2>
+          <h2>Config first. Code later.</h2>
           <p class="free mt-5"><span>Both free</span><span>Both open source, GPL</span></p>
           <p class="mt-6 text-lg leading-relaxed">
             <strong>Light</strong> puts your configuration in Git. It is on WordPress.org.
@@ -448,7 +260,7 @@ $ lps theme pull --env production`,
             conventions instead of <code class="mono">functions.php</code>.{" "}
             <code class="mono">lps project config</code> installs it for you.
           </p>
-          <p class="aside mt-6">WordPress.org doesn't host plugins that deploy code, that's the whole reason there are two. <a href="https://docs.loopress.dev/blog/loopress-light-on-wordpress-org/" class="underline">The full story</a>.</p>
+          <p class="aside mt-6">WordPress.org doesn't host plugins that deploy code, that's the whole reason there are two.</p>
         </div>
         <Editions variant="toggle" />
       </section>
@@ -458,7 +270,7 @@ $ lps theme pull --env production`,
           <h2>Open source, and yours to keep.</h2>
           <p class="mono install">$ npm i -g @loopress/cli<span class="caret" aria-hidden="true">_</span></p>
           <div class="mt-8 flex flex-wrap items-center gap-5">
-            <a href="https://docs.loopress.dev/getting-started/" class="btn btn-invert">Get started</a>
+            <a href="/docs" class="btn btn-invert">Get started</a>
             <a href="https://github.com/loopress" class="mono text-sm underline">★ Star on GitHub</a>
           </div>
         </div>
@@ -540,16 +352,8 @@ $ lps theme pull --env production`,
 
   /* The week */
   .week { background: var(--paper-2); }
-  .sites { display: flex; flex-wrap: wrap; gap: 0.5rem; border: 0; padding: 0; margin-inline: 0; }
-  .sites span { display: block; cursor: pointer; font-family: var(--font-mono); font-size: 0.8rem; padding: 0.35rem 1rem; background: color-mix(in oklch, var(--navy) 14%, transparent); color: var(--navy); clip-path: polygon(0.6rem 0, calc(100% - 0.6rem) 0, 100% 50%, calc(100% - 0.6rem) 100%, 0.6rem 100%, 0 50%); }
-  .sites input:checked + span { background: var(--navy); color: var(--paper); }
-  .sites input:focus-visible + span { background: var(--cyan); color: var(--navy); }
-  .timeline.panel { display: none; }
-  .week:has(#site-bakery:checked) #week-bakery,
-  .week:has(#site-law-firm:checked) #week-law-firm,
-  .week:has(#site-shop:checked) #week-shop,
-  .week:has(#site-school:checked) #week-school,
-  .week:has(#site-studio:checked) #week-studio { display: grid; }
+  .sites { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .sites li { font-family: var(--font-mono); font-size: 0.8rem; padding: 0.35rem 1rem; background: var(--navy); color: var(--paper); clip-path: polygon(0.6rem 0, calc(100% - 0.6rem) 0, 100% 50%, calc(100% - 0.6rem) 100%, 0.6rem 100%, 0 50%); }
   .timeline { position: relative; display: grid; isolation: isolate; }
   .timeline::before { content: ""; position: absolute; left: 0.9rem; top: 0.5rem; bottom: 0.5rem; width: 3px; background: var(--navy); border-radius: 2px; }
   .timeline li { position: relative; display: grid; gap: 1.5rem; padding: 0 0 4rem 3.5rem; }
@@ -558,6 +362,7 @@ $ lps theme pull --env production`,
   .timeline li.is-pull::before { content: ""; position: absolute; left: 0.9rem; top: -1rem; bottom: 0; width: 3px; background: var(--cyan); }
   .timeline li.is-pull::after { content: ""; position: absolute; inset: -1.5rem 0 2.5rem 2.4rem; z-index: -1; border-radius: 1rem; background: var(--cyan-soft); }
   .minihex { position: absolute; left: -0.6rem; top: -0.5rem; width: 3.1rem; height: 3.1rem; background: var(--paper-2); border-radius: 50%; }
+  .is-pull .minihex { background: transparent; }
   .mini-repo, .mini-site { fill: none; stroke-linejoin: round; stroke-linecap: round; stroke-width: 38; }
   .mini-repo { stroke: color-mix(in oklch, var(--navy) 22%, transparent); }
   .mini-site { stroke: color-mix(in oklch, var(--cyan) 45%, transparent); }
@@ -574,8 +379,6 @@ $ lps theme pull --env production`,
   /* Editions */
   .free { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .free span { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500; padding: 0.35rem 0.8rem; border-radius: 0.4rem; background: var(--navy); color: var(--paper); }
-  .h-light { color: var(--cyan); }
-  .h-full { color: var(--violet); }
   .editions { display: grid; gap: 3rem; padding-block: 7rem; align-items: center; }
   @media (min-width: 1024px) { .editions { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
 

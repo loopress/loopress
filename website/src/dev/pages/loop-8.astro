@@ -1,0 +1,176 @@
+---
+// Prototype A8 "Poster": plays on the logo's flat-top hexagon. Hexagon pattern and badges,
+// sections cut at an angle, flat blocks of navy, logo cyan and a warm yellow. Light/Full is two
+// nested hexagons, so the inclusion is the picture itself. Throwaway, not linked.
+import Layout from "@/layouts/Layout.astro";
+import Logo from "@/components/site/Logo.astro";
+import LoopDiagram from "@/dev/components/LoopDiagram.astro";
+
+export const prerender = true;
+
+const stages = [
+  { n: "01", label: "Build", body: "Fields as JSON, hooks and API routes as PHP classes, side by side in one repo.", cmd: "lps acf pull" },
+  { n: "02", label: "Review", body: "A diff with no posts, orders or users in it. Short enough to read in a PR.", cmd: "lps diff --env staging" },
+  { n: "03", label: "Ship", body: "Staging, then production, on every site. Every push snapshotted, undo in one line.", cmd: "lps promote staging production" },
+];
+
+// Flat-top hexagon, same orientation as the logo.
+const hex = (cx: number, cy: number, r: number) =>
+  [0, 60, 120, 180, 240, 300]
+    .map((a) => {
+      const t = (a * Math.PI) / 180;
+      return `${(cx + r * Math.cos(t)).toFixed(1)},${(cy + r * Math.sin(t)).toFixed(1)}`;
+    })
+    .join(" ");
+---
+
+<Layout title="Loopress - Build, review and ship WordPress, in one loop">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@500&display=swap" />
+
+  <div class="poster">
+    <header class="wrap flex items-center justify-between py-6">
+      <a href="#top" class="text-lg font-extrabold"><Logo class="h-9 w-9" /></a>
+      <nav class="pill hidden md:flex">
+        <a href="#stages">The loop</a><a href="#pull">Pull back</a><a href="#editions">Light & Full</a>
+      </nav>
+      <a href="https://github.com/loopress" class="btn-sm">GitHub ↗</a>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="wrap grid gap-12 pt-10 pb-32 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-center">
+          <div>
+            <h1>Build, review and ship WordPress, in one <span class="hl">loop.</span></h1>
+            <p class="lede">Model your content types, write hooks and APIs in modern PHP, review every change in a PR and ship it to every environment. Your content never moves.</p>
+            <div class="mt-10 flex flex-wrap items-center gap-3">
+              <code class="chip">$ npm i -g @loopress/cli</code>
+              <a href="https://github.com/loopress" class="btn">★ Star on GitHub</a>
+            </div>
+          </div>
+          <figure class="hexframe"><LoopDiagram /></figure>
+        </div>
+      </section>
+
+      <section id="stages" class="stages">
+        <div class="wrap grid gap-10 py-24 md:grid-cols-3">
+          {stages.map((s) => (
+            <article>
+              <span class="badge">{s.n}</span>
+              <h2>{s.label}</h2>
+              <p>{s.body}</p>
+              <code>$ {s.cmd}</code>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="pull" class="pull">
+        <div class="wrap grid gap-10 py-28 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center">
+          <div>
+            <p class="arrow" aria-hidden="true">↺</p>
+            <h2>The client edited a menu in wp-admin. Nothing is lost.</h2>
+          </div>
+          <div>
+            <p class="text-lg leading-relaxed">The live site keeps moving between releases, that is WordPress. The diff catches the drift, one pull brings it back into the repo, and the next Build starts from the real site.</p>
+            <pre>{`$ lps diff --env production
+~ menu  primary   1 item added on the site
+$ lps pull --env production
+✓ menus/primary.json updated`}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="editions" class="editions">
+        <div class="wrap grid gap-12 py-28 lg:grid-cols-[minmax(0,6fr)_minmax(0,6fr)] lg:items-center">
+          <svg viewBox="0 0 400 350" class="w-full max-w-lg" role="img" aria-label="Loopress Full is a hexagon that contains Loopress Light">
+            <polygon points={hex(200, 175, 170)} fill="var(--navy)" />
+            <polygon points={hex(200, 175, 170)} fill="none" stroke="var(--yellow)" stroke-width="3" />
+            <polygon points={hex(200, 205, 88)} fill="var(--cyan)" />
+            <text x="200" y="62" text-anchor="middle" font-size="22" font-weight="800" fill="var(--yellow)">Loopress Full</text>
+            <text x="200" y="90" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="var(--paper)">hooks · routes · apps · pages</text>
+            <text x="200" y="108" text-anchor="middle" font-size="12" font-family="var(--font-mono)" fill="var(--paper)">Composer · lockfile</text>
+            <text x="200" y="200" text-anchor="middle" font-size="20" font-weight="800" fill="var(--navy)">Loopress Light</text>
+            <text x="200" y="222" text-anchor="middle" font-size="11" font-family="var(--font-mono)" fill="var(--navy)">ACF · SEO · menus</text>
+            <text x="200" y="238" text-anchor="middle" font-size="11" font-family="var(--font-mono)" fill="var(--navy)">options · styles</text>
+          </svg>
+          <div>
+            <h2>Full is Light, plus your code.</h2>
+            <p class="mt-6 text-lg leading-relaxed"><strong>Light</strong> puts your configuration in Git. It is on WordPress.org, install it from Plugins → Add New.</p>
+            <p class="mt-4 text-lg leading-relaxed"><strong>Full</strong> is the same plugin with the code half switched on: hooks, API routes, apps, pages, Composer and a plugin lockfile, with conventions. WordPress.org does not host plugins that deploy executable code, so it ships from loopress.dev.</p>
+            <p class="mt-6 font-bold">Both free. Start with Light, switch when your code joins the loop.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="install">
+        <div class="wrap py-20">
+          <code>$ npm i -g @loopress/cli</code>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap flex flex-wrap items-center justify-between gap-4 py-8 text-sm">
+      <Logo class="h-6 w-6" />
+      <span class="mono">MPL-2.0 · docs · github</span>
+    </footer>
+  </div>
+</Layout>
+
+<style>
+  /* Hallmark · macrostructure: Poster slabs · tone: graphic, bold · anchor hue: 200 (logo cyan) + 90 (yellow) */
+  .poster {
+    --paper: oklch(0.975 0.01 95);
+    --navy: oklch(0.24 0.06 255);
+    --cyan: oklch(0.78 0.14 215);
+    --yellow: oklch(0.88 0.16 95);
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --cut: 4rem;
+    --loop-line: var(--navy);
+    --loop-node: var(--yellow);
+    --loop-text: var(--navy);
+    --logo-accent: var(--cyan);
+    background: var(--paper);
+    color: var(--navy);
+    font-family: var(--font-display);
+    overflow-x: clip;
+  }
+  .wrap { margin-inline: auto; max-width: 72rem; padding-inline: 1.5rem; }
+  .mono { font-family: var(--font-mono); }
+  h1, h2 { font-weight: 800; letter-spacing: -0.035em; line-height: 0.98; overflow-wrap: anywhere; min-width: 0; }
+  h1 { font-size: clamp(3rem, 7.5vw, 6rem); }
+  h2 { font-size: clamp(2rem, 4vw, 3.25rem); }
+  .hl { background: var(--yellow); padding-inline: 0.15em; box-decoration-break: clone; }
+  .lede { margin-top: 2rem; max-width: 36rem; font-size: 1.2rem; line-height: 1.55; }
+
+  .pill { gap: 1.75rem; padding: 0.6rem 1.4rem; border-radius: 999px; background: var(--navy); color: var(--paper); font-weight: 500; font-size: 0.9rem; }
+  .pill a:hover { color: var(--yellow); }
+  .btn-sm { font-family: var(--font-mono); font-size: 0.85rem; }
+  .btn-sm:hover { color: var(--cyan); }
+  .chip { font-family: var(--font-mono); background: var(--paper); border: 2px solid var(--navy); padding: 0.6rem 1rem; border-radius: 0.5rem; }
+  .btn { display: inline-flex; align-items: center; height: 2.9rem; padding-inline: 1.3rem; border-radius: 0.5rem; background: var(--navy); color: var(--yellow); font-weight: 800; }
+  .btn:hover { background: var(--cyan); color: var(--navy); }
+
+  /* Hexagon pattern behind the hero, same flat-top orientation as the logo */
+  .hero {
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M14 0h28l14 24.25-14 24.25H14L0 24.25zM14 48.5h28l14 24.25L42 97H14L0 72.75z' fill='none' stroke='%23142340' stroke-opacity='.07' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+  .hexframe { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: var(--cyan); padding: 12% 14%; aspect-ratio: 1.15; display: grid; place-items: center; }
+
+  .stages { background: var(--navy); color: var(--paper); clip-path: polygon(0 var(--cut), 100% 0, 100% calc(100% - var(--cut)), 0 100%); margin-top: calc(var(--cut) * -1); padding-block: var(--cut); }
+  .badge { display: inline-grid; place-items: center; width: 4.5rem; height: 3.9rem; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: var(--yellow); color: var(--navy); font-family: var(--font-mono); font-weight: 500; font-size: 1.1rem; }
+  .stages h2 { margin-top: 1.25rem; }
+  .stages p { margin-top: 0.75rem; line-height: 1.55; opacity: 0.85; }
+  .stages code { display: inline-block; margin-top: 1.25rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--cyan); }
+
+  .pull { background: var(--cyan); margin-top: calc(var(--cut) * -1); padding-top: var(--cut); }
+  .arrow { font-size: 7rem; line-height: 0.8; font-weight: 800; }
+  .pull pre { margin-top: 1.5rem; background: var(--navy); color: var(--paper); border-radius: 0.75rem; padding: 1.25rem 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.75; overflow-x: auto; }
+
+  .editions { background: var(--paper); clip-path: polygon(0 var(--cut), 100% 0, 100% 100%, 0 100%); margin-top: calc(var(--cut) * -1); padding-top: var(--cut); }
+  .editions svg { font-family: var(--font-display); }
+
+  .install { background: var(--yellow); overflow-x: auto; }
+  .install code { font-family: var(--font-mono); font-weight: 500; font-size: clamp(1.5rem, 5vw, 4rem); white-space: nowrap; }
+</style>
