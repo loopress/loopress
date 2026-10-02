@@ -7,6 +7,9 @@ import {type SyncIntent} from './plugin-sync.js'
 import {type MergeResult} from './plugins.js'
 import {isExactVersion} from './version.js'
 
+// Why pullIntoComposerJson skips a plugin it can't install: premium or custom, not on WPackagist.
+export const NOT_ON_WORDPRESS_ORG = 'not on WordPress.org'
+
 export type ComposerJson = {
   config?: {
     'allow-plugins'?: Record<string, boolean>
@@ -151,7 +154,7 @@ export async function pullIntoComposerJson(
       result.added.push(slug)
       result.merged[slug] = incoming[slug]
     } else {
-      result.skipped.push({reason: 'not on WordPress.org', slug})
+      result.skipped.push({reason: NOT_ON_WORDPRESS_ORG, slug})
     }
   }
 

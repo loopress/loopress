@@ -7,7 +7,13 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {type InstalledPlugin, type PluginManifest, type WpNativePlugin} from '../../types/plugin.js'
-import {type ComposerJson, type ComposerPullResult, getComposerManagedSlugs, pullIntoComposerJson} from '../../utils/composer.js'
+import {
+  type ComposerJson,
+  type ComposerPullResult,
+  getComposerManagedSlugs,
+  NOT_ON_WORDPRESS_ORG,
+  pullIntoComposerJson,
+} from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {mergePluginManifest, type MergeResult, parseInstalledPlugins} from '../../utils/plugins.js'
 
@@ -68,7 +74,9 @@ export default class Pull extends LoopressCommand {
         dryRun: this.dryRun,
         log: this.log.bind(this),
       })
-      return {...result, status: this.dryRun ? 'dry-run' : 'success', untracked}
+      // Ticked, but Composer can't install it (premium or custom): still not tracked by the project.
+      const notInstallable = result.skipped.filter((s) => s.reason === NOT_ON_WORDPRESS_ORG).map((s) => s.slug)
+      return {...result, status: this.dryRun ? 'dry-run' : 'success', untracked: [...untracked, ...notInstallable]}
     }
 
     const pins: PluginManifest = Object.fromEntries(

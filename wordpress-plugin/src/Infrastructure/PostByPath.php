@@ -20,8 +20,10 @@ final class PostByPath
     /** @throws AmbiguousPostSlugException */
     public static function find(string $path, string $postType): ?\WP_Post
     {
+        // get_page_by_path() also searches attachments, so a page missing here could resolve to an
+        // image with the same slug: only a post of the requested type counts.
         $post = get_page_by_path($path, OBJECT, $postType);
-        if ($post instanceof \WP_Post) {
+        if ($post instanceof \WP_Post && $post->post_type === $postType) {
             return $post;
         }
 

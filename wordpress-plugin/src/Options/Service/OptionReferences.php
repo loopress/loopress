@@ -30,7 +30,8 @@ final class OptionReferences
                     return $id;
                 }
 
-                $post = is_numeric($id) ? get_post((int) $id) : null;
+                // A whole positive number only: is_numeric() would let 7.5 through as page 7.
+                $post = (is_int($id) && $id > 0) || (is_string($id) && ctype_digit($id)) ? get_post((int) $id) : null;
                 if (!$post instanceof \WP_Post || $post->post_type !== $postType) {
                     $shown = is_scalar($id) ? (string) $id : gettype($id);
                     throw new UnresolvedOptionReferenceException(

@@ -52,7 +52,7 @@ lps plugin add woocommerce --version 9.4.2 # pins an exact version
 
 Snapshot the project's plugins into `loopress.json`, each **pinned to the version running on the site**, with its active state: an inactive plugin is written as `{"version": "…", "active": false}` so the next push leaves it inactive.
 
-Plugins the project already tracks are always refreshed. Every other plugin installed on the site is offered as a list to tick, **unticked by default**: a pull from production should not bring its cache, security or backup plugins (LiteSpeed Cache, Wordfence, UpdraftPlus) into the project. Leave them unticked: `lps plugin push` never removes a plugin the project doesn't track (unless you pass `--prune`), so production keeps them and other environments never get them.
+Plugins the project already tracks are always refreshed. Every other plugin installed on the site is offered as a list to tick, **unticked by default**: a pull from production should not bring its cache, security or backup plugins (LiteSpeed Cache, Wordfence, UpdraftPlus) into the project. Leave them unticked: `lps plugin push` leaves a plugin the project doesn't track installed and active (only `--prune` deactivates it), so production keeps them and other environments never get them.
 
 | Flag | Description |
 |------|-------------|

@@ -66,6 +66,15 @@ class OptionReferencesTest extends TestCase
         OptionReferences::toPaths(['purchase_page' => 99], ['purchase_page' => 'page']);
     }
 
+    public function test_to_paths_refuses_a_value_that_is_not_a_whole_id(): void
+    {
+        Functions\expect('get_post')->never();
+
+        $this->expectException(UnresolvedOptionReferenceException::class);
+
+        OptionReferences::toPaths(['purchase_page' => 7.5], ['purchase_page' => 'page']);
+    }
+
     public function test_to_paths_refuses_an_id_of_another_post_type(): void
     {
         Functions\when('get_post')->alias(fn (int $id): WP_Post => $this->post($id, 'logo', 'attachment'));

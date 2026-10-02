@@ -62,6 +62,15 @@ class PostByPathTest extends TestCase
         PostByPath::find('profile', 'page');
     }
 
+    // get_page_by_path() searches attachments too: an image named like a missing page is not it.
+    public function test_find_ignores_a_post_of_another_type(): void
+    {
+        Functions\when('get_page_by_path')->justReturn($this->post(3, 'checkout', 'attachment'));
+        Functions\when('get_posts')->justReturn([]);
+
+        $this->assertNull(PostByPath::find('checkout', 'page'));
+    }
+
     public function test_find_returns_null_when_nothing_matches(): void
     {
         Functions\when('get_page_by_path')->justReturn(null);

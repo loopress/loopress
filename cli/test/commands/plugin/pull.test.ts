@@ -149,7 +149,8 @@ describe('plugin pull', () => {
           {reason: 'not on WordPress.org', slug: 'advanced-custom-fields-pro'},
         ],
         status: 'success',
-        untracked: [],
+        // Ticked, but premium: Composer can't install it, so the project still doesn't track it.
+        untracked: ['advanced-custom-fields-pro'],
         updated: [{from: '5.4.0', slug: 'redirection', to: '5.5.0'}],
       })
       expect(fetch).toHaveBeenCalledTimes(2)

@@ -85,7 +85,9 @@ class RankMathServiceTest extends TestCase
 
     public function test_get_post_meta_returns_the_post_when_found(): void
     {
-        Functions\when('get_page_by_path')->justReturn($this->fakePost(3, 'about', 'About'));
+        $about            = $this->fakePost(3, 'about', 'About');
+        $about->post_type = 'page';
+        Functions\when('get_page_by_path')->justReturn($about);
         Functions\when('get_post_meta')->justReturn(['rank_math_title' => ['About us']]);
 
         $result = $this->service->getPostMeta('page', 'about');
