@@ -38,7 +38,19 @@ export const gapCriteria = [
   "WordPress core version in code",
 ];
 
-export const loopressGaps = ["no", "no", "no", "no"];
+const noGaps = ["no", "no", "no", "no"];
+export const loopressGaps = noGaps;
+
+// Shared by the alternatives that copy database tables (WP Staging, WP Migrate).
+const tableCopyMatrix = ["yes", "no", "no", "no", "only if you exclude tables", "yes"];
+
+const acfShip = `$ lps acf diff --env production
+$ lps acf push --env production`;
+
+// Bring a resource from staging into the repo, then ship it to production.
+const stagingToProduction = (resource: string, message: string) => `$ lps ${resource} pull --env staging
+$ git commit -am "${message}"
+$ lps ${resource} push --env production`;
 
 export const alternatives: Alternative[] = [
   {
@@ -56,13 +68,12 @@ export const alternatives: Alternative[] = [
     task: {
       title: "Ship a field group change to production",
       them: ["Commit acf-json/ in the theme", "Deploy the theme to production", "Open Field Groups in wp-admin", "Click Sync on the changed group"],
-      us: `$ lps acf diff --env production
-$ lps acf push --env production`,
+      us: acfShip,
     },
     theirs: "ACF is the only configuration you care about, you already deploy the theme from Git, and a manual sync step on each site doesn't bother you.",
     ours: "Field groups are one piece among menus, SEO and options, or you want to see the diff and ship from the terminal or CI instead of clicking Sync.",
     matrix: ["yes", "yes", "no", "in the theme's Git history", "yes", "yes"],
-    gaps: ["no", "no", "no", "no"],
+    gaps: noGaps,
   },
   {
     slug: "wp-staging",
@@ -80,13 +91,12 @@ $ lps acf push --env production`,
     task: {
       title: "Ship a new ACF field while orders keep coming in",
       them: ["Clone production to staging", "Add the field on staging", "Push staging back, choosing which tables to include", "Hope no order or comment landed in those tables since the clone"],
-      us: `$ lps acf diff --env production
-$ lps acf push --env production`,
+      us: acfShip,
     },
     together: "Keep them for what Loopress doesn't do: full backups, cloning a site, moving to a new host. Use Loopress for the changes you make every week.",
     theirs: "You need to clone a whole site, move it to a new host, or keep full backups. Loopress doesn't do any of that.",
     ours: "You change the same site again and again, and want to ship a field group without touching the orders that came in since the last copy.",
-    matrix: ["yes", "no", "no", "no", "only if you exclude tables", "yes"],
+    matrix: tableCopyMatrix,
     gaps: ["yes", "yes", "yes", "no"],
   },
   {
@@ -104,14 +114,12 @@ $ lps acf push --env production`,
     task: {
       title: "Move new SEO redirects from staging to production",
       them: ["Find which tables the SEO plugin stores redirects in", "Push those tables to production", "Overwrite any redirect added on production meanwhile"],
-      us: `$ lps seo pull --env staging
-$ git commit -am "feat: new redirects"
-$ lps seo push --env production`,
+      us: stagingToProduction("seo", "feat: new redirects"),
     },
     together: "Pull production content down to your local site with WP Migrate, ship configuration and code up with Loopress. Content goes down, changes go up.",
     theirs: "You need real content locally, or you're moving a whole database between environments.",
     ours: "What you're moving is configuration, and you want a reviewable diff instead of a table overwrite.",
-    matrix: ["yes", "no", "no", "no", "only if you exclude tables", "yes"],
+    matrix: tableCopyMatrix,
     gaps: ["database export", "yes", "yes", "no"],
   },
   {
@@ -130,9 +138,7 @@ $ lps seo push --env production`,
     task: {
       title: "Ship a menu change from staging to production",
       them: ["Nothing in the repo describes the menu", "Redo the change by hand in production's wp-admin"],
-      us: `$ lps menu pull --env staging
-$ git commit -am "feat: footer menu"
-$ lps menu push --env production`,
+      us: stagingToProduction("menu", "feat: footer menu"),
     },
     theirs: "You start a site from scratch, own the server, and want Composer to manage everything including WordPress core.",
     ours: "You look after sites that already exist, on hosts you don't control, and the risky changes are the ones made in wp-admin.",
