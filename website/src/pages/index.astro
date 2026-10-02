@@ -550,9 +550,10 @@ $ lps theme pull --env production`,
   .week:has(#site-shop:checked) #week-shop,
   .week:has(#site-school:checked) #week-school,
   .week:has(#site-studio:checked) #week-studio { display: grid; }
-  .timeline { position: relative; display: grid; isolation: isolate; }
+  .timeline { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); isolation: isolate; }
   .timeline::before { content: ""; position: absolute; left: 0.9rem; top: 0.5rem; bottom: 0.5rem; width: 3px; background: var(--navy); border-radius: 2px; }
-  .timeline li { position: relative; display: grid; gap: 1.5rem; padding: 0 0 4rem 3.5rem; }
+  .timeline li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 0 0 4rem 3.5rem; }
+  .timeline li > * { min-width: 0; }
   @media (min-width: 1024px) { .timeline li { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 3rem; } }
   .timeline li.is-pull { padding-right: 1.5rem; }
   .timeline li.is-pull::before { content: ""; position: absolute; left: 0.9rem; top: -1rem; bottom: 0; width: 3px; background: var(--cyan); }
@@ -570,6 +571,14 @@ $ lps theme pull --env production`,
   .body { margin-top: 0.75rem; font-size: 1.05rem; line-height: 1.6; max-width: 36rem; }
   .side pre { background: var(--navy); color: var(--paper); border-radius: 0.75rem; padding: 1.1rem 1.25rem; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.75; overflow-x: auto; }
   .side .aside { margin-top: 0.9rem; }
+  @media (max-width: 639px) {
+    .timeline li { padding-left: 2.75rem; padding-bottom: 3rem; }
+    .timeline li.is-pull { padding-right: 1rem; }
+    .timeline li.is-pull::after { left: 1.9rem; }
+    .timeline h3 { font-size: 1.35rem; }
+    .body { font-size: 1rem; }
+    .side pre { font-size: 0.72rem; padding: 1rem; }
+  }
 
   /* Editions */
   .free { display: flex; flex-wrap: wrap; gap: 0.5rem; }
