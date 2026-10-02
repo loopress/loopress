@@ -341,6 +341,7 @@ describe('menu push', () => {
     it('does not report success on a dry run', async () => {
       const {cmd, logs} = makeRunCmd()
       ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue([])
 
       await cmd.run()
 

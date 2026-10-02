@@ -1,6 +1,7 @@
 import {Args} from '@oclif/core'
 
 import {PushCommand} from '../../lib/push-command.js'
+import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {formatPageProblems, frontPageNote, type Page, PAGES_ENDPOINT, type PushedPage, readLocalPages} from '../../utils/page-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
@@ -43,6 +44,7 @@ export default class Push extends PushCommand {
     }
 
     this.log(`Found ${pluralize(selected.length, 'page')} to push`)
+    if (this.dryRun) await this.previewRemote(getResourceStateProvider('page'), path)
 
     const pushed: string[] = []
     await this.runPushTasks(

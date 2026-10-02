@@ -64,7 +64,7 @@ export default class Push extends LoopressCommand {
       this.log(`\n→ Pushing ${target.label}...`)
       try {
         await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
-        this.log(`✓ ${target.label} pushed`)
+        this.log(this.dryRun ? `✓ ${target.label} would push` : `✓ ${target.label} pushed`)
         results.push({label: target.label, status: 'pushed'})
       } catch (error) {
         this.failedCount++
@@ -83,7 +83,7 @@ export default class Push extends LoopressCommand {
       this.error(`${pluralize(this.failedCount, 'resource')} failed to push. ${failures.join('; ')}`)
     }
 
-    this.log('\nAll resources pushed.')
+    this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
     return {results}
   }
 
