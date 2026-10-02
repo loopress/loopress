@@ -46,7 +46,7 @@ function devOnlyRoutes() {
           const route = file.replace(/\.astro$/, "").replace(/(^|\/)index$/, "");
           injectRoute({ pattern: `/dev/${route}`, entrypoint: `./src/dev/pages/${file}`, prerender: false });
         }
-        injectRoute({ pattern: "/dev/gallery/[...kind]", entrypoint: "./src/dev/gallery.astro", prerender: false });
+        injectRoute({ pattern: "/dev/[...kind]", entrypoint: "./src/dev/index.astro", prerender: false });
       },
     },
   };
