@@ -48,7 +48,7 @@ lps option add <name>
 
 ### `lps option pull`
 
-Refresh every tracked option from WordPress. Options you haven't added are never pulled.
+Refresh every tracked option from WordPress. Options you haven't added are never pulled. A tracked option that no longer exists on WordPress has its local file removed, see [pull mirrors the site](/concepts/#pull-mirrors-the-site).
 
 ```bash
 lps option pull

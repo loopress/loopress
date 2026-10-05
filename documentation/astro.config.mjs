@@ -53,7 +53,8 @@ export default defineConfig({
 		// Blog post retitled for SEO (WordPress REST API terminology over Loopress jargon).
 		"/blog/composer-packages-inside-custom-api-routes": "/blog/composer-packages-wordpress-rest-api-route",
 		// The CLI setup guide was split: installation into Getting Started, shared rules into Concepts.
-		"/cli/getting-started": "/concepts",
+		// Old links mostly come from readers looking to install, Getting Started links on to Concepts.
+		"/cli/getting-started": "/getting-started",
 	},
 	integrations: [
 		loopressFavicon(),
