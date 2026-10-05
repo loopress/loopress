@@ -6,6 +6,9 @@ import {readLocalConfig} from '../utils/loopress-config.js'
 const c = ux.colorize
 
 type StatusInfo = {
+  // Name of the environment commands will target, when one resolves. The MCP server reads it to
+  // pin a mutating call to the environment it previewed (and to refuse production).
+  environment?: string
   environments?: string[]
   note?: string
   project?: string
@@ -58,7 +61,7 @@ export default class Status extends Command {
 
     this.log(`Project:  ${project.name} (${env.name})`)
     this.log(`URL:      ${env.url}`)
-    return {project: `${project.name} (${env.name})`, url: env.url}
+    return {environment: env.name, project: `${project.name} (${env.name})`, url: env.url}
   }
 
   // Mirrors base.ts:resolveEnvironment with --env: the targeted project comes from
@@ -81,7 +84,7 @@ export default class Status extends Command {
 
     this.log(`Project:  ${project.name} (${env.name}, via --env)`)
     this.log(`URL:      ${env.url}`)
-    return {project: `${project.name} (${env.name}, via --env)`, url: env.url}
+    return {environment: env.name, project: `${project.name} (${env.name}, via --env)`, url: env.url}
   }
 
   private reportPinnedProject(projectId: string): StatusInfo {
@@ -107,7 +110,7 @@ export default class Status extends Command {
       const env = project.environments[envNames[0]]
       this.log(`Project:  ${project.name} (${env.name})`)
       this.log(`URL:      ${env.url}`)
-      return {project: `${project.name} (${env.name})`, url: env.url}
+      return {environment: env.name, project: `${project.name} (${env.name})`, url: env.url}
     }
 
     const current = configManager.getCurrentProject()
@@ -129,6 +132,6 @@ export default class Status extends Command {
 
     this.log(`Project:  ${project.name} (${currentEnv.name})`)
     this.log(`URL:      ${currentEnv.url}`)
-    return {project: `${project.name} (${currentEnv.name})`, url: currentEnv.url}
+    return {environment: currentEnv.name, project: `${project.name} (${currentEnv.name})`, url: currentEnv.url}
   }
 }

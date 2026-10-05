@@ -106,7 +106,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `plugin_push` | Yes | `env?`, `force?`, `prune?`, `activate?`, `confirmToken?` | Install/pin WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | `env?`, `plugins?` | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
 | `plugin_status` | No | `env?` | Report drift between the plugins on WordPress and `loopress.json` |
-| `plugin_audit` | No | — | Check `loopress.json` plugins for known vulnerabilities and health issues |
+| `plugin_audit` | No | none | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts, then Global Styles |
@@ -124,13 +124,14 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 | `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
 | `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |
-| `validate_local` | No | — | Check local tracked files are well formed and push-ready, without contacting WordPress |
+| `validate_local` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
 `env` overrides the globally active environment for that call. `path` overrides the directory
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `seo`, `menu`, `option`, `theme-styles`, `composer`) and `against`
+(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `option`,
+`theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real
 push; `list: true` shows what's available (id, timestamp, environment) instead of rolling back,
@@ -151,8 +152,13 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
    args and local files captured at preview time, not whatever the second call resends or whatever
    is on disk by then, so those two inputs can never drift from what was previewed.
 
-There is no way to skip the preview and apply in one call, including against a `production`
-environment: no tool schema exposes a flag for it. One residual gap: the revalidation dry-run and
+Mutating tools never touch an environment named `production` (`PRODUCTION_BLOCKED`): run those
+changes with `lps`, where they are confirmed interactively. When `env` is omitted, the preview call
+first resolves the active environment (`lps status`) and pins it as `--env <name>`, so the
+production refusal also covers an implicit target, and the confirmed call applies to the
+environment that was previewed even if the active one is switched in between.
+
+There is no way to skip the preview and apply in one call: no tool schema exposes a flag for it. One residual gap: the revalidation dry-run and
 the real apply are still two separate requests, not one atomic check-and-write, so a WordPress
 change landing in that narrow window between them (rather than during the, typically much longer,
 preview-to-confirm window the revalidation above guards) can still be overwritten. Closing that
@@ -176,6 +182,8 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
 | `STALE_PREVIEW` | The environment changed since the preview; call again without `confirmToken` for a fresh one |
+| `PRODUCTION_BLOCKED` | The call targets the `production` environment, explicitly or as the active one; run it with `lps` instead |
+| `UNRESOLVED_ENVIRONMENT` | `env` was omitted and no active environment resolves; pass `env` |
 | `NO_PROJECT_CONFIG` | No `loopress.json` in the current directory (resource only) |
 
 ## Environment variables
