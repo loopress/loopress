@@ -1,6 +1,7 @@
 ---
 title: ACF
 description: Push, pull and list Advanced Custom Fields configuration from the command line.
+edition: light
 ---
 
 The `acf` command group lets you version-control [Advanced Custom Fields](https://www.advancedcustomfields.com/) configuration as plain JSON files in Git: field groups, post types, taxonomies, and options pages.
@@ -22,6 +23,8 @@ lps acf push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps acf pull`
 
 Download ACF field groups, post types, taxonomies, and options pages from WordPress and write them as `.json` files, one per object.
@@ -39,7 +42,7 @@ lps acf pull [path]
 | `--type` | Limit to specific object types: `field-groups`, `post-types`, `taxonomies`, `options-pages`. Repeatable. |
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local files with a `key` no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported.
+Local files with a `key` no longer present on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first.
 
 **Example:**
 
@@ -100,6 +103,31 @@ options-pages (0):
   (none)
 ```
 
+---
+
+### `lps acf diff`
+
+Show what differs between your local ACF objects and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only acf`).
+
+```bash
+lps acf diff [path]
+lps acf diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps acf rollback`
+
+Restore ACF objects on WordPress to the snapshot saved automatically before an earlier `lps acf push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps acf rollback            # the most recent snapshot
+lps acf rollback --list     # available snapshots
+lps acf rollback --to <id>  # an older one
+```
+
 ## File format
 
 Each ACF object is stored as one file, named `{key}.json`, in a subdirectory per type:
@@ -116,7 +144,3 @@ acf/
 ```
 
 Files round-trip ACF's own export format untouched, the CLI only reads the `key` field to name the file and identify the object on push.
-
-:::tip
-Always run `lps acf pull` before editing locally so filenames stay in sync with each object's `key`.
-:::

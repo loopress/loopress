@@ -1,11 +1,8 @@
 ---
-title: CLI
+title: API Routes CLI
 description: Deploy custom WordPress REST API endpoints from version-controlled PHP files.
+edition: full
 ---
-
-:::note
-`pull`, `push`, and `list` below talk to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using those commands. `publish` is the exception: it uploads to your Loopress account, not to WordPress, so it doesn't depend on which plugin edition is installed.
-:::
 
 The `api` command group lets you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required. See [Writing Route Files](/api/routes/) for everything a route file can do: request handling, responses, authentication, CORS, and the security model.
 
@@ -26,13 +23,15 @@ lps api push
 
 ## The local directory
 
-`pull`, `push`, and `publish` each operate on one local directory, resolved the same way:
+`pull`, `push`, `diff`, `rollback` and `publish` each operate on one local directory, resolved the same way:
 
 1. The `path` argument, if given
 2. The `apiDir` key in the project's `loopress.json`, if set
 3. `./api`, the default
 
 ## Commands
+
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
 
 ### `lps api pull`
 
@@ -50,7 +49,7 @@ lps api pull [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local `.php` files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed with a warning. `--dry-run` announces them ahead of time. Files without the `.php` extension are never touched.
+Local `.php` files whose route no longer exists on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first. `--dry-run` announces them ahead of time. Files without the `.php` extension are never touched.
 
 The files you receive are exactly the source you (or a teammate) pushed: the [`ABSPATH` guard](/api/routes/#where-files-live-on-the-server) the plugin injects at deploy time is stripped before the file is sent back, so pulls never introduce noise in your Git diffs.
 
@@ -96,32 +95,6 @@ lps api push --prune        # also remove routes deleted locally
 
 ---
 
-### `lps api rm`
-
-Delete one route file from WordPress. This is the only way to take a route off the server through the CLI: route files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them.
-
-```bash
-lps api rm <filename>
-```
-
-| Argument | Description |
-|----------|-------------|
-| `filename` | The route slug without `.php`, e.g. `hello-world` or `invoice-pdf/[order_id]` |
-
-| Flag | Description |
-|------|-------------|
-| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
-| `--dry-run` / `-d` | Show what would be removed without deleting anything |
-
-**Example:**
-
-```bash
-lps api rm legacy-webhook
-lps api rm legacy-webhook --yes   # in CI
-```
-
----
-
 ### `lps api list`
 
 Print all custom route files currently on WordPress.
@@ -149,11 +122,64 @@ Found 2 route files:
 
 ---
 
+### `lps api diff`
+
+Show what differs between your local route files and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only api`).
+
+```bash
+lps api diff [path]
+lps api diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps api rollback`
+
+Restore route files on WordPress to the snapshot saved automatically before an earlier `lps api push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps api rollback            # the most recent snapshot
+lps api rollback --list     # available snapshots
+lps api rollback --to <id>  # an older one
+```
+
+---
+
+### `lps api rm`
+
+Delete one route file from WordPress. This is the only way to take a route off the server through the CLI: route files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them.
+
+```bash
+lps api rm <filename>
+```
+
+`lps api remove` is an alias.
+
+| Argument | Description |
+|----------|-------------|
+| `filename` | The route slug without `.php`, e.g. `hello-world` or `invoice-pdf/[order_id]` |
+
+| Flag | Description |
+|------|-------------|
+| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
+| `--dry-run` / `-d` | Show what would be removed without deleting anything |
+
+**Example:**
+
+```bash
+lps api rm legacy-webhook
+lps api rm legacy-webhook --yes   # in CI
+```
+
+---
+
 ### `lps api publish`
 
 Publish local route files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
 
-Requires `lps login` first, and the current project must be linked to your Loopress account (`lps project push`).
+Requires `lps login` first, and the current project must be linked to your [Loopress account](/account/) (`lps project push`). Since it never talks to WordPress, it works whichever plugin edition is installed.
 
 ```bash
 lps api publish [path]

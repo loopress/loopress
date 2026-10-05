@@ -1,15 +1,14 @@
 ---
-title: CLI
+title: Composer CLI
 description: Sync composer.json and composer.lock between your local machine and WordPress without SSH.
+edition: full
 ---
-
-:::note
-The `composer` command group talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
-:::
 
 The `composer` command group lets you synchronize your Composer setup with a WordPress server. This is useful when you manage PHP dependencies locally (or with Loopress Full) and need to keep remote environments in sync.
 
 ## Commands
+
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
 
 ### `lps composer init`
 

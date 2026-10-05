@@ -1,11 +1,8 @@
 ---
-title: Apps CLI
+title: Single-Page Apps CLI
 description: Push, pull, list and remove single-page app bundles from the command line.
+edition: full
 ---
-
-:::note
-Every command below talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site first.
-:::
 
 The `app` command group syncs built single-page app bundles between a local `apps/` directory and WordPress. Each subdirectory of `apps/` is one app: a `loopress.app.json` plus a built `dist/` folder.
 
@@ -32,6 +29,8 @@ lps app push search
 ```
 
 ## Commands
+
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
 
 ### `lps app push`
 

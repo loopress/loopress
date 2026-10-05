@@ -9,7 +9,7 @@ const { entry } = Astro.locals.starlightRoute;
 const isBlogPost = entry.id.startsWith("blog/");
 const isCookbookIndex = entry.id === "cookbook";
 const isCookbookRecipe = entry.id.startsWith("cookbook/");
-const { cliVersion, wordpressPluginVersion, kind, youtubeId } = entry.data;
+const { cliVersion, wordpressPluginVersion, kind, youtubeId, edition } = entry.data;
 
 // Cookbook-only copy, keyed by `kind`, feeding both the intro Aside and the closing CTA below.
 const cookbookKindCopy = {
@@ -99,6 +99,23 @@ if (isCookbookIndex) {
 			)}
 			.
 		</p>
+	)
+}
+{
+	edition === "full" && (
+		<Aside type="note" title="Loopress Full">
+			This feature is provided by <a href="/wordpress-plugin/">Loopress Full</a>, the free full
+			edition of the plugin. It is not available in Loopress Light, the edition distributed on
+			WordPress.org.
+		</Aside>
+	)
+}
+{
+	edition === "light" && (
+		<Aside type="note" title="Loopress Light and Loopress Full">
+			This feature is available in both editions of the <a href="/wordpress-plugin/">plugin</a>:
+			Loopress Light, distributed on WordPress.org, and Loopress Full.
+		</Aside>
 	)
 }
 {

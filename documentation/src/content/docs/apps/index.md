@@ -1,11 +1,10 @@
 ---
-title: Single-page apps
+title: Single-Page Apps
 description: Ship a pre-built Vue, React or Svelte bundle to WordPress and mount it into any page with a shortcode.
+edition: full
 ---
 
 Single-page apps let you version-control a front-end application (Vue, React, Svelte, anything that builds to static files) alongside the rest of your WordPress config, ship its built output to the site over the REST API, and drop it into a page with a shortcode.
-
-This is a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
 
 Loopress ships the **build output**. When the app has a `package.json` with a `build` script, `lps app push` runs it first with the app's own package manager (read from `packageManager`, else from the nearest lockfile, else npm), so a forgotten rebuild never ships a stale `dist/`. Without a `build` script, the `dist/` folder is pushed as is. Loopress never installs dependencies: run the install yourself once.
 

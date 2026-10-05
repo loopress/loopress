@@ -1,6 +1,7 @@
 ---
 title: SEO
 description: Push, pull and list SEO settings, post meta, and redirects from the command line, for whichever SEO plugin is active.
+edition: light
 ---
 
 The `seo` command group lets you version-control SEO configuration as plain JSON files in Git: site-wide Titles & Meta settings (including per-post-type schema defaults), per-post SEO meta, and redirects.
@@ -24,6 +25,8 @@ lps seo push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps seo pull`
 
 Download SEO settings, post meta, and (if supported) redirects from WordPress and write them as `.json` files.
@@ -41,7 +44,7 @@ lps seo pull [path]
 | `--post-type` | Limit post meta to specific post types. Repeatable. Defaults to `post` and `page`. |
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local post-meta and redirect files no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. `settings.json` is a single file, not a list, so it's always overwritten in place.
+Local post-meta and redirect files no longer present on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first. `settings.json` is a single file, not a list, so it's always overwritten in place.
 
 **Example:**
 
@@ -108,6 +111,31 @@ redirects (2):
   2. [active] 410 -> /discontinued
 ```
 
+---
+
+### `lps seo diff`
+
+Show what differs between your local SEO settings, post meta and redirects and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only seo`).
+
+```bash
+lps seo diff [path]
+lps seo diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps seo rollback`
+
+Restore SEO settings, post meta and redirects on WordPress to the snapshot saved automatically before an earlier `lps seo push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps seo rollback            # the most recent snapshot
+lps seo rollback --list     # available snapshots
+lps seo rollback --to <id>  # an older one
+```
+
 ## File format
 
 ```
@@ -124,7 +152,3 @@ seo/
 ```
 
 `settings.json` round-trips the active plugin's own Titles & Meta option untouched. Each post-meta file holds `{ "slug", "title", "meta" }`, where `meta` is every plugin-prefixed postmeta key found on that post (`rank_math_*` or `_yoast_wpseo_*`), read and written back generically rather than a fixed field list, so new fields and schema types round-trip without any change to the CLI. Each redirect file holds `{ "id", "sources", "urlTo", "headerCode", "status", "hits", "createdAt", "updatedAt" }`.
-
-:::tip
-Always run `lps seo pull` before editing locally so filenames stay in sync with each post's `slug` and each redirect's `id`.
-:::

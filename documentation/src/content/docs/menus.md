@@ -1,6 +1,7 @@
 ---
 title: Menus
 description: Push, pull and list WordPress nav menus and the active theme's menu locations from the command line.
+edition: light
 ---
 
 The `menu` command group lets you version-control WordPress nav menus (Appearance > Menus) as plain JSON files in Git, one file per menu, plus the active theme's menu locations.
@@ -24,6 +25,8 @@ lps menu push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps menu pull`
 
 Download every nav menu and the active theme's menu locations from WordPress and write them as `.json` files.
@@ -40,7 +43,7 @@ lps menu pull [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local menu files no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. `menu-locations.json` is a single file, not a list, so it's always overwritten in place.
+Local menu files no longer present on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first. `menu-locations.json` is a single file, not a list, so it's always overwritten in place.
 
 **Example:**
 
@@ -102,6 +105,31 @@ locations:
   social: (unassigned)
 ```
 
+---
+
+### `lps menu diff`
+
+Show what differs between your local menus and menu locations and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only menu`).
+
+```bash
+lps menu diff [path]
+lps menu diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps menu rollback`
+
+Restore menus and menu locations on WordPress to the snapshot saved automatically before an earlier `lps menu push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps menu rollback            # the most recent snapshot
+lps menu rollback --list     # available snapshots
+lps menu rollback --to <id>  # an older one
+```
+
 ## File format
 
 ```
@@ -159,10 +187,6 @@ Each menu file holds `{ "slug", "name", "items", "warnings" }`. `items` is a tre
   "social": null
 }
 ```
-
-:::tip
-Always run `lps menu pull` before editing locally so filenames stay in sync with each menu's `slug`.
-:::
 
 :::note
 Out of scope: legacy menu widgets, multisite, and guessing at an orphaned item whose target slug no longer exists anywhere, that's reported as an explicit error (push) or warning (pull), never a fuzzy match.

@@ -1,11 +1,10 @@
 ---
 title: Custom API Routes
 description: Deploy custom WordPress REST API endpoints from version-controlled PHP files, and see what's live from the plugin's admin UI.
+edition: full
 ---
 
 Custom API Routes let you version-control custom WordPress REST API endpoints as plain PHP files in Git. Each file becomes one REST route on the site, no other plugin required.
-
-This is a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
 
 Write a PHP class with one public method per HTTP verb, push it with `lps api push`, and the endpoint is live:
 

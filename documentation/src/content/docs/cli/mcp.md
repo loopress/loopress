@@ -9,7 +9,7 @@ It doesn't reimplement any sync logic: every tool runs the [CLI](/cli/) installe
 
 ## Requirements
 
-- [The Loopress CLI](/cli/getting-started/) installed and on `PATH`
+- [The Loopress CLI](/getting-started/) installed and on `PATH`
 - A `loopress.json` already set up in the directory your MCP client will launch the server from (`lps init`), since tools resolve paths the same way `lps` does when run by hand
 - WordPress authentication already done via the CLI (`lps project config`). The MCP server never handles auth itself, it only calls `lps`, which reads the stored Application Password.
 

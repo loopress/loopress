@@ -15,6 +15,10 @@ export const collections = {
 					// specific version-dependent feature (drafts, pre-release posts).
 					cliVersion: z.string().optional(),
 					wordpressPluginVersion: z.string().optional(),
+					// Which plugin edition provides the feature a page documents, rendered as a note at
+					// the top of the page by MarkdownContent.astro. `light`: both editions (Loopress Light
+					// and Loopress Full). `full`: Loopress Full only.
+					edition: z.enum(['light', 'full']).optional(),
 					// Cookbook recipes only: which Loopress mechanism the recipe is built on, drives
 					// the closing CTA that MarkdownContent.astro appends automatically.
 					kind: z.enum(['route', 'snippet', 'app']).optional(),
