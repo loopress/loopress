@@ -34,7 +34,7 @@ lps option push --env staging
 
 ## Commands
 
-Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies. Options are also part of the aggregate [`lps push`, `lps pull` and `lps diff`](/workflow/).
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies. Options are also part of the aggregate [`lps push`, `lps pull` and `lps diff`](/workflow/).
 
 ### `lps option add`
 
