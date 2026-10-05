@@ -371,7 +371,7 @@ class ApiFilesControllerTest extends TestCase
 
     // Regression coverage for the bug where a file with valid `declare(strict_types=1);` but
     // otherwise broken PHP syntax was written anyway (push_file only checked for the declare
-    // line), and only failed later inside RouteLoader's own rest_api_init try/catch — silently,
+    // line), and only failed later inside RouteLoader's own rest_api_init try/catch, silently,
     // with `api push` reporting success and `api list` showing the file as present.
     public function test_push_file_returns_400_when_content_has_invalid_php_syntax(): void
     {

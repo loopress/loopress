@@ -6,7 +6,7 @@ import { expect, test, unwrap } from "./helpers/environment.js";
 // Regression test: a route file with a valid `declare(strict_types=1);` line but otherwise
 // broken PHP syntax used to be accepted and written anyway (push_file() only checked for the
 // declare line, never that the PHP actually parses). `api push` reported success and `api
-// list` showed the file as present, while the route itself 404d at request time — the parse
+// list` showed the file as present, while the route itself 404d at request time: the parse
 // error only ever reached the server's own PHP error log, invisible to both CLI commands.
 test("rejects a route file with invalid PHP syntax instead of silently accepting it", async ({
 	projectDir,

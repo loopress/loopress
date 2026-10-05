@@ -130,7 +130,7 @@ test('pushes a post type and it becomes a real, registered WordPress post type',
 })
 
 // The CI/dev WordPress instance runs ACF Free (no license for PRO), so options pages are the
-// one object type that can never actually be created there — the interesting behavior is
+// one object type that can never actually be created there. The interesting behavior is
 // exactly that failure being loud and specific instead of the silent no-op
 // acf_import_internal_post_type() produces on its own (see AcfService::requireRegisteredType()).
 test('push fails clearly for an options page on ACF Free instead of silently no-oping', async ({projectDir, runCli}) => {

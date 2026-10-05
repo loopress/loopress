@@ -72,7 +72,7 @@ class AcfServiceTest extends TestCase
     }
 
     // ACF's own acf_get_internal_post_type_posts() already degrades to [] when a type isn't
-    // registered (e.g. options pages on ACF Free) — confirmed by reading ACF's source, and by
+    // registered (e.g. options pages on ACF Free), confirmed by reading ACF's source, and by
     // manual verification against a real ACF Free install. This must stay a graceful empty
     // result, not an error, so a multi-type `lps acf pull` doesn't abort entirely just because
     // one type (options pages) isn't available.

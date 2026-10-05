@@ -36,7 +36,7 @@ class WPCodeSnippetProviderTest extends TestCase
     // silently reset the stored snippet type back to 'php'.
     //
     // WPCode itself stores the code type as a term of its `wpcode_type` taxonomy
-    // (not post meta) — see WPCode_Snippet::save()/get_code_type() in the real
+    // (not post meta), see WPCode_Snippet::save()/get_code_type() in the real
     // plugin. Writing to post meta instead means WPCode's own admin UI never
     // sees the value. Location, priority, insert method and shortcode attributes
     // follow the same principle: they must land in the same storage WPCode's own
