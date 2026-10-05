@@ -1,49 +1,32 @@
-# Starlight Starter Kit: Basics
+# Loopress documentation
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Source of [docs.loopress.dev](https://docs.loopress.dev), built with [Astro Starlight](https://starlight.astro.build).
 
-```
-npm create astro@latest -- --template starlight
-```
-
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+```bash
+pnpm --filter @loopress/documentation dev     # local dev server on localhost:4321
+pnpm --filter @loopress/documentation build   # production build into dist/
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+## Layout
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+| Path | Content |
+|------|---------|
+| `src/content/docs/` | Every page, one `.md`/`.mdx` file per route |
+| `src/content/docs/blog/` | Blog posts (`starlight-blog`) |
+| `src/content/docs/cookbook/` | Cookbook recipes, one folder per category |
+| `src/content.config.ts` | Frontmatter schema, including the Loopress-specific fields below |
+| `src/components/MarkdownContent.astro` | Renders the edition note, the cookbook intro, video and closing CTA |
+| `astro.config.mjs` | Sidebar and redirects |
 
-Static assets, like favicons, can be placed in the `public/` directory.
+The sidebar is maintained by hand in `astro.config.mjs`: add every new page there. When a page moves or is removed, add a redirect from its old URL.
 
-## 🧞 Commands
+## Writing a page
 
-All commands are run from the root of the project, from a terminal:
+- **Edition.** On a feature page, set `edition: full` (Loopress Full only) or `edition: light` (both editions) in the frontmatter. The note at the top of the page is rendered from it, don't write one by hand.
+- **Shared rules live once.** `--env`, `--dry-run`, `--yes`, `--json`, how `pull` removes local files, and why to pull before editing are documented in `concepts.md`. Link to it instead of repeating them. Rollback is documented in `rollback.md`, the aggregate commands in `workflow.md`, every `loopress.json` field in `loopress-json.md`.
+- **Feature page outline.** Intro and requirements, `## Typical workflow`, `## Commands` with one `###` section per command in the order `add`, `pull`, `push`, `list`, `diff`, `rollback`, `status`, `audit`, `rm`/`remove`, `publish`, then `## File format`, then limits.
+- **Titles** are in Title Case and say which feature they belong to (`Composer CLI`, not `CLI`). Sidebar labels can stay short.
+- **Cookbook recipes** set `kind` (`route`, `snippet` or `app`) and optionally `youtubeId`.
+- Never use the em dash. Use a comma, a period, or rephrase.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+When a CLI command changes, also update the page documenting it, the table in `cli/index.md`, and the MCP tool table in `cli/mcp.md`.

@@ -1,11 +1,8 @@
 ---
 title: Static Pages
 description: Version-control hand-written HTML pages, and your block theme's templates and parts, and push them to WordPress.
+edition: full
 ---
-
-:::note
-Static pages are a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
-:::
 
 A static page is a plain `.html` file in your project's `pages/` directory. `lps page push` turns each file into a WordPress page (`post_type=page`) whose slug is the file name: `pages/legal-notice.html` becomes `/legal-notice/` on a site using pretty permalinks, or a `?page_id=` URL on Plain permalinks. Either way, use the URL `lps page list` reports rather than assuming the pretty form. The page is rendered inside your active theme, header and footer included, classic and block themes alike.
 
@@ -40,7 +37,7 @@ Any other key, or any other status, is rejected before anything is sent to WordP
 
 File names must be lowercase letters and digits separated by single hyphens (`legal-notice.html`, not `-legal--notice.html`): WordPress would rewrite such a slug and the page would no longer match its file. Only `.html` files are allowed in `pages/` (dotfiles such as `.DS_Store` are ignored), and subdirectories are not supported yet: one file per page, at the top of the directory. A file that breaks any of these rules stops the whole push before any network call.
 
-The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/cli/init/#fields-reference) to change it.
+The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/loopress-json/#resource-directories) to change it.
 
 ## Templates and parts
 
@@ -100,20 +97,52 @@ parts/header.html            → twentytwentyfive-loopress/parts/header.html
   Dynamic blocks that read the current post when they render work in a loop as they are.
 - Requires a block theme as the active theme (or the Loopress child itself). Another child theme can't be extended, WordPress has no grandchild themes.
 
-File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/cli/init/#fields-reference) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
+File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/loopress-json/#resource-directories) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `lps page push [SLUG]` | Push every page, or only `SLUG`. Supports `--dry-run` and `--yes`. |
-| `lps page list` | List the pages managed by Loopress on WordPress, with their status and URL. |
-| `lps page diff` | Show what differs (HTML, title, status) between `pages/` and WordPress. Also available as `lps diff --only page`. |
-| `lps theme template push` | Write every template and part to the Loopress child theme. Supports `--dry-run` and `--yes`. |
-| `lps theme template list` | Show the child theme: active or not, its templates and parts, and those edited in the Site Editor. |
-| `lps theme template diff` | Show what differs between `templates/` + `parts/` and the child theme, Site Editor edits included. Also part of `lps diff` (`--only template`, `--only part`). |
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies. Pages and templates have no `pull` and no `rollback`: the files in Git are the source of truth.
 
-Pages and templates are also part of `lps push`, `lps diff`, and `lps dev` (a saved file is pushed to your local environment right away).
+### `lps page push`
+
+Push every page, or only `SLUG`. Supports `--dry-run`.
+
+```bash
+lps page push
+lps page push legal-notice
+```
+
+---
+
+### `lps page list`
+
+List the pages managed by Loopress on WordPress, with their status and URL.
+
+---
+
+### `lps page diff`
+
+Show what differs (HTML, title, status) between `pages/` and WordPress. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only page`).
+
+---
+
+### `lps theme template push`
+
+Write every template and part to the Loopress child theme. Supports `--dry-run`.
+
+---
+
+### `lps theme template list`
+
+Show the child theme: active or not, its templates and parts, and those edited in the Site Editor.
+
+---
+
+### `lps theme template diff`
+
+Show what differs between `templates/` + `parts/` and the child theme, Site Editor edits included. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only template`, `--only part`).
+
+Pages and templates are also part of [`lps push`, `lps diff`, and `lps dev`](/workflow/) (a saved file is pushed to your local environment right away).
 
 When several pages are pushed, each one is pushed on its own: a refused page doesn't stop the others, and the command fails at the end with the number of pages that failed.
 

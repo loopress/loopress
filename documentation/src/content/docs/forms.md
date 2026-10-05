@@ -1,11 +1,8 @@
 ---
 title: Forms
 description: Push, pull and list WordPress forms from the command line.
+edition: full
 ---
-
-:::note
-`form` talks to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using these commands.
-:::
 
 The `form` command group lets you version-control forms as plain JSON files in Git.
 
@@ -26,6 +23,8 @@ lps form push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps form pull`
 
 Download all forms from WordPress and write them as `.json` files, one per form.
@@ -42,7 +41,7 @@ lps form pull [path]
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local files with an id no longer present on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. Forms with no id are skipped with a warning.
+Local files with an id no longer present on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first. Forms with no id are skipped with a warning.
 
 **Example:**
 
@@ -99,6 +98,31 @@ Forms (2):
   17. Newsletter Signup
 ```
 
+---
+
+### `lps form diff`
+
+Show what differs between your local forms and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only form`).
+
+```bash
+lps form diff [path]
+lps form diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps form rollback`
+
+Restore forms on WordPress to the snapshot saved automatically before an earlier `lps form push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps form rollback            # the most recent snapshot
+lps form rollback --list     # available snapshots
+lps form rollback --to <id>  # an older one
+```
+
 ## File format
 
 Each form is stored as one file, named `{id}-{slug}.json`, where `{slug}` is the form title lowercased and slugified:
@@ -110,7 +134,3 @@ forms/
 ```
 
 Files round-trip WPForms' own export format untouched, the CLI only reads `id` to name the file and `settings.form_title` to display the form.
-
-:::tip
-Always run `lps form pull` before editing locally so filenames stay in sync with each form's `id`.
-:::

@@ -5,9 +5,7 @@ description: Install the CLI and connect it to your WordPress site in under a mi
 
 import SetupVideo from '../../components/SetupVideo.astro';
 
-Loopress has two parts: a WordPress plugin and a CLI.
-
-The plugin works standalone, straight from the WordPress admin, for Composer dependency management. The CLI requires the plugin to be installed and active on the site you want to manage, `lps project config` installs it for you automatically if it's missing, no manual upload needed.
+Loopress has two parts: a [WordPress plugin](/wordpress-plugin/) and a CLI, `lps`. The CLI version-controls your site's code and configuration as files in Git, and syncs them with any WordPress environment through the plugin's REST API. The plugin must be active on the site, `lps project config` installs it for you if it's missing.
 
 Here's the whole setup, from installing the CLI to syncing the first snippets:
 
@@ -15,18 +13,22 @@ Here's the whole setup, from installing the CLI to syncing the first snippets:
 
 ## Prerequisites
 
-- A WordPress installation (6.0+) with administrator access
+- A WordPress installation (6.0+) with an administrator account
 - PHP 8.2+ on the server
 - Node.js 22+ on your machine, for the CLI
 - A local Chrome, Edge, or Chromium install, only needed for the automatic plugin install below
+- For snippets: [WPCode](https://wpcode.com/) or [Code Snippets](https://wordpress.org/plugins/code-snippets/) active on the site
 
 ## Quick start (under a minute)
 
 ### 1. Install the CLI
 
 ```bash
-npm install -g @loopress/cli
+npm install -g @loopress/cli   # or: pnpm add -g @loopress/cli
+lps --version
 ```
+
+The CLI checks npm in the background (at most once a day, never blocking a command) and prints a notice when a newer version exists. Run the same install command to upgrade: the CLI and the WordPress plugin evolve together, so staying current avoids debugging already-fixed issues.
 
 ### 2. Connect it to your site
 
@@ -34,18 +36,26 @@ npm install -g @loopress/cli
 lps project config
 ```
 
-Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically. If it can't complete (or you'd rather enter credentials yourself), fall back to manual entry, see the [Application Passwords guide](/application-passwords/) if you can't find that section in your WordPress admin.
+Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically. If it can't complete, or you'd rather enter credentials yourself, the command falls back to manual entry. If you can't find the Application Passwords section in your WordPress admin, see [Application Passwords](/application-passwords/).
 
-If Loopress Full isn't active on the site yet, `project config` offers to install it for you: it downloads the latest release, creates a temporary administrator account, uploads and activates the plugin through a headless browser, then deletes the temporary account, all with a confirmation prompt before anything is created. If the automatic install can't complete (some managed hosts block file uploads via `DISALLOW_FILE_MODS`), the command falls back to instructions for a manual upload, see the [plugin page](/wordpress-plugin/) either way.
+If Loopress Full isn't active on the site yet, `project config` offers to install it for you, after a confirmation prompt. When the automatic install can't complete (some managed hosts block uploads), it falls back to instructions for a [manual upload](/wordpress-plugin/#installation). [Concepts](/concepts/#configuring-an-environment) details both steps.
 
-### 3. Sync your first snippets
+### 3. Initialize your repository
+
+```bash
+lps init
+```
+
+Run it at the root of your repository. It writes [`loopress.json`](/loopress-json/), which ties the repository to the project you just configured and says where each kind of file lives. See [`lps init`](/cli/init/) for the prompts.
+
+### 4. Sync your first snippets
 
 ```bash
 # Download your existing snippets as .php files
 lps snippet pull
 
 # Edit locally, commit to Git
-git add snippets/ && git commit -m "chore: import snippets"
+git add loopress.json .gitattributes snippets/ && git commit -m "chore: import snippets"
 
 # Push changes back to WordPress
 lps snippet push
@@ -53,8 +63,12 @@ lps snippet push
 
 This works with either [WPCode](https://wpcode.com/) or the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin, whichever is active on the site.
 
----
+## Next steps
 
-Need Composer or plugin version management too? Continue with the [CLI reference](/cli/) or the [WordPress plugin docs](/wordpress-plugin/).
+- [Concepts](/concepts/): projects and environments, `--env`, dry runs, and how pull and push treat your files
+- [Multi-Environment Workflow](/workflow/): push, pull and compare everything at once, promote staging to production
+- Pick a feature from the sidebar: [ACF](/acf/), [SEO](/seo/), [Plugins](/plugins/), [Custom API Routes](/api/), [Composer](/composer/), and more
+- [Editor Setup](/editor-setup/): WordPress autocomplete for the PHP files in your repository
+- [CI/CD Integration](/ci/): deploy from a pipeline
 
 Want to see it all wired together, including CI and E2E tests? [github.com/loopress/demo](https://github.com/loopress/demo) is a small reference project you can clone.

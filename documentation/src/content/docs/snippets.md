@@ -1,11 +1,8 @@
 ---
 title: Snippets
 description: Push, pull and list WordPress code snippets from the command line.
+edition: full
 ---
-
-:::note
-`pull`, `push`, and `list` below talk to REST endpoints provided by [Loopress Full](/wordpress-plugin/), the free full edition of the plugin, not Loopress Light. Install it on the site before using those commands. `publish` is the exception: it uploads to your Loopress account, not to WordPress, so it doesn't depend on which plugin edition is installed.
-:::
 
 The `snippet` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a code file alongside a `.json` sidecar in a local directory that you commit like any other code.
 
@@ -26,6 +23,8 @@ lps snippet push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps snippet pull`
 
 Download all snippets from WordPress and write them as `.php` files.
@@ -36,13 +35,13 @@ lps snippet pull [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./snippets` | Local directory where snippets are written |
+| `path` | `./snippets` (or `loopress.json`'s `snippetsDir`) | Local directory where snippets are written |
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-Local files following the `<id>-<slug>` naming whose id is no longer on WordPress are removed on pull, so the directory always mirrors the site. In a terminal the files are listed and a confirmation is asked first (`--yes` skips it); in scripts and CI they are removed and reported. Snippets with no name are skipped with a warning.
+Local files following the `<id>-<slug>` naming whose id is no longer on WordPress are removed on pull, so the directory always mirrors the site. See [pull mirrors the site](/concepts/#pull-mirrors-the-site) for the confirmation asked first. Snippets with no name are skipped with a warning.
 
 **Example:**
 
@@ -68,7 +67,7 @@ lps snippet push [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./snippets` | Local directory to read `.php` files from |
+| `path` | `./snippets` (or `loopress.json`'s `snippetsDir`) | Local directory to read snippet files from |
 
 | Flag | Description |
 |------|-------------|
@@ -110,11 +109,36 @@ Found 3 snippets:
 
 ---
 
+### `lps snippet diff`
+
+Show what differs between your local snippets and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only snippet`).
+
+```bash
+lps snippet diff [path]
+lps snippet diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps snippet rollback`
+
+Restore snippets on WordPress to the snapshot saved automatically before an earlier `lps snippet push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps snippet rollback            # the most recent snapshot
+lps snippet rollback --list     # available snapshots
+lps snippet rollback --to <id>  # an older one
+```
+
+---
+
 ### `lps snippet publish`
 
 Publish local snippet files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
 
-Requires `lps login` first, and the current project must be linked to your Loopress account (`lps project push`).
+Requires `lps login` first, and the current project must be linked to your [Loopress account](/account/) (`lps project push`). Since it never talks to WordPress, it works whichever plugin edition is installed.
 
 ```bash
 lps snippet publish [path]
@@ -174,8 +198,3 @@ snippets/
 | `type` | Snippet type: `php`, `css`, `js`, `html`, or `text`. |
 | `tags` | Array of tag strings. |
 | `active` | Whether the snippet is active (`true` / `false`). |
-
-:::tip
-Always run `lps snippet pull` before editing locally so that your files have the `id` in the sidecar. This ensures `push` updates the right snippet even if you rename the file.
-:::
-

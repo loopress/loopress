@@ -1,11 +1,8 @@
 ---
 title: Writing Route Files
 description: The complete reference for custom API route files, request handling, responses, authentication, CORS, namespaces, and the security model.
+edition: full
 ---
-
-:::note
-Custom API Routes are a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
-:::
 
 A route file is a plain PHP file in your project's `api/` directory. Deployed with [`lps api push`](/api/cli/), each file becomes one REST route on the site. This page is the complete reference for what a route file can do.
 

@@ -52,6 +52,8 @@ export default defineConfig({
 		"/wordpress-plugin/api": "/api/admin-ui",
 		// Blog post retitled for SEO (WordPress REST API terminology over Loopress jargon).
 		"/blog/composer-packages-inside-custom-api-routes": "/blog/composer-packages-wordpress-rest-api-route",
+		// The CLI setup guide was split: installation into Getting Started, shared rules into Concepts.
+		"/cli/getting-started": "/concepts",
 	},
 	integrations: [
 		loopressFavicon(),
@@ -86,58 +88,15 @@ export default defineConfig({
 							link: "/getting-started/",
 							icon: "open-book",
 							items: [
+								{ label: "Getting Started", slug: "getting-started" },
+								{ label: "Concepts", slug: "concepts" },
+								{ label: "Multi-Environment Workflow", slug: "workflow" },
+								{ label: "Rollback", slug: "rollback" },
 								{
-									label: "Getting Started",
-									slug: "getting-started"
-								},
-								{
-									label: "Application Passwords",
-									slug: "application-passwords",
-								},
-								{
-									label: "Editor Setup",
-									slug: "editor-setup",
-								},
-								{
-									label: "CLI",
-									items: [
-										{ label: "Overview", slug: "cli" },
-										{ label: "Getting Started", slug: "cli/getting-started" },
-										{ label: "Init", slug: "cli/init" },
-										{ label: "Doctor", slug: "cli/doctor" },
-										{ label: "MCP Server", slug: "cli/mcp" },
-									],
-								},
-								{
-									label: "WordPress Plugin",
-									slug: "wordpress-plugin",
-								},
-								{
-									label: "Features",
+									label: "Code",
 									items: [
 										{ label: "Snippets", slug: "snippets" },
-										{ label: "ACF", slug: "acf" },
-										{ label: "SEO", slug: "seo" },
-										{ label: "Menus", slug: "menus" },
-										{ label: "Options", slug: "options" },
-										{ label: "Forms", slug: "forms" },
-										{ label: "Plugins", slug: "plugins" },
-										{ label: "Themes", slug: "themes" },
-										{ label: "Theme Styles", slug: "theme-styles" },
-										{
-											label: "Composer",
-											items: [
-												{ label: "Overview", slug: "composer" },
-												{ label: "CLI", slug: "composer/cli" },
-												{ label: "Admin UI", slug: "composer/admin-ui" },
-												{ label: "Security Audit", slug: "composer/audit" },
-												{ label: "Platform Diagnostics", slug: "composer/diagnostics" },
-												{
-													label: "Using packages in snippets",
-													slug: "composer/using-in-snippets",
-												},
-											],
-										},
+										{ label: "Hooks", slug: "hooks" },
 										{
 											label: "API Routes",
 											items: [
@@ -147,13 +106,41 @@ export default defineConfig({
 												{ label: "Admin UI", slug: "api/admin-ui" },
 											],
 										},
-										{ label: "Hooks", slug: "hooks" },
-										{ label: "Static Pages", slug: "pages" },
 										{
-											label: "Single-page apps",
+											label: "Single-Page Apps",
 											items: [
 												{ label: "Overview", slug: "apps" },
 												{ label: "CLI", slug: "apps/cli" },
+											],
+										},
+										{ label: "Static Pages", slug: "pages" },
+									],
+								},
+								{
+									label: "Configuration",
+									items: [
+										{ label: "ACF", slug: "acf" },
+										{ label: "SEO", slug: "seo" },
+										{ label: "Forms", slug: "forms" },
+										{ label: "Menus", slug: "menus" },
+										{ label: "Options", slug: "options" },
+										{ label: "Theme Styles", slug: "theme-styles" },
+									],
+								},
+								{
+									label: "Dependencies",
+									items: [
+										{ label: "Plugins", slug: "plugins" },
+										{ label: "Themes", slug: "themes" },
+										{
+											label: "Composer",
+											items: [
+												{ label: "Overview", slug: "composer" },
+												{ label: "CLI", slug: "composer/cli" },
+												{ label: "Admin UI", slug: "composer/admin-ui" },
+												{ label: "Security Audit", slug: "composer/audit" },
+												{ label: "Platform Diagnostics", slug: "composer/diagnostics" },
+												{ label: "Using Packages in Snippets", slug: "composer/using-in-snippets" },
 											],
 										},
 									],
@@ -165,6 +152,25 @@ export default defineConfig({
 										{ label: "GitHub Actions", slug: "ci/github-actions" },
 										{ label: "GitLab CI", slug: "ci/gitlab" },
 										{ label: "E2E Testing", slug: "ci/e2e-testing" },
+									],
+								},
+								{
+									label: "Reference",
+									items: [
+										{ label: "WordPress Plugin", slug: "wordpress-plugin" },
+										{ label: "CLI Commands", slug: "cli" },
+										{ label: "loopress.json", slug: "loopress-json" },
+										{ label: "lps init", slug: "cli/init" },
+										{ label: "MCP Server", slug: "cli/mcp" },
+										{ label: "Loopress Account", slug: "account" },
+										{ label: "Editor Setup", slug: "editor-setup" },
+									],
+								},
+								{
+									label: "Troubleshooting",
+									items: [
+										{ label: "lps doctor", slug: "cli/doctor" },
+										{ label: "Application Passwords", slug: "application-passwords" },
 									],
 								},
 							],

@@ -1,16 +1,16 @@
 ---
 title: WordPress Plugin
-description: Sync ACF field groups and SEO settings with the CLI, and optionally add code snippet sync and Composer dependency management from your WordPress admin.
+description: The Loopress plugin connects your site to the CLI. Loopress Light syncs configuration, Loopress Full adds code deployment and Composer dependency management.
 ---
 
 import PluginDownload from '../../../components/PluginDownload.astro';
 
-Loopress ships as a single WordPress plugin, built in two editions from the same codebase:
+Loopress ships as a single WordPress plugin, built in two editions from the same codebase. Both are free:
 
-- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)): connects your site to the Loopress CLI. Exposes the REST API that powers `lps acf pull/push/list` for [ACF](https://www.advancedcustomfields.com/) field groups and `lps seo pull/push/list` for SEO settings ([RankMath](https://rankmath.com/) or [Yoast SEO](https://yoast.com/wordpress/plugins/seo/)).
-- **Loopress Full** (also free, loopress.dev only): everything in Loopress Light, plus code snippet sync, integrates with [Code Snippets](https://wordpress.org/plugins/code-snippets/) and [WPCode](https://wordpress.org/plugins/wpcode/), powers `lps snippet pull/push/list`, plus form sync with [WPForms](https://wpforms.com/) powering `lps form pull/push/list`, plus custom REST API routes deployed from version-controlled PHP files with `lps api pull/push/list`, plus Composer dependency management: search Packagist, install and audit PHP packages from the admin, and sync `composer.json`/`composer.lock` with `lps composer push/pull`.
+- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [SEO](/seo/), [Menus](/menus/), [Options](/options/), and [Theme Styles](/theme-styles/).
+- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Forms](/forms/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
 
-Loopress Full costs nothing, it is not a paid upgrade. It is not distributed through the WordPress.org directory for two separate reasons, not pricing: directory guidelines forbid a plugin from installing executable PHP code from external registries such as Packagist (Composer dependency management), and separately forbid a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode for later execution (snippet sync), regardless of the authentication in front of those endpoints. Installing Loopress Full deactivates Loopress Light automatically, since Loopress Full is a full replacement, not an add-on; the two editions never run side by side.
+Loopress Full is not a paid upgrade. It is distributed outside WordPress.org because the directory guidelines forbid installing code from Packagist and deploying PHP into another plugin, see [About WordPress.org-hosted plugins](#about-wordpressorg-hosted-plugins). Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on, and the two editions never run side by side.
 
 ## Feature comparison
 
@@ -51,27 +51,29 @@ Loopress Full costs nothing, it is not a paid upgrade. It is not distributed thr
 
 <PluginDownload edition="light" />
 
-- **ACF sync**: pull and push field groups, post types, taxonomies, and options pages as JSON with `lps acf pull/push`. Requires ACF active on the site, options pages require ACF PRO
-- **SEO sync**: pull and push settings, post meta, and redirects as JSON with `lps seo pull/push`, for whichever of RankMath or Yoast SEO is active
+- **ACF sync**: field groups, post types, taxonomies, and options pages as JSON with `lps acf pull/push`. Requires ACF active on the site, options pages require ACF PRO
+- **SEO sync**: settings, post meta, and redirects as JSON with `lps seo pull/push`, for whichever of RankMath or Yoast SEO is active
+- **Menu sync**: nav menus and the active theme's menu locations with `lps menu pull/push`
+- **Option tracking**: the individual `wp_options` rows you choose, with `lps option add/pull/push`
+- **Theme styles**: the active block theme's Global Styles with `lps theme style pull/push`, through WordPress core's own REST API
 - **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role)
 
 ## Loopress Full
 
 <PluginDownload edition="full" />
 
-Everything above, plus:
+Everything in Loopress Light, plus:
 
-- **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, and keep them in Git
-- **Works with Code Snippets and WPCode**: Loopress Full talks to whichever is active
-- **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push/list`
-- **Custom API routes**: version-control REST API endpoints as plain PHP files with `lps api pull/push/list`, each file becomes one route
-- **Static pages**: push hand-written HTML files as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, see [Static Pages](/pages/)
-- **Single-page apps**: ship a pre-built Vue, React or Svelte bundle to the site with `lps app push` and mount it in any page with a shortcode
+- **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, for whichever of Code Snippets or WPCode is active
+- **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push`
+- **Hooks**: WordPress actions, filters and cron jobs deployed from PHP files with `lps hook push`
+- **Custom API routes**: REST API endpoints as plain PHP files with `lps api push`, each file becomes one route
+- **Static pages**: hand-written HTML files pushed as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, plus block templates and parts in a child theme
+- **Single-page apps**: a pre-built Vue, React or Svelte bundle shipped with `lps app push` and mounted in any page with a shortcode
 - **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme version push`, via Composer and WPackagist
-- **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/), with automatic detection of outdated packages
+- **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/) in the admin, or sync `composer.json` with `lps composer push/pull`
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
-- **CLI sync**: powers `lps composer push` and `lps composer pull`
 - **Crash reporting**: opt-in banner to send Loopress's own errors to Sentry so bugs get fixed faster, no data from your theme, other plugins, or site visitors is included. The **Settings** tab lets you change your answer anytime, or reset all Loopress settings to default
 
 Loopress Full stores your project's Composer dependencies in `wp-content/loopress/`, separate from the plugin itself, so they survive plugin updates.
@@ -89,7 +91,7 @@ The tradeoff is a strict set of guidelines, and Loopress ran into two of them:
 - **Rule 8** forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Full's Composer dependency management does, so it cannot be hosted on WordPress.org regardless of implementation quality.
 - Separately, the review team classified snippet sync itself, REST endpoints that let arbitrary PHP/JS/CSS be submitted remotely and stored in another plugin (Code Snippets or WPCode) for later execution, as a remote code-deployment mechanism. This holds regardless of the authentication and capability checks in front of those endpoints: they establish who is allowed to call the endpoint, not whether the code submitted through it is safe. Every submission of Loopress Light that shipped snippet sync was rejected on this basis, and a subsequent appeal was rejected too, explicitly and finally.
 
-Loopress Light no longer ships snippet sync as a result: it now covers only ACF and SEO configuration, plain JSON data with no executable-code angle, and is published on the WordPress.org directory in that form.
+Loopress Light no longer ships snippet sync as a result: it covers only configuration stored as plain data (ACF, SEO, menus, options), with no executable-code angle, and is published on the WordPress.org directory in that form. Theme styles go through WordPress core's own REST API, so they work with either edition.
 
 This is why the plugin ships as two editions instead of one: Loopress Light is on the WordPress.org directory, installed and updated in place like any other plugin from there. Loopress Full carries both rejected capabilities (Composer and snippet sync), so it is downloaded directly from loopress.dev, but it still updates itself through the normal Plugins page: it checks GitHub Releases for a newer `loopress-full.zip` and, once found, WordPress downloads and installs it the same way it would a WordPress.org-hosted plugin.
 
@@ -116,7 +118,9 @@ Or install it [from the WordPress.org page](https://wordpress.org/plugins/loopre
 
 Installing Loopress Full deactivates Loopress Light automatically. From then on, updates show up on **Plugins** like any other plugin, since Loopress Full checks GitHub Releases for a newer `loopress-full.zip` and lets WordPress install it in place.
 
-## Pages
+## Admin pages
 
-- [Composer](/composer/) (Loopress Full): dependency management, security audit, platform diagnostics
-- [API Routes](/api/) (Loopress Full)
+Loopress Full adds a **Loopress** page to the WordPress admin:
+
+- [Composer Admin UI](/composer/admin-ui/): search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/)
+- [API Routes Admin UI](/api/admin-ui/): every custom route deployed on the site, and the namespace setting
