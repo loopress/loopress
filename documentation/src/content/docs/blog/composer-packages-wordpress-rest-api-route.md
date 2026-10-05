@@ -15,7 +15,7 @@ tags:
 excerpt: Composer dependency management and Custom API Routes were built as two separate Loopress Full features. They were also built to fit together. Here's the mechanism connecting them, and what it opens up.
 ---
 
-Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint, deployed with the [Loopress CLI](/cli/getting-started/) once it's set up for the project. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
+Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint, deployed with the [Loopress CLI](/getting-started/) once it's set up for the project. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
 
 ## Why reach for a package at all
 

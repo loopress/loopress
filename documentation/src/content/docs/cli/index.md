@@ -1,81 +1,72 @@
 ---
-title: Loopress CLI
-description: Version-control your WordPress code snippets and plugins in Git.
+title: CLI Commands
+description: Every Loopress CLI command, grouped by topic, with a link to its full documentation.
 ---
 
-The Loopress CLI (`lps`) is a Node.js command-line tool that connects to the WordPress REST API to sync code snippets and plugins between your local machine and any WordPress instance.
+The Loopress CLI (`lps`) is a Node.js command-line tool. It connects to the WordPress REST API exposed by the [Loopress plugin](/wordpress-plugin/) and syncs your site's code and configuration with local files you commit to Git. To install it, see [Getting Started](/getting-started/). The rules shared by every command (`--env`, `--dry-run`, `--yes`, `--json`, how pull and push treat your files) are on the [Concepts](/concepts/) page.
 
-The [Loopress WordPress plugin](/wordpress-plugin/) must be installed and active on the site you want to manage.
+Run `lps <command> --help` for the exact arguments and flags of any command.
 
-## Command overview
+## Setup and diagnostics
 
-Commands for managing the tool itself, your projects, and your Loopress account:
+| Command | Description |
+|---------|-------------|
+| [`lps init`](/cli/init/) | Create a `loopress.json` config file interactively |
+| [`lps status`](/workflow/#lps-status) | Show which project and environment commands will target |
+| [`lps doctor`](/cli/doctor/) | Diagnose connectivity, plugin and credential problems |
+| [`lps validate`](/workflow/#lps-validate) | Check local tracked files are push-ready, without contacting WordPress |
+| [`lps telemetry enable` / `disable`](/concepts/#error-reporting) | Turn crash reporting to Sentry on or off |
 
-| Group | Command | Description |
-|-------|---------|-------------|
-| **Auth** | `lps login` | Log in to the Loopress console |
-| | `lps logout` | Log out from the Loopress console |
-| **Setup** | `lps init` | Create a `loopress.json` config file interactively |
-| | `lps status` | Show which project and environment commands will target |
-| | `lps doctor` | Diagnose connectivity, plugin and credential problems |
-| | `lps validate` | Check local tracked files are well formed and push-ready, without contacting WordPress |
-| | `lps dev` | Watch snippets, templates, parts, pages, API routes, hooks and plugins, pushing each change to the `local` environment automatically |
-| | `lps push` | Push plugins, composer, ACF, API routes, hooks, forms, templates and parts, pages, SEO, menus, options, and snippets to WordPress in one command |
-| | `lps pull` | Pull plugins, composer, ACF, API routes, hooks, forms, SEO, menus, options, and snippets from WordPress in one command |
-| | `lps diff` | Show what differs between your local files and an environment, or between two environments (`--against`). Exits 1 on drift, so it doubles as a CI gate |
-| | `lps promote` | Copy every tracked resource from one environment to another (`lps pull` from the source, then `lps push` to the target) |
-| **Project** | `lps project config` | Add or update a WordPress project environment |
-| | `lps project list` | List configured WordPress projects |
-| | `lps project switch` | Switch the active project and environment |
-| | `lps project remove` | Remove one or more WordPress projects or environments |
-| | `lps project push` | Push locally configured projects, environments and credentials to your Loopress account |
-| | `lps project pull` | Pull projects and environments from your Loopress account that aren't configured locally yet |
-| | `lps project rotate` | Rotate the WordPress application password for a project |
-| **Telemetry** | `lps telemetry enable` | Enable error reporting to Sentry |
-| | `lps telemetry disable` | Disable error reporting to Sentry |
+## Projects and environments
+
+| Command | Description |
+|---------|-------------|
+| [`lps project config`](/concepts/#configuring-an-environment) | Add or update a WordPress project environment |
+| [`lps project list`](/concepts/#projects-and-environments) | List configured WordPress projects |
+| [`lps project switch`](/concepts/#targeting-an-environment) | Switch the active project and environment |
+| [`lps project remove`](/concepts/#projects-and-environments) | Remove one or more WordPress projects or environments |
+| [`lps project rotate`](/concepts/#projects-and-environments) | Rotate the WordPress Application Password of an environment |
+
+## Every resource at once
+
+| Command | Description |
+|---------|-------------|
+| [`lps pull`](/workflow/#lps-pull) | Pull every resource from WordPress |
+| [`lps push`](/workflow/#lps-push) | Push every resource to WordPress |
+| [`lps diff`](/workflow/#lps-diff) | Compare local files with an environment, or two environments. Exits 1 on drift |
+| [`lps promote`](/workflow/#lps-promote) | Copy every tracked resource from one environment to another |
+| [`lps dev`](/workflow/#lps-dev) | Watch files and push each change to the `local` environment |
 
 ## Features
 
-Each of these syncs one kind of WordPress data as files in Git. See its own page for commands, flags, and file format. Every resource with a `push` also has a `rollback` (`lps snippet rollback`, `lps acf rollback`, ...): each real push saves a snapshot of what it replaced, and rollback restores it, listing available snapshots with `--list`. Snapshots stay on your machine, in `.loopress/snapshots/` at the root of your project (the last 10 per resource and environment), and that directory ignores itself in Git.
+Each feature syncs one kind of WordPress data as files. Most share the same subcommands: `pull`, `push`, `list`, `diff`, and [`rollback`](/rollback/).
 
-- [Snippets](/snippets/): PHP/CSS/JS code snippets (Code Snippets or WPCode)
-- [ACF](/acf/): Advanced Custom Fields configuration
-- [SEO](/seo/): SEO settings, post meta, and redirects (RankMath or Yoast)
-- [Forms](/forms/): WPForms forms
-- [API Routes](/api/): custom REST API endpoints
-- [Hooks](/hooks/): WordPress actions, filters, and cron jobs as PHP files
-- [Menus](/menus/): navigation menus and menu locations
-- [Options](/options/): individually tracked `wp_options` values
-- [Single-page apps](/apps/): built Vue, React or Svelte bundles mounted with a shortcode
-- [Static Pages](/pages/): hand-written HTML pages rendered by your theme, and block templates and parts in a child theme
-- [Theme Styles](/theme-styles/): block theme Global Styles (`theme.json` overrides)
-- [Plugins](/plugins/): installed WordPress.org plugins manifest
-- [Themes](/themes/): installed WordPress.org themes manifest
-- [Composer](/composer/): PHP dependencies, without SSH
+| Command group | Subcommands | Feature |
+|---------------|-------------|---------|
+| `lps snippet` | `pull` `push` `list` `diff` `rollback` `publish` | [Snippets](/snippets/) |
+| `lps hook` | `pull` `push` `list` `diff` `rollback` `remove` | [Hooks](/hooks/) |
+| `lps api` | `pull` `push` `list` `diff` `rollback` `remove` `publish` | [Custom API Routes](/api/cli/) |
+| `lps app` | `pull` `push` `list` `remove` | [Single-Page Apps](/apps/cli/) |
+| `lps page` | `push` `list` `diff` | [Static Pages](/pages/) |
+| `lps acf` | `pull` `push` `list` `diff` `rollback` | [ACF](/acf/) |
+| `lps seo` | `pull` `push` `list` `diff` `rollback` | [SEO](/seo/) |
+| `lps form` | `pull` `push` `list` `diff` `rollback` | [Forms](/forms/) |
+| `lps menu` | `pull` `push` `list` `diff` `rollback` | [Menus](/menus/) |
+| `lps option` | `add` `pull` `push` `list` `diff` `rollback` `remove` | [Options](/options/) |
+| `lps plugin` | `add` `pull` `push` `status` `audit` | [Plugins](/plugins/) |
+| `lps theme` | `add` `pull` `push` `status`, `version pull/push` | [Themes](/themes/) |
+| `lps theme style` | `pull` `push` `diff` `rollback` | [Theme Styles](/theme-styles/) |
+| `lps theme template` | `push` `list` `diff` | [Templates and parts](/pages/#templates-and-parts) |
+| `lps composer` | `init` `pull` `push` | [Composer](/composer/cli/) |
 
-Connecting an AI agent instead of a human? See the [MCP server](/cli/mcp/).
+`lps api remove` and `lps hook remove` are aliases of `lps api rm` and `lps hook rm`, which keep working.
 
-## Quick start
+## Loopress account
 
-```bash
-# 1. Connect to your WordPress site
-lps project config
+| Command | Description |
+|---------|-------------|
+| [`lps login` / `logout`](/account/#log-in) | Log in to or out of the Loopress console |
+| [`lps project push`](/account/#share-projects-between-machines) | Push local projects, environments and credentials to your Loopress account |
+| [`lps project pull`](/account/#share-projects-between-machines) | Pull projects and environments from your account that aren't configured locally yet |
 
-# 2. Initialize your project config
-lps init
-
-# 3. Pull your snippets
-lps snippet pull
-
-# 4. Edit, commit, push
-git add snippets/ && git commit -m "update snippet"
-lps snippet push
-```
-
-→ [Full CLI installation and setup guide](/cli/getting-started/)
-
-## Authentication
-
-All commands authenticate against WordPress using an [Application Password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/). By default, `lps project config` creates one automatically by authorizing in your browser. Generating one manually under **Users → Profile → Application Passwords** is available as a fallback.
-
-The CLI supports managing multiple projects (`lps project config`) and switching between them (`lps project switch`).
+Connecting an AI agent instead of a human? The [MCP server](/cli/mcp/) exposes these commands as tool calls.

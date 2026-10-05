@@ -1,6 +1,7 @@
 ---
 title: Options
 description: Track individual WordPress options (wp_options rows) as JSON files in Git and push them to other environments.
+edition: light
 ---
 
 The `option` command group version-controls individual rows of the WordPress `wp_options` table: a plugin's settings array, the site's date format, the front page setting. Unlike the other resources, nothing is tracked by default. You pick the options you care about one by one with `lps option add`, and only those are ever pulled, pushed or compared.
@@ -33,19 +34,84 @@ lps option push --env staging
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `lps option list` | List option names and their autoload flag. `CORE` marks a WordPress default option (certain), `SOURCE?` is a best-effort guess of the plugin that owns it, `--no-core` hides WordPress's own options. |
-| `lps option add <name>` | Read an option from WordPress and write its file, which starts tracking it. |
-| `lps option pull` | Refresh every tracked option from WordPress. Options you haven't added are never pulled. |
-| `lps option push` | Write every tracked, non-readonly option to WordPress. Create or update only, it never deletes an option you don't track. |
-| `lps option remove <name>` | Stop tracking an option and delete it from WordPress. `--local-only` only stops tracking it. |
-| `lps option diff` | Show what differs for tracked options between your files and an environment, or two environments (`--against`). |
-| `lps option rollback` | Restore tracked options to the snapshot saved automatically before an earlier push (`--list` to see them). |
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies. Options are also part of the aggregate [`lps push`, `lps pull` and `lps diff`](/workflow/).
 
-`push`, `remove` and `rollback` accept `--dry-run` and `--yes`. Options are also part of `lps push`, `lps pull` and `lps diff`.
+### `lps option add`
+
+Read an option from WordPress and write its file, which starts tracking it.
+
+```bash
+lps option add <name>
+```
+
+---
+
+### `lps option pull`
+
+Refresh every tracked option from WordPress. Options you haven't added are never pulled. A tracked option that no longer exists on WordPress has its local file removed, see [pull mirrors the site](/concepts/#pull-mirrors-the-site).
+
+```bash
+lps option pull
+```
+
+---
+
+### `lps option push`
+
+Write every tracked, non-readonly option to WordPress. Create or update only, it never deletes an option you don't track. Supports `--dry-run`.
+
+```bash
+lps option push --env staging
+```
 
 `option push` reads each option's current value right before writing it, and WordPress refuses the write if the option changed in between (someone saved the plugin's settings page meanwhile). Nothing is overwritten silently: pull, check, and push again.
+
+---
+
+### `lps option list`
+
+List option names and their autoload flag, never their values. `CORE` marks a WordPress default option (certain), `SOURCE?` is a best-effort guess of the plugin that owns it.
+
+```bash
+lps option list
+lps option list --no-core   # hide WordPress's own options
+```
+
+---
+
+### `lps option diff`
+
+Show what differs for tracked options between your files and an environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only option`).
+
+```bash
+lps option diff
+lps option diff --env staging --against production
+```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps option rollback`
+
+Restore tracked options on WordPress to the snapshot saved automatically before an earlier `lps option push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps option rollback            # the most recent snapshot
+lps option rollback --list     # available snapshots
+lps option rollback --to <id>  # an older one
+```
+
+---
+
+### `lps option remove`
+
+Stop tracking an option and delete it from WordPress. Supports `--dry-run`.
+
+```bash
+lps option remove <name>
+lps option remove <name> --local-only   # only stop tracking it, keep it on WordPress
+```
 
 ## Readonly options
 

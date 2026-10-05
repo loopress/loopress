@@ -1,11 +1,10 @@
 ---
 title: Plugins
 description: Pin WordPress.org plugin versions in a lockfile and install the identical set on any environment, via Composer and WPackagist.
+edition: full
 ---
 
 The `plugin` command group tracks WordPress.org plugins as a lockfile in `loopress.json`. Loopress installs them on the site by running **Composer with the [WPackagist](https://wpackagist.org/) repository** inside WordPress, with no SSH and no need for a `composer.json` in your repo. Entries pinned to an exact version install identically on every environment. `latest` entries are re-resolved by Composer on each push, so environments pushed at different times can land on different versions.
-
-This is a [Loopress Full](/wordpress-plugin/) feature.
 
 ## The lockfile
 
@@ -35,6 +34,8 @@ For a `loopress.json`-only project, the generated `composer.json` / `composer.lo
 If your repo has a `composer.json` (from `lps composer init`), that file is authoritative for plugins and themes instead, `lps plugin pull` / `lps theme version pull` write into it, and `lps plugin push` pushes it whole (see [below](#with-a-composerjson)). See the [`composer` command group](/composer/cli/).
 
 ## Commands
+
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
 
 ### `lps plugin add`
 

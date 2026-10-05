@@ -1,11 +1,8 @@
 ---
 title: Hooks
 description: Version-control WordPress actions, filters, and scheduled (cron) tasks as plain PHP files.
+edition: full
 ---
-
-:::note
-Hooks are a [Loopress Full](/wordpress-plugin/) feature, not available in Loopress Light.
-:::
 
 :::tip
 Since these files call WordPress functions from a repo where WordPress isn't installed, set up [WordPress stubs](/editor-setup/) once to get autocomplete and static analysis in your editor. The same page covers the [`loopress/php-attributes`](/editor-setup/#loopress-attribute-classes) package, which resolves the `#[Action]`, `#[Filter]`, and `#[Cron]` attributes used below.
@@ -118,6 +115,8 @@ lps hook push
 
 ## Commands
 
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+
 ### `lps hook pull`
 
 Download all hook files from WordPress.
@@ -128,13 +127,13 @@ lps hook pull [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./hooks` | Local directory where hook files are written |
+| `path` | `./hooks` (or `loopress.json`'s `hooksDir`) | Local directory where hook files are written |
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be written without touching the filesystem |
 
-A local `.php` file whose slug no longer exists on WordPress is removed on pull, same as `lps api pull`.
+A local `.php` file whose slug no longer exists on WordPress is removed on pull, see [pull mirrors the site](/concepts/#pull-mirrors-the-site).
 
 ---
 
@@ -148,7 +147,7 @@ lps hook push [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./hooks` | Local directory to read `.php` files from |
+| `path` | `./hooks` (or `loopress.json`'s `hooksDir`) | Local directory to read `.php` files from |
 
 | Flag | Description |
 |------|-------------|
@@ -159,25 +158,6 @@ lps hook push [path]
 Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class, same validation as `lps api push` (syntax check, ABSPATH guard, class-name collision detection). Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
 
 Without `--prune`, pushing never removes a hook file from the server.
-
----
-
-### `lps hook rm`
-
-Delete one hook file from WordPress. Hook files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them; `rm` is the way to take one off the server through the CLI.
-
-```bash
-lps hook rm <filename>
-```
-
-| Argument | Description |
-|----------|-------------|
-| `filename` | The hook slug without `.php`, e.g. `content-filters` or `content/filters` |
-
-| Flag | Description |
-|------|-------------|
-| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
-| `--dry-run` / `-d` | Show what would be removed without deleting anything |
 
 ---
 
@@ -197,8 +177,44 @@ lps hook list
 
 ### `lps hook diff`
 
-Show what differs between your local hook files and a WordPress environment, or between two environments. Also included in the aggregate `lps diff` (`lps diff --only hook`).
+Show what differs between your local hook files and a WordPress environment, or between two environments with `--against`. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only hook`).
 
 ```bash
-lps hook diff
+lps hook diff [path]
+lps hook diff --env staging --against production
 ```
+
+Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps hook rollback`
+
+Restore hook files on WordPress to the snapshot saved automatically before an earlier `lps hook push`. See [Rollback and Snapshots](/rollback/).
+
+```bash
+lps hook rollback            # the most recent snapshot
+lps hook rollback --list     # available snapshots
+lps hook rollback --to <id>  # an older one
+```
+
+---
+
+### `lps hook rm`
+
+Delete one hook file from WordPress. Hook files live under `wp-content/`, outside the plugin directory, so deactivating the plugin does not remove them; `rm` is the way to take one off the server through the CLI.
+
+```bash
+lps hook rm <filename>
+```
+
+`lps hook remove` is an alias.
+
+| Argument | Description |
+|----------|-------------|
+| `filename` | The hook slug without `.php`, e.g. `content-filters` or `content/filters` |
+
+| Flag | Description |
+|------|-------------|
+| `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
+| `--dry-run` / `-d` | Show what would be removed without deleting anything |

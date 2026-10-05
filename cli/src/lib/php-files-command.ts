@@ -433,6 +433,8 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
 
 export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesCommand> {
   class ResourceRm extends LoopressCommand {
+    // `remove` matches `lps app remove` and `lps option remove`, `rm` stays for existing scripts.
+    static aliases = [`${spec.cliName}:remove`]
     static args = {
       filename: Args.string({
         description: `The ${spec.noun} to remove, its slug without the .php extension (e.g. "hello" or "invoice-pdf/[order_id]")`,
@@ -442,7 +444,7 @@ export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesC
 
     static description = spec.rmDescription
     static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} rm hello`, `$ lps ${spec.cliName} rm hello --yes`]
+    static examples = [`$ lps ${spec.cliName} rm hello`, `$ lps ${spec.cliName} remove hello --yes`]
     static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<RmResult> {
