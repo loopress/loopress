@@ -21,6 +21,8 @@ import {
   seoRedirectEndpoint,
 } from '../../utils/seo-format.js'
 
+type SeoPushResult = {path: string; status: 'dry-run' | 'success'}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to SEO directory (overrides project config)'}),
@@ -29,6 +31,7 @@ export default class Push extends PushCommand {
   static description =
     'Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to the `<id>-<slug>` convention. Fails clearly per file if the active SEO plugin does not support redirects.'
 
+  static enableJsonFlag = true
   static examples = ['$ lps seo push', '$ lps seo push --allow-external-redirects']
   static flags = {
     ...PushCommand.dryRunFlag,
@@ -42,7 +45,7 @@ export default class Push extends PushCommand {
 
   private allowExternalRedirects = false
 
-  async run(): Promise<void> {
+  async run(): Promise<SeoPushResult> {
     const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveSeoPath(args.path)
@@ -64,10 +67,11 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'SEO item')} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {path, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All SEO configuration pushed.')
+    return {path, status: 'success'}
   }
 
   private async currentPostMetaRevision(postType: string, slug: string): Promise<string | undefined> {

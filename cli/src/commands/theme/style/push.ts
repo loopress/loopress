@@ -6,6 +6,8 @@ import {PushCommand} from '../../../lib/push-command.js'
 import {getResourceStateProvider} from '../../../lib/resource-state.js'
 import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
 
+type ThemeStylePushResult = {file: string; status: 'dry-run' | 'success'}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to theme styles directory (overrides project config)'}),
@@ -14,13 +16,14 @@ export default class Push extends PushCommand {
   static description =
     "Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress"
 
+  static enableJsonFlag = true
   static examples = ['$ lps theme style push']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<ThemeStylePushResult> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const dir = this.resolveThemeStylesPath(args.path)
@@ -43,7 +46,7 @@ export default class Push extends PushCommand {
 
     if (this.dryRun) {
       this.log(`[dry-run] Would push: ${file}`)
-      return
+      return {file, status: 'dry-run'}
     }
 
     const provider = getResourceStateProvider('theme-styles')
@@ -56,5 +59,6 @@ export default class Push extends PushCommand {
     await this.writeAfterPushSnapshot(provider, dir, beforeState)
 
     await this.recordSuccess()
+    return {file, status: 'success'}
   }
 }

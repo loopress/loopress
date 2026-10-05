@@ -13,6 +13,8 @@ import {pluralize} from '../../utils/pluralize.js'
 // than the plain "locations" this used to be (WordPress's own menu-locations feature).
 const LOCATIONS_FILENAME = 'menu-locations.json'
 
+type MenuPushResult = {path: string; status: 'dry-run' | 'success'}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to menus directory (overrides project config)'}),
@@ -21,13 +23,14 @@ export default class Push extends PushCommand {
   static description =
     'Push local nav menus and the active theme menu locations to WordPress. Each menu\'s post_type/taxonomy items are resolved by slug on the target environment, never by a raw id; an item whose target does not exist there fails the whole menu rather than guessing.'
 
+  static enableJsonFlag = true
   static examples = ['$ lps menu push']
   static flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<MenuPushResult> {
     const {args} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveMenuPath(args.path)
@@ -47,10 +50,11 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'menu')} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {path, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All nav menus pushed.')
+    return {path, status: 'success'}
   }
 
   private async currentRevision(slug: string): Promise<string | undefined> {

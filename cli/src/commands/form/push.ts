@@ -11,6 +11,8 @@ import {FORM_ENDPOINT, formEndpoint, getFormId, getFormTitle, type RemoteForm} f
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
+type FormPushResult = {path: string; status: 'dry-run' | 'success'}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
@@ -19,6 +21,7 @@ export default class Push extends PushCommand {
   static description =
     'Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
 
+  static enableJsonFlag = true
   static examples = ['$ lps form push', '$ lps form push --allow-notifications']
   static flags = {
     ...PushCommand.dryRunFlag,
@@ -32,7 +35,7 @@ export default class Push extends PushCommand {
 
   private allowNotifications = false
 
-  async run(): Promise<void> {
+  async run(): Promise<FormPushResult> {
     const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveFormPath(args.path)
@@ -59,10 +62,11 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {path, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All forms pushed.')
+    return {path, status: 'success'}
   }
 
   private async currentRevision(id: number): Promise<string | undefined> {
