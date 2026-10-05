@@ -1,6 +1,6 @@
 import {readdirSync} from 'node:fs'
-import {dirname, join, relative} from 'node:path'
-import {fileURLToPath} from 'node:url'
+import {dirname, join, relative, sep} from 'node:path'
+import {fileURLToPath, pathToFileURL} from 'node:url'
 import {describe, expect, it} from 'vitest'
 
 const COMMANDS_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../src/commands')
@@ -31,7 +31,8 @@ function commandIds(dir: string): string[] {
   return readdirSync(dir, {withFileTypes: true}).flatMap((entry) => {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) return commandIds(path)
-    return entry.name.endsWith('.ts') ? [relative(COMMANDS_DIR, path).replace(/\.ts$/, '')] : []
+    // Forward slashes on every platform, so ids match NOT_WRAPPED_BY_MCP on Windows too.
+    return entry.name.endsWith('.ts') ? [relative(COMMANDS_DIR, path).split(sep).join('/').replace(/\.ts$/, '')] : []
   })
 }
 
@@ -39,7 +40,7 @@ describe('--json support', () => {
   const ids = commandIds(COMMANDS_DIR).filter((id) => !NOT_WRAPPED_BY_MCP.has(id))
 
   it.each(ids)('%s enables the --json flag', async (id) => {
-    const {default: command} = (await import(join(COMMANDS_DIR, `${id}.ts`))) as {default: {enableJsonFlag?: boolean}}
+    const {default: command} = (await import(pathToFileURL(join(COMMANDS_DIR, `${id}.ts`)).href)) as {default: {enableJsonFlag?: boolean}}
     expect(command.enableJsonFlag).toBe(true)
   })
 })
