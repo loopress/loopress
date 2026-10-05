@@ -24,7 +24,12 @@ Kept the project's existing OKLCH tokens and shadcn-style names rather than
 inventing new ones. Values below are the light theme; dark theme is unchanged
 from what already shipped (verified good contrast there).
 
-- `--background`   oklch(0.982 0.004 250), - `--card`          oklch(0.972 0.005 252), - `--foreground`    oklch(0.12 0.04 265), - `--muted-foreground` oklch(0.42 0.04 258), - `--border`        oklch(0.87 0.014 256), - `--accent-cyan`   oklch(0.78 0.13 200),   fills, dots, large surfaces only
+- `--background`   oklch(0.982 0.004 250)
+- `--card`          oklch(0.972 0.005 252)
+- `--foreground`    oklch(0.12 0.04 265)
+- `--muted-foreground` oklch(0.42 0.04 258)
+- `--border`        oklch(0.87 0.014 256)
+- `--accent-cyan`   oklch(0.78 0.13 200),   fills, dots, large surfaces only
 - `--accent-cyan-ink` oklch(0.52 0.13 200), text on light surfaces (4.64:1 verified)
 - `--success-ink`   oklch(0.53 0.17 150),   text on light surfaces (4.54:1 verified)
 - `--warning-ink`   oklch(0.56 0.16 70),    text on light surfaces (4.55:1 verified)
