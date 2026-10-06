@@ -134,11 +134,13 @@ abstract class AbstractSeoService implements SeoProvider
         $current = $this->revisionOf($this->prefixedMeta($post->ID));
 
         if ($current !== $expectedRevision) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new StaleSeoRevisionException(
                 "SEO meta for \"{$post->post_name}\" changed on WordPress since it was last read " .
                     "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
                     'Re-read the post and try again.',
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 
@@ -200,11 +202,13 @@ abstract class AbstractSeoService implements SeoProvider
         $current = $this->revisionOf($this->rawSettings());
 
         if ($current !== $expectedRevision) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new StaleSeoRevisionException(
                 'SEO settings changed on WordPress since they were last read ' .
                     "(expected revision \"{$expectedRevision}\", but its revision is now \"{$current}\"). " .
                     'Re-read the settings and try again.',
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 
