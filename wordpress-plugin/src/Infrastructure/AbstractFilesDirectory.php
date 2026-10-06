@@ -174,7 +174,7 @@ abstract class AbstractFilesDirectory
         try {
             $this->filesystem->dumpFile($this->filePath($slug), $content);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write {$slug}.php: " . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html("Failed to write {$slug}.php: " . $e->getMessage()));
         }
     }
 
@@ -234,7 +234,7 @@ abstract class AbstractFilesDirectory
                 $this->filesystem->mirror($this->path, $staging);
             }
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html('Failed to prepare the staged batch: ' . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html('Failed to prepare the staged batch: ' . $e->getMessage()));
         }
     }
 
@@ -245,7 +245,7 @@ abstract class AbstractFilesDirectory
         try {
             $this->filesystem->dumpFile($this->stagedFilePath($slug), $content);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to stage {$slug}.php: " . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html("Failed to stage {$slug}.php: " . $e->getMessage()));
         }
     }
 
@@ -319,7 +319,7 @@ abstract class AbstractFilesDirectory
                 $this->filesystem->rename($backup, $this->path);
             }
 
-            throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()));
         }
 
         $this->cleanupBackup($backup);

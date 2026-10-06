@@ -373,7 +373,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->loopressDir . 'composer.json', $encoded);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->loopressDir}: " . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->loopressDir}: " . $e->getMessage()));
         }
     }
 
@@ -406,7 +406,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->loopressDir . 'composer.lock', $contents);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->loopressDir}: " . $e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->loopressDir}: " . $e->getMessage()));
         }
     }
 

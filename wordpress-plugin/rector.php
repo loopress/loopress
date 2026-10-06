@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
 use Rector\CodingStyle\Rector\ArrowFunction\ArrowFunctionDelegatingCallToFirstClassCallableRector;
 use Rector\CodingStyle\Rector\FuncCall\FunctionFirstClassCallableRector;
 use Rector\Config\RectorConfig;
@@ -22,8 +21,6 @@ return RectorConfig::configure()
     ->withRules([
         DeclareStrictTypesRector::class,
         ClassPropertyAssignToConstructorPromotionRector::class,
-        // Keeps the original exception as `previous`, so Sentry and logs show the root cause.
-        ThrowWithPreviousExceptionRector::class,
     ])
     ->withSkip([
         // `[$this, 'method']` stays an array callable: WordPress compares hook callbacks by

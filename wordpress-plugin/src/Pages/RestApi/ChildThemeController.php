@@ -195,7 +195,7 @@ class ChildThemeController
 
             $this->swap($staging, $live, $old);
         } catch (\Throwable $e) {
-            throw new \RuntimeException(esc_html("Failed to write the child theme {$child}: " . $e->getMessage()), (int) $e->getCode(), $e);
+            throw new \RuntimeException(esc_html("Failed to write the child theme {$child}: " . $e->getMessage()));
         } finally {
             flock($lock, LOCK_UN);
             fclose($lock); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose

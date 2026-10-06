@@ -44,7 +44,7 @@ class PackagistClient
         try {
             $response = $this->httpClient->sendRequest(new Request('GET', "https://packagist.org/packages/{$package}.json"));
         } catch (ClientExceptionInterface $e) {
-            throw new \RuntimeException(esc_html($e->getMessage()), $e->getCode(), $e);
+            throw new \RuntimeException(esc_html($e->getMessage()));
         }
 
         $body = json_decode((string) $response->getBody(), true);
