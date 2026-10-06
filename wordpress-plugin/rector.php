@@ -9,6 +9,7 @@ use Rector\Config\RectorConfig;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php81\Rector\Array_\ArrayToFirstClassCallableRector;
+use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 
 return RectorConfig::configure()
@@ -35,4 +36,7 @@ return RectorConfig::configure()
         ArrowFunctionDelegatingCallToFirstClassCallableRector::class,
         // phpcs.xml.dist (Universal.Operators.DisallowShortTernary) rejects `?:`.
         TernaryToElvisRector::class,
+        // Adds `array` to arrow function params read with `$x['key']`; on an array_filter()
+        // result Psalm infers that param as `never` and rejects the hint (ReservedWord).
+        AddArrowFunctionParamArrayWhereDimFetchRector::class,
     ]);

@@ -205,7 +205,7 @@ class ComposerService
             fn($package): bool => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
         );
 
-        return array_values(array_map(fn(array $package): array => [
+        return array_values(array_map(fn($package): array => [
             'name'    => $package['name'],
             'version' => $package['version'],
             'latest'  => $package['latest'],
