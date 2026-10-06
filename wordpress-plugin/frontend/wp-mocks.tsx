@@ -3,6 +3,7 @@
 // call" errors when the component tree mixes it with the top-level react.
 import { vi } from 'vitest';
 import React from 'react';
+import { createRoot } from 'react-dom/client';
 
 vi.mock('@wordpress/components', () => ({
     Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style, ...rest }: any) => (
@@ -67,7 +68,7 @@ vi.mock('@wordpress/components', () => ({
             </select>
         </div>
     ),
-    ComboboxControl: ({ label, value, options, onChange, onFilterValueChange, placeholder, isLoading }: any) => (
+    ComboboxControl: ({ label, value, options, onChange, onFilterValueChange, placeholder }: any) => (
         <div>
             <label htmlFor="combo-input">{label}</label>
             <input
@@ -117,7 +118,6 @@ vi.mock('@wordpress/element', () => ({
     createElement: React.createElement,
     Fragment: React.Fragment,
     render: (element: React.ReactElement, container: Element) => {
-        const { createRoot } = require('react-dom/client');
         createRoot(container).render(element);
     },
 }));

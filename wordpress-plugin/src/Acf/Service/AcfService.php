@@ -146,10 +146,12 @@ class AcfService
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new StaleAcfRevisionException(
                 "\"{$key}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .
                     'Re-read the object and try again.',
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 

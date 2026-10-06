@@ -567,6 +567,9 @@ importers:
         specifier: ^10.1.1
         version: 10.1.1(react@19.3.0)
     devDependencies:
+      '@loopress/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@svgr/webpack':
         specifier: ^8.0.1
         version: 8.1.0(supports-color@10.2.2)(typescript@6.0.3)
@@ -597,6 +600,9 @@ importers:
       '@wordpress/scripts':
         specifier: 36.0.0
         version: 36.0.0(c0aaaf59b9296b2cdb7e8a2cffbc63ee)
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       happy-dom:
         specifier: ^20.14.3
         version: 20.14.3

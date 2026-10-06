@@ -51,6 +51,7 @@ class WpHttpClient implements ClientInterface
         if (is_wp_error($response)) {
             // $request is the PSR-7 RequestInterface passed through for getRequest(), not
             // string output; only the message needs escaping.
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- $request is not output.
             throw new WpHttpClientException(esc_html($response->get_error_message()), $request);
         }
 

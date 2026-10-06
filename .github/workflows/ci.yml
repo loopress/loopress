@@ -196,8 +196,16 @@ jobs:
           php-version: "8.2"
           coverage: none
 
+      - name: Validate composer.json
+        run: composer validate --strict
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
+
+      # Fails on a known security advisory in any locked dependency. The vendor/ tree ships
+      # inside both plugin zips, so a vulnerable package reaches every site running Loopress.
+      - name: Audit Composer dependencies
+        run: composer audit --locked
 
       - name: Rector check (strict_types, style rules)
         run: composer run rector:check
@@ -295,6 +303,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/wordpress-plugin...
 
+      - name: Type-check
+        working-directory: wordpress-plugin
+        run: pnpm type-check
+
+      - name: Lint
+        working-directory: wordpress-plugin
+        run: pnpm lint
+
       - name: Run tests
         working-directory: wordpress-plugin
         run: pnpm test
@@ -382,3 +398,15 @@ jobs:
             echo "::error::Loopress Light artifact is missing vendor/.htaccess (direct vendor access not blocked)"
             exit 1
           fi
+
+      # The official wordpress.org review tool, run on the exact files the deploy workflow
+      # ships to SVN. Catches review blockers (escaping, direct file access guards, readme
+      # headers, "Tested up to") on the PR that introduces them, not at submission time.
+      - name: Run Plugin Check on the Loopress Light build
+        uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
+        with:
+          build-dir: /tmp/loopress-light-check/loopress-light
+          slug: loopress-light
+          # Results surface as annotations. No token: the action would otherwise also try to
+          # post a PR comment, which this workflow's read-only GITHUB_TOKEN can't do.
+          repo-token: ''

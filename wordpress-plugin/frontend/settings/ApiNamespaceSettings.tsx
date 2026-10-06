@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardBody, TextControl, Button, Notice } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
@@ -12,17 +12,20 @@ export function ApiNamespaceSettings() {
         queryFn: () => apiFetch<ApiNamespace>('/api-namespace'),
     });
 
-    const [value, setValue] = useState('');
-    useEffect(() => {
-        if (data) setValue(data.namespace);
-    }, [data]);
+    // null until the user types: the field then shows the saved namespace without copying
+    // server state into local state from an effect.
+    const [draft, setDraft] = useState<string | null>(null);
+    const value = draft ?? data?.namespace ?? '';
 
     const { mutate: save, isPending, error } = useMutation({
         mutationFn: (namespace: string) => apiFetch<ApiNamespace>('/api-namespace', {
             method: 'PUT',
             body: JSON.stringify({ namespace }),
         }),
-        onSuccess: (result) => queryClient.setQueryData(['api-namespace'], result),
+        onSuccess: (result) => {
+            queryClient.setQueryData(['api-namespace'], result);
+            setDraft(null);
+        },
     });
 
     return (
@@ -32,7 +35,7 @@ export function ApiNamespaceSettings() {
                     label="API routes namespace"
                     value={value}
                     disabled={!data || isPending}
-                    onChange={setValue}
+                    onChange={setDraft}
                     help="REST namespace your api/ files register under, e.g. hello.php becomes {namespace}/hello. Changing this changes every route's URL."
                 />
                 {error instanceof ApiError && (

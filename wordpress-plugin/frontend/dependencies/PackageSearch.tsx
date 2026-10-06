@@ -142,7 +142,13 @@ export function PackageSearch({ onInstall, disabled }: Props) {
                 </div>
             )}
 
-            {!versionsLoading && versions.length === 0 && (
+            {!versionsLoading && versionsFailed && (
+                <p style={{ margin: 0, fontSize: 13, color: '#cc1818' }}>
+                    Unable to fetch versions for this package.
+                </p>
+            )}
+
+            {!versionsLoading && !versionsFailed && versions.length === 0 && (
                 <p style={{ color: '#666', fontSize: 13, margin: 0 }}>No stable versions found.</p>
             )}
 
