@@ -12,11 +12,11 @@ namespace Loopress\Hooks\Attribute;
  * declaration itself rather than only in behavior.
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
-final class Filter
+final readonly class Filter
 {
     public function __construct(
-        public readonly string $hook,
-        public readonly int $priority = 10,
-        public readonly int $acceptedArgs = 1,
+        public string $hook,
+        public int $priority = 10,
+        public int $acceptedArgs = 1,
     ) {}
 }

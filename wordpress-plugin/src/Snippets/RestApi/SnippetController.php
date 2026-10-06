@@ -174,7 +174,7 @@ class SnippetController
             'insertMethod'        => $request->get_param('insertMethod'),
             'priority'            => $request->get_param('priority'),
             'shortcodeAttributes' => $request->get_param('shortcodeAttributes'),
-        ], fn($v) => $v !== null);
+        ], fn($v): bool => $v !== null);
 
         // Unlike the fields above (where a wrong type is simply dropped by array_filter), a
         // malformed expectedRevision must never be silently treated as absent: that would drop
@@ -226,7 +226,7 @@ class SnippetController
             'id' => [
                 'required'          => true,
                 'sanitize_callback' => 'absint',
-                'validate_callback' => fn($v) => is_numeric($v) && $v > 0,
+                'validate_callback' => fn($v): bool => is_numeric($v) && $v > 0,
             ],
         ];
     }

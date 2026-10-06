@@ -244,7 +244,7 @@ class RouteLoader extends AbstractFileLoader
     // otherwise.
     private function wrapCallableMethod(object|string $target, string $method): callable
     {
-        return function (WP_REST_Request $request) use ($target, $method) {
+        return function (WP_REST_Request $request) use ($target, $method): bool {
             if (!is_callable([$target, $method])) {
                 return false;
             }

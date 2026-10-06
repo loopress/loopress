@@ -10,10 +10,10 @@ use Symfony\Component\Filesystem\Filesystem;
 
 class LoopressEnvironment
 {
-    private string $loopressDir;
+    private readonly string $loopressDir;
     private bool $initialized = false;
     private bool $libAutoloadNeedsDump = false;
-    private Filesystem $filesystem;
+    private readonly Filesystem $filesystem;
 
     public function __construct()
     {
@@ -373,7 +373,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->loopressDir . 'composer.json', $encoded);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->loopressDir}: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write composer.json to {$this->loopressDir}: " . $e->getMessage()), $e->getCode(), $e);
         }
     }
 
@@ -406,7 +406,7 @@ class LoopressEnvironment
         try {
             $this->filesystem->dumpFile($this->loopressDir . 'composer.lock', $contents);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->loopressDir}: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write composer.lock to {$this->loopressDir}: " . $e->getMessage()), $e->getCode(), $e);
         }
     }
 

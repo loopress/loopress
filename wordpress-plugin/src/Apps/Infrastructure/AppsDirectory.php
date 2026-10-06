@@ -35,8 +35,8 @@ class AppsDirectory
 
     private const APP_NAME_PATTERN = '/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/';
 
-    private string $path;
-    private Filesystem $filesystem;
+    private readonly string $path;
+    private readonly Filesystem $filesystem;
 
     public function __construct()
     {
@@ -263,7 +263,7 @@ class AppsDirectory
         try {
             $this->filesystem->dumpFile($file, sprintf(self::APP_HTACCESS, $policy));
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write {$name}/.htaccess: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write {$name}/.htaccess: " . $e->getMessage()), $e->getCode(), $e);
         }
 
         return true;
@@ -309,7 +309,7 @@ class AppsDirectory
             // reading the same asset never sees a half-written file.
             $this->filesystem->dumpFile($absPath, $bytes);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write {$name}/{$relPath}: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write {$name}/{$relPath}: " . $e->getMessage()), $e->getCode(), $e);
         }
     }
 

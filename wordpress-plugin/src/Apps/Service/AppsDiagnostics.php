@@ -22,8 +22,8 @@ class AppsDiagnostics
     private const NOSNIFF_CACHE_KEY = 'loopress_apps_assets_missing_nosniff';
 
     public function __construct(
-        private ClientInterface $httpClient,
-        private AppsDirectory $directory,
+        private readonly ClientInterface $httpClient,
+        private readonly AppsDirectory $directory,
     ) {}
 
     /** @return array{issues: list<array{code: string, message: string}>} */

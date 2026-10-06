@@ -11,29 +11,29 @@ namespace Loopress\Snippets\Contract;
  * updateSnippet(), where a null property means "leave this field unchanged") - mirroring the
  * isset($data[...]) checks the array-based version used for the same purpose.
  */
-final class SnippetData
+final readonly class SnippetData
 {
     /**
      * @param string[]|null $tags
      * @param string[]|null $shortcodeAttributes
      */
     public function __construct(
-        public readonly ?int $id = null,
-        public readonly ?string $name = null,
-        public readonly ?string $code = null,
-        public readonly ?SnippetType $type = null,
-        public readonly ?bool $active = null,
-        public readonly ?string $description = null,
-        public readonly ?array $tags = null,
-        public readonly ?string $location = null,
-        public readonly ?string $insertMethod = null,
-        public readonly ?int $priority = null,
-        public readonly ?array $shortcodeAttributes = null,
+        public ?int $id = null,
+        public ?string $name = null,
+        public ?string $code = null,
+        public ?SnippetType $type = null,
+        public ?bool $active = null,
+        public ?string $description = null,
+        public ?array $tags = null,
+        public ?string $location = null,
+        public ?string $insertMethod = null,
+        public ?int $priority = null,
+        public ?array $shortcodeAttributes = null,
         // Opaque content hash of every field above except id (see SnippetService::revisionOf()),
         // only ever compared for equality (#234). Computed by SnippetService, never accepted as
         // patch input: fromArray() deliberately doesn't read a "revision" key, so a client can't
         // set it through create/update, only receive it back on a read.
-        public readonly ?string $revision = null,
+        public ?string $revision = null,
     ) {
     }
 

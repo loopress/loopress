@@ -35,8 +35,8 @@ abstract class AbstractFilesDirectory
     // certainly been mass-populated by something other than `lps <resource> push`.
     public const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
 
-    private string $path;
-    private Filesystem $filesystem;
+    private readonly string $path;
+    private readonly Filesystem $filesystem;
 
     // $filesystem is injectable only so a test can substitute a Filesystem double for one
     // specific failure mode that's otherwise impractical to reproduce on a real filesystem (see
@@ -174,7 +174,7 @@ abstract class AbstractFilesDirectory
         try {
             $this->filesystem->dumpFile($this->filePath($slug), $content);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to write {$slug}.php: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to write {$slug}.php: " . $e->getMessage()), $e->getCode(), $e);
         }
     }
 
@@ -234,7 +234,7 @@ abstract class AbstractFilesDirectory
                 $this->filesystem->mirror($this->path, $staging);
             }
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html('Failed to prepare the staged batch: ' . $e->getMessage()));
+            throw new \RuntimeException(esc_html('Failed to prepare the staged batch: ' . $e->getMessage()), $e->getCode(), $e);
         }
     }
 
@@ -245,7 +245,7 @@ abstract class AbstractFilesDirectory
         try {
             $this->filesystem->dumpFile($this->stagedFilePath($slug), $content);
         } catch (IOExceptionInterface $e) {
-            throw new \RuntimeException(esc_html("Failed to stage {$slug}.php: " . $e->getMessage()));
+            throw new \RuntimeException(esc_html("Failed to stage {$slug}.php: " . $e->getMessage()), $e->getCode(), $e);
         }
     }
 
@@ -319,7 +319,7 @@ abstract class AbstractFilesDirectory
                 $this->filesystem->rename($backup, $this->path);
             }
 
-            throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()));
+            throw new \RuntimeException(esc_html('Failed to swap in the new file set: ' . $e->getMessage()), $e->getCode(), $e);
         }
 
         $this->cleanupBackup($backup);

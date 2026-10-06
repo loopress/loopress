@@ -322,7 +322,7 @@ class ComposerController
             'required'          => $required,
             'type'              => 'string',
             'description'       => 'Composer package name (vendor/package)',
-            'validate_callback' => fn($v) => (bool) preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $v),
+            'validate_callback' => fn($v): bool => (bool) preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $v),
             'sanitize_callback' => 'sanitize_text_field',
         ];
     }

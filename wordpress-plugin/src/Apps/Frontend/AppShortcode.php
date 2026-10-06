@@ -17,8 +17,8 @@ class AppShortcode
     public const TAG = 'loopress_app';
 
     public function __construct(
-        private AppStore $store,
-        private AppAssetEnqueuer $enqueuer,
+        private readonly AppStore $store,
+        private readonly AppAssetEnqueuer $enqueuer,
     ) {}
 
     /**

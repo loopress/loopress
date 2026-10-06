@@ -24,7 +24,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 class WpHttpClient implements ClientInterface
 {
-    public function __construct(private int $timeoutSeconds = 5)
+    public function __construct(private readonly int $timeoutSeconds = 5)
     {
     }
 

@@ -11,8 +11,8 @@ use Loopress\Dependencies\Service\ComposerService;
 class ComposerModule implements Module
 {
     public function __construct(
-        private ComposerService $service,
-        private ?string $autoloadError,
+        private readonly ComposerService $service,
+        private readonly ?string $autoloadError,
     ) {}
 
     public function boot(): void

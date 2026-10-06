@@ -70,7 +70,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
 
         try {
             $response = $this->dispatchOne('GET', self::ROUTE . "/{$id}");
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException) {
             return null;
         }
 
@@ -88,7 +88,7 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
     {
         try {
             $response = $this->dispatchOne('PUT', self::ROUTE . "/{$id}", $this->toPayload($data));
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException) {
             return null;
         }
 

@@ -270,9 +270,7 @@ class ComposerServiceTest extends TestCase
 
         $this->environment->expects($this->once())
             ->method('writeComposerJson')
-            ->with($this->callback(function (array $json): bool {
-                return $json['config']['platform']['php'] === PHP_VERSION;
-            }));
+            ->with($this->callback(fn(array $json): bool => $json['config']['platform']['php'] === PHP_VERSION));
 
         $this->service->fixPlatform();
     }

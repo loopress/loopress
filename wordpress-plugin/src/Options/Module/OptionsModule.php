@@ -10,7 +10,7 @@ use Loopress\Options\Service\OptionsService;
 
 class OptionsModule implements Module
 {
-    private OptionsService $service;
+    private readonly OptionsService $service;
 
     public function __construct()
     {
@@ -19,7 +19,7 @@ class OptionsModule implements Module
 
     public function boot(): void
     {
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             (new OptionsController($this->service))->register_routes();
         });
     }

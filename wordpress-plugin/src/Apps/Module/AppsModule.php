@@ -13,10 +13,10 @@ use Loopress\Contract\Module;
 class AppsModule implements Module
 {
     public function __construct(
-        private AppsController $controller,
-        private AppShortcode $shortcode,
-        private AppAssetEnqueuer $enqueuer,
-        private AppsDirectory $directory,
+        private readonly AppsController $controller,
+        private readonly AppShortcode $shortcode,
+        private readonly AppAssetEnqueuer $enqueuer,
+        private readonly AppsDirectory $directory,
     ) {}
 
     public function boot(): void

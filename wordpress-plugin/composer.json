@@ -51,6 +51,7 @@
         "test": "phpunit",
         "analyse": "phpstan analyse --memory-limit=1G",
         "psalm": "./vendor/bin/psalm --no-cache",
+        "psalm:taint": "./vendor/bin/psalm --no-cache --taint-analysis",
         "cs": "phpcs",
         "cs:fix": "phpcbf",
         "rector:check": "rector process --dry-run",
@@ -60,6 +61,7 @@
             "@test",
             "@analyse",
             "@psalm",
+            "@psalm:taint",
             "@cs",
             "@rector:check",
             "@deptrac"

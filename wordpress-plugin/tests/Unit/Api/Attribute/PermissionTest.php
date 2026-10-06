@@ -44,27 +44,27 @@ class PermissionTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (fn () => new Permission(public: true, capability: 'manage_options'))();
+        (fn (): \Loopress\Api\Attribute\Permission => new Permission(public: true, capability: 'manage_options'))();
     }
 
     public function test_rejects_public_combined_with_callback(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (fn () => new Permission(public: true, callback: 'checkSomething'))();
+        (fn (): \Loopress\Api\Attribute\Permission => new Permission(public: true, callback: 'checkSomething'))();
     }
 
     public function test_rejects_capability_combined_with_callback(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (fn () => new Permission(capability: 'manage_options', callback: 'checkSomething'))();
+        (fn (): \Loopress\Api\Attribute\Permission => new Permission(capability: 'manage_options', callback: 'checkSomething'))();
     }
 
     public function test_rejects_all_three_at_once(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        (fn () => new Permission(public: true, capability: 'manage_options', callback: 'checkSomething'))();
+        (fn (): \Loopress\Api\Attribute\Permission => new Permission(public: true, capability: 'manage_options', callback: 'checkSomething'))();
     }
 }

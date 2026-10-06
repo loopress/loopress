@@ -36,15 +36,13 @@ final class InfectionPatchworkBridge
     /** @var resource|false */
     private $dir = false;
 
-    /** @var string */
-    private static $intercept = '';
+    private static string $intercept = '';
 
-    /** @var string */
-    private static $replacement = '';
+    private static string $replacement = '';
 
     public static function install(): void
     {
-        $interceptor = 'Infection\\StreamWrapper\\IncludeInterceptor';
+        $interceptor = \Infection\StreamWrapper\IncludeInterceptor::class;
         if (!class_exists($interceptor, false)) {
             return;
         }
@@ -53,8 +51,6 @@ final class InfectionPatchworkBridge
             $reflection = new \ReflectionClass($interceptor);
             $intercept  = $reflection->getProperty('intercept');
             $replace    = $reflection->getProperty('replacement');
-            $intercept->setAccessible(true);
-            $replace->setAccessible(true);
 
             $interceptValue   = $intercept->isInitialized() ? $intercept->getValue() : null;
             $replacementValue = $replace->isInitialized() ? $replace->getValue() : null;
@@ -83,7 +79,7 @@ final class InfectionPatchworkBridge
         stream_wrapper_restore('file');
     }
 
-    public function stream_open($path, $mode, $options, &$openedPath = null)
+    public function stream_open($path, $mode, $options, &$openedPath = null): bool
     {
         self::disable();
 
@@ -116,54 +112,54 @@ final class InfectionPatchworkBridge
         return $resolved !== false && $resolved === self::$intercept;
     }
 
-    public function stream_read($count)
+    public function stream_read($count): string
     {
         return is_resource($this->fp) ? (string) fread($this->fp, (int) $count) : '';
     }
 
-    public function stream_write($data)
+    public function stream_write($data): int
     {
         return is_resource($this->fp) ? (int) fwrite($this->fp, (string) $data) : 0;
     }
 
-    public function stream_eof()
+    public function stream_eof(): bool
     {
         return !is_resource($this->fp) || feof($this->fp);
     }
 
-    public function stream_seek($offset, $whence = SEEK_SET)
+    public function stream_seek($offset, $whence = SEEK_SET): bool
     {
         return is_resource($this->fp) && fseek($this->fp, (int) $offset, (int) $whence) === 0;
     }
 
-    public function stream_tell()
+    public function stream_tell(): int
     {
         return is_resource($this->fp) ? (int) ftell($this->fp) : 0;
     }
 
-    public function stream_flush()
+    public function stream_flush(): bool
     {
         return is_resource($this->fp) && fflush($this->fp);
     }
 
-    public function stream_truncate($newSize)
+    public function stream_truncate($newSize): bool
     {
         return is_resource($this->fp) && ftruncate($this->fp, (int) $newSize);
     }
 
-    public function stream_lock($operation)
+    public function stream_lock($operation): bool
     {
         $operation = (int) $operation;
 
         return $operation === 0 || !is_resource($this->fp) || flock($this->fp, $operation);
     }
 
-    public function stream_stat()
+    public function stream_stat(): array|false
     {
         return is_resource($this->fp) ? fstat($this->fp) : false;
     }
 
-    public function stream_set_option($option, $arg1, $arg2)
+    public function stream_set_option($option, $arg1, $arg2): bool
     {
         return false;
     }
@@ -173,14 +169,14 @@ final class InfectionPatchworkBridge
         return $this->fp;
     }
 
-    public function stream_close()
+    public function stream_close(): void
     {
         if (is_resource($this->fp)) {
             fclose($this->fp);
         }
     }
 
-    public function url_stat($path, $flags)
+    public function url_stat($path, $flags): array|false
     {
         self::disable();
 
@@ -189,9 +185,7 @@ final class InfectionPatchworkBridge
 
         try {
             if ($quiet) {
-                set_error_handler(static function (): bool {
-                    return true;
-                });
+                set_error_handler(static fn(): bool => true);
             }
 
             try {
@@ -208,7 +202,7 @@ final class InfectionPatchworkBridge
         return $result;
     }
 
-    public function mkdir($path, $mode, $options)
+    public function mkdir($path, $mode, $options): bool
     {
         self::disable();
 
@@ -223,7 +217,7 @@ final class InfectionPatchworkBridge
         }
     }
 
-    public function rmdir($path, $options)
+    public function rmdir($path, $options): bool
     {
         self::disable();
 
@@ -234,7 +228,7 @@ final class InfectionPatchworkBridge
         }
     }
 
-    public function rename($pathFrom, $pathTo)
+    public function rename($pathFrom, $pathTo): bool
     {
         self::disable();
 
@@ -247,7 +241,7 @@ final class InfectionPatchworkBridge
         }
     }
 
-    public function unlink($path)
+    public function unlink($path): bool
     {
         self::disable();
 
@@ -263,26 +257,19 @@ final class InfectionPatchworkBridge
         self::disable();
 
         try {
-            switch ((int) $option) {
-                case STREAM_META_TOUCH:
-                    return $value === [] ? touch($path) : touch($path, ...array_values((array) $value));
-                case STREAM_META_OWNER:
-                case STREAM_META_OWNER_NAME:
-                    return chown($path, $value);
-                case STREAM_META_GROUP:
-                case STREAM_META_GROUP_NAME:
-                    return chgrp($path, $value);
-                case STREAM_META_ACCESS:
-                    return chmod($path, $value);
-                default:
-                    return false;
-            }
+            return match ((int) $option) {
+                STREAM_META_TOUCH => $value === [] ? touch($path) : touch($path, ...array_values((array) $value)),
+                STREAM_META_OWNER, STREAM_META_OWNER_NAME => chown($path, $value),
+                STREAM_META_GROUP, STREAM_META_GROUP_NAME => chgrp($path, $value),
+                STREAM_META_ACCESS => chmod($path, $value),
+                default => false,
+            };
         } finally {
             self::enable();
         }
     }
 
-    public function dir_opendir($path, $options)
+    public function dir_opendir($path, $options): bool
     {
         self::disable();
 
@@ -295,12 +282,12 @@ final class InfectionPatchworkBridge
         return $this->dir !== false;
     }
 
-    public function dir_readdir()
+    public function dir_readdir(): string|false
     {
         return is_resource($this->dir) ? readdir($this->dir) : false;
     }
 
-    public function dir_rewinddir()
+    public function dir_rewinddir(): bool
     {
         if (is_resource($this->dir)) {
             rewinddir($this->dir);
@@ -309,7 +296,7 @@ final class InfectionPatchworkBridge
         return true;
     }
 
-    public function dir_closedir()
+    public function dir_closedir(): bool
     {
         if (is_resource($this->dir)) {
             closedir($this->dir);

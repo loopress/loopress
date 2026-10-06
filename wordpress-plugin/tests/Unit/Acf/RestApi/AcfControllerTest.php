@@ -36,7 +36,6 @@ class AcfControllerTest extends TestCase
     private function invokePrivate(string $method, mixed ...$args): mixed
     {
         $ref = new \ReflectionMethod(AcfController::class, $method);
-        $ref->setAccessible(true);
         return $ref->invoke($this->controller, ...$args);
     }
 

@@ -21,7 +21,7 @@ class AppAssetEnqueuer
      */
     private array $moduleHandles = [];
 
-    public function __construct(private AppStore $store) {}
+    public function __construct(private readonly AppStore $store) {}
 
     public function enqueue(string $name): void
     {

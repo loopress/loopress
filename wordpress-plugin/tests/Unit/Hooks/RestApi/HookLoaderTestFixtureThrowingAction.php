@@ -9,7 +9,7 @@ use Loopress\Hooks\Attribute\Action;
 final class HookLoaderTestFixtureThrowingAction
 {
     #[Action('init')]
-    public function onInit(): void
+    public function onInit(): never
     {
         throw new \RuntimeException('boom');
     }

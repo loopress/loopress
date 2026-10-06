@@ -10,11 +10,11 @@ use Loopress\Snippets\Service\SnippetService;
 
 class SnippetModule implements Module
 {
-    public function __construct(private SnippetService $service) {}
+    public function __construct(private readonly SnippetService $service) {}
 
     public function boot(): void
     {
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             (new SnippetController($this->service))->register_routes();
         });
     }

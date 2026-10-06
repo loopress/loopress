@@ -256,7 +256,7 @@ class WPCodeSnippetProviderTest extends TestCase
         Functions\when('sanitize_text_field')->returnArg();
         Functions\when('wp_unslash')->returnArg();
         Functions\when('wp_insert_post')->justReturn(new \WP_Error('db_insert_error', 'Could not insert post.'));
-        Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
+        Functions\when('is_wp_error')->alias(fn($thing): bool => $thing instanceof \WP_Error);
         Functions\expect('update_post_meta')->never();
 
         $this->expectException(SnippetProviderRequestException::class);
@@ -269,7 +269,7 @@ class WPCodeSnippetProviderTest extends TestCase
     {
         $this->stubExistingSnippet(6);
         Functions\when('wp_update_post')->justReturn(new \WP_Error('db_update_error', 'Could not update post.'));
-        Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
+        Functions\when('is_wp_error')->alias(fn($thing): bool => $thing instanceof \WP_Error);
 
         $this->expectException(SnippetProviderRequestException::class);
         $this->expectExceptionMessage('Could not update post.');
@@ -384,7 +384,7 @@ class WPCodeSnippetProviderTest extends TestCase
             fn($postId, $key) => $metaOverrides[$key] ?? '',
         );
         Functions\when('wp_get_post_terms')->alias(
-            fn($postId, $taxonomy) => match ($taxonomy) {
+            fn($postId, $taxonomy): array => match ($taxonomy) {
                 'wpcode_type' => $typeTerms,
                 'wpcode_location' => $locationTerms,
                 default => [],

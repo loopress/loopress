@@ -13,7 +13,7 @@ class ComposerRunner
 {
     private const LOCK_FILE = '.loopress.lock';
 
-    public function __construct(private LoopressEnvironment $environment) {}
+    public function __construct(private readonly LoopressEnvironment $environment) {}
 
     /**
      * @param string[] $args

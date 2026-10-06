@@ -10,7 +10,7 @@ use Loopress\Menu\Service\MenuService;
 
 class MenuModule implements Module
 {
-    private MenuService $service;
+    private readonly MenuService $service;
 
     public function __construct()
     {
@@ -19,7 +19,7 @@ class MenuModule implements Module
 
     public function boot(): void
     {
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             (new MenuController($this->service))->register_routes();
         });
     }

@@ -253,7 +253,7 @@ class MenuServiceTest extends TestCase
     {
         Functions\when('get_page_by_path')->justReturn(false);
         $updateCalled = false;
-        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$updateCalled) {
+        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$updateCalled): int {
             $updateCalled = true;
             return 1;
         });
@@ -297,7 +297,7 @@ class MenuServiceTest extends TestCase
         Functions\when('wp_get_nav_menu_items')->justReturn([]);
 
         $renamed = null;
-        Functions\when('wp_update_term')->alias(function (int $termId, string $taxonomy, array $args) use (&$renamed) {
+        Functions\when('wp_update_term')->alias(function (int $termId, string $taxonomy, array $args) use (&$renamed): array {
             $renamed = $args;
             return ['term_id' => $termId];
         });
@@ -312,7 +312,7 @@ class MenuServiceTest extends TestCase
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main Menu'));
         Functions\when('wp_get_nav_menu_items')->justReturn([]);
         $renameCalled = false;
-        Functions\when('wp_update_term')->alias(function () use (&$renameCalled) {
+        Functions\when('wp_update_term')->alias(function () use (&$renameCalled): array {
             $renameCalled = true;
             return ['term_id' => 10];
         });
@@ -330,7 +330,7 @@ class MenuServiceTest extends TestCase
 
         $calls  = [];
         $nextId = 100;
-        Functions\when('wp_update_nav_menu_item')->alias(function (int $menuId, int $itemId, array $args) use (&$calls, &$nextId) {
+        Functions\when('wp_update_nav_menu_item')->alias(function (int $menuId, int $itemId, array $args) use (&$calls, &$nextId): int {
             $calls[] = $args;
             return $nextId++;
         });
@@ -379,7 +379,7 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => []]);
 
         $calls = [];
-        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls) {
+        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls): int {
             $calls[] = 'create';
             return 100;
         });
@@ -405,7 +405,7 @@ class MenuServiceTest extends TestCase
 
         $calls = [];
         $callCount = 0;
-        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls, &$callCount) {
+        Functions\when('wp_update_nav_menu_item')->alias(function () use (&$calls, &$callCount): \WP_Error|int {
             $callCount++;
             if ($callCount === 2) {
                 return new \WP_Error('fail', 'boom');
@@ -584,7 +584,7 @@ class MenuServiceTest extends TestCase
     public function test_delete_menu_deletes_by_term_id_and_returns_true(): void
     {
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
-        Functions\when('wp_delete_nav_menu')->alias(fn(int $id) => $id === 10);
+        Functions\when('wp_delete_nav_menu')->alias(fn(int $id): bool => $id === 10);
 
         $this->assertTrue($this->service->deleteMenu('main'));
     }
@@ -595,7 +595,7 @@ class MenuServiceTest extends TestCase
     {
         Functions\when('get_registered_nav_menus')->justReturn(['footer' => 'Footer', 'primary' => 'Primary']);
         Functions\when('get_nav_menu_locations')->justReturn(['primary' => 10]);
-        Functions\when('wp_get_nav_menu_object')->alias(fn(int|string $id) => $id === 10 ? $this->fakeTerm(10, 'main', 'Main') : false);
+        Functions\when('wp_get_nav_menu_object')->alias(fn(int|string $id): \WP_Term|false => $id === 10 ? $this->fakeTerm(10, 'main', 'Main') : false);
 
         $locations = $this->service->getLocations();
 
