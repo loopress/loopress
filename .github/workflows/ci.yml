@@ -161,7 +161,7 @@ jobs:
           WP_BASE_URL: http://localhost:8080
           WP_USERNAME: admin
           # Matches the account password `loopress/setup-ci` hardcodes when it runs
-          # `wp core install --admin_password="admin"` — needed for wp-admin UI login,
+          # `wp core install --admin_password="admin"`, needed for wp-admin UI login,
           # distinct from the REST API application password above.
           WP_ADMIN_PASSWORD: admin
           WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
@@ -169,7 +169,7 @@ jobs:
 
       # Videos and traces are only kept for failed tests (playwright.config.ts:
       # video/trace: 'retain-on-failure'), so this is near-empty on a green run and the one
-      # thing worth downloading on a red one — no separate reporter surfaces these otherwise.
+      # thing worth downloading on a red one, no separate reporter surfaces these otherwise.
       - name: Upload Playwright videos and traces
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1 v4

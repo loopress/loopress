@@ -10,19 +10,22 @@ import {type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} f
 // "menu-locations" would collide with it, so it's skipped rather than silently overwriting that file.
 const LOCATIONS_FILE_BASENAME = 'menu-locations'
 
+type MenuPullResult = {path: string; status: 'dry-run' | 'success'}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to menus directory (overrides project config)'}),
   }
 
   static description = 'Pull nav menus and the active theme menu locations from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps menu pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<MenuPullResult> {
     const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveMenuPath(args.path)
@@ -32,6 +35,8 @@ export default class Pull extends LoopressCommand {
 
     await this.pullMenus(path)
     await this.pullLocations(path)
+
+    return {path, status: this.dryRun ? 'dry-run' : 'success'}
   }
 
   private async pullLocations(basePath: string): Promise<void> {

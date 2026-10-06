@@ -26,7 +26,7 @@ export default class Publish extends Command {
   static description =
     'Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.'
 
-  static examples = ['$ lps api publish', '$ lps api publish --path ./api']
+  static examples = ['$ lps api publish', '$ lps api publish ./api']
 
   async run(): Promise<void> {
     const {args} = await this.parse(Publish)

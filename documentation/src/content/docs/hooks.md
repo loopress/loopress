@@ -115,7 +115,7 @@ lps hook push
 
 ## Commands
 
-Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies.
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies.
 
 ### `lps hook pull`
 

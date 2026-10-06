@@ -62,6 +62,7 @@ describe('status', () => {
       expect(result).toEqual({
         configDir: '/fake/config',
         dataDir: '/fake/data',
+        environment: 'production',
         project: 'acme (production)',
         url: 'https://acme.com',
       })
@@ -114,7 +115,7 @@ describe('status', () => {
 
       expect(log).toHaveBeenCalledWith('Project:  acme (production)')
       expect(log).toHaveBeenCalledWith('URL:      https://acme.com')
-      expect(result).toMatchObject({project: 'acme (production)', url: 'https://acme.com'})
+      expect(result).toMatchObject({environment: 'production', project: 'acme (production)', url: 'https://acme.com'})
     })
 
     it('reports the active environment when the pinned project matches the globally active one', async () => {
@@ -137,7 +138,7 @@ describe('status', () => {
 
       expect(log).toHaveBeenCalledWith('Project:  acme (staging)')
       expect(log).toHaveBeenCalledWith('URL:      https://staging.acme.com')
-      expect(result).toMatchObject({project: 'acme (staging)', url: 'https://staging.acme.com'})
+      expect(result).toMatchObject({environment: 'staging', project: 'acme (staging)', url: 'https://staging.acme.com'})
     })
 
     it('does not read the globally active environment when the pinned project is not the globally active one', async () => {
@@ -235,7 +236,7 @@ describe('status', () => {
 
       expect(log).toHaveBeenCalledWith('Project:  acme (staging, via --env)')
       expect(log).toHaveBeenCalledWith('URL:      https://staging.acme.com')
-      expect(result).toMatchObject({project: 'acme (staging, via --env)', url: 'https://staging.acme.com'})
+      expect(result).toMatchObject({environment: 'staging', project: 'acme (staging, via --env)', url: 'https://staging.acme.com'})
     })
 
     it('resolves --env within the project pinned by loopress.json', async () => {
@@ -251,7 +252,7 @@ describe('status', () => {
       const result = await cmd.run()
 
       expect(log).toHaveBeenCalledWith('Project:  acme (staging, via --env)')
-      expect(result).toMatchObject({project: 'acme (staging, via --env)', url: 'https://staging.acme.com'})
+      expect(result).toMatchObject({environment: 'staging', project: 'acme (staging, via --env)', url: 'https://staging.acme.com'})
     })
 
     it('reports "no project configured" for --env when no project can be resolved', async () => {

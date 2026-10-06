@@ -101,7 +101,7 @@ File names are lowercase letters, digits, `_` and `-`, the characters of a post 
 
 ## Commands
 
-Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--yes`, and `--json` where it applies. Pages and templates have no `pull` and no `rollback`: the files in Git are the source of truth.
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies. Pages and templates have no `pull` and no `rollback`: the files in Git are the source of truth.
 
 ### `lps page push`
 

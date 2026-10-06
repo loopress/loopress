@@ -8,12 +8,15 @@ import {isNotFoundError} from '../../lib/wp-client.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, acfObjectEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
+type AcfPushResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
+
 export default class Push extends PushCommand {
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
   static description = 'Push ACF field groups, post types, taxonomies, and options pages to WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps acf push', '$ lps acf push --type field-groups']
   static flags = {
     ...PushCommand.dryRunFlag,
@@ -21,7 +24,7 @@ export default class Push extends PushCommand {
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<AcfPushResult> {
     const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveAcfPath(args.path)
@@ -43,10 +46,11 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'ACF object')} failed to push.`)
     }
 
-    if (this.dryRun) return
+    if (this.dryRun) return {path, status: 'dry-run', types}
 
     await this.recordSuccess()
     this.log('All ACF objects pushed.')
+    return {path, status: 'success', types}
   }
 
   private async currentRevision(type: AcfObjectType, key: string): Promise<string | undefined> {

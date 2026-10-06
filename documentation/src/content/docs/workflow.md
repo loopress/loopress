@@ -50,6 +50,8 @@ lps status
 lps status --env staging
 ```
 
+With `--json`, the result includes an `environment` field: the name of the environment that resolved, absent when none does (no project configured, or a project with several environments and none active).
+
 ## `lps pull`
 
 Pull every resource from WordPress into local files, in one run.

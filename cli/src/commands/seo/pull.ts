@@ -15,12 +15,15 @@ import {
   type SeoRedirect,
 } from '../../utils/seo-format.js'
 
+type SeoPullResult = {path: string; postTypes: string[]; status: 'dry-run' | 'success'}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to SEO directory (overrides project config)'}),
   }
 
   static description = 'Pull SEO settings, post meta, and (if supported) redirects from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps seo pull', '$ lps seo pull --post-type post --post-type page']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -28,7 +31,7 @@ export default class Pull extends LoopressCommand {
     'post-type': Flags.string({description: 'Limit post meta to specific post types', multiple: true}),
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<SeoPullResult> {
     const {args, flags} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveSeoPath(args.path)
@@ -43,6 +46,8 @@ export default class Pull extends LoopressCommand {
     }
 
     await this.pullRedirects(path)
+
+    return {path, postTypes, status: this.dryRun ? 'dry-run' : 'success'}
   }
 
   private async pullPostMeta(postType: string, basePath: string): Promise<void> {

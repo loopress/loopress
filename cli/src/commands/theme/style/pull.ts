@@ -11,6 +11,8 @@ import {
   themeStylesFileName,
 } from '../../../utils/theme-styles-format.js'
 
+type ThemeStylePullResult = {file: string; status: 'dry-run' | 'success'}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to theme styles directory (overrides project config)'}),
@@ -19,12 +21,13 @@ export default class Pull extends LoopressCommand {
   static description =
     "Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file"
 
+  static enableJsonFlag = true
   static examples = ['$ lps theme style pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<ThemeStylePullResult> {
     const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const dir = this.resolveThemeStylesPath(args.path)
@@ -37,11 +40,12 @@ export default class Pull extends LoopressCommand {
 
     if (this.dryRun) {
       this.log(`[dry-run] Would pull Global Styles for "${stylesheet}" to ${file}`)
-      return
+      return {file, status: 'dry-run'}
     }
 
     await mkdir(dir, {recursive: true})
     await writeFile(file, JSON.stringify(canonicalGlobalStyles(item), null, 2) + '\n')
     this.log(`Pulled Global Styles for "${stylesheet}" to ${file}`)
+    return {file, status: 'success'}
   }
 }

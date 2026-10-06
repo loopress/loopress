@@ -39,6 +39,41 @@ function targetsProduction(args: string[]): boolean {
   return args[0] === 'promote' && isProduction(args[2])
 }
 
+const PRODUCTION_BLOCKED: MutatingToolResult = {
+  error: {
+    message:
+      'Refusing to change the "production" environment from the MCP server: there is no human confirmation on this path. ' +
+      'Run this command with the lps CLI, where production changes are confirmed interactively.',
+    name: 'PRODUCTION_BLOCKED',
+  },
+  status: 'error',
+}
+
+// Without `--env`, lps targets whatever environment is active (`lps project switch`), which can
+// be production. Resolve it now and pin it as `--env <name>`, so the production refusal below
+// also covers the implicit case (otherwise `--yes` on rm/rollback/prune would reach production
+// unconfirmed) and the confirmed call hits the environment that was previewed, even if the
+// active one is switched in between. promote names both environments, so it never needs this.
+async function pinTargetEnvironment(args: string[]): Promise<{args: string[]; ok: true} | {error: LpsError; ok: false}> {
+  if (args.includes('--env') || args[0] === 'promote') return {args, ok: true}
+
+  const status = await runLps<{environment?: string; note?: string}>(['status'])
+  if (!status.ok) return status
+
+  const {environment, note} = status.data ?? {}
+  if (!environment) {
+    return {
+      error: {
+        message: `Could not tell which environment this would change${note ? ` (${note})` : ''}. Pass env explicitly.`,
+        name: 'UNRESOLVED_ENVIRONMENT',
+      },
+      ok: false,
+    }
+  }
+
+  return {args: [...args, '--env', environment], ok: true}
+}
+
 export async function runMutatingTool(
   tool: string,
   args: string[],
@@ -50,19 +85,15 @@ export async function runMutatingTool(
   // rm/rollback/prune and promote pass) otherwise bypasses the CLI's production confirmation
   // entirely. Refuse any production-targeting mutation here so a human must run it via `lps`,
   // where the change is confirmed interactively. Non-production environments are unaffected.
-  if (targetsProduction(args)) {
-    return {
-      error: {
-        message:
-          'Refusing to change the "production" environment from the MCP server: there is no human confirmation on this path. ' +
-          'Run this command with the lps CLI, where production changes are confirmed interactively.',
-        name: 'PRODUCTION_BLOCKED',
-      },
-      status: 'error',
-    }
-  }
+  if (targetsProduction(args)) return PRODUCTION_BLOCKED
 
   if (!confirmToken) {
+    const pinned = await pinTargetEnvironment(args)
+    if (!pinned.ok) return {error: pinned.error, status: 'error'}
+    // The token stores these pinned args, so the confirmed call needs no second check.
+    if (targetsProduction(pinned.args)) return PRODUCTION_BLOCKED
+    args = pinned.args
+
     const snapshotDir = await createSnapshot(process.cwd())
 
     // oclif expects the topic/command first; the flag has to come after it, not before.

@@ -6,12 +6,15 @@ import {LoopressCommand} from '../../lib/base.js'
 import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
+type AcfPullResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
   static description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
   static flags = {
     ...LoopressCommand.dryRunFlag,
@@ -19,7 +22,7 @@ export default class Pull extends LoopressCommand {
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<AcfPullResult> {
     const {args, flags} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveAcfPath(args.path)
@@ -31,6 +34,8 @@ export default class Pull extends LoopressCommand {
     for (const type of types) {
       await this.pullType(type, path)
     }
+
+    return {path, status: this.dryRun ? 'dry-run' : 'success', types}
   }
 
   private async pullType(type: AcfObjectType, basePath: string): Promise<void> {

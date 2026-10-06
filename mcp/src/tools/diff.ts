@@ -6,8 +6,22 @@ import {envFlag} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
-// Mirrors RESOURCES in cli/src/commands/diff.ts.
-const RESOURCES = ['snippet', 'form', 'acf', 'api', 'hook', 'seo', 'menu', 'option', 'theme-styles', 'composer'] as const
+// Mirrors RESOURCES in cli/src/commands/diff.ts (RESOURCE_STATE_PROVIDERS, then composer).
+const RESOURCES = [
+  'snippet',
+  'form',
+  'acf',
+  'api',
+  'hook',
+  'template',
+  'part',
+  'page',
+  'seo',
+  'menu',
+  'option',
+  'theme-styles',
+  'composer',
+] as const
 
 const resourceArray = z.array(z.enum(RESOURCES)).optional()
 
@@ -16,7 +30,7 @@ export function registerDiffTools(server: McpServer): void {
     'project_diff',
     {
       description:
-        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, SEO, menus, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status.',
+        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, SEO, menus, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status.',
       inputSchema: {
         against: z
           .string()

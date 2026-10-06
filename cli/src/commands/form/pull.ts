@@ -8,19 +8,22 @@ import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
+type FormPullResult = {orphans: string[]; path: string; skipped: number; status: 'dry-run' | 'success'}
+
 export default class Pull extends LoopressCommand {
   static args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
 
   static description = 'Pull forms from WordPress'
+  static enableJsonFlag = true
   static examples = ['$ lps form pull']
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
 
-  async run(): Promise<void> {
+  async run(): Promise<FormPullResult> {
     const {args} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveFormPath(args.path)
@@ -54,10 +57,12 @@ export default class Pull extends LoopressCommand {
       },
     })
 
-    if (this.dryRun) return
+    if (this.dryRun) return {orphans, path, skipped, status: 'dry-run'}
 
     if (skipped > 0) {
       this.warn(`${pluralize(skipped, 'form')} skipped because they have no id`)
     }
+
+    return {orphans, path, skipped, status: 'success'}
   }
 }
