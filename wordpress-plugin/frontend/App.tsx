@@ -24,7 +24,7 @@ const TABS = [
 ];
 const TAB_NAMES = TABS.map((tab) => tab.name);
 
-const { autoloadError, pluginVersion } = window.loopressData;
+const { autoloadError } = window.loopressData;
 
 export default function App() {
     const queryClient = useQueryClient();

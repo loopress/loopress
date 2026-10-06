@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PackageSearch } from './PackageSearch';
 import type { PackageVersion } from '../types';
@@ -17,14 +16,6 @@ if (typeof window !== 'undefined') {
 
 function makeWrapper() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    return function Wrapper({ children }: { children: React.ReactNode }) {
-        return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-    };
-}
-
-function wrapperWithVersions(versions: PackageVersion[]) {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(['versions', 'guzzlehttp/guzzle'], versions);
     return function Wrapper({ children }: { children: React.ReactNode }) {
         return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
     };
