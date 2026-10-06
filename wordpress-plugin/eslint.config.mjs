@@ -4,6 +4,8 @@ export default [
     { ignores: ['build', 'vendor', 'node_modules', 'assets'] },
     ...reactConfig,
     {
+        // Scoped like the shared config's typescript-eslint block, which registers the plugin.
+        files: ['**/*.{ts,tsx}'],
         rules: {
             // Destructuring a prop out to keep it from reaching `...rest` is intentional.
             '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
