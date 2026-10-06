@@ -34,9 +34,11 @@ final class OptionReferences
                 $post = (is_int($id) && $id > 0) || (is_string($id) && ctype_digit($id)) ? get_post((int) $id) : null;
                 if (!$post instanceof \WP_Post || $post->post_type !== $postType) {
                     $shown = is_scalar($id) ? (string) $id : gettype($id);
+                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
                     throw new UnresolvedOptionReferenceException(
                         "\"{$path}\" holds \"{$postType}\" ID {$shown}, which does not exist on this environment.",
                     );
+                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
                 }
 
                 return PostByPath::pathOf($post);
@@ -58,16 +60,20 @@ final class OptionReferences
                 // An ID in the file would point at another environment's post: the exact bug
                 // refs exist to avoid, so it is refused rather than written as is.
                 if (!is_string($postPath) || is_numeric($postPath)) {
+                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
                     throw new UnresolvedOptionReferenceException(
                         "\"{$path}\" must hold a \"{$postType}\" path, not an ID. Run `lps option pull` to rewrite the file with paths.",
                     );
+                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
                 }
 
                 $post = PostByPath::find($postPath, $postType);
                 if ($post === null) {
+                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
                     throw new UnresolvedOptionReferenceException(
                         "\"{$path}\" points to \"{$postType}\" \"{$postPath}\", which does not exist on this environment.",
                     );
+                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
                 }
 
                 return $post->ID;

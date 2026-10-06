@@ -1,5 +1,7 @@
 {
     "name": "loopress/wordpress-plugin",
+    "description": "Loopress WordPress plugin: sync code, content and configuration between a local project and WordPress sites.",
+    "license": "GPL-2.0-or-later",
     "autoload": {
         "psr-4": {
             "Loopress\\": "src/"

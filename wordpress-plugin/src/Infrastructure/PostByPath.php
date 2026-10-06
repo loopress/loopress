@@ -31,20 +31,23 @@ final class PostByPath
             return null;
         }
 
+        // get_posts() already defaults to suppress_filters => true; spelling it out is an
+        // error under wordpress.org Plugin Check.
         $matches = get_posts([
-            'name'             => $path,
-            'post_type'        => $postType,
-            'post_status'      => 'any',
-            'numberposts'      => -1,
-            'suppress_filters' => true,
+            'name'        => $path,
+            'post_type'   => $postType,
+            'post_status' => 'any',
+            'numberposts' => -1,
         ]);
 
         if (count($matches) > 1) {
             $paths = array_map(static fn (\WP_Post $candidate): string => self::pathOf($candidate), $matches);
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new AmbiguousPostSlugException(
                 "Several \"{$postType}\" posts have the slug \"{$path}\": " . implode(', ', $paths) .
                 '. Use the full path to pick one.',
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         return $matches[0] ?? null;

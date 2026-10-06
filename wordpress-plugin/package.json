@@ -8,6 +8,7 @@
     "dev:light": "wp-scripts start frontend/light/index.tsx",
     "dev:full": "wp-scripts start frontend/full/index.tsx",
     "type-check": "tsc --noEmit",
+    "lint": "eslint frontend",
     "test": "vitest run",
     "pack:light": "pnpm run prebuild && node scripts/build-flavor.cjs light",
     "pack:full": "pnpm run prebuild && node scripts/build-flavor.cjs full",
@@ -24,6 +25,7 @@
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {
+    "@loopress/eslint-config": "workspace:*",
     "@svgr/webpack": "^8.0.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -34,6 +36,7 @@
     "@wordpress/components": "^41.0.0",
     "@wordpress/element": "^8.8.0",
     "@wordpress/scripts": "36.0.0",
+    "eslint": "^10.11.0",
     "happy-dom": "^20.14.3",
     "typescript": "^6.0.3",
     "url-loader": "^4.1.1",
