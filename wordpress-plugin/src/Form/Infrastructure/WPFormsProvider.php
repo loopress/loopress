@@ -122,6 +122,9 @@ class WPFormsProvider implements FormProvider
      * create, dropped so WPForms adds its own default). With it, recipients and senders are
      * validated and message bodies are stripped of active content.
      *
+     * Every other string leaf (field labels, descriptions, the HTML field's `code`) is stripped
+     * of active content too, same as ACF and SEO: WPForms renders them on the public form.
+     *
      * @param array<string, mixed> $data
      * @param array<string, mixed>|null $existing the form's current canonical data, on update
      * @return array<string, mixed>
@@ -130,6 +133,7 @@ class WPFormsProvider implements FormProvider
     {
         $allow = ($data['allowNotifications'] ?? null) === true;
         unset($data['allowNotifications']); // a control flag, never persisted into the form
+        $data = SyncSanitizer::deepArray($data);
 
         /** @var array<string, mixed> $existingSettings */
         $existingSettings = [];

@@ -14,10 +14,10 @@ use Psr\Container\ContainerInterface;
 use function DI\factory;
 
 /**
- * Entry point of the generic form-sync feature. Ships only in the Loopress Full edition (see
- * scripts/build-flavor.cjs); the plugin entry file calls this inside its build markers, so
- * the Loopress Light artifact never references this namespace. Light is locked to ACF+SEO
- * only, so any new integration added after that decision lands in Full by default.
+ * Entry point of the generic form-sync feature. Ships in both editions: Plugin.php wires it
+ * directly, outside loopress.php's Full-only build markers. A form is JSON configuration, the
+ * same kind of data as ACF and SEO, and every pushed string goes through SyncSanitizer (see
+ * WPFormsProvider::sanitizeFormData()), so it carries no executable code into Loopress Light.
  *
  * Only one FormProvider exists today (WPFormsProvider), but the concept is deliberately
  * generic from the start, same shape as Snippets (Code Snippets/WPCode): more WordPress form

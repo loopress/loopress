@@ -7,6 +7,7 @@ namespace Loopress;
 use Loopress\Acf\Module\AcfModule;
 use Loopress\AdminPage\Module\AdminPageModule;
 use Loopress\Contract\Module;
+use Loopress\Form\Feature as FormFeature;
 use Loopress\Menu\Module\MenuModule;
 use Loopress\Options\Module\OptionsModule;
 use Loopress\RestCache\Module\RestCacheModule;
@@ -17,7 +18,7 @@ class Plugin
     public function __construct()
     {
         /** @var array<string, mixed> $definitions */
-        $definitions = apply_filters('loopress_feature_definitions', []);
+        $definitions = apply_filters('loopress_feature_definitions', FormFeature::definitions());
         $container   = ContainerFactory::create($definitions);
 
         /** @var array<int, class-string<Module>> $moduleClasses */
@@ -28,6 +29,7 @@ class Plugin
             OptionsModule::class,
             MenuModule::class,
             RestCacheModule::class,
+            ...FormFeature::moduleClasses(),
         ]);
 
         foreach ($moduleClasses as $moduleClass) {

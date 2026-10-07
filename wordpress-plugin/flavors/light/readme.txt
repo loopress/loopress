@@ -8,16 +8,17 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync your ACF field groups, SEO settings, menus, and options with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
+Sync your ACF field groups, SEO settings, WPForms forms, menus, and options with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
 
 == Description ==
 
-Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, SEO settings and redirects (Yoast, RankMath), navigation menus, and the WordPress options you choose to track, exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
+Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, SEO settings and redirects (Yoast, RankMath), WPForms forms, navigation menus, and the WordPress options you choose to track, exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
 
 Features:
 
 * Sync ACF field groups, post types, taxonomies, and options pages: `lps acf pull` / `lps acf push` / `lps acf list`
 * Sync SEO settings and redirects (Yoast, RankMath): `lps seo pull` / `lps seo push`
+* Sync WPForms forms: `lps form pull` / `lps form push` / `lps form list`
 * Sync navigation menus and their items: `lps menu pull` / `lps menu push` / `lps menu list`
 * Sync the WordPress options listed in your project (Settings screens, plugin settings): `lps option pull` / `lps option push` / `lps option list`
 * Keep configuration in Git: history, diffs, code review, rollbacks
@@ -30,14 +31,14 @@ Need code snippet sync (Code Snippets, WPCode) or Composer dependency management
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin through the **Plugins** screen in WordPress.
-3. Install and activate ACF, and/or Yoast SEO or RankMath, if you have not already.
+3. Install and activate ACF, WPForms, and/or Yoast SEO or RankMath, if you have not already.
 4. Open the **Loopress** menu item in the admin sidebar and follow the CLI pairing instructions.
 
 == Frequently Asked Questions ==
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs ACF, SEO settings, menus, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
+Loopress Light (this plugin) syncs ACF, SEO settings, WPForms forms, menus, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
 = Which ACF and SEO plugins are supported? =
 
@@ -45,7 +46,7 @@ Advanced Custom Fields (options pages require ACF PRO), and either Yoast SEO or 
 
 = Does the plugin execute code by itself? =
 
-No. Loopress Light only reads and writes ACF field group definitions, SEO metadata, menus, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code.
+No. Loopress Light only reads and writes ACF field group definitions, SEO metadata, form definitions, menus, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code: script tags, inline event handlers, and `javascript:` URLs are stripped from every pushed value.
 
 = Which options can be synced? =
 

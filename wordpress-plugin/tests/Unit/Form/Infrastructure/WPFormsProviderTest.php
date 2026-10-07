@@ -203,6 +203,23 @@ class WPFormsProviderTest extends TestCase
         $this->assertSame(['1' => ['email' => 'real-admin@site.test']], $captured['settings']['notifications']);
     }
 
+    public function test_update_strips_active_content_from_fields_and_keeps_benign_html(): void
+    {
+        $captured = [];
+        $this->captureUpdate($captured);
+
+        $this->provider->update(12, [
+            'fields' => [
+                '1' => ['type' => 'html', 'code' => '<p>Hi</p><script>steal()</script>'],
+                '2' => ['type' => 'text', 'label' => 'Name', 'description' => '<img src=x onerror=alert(1)>'],
+            ],
+        ]);
+
+        $this->assertSame('<p>Hi</p>', $captured['fields']['1']['code']);
+        $this->assertSame('Name', $captured['fields']['2']['label']);
+        $this->assertSame('<img src=x>', $captured['fields']['2']['description']);
+    }
+
     public function test_create_drops_incoming_notifications_when_allowNotifications_is_absent(): void
     {
         $post               = new WP_Post();
