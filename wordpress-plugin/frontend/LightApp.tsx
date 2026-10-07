@@ -47,9 +47,9 @@ export default function LightApp() {
                 <Notice status="info" isDismissible={false}>
                     <p style={{ marginTop: 0 }}>
                         <strong>Want more?</strong> Loopress Full adds code snippet sync (Code
-                        Snippets, WPCode), Composer dependency management, a security audit, and
-                        platform diagnostics, free of charge, downloaded directly from
-                        loopress.dev instead of wordpress.org.
+                        Snippets, WPCode), hooks, custom API routes, Composer dependency
+                        management, a security audit, and platform diagnostics, free of charge,
+                        downloaded directly from loopress.dev instead of wordpress.org.
                     </p>
                     <Button
                         variant="primary"

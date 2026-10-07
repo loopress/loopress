@@ -7,8 +7,8 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase. Both are free:
 
-- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [SEO](/seo/), [Menus](/menus/), [Options](/options/), and [Theme Styles](/theme-styles/).
-- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Forms](/forms/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
+- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [SEO](/seo/), [Forms](/forms/), [Menus](/menus/), [Options](/options/), and [Theme Styles](/theme-styles/).
+- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
 
 Loopress Full is not a paid upgrade. It is distributed outside WordPress.org because the directory guidelines forbid installing code from Packagist and deploying PHP into another plugin, see [About WordPress.org-hosted plugins](#about-wordpressorg-hosted-plugins). Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on, and the two editions never run side by side.
 
@@ -22,6 +22,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | `lps acf pull` / `push` / `list` | ✓ | ✓ |
 | SEO sync (RankMath or Yoast SEO: settings, post meta, redirects) | ✓ | ✓ |
 | `lps seo pull` / `push` / `list` | ✓ | ✓ |
+| Form sync (WPForms) | ✓ | ✓ |
+| `lps form pull` / `push` / `list` | ✓ | ✓ |
 | Menu sync (nav menus and the active theme's menu locations) | ✓ | ✓ |
 | `lps menu pull` / `push` / `list` / `diff` | ✓ | ✓ |
 | Option tracking (individual `wp_options` rows you choose) | ✓ | ✓ |
@@ -29,8 +31,6 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | Theme styles (block theme Global Styles, through WordPress core's own REST API) | ✓ | ✓ |
 | Snippet sync (Code Snippets / WPCode) | | ✓ |
 | `lps snippet pull` / `push` / `list` | | ✓ |
-| Form sync (WPForms) | | ✓ |
-| `lps form pull` / `push` / `list` | | ✓ |
 | Custom API routes (deploy REST endpoints from PHP files) | | ✓ |
 | `lps api pull` / `push` / `list` | | ✓ |
 | Hooks (WordPress actions, filters and cron jobs deployed from PHP files) | | ✓ |
@@ -53,6 +53,7 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 
 - **ACF sync**: field groups, post types, taxonomies, and options pages as JSON with `lps acf pull/push`. Requires ACF active on the site, options pages require ACF PRO
 - **SEO sync**: settings, post meta, and redirects as JSON with `lps seo pull/push`, for whichever of RankMath or Yoast SEO is active
+- **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push`
 - **Menu sync**: nav menus and the active theme's menu locations with `lps menu pull/push`
 - **Option tracking**: the individual `wp_options` rows you choose, with `lps option add/pull/push`
 - **Theme styles**: the active block theme's Global Styles with `lps theme style pull/push`, through WordPress core's own REST API
@@ -65,7 +66,6 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 Everything in Loopress Light, plus:
 
 - **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, for whichever of Code Snippets or WPCode is active
-- **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push`
 - **Hooks**: WordPress actions, filters and cron jobs deployed from PHP files with `lps hook push`
 - **Custom API routes**: REST API endpoints as plain PHP files with `lps api push`, each file becomes one route
 - **Static pages**: hand-written HTML files pushed as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, plus block templates and parts in a child theme

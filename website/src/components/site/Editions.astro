@@ -29,6 +29,7 @@ const { variant = "brackets" } = Astro.props as {
 const config = [
   ["ACF", "acf"],
   ["SEO", "seo"],
+  ["Forms", "form"],
   ["Menus", "menu"],
   ["Options", "option"],
   ["Theme", "theme"],
@@ -38,7 +39,6 @@ const code = [
   ["API routes", "api"],
   ["Apps", "app"],
   ["Pages", "page"],
-  ["Forms", "form"],
   ["Plugins", "plugin"],
   ["Composer", "composer"],
 ];
@@ -77,7 +77,7 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
 
 <div class={`ed ed-${variant}`}>
   {variant === "hex-nested" ? (
-    <svg viewBox="-240 -265 480 470" class="hexsvg" role="img" aria-label="Loopress Full is a hexagon containing the Loopress Light hexagon. Light holds configuration: ACF, SEO, menus, options, theme. The ring around it, Full only, holds your code: hooks, API routes, apps, pages, forms, plugins, Composer.">
+    <svg viewBox="-240 -265 480 470" class="hexsvg" role="img" aria-label="Loopress Full is a hexagon containing the Loopress Light hexagon. Light holds configuration: ACF, SEO, forms, menus, options, theme. The ring around it, Full only, holds your code: hooks, API routes, apps, pages, plugins, Composer.">
       <text x="0" y="-232" text-anchor="middle" class="h-title h-full">Loopress Full</text>
       <text x="0" y="-213" text-anchor="middle" class="h-sub">loopress.dev · installed by lps project config</text>
       <polygon points={hex(215)} class="ring-full" />
@@ -93,7 +93,7 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
       ))}
     </svg>
   ) : variant === "hex-thick" ? (
-    <svg viewBox="-330 -265 660 520" class="hexsvg" role="img" aria-label="Two hexagons drawn like the Loopress logo. The inner one, Loopress Light, holds configuration: ACF, SEO, menus, options, theme. The outer one, Loopress Full, adds your code around it: hooks, API routes, apps, pages, forms, plugins, Composer.">
+    <svg viewBox="-330 -265 660 520" class="hexsvg" role="img" aria-label="Two hexagons drawn like the Loopress logo. The inner one, Loopress Light, holds configuration: ACF, SEO, forms, menus, options, theme. The outer one, Loopress Full, adds your code around it: hooks, API routes, apps, pages, plugins, Composer.">
       <polygon points={hex(200)} class="thick thick-full" />
       <polygon points={hex(105)} class="thick thick-light" />
       <text x="0" y="-135" text-anchor="middle" class="h-title h-full">Full</text>
@@ -149,11 +149,10 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
     <pre class="tr"><span class="dim">$ tree loopress-full</span>
 <span class="t-f">loopress-full/</span>              <span class="cm"># loopress.dev, via lps project config</span>
 ├── <span class="t-l">loopress-light/</span>         <span class="cm"># WordPress.org</span>
-│   ├── acf/  seo/  menus/
-│   └── options/  theme/
+│   ├── acf/  seo/  forms/
+│   └── menus/  options/  theme/
 └── <span class="t-f">+ your code</span>
     ├── hooks/  api/  apps/  pages/
-    ├── forms/
     └── composer.json          <span class="cm"># plugin lockfile</span></pre>
   ) : variant === "layers" ? (
     <div class="ly">
@@ -178,7 +177,7 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
     </div>
   ) : variant === "honeycomb" ? (
     <div class="hc">
-      <svg viewBox="0 0 520 240" class="hc-svg" role="img" aria-label="Twelve hexagon cells, one per module. Five cyan cells are Loopress Light, configuration: ACF, SEO, menus, options, theme. Seven violet cells are the code Loopress Full adds: hooks, API routes, apps, pages, forms, plugins, Composer.">
+      <svg viewBox="0 0 520 240" class="hc-svg" role="img" aria-label="Twelve hexagon cells, one per module. Six cyan cells are Loopress Light, configuration: ACF, SEO, forms, menus, options, theme. Six violet cells are the code Loopress Full adds: hooks, API routes, apps, pages, plugins, Composer.">
         {cells.map((c) => (
           <g>
             <polygon points={c.pts} class={c.kind === "light" ? "hc-l" : "hc-f"} />

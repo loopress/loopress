@@ -37,6 +37,8 @@ deptrac:
         - type: classNameRegex
           value: '#^Loopress\\RestCache\\.+$#'
         - type: classNameRegex
+          value: '#^Loopress\\Form\\.+$#'
+        - type: classNameRegex
           value: '#^Loopress\\Plugin$#'
 
     - name: Plus
@@ -51,8 +53,6 @@ deptrac:
           value: '#^Loopress\\Api\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\Apps\\.+$#'
-        - type: classNameRegex
-          value: '#^Loopress\\Form\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\Hooks\\.+$#'
         - type: classNameRegex
