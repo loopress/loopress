@@ -41,7 +41,6 @@ acme-corp/
 {
   "projectId": "acme-corp",
   "rootDir": ".",
-  "snippetsDir": "snippets",
   "plugins": {
     "woocommerce": "9.4.2"
   }
@@ -66,7 +65,7 @@ Most client sites weren't built this way, and they don't have to be. Point Loopr
 ```bash
 mkdir acme-corp && cd acme-corp && git init
 lps project config       # add the site; creates an application password via the browser
-lps init                 # writes loopress.json, pick the features the site uses
+lps init                 # writes loopress.json for this client
 lps pull --env production
 lps plugin pull --env production
 git add . && git commit -m "Snapshot of production as of today"

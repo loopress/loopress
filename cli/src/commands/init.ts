@@ -1,4 +1,4 @@
-import {checkbox, confirm, input, select} from '@inquirer/prompts'
+import {confirm, input, select} from '@inquirer/prompts'
 import {Command} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {join} from 'node:path'
@@ -13,20 +13,6 @@ const SNIPPET_PROVIDERS = [
   {name: 'Code Snippets', slug: 'code-snippets'},
   {name: 'WPCode', slug: 'insert-headers-and-footers'},
 ]
-
-// Default directory per optional feature, matching the resolve*Path defaults in lib/base.ts.
-const FEATURES = [
-  {dir: 'acf', key: 'acfDir', label: 'ACF'},
-  {dir: 'seo', key: 'seoDir', label: 'SEO'},
-  {dir: 'menus', key: 'menuDir', label: 'Menus'},
-  {dir: 'forms', key: 'formDir', label: 'Forms'},
-  {dir: 'api', key: 'apiDir', label: 'Custom API routes'},
-  {dir: 'hooks', key: 'hooksDir', label: 'Hooks (actions, filters, cron)'},
-  {dir: 'apps', key: 'appsDir', label: 'Single-page apps'},
-  {dir: 'pages', key: 'pageDir', label: 'Static pages'},
-  {dir: 'templates', key: 'templateDir', label: 'Block templates'},
-  {dir: 'parts', key: 'partDir', label: 'Block template parts'},
-] as const
 
 export default class Init extends Command {
   static description = 'Initialize a loopress.json config file in the current directory'
@@ -61,29 +47,14 @@ export default class Init extends Command {
       message: 'Root directory',
     })
 
-    const snippetsDir = await input({
-      default: 'snippets',
-      message: 'Snippets directory (relative to root)',
-    })
-
-    const features = await checkbox({
-      choices: FEATURES.map((feature) => ({name: `${feature.label} (${feature.dir}/)`, value: feature.key})),
-      message: 'Other features to configure directories for (optional)',
-    })
-
     const providerChoice = await select({
       choices: [...SNIPPET_PROVIDERS.map((p) => ({name: p.name, value: p.slug})), {name: 'None / already installed', value: '__none__'}],
       message: 'Snippet provider',
     })
 
-    const config: LoopressLocalConfig = {
-      projectId,
-      rootDir,
-      snippetsDir,
-    }
-    for (const feature of FEATURES) {
-      if (features.includes(feature.key)) config[feature.key] = feature.dir
-    }
+    // Resource directories are left out on purpose: every command falls back to its default
+    // (utils/resource-dirs.ts), and a custom name is a one-line edit in loopress.json.
+    const config: LoopressLocalConfig = {projectId, rootDir}
 
     await writeLocalConfig(config)
     const isGitattributesUpdated = await ensureLfGitattributes()
@@ -100,12 +71,7 @@ export default class Init extends Command {
 
     this.log(`\n✓ loopress.json created`)
     this.log(`  Project:  ${projectLabel}`)
-    this.log(`  Snippets: ${join(rootDir, snippetsDir)}`)
-    for (const feature of FEATURES) {
-      if (features.includes(feature.key)) {
-        this.log(`  ${feature.label}:${' '.repeat(Math.max(1, 9 - feature.label.length))}${join(rootDir, feature.dir)}`)
-      }
-    }
+    this.log(`  Root:     ${rootDir}`)
 
     if (isProviderAdded) {
       this.log(`  Plugin:   ${providerChoice}`)
@@ -115,7 +81,7 @@ export default class Init extends Command {
       this.log('✓ .gitattributes: LF line endings, so files match across macOS, Linux and Windows')
     }
 
-    this.log('\n→ Next: run `lps snippet pull` to fetch what is already on the site, or `lps doctor` to verify the connection.')
+    this.log('\n→ Next: run `lps pull` to fetch what is already on the site, or `lps doctor` to verify the connection.')
   }
 
   // When nothing is configured yet, the useful path is configuring a project right here, not

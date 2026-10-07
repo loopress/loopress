@@ -2,8 +2,8 @@ import {join} from 'node:path'
 
 import {type LoopressLocalConfig} from './loopress-config.js'
 
-// The default subdirectory for each file-backed resource, relative to rootDir. `lps init`
-// writes these same defaults into loopress.json, keep the two in sync.
+// The default subdirectory for each file-backed resource, relative to rootDir. Used whenever
+// loopress.json has no `<kind>Dir` key, which is the case for a fresh `lps init`.
 export const RESOURCE_DIR_DEFAULTS = {
   acf: 'acf',
   api: 'api',

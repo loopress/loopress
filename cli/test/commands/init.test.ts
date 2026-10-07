@@ -1,6 +1,5 @@
-import {checkbox, confirm, input, select} from '@inquirer/prompts'
+import {confirm, input, select} from '@inquirer/prompts'
 import {existsSync} from 'node:fs'
-import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Init from '../../src/commands/init.js'
@@ -10,7 +9,6 @@ import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/ocl
 import {makeListedProject} from '../helpers/project-fixtures.js'
 
 vi.mock('@inquirer/prompts', () => ({
-  checkbox: vi.fn(),
   confirm: vi.fn(),
   input: vi.fn(),
   select: vi.fn(),
@@ -42,7 +40,6 @@ describe('init', () => {
     resetFakeOclifConfig()
     interactive.value = true
     vi.mocked(existsSync).mockReturnValue(false)
-    vi.mocked(checkbox).mockResolvedValue([])
     vi.spyOn(configManager, 'listProjects').mockReturnValue([makeListedProject('id-acme', 'acme', {})])
   })
 
@@ -61,7 +58,7 @@ describe('init', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('code-snippets')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -77,7 +74,7 @@ describe('init', () => {
   ])('pins LF line endings in .gitattributes (changed: %s, %s)', async (isChanged) => {
     vi.mocked(ensureLfGitattributes).mockResolvedValueOnce(isChanged)
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -90,7 +87,7 @@ describe('init', () => {
 
   it('does not run plugin:add when the user has no snippet provider to configure', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     silenceLogs(cmd)
@@ -103,7 +100,7 @@ describe('init', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('Plugin "insert-headers-and-footers" not found on WordPress.org.'))
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('insert-headers-and-footers')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log, warn} = silenceLogs(cmd)
@@ -131,7 +128,7 @@ describe('init', () => {
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -147,7 +144,7 @@ describe('init', () => {
       makeListedProject('id-beta', 'beta', {}),
     ])
     vi.mocked(select).mockResolvedValueOnce('id-beta').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -166,7 +163,7 @@ describe('init', () => {
 
   it('prompts for a manual project ID when the user picks the manual-entry option', async () => {
     vi.mocked(select).mockResolvedValueOnce('__manual__').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -177,7 +174,7 @@ describe('init', () => {
 
   it('rejects an empty manual project ID and accepts a non-empty one', async () => {
     vi.mocked(select).mockResolvedValueOnce('__manual__').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
 
     const cmd = make()
     silenceLogs(cmd)
@@ -194,7 +191,7 @@ describe('init', () => {
       .mockReturnValue([makeListedProject('id-fresh', 'fresh', {})])
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
     vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
@@ -210,7 +207,7 @@ describe('init', () => {
   it('falls back to manual project ID entry when the inline project config is declined', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.mocked(confirm).mockResolvedValueOnce(false)
-    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
     vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
@@ -230,7 +227,7 @@ describe('init', () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
-    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
     vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
@@ -241,54 +238,45 @@ describe('init', () => {
     expect(log).toHaveBeenCalledWith('  Project:  manual-id')
   })
 
-  it('writes only the chosen feature directories to loopress.json and lists them in the summary', async () => {
+  it('leaves resource directories out of loopress.json so every command uses its default', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
-    vi.mocked(checkbox).mockResolvedValueOnce(['acfDir', 'apiDir'])
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
-    const {log} = silenceLogs(cmd)
+    silenceLogs(cmd)
     await cmd.run()
 
-    expect(writeLocalConfig).toHaveBeenCalledWith({
-      acfDir: 'acf',
-      apiDir: 'api',
-      projectId: 'id-acme',
-      rootDir: '.',
-      snippetsDir: 'snippets',
-    })
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('ACF:'))
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Custom API routes:'))
+    expect(input).toHaveBeenCalledOnce()
+    expect(writeLocalConfig).toHaveBeenCalledWith({projectId: 'id-acme', rootDir: '.'})
   })
 
   it('suggests the next command in the summary', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('lps snippet pull'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('lps pull'))
     expect(log).toHaveBeenCalledWith(expect.stringContaining('lps doctor'))
   })
 
-  it('prompts for root and snippets directories with their defaults, and reports the resolved snippets path', async () => {
+  it('prompts for the root directory with its default and reports it', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('./wp-content').mockResolvedValueOnce('my-snippets')
+    vi.mocked(input).mockResolvedValueOnce('./wp-content')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
     expect(input).toHaveBeenCalledWith({default: '.', message: 'Root directory'})
-    expect(input).toHaveBeenCalledWith({default: 'snippets', message: 'Snippets directory (relative to root)'})
-    expect(log).toHaveBeenCalledWith(`  Snippets: ${join('./wp-content', 'my-snippets')}`)
+    expect(log).toHaveBeenCalledWith('  Root:     ./wp-content')
   })
 
   it('offers the snippet providers plus a none option', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     silenceLogs(cmd)
@@ -306,7 +294,7 @@ describe('init', () => {
 
   it('prints the full success banner', async () => {
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.').mockResolvedValueOnce('snippets')
+    vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -314,7 +302,6 @@ describe('init', () => {
 
     expect(log).toHaveBeenCalledWith('\n✓ loopress.json created')
     expect(log).toHaveBeenCalledWith('  Project:  acme')
-    expect(log).toHaveBeenCalledWith('  Snippets: snippets')
-    expect(writeLocalConfig).toHaveBeenCalledWith({projectId: 'id-acme', rootDir: '.', snippetsDir: 'snippets'})
+    expect(log).toHaveBeenCalledWith('  Root:     .')
   })
 })
