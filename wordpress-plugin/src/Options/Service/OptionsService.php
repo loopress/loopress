@@ -105,6 +105,9 @@ class OptionsService
             ),
             ARRAY_A,
         );
+        // get_results() returns null when the database connection isn't ready: list nothing
+        // rather than fatal in array_map() below.
+        $rows ??= [];
 
         $pluginPrefixes = $this->activePluginPrefixes();
 

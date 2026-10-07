@@ -292,6 +292,8 @@ class AppsDirectory
         }
 
         // Local file confirmed inside wp-content/loopress/apps/, not a remote URL.
+        // $absPath is built from a name and path AppsController already checked against
+        // isValidAppName()/isValidAssetPath() (no '..'), which taint analysis can't see.
         $contents = file_get_contents($absPath); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
         return $contents !== false ? $contents : null;

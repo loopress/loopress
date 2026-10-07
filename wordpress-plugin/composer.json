@@ -53,7 +53,7 @@
         "test": "phpunit",
         "analyse": "phpstan analyse --memory-limit=1G",
         "psalm": "./vendor/bin/psalm --no-cache",
-        "psalm:taint": "./vendor/bin/psalm --no-cache --taint-analysis",
+        "psalm:taint": "./vendor/bin/psalm --no-cache --taint-analysis --use-baseline=psalm-taint-baseline.xml",
         "cs": "phpcs",
         "cs:fix": "phpcbf",
         "rector:check": "rector process --dry-run",

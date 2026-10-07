@@ -216,9 +216,11 @@ jobs:
       - name: Run psalm
         run: composer run psalm
 
-      # Follows request input (REST params, $_GET/$_POST, uploaded api/ and hooks/ files)
-      # to SQL, HTML output, shell and file sinks: the injection classes a plugin running
-      # raw $wpdb queries and user-supplied PHP files is most exposed to.
+      # Follows request input (WP_REST_Request params, $_GET/$_POST) to SQL, HTML output,
+      # shell, file and include sinks: the injection classes a plugin running raw $wpdb
+      # queries and user-supplied PHP files is most exposed to. REST sources and $wpdb sinks
+      # are declared in stubs/wp-rest-request-taints.php; psalm-taint-baseline.xml holds the
+      # reviewed false positives (each one explained by a comment at its sink).
       - name: Psalm taint analysis
         run: composer run psalm:taint
 
