@@ -8,7 +8,7 @@ use Loopress\Contract\ActivatableProvider;
 
 /**
  * One implementation per WordPress form-builder plugin (WPForms today, others later, same
- * shape as Loopress\Snippets\Contract\SnippetProvider for Code Snippets/WPCode). Deliberately
+ * shape as the snippet provider contract for Code Snippets/WPCode). Deliberately
  * not a canonical value object like SnippetData: unlike snippets (code + placement metadata,
  * nearly identical across backends), form builder plugins have wildly different internal data
  * models (WPForms' nested fields/settings/notifications/confirmations blob vs. e.g. Contact
