@@ -11,11 +11,11 @@ namespace Loopress\Hooks\Attribute;
  * they're bound.
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
-final class Action
+final readonly class Action
 {
     public function __construct(
-        public readonly string $hook,
-        public readonly int $priority = 10,
-        public readonly int $acceptedArgs = 1,
+        public string $hook,
+        public int $priority = 10,
+        public int $acceptedArgs = 1,
     ) {}
 }

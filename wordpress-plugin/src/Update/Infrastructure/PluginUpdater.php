@@ -24,7 +24,7 @@ class PluginUpdater
     private const PLUGIN_URI = 'https://github.com/loopress/loopress';
     private const HOMEPAGE = 'https://loopress.dev';
 
-    public function __construct(private GithubReleaseChecker $checker)
+    public function __construct(private readonly GithubReleaseChecker $checker)
     {
     }
 

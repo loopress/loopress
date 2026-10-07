@@ -16,7 +16,7 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class ApiFilesController extends AbstractFilesController
 {
-    public function __construct(private ApiDirectory $directory) {}
+    public function __construct(private readonly ApiDirectory $directory) {}
 
     protected function directory(): AbstractFilesDirectory
     {

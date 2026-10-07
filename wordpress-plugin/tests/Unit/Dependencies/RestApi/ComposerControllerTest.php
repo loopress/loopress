@@ -36,7 +36,6 @@ class ComposerControllerTest extends TestCase
     private function invokePrivate(string $method, mixed ...$args): mixed
     {
         $ref = new \ReflectionMethod(ComposerController::class, $method);
-        $ref->setAccessible(true);
         return $ref->invoke($this->controller, ...$args);
     }
 

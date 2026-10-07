@@ -39,7 +39,7 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class HookLoader extends AbstractFileLoader
 {
-    public function __construct(private HooksDirectory $directory, private LoopressEnvironment $environment) {}
+    public function __construct(private readonly HooksDirectory $directory, private readonly LoopressEnvironment $environment) {}
 
     protected function directory(): AbstractFilesDirectory
     {

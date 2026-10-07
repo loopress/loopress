@@ -10,11 +10,11 @@ use Loopress\Contract\Module;
 
 class AcfModule implements Module
 {
-    public function __construct(private AcfService $service) {}
+    public function __construct(private readonly AcfService $service) {}
 
     public function boot(): void
     {
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             (new AcfController($this->service))->register_routes();
         });
     }

@@ -17,7 +17,7 @@ use Loopress\Contract\ActivatableProvider;
 abstract class AbstractSingleProviderService
 {
     /** @var ActivatableProvider[] */
-    private array $providers;
+    private readonly array $providers;
 
     public function __construct(ActivatableProvider ...$providers)
     {

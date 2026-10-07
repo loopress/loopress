@@ -23,7 +23,7 @@ class GithubReleaseChecker
     private ?array $releaseCache = null;
     private bool $releaseCacheLoaded = false;
 
-    public function __construct(private ClientInterface $httpClient)
+    public function __construct(private readonly ClientInterface $httpClient)
     {
     }
 

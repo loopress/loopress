@@ -18,7 +18,7 @@ if (!class_exists('WP_REST_Request')) {
          * Accepts either the real WordPress signature (string $method, string $route) or, for
          * tests that just want to stub params directly, an array of params as the first argument.
          */
-        public function __construct(array|string $methodOrParams = [], private string $route = '')
+        public function __construct(array|string $methodOrParams = [], private readonly string $route = '')
         {
             if (is_array($methodOrParams)) {
                 $this->params = $methodOrParams;
@@ -139,8 +139,8 @@ if (!class_exists('WP_Error')) {
     class WP_Error
     {
         public function __construct(
-            private string $code = '',
-            private string $message = '',
+            private readonly string $code = '',
+            private readonly string $message = '',
         ) {}
 
         public function get_error_message(): string

@@ -10,10 +10,10 @@ use Symfony\Component\Filesystem\Filesystem;
 
 class LoopressEnvironment
 {
-    private string $loopressDir;
+    private readonly string $loopressDir;
     private bool $initialized = false;
     private bool $libAutoloadNeedsDump = false;
-    private Filesystem $filesystem;
+    private readonly Filesystem $filesystem;
 
     public function __construct()
     {

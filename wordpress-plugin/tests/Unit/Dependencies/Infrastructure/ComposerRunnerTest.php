@@ -30,7 +30,6 @@ class ComposerRunnerTest extends TestCase
     private function buildInputDef(array $args, array $extraOptions = []): array
     {
         $ref = new \ReflectionMethod(ComposerRunner::class, 'buildInputDef');
-        $ref->setAccessible(true);
         /** @var array<string, mixed> $def */
         $def = $ref->invoke($this->runner, $args, $extraOptions);
         return $def;
@@ -124,13 +123,11 @@ class ComposerRunnerTest extends TestCase
     private function invokeRegisterInstallersAutoloader(): void
     {
         $ref = new \ReflectionMethod(ComposerRunner::class, 'registerInstallersAutoloader');
-        $ref->setAccessible(true);
         $ref->invoke($this->runner);
 
         // Each test registers its own closure over a fresh temp dir; the production guard
         // against double-registration would otherwise make every test after the first a noop.
         $flag = new \ReflectionProperty(ComposerRunner::class, 'installersAutoloaderRegistered');
-        $flag->setAccessible(true);
         $flag->setValue(null, false);
     }
 }

@@ -168,6 +168,8 @@ abstract class AbstractFileLoader
         }
 
         try {
+            // $slug comes from scanning our own directory, not from a request. Psalm only links it to
+            // REST input because filePath() is shared with delete_file(), which validates its filename.
             require_once $this->directory()->filePath($slug);
             $instance = new $className();
         } catch (\Throwable $e) {

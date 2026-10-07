@@ -13,10 +13,10 @@ namespace Loopress\Hooks\Attribute;
  * HookLoader::registerCron() for how it's scheduled and bound.
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
-final class Cron
+final readonly class Cron
 {
     public function __construct(
-        public readonly string $recurrence,
-        public readonly ?string $hook = null,
+        public string $recurrence,
+        public ?string $hook = null,
     ) {}
 }

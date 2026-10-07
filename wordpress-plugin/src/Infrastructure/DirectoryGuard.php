@@ -55,6 +55,8 @@ final class DirectoryGuard
 
     public static function isLoopressManaged(string $htaccess): bool
     {
+        // $htaccess sits in a directory named after an app AppsController already checked against
+        // isValidAppName() (no '..'), which taint analysis can't see.
         return str_starts_with((string) file_get_contents($htaccess), self::HTACCESS_MARKER); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
     }
 }

@@ -20,10 +20,17 @@
     <stubs>
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php" />
         <file name="stubs/psalm-stubs.php" />
+        <file name="stubs/wp-rest-request-taints.php" />
         <file name="stubs/code-snippets-stubs.php" />
         <file name="stubs/acf-stubs.php" />
         <file name="stubs/wpforms-stubs.php" />
     </stubs>
+
+    <!-- `global $wpdb` is the core wpdb instance; typing it lets Psalm see its SQL sinks
+         (stubs/wp-rest-request-taints.php) during taint analysis. -->
+    <globals>
+        <var name="wpdb" type="\wpdb" />
+    </globals>
 
     <issueHandlers>
         <!-- REST callback methods are invoked indirectly by WordPress via register_rest_route(),

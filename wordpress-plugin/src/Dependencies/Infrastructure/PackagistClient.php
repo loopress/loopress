@@ -13,7 +13,7 @@ class PackagistClient
 {
     private const CACHE_TTL = 5 * MINUTE_IN_SECONDS;
 
-    public function __construct(private ClientInterface $httpClient)
+    public function __construct(private readonly ClientInterface $httpClient)
     {
     }
 
@@ -61,16 +61,16 @@ class PackagistClient
 
         $stable = array_filter(
             $rawVersions,
-            fn($_, $v) => !str_starts_with($v, 'dev-') && !str_ends_with($v, '-dev'),
+            fn($_, $v): bool => !str_starts_with($v, 'dev-') && !str_ends_with($v, '-dev'),
             ARRAY_FILTER_USE_BOTH
         );
 
-        uasort($stable, fn($a, $b) => version_compare(
+        uasort($stable, fn($a, $b): int => version_compare(
             $b['version_normalized'] ?? $b['version'],
             $a['version_normalized'] ?? $a['version'],
         ));
 
-        return array_map(function (string $version, array $data) {
+        return array_map(function (string $version, array $data): array {
             $phpConstraint = $data['require']['php'] ?? null;
             $phpCompatible = $phpConstraint !== null ? $this->isPhpCompatible($phpConstraint) : null;
 

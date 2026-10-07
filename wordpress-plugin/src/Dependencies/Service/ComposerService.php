@@ -17,10 +17,10 @@ class ComposerService
     private const VENDOR_EXPOSURE_CACHE_KEY = 'loopress_vendor_publicly_accessible';
 
     public function __construct(
-        private LoopressEnvironment $environment,
-        private ComposerRunner $composerRunner,
-        private PackagistClient $packagistClient,
-        private ClientInterface $httpClient,
+        private readonly LoopressEnvironment $environment,
+        private readonly ComposerRunner $composerRunner,
+        private readonly PackagistClient $packagistClient,
+        private readonly ClientInterface $httpClient,
     ) {}
 
     public function getVersions(string $package): ?array
@@ -202,10 +202,10 @@ class ComposerService
 
         $outdated = array_filter(
             $installed,
-            fn($package) => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
+            fn($package): bool => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
         );
 
-        return array_values(array_map(fn($package) => [
+        return array_values(array_map(fn($package): array => [
             'name'    => $package['name'],
             'version' => $package['version'],
             'latest'  => $package['latest'],

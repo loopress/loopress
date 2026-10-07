@@ -11,8 +11,8 @@ use Loopress\Hooks\RestApi\HookLoader;
 class HooksModule implements Module
 {
     public function __construct(
-        private HookFilesController $controller,
-        private HookLoader $hookLoader,
+        private readonly HookFilesController $controller,
+        private readonly HookLoader $hookLoader,
     ) {}
 
     public function boot(): void
@@ -26,7 +26,7 @@ class HooksModule implements Module
         // 'plugins_loaded' at priority 1 (see loopress.php), early enough for virtually every
         // WP hook except 'plugins_loaded' at priority <= 1 or something earlier still
         // ('muplugins_loaded'): an ordinary plugin limitation, not something hooks/ can lift.
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             $this->controller->register_routes();
         });
 

@@ -216,8 +216,47 @@ jobs:
       - name: Run psalm
         run: composer run psalm
 
+      # Follows request input (WP_REST_Request params, $_GET/$_POST) to SQL, HTML output,
+      # shell, file and include sinks: the injection classes a plugin running raw $wpdb
+      # queries and user-supplied PHP files is most exposed to. REST sources and $wpdb sinks
+      # are declared in stubs/wp-rest-request-taints.php; psalm-taint-baseline.xml holds the
+      # reviewed false positives (each one explained by a comment at its sink).
+      - name: Psalm taint analysis
+        run: composer run psalm:taint
+
       - name: PHP CodeSniffer
         run: composer run cs
+
+      - name: PHPUnit tests
+        run: composer run test
+
+  # plugin-php above runs the full toolchain on 8.2, the minimum "Requires PHP". This runs the
+  # tests on every newer PHP release a site can run the plugin on, where deprecations and
+  # behavior changes show up first.
+  plugin-php-versions:
+    name: Plugin:PHPUnit on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.3", "8.4", "8.5"]
+    defaults:
+      run:
+        working-directory: wordpress-plugin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
+        with:
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      # composer.lock is resolved for the 8.2 platform (config.platform.php), so the exact
+      # dependency set shipped in the plugin zip is the one under test here too.
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
 
       - name: PHPUnit tests
         run: composer run test

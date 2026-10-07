@@ -10,7 +10,7 @@ namespace Loopress\Api\Attribute;
  * See RouteLoader::resolvePermission() for the resolution order.
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
-final class Permission
+final readonly class Permission
 {
     /**
      * @param string|array{0: class-string, 1: string}|null $callback A local method name on
@@ -18,9 +18,9 @@ final class Permission
      *   check. Either way the referenced method must accept a WP_REST_Request and return bool.
      */
     public function __construct(
-        public readonly bool $public = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.publicFound -- #[Permission(public: true)] is the intended, decided call-site syntax
-        public readonly ?string $capability = null,
-        public readonly string|array|null $callback = null,
+        public bool $public = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.publicFound -- #[Permission(public: true)] is the intended, decided call-site syntax
+        public ?string $capability = null,
+        public string|array|null $callback = null,
     ) {
         // RouteLoader::permissionFromAttribute() checks public, then callback, then capability,
         // in that order: combining more than one would silently pick whichever it checks

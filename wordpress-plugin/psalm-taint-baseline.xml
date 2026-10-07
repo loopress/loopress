@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="6.18.0@536dd6236b39a5115385b0307b42d6d1ad431a02">
+  <file src="src/Apps/Infrastructure/AppsDirectory.php">
+    <TaintedFile>
+      <code><![CDATA[$absPath]]></code>
+    </TaintedFile>
+  </file>
+  <file src="src/Infrastructure/AbstractFileLoader.php">
+    <TaintedInclude>
+      <code><![CDATA[$this->directory()->filePath($slug)]]></code>
+    </TaintedInclude>
+  </file>
+  <file src="src/Infrastructure/AbstractFilesDirectory.php">
+    <TaintedFile>
+      <code><![CDATA[$path]]></code>
+      <code><![CDATA[$path]]></code>
+    </TaintedFile>
+  </file>
+  <file src="src/Infrastructure/DirectoryGuard.php">
+    <TaintedFile>
+      <code><![CDATA[$htaccess]]></code>
+    </TaintedFile>
+  </file>
+</files>

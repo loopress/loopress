@@ -17,7 +17,7 @@ class WpHttpClientTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
-        Functions\when('is_wp_error')->alias(fn($thing) => $thing instanceof \WP_Error);
+        Functions\when('is_wp_error')->alias(fn($thing): bool => $thing instanceof \WP_Error);
     }
 
     protected function tearDown(): void

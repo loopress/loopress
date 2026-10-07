@@ -99,9 +99,7 @@ class AppsDiagnosticsTest extends TestCase
         $this->withOneDeployedAsset();
         $this->httpClient->expects($this->once())
             ->method('sendRequest')
-            ->with($this->callback(static function (RequestInterface $request): bool {
-                return (string) $request->getUri() === 'https://example.test/wp-content/loopress/apps/search/assets/index-abc.js';
-            }))
+            ->with($this->callback(static fn(RequestInterface $request): bool => (string) $request->getUri() === 'https://example.test/wp-content/loopress/apps/search/assets/index-abc.js'))
             ->willReturn(new Response(200, ['X-Content-Type-Options' => 'nosniff']));
 
         $this->service->getDiagnostics();

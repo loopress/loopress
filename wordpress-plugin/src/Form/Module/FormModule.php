@@ -10,11 +10,11 @@ use Loopress\Form\Service\FormService;
 
 class FormModule implements Module
 {
-    public function __construct(private FormService $service) {}
+    public function __construct(private readonly FormService $service) {}
 
     public function boot(): void
     {
-        add_action('rest_api_init', function () {
+        add_action('rest_api_init', function (): void {
             (new FormController($this->service))->register_routes();
         });
     }

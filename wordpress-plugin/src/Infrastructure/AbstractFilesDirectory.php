@@ -35,8 +35,8 @@ abstract class AbstractFilesDirectory
     // certainly been mass-populated by something other than `lps <resource> push`.
     public const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
 
-    private string $path;
-    private Filesystem $filesystem;
+    private readonly string $path;
+    private readonly Filesystem $filesystem;
 
     // $filesystem is injectable only so a test can substitute a Filesystem double for one
     // specific failure mode that's otherwise impractical to reproduce on a real filesystem (see
@@ -161,6 +161,8 @@ abstract class AbstractFilesDirectory
         }
 
         // Local file under our own working directory, not a remote URL.
+        // Every REST caller checks $slug against isValidFilename() (no '.' at all) before it
+        // reaches here, which taint analysis can't see.
         $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         return $contents !== false ? $contents : null;
     }
@@ -270,6 +272,8 @@ abstract class AbstractFilesDirectory
             return null;
         }
 
+        // Every REST caller checks $slug against isValidFilename() (no '.' at all) before it
+        // reaches here, which taint analysis can't see.
         $contents = file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         return $contents !== false ? $contents : null;
     }

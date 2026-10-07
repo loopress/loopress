@@ -257,7 +257,7 @@ class ChildThemeController
                     'name'      => $template['slug'],
                     'title'     => $template['title'] ?? null,
                     'postTypes' => $template['postTypes'] ?? null,
-                ], fn($value) => $value !== null);
+                ], fn(string|array|null $value): bool => $value !== null);
             }
         }
 

@@ -17,7 +17,7 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class HookFilesController extends AbstractFilesController
 {
-    public function __construct(private HooksDirectory $directory) {}
+    public function __construct(private readonly HooksDirectory $directory) {}
 
     protected function directory(): AbstractFilesDirectory
     {

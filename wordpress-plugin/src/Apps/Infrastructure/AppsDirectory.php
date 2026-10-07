@@ -35,8 +35,8 @@ class AppsDirectory
 
     private const APP_NAME_PATTERN = '/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/';
 
-    private string $path;
-    private Filesystem $filesystem;
+    private readonly string $path;
+    private readonly Filesystem $filesystem;
 
     public function __construct()
     {
@@ -292,6 +292,8 @@ class AppsDirectory
         }
 
         // Local file confirmed inside wp-content/loopress/apps/, not a remote URL.
+        // $absPath is built from a name and path AppsController already checked against
+        // isValidAppName()/isValidAssetPath() (no '..'), which taint analysis can't see.
         $contents = file_get_contents($absPath); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
         return $contents !== false ? $contents : null;

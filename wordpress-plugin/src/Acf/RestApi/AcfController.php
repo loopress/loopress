@@ -167,7 +167,7 @@ class AcfController
             'key' => [
                 'required'          => true,
                 'type'              => 'string',
-                'validate_callback' => fn($v) => is_string($v) && $v !== '',
+                'validate_callback' => fn($v): bool => is_string($v) && $v !== '',
             ],
         ];
     }
