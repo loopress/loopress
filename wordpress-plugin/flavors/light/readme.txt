@@ -8,7 +8,7 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync your ACF field groups, SEO settings, WPForms forms, menus, and options with the Loopress CLI: pull them as JSON files, keep them in Git, push them back.
+Sync ACF field groups, SEO settings, WPForms forms, menus, and options with the Loopress CLI: pull them as JSON, keep them in Git, push them back.
 
 == Description ==
 
