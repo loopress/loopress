@@ -36,7 +36,7 @@ export default class Remove extends Command {
       const envChoices = configManager.listEnvironments(project.id).map((env) => {
         targets.push({env: env.name, kind: 'env', projectId: project.id, projectName: project.name})
         return {
-          name: `    ${env.name.padEnd(20)} ${env.url}${env.isCurrent ? ' [current]' : ''}`,
+          name: `    ${env.name.padEnd(20)} ${env.url}`,
           value: String(targets.length - 1),
         }
       })

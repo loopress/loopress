@@ -49,11 +49,11 @@ const PRODUCTION_BLOCKED: MutatingToolResult = {
   status: 'error',
 }
 
-// Without `--env`, lps targets whatever environment is active (`lps project switch`), which can
-// be production. Resolve it now and pin it as `--env <name>`, so the production refusal below
-// also covers the implicit case (otherwise `--yes` on rm/rollback/prune would reach production
-// unconfirmed) and the confirmed call hits the environment that was previewed, even if the
-// active one is switched in between. promote names both environments, so it never needs this.
+// Without `--env`, lps targets the project's default environment ("local", or its only one),
+// which can be production. Resolve it now and pin it as `--env <name>`, so the production
+// refusal below also covers the implicit case (otherwise `--yes` on rm/rollback/prune would
+// reach production unconfirmed) and the confirmed call hits the environment that was previewed,
+// even if the configuration changes in between. promote names both environments, so it never needs this.
 async function pinTargetEnvironment(args: string[]): Promise<{args: string[]; ok: true} | {error: LpsError; ok: false}> {
   if (args.includes('--env') || args[0] === 'promote') return {args, ok: true}
 

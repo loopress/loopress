@@ -106,7 +106,7 @@ jobs:
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           cat > "$CFG_DIR/config.json" <<JSON
           {
-            "currentProject": { "env": "local", "id": "ci" },
+            "currentProject": { "id": "ci" },
             "projects": {
               "ci": {
                 "addedAt": "$NOW",

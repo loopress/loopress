@@ -5,7 +5,8 @@ import {configManager} from '../../config/project-config.manager.js'
 const c = ux.colorize
 
 type EnvironmentInfo = {
-  isCurrent: boolean
+  // The environment commands target without --env.
+  isDefault: boolean
   name: string
   url: string
 }
@@ -35,15 +36,15 @@ export default class List extends Command {
     return projects.map((project) => this.logProject(project))
   }
 
-  // Only name/url/isCurrent are surfaced, deliberately: EnvironmentConfig also carries the
+  // Only name/url/isDefault are surfaced, deliberately: EnvironmentConfig also carries the
   // WordPress application password token, which must never end up in --json output.
   private logEnvironment(env: ReturnType<typeof configManager.listEnvironments>[number]): EnvironmentInfo {
-    const envMarker = c(env.isCurrent ? 'cyan' : 'dim', '·')
-    const envName = c(env.isCurrent ? 'cyan' : 'dim', env.name.padEnd(15))
+    const envMarker = c(env.isDefault ? 'cyan' : 'dim', '·')
+    const envName = c(env.isDefault ? 'cyan' : 'dim', env.name.padEnd(15))
     const envUrl = c('dim', env.url)
-    const activeTag = env.isCurrent ? ` ${c('cyan', '←')}` : ''
-    this.log(`  ${envMarker} ${envName} ${envUrl}${activeTag}`)
-    return {isCurrent: env.isCurrent, name: env.name, url: env.url}
+    const defaultTag = env.isDefault ? ` ${c('cyan', '[default]')}` : ''
+    this.log(`  ${envMarker} ${envName} ${envUrl}${defaultTag}`)
+    return {isDefault: env.isDefault, name: env.name, url: env.url}
   }
 
   private logProject(project: ReturnType<typeof configManager.listProjects>[number]): ProjectInfo {

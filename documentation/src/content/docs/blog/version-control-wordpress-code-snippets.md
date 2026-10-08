@@ -118,7 +118,7 @@ lps snippet push --env staging
 lps snippet push --env production --yes
 ```
 
-That trailing `--yes` isn't optional flair: pushing to an environment literally named `production` asks for confirmation in a terminal, and requires `--yes` to skip that prompt outside one (CI, scripts). `--env` also takes priority over whatever `lps project switch` last left active globally, which matters the moment more than one person runs commands against the same project.
+That trailing `--yes` isn't optional flair: pushing to an environment literally named `production` asks for confirmation in a terminal, and requires `--yes` to skip that prompt outside one (CI, scripts). Without `--env`, commands target the `local` environment, so a push to a real site is always spelled out in the command itself.
 
 Your snippets flow between environments the same way your code does. No database exports, no manual copy-paste.
 

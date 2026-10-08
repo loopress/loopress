@@ -54,4 +54,4 @@ Your local files are not changed by a rollback. Run the resource's `pull` afterw
 
 ## From an AI agent
 
-Each rollback is also an [MCP tool](/cli/mcp/#tools) (`snippet_rollback`, `acf_rollback`, ...), behind the same two-step confirmation as every mutating tool. Like every mutating tool, it refuses an environment named `production`, including when `production` is the active environment, and the confirmed call rolls back the environment that was previewed. See [Confirming changes](/cli/mcp/#confirming-changes).
+Each rollback is also an [MCP tool](/cli/mcp/#tools) (`snippet_rollback`, `acf_rollback`, ...), behind the same two-step confirmation as every mutating tool. Like every mutating tool, it refuses an environment named `production`, including when `production` is the default environment, and the confirmed call rolls back the environment that was previewed. See [Confirming changes](/cli/mcp/#confirming-changes).

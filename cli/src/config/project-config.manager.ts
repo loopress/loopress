@@ -1,6 +1,7 @@
 import {existsSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'
 
+import {LOCAL_ENVIRONMENT_NAME} from '../lib/wp-client.js'
 import {type CurrentProjectPointer, type EnvironmentConfig, type LoopressConfig, type ProjectConfig, type TelemetryConfig} from '../types/config.js'
 import {toSlug} from '../utils/to-slug.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
@@ -46,20 +47,23 @@ export class ProjectConfigManager {
     return join(this.requireConfigDir(), 'config.json')
   }
 
-  getCurrentEnv(): EnvironmentConfig | null {
-    const config = this.readConfig()
-    if (!config.currentProject) return null
-    const project = config.projects[config.currentProject.id]
-    if (!project) return null
-    return project.environments[config.currentProject.env] ?? null
-  }
-
   getCurrentProject(): null | (ProjectConfig & {id: string}) {
     const config = this.readConfig()
     if (!config.currentProject) return null
     const project = config.projects[config.currentProject.id]
     if (!project) return null
     return {...project, id: config.currentProject.id}
+  }
+
+  // The environment a command targets without --env: "local" when the project has one (where
+  // you work, so it's the safe default), otherwise its only environment. Null when the project
+  // has several remote ones and no local: the user must say which one with --env, since a
+  // remembered choice is exactly the hidden state that sends a push to the wrong site.
+  getDefaultEnvironment(projectId: string): EnvironmentConfig | null {
+    const environments = this.getProject(projectId)?.environments ?? {}
+    const names = Object.keys(environments)
+    if (Object.hasOwn(environments, LOCAL_ENVIRONMENT_NAME)) return environments[LOCAL_ENVIRONMENT_NAME]
+    return names.length === 1 ? environments[names[0]] : null
   }
 
   getEnvironment(projectId: string, envName: string): EnvironmentConfig | null {
@@ -77,14 +81,11 @@ export class ProjectConfigManager {
     return this.readConfig().telemetry?.disabled ?? false
   }
 
-  listEnvironments(projectId: string): Array<EnvironmentConfig & {isCurrent: boolean}> {
-    const config = this.readConfig()
-    const project = config.projects[projectId]
+  listEnvironments(projectId: string): Array<EnvironmentConfig & {isDefault: boolean}> {
+    const project = this.getProject(projectId)
     if (!project) return []
-    return Object.values(project.environments).map((env) => ({
-      ...env,
-      isCurrent: config.currentProject?.id === projectId && config.currentProject.env === env.name,
-    }))
+    const defaultEnv = this.getDefaultEnvironment(projectId)
+    return Object.values(project.environments).map((env) => ({...env, isDefault: env.name === defaultEnv?.name}))
   }
 
   listProjects(): Array<ProjectConfig & {id: string; isCurrent: boolean}> {
@@ -111,12 +112,6 @@ export class ProjectConfigManager {
     if (!project) return
 
     Reflect.deleteProperty(project.environments, envName)
-
-    if (config.currentProject?.id === projectId && config.currentProject.env === envName) {
-      const remaining = Object.keys(project.environments)
-      config.currentProject = remaining.length > 0 ? {env: remaining[0], id: projectId} : null
-    }
-
     this.writeConfig(config)
   }
 
@@ -126,9 +121,7 @@ export class ProjectConfigManager {
 
     if (config.currentProject?.id === id) {
       const [nextId] = Object.keys(config.projects)
-      const nextProject = nextId ? config.projects[nextId] : undefined
-      const [nextEnv] = nextProject ? Object.keys(nextProject.environments) : []
-      config.currentProject = nextId && nextEnv ? {env: nextEnv, id: nextId} : null
+      config.currentProject = nextId ? {id: nextId} : null
     }
 
     this.writeConfig(config)
@@ -141,10 +134,10 @@ export class ProjectConfigManager {
     this.configDir = configDir
   }
 
-  setCurrent(projectId: string, envName: string): void {
+  setCurrent(projectId: string): void {
     const config = this.readConfig()
     if (!Object.hasOwn(config.projects, projectId)) return
-    config.currentProject = {env: envName, id: projectId}
+    config.currentProject = {id: projectId}
     this.writeConfig(config)
   }
 
@@ -154,7 +147,7 @@ export class ProjectConfigManager {
     if (!project) return
 
     project.environments[envName] = env
-    config.currentProject ??= {env: envName, id: projectId}
+    config.currentProject ??= {id: projectId}
 
     this.writeConfig(config)
   }
@@ -172,10 +165,7 @@ export class ProjectConfigManager {
     const config = this.readConfig()
     config.projects[id] = project
 
-    if (!config.currentProject) {
-      const [firstEnv] = Object.keys(project.environments)
-      if (firstEnv) config.currentProject = {env: firstEnv, id}
-    }
+    config.currentProject ??= {id}
 
     this.writeConfig(config)
   }
@@ -228,7 +218,8 @@ export class ProjectConfigManager {
   private sanitizeCurrentProject(value: unknown): CurrentProjectPointer | null {
     if (value === null || typeof value !== 'object') return null
     const pointer = value as Partial<CurrentProjectPointer>
-    return typeof pointer.id === 'string' && typeof pointer.env === 'string' ? {env: pointer.env, id: pointer.id} : null
+    // A legacy `env` field, from when switch also picked the environment, is dropped here.
+    return typeof pointer.id === 'string' ? {id: pointer.id} : null
   }
 
   private sanitizeProjects(value: unknown): Record<string, ProjectConfig> {

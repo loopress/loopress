@@ -8,7 +8,7 @@
   "required": ["currentProject", "projects"],
   "properties": {
     "currentProject": {
-      "description": "Pointer to the currently active project and environment, or null if none is selected.",
+      "description": "Pointer to the currently active project, or null if none is selected. The environment is not stored: commands use --env, else the project's \"local\" environment, else its only one.",
       "oneOf": [{"type": "null"}, {"$ref": "#/definitions/CurrentProjectPointer"}]
     },
     "projects": {
@@ -26,12 +26,8 @@
       "title": "CurrentProjectPointer",
       "type": "object",
       "additionalProperties": false,
-      "required": ["env", "id"],
+      "required": ["id"],
       "properties": {
-        "env": {
-          "type": "string",
-          "description": "Name of the currently active environment."
-        },
         "id": {
           "type": "string",
           "description": "Id of the currently active project."

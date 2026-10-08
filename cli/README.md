@@ -151,7 +151,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -179,7 +179,7 @@ USAGE
   $ lps acf list [--json] [--env <value>] [--type field-groups|post-types|taxonomies|options-pages...]
 
 FLAGS
-  --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>       Target environment by name (default: "local", or the project's only environment)
   --type=<option>...  Limit to specific ACF object types
                       <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -211,7 +211,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run           Show what would change without making changes
   -y, --yes               Answer yes to confirmation prompts
-      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>       Target environment by name (default: "local", or the project's only environment)
       --type=<option>...  Limit to specific ACF object types
                           <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -240,7 +240,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run           Show what would change without making changes
   -y, --yes               Answer yes to confirmation prompts
-      --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>       Target environment by name (default: "local", or the project's only environment)
       --type=<option>...  Limit to specific ACF object types
                           <options: field-groups|post-types|taxonomies|options-pages>
 
@@ -269,7 +269,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -305,7 +305,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -333,7 +333,7 @@ USAGE
   $ lps api list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -384,7 +384,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -414,7 +414,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --prune        Delete server-side route files not present locally after pushing
 
 GLOBAL FLAGS
@@ -447,7 +447,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -477,7 +477,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -508,7 +508,7 @@ USAGE
   $ lps app list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -536,7 +536,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -564,7 +564,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -595,7 +595,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -620,7 +620,7 @@ USAGE
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Create a composer.json wired to WPackagist for installing WordPress.org plugins and themes
@@ -643,7 +643,7 @@ USAGE
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -670,7 +670,7 @@ USAGE
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --force        Allow downgrades and take over plugins/themes installed outside Loopress
 
 GLOBAL FLAGS
@@ -725,7 +725,7 @@ USAGE
 
 FLAGS
   --against=<value>   Compare the primary environment against this second environment instead of against local files
-  --env=<value>       Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>       Target environment by name (default: "local", or the project's only environment)
   --only=<option>...  Only compare these resources
                       <options: snippet|form|acf|api|hook|page|seo|menu|option|theme-styles|composer>
   --skip=<option>...  Compare every resource except these
@@ -763,7 +763,7 @@ USAGE
   $ lps doctor [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -792,7 +792,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -819,7 +819,7 @@ USAGE
   $ lps form list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -847,7 +847,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Pull forms from WordPress
@@ -875,7 +875,7 @@ FLAGS
       --allow-notifications  Also push each form's notification and confirmation settings (recipients, sender,
                              messages). Off by default: the server keeps its own so a stray push can't redirect
                              submissions.
-      --env=<value>          Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>          Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json`
@@ -903,7 +903,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -958,7 +958,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -985,7 +985,7 @@ USAGE
   $ lps hook list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1013,7 +1013,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1043,7 +1043,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --prune        Delete server-side hook files not present locally after pushing
 
 GLOBAL FLAGS
@@ -1076,7 +1076,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1106,7 +1106,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -1192,7 +1192,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1220,7 +1220,7 @@ USAGE
   $ lps menu list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1248,7 +1248,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Pull nav menus and the active theme menu locations from WordPress
@@ -1273,7 +1273,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Push local nav menus and the active theme menu locations to WordPress. Each menu's post_type/taxonomy items are
@@ -1300,7 +1300,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -1335,7 +1335,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run       Show what would change without making changes
-      --env=<value>   Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>   Target environment by name (default: "local", or the project's only environment)
       --path=<value>  Path to options directory (overrides project config)
 
 GLOBAL FLAGS
@@ -1366,7 +1366,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1394,7 +1394,7 @@ USAGE
   $ lps option list [--json] [--env <value>] [--no-core]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
   --no-core      Exclude WordPress-native default options and the CORE column from the output, including --json
 
 GLOBAL FLAGS
@@ -1429,7 +1429,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1458,7 +1458,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1487,7 +1487,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run       Show what would change without making changes
   -y, --yes           Answer yes to confirmation prompts
-      --env=<value>   Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>   Target environment by name (default: "local", or the project's only environment)
       --local-only    Untrack locally without deleting the option on WordPress
       --path=<value>  Path to options directory (overrides project config)
 
@@ -1520,7 +1520,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -1555,7 +1555,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1582,7 +1582,7 @@ USAGE
   $ lps page list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1610,7 +1610,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1642,7 +1642,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run          Show what would change without making changes
-      --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>      Target environment by name (default: "local", or the project's only environment)
       --version=<value>  Exact version to pin (default: "latest", tracked on every push)
 
 GLOBAL FLAGS
@@ -1670,7 +1670,7 @@ USAGE
   $ lps plugin audit [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1694,7 +1694,7 @@ USAGE
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1721,7 +1721,7 @@ USAGE
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --force        Allow downgrades and let Loopress take over plugins installed outside it (replaces their files)
       --prune        Deactivate plugins that are active on the site but absent from loopress.json
 
@@ -1750,7 +1750,7 @@ USAGE
   $ lps plugin status [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1865,7 +1865,7 @@ USAGE
   $ lps project rotate [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Rotate the WordPress application password for the current (or --env) environment
@@ -1880,14 +1880,14 @@ _See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress
 
 ## `lps project switch`
 
-Switch the active project and environment
+Switch the active project (pass --env to target a non-local environment)
 
 ```
 USAGE
   $ lps project switch
 
 DESCRIPTION
-  Switch the active project and environment
+  Switch the active project (pass --env to target a non-local environment)
 
 EXAMPLES
   $ lps project switch
@@ -1937,7 +1937,7 @@ USAGE
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1967,7 +1967,7 @@ USAGE
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -1999,7 +1999,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2027,7 +2027,7 @@ USAGE
   $ lps seo list [--json] [--env <value>] [--post-type <value>...]
 
 FLAGS
-  --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>           Target environment by name (default: "local", or the project's only environment)
   --post-type=<value>...  Limit to specific post types
 
 GLOBAL FLAGS
@@ -2058,7 +2058,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run               Show what would change without making changes
   -y, --yes                   Answer yes to confirmation prompts
-      --env=<value>           Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>           Target environment by name (default: "local", or the project's only environment)
       --post-type=<value>...  Limit post meta to specific post types
 
 DESCRIPTION
@@ -2088,7 +2088,7 @@ FLAGS
   -y, --yes                       Answer yes to confirmation prompts
       --allow-external-redirects  Allow pushing a redirect whose target points off this site. Off by default: the server
                                   rejects an off-site `urlTo` so a stray push can't 301 traffic away.
-      --env=<value>               Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>               Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Push SEO settings, post meta, and redirects to WordPress. Local redirect files created remotely are renamed on disk to
@@ -2116,7 +2116,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -2151,7 +2151,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2178,7 +2178,7 @@ USAGE
   $ lps snippet list [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2229,7 +2229,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2259,7 +2259,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2290,7 +2290,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -2384,7 +2384,7 @@ ARGUMENTS
 
 FLAGS
   --against=<value>  Compare the primary environment against this second environment instead of against local files
-  --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>      Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2416,7 +2416,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file
@@ -2440,7 +2440,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 DESCRIPTION
   Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress
@@ -2465,7 +2465,7 @@ ARGUMENTS
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --list         List available snapshots instead of rolling back
       --to=<value>   Roll back to this snapshot id instead of the most recent one
 
@@ -2500,7 +2500,7 @@ ARGUMENTS
 
 FLAGS
   -d, --dry-run          Show what would change without making changes
-      --env=<value>      Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>      Target environment by name (default: "local", or the project's only environment)
       --version=<value>  Exact version to pin (default: "latest")
 
 GLOBAL FLAGS
@@ -2527,7 +2527,7 @@ USAGE
 
 FLAGS
   -d, --dry-run      Show what would change without making changes
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.
@@ -2552,7 +2552,7 @@ USAGE
 FLAGS
   -d, --dry-run      Show what would change without making changes
   -y, --yes          Answer yes to confirmation prompts
-      --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+      --env=<value>  Target environment by name (default: "local", or the project's only environment)
       --force        Allow downgrades and take over themes installed outside Loopress
 
 GLOBAL FLAGS
@@ -2578,7 +2578,7 @@ USAGE
   $ lps theme status [--json] [--env <value>]
 
 FLAGS
-  --env=<value>  Target environment by name, overriding the globally active one (lps project switch)
+  --env=<value>  Target environment by name (default: "local", or the project's only environment)
 
 GLOBAL FLAGS
   --json  Format output as json.

@@ -23,7 +23,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 |---------|-------------|
 | [`lps project config`](/concepts/#configuring-an-environment) | Add or update a WordPress project environment |
 | [`lps project list`](/concepts/#projects-and-environments) | List configured WordPress projects |
-| [`lps project switch`](/concepts/#targeting-an-environment) | Switch the active project and environment |
+| [`lps project switch`](/concepts/#targeting-an-environment) | Switch the active project |
 | [`lps project remove`](/concepts/#projects-and-environments) | Remove one or more WordPress projects or environments |
 | [`lps project rotate`](/concepts/#projects-and-environments) | Rotate the WordPress Application Password of an environment |
 

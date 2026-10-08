@@ -119,7 +119,7 @@ describe('project remove', () => {
           name: 'acme                 (2 envs) [current]',
           value: '0',
         },
-        {name: '    production           https://acme.com [current]', value: '1'},
+        {name: '    production           https://acme.com', value: '1'},
         {name: '    staging              https://staging.acme.com', value: '2'},
         {description: 'Also removes all its environments below.', name: 'beta                 (1 env)', value: '3'},
         {name: '    production           https://beta.com', value: '4'},

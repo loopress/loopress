@@ -28,6 +28,12 @@ describe('ProjectConfigManager', () => {
     manager = new ProjectConfigManager(tmpDir)
   })
 
+  const clearCurrent = (): void => {
+    const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+    raw.currentProject = null
+    writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
+  }
+
   afterEach(() => {
     rmSync(tmpDir, {force: true, recursive: true})
   })
@@ -107,10 +113,10 @@ describe('ProjectConfigManager', () => {
       expect(manager.readConfig().currentProject).toBeNull()
     })
 
-    it('treats a currentProject with a non-string env as null', () => {
+    it('drops the legacy env field of a currentProject, keeping its id', () => {
       manager.ensureConfigDir()
-      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: {env: 42, id: 'id-acme'}, projects: {}}))
-      expect(manager.readConfig().currentProject).toBeNull()
+      writeFileSync(manager.getConfigFilePath(), JSON.stringify({currentProject: {env: 'production', id: 'id-acme'}, projects: {}}))
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
     it('treats a non-object config root as empty', () => {
@@ -164,27 +170,22 @@ describe('ProjectConfigManager', () => {
 
     it('sets the first project as current automatically', () => {
       manager.setProject('id-acme', makeProject('acme'))
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
     it('does not change current when a second project is added', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
     it('returns null for an unknown project', () => {
       expect(manager.getProject('unknown')).toBeNull()
     })
 
-    it('does not set currentProject when the first project added has no environments', () => {
+    it('sets the first project as current even when it has no environments yet', () => {
       manager.setProject('id-acme', {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'acme'})
-
-      // Same reasoning as the removeProject/removeEnvironment raw-file checks above: a `{id,
-      // env: undefined}` pointer is indistinguishable from `null` once read back through
-      // readConfig()'s sanitization, since JSON.stringify drops the undefined env first.
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      expect(raw.currentProject).toBeNull()
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
   })
 
@@ -283,7 +284,7 @@ describe('ProjectConfigManager', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.ensureConfigDir()
       const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      raw.currentProject = {env: 'production', id: 'ghost'}
+      raw.currentProject = {id: 'ghost'}
       writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
 
       expect(manager.getCurrentProject()).toBeNull()
@@ -291,17 +292,16 @@ describe('ProjectConfigManager', () => {
   })
 
   describe('setCurrent', () => {
-    it('updates the current project and environment', () => {
+    it('updates the current project', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
-      manager.setCurrent('id-beta', 'production')
+      manager.setCurrent('id-beta')
       expect(manager.getCurrentProject()?.name).toBe('beta')
-      expect(manager.getCurrentEnv()?.name).toBe('production')
     })
 
     it('does nothing for an unknown project', () => {
       manager.setProject('id-acme', makeProject('acme'))
-      manager.setCurrent('unknown', 'production')
+      manager.setCurrent('unknown')
       expect(manager.getCurrentProject()?.name).toBe('acme')
     })
   })
@@ -310,10 +310,10 @@ describe('ProjectConfigManager', () => {
     it('removes the project and falls back to first remaining', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
-      manager.setCurrent('id-acme', 'production')
+      manager.setCurrent('id-acme')
       manager.removeProject('id-acme')
       expect(manager.getProject('id-acme')).toBeNull()
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-beta'})
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-beta'})
     })
 
     it('sets currentProject to null when last project is removed', () => {
@@ -326,28 +326,20 @@ describe('ProjectConfigManager', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
       manager.removeProject('id-beta')
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
-    it('sets currentProject to null when the fallback project has no environments', () => {
+    it('falls back to the next project even when it has no environments', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'beta'})
-      manager.setCurrent('id-acme', 'production')
       manager.removeProject('id-acme')
-      expect(manager.getProject('id-beta')).not.toBeNull()
-      // Read the raw file rather than manager.getCurrentProject()/readConfig(): a `{id, env:
-      // undefined}` pointer round-trips through JSON.stringify indistinguishably from `null`
-      // once env is dropped, so only the raw JSON tells "correctly set to null" apart from
-      // "incorrectly set to a pointer with no env".
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      expect(raw.currentProject).toBeNull()
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-beta'})
     })
 
     it('does not crash removing a project when nothing is currently active', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
-      manager.removeEnvironment('id-acme', 'production') // id-acme was current; losing its last env nulls currentProject
-      expect(manager.readConfig().currentProject).toBeNull()
+      clearCurrent()
 
       expect(() => { manager.removeProject('id-beta'); }).not.toThrow()
       expect(manager.getProject('id-beta')).toBeNull()
@@ -357,11 +349,11 @@ describe('ProjectConfigManager', () => {
       manager.setProject('id-beta', makeProject('beta')) // inserted first; would be picked as "next" if the guard were skipped
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-gamma', makeProject('gamma'))
-      manager.setCurrent('id-acme', 'production')
+      manager.setCurrent('id-acme')
 
       manager.removeProject('id-gamma')
 
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
   })
 
@@ -380,7 +372,7 @@ describe('ProjectConfigManager', () => {
 
     it('marks every project as not current when there is no current project', () => {
       manager.setProject('id-acme', makeProject('acme'))
-      manager.removeEnvironment('id-acme', 'production')
+      clearCurrent()
       const list = manager.listProjects()
       expect(list.find((p) => p.name === 'acme')?.isCurrent).toBe(false)
     })
@@ -399,44 +391,34 @@ describe('ProjectConfigManager', () => {
       expect(manager.getProject('ghost')).toBeNull()
     })
 
-    it('sets the environment as current automatically when nothing is active yet', () => {
-      const project: ProjectConfig = {
-        addedAt: '2024-01-01T00:00:00.000Z',
-        environments: {},
-        name: 'acme',
-      }
-      manager.setProject('id-acme', project)
-      manager.setEnvironment('id-acme', 'production', makeEnv('production'))
-      expect(manager.getCurrentEnv()?.name).toBe('production')
+    it('sets the project as current automatically when nothing is active yet', () => {
+      manager.setProject('id-acme', makeProject('acme'))
+      clearCurrent()
+      manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
   })
 
-  describe('getCurrentEnv', () => {
-    it('returns null when no project is configured', () => {
-      expect(manager.getCurrentEnv()).toBeNull()
+  describe('getDefaultEnvironment', () => {
+    it('returns null for an unknown project', () => {
+      expect(manager.getDefaultEnvironment('ghost')).toBeNull()
     })
 
-    it('returns the current environment of the current project', () => {
-      const project = makeProject('acme', 'production')
-      manager.setProject('id-acme', project)
-      const env = manager.getCurrentEnv()
-      expect(env?.name).toBe('production')
-    })
-
-    it('returns null when currentProject points at a project that no longer exists', () => {
-      manager.setProject('id-acme', makeProject('acme'))
-      manager.ensureConfigDir()
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      raw.currentProject = {env: 'production', id: 'ghost'}
-      writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
-
-      expect(manager.getCurrentEnv()).toBeNull()
-    })
-
-    it('returns null when the current environment name is not on the project', () => {
+    it('returns the only environment of a project', () => {
       manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.setCurrent('id-acme', 'ghost-env')
-      expect(manager.getCurrentEnv()).toBeNull()
+      expect(manager.getDefaultEnvironment('id-acme')?.name).toBe('production')
+    })
+
+    it('prefers the local environment when the project has several', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironment('id-acme', 'local', makeEnv('local'))
+      expect(manager.getDefaultEnvironment('id-acme')?.name).toBe('local')
+    })
+
+    it('returns null for several environments and no local one', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
+      expect(manager.getDefaultEnvironment('id-acme')).toBeNull()
     })
   })
 
@@ -452,66 +434,28 @@ describe('ProjectConfigManager', () => {
   })
 
   describe('removeEnvironment', () => {
-    it('removes the environment and falls back to first remaining', () => {
+    it('removes the environment and keeps the project current', () => {
       manager.setProject('id-acme', makeProject('acme', 'production'))
       manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
-      manager.setCurrent('id-acme', 'production')
       manager.removeEnvironment('id-acme', 'production')
       expect(manager.getEnvironment('id-acme', 'production')).toBeNull()
-      expect(manager.getCurrentEnv()?.name).toBe('staging')
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
-    it('sets currentProject to null when the active project loses its last environment', () => {
+    it('keeps the project current when it loses its last environment', () => {
       manager.setProject('id-acme', makeProject('acme', 'production'))
       manager.removeEnvironment('id-acme', 'production')
-      expect(manager.readConfig().currentProject).toBeNull()
+      expect(manager.readConfig().currentProject).toEqual({id: 'id-acme'})
     })
 
     it('does nothing for an unknown project', () => {
       expect(() => { manager.removeEnvironment('ghost', 'production'); }).not.toThrow()
     })
 
-    it('leaves currentProject untouched when removing an environment on a different project', () => {
-      manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.setProject('id-beta', makeProject('beta', 'production'))
-      manager.removeEnvironment('id-beta', 'production')
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
-    })
-
-    it('leaves currentProject untouched when removing a non-current environment on the current project', () => {
-      manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
-      manager.removeEnvironment('id-acme', 'staging')
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
-    })
-
-    it('leaves currentProject untouched when removing a non-current environment, even if a different remaining one would sort first', () => {
-      manager.setProject('id-acme', makeProject('acme', 'staging')) // 'staging' inserted first
-      manager.setEnvironment('id-acme', 'production', makeEnv('production'))
-      manager.setEnvironment('id-acme', 'review', makeEnv('review'))
-      manager.setCurrent('id-acme', 'production') // current env is 'production', not the first-inserted one
-
-      manager.removeEnvironment('id-acme', 'review')
-
-      expect(manager.readConfig().currentProject).toEqual({env: 'production', id: 'id-acme'})
-    })
-
     it('does not crash removing an environment when nothing is currently active', () => {
-      const project: ProjectConfig = {addedAt: '2024-01-01T00:00:00.000Z', environments: {}, name: 'acme'}
-      manager.setProject('id-acme', project) // no environments, so setProject never sets a currentProject
-      expect(manager.readConfig().currentProject).toBeNull()
-
+      manager.setProject('id-acme', makeProject('acme'))
+      clearCurrent()
       expect(() => { manager.removeEnvironment('id-acme', 'anything'); }).not.toThrow()
-    })
-
-    it('sets currentProject to null (not a pointer with a missing env) when the active project loses its last environment', () => {
-      manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.removeEnvironment('id-acme', 'production')
-
-      // See the analogous removeProject test above for why the raw file, not readConfig(), is
-      // what actually distinguishes "null" from "a pointer whose env got dropped by JSON.stringify".
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      expect(raw.currentProject).toBeNull()
     })
   })
 
@@ -520,30 +464,18 @@ describe('ProjectConfigManager', () => {
       expect(manager.listEnvironments('ghost')).toEqual([])
     })
 
-    it('marks the current environment with isCurrent: true', () => {
+    it('marks the default environment with isDefault: true', () => {
+      manager.setProject('id-acme', makeProject('acme', 'production'))
+      manager.setEnvironment('id-acme', 'local', makeEnv('local'))
+      const list = manager.listEnvironments('id-acme')
+      expect(list.find((e) => e.name === 'local')?.isDefault).toBe(true)
+      expect(list.find((e) => e.name === 'production')?.isDefault).toBe(false)
+    })
+
+    it('marks no environment as default when none applies', () => {
       manager.setProject('id-acme', makeProject('acme', 'production'))
       manager.setEnvironment('id-acme', 'staging', makeEnv('staging'))
-      const list = manager.listEnvironments('id-acme')
-      expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(true)
-      expect(list.find((e) => e.name === 'staging')?.isCurrent).toBe(false)
-    })
-
-    it('marks every environment as not current for a project that is not the current one', () => {
-      manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.setProject('id-beta', makeProject('beta', 'production'))
-      const list = manager.listEnvironments('id-beta')
-      expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(false)
-    })
-
-    it('marks every environment as not current when there is no current project', () => {
-      manager.setProject('id-acme', makeProject('acme', 'production'))
-      manager.ensureConfigDir()
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
-      raw.currentProject = null
-      writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
-
-      const list = manager.listEnvironments('id-acme')
-      expect(list.find((e) => e.name === 'production')?.isCurrent).toBe(false)
+      expect(manager.listEnvironments('id-acme').some((e) => e.isDefault)).toBe(false)
     })
   })
 
@@ -614,9 +546,9 @@ describe('ProjectConfigManager', () => {
     it('survives a second write without corrupting the file', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.setProject('id-beta', makeProject('beta'))
-      manager.setCurrent('id-beta', 'production')
+      manager.setCurrent('id-beta')
       const config = manager.readConfig()
-      expect(config.currentProject).toEqual({env: 'production', id: 'id-beta'})
+      expect(config.currentProject).toEqual({id: 'id-beta'})
       expect(Object.keys(config.projects)).toHaveLength(2)
     })
 

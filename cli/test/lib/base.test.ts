@@ -71,6 +71,17 @@ class TestCommand extends LoopressCommand {
   }
 }
 
+// The globally active project (via `lps project switch`), holding the given environments.
+function useActiveProject(environments: Record<string, EnvironmentConfig>): void {
+  const project = makeListedProject('id-acme', 'acme', environments, true)
+  vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(project)
+  vi.spyOn(configManager, 'getProject').mockReturnValue(project)
+}
+
+function useActiveEnv(env: EnvironmentConfig): void {
+  useActiveProject({[env.name]: env})
+}
+
 async function initWith(argv: string[]): Promise<TestCommand> {
   const cmd = new TestCommand(argv, fakeOclifConfig)
   await cmd.init()
@@ -84,9 +95,8 @@ describe('LoopressCommand.init', () => {
     vi.mocked(readLocalConfig).mockResolvedValue({})
   })
 
-  it('falls back to the configured environment when no flags are given', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production', 'https://acme.com'))
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
+  it('falls back to the only environment of the active project when no flags are given', async () => {
+    useActiveEnv(makeEnv('production', 'https://acme.com'))
 
     const cmd = await initWith([])
 
@@ -96,8 +106,7 @@ describe('LoopressCommand.init', () => {
   })
 
   it('sets dryRun from the --dry-run flag', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production'))
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
+    useActiveEnv(makeEnv('production'))
 
     const cmd = await initWith(['--dry-run'])
     expect(cmd.resolvedDryRun).toBe(true)
@@ -108,15 +117,14 @@ describe('LoopressCommand.init', () => {
 
   it('does not fall back to the global environment when loopress.json is broken', async () => {
     vi.mocked(readLocalConfig).mockRejectedValue(new Error('loopress.json is not valid JSON.'))
-    const getCurrentEnv = vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production'))
+    const getCurrentProject = vi.spyOn(configManager, 'getCurrentProject')
 
     await expect(initWith([])).rejects.toThrow('loopress.json is not valid JSON.')
-    expect(getCurrentEnv).not.toHaveBeenCalled()
+    expect(getCurrentProject).not.toHaveBeenCalled()
   })
 
   it('sets yes from the --yes flag', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production'))
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
+    useActiveEnv(makeEnv('production'))
 
     const cmd = await initWith(['--yes'])
     expect(cmd.resolvedYes).toBe(true)
@@ -125,13 +133,11 @@ describe('LoopressCommand.init', () => {
     expect(cmd2.resolvedYes).toBe(false)
   })
 
-  it('resolves --env against the globally active project, beating the active environment', async () => {
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
-      makeListedProject('id-acme', 'acme', {
-        production: makeEnv('production', 'https://acme.com'),
-        staging: makeEnv('staging', 'https://staging.acme.com'),
-      }),
-    )
+  it('resolves --env against the globally active project, beating the local default', async () => {
+    useActiveProject({
+      local: makeEnv('local', 'https://acme.local'),
+      staging: makeEnv('staging', 'https://staging.acme.com'),
+    })
 
     const cmd = await initWith(['--env', 'staging'])
 
@@ -153,12 +159,7 @@ describe('LoopressCommand.init', () => {
   })
 
   it('errors listing the available environments when --env names an unknown one', async () => {
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
-      makeListedProject('id-acme', 'acme', {
-        production: makeEnv('production'),
-        staging: makeEnv('staging'),
-      }),
-    )
+    useActiveProject({production: makeEnv('production'), staging: makeEnv('staging')})
 
     await expect(initWith(['--env', 'nope'])).rejects.toThrow(
       /Environment "nope" not found in project "acme"\. Available: production, staging/,
@@ -171,11 +172,10 @@ describe('LoopressCommand.init', () => {
     await expect(initWith(['--env', 'staging'])).rejects.toThrow('No project configured')
   })
 
-  it('errors when no --env is given and the active environment/project are inconsistent (one set, not the other)', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production'))
+  it('errors when no --env is given and no project is active', async () => {
     vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(null)
 
-    await expect(initWith([])).rejects.toThrow('No environment configured')
+    await expect(initWith([])).rejects.toThrow('No project configured')
   })
 
   it('errors when the project pinned by loopress.json cannot be found', async () => {
@@ -203,22 +203,21 @@ describe('LoopressCommand.init', () => {
     expect(cmd.resolvedSiteConfig.url).toBe('https://acme.com')
   })
 
-  it('falls back to the globally active environment for a multi-environment loopress.json project with no --env', async () => {
+  it('defaults to the local environment of a multi-environment project when no --env is given', async () => {
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'id-acme'})
-    const project = makeListedProject('id-acme', 'acme', {
-      production: makeEnv('production', 'https://acme.com'),
-      staging: makeEnv('staging', 'https://staging.acme.com'),
-    })
-    vi.spyOn(configManager, 'getProject').mockReturnValue(project)
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(project)
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('staging', 'https://staging.acme.com'))
+    vi.spyOn(configManager, 'getProject').mockReturnValue(
+      makeListedProject('id-acme', 'acme', {
+        local: makeEnv('local', 'https://acme.local'),
+        production: makeEnv('production', 'https://acme.com'),
+      }),
+    )
 
     const cmd = await initWith([])
 
-    expect(cmd.resolvedSiteConfig.url).toBe('https://staging.acme.com')
+    expect(cmd.resolvedSiteConfig.url).toBe('https://acme.local')
   })
 
-  it('errors on a multi-environment loopress.json project with no --env and no matching active environment', async () => {
+  it('errors on a multi-environment project with no local environment and no --env, listing them', async () => {
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'id-acme'})
     vi.spyOn(configManager, 'getProject').mockReturnValue(
       makeListedProject('id-acme', 'acme', {
@@ -226,9 +225,8 @@ describe('LoopressCommand.init', () => {
         staging: makeEnv('staging'),
       }),
     )
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(null)
 
-    await expect(initWith([])).rejects.toThrow(/has multiple environments.*lps project switch/)
+    await expect(initWith([])).rejects.toThrow(/has no "local" environment, pass --env.*Available: production, staging/)
   })
 })
 
@@ -238,7 +236,6 @@ describe('LoopressCommand.maybeAutoRotate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(readLocalConfig).mockResolvedValue({})
-    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}, true))
     vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
     vi.stubEnv('CI', '')
   })
@@ -248,7 +245,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
   })
 
   it('does nothing for a fresh app password', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(makeEnv('production', 'https://acme.com'))
+    useActiveEnv(makeEnv('production', 'https://acme.com'))
 
     const cmd = await initWith([])
 
@@ -258,7 +255,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
   it('rotates and persists when the app password is older than 90 days', async () => {
     const staleEnv = makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE)
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(staleEnv)
+    useActiveEnv(staleEnv)
     const rotated = makeEnv('production', 'https://acme.com', 'user:new-pass')
     vi.mocked(rotateAppPassword).mockResolvedValue(rotated)
     const setEnvironment = vi.spyOn(configManager, 'setEnvironment')
@@ -271,9 +268,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
   })
 
   it('does not rotate during --dry-run', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
-      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
-    )
+    useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
 
     await initWith(['--dry-run'])
 
@@ -281,9 +276,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
   })
 
   it('swallows a rotation failure and keeps the existing credential usable', async () => {
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
-      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
-    )
+    useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
     vi.mocked(rotateAppPassword).mockRejectedValue(new Error('site unreachable'))
 
     const cmd = await initWith([])
@@ -293,9 +286,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
   it('does not rotate in CI and warns instead, the runner cannot persist the new password', async () => {
     vi.stubEnv('CI', 'true')
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
-      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
-    )
+    useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
     const cmd = new TestCommand([], fakeOclifConfig)
     const {warn} = silenceLogs(cmd)
 
@@ -307,9 +298,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
   it('does not rotate when LOOPRESS_NO_AUTO_ROTATE is set (promote --dry-run preview)', async () => {
     vi.stubEnv('LOOPRESS_NO_AUTO_ROTATE', '1')
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue(
-      makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE),
-    )
+    useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
 
     await initWith([])
 
@@ -318,7 +307,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
   it('skips environments without a token', async () => {
     const env = makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE)
-    vi.spyOn(configManager, 'getCurrentEnv').mockReturnValue({...env, token: undefined})
+    useActiveEnv({...env, token: undefined})
 
     await initWith([])
 
