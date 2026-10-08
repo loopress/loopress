@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@wordpress/components';
 import { apiFetch } from '../api';
 import { SentrySettings } from './SentrySettings';
+import { UsageStatsSettings } from './UsageStatsSettings';
 import { ApiNamespaceSettings } from './ApiNamespaceSettings';
 
 // One reset button for every Loopress setting rendered on this tab, not one per feature
@@ -14,6 +15,7 @@ export function SettingsPanel() {
         mutationFn: () => apiFetch('/settings', { method: 'DELETE' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sentry-consent'] });
+            queryClient.invalidateQueries({ queryKey: ['usage-stats-consent'] });
             queryClient.invalidateQueries({ queryKey: ['api-namespace'] });
         },
     });
@@ -21,6 +23,7 @@ export function SettingsPanel() {
     return (
         <div>
             <SentrySettings />
+            <UsageStatsSettings />
             <ApiNamespaceSettings />
             <Button
                 variant="tertiary"

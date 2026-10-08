@@ -41,6 +41,10 @@ export interface SentryConsent {
     enabled: boolean | null;
 }
 
+export interface UsageStatsConsent {
+    enabled: boolean;
+}
+
 export interface UpdateStatus {
     current_version: string;
     latest_version: string | null;

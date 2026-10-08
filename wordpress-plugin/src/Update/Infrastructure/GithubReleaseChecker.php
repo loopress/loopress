@@ -23,8 +23,10 @@ class GithubReleaseChecker
     private ?array $releaseCache = null;
     private bool $releaseCacheLoaded = false;
 
-    public function __construct(private readonly ClientInterface $httpClient)
-    {
+    public function __construct(
+        private readonly ClientInterface $httpClient,
+        private readonly UsagePing $usagePing,
+    ) {
     }
 
     /**
@@ -66,6 +68,10 @@ class GithubReleaseChecker
             $release = $cached === '' ? null : $cached;
         } else {
             $release = $this->fetchLatestRelease();
+            // Piggybacks on this 12h cache miss so the usage ping (Analytics.md) needs no
+            // cron of its own: at most two pings a day per site. Non-blocking and independent
+            // of the GitHub result, an api outage never affects the update check.
+            $this->usagePing->send();
             // Empty string, not false, caches a "checked, nothing found" result: get_transient()
             // itself returns false on a cache miss, so caching false here would be
             // indistinguishable from never having checked, and every admin page load would hit
