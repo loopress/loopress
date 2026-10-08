@@ -66,8 +66,29 @@ class UsagePingTest extends TestCase
         Functions\expect('wp_remote_post')->once()->with(
             'https://api.loopress.dev/ping',
             \Mockery::on(static fn(array $args): bool => $args['blocking'] === false
+                && $args['user-agent'] === 'Loopress/' . LOOPRESS_VERSION
                 && json_decode($args['body'], true)['locale'] === 'fr_FR'),
         );
+
+        (new UsagePing())->send();
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_send_is_capped_at_once_per_12_hours(): void
+    {
+        Functions\expect('wp_remote_post')->once();
+
+        (new UsagePing())->send();
+        (new UsagePing())->send();
+        $this->options[UsagePing::LAST_SENT_OPTION] -= 12 * HOUR_IN_SECONDS - 1;
+        (new UsagePing())->send();
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_send_goes_out_again_after_12_hours(): void
+    {
+        $this->options[UsagePing::LAST_SENT_OPTION] = time() - 12 * HOUR_IN_SECONDS;
+        Functions\expect('wp_remote_post')->once();
 
         (new UsagePing())->send();
         $this->addToAssertionCount(1);

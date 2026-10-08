@@ -17,6 +17,8 @@ use Loopress\Update\UsageStats;
 class UsagePing
 {
     public const INSTALL_ID_OPTION = 'loopress_install_id';
+    public const LAST_SENT_OPTION  = 'loopress_usage_ping_last_sent';
+    private const MIN_INTERVAL     = 12 * HOUR_IN_SECONDS;
     private const ENDPOINT = 'https://api.loopress.dev/ping';
 
     public function send(): void
@@ -25,11 +27,24 @@ class UsagePing
             return;
         }
 
+        // Own guard, not the release transient's 12h TTL: transients can be evicted early (object
+        // cache, DB cleanup), and the "at most twice a day" promise in the docs must still hold.
+        // ponytail: two concurrent cache misses can both pass this read, harmless since the api
+        // keeps one row per install and day; make it an atomic claim if that ever changes.
+        $now = time();
+        if ($now - (int) get_option(self::LAST_SENT_OPTION, 0) < self::MIN_INTERVAL) {
+            return;
+        }
+        update_option(self::LAST_SENT_OPTION, $now, false);
+
         wp_remote_post(self::ENDPOINT, [
-            'blocking' => false,
-            'timeout'  => 1,
-            'headers'  => ['Content-Type' => 'application/json'],
-            'body'     => (string) wp_json_encode($this->payload()),
+            'blocking'   => false,
+            'timeout'    => 1,
+            // WordPress's default User-Agent is "WordPress/<version>; <home_url>", which would leak
+            // the site URL the payload deliberately leaves out.
+            'user-agent' => 'Loopress/' . LOOPRESS_VERSION,
+            'headers'    => ['Content-Type' => 'application/json'],
+            'body'       => (string) wp_json_encode($this->payload()),
         ]);
     }
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardBody, ToggleControl } from '@wordpress/components';
-import { apiFetch } from '../api';
+import { Card, CardBody, Notice, ToggleControl } from '@wordpress/components';
+import { apiFetch, ApiError } from '../api';
 import type { UsageStatsConsent } from '../types';
 
 export function UsageStatsSettings() {
@@ -11,7 +11,7 @@ export function UsageStatsSettings() {
         queryFn: () => apiFetch<UsageStatsConsent>('/usage-stats/consent'),
     });
 
-    const { mutate: setEnabled, isPending } = useMutation({
+    const { mutate: setEnabled, isPending, error } = useMutation({
         mutationFn: (enabled: boolean) => apiFetch<UsageStatsConsent>('/usage-stats/consent', {
             method: 'PUT',
             body: JSON.stringify({ enabled }),
@@ -22,6 +22,11 @@ export function UsageStatsSettings() {
     return (
         <Card style={{ maxWidth: 600, marginTop: 12 }}>
             <CardBody>
+                {error instanceof ApiError && (
+                    <Notice status="error" isDismissible={false}>
+                        {error.message}
+                    </Notice>
+                )}
                 <ToggleControl
                     label="Send anonymous usage statistics"
                     checked={data?.enabled ?? false}

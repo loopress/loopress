@@ -48,6 +48,11 @@ class UsageStatsController
         // yet is a silent no-op (get_option() already returns false for it), so the very first
         // opt-out would never persist and isEnabled() would keep its "absent = on" default.
         update_option(UsageStats::OPTION, (int) $enabled);
+        // Read back rather than trust update_option()'s return: it is also false for an unchanged
+        // value. A failed opt-out must not show as saved while pings keep going out.
+        if (UsageStats::isEnabled() !== $enabled) {
+            return new WP_REST_Response(['error' => 'Could not save the usage statistics preference.'], 500);
+        }
 
         return new WP_REST_Response(['enabled' => $enabled], 200);
     }
