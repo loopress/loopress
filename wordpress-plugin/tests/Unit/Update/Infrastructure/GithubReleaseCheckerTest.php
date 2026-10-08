@@ -9,20 +9,24 @@ use Brain\Monkey\Functions;
 use Loopress\Tests\Stubs\FakeClientException;
 use Loopress\Tests\Stubs\FakeHttpClient;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
+use Loopress\Update\Infrastructure\UsagePing;
 use Nyholm\Psr7\Response;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class GithubReleaseCheckerTest extends TestCase
 {
     private FakeHttpClient $httpClient;
     private GithubReleaseChecker $checker;
+    private UsagePing&MockObject $usagePing;
 
     protected function setUp(): void
     {
         parent::setUp();
         Monkey\setUp();
         $this->httpClient = new FakeHttpClient();
-        $this->checker    = new GithubReleaseChecker($this->httpClient);
+        $this->usagePing  = $this->createMock(UsagePing::class);
+        $this->checker    = new GithubReleaseChecker($this->httpClient, $this->usagePing);
     }
 
     protected function tearDown(): void
@@ -35,6 +39,25 @@ class GithubReleaseCheckerTest extends TestCase
     private function stubReleasesResponse(array $releases): void
     {
         $this->httpClient->willReturn(new Response(200, [], json_encode($releases)));
+    }
+
+    public function test_sends_the_usage_ping_on_a_cache_miss(): void
+    {
+        Functions\when('get_transient')->justReturn(false);
+        Functions\when('set_transient')->justReturn(true);
+        $this->stubReleasesResponse([]);
+        $this->usagePing->expects($this->once())->method('send');
+
+        $this->checker->getLatestVersion();
+        $this->checker->getLatestDownloadUrl();
+    }
+
+    public function test_does_not_send_the_usage_ping_on_a_cache_hit(): void
+    {
+        Functions\when('get_transient')->justReturn('');
+        $this->usagePing->expects($this->never())->method('send');
+
+        $this->checker->getLatestVersion();
     }
 
     public function test_returns_cached_version_without_calling_github(): void

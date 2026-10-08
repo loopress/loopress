@@ -8,6 +8,7 @@ use Loopress\Contract\Module;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use Loopress\Update\Infrastructure\PluginUpdater;
 use Loopress\Update\RestApi\UpdateController;
+use Loopress\Update\RestApi\UsageStatsController;
 
 /**
  * The Loopress Full update flow: a read-only version check exposed over REST and rendered
@@ -26,6 +27,7 @@ class UpdateCheckModule implements Module
     public function boot(): void
     {
         add_action('rest_api_init', fn() => (new UpdateController($this->checker))->register_routes());
+        add_action('rest_api_init', fn() => (new UsageStatsController())->register_routes());
         $this->updater->register();
     }
 }
