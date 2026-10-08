@@ -12,7 +12,7 @@ A **project** is one WordPress site you manage, and an **environment** is one in
 ```bash
 lps project config          # Add or update a project/environment
 lps project list            # Show all configured projects and their environments
-lps project switch          # Interactively pick the active project and environment
+lps project switch          # Interactively pick the active project
 lps project remove          # Remove a saved project or environment
 lps project rotate          # Rotate the Application Password of the active (or --env) environment
 ```
@@ -40,21 +40,28 @@ If Loopress Full isn't active on the site yet, `project config` then offers to i
 
 | File | Scope | Holds |
 |------|-------|-------|
-| `$XDG_CONFIG_HOME/loopress/config.json` (or `~/.config/loopress/config.json`) | Your machine | Projects, environments, URLs and Application Passwords, plus the active project and environment |
+| `$XDG_CONFIG_HOME/loopress/config.json` (or `~/.config/loopress/config.json`) | Your machine | Projects, environments, URLs and Application Passwords, plus the active project |
 | [`loopress.json`](/loopress-json/) | Your repository | Which project the repository belongs to, where each kind of file lives, pinned plugins and themes |
 
 Credentials never go in the repository. To share projects between machines, see [Loopress Account](/account/).
 
 ### Targeting an environment
 
-Every command runs against the **active project and environment**, unless `loopress.json` sets a `projectId`. To target another environment for a single command, pass `--env` instead of switching globally:
+Commands run against the project set by `projectId` in `loopress.json`, or the active project (`lps project switch`) when there is none. Within that project, the environment is never remembered between commands:
+
+1. `--env <name>` when passed.
+2. Otherwise the `local` environment, if the project has one.
+3. Otherwise the project's only environment.
+
+A project with several environments and no `local` one needs `--env` on every command. So reaching a remote site is always spelled out in the command itself:
 
 ```bash
-lps snippet push --env staging
-lps status --env staging     # preview what would be targeted
+lps snippet push                 # local
+lps snippet push --env staging   # staging
+lps status --env staging         # preview what would be targeted
 ```
 
-`--env` takes priority over the active environment, and errors with the list of available environments if the name does not exist. Because `lps project switch` changes state shared by every terminal on the machine, `--env` is the safer choice in scripts.
+`--env` errors with the list of available environments if the name does not exist.
 
 ## Common flags
 

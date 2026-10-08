@@ -126,7 +126,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |
 | `validate_local` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-`env` overrides the globally active environment for that call. `path` overrides the directory
+`env` picks the environment for that call, instead of the project's default (`local`, or its only one). `path` overrides the directory
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
@@ -154,9 +154,9 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
 
 Mutating tools never touch an environment named `production` (`PRODUCTION_BLOCKED`): run those
 changes with `lps`, where they are confirmed interactively. When `env` is omitted, the preview call
-first resolves the active environment (`lps status`) and pins it as `--env <name>`, so the
+first resolves the default environment (`lps status`) and pins it as `--env <name>`, so the
 production refusal also covers an implicit target, and the confirmed call applies to the
-environment that was previewed even if the active one is switched in between.
+environment that was previewed even if the configuration changes in between.
 
 There is no way to skip the preview and apply in one call: no tool schema exposes a flag for it. One residual gap: the revalidation dry-run and
 the real apply are still two separate requests, not one atomic check-and-write, so a WordPress
@@ -182,8 +182,8 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
 | `STALE_PREVIEW` | The environment changed since the preview; call again without `confirmToken` for a fresh one |
-| `PRODUCTION_BLOCKED` | The call targets the `production` environment, explicitly or as the active one; run it with `lps` instead |
-| `UNRESOLVED_ENVIRONMENT` | `env` was omitted and no active environment resolves; pass `env` |
+| `PRODUCTION_BLOCKED` | The call targets the `production` environment, explicitly or as the default one; run it with `lps` instead |
+| `UNRESOLVED_ENVIRONMENT` | `env` was omitted and the project has no default environment (no `local`, several others); pass `env` |
 | `NO_PROJECT_CONFIG` | No `loopress.json` in the current directory (resource only) |
 
 ## Environment variables

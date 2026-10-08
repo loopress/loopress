@@ -6,8 +6,8 @@ export function makeEnv(name: string, url = 'https://example.com', token = 'user
   return {addedAt, name, token, url}
 }
 
-export function makeListedEnv(name: string, url = 'https://example.com', isCurrent = false): EnvironmentConfig & {isCurrent: boolean} {
-  return {...makeEnv(name, url), isCurrent}
+export function makeListedEnv(name: string, url = 'https://example.com', isDefault = false): EnvironmentConfig & {isDefault: boolean} {
+  return {...makeEnv(name, url), isDefault}
 }
 
 export function makeListedProject(

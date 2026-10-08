@@ -5,7 +5,7 @@ import { expect, test, unwrap } from "./helpers/environment.js";
 
 // `lps push` fans out to eight resource-specific `push` commands in dependency order (plugins,
 // composer, ACF, api, hooks, forms, SEO, snippets), each run non-interactively with --yes and
-// the active environment. Every other spec in this suite drives one resource directly (`lps
+// the default environment. Every other spec in this suite drives one resource directly (`lps
 // snippet push`, `lps api push`, ...); none of them exercise the aggregate command itself, so a
 // regression in its own orchestration, an unhandled resource, a dropped --yes/--env, a failure
 // in one resource silently swallowing the rest, would have no coverage. This project deliberately

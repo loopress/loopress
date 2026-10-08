@@ -86,7 +86,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     writeFileSync(
       join(configDir, 'config.json'),
       JSON.stringify({
-        currentProject: {env: 'local', id: 'e2e'},
+        currentProject: {id: 'e2e'},
         projects: {
           e2e: {
             addedAt,

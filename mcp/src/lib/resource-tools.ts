@@ -7,7 +7,7 @@ import {runLps} from './run-lps.js'
 import {toCallToolResult, unwrap} from './tool-result.js'
 
 // Identical wording in every resource tool file.
-export const envFlag = z.string().optional().describe('Target environment by name, overriding the globally active one')
+export const envFlag = z.string().optional().describe('Target environment by name (default: "local", or the project\'s only environment)')
 export const confirmTokenFlag = z
   .string()
   .optional()

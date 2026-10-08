@@ -40,7 +40,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isCurrent: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -77,32 +77,32 @@ describe('project list', () => {
     expect(logs.log).toHaveBeenCalledWith('○ Acme')
   })
 
-  it('marks the current environment with an arrow', async () => {
+  it('marks the default environment with a [default] tag', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isCurrent: true, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: true, name: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test', ' ←'))
+    expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test', ' [default]'))
   })
 
-  it('does not add the arrow for a non-current environment', async () => {
+  it('does not add the [default] tag for a non-default environment', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isCurrent: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
     await cmd.run()
 
-    expect(joinedOutput(logs)).not.toContain('←')
+    expect(joinedOutput(logs)).not.toContain('[default]')
     expect(logs.log).toHaveBeenCalledWith(envLine('·', 'production', 'https://acme.test'))
   })
 
@@ -111,8 +111,8 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isCurrent: false, name: 'staging', token: 't', url: 'https://staging.acme.test'},
-      {addedAt: '2024-01-01', isCurrent: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'staging', token: 't', url: 'https://staging.acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -144,7 +144,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: true, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isCurrent: true, name: 'production', token: 'super-secret-app-password', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: true, name: 'production', token: 'super-secret-app-password', url: 'https://acme.test'},
     ])
     const {cmd} = make()
 
@@ -152,7 +152,7 @@ describe('project list', () => {
 
     expect(result).toEqual([
       {
-        environments: [{isCurrent: true, name: 'production', url: 'https://acme.test'}],
+        environments: [{isDefault: true, name: 'production', url: 'https://acme.test'}],
         id: 'acme',
         isCurrent: true,
         name: 'Acme',

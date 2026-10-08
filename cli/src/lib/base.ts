@@ -21,11 +21,11 @@ type ParsedBaseFlags = {
 }
 
 export abstract class LoopressCommand extends Command {
-  // On every subclass without opt-in: targeting an environment explicitly beats depending on
-  // the machine-wide mutable state of `lps project switch`, which is shared across terminals.
+  // On every subclass without opt-in. Without it, commands target the "local" environment, so
+  // reaching a remote site is always spelled out in the command itself.
   static baseFlags = {
     env: Flags.string({
-      description: 'Target environment by name, overriding the globally active one (lps project switch)',
+      description: 'Target environment by name (default: "local", or the project\'s only environment)',
     }),
   }
 
@@ -246,28 +246,12 @@ export abstract class LoopressCommand extends Command {
     return env
   }
 
+  // Order: --env, then the project's default (see getDefaultEnvironment). The project comes from
+  // loopress.json when pinned, from `lps project switch` otherwise.
   private resolveEnvironment(envName?: string): {env: EnvironmentConfig; projectId: string} {
-    if (this.localConfig.projectId) {
-      return this.resolveEnvironmentForConfiguredProject(this.localConfig.projectId, envName)
-    }
+    const projectId = this.localConfig.projectId ?? configManager.getCurrentProject()?.id
+    if (!projectId) this.error('No project configured. Run `lps project config` first.')
 
-    if (envName) {
-      const current = configManager.getCurrentProject()
-      if (!current) {
-        this.error('No project configured. Run `lps project config` first.')
-      }
-
-      return {env: this.pickEnvironment(current, envName), projectId: current.id}
-    }
-
-    const env = configManager.getCurrentEnv()
-    const current = configManager.getCurrentProject()
-    if (env && current) return {env, projectId: current.id}
-
-    this.error('No environment configured. Run `lps project config` first.')
-  }
-
-  private resolveEnvironmentForConfiguredProject(projectId: string, envName?: string): {env: EnvironmentConfig; projectId: string} {
     const project = configManager.getProject(projectId)
     if (!project) {
       this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
@@ -280,16 +264,13 @@ export abstract class LoopressCommand extends Command {
 
     if (envName) return {env: this.pickEnvironment(project, envName), projectId}
 
-    if (envNames.length === 1) {
-      return {env: project.environments[envNames[0]], projectId}
+    const env = configManager.getDefaultEnvironment(projectId)
+    if (!env) {
+      this.error(
+        `Project "${project.name}" has no "local" environment, pass --env to pick one. Available: ${envNames.join(', ')}`,
+      )
     }
 
-    const current = configManager.getCurrentProject()
-    const currentEnv = current?.id === projectId ? configManager.getCurrentEnv() : null
-    if (!currentEnv) {
-      this.error(`Project "${project.name}" has multiple environments. Run \`lps project switch\` to pick one.`)
-    }
-
-    return {env: currentEnv, projectId}
+    return {env, projectId}
   }
 }
