@@ -1,5 +1,27 @@
 # @loopress/cli
 
+## 0.29.0
+
+### Minor Changes
+
+- cc5ede1: Options that store a page ID (EDD's checkout pages in `edd_settings`, WooCommerce's `woocommerce_shop_page_id`...) can now be synced between environments. Declare them in the option file with `"refs": {"purchase_page": "page"}`, then `lps option pull` writes the page's path instead of its ID, and `lps option push` turns it back into the ID of that page on the target. A page missing on the target fails the push for that option with a clear message.
+- cc5ede1: `lps plugin pull` no longer adds every plugin installed on the site. Plugins the project already tracks are refreshed, and the others are offered as a list to tick, unticked by default, so a pull from production doesn't bring its cache, security or backup plugins into the project. Without a terminal (`--yes`, `--json`, CI, the MCP server), only tracked plugins and those named with the new `--plugin <slug>` flag are written; the MCP `plugin_pull` tool takes them as `plugins`.
+  
+  Plugins under `require-dev` in `composer.json` are now installed on the `local` environment by `lps plugin push` and `lps composer push`, and still never on a remote site: use it for Query Monitor, or for a premium plugin's free edition while production runs the paid one.
+- bee1b73: Breaking: everything theme related now lives under `lps theme`. `lps template push/list/diff` is now `lps theme template push/list/diff`, and the versions-only `lps theme push/pull` is now `lps theme version push/pull`. `lps theme push` now pushes the whole topic in order (versions, then templates and parts, then Global Styles), and `lps theme pull` pulls versions and Global Styles. `lps theme style push` accepts `--yes`. In the MCP server, `theme_push`/`theme_pull` now wrap the whole topic, the new `theme_version_push`/`theme_version_pull` keep the versions-only behavior, and the `template_*` tool names are unchanged. The `template` and `part` resource names for `lps diff --only/--skip` are unchanged.
+
+### Patch Changes
+
+- cc5ede1: A push's `--dry-run` now reads the target site, the same way `lps diff` does, instead of staying local. It used to announce ACF, SEO, forms or snippets as pushed on a site that would refuse them (plugin missing), and the real push then failed; the dry run now fails the same way. The MCP server's preview and pre-apply check, built on the dry run, benefit too. `lps push --dry-run` also says "would push" instead of "pushed".
+- 426df4b: A refused WordPress or Loopress API request no longer ends its error with the raw `Caused by: HTTPError ... Code: ERR_NON_2XX_3XX_RESPONSE` lines: the server's own reason, already in the message, is now the last thing printed. `LPS_DEBUG=1` still shows the whole chain.
+- 69ed247: `lps acf`, `lps seo`, `lps form`, `lps menu` and `lps theme style` `push`/`pull` now accept `--json`. The MCP server runs every command with `--json`, so `acf_push`, `acf_pull`, `seo_push`, `seo_pull`, `form_push`, `form_pull`, `menu_push`, `menu_pull`, `theme_styles_push` and `theme_styles_pull` always failed with "Nonexistent flag: --json". A test now checks that every command the MCP server can call supports `--json`.
+- 69ed247: The MCP server now refuses a change to `production` even when `env` is omitted and `production` is the active environment. Before, only an explicit `env: "production"` was refused, so `hook_rm`, `api_rm`, a `*_rollback` or a `push` with `prune` could reach production without any human confirmation. A mutating tool called without `env` now resolves the active environment first and pins it, so the confirmed call also applies to the environment that was previewed, even if the active one is switched in between. `lps status --json` reports the resolved `environment` name for this.
+- 69ed247: The examples of `lps snippet push`, `lps snippet pull`, `lps snippet publish` and `lps api publish` no longer show a `--path` flag that does not exist: the directory is a positional argument (`lps snippet push ./snippets`).
+- b77aafe: `lps api remove` and `lps hook remove` are now aliases of `lps api rm` and `lps hook rm`, matching `lps app remove` and `lps option remove`. `rm` keeps working.
+- e57f3a0: `lps init` no longer asks for a snippets directory or a list of feature directories. It writes only `projectId` and `rootDir`, every resource uses its default directory, and a custom name is a `<kind>Dir` key in `loopress.json`. The suggested next step is now `lps pull`.
+- 426df4b: Template and part file names now accept `_`, like the post type and taxonomy slugs the template hierarchy embeds: `templates/taxonomy-download_tag.html` or `templates/single-my_type.html` no longer stop `lps theme template push`. Page file names keep their stricter rule.
+- a3c5097: `lps project config`: "Authorize in my browser" works again. It was always rejected with "Rejected a cross-origin request to the login callback server", then fell back to manual entry. WordPress now redirects straight to the CLI on `127.0.0.1`, without going through `api.loopress.dev`, so the Application Password never transits through a Loopress server. This needs WordPress 7.0 or later: on an older site, detected from its public version tag, the command goes straight to manual entry and says why.
+
 ## 0.28.0
 
 ### Minor Changes
