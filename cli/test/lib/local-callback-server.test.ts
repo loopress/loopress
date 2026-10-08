@@ -49,7 +49,7 @@ describe('waitForLocalCallback', () => {
     await expect(result).resolves.toEqual({token: 'abc123'})
   })
 
-  it('ignores a bare request with no state and no body without shutting down', async () => {
+  it('ignores a bare request with no query string without shutting down', async () => {
     const result = startTokenWait()
     const callbackUrl = new URL(await openedCallbackUrl())
 
@@ -61,16 +61,17 @@ describe('waitForLocalCallback', () => {
     await expect(result).resolves.toEqual({token: 'abc123'})
   })
 
-  it('rejects a request that carries a body but the wrong state', async () => {
+  it('rejects a request that carries credentials but the wrong state', async () => {
     const result = startTokenWait()
     const callbackUrl = new URL(await openedCallbackUrl())
     callbackUrl.searchParams.set('state', 'nope')
+    callbackUrl.searchParams.set('token', 'stolen')
 
     // Assertion listed before the triggering request, see wp-authorize-flow.test.ts: the
-    // rejection happens synchronously inside the request handler, before `got.post` resolves.
+    // rejection happens synchronously inside the request handler, before `got` resolves.
     const [, res] = await Promise.all([
       expect(result).rejects.toThrow(/state/i),
-      got.post(callbackUrl.href, {form: {token: 'stolen'}, throwHttpErrors: false}),
+      got(callbackUrl.href, {throwHttpErrors: false}),
     ])
     expect(res.statusCode).toBe(403)
   })
@@ -79,11 +80,12 @@ describe('waitForLocalCallback', () => {
     // eslint-disable-next-line @typescript-eslint/promise-function-async -- callers want the pending handle
     function startWait<T>(
       handleRequest: (url: URL, helpers: CallbackHelpers<T>) => void,
-      extra: {log?: (m: string) => void; timeoutMs?: number} = {},
+      extra: {callbackHost?: string; log?: (m: string) => void; timeoutMs?: number} = {},
     ) {
       return waitForLocalCallback<T>({
         allowedOrigins: ['https://relay.example'],
         buildUrl: (base, state) => `${base}/callback?state=${state}`,
+        callbackHost: extra.callbackHost,
         handleRequest,
         log: extra.log ?? (() => undefined),
         openingMessage: 'Opening your browser...',
@@ -92,21 +94,31 @@ describe('waitForLocalCallback', () => {
       })
     }
 
-    it('hands the parsed form body of a POST with the right state to the handler', async () => {
-      const result = startWait<Record<string, string>>((_url, {body, resolveWithPage}) => {
-        resolveWithPage('ok', body)
+    it("serves the handler's page as HTML and resolves with its value", async () => {
+      const result = startWait<string>((url, {resolveWithPage}) => {
+        resolveWithPage('ok', url.searchParams.get('password')!)
       })
-      const callbackUrl = await openedCallbackUrl()
+      const callbackUrl = new URL(await openedCallbackUrl())
+      callbackUrl.searchParams.set('password', 'p w')
 
-      const res = await got.post(callbackUrl, {
-        form: {password: 'p w', user: 'admin'},
-        headers: {origin: 'https://relay.example'},
-      })
+      const res = await got(callbackUrl.href)
 
       expect(res.statusCode).toBe(200)
       expect(res.headers['content-type']).toBe('text/html; charset=utf-8')
       expect(res.body).toBe('ok')
-      await expect(result).resolves.toEqual({password: 'p w', user: 'admin'})
+      await expect(result).resolves.toBe('p w')
+    })
+
+    it('advertises callbackHost in the callback URL instead of localhost', async () => {
+      const result = startWait((_url, {resolveWithPage}) => {
+        resolveWithPage('ok', 1)
+      }, {callbackHost: '127.0.0.1'})
+      const callbackUrl = await openedCallbackUrl()
+
+      expect(callbackUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/callback\?state=[\da-f]{64}$/)
+
+      await got(callbackUrl)
+      await result
     })
 
     it('rejects a callback coming from an origin that is not allowlisted', async () => {
@@ -118,8 +130,7 @@ describe('waitForLocalCallback', () => {
 
       const [, res] = await Promise.all([
         expect(result).rejects.toThrow('Rejected a cross-origin request to the login callback server.'),
-        got.post(callbackUrl, {
-          form: {token: 'x'},
+        got(callbackUrl, {
           headers: {origin: 'https://evil.example'},
           throwHttpErrors: false,
         }),
@@ -130,15 +141,22 @@ describe('waitForLocalCallback', () => {
       expect(handled).toBe(false)
     })
 
-    it('rejects a callback that carries a body but no state at all', async () => {
-      const result = startWait(() => {})
+    // Credentials are read from the query string, so a query without `state` must still go
+    // through the state check rather than straight to the handler.
+    it('rejects a callback whose query carries credentials but no state at all', async () => {
+      let handled = false
+      const result = startWait(() => {
+        handled = true
+      })
       const callbackUrl = new URL(await openedCallbackUrl())
       callbackUrl.searchParams.delete('state')
+      callbackUrl.searchParams.set('password', 'forged')
 
       await Promise.all([
         expect(result).rejects.toThrow('Rejected a login callback with a missing or invalid state value.'),
-        got.post(callbackUrl.href, {form: {token: 'x'}, throwHttpErrors: false}),
+        got(callbackUrl.href, {throwHttpErrors: false}),
       ])
+      expect(handled).toBe(false)
     })
 
     it("rejects with the handler's error while still serving its page", async () => {
@@ -224,6 +242,12 @@ describe('waitForLocalCallback', () => {
       expect(html).toContain('h1 { color: #123;')
       expect(html).toContain('<div class="icon">✅</div>')
       expect(html).toContain('<h1>Logged in</h1>')
+    })
+
+    it('rewrites its own URL so the callback query does not stay in the browser history', () => {
+      const html = renderResultPage({background: '', heading: '', headingColor: '', icon: '', tabTitle: ''})
+
+      expect(html).toContain("history.replaceState(null, '', '/')")
     })
   })
 })

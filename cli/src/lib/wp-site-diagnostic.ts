@@ -2,6 +2,14 @@ import got from 'got'
 
 export const REQUEST_TIMEOUT_MS = 10_000
 
+/**
+ * WordPress 7.0 is the first version that accepts a loopback `http://127.0.0.1` success_url on
+ * authorize-application.php whatever the site's environment type (wp_is_authorize_application_redirect_url_valid).
+ * Earlier versions only accept it when WP_ENVIRONMENT_TYPE is `local`, which isn't exposed publicly,
+ * so a 6.x site is sent to manual entry even though a local one would have worked.
+ */
+const MIN_BROWSER_AUTH_MAJOR = 7
+
 export type DiagnosticResult = {ok: false; reason: string} | {ok: true}
 
 type WpIndexResponse = undefined | {authentication?: Record<string, unknown>}
@@ -36,7 +44,39 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
     }
   }
 
+  const version = await detectWpVersion(siteUrl)
+  if (version && Number(version.split('.', 1)[0]) < MIN_BROWSER_AUTH_MAJOR) {
+    return {
+      ok: false,
+      reason: `${siteUrl} runs WordPress ${version}. Before WordPress ${MIN_BROWSER_AUTH_MAJOR}.0, WordPress refuses to send the Application Password back to the CLI on this machine (http://127.0.0.1), so authorizing in the browser is not possible. Create an Application Password in wp-admin (Users > Profile) and enter it below.`,
+    }
+  }
+
   return {ok: true}
+}
+
+/**
+ * Best effort, from the public generator tag: the feed's `<generator>` first, then the home page
+ * `<meta name="generator">`. Security plugins often strip both, in which case this returns
+ * undefined and the browser flow is attempted anyway.
+ */
+async function detectWpVersion(siteUrl: string): Promise<string | undefined> {
+  const sources = [
+    {pattern: /<generator>[^<]*[?&]v=(\d+(?:\.\d+)*)/, url: `${siteUrl}/feed/`},
+    {pattern: /<meta name="generator" content="WordPress (\d+(?:\.\d+)*)/, url: `${siteUrl}/`},
+  ]
+
+  for (const {pattern, url} of sources) {
+    try {
+      const body = await got.get(url, {timeout: {request: REQUEST_TIMEOUT_MS}}).text()
+      const version = pattern.exec(body)?.[1]
+      if (version) return version
+    } catch {
+      // Feed disabled or page unreachable: try the next source.
+    }
+  }
+
+  return undefined
 }
 
 function describe(error: unknown): string {

@@ -5,16 +5,6 @@ import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
 
-async function readBody(req: IncomingMessage): Promise<string> {
-  const chunks: Uint8Array[] = []
-  for await (const chunk of req) chunks.push(chunk as Uint8Array)
-  return Buffer.concat(chunks).toString('utf8')
-}
-
-function parseFormData(body: string): Record<string, string> {
-  return Object.fromEntries(new URLSearchParams(body))
-}
-
 /** Constant-time compare that also tolerates a length mismatch without throwing. */
 function safeEqual(a: string, b: string): boolean {
   const bufferA = Buffer.from(a)
@@ -23,7 +13,6 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export type CallbackHelpers<T> = {
-  body: Record<string, string>
   rejectWithPage: (page: string, error: Error) => void
   resolveWithPage: (page: string, value: T) => void
   respondBadRequest: (message: string) => void
@@ -34,13 +23,14 @@ export type CallbackHelpers<T> = {
  * local server; this factors out the server setup, timeout, and browser-opening boilerplate.
  *
  * The loopback server is unauthenticated, so any local process or web page open during the wait
- * could otherwise POST forged credentials to it (RFC 8252 section 8.9). Two guards close that:
+ * could otherwise send forged credentials to it (RFC 8252 section 8.9). Two guards close that:
  *
  * - a 32-byte `state` generated here, threaded into the authorize URL by `buildUrl`, and required
- *   back (constant-time compare) on any request that carries credentials;
- * - an `Origin` allowlist: a browser sends `Origin` on the relay's cross-site form POST, so a
- *   stray page's POST (carrying its own origin) is rejected. Top-level navigations send no
- *   `Origin` and are allowed, which is why `state` is the primary control.
+ *   back (constant-time compare) on any request with a query string, the only place credentials
+ *   are read from;
+ * - an `Origin` allowlist: the legitimate callbacks are top-level redirects, which send no
+ *   `Origin`, so a request from a page script (carrying its own origin) is rejected. That's
+ *   defense in depth, `state` is the primary control.
  *
  * The first request that looks like a callback (valid or not) shuts the server down, so a
  * failed guess gets no second try within the window.
@@ -48,6 +38,8 @@ export type CallbackHelpers<T> = {
 export async function waitForLocalCallback<T>(options: {
   allowedOrigins: string[]
   buildUrl: (callbackBaseUrl: string, state: string) => string
+  /** Host advertised in the callback URL; the server itself always listens on 127.0.0.1. */
+  callbackHost?: string
   handleRequest: (url: URL, helpers: CallbackHelpers<T>) => void
   log: (message: string) => void
   openingMessage: string
@@ -59,27 +51,29 @@ export async function waitForLocalCallback<T>(options: {
 
   return new Promise((resolve, reject) => {
     function finish(res: ServerResponse, page: string): void {
-      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'})
+      // `Connection: close` (here and below): server.close() only refuses new connections, a
+      // kept-alive socket would otherwise still reach this handler after the shutdown.
+      res.writeHead(200, {Connection: 'close', 'Content-Type': 'text/html; charset=utf-8'})
       res.end(page)
       clearTimeout(timer)
       server.close()
     }
 
     function rejectRequest(res: ServerResponse, message: string): void {
-      res.writeHead(403, {'Content-Type': 'text/plain'})
+      res.writeHead(403, {Connection: 'close', 'Content-Type': 'text/plain'})
       res.end(message)
       clearTimeout(timer)
       server.close()
       reject(new Error(message))
     }
 
-    async function handleIncoming(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    function handleIncoming(req: IncomingMessage, res: ServerResponse): void {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
-        const body: Record<string, string> =
-          req.method === 'POST' ? parseFormData(await readBody(req)) : {}
 
-        const looksLikeCallback = url.searchParams.has('state') || Object.keys(body).length > 0
+        // Any query string counts, not just one carrying `state`: credentials are read from the
+        // query, so a request with `password=` but no `state` must not slip past the check.
+        const looksLikeCallback = url.search !== ''
         if (looksLikeCallback) {
           const {origin} = req.headers
           if (origin !== undefined && !options.allowedOrigins.includes(origin)) {
@@ -106,7 +100,6 @@ export async function waitForLocalCallback<T>(options: {
             res.writeHead(400, {'Content-Type': 'text/plain'})
             res.end(message)
           },
-          body,
         })
       } catch (error) {
         res.writeHead(500)
@@ -116,7 +109,7 @@ export async function waitForLocalCallback<T>(options: {
       }
     }
 
-    const server = createServer((req, res) => { void handleIncoming(req, res) })
+    const server = createServer(handleIncoming)
 
     server.on('error', (err) => {
       clearTimeout(timer)
@@ -130,7 +123,7 @@ export async function waitForLocalCallback<T>(options: {
 
     server.listen(0, '127.0.0.1', () => {
       const {port} = server.address() as AddressInfo
-      const targetUrl = options.buildUrl(`http://localhost:${port}`, state)
+      const targetUrl = options.buildUrl(`http://${options.callbackHost ?? 'localhost'}:${port}`, state)
 
       options.log(options.openingMessage)
       options.log(`\nIf it doesn't open automatically, visit:\n${targetUrl}\n`)
@@ -140,6 +133,10 @@ export async function waitForLocalCallback<T>(options: {
   })
 }
 
+/**
+ * The page rewrites its own URL to `/` on load, so the callback query string (an Application
+ * Password, a console token) doesn't stay in the browser history or address bar.
+ */
 export function renderResultPage(options: {
   background: string
   heading: string
@@ -183,6 +180,7 @@ export function renderResultPage(options: {
     <h1>${options.heading}</h1>
     <p>You can close this tab and return to your terminal.</p>
   </div>
+  <script>history.replaceState(null, '', '/')</script>
 </body>
 </html>`
 }
