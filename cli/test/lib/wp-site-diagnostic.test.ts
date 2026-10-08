@@ -13,9 +13,23 @@ function mockIndex(body: unknown) {
   vi.mocked(got.get).mockReturnValueOnce({json: async () => body} as never)
 }
 
+const APP_PASSWORDS_INDEX = {authentication: {'application-passwords': {endpoints: {authorization: 'https://example.com/wp-admin/authorize-application.php'}}}}
+
+/** Mocks the version sources, in the order they're read: `/feed/`, then the home page. */
+function mockVersionSources(feed: Error | string, home: Error | string = new Error('not reached')) {
+  for (const body of [feed, home]) {
+    vi.mocked(got.get).mockReturnValueOnce({
+      async text() {
+        if (body instanceof Error) throw body
+        return body
+      },
+    } as never)
+  }
+}
+
 describe('diagnoseWpSite', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   it('accepts a plain http:// URL (WordPress does not require HTTPS for Application Passwords, e.g. local dev sites)', async () => {
@@ -70,5 +84,41 @@ describe('diagnoseWpSite', () => {
     const result = await diagnoseWpSite('https://example.com')
 
     expect(result).toEqual({ok: true})
+  })
+
+  describe('WordPress version gate (loopback success_url only accepted from 7.0)', () => {
+    it('sends a WordPress 6.x site to manual entry, naming the version found in the feed', async () => {
+      mockIndex(APP_PASSWORDS_INDEX)
+      mockVersionSources('<generator>https://wordpress.org/?v=6.9.4</generator>')
+
+      const result = await diagnoseWpSite('https://example.com')
+
+      expect(result).toEqual({ok: false, reason: expect.stringContaining('WordPress 6.9.4')})
+      expect(got.get).toHaveBeenCalledWith('https://example.com/feed/', expect.anything())
+    })
+
+    it('accepts WordPress 7.0 and later', async () => {
+      mockIndex(APP_PASSWORDS_INDEX)
+      mockVersionSources('<generator>https://wordpress.org/?v=7.0</generator>')
+
+      expect(await diagnoseWpSite('https://example.com')).toEqual({ok: true})
+    })
+
+    it('falls back to the home page generator meta when the feed is unavailable', async () => {
+      mockIndex(APP_PASSWORDS_INDEX)
+      mockVersionSources(new Error('404'), '<meta name="generator" content="WordPress 6.8.1" />')
+
+      const result = await diagnoseWpSite('https://example.com')
+
+      expect(result).toEqual({ok: false, reason: expect.stringContaining('WordPress 6.8.1')})
+      expect(got.get).toHaveBeenCalledWith('https://example.com/', expect.anything())
+    })
+
+    it('lets the browser flow be tried when the version is hidden (generator stripped)', async () => {
+      mockIndex(APP_PASSWORDS_INDEX)
+      mockVersionSources('<rss></rss>', '<html></html>')
+
+      expect(await diagnoseWpSite('https://example.com')).toEqual({ok: true})
+    })
   })
 })

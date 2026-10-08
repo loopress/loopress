@@ -36,7 +36,7 @@ The CLI checks npm in the background (at most once a day, never blocking a comma
 lps project config
 ```
 
-Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically. If it can't complete, or you'd rather enter credentials yourself, the command falls back to manual entry. If you can't find the Application Passwords section in your WordPress admin, see [Application Passwords](/application-passwords/).
+Enter your WordPress URL, then choose **Authorize in my browser (recommended)**. This opens your WordPress admin and creates an Application Password for you automatically (WordPress 7.0 or later). If it can't complete, your site runs an older WordPress, or you'd rather enter credentials yourself, the command falls back to manual entry. If you can't find the Application Passwords section in your WordPress admin, see [Application Passwords](/application-passwords/).
 
 If Loopress Full isn't active on the site yet, `project config` offers to install it for you, after a confirmation prompt. When the automatic install can't complete (some managed hosts block uploads), it falls back to instructions for a [manual upload](/wordpress-plugin/#installation). [Concepts](/concepts/#configuring-an-environment) details both steps.
 
