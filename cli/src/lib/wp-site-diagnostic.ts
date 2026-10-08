@@ -45,7 +45,7 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
   }
 
   const version = await detectWpVersion(siteUrl)
-  if (version && Number(version.split('.')[0]) < MIN_BROWSER_AUTH_MAJOR) {
+  if (version && Number(version.split('.', 1)[0]) < MIN_BROWSER_AUTH_MAJOR) {
     return {
       ok: false,
       reason: `${siteUrl} runs WordPress ${version}. Before WordPress ${MIN_BROWSER_AUTH_MAJOR}.0, WordPress refuses to send the Application Password back to the CLI on this machine (http://127.0.0.1), so authorizing in the browser is not possible. Create an Application Password in wp-admin (Users > Profile) and enter it below.`,
