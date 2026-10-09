@@ -103,6 +103,7 @@
                      PHP-DI container instantiates them through this inherited base one. -->
                 <referencedMethod name="Loopress\Infrastructure\AbstractFilesDirectory::__construct" />
                 <referencedMethod name="Loopress\Apps\Module\AppsModule::__construct" />
+                <referencedMethod name="Loopress\TempAdmin\Module\TempAdminModule::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppShortcode::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppAssetEnqueuer::__construct" />
                 <referencedMethod name="Loopress\Apps\Infrastructure\AppsDirectory::__construct" />
@@ -201,6 +202,7 @@
                 <file name="src/Hooks/Feature.php" />
                 <file name="src/Apps/Feature.php" />
                 <file name="src/Pages/Feature.php" />
+                <file name="src/TempAdmin/Feature.php" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>

@@ -81,7 +81,7 @@ use Loopress\Plugin;
 // if anything more directly: it binds arbitrary developer PHP straight into WP core's own
 // action/filter hooks, unconditionally, for every visitor. Pages ships raw HTML (which can
 // carry <script>) straight into the site's pages, close enough to count as the same thing.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Settings', 'Pages'] as $loopressPlusFeature) {
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressPlusFeature) {
     $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
