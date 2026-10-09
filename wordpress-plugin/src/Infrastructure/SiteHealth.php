@@ -7,7 +7,7 @@ namespace Loopress\Infrastructure;
 /**
  * Surfaces a feature's diagnostics in WordPress's own Tools > Site Health screen, where admins
  * already look, instead of a Loopress-only tab nobody opens unless something is visibly broken.
- * Shared so each feature (Composer, Apps) only supplies its issue list.
+ * Shared so each feature (dependencies, apps) only supplies its issue list.
  */
 final class SiteHealth
 {
