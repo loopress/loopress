@@ -39,6 +39,7 @@ export function InstalledPackages({ readOnly = false }: Readonly<{ readOnly?: bo
         onSuccess: (data, packageName) => {
             setActionResult({ action: 'removed', name: packageName, output: data?.output, error: null });
             queryClient.invalidateQueries({ queryKey: ['installed-packages'] });
+            queryClient.invalidateQueries({ queryKey: ['audit'] });
         },
         onError: (err, packageName) => {
             setActionResult({ action: 'removed', name: packageName, output: err.output, error: err.message });
@@ -54,6 +55,7 @@ export function InstalledPackages({ readOnly = false }: Readonly<{ readOnly?: bo
             setActionResult({ action: 'updated', name, output: data?.output, error: null });
             queryClient.invalidateQueries({ queryKey: ['installed-packages'] });
             queryClient.invalidateQueries({ queryKey: ['outdated-packages'] });
+            queryClient.invalidateQueries({ queryKey: ['audit'] });
         },
         onError: (err, { name }) => {
             setActionResult({ action: 'updated', name, output: err.output, error: err.message });

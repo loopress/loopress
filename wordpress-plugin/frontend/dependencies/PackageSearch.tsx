@@ -12,6 +12,14 @@ interface Props {
     disabled: boolean;
 }
 
+// Spelled out instead of a colored icon: the select can't style its options, and color alone
+// says nothing to a screen reader.
+function phpNote(v: PackageVersion): string {
+    if (v.php_compatible === false) return `, requires PHP ${v.php_constraint}`;
+    if (v.php_compatible === null) return ', PHP compatibility unknown';
+    return '';
+}
+
 interface VersionForm {
     version: string;
 }
@@ -125,9 +133,7 @@ export function PackageSearch({ onInstall, disabled }: Props) {
                         value={version}
                         options={versions.map((v, idx) => ({
                             value: v.version,
-                            label: `${v.version}${idx === 0 ? ' (latest)' : ''}${
-                                v.php_compatible === false ? `, requires PHP ${v.php_constraint}` : v.php_compatible === null ? ', PHP compatibility unknown' : ''
-                            }`,
+                            label: `${v.version}${idx === 0 ? ' (latest)' : ''}${phpNote(v)}`,
                         }))}
                         onChange={(val) => setValue('version', val)}
                         __next40pxDefaultSize

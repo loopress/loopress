@@ -41,7 +41,7 @@ The **Installed packages** list checks each installed package against Packagist.
 
 Changes made from the admin edit the site's own `composer.json`: run [`lps composer pull`](/composer/cli/) afterwards to bring them back into your repository.
 
-- On a site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is `production` (WordPress's default), installing, updating or removing a package asks for a confirmation that names the production site first. The environment is shown as a badge next to the page title.
+- Removing a package always asks for a confirmation. On a site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is `production` (WordPress's default), installing and updating ask too, and every confirmation names the production site. The environment is shown as a badge next to the page title.
 - When `DISALLOW_FILE_MODS` is set to `true` in `wp-config.php` (or the `file_mod_allowed` filter returns `false`), dependencies are read-only: the search field and every action are hidden, and every Composer endpoint that writes files answers `403`, including the one [`lps composer push`](/composer/cli/) uses. Change dependencies in your repository and deploy them another way.
 
 ## Repair

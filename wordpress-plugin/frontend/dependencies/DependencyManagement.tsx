@@ -32,7 +32,12 @@ export function DependencyManagement() {
                 body: JSON.stringify({ package: packageName, version }),
             });
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['installed-packages'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['installed-packages'] });
+            // A new package can bring a new advisory or platform issue: refresh the banners too.
+            queryClient.invalidateQueries({ queryKey: ['diagnostics'] });
+            queryClient.invalidateQueries({ queryKey: ['audit'] });
+        },
     });
 
     return (

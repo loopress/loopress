@@ -1,4 +1,4 @@
-import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DependencyManagement } from './DependencyManagement';
@@ -28,8 +28,14 @@ function makeWrapper(installedPackages: unknown[] = []) {
 }
 
 describe('DependencyManagement', () => {
+    const originalData = window.loopressData;
+
     beforeEach(() => {
         apiFetchMock.mockReset();
+    });
+
+    afterEach(() => {
+        window.loopressData = originalData;
     });
 
     test('renders the section header, search and installed packages', () => {
@@ -63,7 +69,6 @@ describe('DependencyManagement', () => {
         render(<DependencyManagement />, {
             wrapper: makeWrapper([{ name: 'guzzlehttp/guzzle', version: '7.8.1' }]),
         });
-        window.loopressData = { ...window.loopressData, fileModsAllowed: true };
 
         expect(screen.getByText(/dependencies\s+are read-only here/i)).toBeInTheDocument();
         expect(screen.queryByLabelText(/search a composer package/i)).toBeNull();

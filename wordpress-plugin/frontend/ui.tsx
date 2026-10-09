@@ -100,7 +100,11 @@ export function Row({ children }: Readonly<{ children: React.ReactNode }>) {
 }
 
 export function CopyButton({ text, label = 'Copy' }: Readonly<{ text: string; label?: string }>) {
-    const [copied, setCopied] = useState(false);
+    const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+    const show = (next: 'copied' | 'failed') => {
+        setStatus(next);
+        setTimeout(() => setStatus('idle'), 2000);
+    };
 
     return (
         <Button
@@ -108,13 +112,16 @@ export function CopyButton({ text, label = 'Copy' }: Readonly<{ text: string; la
             size="small"
             aria-label={`${label}: ${text}`}
             onClick={() => {
-                navigator.clipboard?.writeText(text).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                });
+                // navigator.clipboard only exists in a secure context: a wp-admin served over
+                // plain HTTP has none, say so instead of doing nothing.
+                if (!navigator.clipboard) {
+                    show('failed');
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(() => show('copied'), () => show('failed'));
             }}
         >
-            {copied ? 'Copied' : label}
+            {{ idle: label, copied: 'Copied', failed: 'Copy failed' }[status]}
         </Button>
     );
 }

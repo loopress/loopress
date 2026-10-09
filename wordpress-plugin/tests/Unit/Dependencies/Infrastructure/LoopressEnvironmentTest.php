@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Dependencies\Infrastructure;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use PHPUnit\Framework\TestCase;
 
@@ -16,6 +17,8 @@ class LoopressEnvironmentTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // File modifications allowed by default; the DISALLOW_FILE_MODS case overrides this.
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
 
         $this->tmpDir = sys_get_temp_dir() . '/loopress-test-' . uniqid();
         mkdir($this->tmpDir, 0755, true);
@@ -85,6 +88,17 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertDirectoryDoesNotExist($loopressDir);
         $env->ensureInitialized();
         $this->assertDirectoryExists($loopressDir);
+    }
+
+    public function test_ensureInitialized_writes_nothing_when_file_mods_are_disallowed(): void
+    {
+        Functions\when('wp_is_file_mod_allowed')->justReturn(false);
+        $env = new LoopressEnvironment();
+
+        $env->ensureInitialized();
+
+        $this->assertDirectoryDoesNotExist($env->getLoopressDir());
+        $this->assertFalse($env->needsLibAutoloadDump());
     }
 
     public function test_ensureInitialized_creates_composer_json(): void

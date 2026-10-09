@@ -64,7 +64,10 @@ class HookFilesController extends AbstractFilesController
      */
     protected function annotateEntry(array $entry, string $rawContent): array
     {
-        $entry['hooks'] = array_map(self::withNextRun(...), HookAttributeScanner::bindingsIn($rawContent));
+        $entry['hooks'] = array_map(
+            static fn(array $binding): array => self::withNextRun($binding),
+            HookAttributeScanner::bindingsIn($rawContent),
+        );
         return $entry;
     }
 

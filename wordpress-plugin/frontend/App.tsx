@@ -21,6 +21,24 @@ const TAB_NAMES = TABS.map((tab) => tab.name);
 
 const { autoloadError, fileModsAllowed } = window.loopressData;
 
+function repairNotice(
+    canRepair: boolean,
+    repairing: boolean,
+    done: boolean,
+    failed: boolean,
+): { status: 'error' | 'success' | 'warning'; message: string } {
+    if (!canRepair) {
+        return {
+            status: 'error',
+            message: `${autoloadError}. File modifications are disabled on this site, run composer install from your deployment instead.`,
+        };
+    }
+    if (repairing) return { status: 'warning', message: 'Repairing dependencies...' };
+    if (done) return { status: 'success', message: 'Dependencies repaired successfully.' };
+    if (failed) return { status: 'error', message: `Auto-repair failed: ${autoloadError}` };
+    return { status: 'warning', message: `${autoloadError}, repairing...` };
+}
+
 export default function App() {
     const queryClient = useQueryClient();
     const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'dependencies');
@@ -41,29 +59,18 @@ export default function App() {
         if (autoloadError && canRepair) autoRepair();
     }, []);
 
+    const repair = repairNotice(canRepair, autoRepairing, autoRepairDone, autoRepairFailed);
+
     return (
         <AppShell edition="Full">
             <SentryConsentAlert />
 
             {autoloadError && (
                 <div style={{ marginBottom: 20 }}>
-                    <Notice
-                        status={autoRepairFailed || !canRepair ? 'error' : autoRepairDone ? 'success' : 'warning'}
-                        isDismissible={false}
-                    >
+                    <Notice status={repair.status} isDismissible={false}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {autoRepairing && <Spinner />}
-                            <span>
-                                {!canRepair
-                                    ? `${autoloadError}. File modifications are disabled on this site, run composer install from your deployment instead.`
-                                    : autoRepairing
-                                    ? 'Repairing dependencies...'
-                                    : autoRepairDone
-                                    ? 'Dependencies repaired successfully.'
-                                    : autoRepairFailed
-                                    ? `Auto-repair failed: ${autoloadError}`
-                                    : `${autoloadError}, repairing...`}
-                            </span>
+                            <span>{repair.message}</span>
                         </div>
                     </Notice>
                 </div>
