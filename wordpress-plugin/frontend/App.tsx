@@ -5,6 +5,7 @@ import { apiFetch } from './api';
 import { AppShell } from './AppShell';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { CodePanel } from './CodePanel';
+import { ConfigPanel } from './config/ConfigPanel';
 import { Overview } from './overview/Overview';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
@@ -15,8 +16,9 @@ import { useHashTab } from './useHashTab';
 // wrong. No update banner either: Loopress Full updates natively from the Plugins page.
 const TABS = [
     { name: 'overview', title: 'Overview' },
-    { name: 'dependencies', title: 'Dependencies' },
+    { name: 'config', title: 'Config' },
     { name: 'code', title: 'Code' },
+    { name: 'dependencies', title: 'Dependencies' },
     { name: 'settings', title: 'Settings' },
 ];
 const TAB_NAMES = TABS.map((tab) => tab.name);
@@ -81,7 +83,9 @@ export default function App() {
             <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
                 {(tab) => (
                     <div style={{ marginTop: 16 }}>
-                        {tab.name === 'code' ? (
+                        {tab.name === 'config' ? (
+                            <ConfigPanel />
+                        ) : tab.name === 'code' ? (
                             <CodePanel />
                         ) : tab.name === 'settings' ? (
                             <SettingsPanel />

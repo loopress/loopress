@@ -43,6 +43,8 @@ describe('LightApp', () => {
         expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
         expect(screen.getByText('Light v2026.7.0')).toBeInTheDocument();
         expect(screen.getByText('Staging')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Config' })).toBeInTheDocument();
     });
 
     test('points the user at the CLI pairing flow', async () => {

@@ -80,6 +80,7 @@ describe('App', () => {
         expect(screen.getByText('Full v2026.7.0')).toBeInTheDocument();
         expect(screen.getByText('Production')).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+        expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Config', 'Code', 'Dependencies', 'Settings']);
         expect(await screen.findByText('Connect your repository')).toBeInTheDocument();
         expect(screen.queryByText(/Repairing dependencies/i)).toBeNull();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());

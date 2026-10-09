@@ -1,9 +1,19 @@
-import { Button } from '@wordpress/components';
+import { Button, TabPanel } from '@wordpress/components';
 import { AppShell } from './AppShell';
+import { ConfigPanel } from './config/ConfigPanel';
 import { MUTED } from './helpers';
 import { Overview } from './overview/Overview';
+import { useHashTab } from './useHashTab';
+
+const TABS = [
+    { name: 'overview', title: 'Overview' },
+    { name: 'config', title: 'Config' },
+];
+const TAB_NAMES = TABS.map((tab) => tab.name);
 
 export default function LightApp() {
+    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'overview');
+
     return (
         <AppShell edition="Light">
             <p style={{ maxWidth: 600, fontSize: 13, marginTop: 0 }}>
@@ -13,7 +23,13 @@ export default function LightApp() {
                 moves between environments.
             </p>
 
-            <Overview />
+            <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
+                {(tab) => (
+                    <div style={{ marginTop: 16 }}>
+                        {tab.name === 'config' ? <ConfigPanel /> : <Overview />}
+                    </div>
+                )}
+            </TabPanel>
 
             <p style={{ color: MUTED, fontSize: 13, marginTop: 32 }}>
                 Loopress Full adds snippets, hooks, custom API routes, static pages, single-page apps and
