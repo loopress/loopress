@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Dependencies\RestApi;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Loopress\Dependencies\RestApi\ComposerController;
 use Loopress\Dependencies\Service\ComposerService;
@@ -92,6 +93,51 @@ class ComposerControllerTest extends TestCase
         $this->assertFalse(ComposerController::validateLockArg(str_repeat('x', 5 * 1024 * 1024 + 1)));
         $this->assertFalse(ComposerController::validateLockArg(123));
         $this->assertFalse(ComposerController::validateLockArg(['packages' => []]));
+    }
+
+    // ── DISALLOW_FILE_MODS ───────────────────────────────────────────────────
+
+    /** @return array<string, callable> route => permission_callback */
+    private function permissionCallbacks(): array
+    {
+        $callbacks = [];
+        Functions\when('register_rest_route')->alias(
+            static function (string $routeNamespace, string $route, array $args) use (&$callbacks): void {
+                $callbacks[$route] = $args['permission_callback'];
+            },
+        );
+        $this->controller->register_routes();
+
+        return $callbacks;
+    }
+
+    public function test_file_writing_routes_are_refused_when_file_mods_are_disallowed(): void
+    {
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_is_file_mod_allowed')->justReturn(false);
+        $callbacks = $this->permissionCallbacks();
+
+        foreach (['/composer/require', '/composer/remove', '/composer/repair', '/composer/fix-platform', '/composer/sync'] as $route) {
+            $this->assertInstanceOf(\WP_Error::class, $callbacks[$route](), $route);
+        }
+        // Read-only routes stay available, so the admin still sees what is installed.
+        $this->assertTrue($callbacks['/composer/installed']());
+    }
+
+    public function test_file_writing_routes_are_allowed_when_file_mods_are_allowed(): void
+    {
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+
+        $this->assertTrue($this->permissionCallbacks()['/composer/require']());
+    }
+
+    public function test_file_writing_routes_still_require_manage_options(): void
+    {
+        Functions\when('current_user_can')->justReturn(false);
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+
+        $this->assertFalse($this->permissionCallbacks()['/composer/require']());
     }
 
     // ── get_versions ─────────────────────────────────────────────────────────

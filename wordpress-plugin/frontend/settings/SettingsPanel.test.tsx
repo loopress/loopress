@@ -33,12 +33,26 @@ describe('SettingsPanel', () => {
         const toggle = await screen.findByLabelText(/Send crash reports to Loopress/i);
         await waitFor(() => expect(toggle).toBeChecked());
 
+        const confirm = (window.confirm = vi.fn().mockReturnValue(true));
         const user = userEvent.setup();
         await user.click(screen.getByRole('button', { name: 'Reset all settings to default' }));
+        expect(confirm).toHaveBeenCalled();
 
         await waitFor(() => {
             expect(apiFetchMock).toHaveBeenCalledWith('/settings', { method: 'DELETE' });
         });
         await waitFor(() => expect(toggle).not.toBeChecked());
+    });
+
+    test('reset does nothing when the confirmation is declined', async () => {
+        apiFetchMock.mockReset();
+        apiFetchMock.mockResolvedValue({ enabled: true });
+        (window.confirm = vi.fn().mockReturnValue(false));
+
+        render(<SettingsPanel />, { wrapper });
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Reset all settings to default' }));
+
+        expect(apiFetchMock).not.toHaveBeenCalledWith('/settings', { method: 'DELETE' });
     });
 });

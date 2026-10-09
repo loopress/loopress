@@ -37,13 +37,17 @@ function stubQuietEndpoints() {
     });
 }
 
-function renderApp(autoloadError: string | null) {
+function renderApp(autoloadError: string | null, overrides: Partial<Window['loopressData']> = {}) {
     window.loopressData = {
         apiUrl: 'http://localhost/wp-json/loopress/v1',
         nonce: 'test-nonce',
         autoloadError,
         phpVersion: '8.2.29',
         pluginVersion: '2026.7.0',
+        environment: 'production',
+        restUrl: 'http://localhost/wp-json/',
+        fileModsAllowed: true,
+        ...overrides,
     };
 
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -70,8 +74,9 @@ describe('App', () => {
     test('renders the Loopress Full heading without a repair notice when the autoload is healthy', async () => {
         await renderApp(null);
 
-        expect(screen.getByRole('heading', { name: 'Loopress Full' })).toBeInTheDocument();
-        expect(screen.getByText('v2026.7.0')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
+        expect(screen.getByText('Full v2026.7.0')).toBeInTheDocument();
+        expect(screen.getByText('Production')).toBeInTheDocument();
         expect(screen.queryByText(/Repairing dependencies/i)).toBeNull();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());
     });
@@ -109,7 +114,7 @@ describe('App', () => {
         });
     });
 
-    test('renders an API tab that shows uploaded route files', async () => {
+    test('renders a Code tab that shows uploaded route files', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
             if (path === '/api-files') {
                 return [{ filename: 'hello-world', content: '<?php' }];
@@ -123,21 +128,21 @@ describe('App', () => {
             if (path === '/composer/installed' || path === '/composer/outdated') {
                 return [];
             }
-            return {};
+            return [];
         });
 
         await renderApp(null);
 
-        await screen.findByRole('heading', { name: 'Loopress Full' });
+        await screen.findByRole('heading', { name: 'Loopress' });
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole('tab', { name: 'API' }));
+        await user.click(screen.getByRole('tab', { name: 'Code' }));
 
         expect(await screen.findByText('hello-world.php')).toBeInTheDocument();
         expect(screen.getByText('loopress-api/v1/hello-world')).toBeInTheDocument();
     });
 
-    test('renders an Apps tab that lists deployed single-page apps', async () => {
+    test('renders a Code tab that lists deployed single-page apps', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
             if (path === '/apps') {
                 return [
@@ -161,22 +166,22 @@ describe('App', () => {
             if (path === '/composer/installed' || path === '/composer/outdated') {
                 return [];
             }
-            return {};
+            return [];
         });
 
         await renderApp(null);
 
-        await screen.findByRole('heading', { name: 'Loopress Full' });
+        await screen.findByRole('heading', { name: 'Loopress' });
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole('tab', { name: 'Apps' }));
+        await user.click(screen.getByRole('tab', { name: 'Code' }));
 
         expect(await screen.findByText('search')).toBeInTheDocument();
         expect(screen.getByText('9f2a1c7b4e10')).toBeInTheDocument();
         expect(screen.getByText('[loopress_app name="search"]')).toBeInTheDocument();
     });
 
-    test('renders a Hooks tab that lists uploaded hook files with their bindings', async () => {
+    test('renders a Code tab that also lists uploaded hook files with their bindings', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
             if (path === '/hook-files') {
                 return [{ filename: 'content-filters', content: '<?php', hooks: [{ type: 'action', hook: 'init', recurrence: null }] }];
@@ -190,15 +195,15 @@ describe('App', () => {
             if (path === '/composer/installed' || path === '/composer/outdated') {
                 return [];
             }
-            return {};
+            return [];
         });
 
         await renderApp(null);
 
-        await screen.findByRole('heading', { name: 'Loopress Full' });
+        await screen.findByRole('heading', { name: 'Loopress' });
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole('tab', { name: 'Hooks' }));
+        await user.click(screen.getByRole('tab', { name: 'Code' }));
 
         expect(await screen.findByText('content-filters.php')).toBeInTheDocument();
         expect(screen.getByText('action: init')).toBeInTheDocument();
@@ -206,19 +211,27 @@ describe('App', () => {
 
     test('reflects the active outer tab in the URL hash', async () => {
         await renderApp(null);
-        await screen.findByRole('heading', { name: 'Loopress Full' });
+        await screen.findByRole('heading', { name: 'Loopress' });
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole('tab', { name: 'Diagnostics' }));
+        await user.click(screen.getByRole('tab', { name: 'Settings' }));
 
-        expect(window.location.hash).toBe('#diagnostics');
+        expect(window.location.hash).toBe('#settings');
     });
 
     test('opens directly on the tab named in the URL hash', async () => {
-        window.location.hash = '#api';
+        window.location.hash = '#code';
 
         await renderApp(null);
 
-        expect(await screen.findByRole('tab', { name: 'API', selected: true })).toBeInTheDocument();
+        expect(await screen.findByRole('tab', { name: 'Code', selected: true })).toBeInTheDocument();
+    });
+
+    test('does not auto-repair, and says why, when file modifications are disallowed', async () => {
+        await renderApp('vendor/autoload.php is corrupted', { fileModsAllowed: false });
+
+        expect(await screen.findByText(/File modifications are disabled on this site, run composer install/i)).toBeInTheDocument();
+        expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());
+        expect(screen.queryByLabelText('Search a Composer package')).toBeNull();
     });
 });

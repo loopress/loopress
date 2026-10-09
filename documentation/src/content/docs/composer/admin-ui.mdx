@@ -4,7 +4,7 @@ description: Search, install and remove Composer packages from the WordPress adm
 edition: full
 ---
 
-The **Dependency Management** card lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
+The **Composer dependencies** card, on the **Dependencies** tab of the **Loopress** page, lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
 
 ## Where packages are stored
 
@@ -27,21 +27,22 @@ wp-content/
 3. Choose a version (compatible versions are pre-selected automatically based on your PHP version)
 4. Click **Install**
 
-Version compatibility indicators:
-
-| Icon | Meaning |
-|------|---------|
-| 🟢 | Compatible with your PHP version |
-| 🔴 | Requires a different PHP version |
-| ❓ | No PHP constraint declared |
+Each version in the picker says when it is not a safe pick: **requires PHP x** when it needs a different PHP version than the server runs, **PHP compatibility unknown** when the package declares no PHP constraint.
 
 ## Removing a package
 
-In the **Installed Packages** card, click **Remove** next to the package you want to uninstall.
+In the **Installed packages** list, click **Remove** next to the package you want to uninstall, then confirm.
 
 ## Updating a package
 
-The **Installed Packages** card checks each installed package against Packagist. If a newer version is available, an "update: x.y.z" badge appears next to the current version, and an **Update** button runs `composer require` to install the latest version in place.
+The **Installed packages** list checks each installed package against Packagist. If a newer version is available, an "update: x.y.z" badge appears next to the current version, and an **Update** button runs `composer require` to install the latest version in place.
+
+## Production sites and read-only mode
+
+Changes made from the admin edit the site's own `composer.json`: run [`lps composer pull`](/composer/cli/) afterwards to bring them back into your repository.
+
+- Removing a package always asks for a confirmation. On a site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is `production` (WordPress's default), installing and updating ask too, and every confirmation names the production site. The environment is shown as a badge next to the page title.
+- When `DISALLOW_FILE_MODS` is set to `true` in `wp-config.php` (or the `file_mod_allowed` filter returns `false`), dependencies are read-only: the search field and every action are hidden, and every Composer endpoint that writes files answers `403`, including the one [`lps composer push`](/composer/cli/) uses. Change dependencies in your repository and deploy them another way.
 
 ## Repair
 
@@ -51,7 +52,7 @@ The **Repair** action runs `composer update` against `wp-content/loopress/compos
 - The lockfile has drifted from `composer.json`
 - A previous install left the dependencies in an inconsistent state
 
-The autoload error banner at the top of the page appears automatically when Loopress Full detects a missing or broken autoloader and prompts you to run Repair.
+The autoload error banner at the top of the page appears automatically when Loopress Full detects a missing or broken autoloader, and runs Repair on its own. Under `DISALLOW_FILE_MODS` it only reports the problem.
 
 ## REST API
 

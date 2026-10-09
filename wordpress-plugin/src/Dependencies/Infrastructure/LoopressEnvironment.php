@@ -196,6 +196,13 @@ class LoopressEnvironment
 
         $this->initialized = true;
 
+        // Everything below writes (directories, guard files, composer.json migrations). Under
+        // DISALLOW_FILE_MODS nothing is written, read paths (diagnostics, Site Health, the
+        // json/lock endpoints) then report the files as they are instead of silently fixing them.
+        if (!wp_is_file_mod_allowed('loopress_composer')) {
+            return;
+        }
+
         if (!is_dir($this->loopressDir)) {
             wp_mkdir_p($this->loopressDir);
         }

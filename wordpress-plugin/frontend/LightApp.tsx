@@ -10,8 +10,8 @@ const GET_STARTED_COMMANDS = [
 
 export default function LightApp() {
     return (
-        <AppShell title="Loopress Light">
-            <p style={{ maxWidth: 600, fontSize: 13 }}>
+        <AppShell edition="Light">
+            <p style={{ maxWidth: 600, fontSize: 13, marginTop: 0 }}>
                 Loopress Light syncs this site's ACF field groups, post types, taxonomies, and
                 options pages, and its SEO settings and redirects (Yoast, RankMath), with the
                 Loopress CLI, so all of it can live in Git: history, diffs, code review,

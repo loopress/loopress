@@ -27,6 +27,8 @@ class ComposerServiceTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // File modifications allowed by default; the DISALLOW_FILE_MODS case overrides this.
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
 
         $this->environment    = $this->createMock(LoopressEnvironment::class);
         $this->runner   = $this->createMock(ComposerRunner::class);

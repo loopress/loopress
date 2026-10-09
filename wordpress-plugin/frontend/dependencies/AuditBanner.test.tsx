@@ -24,14 +24,14 @@ function loadingWrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('AuditBanner', () => {
-    test('shows a skeleton while loading', () => {
-        render(<AuditBanner />, { wrapper: loadingWrapper });
-        expect(screen.getByTestId('skeleton')).toBeInTheDocument();
+    test('renders nothing while loading', () => {
+        const { container } = render(<AuditBanner />, { wrapper: loadingWrapper });
+        expect(container).toBeEmptyDOMElement();
     });
 
-    test('shows a success notice when there are no advisories or abandoned packages', () => {
-        render(<AuditBanner />, { wrapper: emptyWrapper });
-        expect(screen.getByText(/No security advisories or abandoned packages detected/i)).toBeInTheDocument();
+    test('renders nothing when there are no advisories or abandoned packages', () => {
+        const { container } = render(<AuditBanner />, { wrapper: emptyWrapper });
+        expect(container).toBeEmptyDOMElement();
     });
 
     test('renders security advisory notice', () => {

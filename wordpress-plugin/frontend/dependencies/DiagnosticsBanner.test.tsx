@@ -18,20 +18,19 @@ function loadingWrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('DiagnosticsBanner', () => {
-    test('shows a skeleton while loading', () => {
-        render(<DiagnosticsBanner />, { wrapper: loadingWrapper });
-        expect(screen.getByTestId('skeleton')).toBeInTheDocument();
+    test('renders nothing while loading', () => {
+        const { container } = render(<DiagnosticsBanner />, { wrapper: loadingWrapper });
+        expect(container).toBeEmptyDOMElement();
     });
 
-    test('shows a success notice when there are no issues', () => {
+    test('renders nothing when there are no issues', () => {
         const data: Diagnostics = {
             php_version: '8.2.0',
             platform_php: '8.2.0',
             issues: [],
         };
-        render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
-        expect(screen.getByText(/No platform issues detected/i)).toBeInTheDocument();
-        expect(screen.getByText(/Running PHP 8\.2\.0/i)).toBeInTheDocument();
+        const { container } = render(<DiagnosticsBanner />, { wrapper: wrapperWithData(data) });
+        expect(container).toBeEmptyDOMElement();
     });
 
     test('renders a warning for platform_php_mismatch', () => {

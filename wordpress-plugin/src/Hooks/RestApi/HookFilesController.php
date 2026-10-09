@@ -64,7 +64,30 @@ class HookFilesController extends AbstractFilesController
      */
     protected function annotateEntry(array $entry, string $rawContent): array
     {
-        $entry['hooks'] = HookAttributeScanner::bindingsIn($rawContent);
+        $entry['hooks'] = array_map(
+            static fn(array $binding): array => self::withNextRun($binding),
+            HookAttributeScanner::bindingsIn($rawContent),
+        );
         return $entry;
+    }
+
+    // When a #[Cron] fires next, the one thing anyone asks about a cron. Only for crons naming
+    // their hook: an omitted one is derived from the method name at boot (HookLoader), which the
+    // source scanner doesn't report.
+    // ponytail: derived-hook crons show no next run, return the method from HookAttributeScanner if asked for.
+    /**
+     * @param array{type: 'action'|'filter'|'cron', hook: ?string, recurrence: ?string} $binding
+     * @return array{type: 'action'|'filter'|'cron', hook: ?string, recurrence: ?string, nextRun?: ?string}
+     */
+    private static function withNextRun(array $binding): array
+    {
+        if ($binding['type'] !== 'cron') {
+            return $binding;
+        }
+
+        $timestamp = $binding['hook'] !== null ? wp_next_scheduled($binding['hook']) : false;
+        $binding['nextRun'] = is_int($timestamp) ? gmdate('c', $timestamp) : null;
+
+        return $binding;
     }
 }

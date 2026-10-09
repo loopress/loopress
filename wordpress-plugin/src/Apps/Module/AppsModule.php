@@ -8,7 +8,9 @@ use Loopress\Apps\Frontend\AppAssetEnqueuer;
 use Loopress\Apps\Frontend\AppShortcode;
 use Loopress\Apps\Infrastructure\AppsDirectory;
 use Loopress\Apps\RestApi\AppsController;
+use Loopress\Apps\Service\AppsDiagnostics;
 use Loopress\Contract\Module;
+use Loopress\Infrastructure\SiteHealth;
 
 class AppsModule implements Module
 {
@@ -17,6 +19,7 @@ class AppsModule implements Module
         private readonly AppShortcode $shortcode,
         private readonly AppAssetEnqueuer $enqueuer,
         private readonly AppsDirectory $directory,
+        private readonly AppsDiagnostics $diagnostics,
     ) {}
 
     public function boot(): void
@@ -34,5 +37,12 @@ class AppsModule implements Module
         });
 
         add_filter('script_loader_tag', [$this->enqueuer, 'filterModuleType'], 10, 2);
+
+        SiteHealth::register(
+            'loopress_apps',
+            'Loopress single-page apps',
+            'code',
+            fn(): array => $this->diagnostics->getDiagnostics()['issues'],
+        );
     }
 }

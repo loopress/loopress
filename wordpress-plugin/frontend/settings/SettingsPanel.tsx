@@ -3,7 +3,6 @@ import { Button } from '@wordpress/components';
 import { apiFetch } from '../api';
 import { SentrySettings } from './SentrySettings';
 import { UsageStatsSettings } from './UsageStatsSettings';
-import { ApiNamespaceSettings } from './ApiNamespaceSettings';
 
 // One reset button for every Loopress setting rendered on this tab, not one per feature
 // card: as more settings join SentrySettings here, they only need their own query key
@@ -24,12 +23,13 @@ export function SettingsPanel() {
         <div>
             <SentrySettings />
             <UsageStatsSettings />
-            <ApiNamespaceSettings />
             <Button
                 variant="tertiary"
                 size="small"
                 disabled={isPending}
-                onClick={() => resetAll()}
+                onClick={() => {
+                    if (window.confirm('Reset every Loopress setting to its default, including the API routes namespace?')) resetAll();
+                }}
                 style={{ marginTop: 12 }}
             >
                 Reset all settings to default

@@ -45,13 +45,6 @@ export interface UsageStatsConsent {
     enabled: boolean;
 }
 
-export interface UpdateStatus {
-    current_version: string;
-    latest_version: string | null;
-    update_available: boolean;
-    release_url: string | null;
-}
-
 export interface OutdatedPackage {
     name: string;
     version: string;
@@ -102,6 +95,9 @@ export interface HookBinding {
     type: 'action' | 'filter' | 'cron';
     hook: string | null;
     recurrence: string | null;
+    // #[Cron] only: when it fires next (ISO 8601), null when not scheduled or when the hook name
+    // is derived at boot rather than declared, see HookFilesController::withNextRun().
+    nextRun?: string | null;
 }
 
 export interface HookFile {
@@ -131,6 +127,13 @@ declare global {
             autoloadError: string | null;
             phpVersion: string;
             pluginVersion: string;
+            // wp_get_environment_type(): local, development, staging or production.
+            environment: string;
+            // get_rest_url(), the site's REST root, to show full route URLs.
+            restUrl: string;
+            // Full edition only (ComposerModule): false under DISALLOW_FILE_MODS, every Composer
+            // route that writes files then refuses with a 403.
+            fileModsAllowed?: boolean;
         };
     }
 }

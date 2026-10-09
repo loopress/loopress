@@ -1,8 +1,6 @@
-import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
-import { NoticeSkeleton } from './Skeleton';
 import type { Diagnostics } from '../types';
 
 export function DiagnosticsBanner() {
@@ -20,20 +18,16 @@ export function DiagnosticsBanner() {
     });
 
     if (isError) return null;
-    if (!diagnostics) return <NoticeSkeleton />;
+    // Nothing while loading either: this usually renders nothing, a skeleton would only jump.
+    if (!diagnostics) return null;
 
-    if (!diagnostics.issues.length) {
-        return (
-            <div style={{ maxWidth: 600, marginBottom: 20 }}>
-                <Notice status="success" isDismissible={false}>
-                    No platform issues detected. Running PHP {diagnostics.php_version}.
-                </Notice>
-            </div>
-        );
-    }
+    // Quiet when healthy: the same checks are listed as passed in Tools > Site Health.
+    if (!diagnostics.issues.length) return null;
+
+    const canFix = window.loopressData?.fileModsAllowed !== false;
 
     return (
-        <div style={{ maxWidth: 600, marginBottom: 20 }}>
+        <div style={{ marginBottom: 20 }}>
             {diagnostics.issues.map((issue) => {
                 const isPlatformIssue = issue.code === 'platform_php_missing' || issue.code === 'platform_php_mismatch';
 
@@ -50,7 +44,7 @@ export function DiagnosticsBanner() {
                                     </p>
                                 )}
                             </div>
-                            {isPlatformIssue && (
+                            {isPlatformIssue && canFix && (
                                 <Button
                                     variant="secondary"
                                     size="small"

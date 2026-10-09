@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardBody, TextControl, Button, Notice } from '@wordpress/components';
+import { TextControl, Button, Notice } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
 import type { ApiNamespace } from '../types';
 
@@ -28,9 +28,12 @@ export function ApiNamespaceSettings() {
         },
     });
 
+    // Next to the routes it renames rather than on the Settings tab: changing it changes every
+    // URL listed right above.
     return (
-        <Card style={{ maxWidth: 600, marginTop: 12 }}>
-            <CardBody>
+        <details style={{ marginTop: 16 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }}>Change the routes namespace</summary>
+            <div style={{ maxWidth: 480, marginTop: 8 }}>
                 <TextControl
                     label="API routes namespace"
                     value={value}
@@ -52,7 +55,7 @@ export function ApiNamespaceSettings() {
                 >
                     Save
                 </Button>
-            </CardBody>
-        </Card>
+            </div>
+        </details>
     );
 }
