@@ -90,7 +90,7 @@ describe('PushCommand.reportPushToSite()', () => {
 
     await command.testReport(post)
 
-    expect(post).toHaveBeenCalledWith('loopress/v1/pushes', {resource: 'acf:push'})
+    expect(post).toHaveBeenCalledWith('loopress/v1/pushes', {resource: 'acf:push'}, {timeoutMs: 5000})
   })
 
   it('never fails the push when the plugin predates the push log', async () => {

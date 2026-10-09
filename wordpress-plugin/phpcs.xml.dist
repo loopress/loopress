@@ -136,6 +136,7 @@
         <exclude-pattern>tests/Unit/Options/Service/OptionsServiceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Options/Service/OptionsServiceSourceScanTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Pages/PagesControllerTest.php</exclude-pattern>
+        <exclude-pattern>tests/Unit/Pushes/RestApi/PushesControllerTest.php</exclude-pattern>
     </rule>
 
     <rule ref="PHPCompatibilityWP"/>

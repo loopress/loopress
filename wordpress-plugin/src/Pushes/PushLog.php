@@ -151,7 +151,8 @@ class PushLog
             $routes,
         );
 
-        return md5((string) wp_json_encode($data));
+        // A change detector, not a security boundary, but sha256 costs nothing over md5 here.
+        return hash('sha256', (string) wp_json_encode($data));
     }
 
     // The name the admin gave the application password this push authenticated with, so the

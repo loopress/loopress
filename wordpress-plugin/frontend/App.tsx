@@ -23,6 +23,13 @@ const TABS = [
 ];
 const TAB_NAMES = TABS.map((tab) => tab.name);
 
+const PANELS: Record<string, React.ReactNode> = {
+    config: <ConfigPanel />,
+    code: <CodePanel />,
+    dependencies: <DependencyManagement />,
+    settings: <SettingsPanel />,
+};
+
 const { autoloadError, fileModsAllowed } = window.loopressData;
 
 function repairNotice(
@@ -83,17 +90,7 @@ export default function App() {
             <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
                 {(tab) => (
                     <div style={{ marginTop: 16 }}>
-                        {tab.name === 'config' ? (
-                            <ConfigPanel />
-                        ) : tab.name === 'code' ? (
-                            <CodePanel />
-                        ) : tab.name === 'settings' ? (
-                            <SettingsPanel />
-                        ) : tab.name === 'dependencies' ? (
-                            <DependencyManagement />
-                        ) : (
-                            <Overview />
-                        )}
+                        {PANELS[tab.name] ?? <Overview />}
                     </div>
                 )}
             </TabPanel>

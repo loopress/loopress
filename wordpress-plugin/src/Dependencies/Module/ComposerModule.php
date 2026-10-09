@@ -11,6 +11,9 @@ use Loopress\Infrastructure\SiteHealth;
 
 class ComposerModule implements Module
 {
+    // plugin, theme version and library pushes all land in this one file, through /composer/sync.
+    private const COMPOSER_JSON_ROUTES = ['/composer/json'];
+
     public function __construct(
         private readonly ComposerService $service,
         private readonly ?string $autoloadError,
@@ -21,10 +24,9 @@ class ComposerModule implements Module
         // Push log entries reported by this feature's `lps` command (the shared Pushes module
         // reads them through this filter, never referenced from here by class).
         add_filter('loopress_push_resources', static fn(array $resources): array => $resources + [
-            // All three land in the same composer.json through /composer/sync.
-            'plugin:push'        => ['label' => 'Plugins', 'routes' => ['/composer/json']],
-            'theme:version:push' => ['label' => 'Theme versions', 'routes' => ['/composer/json']],
-            'composer:push'      => ['label' => 'Composer libraries', 'routes' => ['/composer/json']],
+            'plugin:push'        => ['label' => 'Plugins', 'routes' => self::COMPOSER_JSON_ROUTES],
+            'theme:version:push' => ['label' => 'Theme versions', 'routes' => self::COMPOSER_JSON_ROUTES],
+            'composer:push'      => ['label' => 'Composer libraries', 'routes' => self::COMPOSER_JSON_ROUTES],
         ]);
 
         add_action('rest_api_init', fn() => (new ComposerController($this->service))->register_routes());

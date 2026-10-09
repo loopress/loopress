@@ -117,7 +117,9 @@ export abstract class PushCommand extends LoopressCommand {
     if (!this.id) return
 
     try {
-      await this.wp.post('loopress/v1/pushes', {resource: this.id})
+      // Bounded: the site fingerprints the pushed resource before answering, which a large
+      // site can make slow, and a finished push must not wait on its own bookkeeping.
+      await this.wp.post('loopress/v1/pushes', {resource: this.id}, {timeoutMs: 5000})
     } catch {
       // non-blocking, see above
     }
