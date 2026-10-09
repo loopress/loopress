@@ -2,7 +2,7 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {createTempAdmin, deleteTempAdmin, sweepTempAdmins} from '../../src/lib/temp-admin.js'
+import {createTempAdmin, deleteTempAdmin, findTempAdmins, sweepTempAdmins} from '../../src/lib/temp-admin.js'
 import {WpClient} from '../../src/lib/wp-client.js'
 
 describe('createTempAdmin / deleteTempAdmin', () => {
@@ -71,7 +71,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
       res.end(JSON.stringify({code: 'rest_user_invalid_id'}))
     })
 
-    await expect(deleteTempAdmin(wp, {id: 7, password: 'x', username: 'lps-temp-abc'})).resolves.toBeUndefined()
+    await expect(deleteTempAdmin(wp, {id: 7, username: 'lps-temp-abc'})).resolves.toBeUndefined()
 
     expect(calls).toEqual([
       'GET /wp-json/wp/v2/users/me',
@@ -92,7 +92,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
       res.end('{}')
     })
 
-    await expect(deleteTempAdmin(wp, {id: 7, password: 'x', username: 'lps-temp-abc'})).rejects.toThrow(
+    await expect(deleteTempAdmin(wp, {id: 7, username: 'lps-temp-abc'})).rejects.toThrow(
       /lps-temp-abc.*id 7/,
     )
   })
@@ -111,7 +111,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
       res.end(JSON.stringify({id: 7}))
     })
 
-    await expect(deleteTempAdmin(wp, {id: 7, password: 'x', username: 'lps-temp-abc'})).rejects.toThrow(
+    await expect(deleteTempAdmin(wp, {id: 7, username: 'lps-temp-abc'})).rejects.toThrow(
       /still exists after deletion/,
     )
   })
@@ -148,11 +148,22 @@ describe('createTempAdmin / deleteTempAdmin', () => {
 
       await expect(sweepTempAdmins(wp)).resolves.toEqual(['lps-temp-abc'])
       expect(calls).toEqual([
-        'GET /wp-json/wp/v2/users?context=edit&per_page=100&search=lps-temp-',
+        'GET /wp-json/wp/v2/users?context=edit&search=lps-temp-&per_page=100&page=1',
         'GET /wp-json/wp/v2/users/me',
         'DELETE /wp-json/wp/v2/users/7?reassign=1&force=true',
         'GET /wp-json/wp/v2/users/7',
       ])
+    })
+
+    it('reads every page of matches, not just the first 100', async () => {
+      const humans = Array.from({length: 100}, (_, index) => ({email: `h${index}@acme.com`, id: 100 + index, username: `lps-temp-h${index}`}))
+      const wp = await serve((req, res) => {
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        const page = new URL(req.url ?? '', 'https://example.com').searchParams.get('page')
+        res.end(JSON.stringify(page === '1' ? humans : [{email: 'lps-temp-p2@lps-temp.invalid', id: 7, username: 'lps-temp-p2'}]))
+      })
+
+      await expect(findTempAdmins(wp)).resolves.toEqual([{id: 7, username: 'lps-temp-p2'}])
     })
 
     it('returns an empty list and deletes nothing when no leftover exists', async () => {

@@ -21,12 +21,10 @@ function make(siteConfig: EnvironmentConfig = makeEnv('production', 'https://acm
   cmd.setup(siteConfig)
   const logs = silenceLogs(cmd)
   const get = vi.fn()
-  // The leftover temp admin listing gets its own mock, so the generic `get` stubs below don't
-  // have to return an array for it; tests about leftovers override `users`.
+  // The leftover temp admin listing (the only getAll caller) gets its own mock, so the generic
+  // `get` stubs below don't have to return an array for it; tests about leftovers override it.
   const users = vi.fn().mockResolvedValue([])
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {
-    get: async (path: string) => (path.startsWith('wp/v2/users?') ? users(path) : get(path)),
-  }
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: users}
   return {cmd, get, logs, users}
 }
 
@@ -151,7 +149,7 @@ describe('doctor', () => {
 
     await cmd.run()
 
-    expect(users).toHaveBeenCalledWith('wp/v2/users?context=edit&per_page=100&search=lps-temp-')
+    expect(users).toHaveBeenCalledWith('wp/v2/users?context=edit&search=lps-temp-')
     expect(logs.log).toHaveBeenCalledWith('✓ No leftover temporary admin accounts')
   })
 
@@ -171,5 +169,28 @@ describe('doctor', () => {
     expect(logs.log).toHaveBeenCalledWith('✗ No leftover temporary admin accounts')
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^ {2}Found lps-temp-abc, left by/))
     expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('lps-temp-jane'))
+  })
+
+  it('reports the leftover check as not run, not failed, when the credentials cannot list users', async () => {
+    const {cmd, get, logs, users} = make()
+    get.mockResolvedValue({'current_version': '2026.7.1'})
+    users.mockRejectedValue(new Error('Request refused (403).', {cause: {response: {statusCode: 403}}}))
+
+    const result = await cmd.run()
+
+    expect(result.ok).toBe(true)
+    expect(logs.log).toHaveBeenCalledWith('- Leftover temporary admin accounts: not checked, these credentials cannot list users.')
+  })
+
+  it('fails the leftover check on any other lookup error', async () => {
+    const {cmd, get, logs, users} = make()
+    get.mockResolvedValue({'current_version': '2026.7.1'})
+    users.mockRejectedValue(new Error('Request failed (500).', {cause: {response: {statusCode: 500}}}))
+
+    const result = await cmd.run()
+
+    expect(result.ok).toBe(false)
+    expect(logs.log).toHaveBeenCalledWith('✗ No leftover temporary admin accounts')
+    expect(logs.log).toHaveBeenCalledWith('  Request failed (500).')
   })
 })

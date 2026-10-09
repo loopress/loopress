@@ -80,7 +80,7 @@ export async function deleteTempAdmin(wp: WpClient, admin: Pick<TempAdmin, 'id' 
  * every user, not only those with published posts.
  */
 export async function findTempAdmins(wp: WpClient): Promise<Array<Pick<TempAdmin, 'id' | 'username'>>> {
-  const users = await wp.get<WpUserEdit[]>(`wp/v2/users?context=edit&per_page=100&search=${TEMP_ADMIN_PREFIX}`)
+  const users = await wp.getAll<WpUserEdit>(`wp/v2/users?context=edit&search=${TEMP_ADMIN_PREFIX}`)
   return users
     .filter((user) => user.username.startsWith(TEMP_ADMIN_PREFIX) && user.email.endsWith(TEMP_ADMIN_EMAIL_DOMAIN))
     .map(({id, username}) => ({id, username}))
