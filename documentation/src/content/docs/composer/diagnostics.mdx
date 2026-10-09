@@ -4,7 +4,9 @@ description: Detect and fix PHP version mismatches before they cause Composer in
 edition: full
 ---
 
-The **Platform Diagnostics** banner appears automatically at the top of the **Loopress → Dependencies** page when an issue is detected. It helps you catch PHP version mismatches before they cause packages to be installed for the wrong runtime.
+The **Platform Diagnostics** banner appears automatically at the top of the **Loopress → Dependencies** page when an issue is detected, and stays hidden otherwise. It helps you catch PHP version mismatches before they cause packages to be installed for the wrong runtime.
+
+The same checks run in WordPress's own **Tools → Site Health** screen, as the *Loopress Composer dependencies* test, so they reach admins who never open the Loopress page. Webserver issues with [single-page apps](/apps/) are reported there too, as *Loopress single-page apps*.
 
 ## What it checks
 
@@ -26,7 +28,7 @@ The platform PHP version in `wp-content/loopress/composer.json` does not match t
 
 ## Fixing a detected issue
 
-Click the **Set to PHP x.x.x** button in the banner. This updates `config.platform.php` in `wp-content/loopress/composer.json` to match the currently running PHP version.
+Click the **Set to PHP x.x.x** button in the banner. This updates `config.platform.php` in `wp-content/loopress/composer.json` to match the currently running PHP version. The button is hidden when `DISALLOW_FILE_MODS` is set, see [read-only mode](/composer/admin-ui/#production-sites-and-read-only-mode).
 
 ## REST API
 

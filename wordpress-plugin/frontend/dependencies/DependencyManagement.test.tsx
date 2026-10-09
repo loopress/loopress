@@ -35,9 +35,9 @@ describe('DependencyManagement', () => {
     test('renders the section header, search and installed packages', () => {
         render(<DependencyManagement />, { wrapper: makeWrapper() });
 
-        expect(screen.getByText('Dependency Management')).toBeInTheDocument();
+        expect(screen.getByText('Composer dependencies')).toBeInTheDocument();
         expect(screen.getByLabelText(/search a composer package/i)).toBeInTheDocument();
-        expect(screen.getByText('Installed Packages')).toBeInTheDocument();
+        expect(screen.getByText('Installed packages')).toBeInTheDocument();
     });
 
     test('shows no install notice before any install attempt', () => {
@@ -56,5 +56,18 @@ describe('DependencyManagement', () => {
 
         expect(screen.getByText('guzzlehttp/guzzle')).toBeInTheDocument();
         expect(screen.getByText('7.8.1')).toBeInTheDocument();
+    });
+
+    test('drops the search and every action when file modifications are disallowed', () => {
+        window.loopressData = { ...window.loopressData, fileModsAllowed: false };
+        render(<DependencyManagement />, {
+            wrapper: makeWrapper([{ name: 'guzzlehttp/guzzle', version: '7.8.1' }]),
+        });
+        window.loopressData = { ...window.loopressData, fileModsAllowed: true };
+
+        expect(screen.getByText(/dependencies\s+are read-only here/i)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/search a composer package/i)).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+        expect(screen.getByText('guzzlehttp/guzzle')).toBeInTheDocument();
     });
 });

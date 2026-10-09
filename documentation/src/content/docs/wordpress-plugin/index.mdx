@@ -122,7 +122,10 @@ Installing Loopress Full deactivates Loopress Light automatically. From then on,
 
 ## Admin pages
 
-Loopress Full adds a **Loopress** page to the WordPress admin:
+Loopress Full adds a **Loopress** page to the WordPress admin, with the site's environment type (production, staging...) shown next to its title:
 
-- [Composer Admin UI](/composer/admin-ui/): search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/)
-- [API Routes Admin UI](/api/admin-ui/): every custom route deployed on the site, and the namespace setting
+- **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
+- **Code**: everything pushed with the CLI, read-only: [API routes](/api/admin-ui/) and their namespace setting, [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
+- **Settings**: crash reporting, and a reset of every Loopress setting
+
+Platform and webserver checks also appear in **Tools → Site Health**.

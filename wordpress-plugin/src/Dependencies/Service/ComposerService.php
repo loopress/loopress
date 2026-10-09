@@ -128,6 +128,7 @@ class ComposerService
         return $result['output'];
     }
 
+    /** @return array{php_version: string, platform_php: mixed, issues: list<array{code: string, message: string}>} */
     public function getDiagnostics(): array
     {
         $this->ensureInitialized();

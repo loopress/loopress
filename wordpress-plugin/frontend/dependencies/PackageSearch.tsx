@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useQuery } from '@tanstack/react-query';
 import { Button, ComboboxControl, SelectControl, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
+import { MUTED } from '../helpers';
 import type { PackagistPackage, PackageVersion } from '../types';
 
 interface Props {
@@ -105,14 +106,14 @@ export function PackageSearch({ onInstall, disabled }: Props) {
                 <div>
                     <strong style={{ fontSize: 13 }}>{selected.name}</strong>
                     {selected.description && (
-                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#666' }}>{selected.description}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: MUTED }}>{selected.description}</p>
                     )}
                 </div>
                 <Button variant="tertiary" size="small" onClick={handleClear}>Change</Button>
             </div>
 
             {versionsLoading && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#666', fontSize: 13 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: MUTED, fontSize: 13 }}>
                     <Spinner /> Fetching versions…
                 </div>
             )}
@@ -124,7 +125,9 @@ export function PackageSearch({ onInstall, disabled }: Props) {
                         value={version}
                         options={versions.map((v, idx) => ({
                             value: v.version,
-                            label: `${v.php_compatible === true ? '🟢' : v.php_compatible === false ? '🔴' : '❓'} ${v.version}${idx === 0 ? '  (latest)' : ''}`,
+                            label: `${v.version}${idx === 0 ? ' (latest)' : ''}${
+                                v.php_compatible === false ? `, requires PHP ${v.php_constraint}` : v.php_compatible === null ? ', PHP compatibility unknown' : ''
+                            }`,
                         }))}
                         onChange={(val) => setValue('version', val)}
                         __next40pxDefaultSize
@@ -135,7 +138,7 @@ export function PackageSearch({ onInstall, disabled }: Props) {
                         if (!sel || sel.php_compatible) return null;
                         return (
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#cc1818' }}>
-                                ⚠️ This version requires PHP {sel.php_constraint} (your server: PHP {window.loopressData?.phpVersion ?? '?'})
+                                This version requires PHP {sel.php_constraint} (your server: PHP {window.loopressData?.phpVersion ?? '?'})
                             </p>
                         );
                     })()}
@@ -149,7 +152,7 @@ export function PackageSearch({ onInstall, disabled }: Props) {
             )}
 
             {!versionsLoading && !versionsFailed && versions.length === 0 && (
-                <p style={{ color: '#666', fontSize: 13, margin: 0 }}>No stable versions found.</p>
+                <p style={{ color: MUTED, fontSize: 13, margin: 0 }}>No stable versions found.</p>
             )}
 
             <Button

@@ -87,4 +87,18 @@ describe('HooksPanel', () => {
         expect(screen.getByText('Failed to load')).toBeInTheDocument();
         expect(screen.getByText(/no public #\[Action\]/)).toBeInTheDocument();
     });
+
+    test('shows when a named cron runs next', () => {
+        vi.useFakeTimers({ now: new Date('2026-01-01T00:00:00Z'), toFake: ['Date'] });
+        const files: HookFile[] = [{
+            filename: 'nightly',
+            content: '<?php',
+            hooks: [{ type: 'cron', hook: 'nightly_job', recurrence: 'daily', nextRun: '2026-01-01T03:00:00+00:00' }],
+        }];
+
+        render(<HooksPanel />, { wrapper: wrapperWithFiles(files) });
+        vi.useRealTimers();
+
+        expect(screen.getByText('next run in 3 hours')).toBeInTheDocument();
+    });
 });

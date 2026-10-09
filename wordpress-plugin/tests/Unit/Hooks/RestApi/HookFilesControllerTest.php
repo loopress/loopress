@@ -145,6 +145,19 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame([['type' => 'action', 'hook' => 'init', 'recurrence' => null]], $response->data[0]['hooks']);
     }
 
+    public function test_list_files_reports_when_a_named_cron_runs_next(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Cron;\nfinal class Nightly {\n    #[Cron('daily', 'nightly_job')]\n    public function run(): void {}\n    #[Cron('hourly')]\n    public function other(): void {}\n}\n";
+        $this->directory->method('listSlugs')->willReturn(['nightly']);
+        $this->directory->method('read')->with('nightly')->willReturn($content);
+        Functions\when('wp_next_scheduled')->alias(static fn (string $hook): int|false => $hook === 'nightly_job' ? 1767225600 : false);
+
+        $hooks = $this->controller->list_files()->data[0]['hooks'];
+
+        $this->assertSame('2026-01-01T00:00:00+00:00', $hooks[0]['nextRun']);
+        $this->assertNull($hooks[1]['nextRun']);
+    }
+
     // ── push_file ────────────────────────────────────────────────────────────
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void

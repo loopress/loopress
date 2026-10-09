@@ -9,6 +9,8 @@ function renderApp() {
         autoloadError: null,
         phpVersion: '8.2.29',
         pluginVersion: '2026.7.0',
+        environment: 'staging',
+        restUrl: 'http://localhost/wp-json/',
     };
 
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -29,11 +31,12 @@ describe('LightApp', () => {
         vi.resetModules();
     });
 
-    test('renders the Loopress Light heading with the plugin version', async () => {
+    test('renders the Loopress heading with the edition, version and environment', async () => {
         await renderApp();
 
-        expect(screen.getByRole('heading', { name: 'Loopress Light' })).toBeInTheDocument();
-        expect(screen.getByText('v2026.7.0')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
+        expect(screen.getByText('Light v2026.7.0')).toBeInTheDocument();
+        expect(screen.getByText('Staging')).toBeInTheDocument();
     });
 
     test('points the user at the CLI pairing flow', async () => {

@@ -75,6 +75,8 @@ class AdminPageModule implements Module
             'phpVersion'    => PHP_VERSION,
             'pluginVersion' => $pluginData['Version'],
             'autoloadError' => null,
+            'environment'   => wp_get_environment_type(),
+            'restUrl'       => get_rest_url(),
         ]));
     }
 

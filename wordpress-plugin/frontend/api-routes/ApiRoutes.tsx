@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Notice, Spinner } from '@wordpress/components';
 import { apiFetch } from '../api';
+import { CopyButton, Pill, ResourceSection, Row, Table } from '../ui';
+import { CELL, MONO } from '../helpers';
+import { ApiNamespaceSettings } from './ApiNamespaceSettings';
 import type { ApiFile, ApiNamespace } from '../types';
 
 // Kept in sync with the plugin's own default (Loopress\Api\ApiNamespace::DEFAULT); only used
@@ -8,100 +10,58 @@ import type { ApiFile, ApiNamespace } from '../types';
 const DEFAULT_NAMESPACE = 'loopress-api/v1';
 
 export function ApiRoutes() {
-    const { data: files = [], isPending, isFetching, isError } = useQuery<ApiFile[]>({
+    const query = useQuery<ApiFile[]>({
         queryKey: ['api-files'],
         queryFn: () => apiFetch<ApiFile[]>('/api-files'),
         staleTime: 30_000,
     });
+    const files = query.data ?? [];
 
     const { data: namespaceData } = useQuery<ApiNamespace>({
         queryKey: ['api-namespace'],
         queryFn: () => apiFetch<ApiNamespace>('/api-namespace'),
     });
     const namespace = namespaceData?.namespace ?? DEFAULT_NAMESPACE;
+    const restUrl = window.loopressData?.restUrl ?? '';
 
     return (
-        <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <strong style={{ fontSize: 13 }}>API Routes</strong>
-                {isFetching && !isPending && <Spinner />}
-            </div>
-
-            {isError && (
-                <Notice status="error" isDismissible={false}>
-                    Failed to load API routes.
-                </Notice>
-            )}
-
-            {isPending && (
-                <>
-                    <style>{`@keyframes lp-pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
-                    {[0, 1, 2].map((i) => (
-                        <div
-                            key={i}
-                            style={{
-                                height: 12,
-                                width: 220,
-                                background: '#e0e0e0',
-                                borderRadius: 4,
-                                margin: '8px 0',
-                                animation: `lp-pulse 1.5s ease-in-out ${i * 0.15}s infinite`,
-                            }}
-                        />
-                    ))}
-                </>
-            )}
-
-            {!isPending && !isError && files.length === 0 && (
-                <p style={{ color: '#666', fontSize: 13, margin: 0 }}>
-                    No API route files uploaded yet. Push some with <code>lps api push</code>.
-                </p>
-            )}
-
-            {files.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
-                            <th style={{ padding: '6px 8px' }}>File</th>
-                            <th style={{ padding: '6px 8px' }}>Route</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {files.map((file) => (
-                            <tr key={file.filename} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                <td style={{ padding: '8px' }}>
-                                    <strong>{file.filename}.php</strong>
-                                    {file.public && (
-                                        <span
-                                            title="Declares #[Permission(public: true)]: runs for anyone, no authentication"
-                                            style={{
-                                                marginLeft: 8, fontSize: 11, fontWeight: 600,
-                                                color: '#fff', background: '#b91c1c', borderRadius: 12, padding: '2px 8px',
-                                            }}
-                                        >
-                                            Public
-                                        </span>
-                                    )}
-                                    {file.error && (
-                                        <span style={{
-                                            marginLeft: 8, fontSize: 11, fontWeight: 500,
-                                            color: '#991b1b', background: '#fee2e2', borderRadius: 12, padding: '2px 8px',
-                                        }}>
-                                            Failed to load
-                                        </span>
-                                    )}
-                                    {file.error && (
-                                        <div style={{ marginTop: 4, fontSize: 12, color: '#991b1b' }}>{file.error}</div>
-                                    )}
-                                </td>
-                                <td style={{ padding: '8px', fontFamily: 'monospace', color: '#1d4ed8' }}>
-                                    {namespace}/{file.filename}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+        <ResourceSection
+            title="API routes"
+            query={query}
+            isEmpty={files.length === 0}
+            errorText="Failed to load API routes."
+            empty={<>No API route files uploaded yet. Push some with <code>lps api push</code>.</>}
+        >
+            <Table columns={['File', 'Route']}>
+                {files.map((file) => (
+                    <Row key={file.filename}>
+                        <td style={CELL}>
+                            <strong>{file.filename}.php</strong>
+                            {file.public && (
+                                <Pill tone="danger" title="Declares #[Permission(public: true)]: runs for anyone, no authentication">
+                                    Public
+                                </Pill>
+                            )}
+                            {file.error && <Pill tone="error">Failed to load</Pill>}
+                            {file.error && <div style={{ marginTop: 4, fontSize: 12, color: '#991b1b' }}>{file.error}</div>}
+                            <details style={{ marginTop: 4 }}>
+                                <summary style={{ cursor: 'pointer', fontSize: 12 }}>View source</summary>
+                                <pre style={{
+                                    background: '#1e1e1e', color: '#d4d4d4', padding: '10px 14px', borderRadius: 4,
+                                    maxHeight: 400, overflow: 'auto', fontSize: 12, marginTop: 6,
+                                }}>
+                                    {file.content}
+                                </pre>
+                            </details>
+                        </td>
+                        <td style={MONO}>
+                            <span>{namespace}/{file.filename}</span>
+                            {restUrl && <CopyButton label="Copy URL" text={`${restUrl}${namespace}/${file.filename}`} />}
+                        </td>
+                    </Row>
+                ))}
+            </Table>
+            <ApiNamespaceSettings />
+        </ResourceSection>
     );
 }

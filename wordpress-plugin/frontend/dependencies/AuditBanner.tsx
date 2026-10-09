@@ -1,8 +1,6 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Notice } from '@wordpress/components';
 import { apiFetch } from '../api';
-import { NoticeSkeleton } from './Skeleton';
 import type { AuditResult } from '../types';
 
 export function AuditBanner() {
@@ -13,23 +11,17 @@ export function AuditBanner() {
     });
 
     if (isError) return null;
-    if (!data) return <NoticeSkeleton />;
+    // Nothing while loading either: this usually renders nothing, a skeleton would only jump.
+    if (!data) return null;
 
     const advisoryEntries = Object.entries(data.advisories);
     const abandonedEntries = Object.entries(data.abandoned);
 
-    if (advisoryEntries.length === 0 && abandonedEntries.length === 0) {
-        return (
-            <div style={{ maxWidth: 600, marginBottom: 20 }}>
-                <Notice status="success" isDismissible={false}>
-                    No security advisories or abandoned packages detected.
-                </Notice>
-            </div>
-        );
-    }
+    // Quiet when clean: a permanent green banner is noise people learn to skip.
+    if (advisoryEntries.length === 0 && abandonedEntries.length === 0) return null;
 
     return (
-        <div style={{ maxWidth: 600, marginBottom: 20 }}>
+        <div style={{ marginBottom: 20 }}>
             {advisoryEntries.map(([packageName, advisories]) =>
                 advisories.map((advisory) => (
                     <Notice key={advisory.advisoryId} status="error" isDismissible={false}>

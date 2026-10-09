@@ -7,7 +7,7 @@ edition: full
 import { Image } from 'astro:assets';
 import apiTabImg from '../../images/loopress-ui-api.png';
 
-The **API** tab on the **Loopress** admin page lists every custom REST API route currently deployed on the site, whichever file was last pushed with [`lps api push`](/api/cli/).
+The **API routes** section of the **Code** tab on the **Loopress** admin page lists every custom REST API route currently deployed on the site, whichever file was last pushed with [`lps api push`](/api/cli/).
 
 <Image src={apiTabImg} alt="The API tab in the Loopress admin page, listing uploaded route files and the endpoint each one publishes" />
 
@@ -18,15 +18,17 @@ For each uploaded route file:
 | Column | Description |
 |--------|-------------|
 | File | The filename on disk, `{slug}.php` |
-| Route | The live endpoint path under the `loopress-api/v1` namespace |
+| Route | The live endpoint path under the `loopress-api/v1` namespace, with a **Copy URL** button for the full URL |
+
+**View source** under a filename expands the file as it was pushed. A route declaring `#[Permission(public: true)]` shows a red **Public** badge: it runs for anyone, with no authentication.
 
 A file that failed to load at the site's last boot (wrong number of classes, a class name collision, a parse error, see [Failure isolation](/api/routes/#failure-isolation)) shows a "Failed to load" badge next to its filename, with the actual reason underneath. The warning clears itself automatically the next time the file loads cleanly, nothing to dismiss.
 
-The tab is read-only: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the command reference and [Writing Route Files](/api/routes/) for the file format.
+The section is read-only, like the [hooks](/hooks/) and [single-page apps](/apps/) listed below it on the same tab: it reflects what's deployed, it doesn't let you create, edit, or remove routes from the admin. Manage route files locally with the CLI and deploy with `lps api push`, see [CLI](/api/cli/) for the command reference and [Writing Route Files](/api/routes/) for the file format.
 
 ## Route namespace
 
-The **Settings** tab holds the namespace your routes register under, `loopress-api/v1` by default. It accepts lowercase letters, digits, and hyphens followed by a version segment (e.g. `acme/v1`); `loopress/v1` is rejected because it's reserved for Loopress's own management endpoints. Changing it changes every route's URL immediately, with no redirect from the old one, see [the namespace rules](/api/routes/#the-route-namespace).
+**Change the routes namespace**, right under the routes list, holds the namespace your routes register under, `loopress-api/v1` by default. It accepts lowercase letters, digits, and hyphens followed by a version segment (e.g. `acme/v1`); `loopress/v1` is rejected because it's reserved for Loopress's own management endpoints. Changing it changes every route's URL immediately, with no redirect from the old one, see [the namespace rules](/api/routes/#the-route-namespace).
 
 The field reads and writes `loopress/v1/api-namespace`:
 
@@ -40,7 +42,7 @@ PUT /wp-json/loopress/v1/api-namespace
 
 ## REST API
 
-The tab reads from `GET /wp-json/loopress/v1/api-files`, the same management endpoint `lps api pull/push/list` use:
+The section reads from `GET /wp-json/loopress/v1/api-files`, the same management endpoint `lps api pull/push/list` use:
 
 ```json
 [

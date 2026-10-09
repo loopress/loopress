@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
+import { Pill, Row, Skeleton, Table } from '../ui';
+import { CELL, confirmChange, MONO, MUTED } from '../helpers';
 import { ComposerOutput } from './ComposerOutput';
 import type { Package, OutdatedPackage, ComposerResult } from '../types';
 
@@ -12,11 +14,9 @@ interface ActionState {
     error: string | null;
 }
 
-export function InstalledPackages() {
+export function InstalledPackages({ readOnly = false }: Readonly<{ readOnly?: boolean }>) {
     const queryClient = useQueryClient();
     const [actionResult, setActionResult] = useState<ActionState | null>(null);
-    const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
-    const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { data: packages = [], isPending, isFetching, isError } = useQuery<Package[]>({
         queryKey: ['installed-packages'],
@@ -60,25 +60,11 @@ export function InstalledPackages() {
         },
     });
 
-    const handleRemoveClick = (pkgName: string) => {
-        if (confirmingRemove === pkgName) {
-            if (confirmTimer.current) clearTimeout(confirmTimer.current);
-            setConfirmingRemove(null);
-            removePackage(pkgName);
-        } else {
-            if (confirmTimer.current) clearTimeout(confirmTimer.current);
-            setConfirmingRemove(pkgName);
-            confirmTimer.current = setTimeout(() => setConfirmingRemove(null), 3000);
-        }
-    };
-
-    const isInitialLoad = isPending;
-
     return (
         <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <strong style={{ fontSize: 13 }}>Installed Packages</strong>
-                {isFetching && !isInitialLoad && <Spinner />}
+                <strong style={{ fontSize: 13 }}>Installed packages</strong>
+                {isFetching && !isPending && <Spinner />}
             </div>
 
             {isError && (
@@ -87,66 +73,39 @@ export function InstalledPackages() {
                 </Notice>
             )}
 
-            {isInitialLoad && (
-                <>
-                    <style>{`@keyframes lp-pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
-                    {[0, 1, 2].map(i => (
-                        <div key={i} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '8px 0', borderBottom: '1px solid #f0f0f0',
-                            animation: `lp-pulse 1.5s ease-in-out ${i * 0.15}s infinite`,
-                        }}>
-                            <div style={{ height: 12, width: 160, background: '#e0e0e0', borderRadius: 4 }} />
-                            <div style={{ height: 12, width: 60, background: '#e0e0e0', borderRadius: 4 }} />
-                        </div>
-                    ))}
-                </>
-            )}
+            {isPending && <Skeleton />}
 
-            {!isInitialLoad && !isError && packages.length === 0 && (
-                <p style={{ color: '#666', fontSize: 13, margin: 0 }}>
-                    No packages installed yet. Search for a package above to get started.
+            {!isPending && !isError && packages.length === 0 && (
+                <p style={{ color: MUTED, fontSize: 13, margin: 0 }}>
+                    No packages installed yet.{!readOnly && ' Search for a package to get started.'}
                 </p>
             )}
 
             {packages.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
-                            <th style={{ padding: '6px 8px' }}>Package</th>
-                            <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Version</th>
-                            <th style={{ padding: '6px 8px' }} />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {packages.map((pkg) => {
-                            const isConfirming = confirmingRemove === pkg.name;
-                            const isRemoving = removing && removingPkg === pkg.name;
-                            const isUpdating = updating && updatingPkg?.name === pkg.name;
-                            const update = outdatedByName.get(pkg.name);
-                            return (
-                                <tr key={pkg.name} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                    <td style={{ padding: '8px' }}>
-                                        <strong>{pkg.name}</strong>
-                                    </td>
-                                    <td style={{ padding: '8px', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-                                        <span style={{ color: '#1d4ed8' }}>{pkg.version}</span>
-                                        {update && (
-                                            <span style={{
-                                                marginLeft: 8, fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
-                                                color: '#92400e', background: '#fef3c7', borderRadius: 12, padding: '2px 8px',
-                                            }}>
-                                                update: {update.latest}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <Table columns={readOnly ? ['Package', 'Version'] : ['Package', 'Version', '']}>
+                    {packages.map((pkg) => {
+                        const isRemoving = removing && removingPkg === pkg.name;
+                        const isUpdating = updating && updatingPkg?.name === pkg.name;
+                        const update = outdatedByName.get(pkg.name);
+                        return (
+                            <Row key={pkg.name}>
+                                <td style={CELL}><strong>{pkg.name}</strong></td>
+                                <td style={{ ...MONO, whiteSpace: 'nowrap' }}>
+                                    <span>{pkg.version}</span>
+                                    {update && <Pill tone="warning">update: {update.latest}</Pill>}
+                                </td>
+                                {!readOnly && (
+                                    <td style={{ ...CELL, textAlign: 'right', whiteSpace: 'nowrap' }}>
                                         {update && (
                                             <Button
                                                 variant="secondary"
                                                 size="small"
                                                 disabled={updating || removing}
-                                                onClick={() => updatePackage({ name: pkg.name, version: update.latest })}
+                                                onClick={() => {
+                                                    if (confirmChange(`Update ${pkg.name} to ${update.latest}?`)) {
+                                                        updatePackage({ name: pkg.name, version: update.latest });
+                                                    }
+                                                }}
                                                 style={{ marginRight: 8 }}
                                             >
                                                 {isUpdating ? <Spinner /> : 'Update'}
@@ -154,19 +113,23 @@ export function InstalledPackages() {
                                         )}
                                         <Button
                                             variant="tertiary"
-                                            isDestructive={isConfirming || isRemoving}
+                                            isDestructive
                                             size="small"
                                             disabled={updating || removing}
-                                            onClick={() => handleRemoveClick(pkg.name)}
+                                            onClick={() => {
+                                                if (confirmChange(`Remove ${pkg.name}? Code that uses it will stop working.`, true)) {
+                                                    removePackage(pkg.name);
+                                                }
+                                            }}
                                         >
-                                            {isRemoving ? <Spinner /> : isConfirming ? 'Sure?' : 'Remove'}
+                                            {isRemoving ? <Spinner /> : 'Remove'}
                                         </Button>
                                     </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                )}
+                            </Row>
+                        );
+                    })}
+                </Table>
             )}
 
             {actionResult && (

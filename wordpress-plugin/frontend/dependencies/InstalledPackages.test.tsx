@@ -31,6 +31,7 @@ function emptyWrapper({ children }: { children: React.ReactNode }) {
 describe('InstalledPackages', () => {
     beforeEach(() => {
         apiFetchMock.mockReset();
+        window.loopressData = { ...window.loopressData, environment: 'staging' };
     });
 
     test('renders "No packages installed" when list is empty', () => {
@@ -71,7 +72,7 @@ describe('InstalledPackages', () => {
 
     test('renders the installed packages card heading', () => {
         render(<InstalledPackages />, { wrapper: emptyWrapper });
-        expect(screen.getByText('Installed Packages')).toBeInTheDocument();
+        expect(screen.getByText('Installed packages')).toBeInTheDocument();
     });
 
     test('shows an update badge and button for outdated packages', () => {
@@ -125,5 +126,41 @@ describe('InstalledPackages', () => {
             method: 'POST',
             body: JSON.stringify({ package: 'guzzlehttp/guzzle', version: '7.9.0' }),
         });
+    });
+
+    test('asks for confirmation before removing, and removes nothing when declined', async () => {
+        const packages: Package[] = [{ name: 'guzzlehttp/guzzle', version: '7.8.0' }];
+        const confirm = (window.confirm = vi.fn().mockReturnValue(false));
+        const user = userEvent.setup();
+
+        render(<InstalledPackages />, { wrapper: wrapperWithPackages(packages) });
+        await user.click(screen.getByRole('button', { name: 'Remove' }));
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Remove guzzlehttp/guzzle?'));
+        expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/remove', expect.anything());
+    });
+
+    test('names the production site in the update confirmation', async () => {
+        window.loopressData = { ...window.loopressData, environment: 'production' };
+        const packages: Package[] = [{ name: 'guzzlehttp/guzzle', version: '7.8.0' }];
+        const outdated: OutdatedPackage[] = [{ name: 'guzzlehttp/guzzle', version: '7.8.0', latest: '7.9.0' }];
+        const confirm = (window.confirm = vi.fn().mockReturnValue(false));
+        const user = userEvent.setup();
+
+        render(<InstalledPackages />, { wrapper: wrapperWithPackages(packages, outdated) });
+        await user.click(screen.getByRole('button', { name: 'Update' }));
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('PRODUCTION'));
+        expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/require', expect.anything());
+    });
+
+    test('offers no actions in read-only mode', () => {
+        const packages: Package[] = [{ name: 'guzzlehttp/guzzle', version: '7.8.0' }];
+        const outdated: OutdatedPackage[] = [{ name: 'guzzlehttp/guzzle', version: '7.8.0', latest: '7.9.0' }];
+
+        render(<InstalledPackages readOnly />, { wrapper: wrapperWithPackages(packages, outdated) });
+
+        expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Update' })).toBeNull();
     });
 });

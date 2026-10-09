@@ -10,6 +10,7 @@ use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Service\ComposerService;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
+use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -31,7 +32,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/require', [
             'methods'             => 'POST',
             'callback'            => [$this, 'require_package'],
-            'permission_callback' => $this->permissionCallback(),
+            'permission_callback' => $this->fileModsPermissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
                 'version' => $this->versionArg(required: false, defaultVersion: '*'),
@@ -41,7 +42,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/remove', [
             'methods'             => 'POST',
             'callback'            => [$this, 'remove_package'],
-            'permission_callback' => $this->permissionCallback(),
+            'permission_callback' => $this->fileModsPermissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
             ],
@@ -65,7 +66,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/repair', [
             'methods'             => 'POST',
             'callback'            => [$this, 'repair'],
-            'permission_callback' => $this->permissionCallback(),
+            'permission_callback' => $this->fileModsPermissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/diagnostics', [
@@ -89,7 +90,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/fix-platform', [
             'methods'             => 'POST',
             'callback'            => [$this, 'fix_platform'],
-            'permission_callback' => $this->permissionCallback(),
+            'permission_callback' => $this->fileModsPermissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/json', [
@@ -107,7 +108,7 @@ class ComposerController
         register_rest_route('loopress/v1', '/composer/sync', [
             'methods'             => 'POST',
             'callback'            => [$this, 'sync'],
-            'permission_callback' => $this->permissionCallback(),
+            'permission_callback' => $this->fileModsPermissionCallback(),
             'args'                => [
                 'intent' => [
                     'required' => true,
@@ -313,6 +314,35 @@ class ComposerController
         }
 
         return true;
+    }
+
+    // WordPress's own switch for no code changes at runtime: the DISALLOW_FILE_MODS constant or
+    // its file_mod_allowed filter. An explicit operator intent, so every Composer route that
+    // writes files honours it, the CLI's composer push included.
+    public static function fileModsAllowed(): bool
+    {
+        return wp_is_file_mod_allowed('loopress_composer');
+    }
+
+    private function fileModsPermissionCallback(): callable
+    {
+        $canManage = $this->permissionCallback();
+
+        return static function () use ($canManage): bool|WP_Error {
+            if (!$canManage()) {
+                return false;
+            }
+
+            if (!self::fileModsAllowed()) {
+                return new WP_Error(
+                    'loopress_file_mods_disallowed',
+                    'File modifications are disabled on this site (DISALLOW_FILE_MODS), so Composer dependencies are read-only.',
+                    ['status' => 403],
+                );
+            }
+
+            return true;
+        };
     }
 
     /** @return array<string, mixed> */
