@@ -120,6 +120,12 @@ export function isNotFoundError(error: unknown): boolean {
   return cause?.response?.statusCode === 404
 }
 
+// Authenticated but missing the capability the endpoint needs (e.g. `list_users`).
+export function isForbiddenError(error: unknown): boolean {
+  const cause = (error as {cause?: {response?: {statusCode?: number}}})?.cause
+  return cause?.response?.statusCode === 403
+}
+
 // A 404 a Loopress controller raises on purpose, identified by its JSON body's `error` field
 // (e.g. `{"error": "composer.lock not found"}` from ComposerController). Narrower than
 // isNotFoundError: a bare 404 also covers the route being absent because the plugin isn't

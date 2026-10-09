@@ -5,10 +5,12 @@ import {configManager} from '../../config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {isLoopressFullActive} from '../../lib/plugin-detection.js'
+import {sweepTempAdmins} from '../../lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
 import {isLocalEnvironment, WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
+import {pluralize} from '../../utils/pluralize.js'
 
 const NEW_PROJECT = '__new__'
 const AUTH_BROWSER = 'browser'
@@ -123,6 +125,11 @@ export default class Config extends Command {
 
     const wp = new WpClient(url, token, name)
 
+    // Before the "already active" early return: an install killed mid-way (SIGKILL, power loss)
+    // may have activated Full and still left its temp admin behind, and re-running this command
+    // is the documented fix for both.
+    await this.sweepLeftoverTempAdmins(wp)
+
     // A detection failure (network hiccup, plugins REST disabled) is treated as "assume it's
     // there" rather than surprising the user with an account-creating prompt they didn't ask
     // for; `lps project config` can simply be re-run if it genuinely isn't installed.
@@ -217,5 +224,14 @@ export default class Config extends Command {
     })
 
     return {projectId: configManager.createProjectId(projectName.trim()), projectName: projectName.trim()}
+  }
+
+  private async sweepLeftoverTempAdmins(wp: WpClient): Promise<void> {
+    try {
+      const removed = await sweepTempAdmins(wp)
+      if (removed.length > 0) this.log(`✓ Removed ${pluralize(removed.length, 'leftover temporary admin account')}: ${removed.join(', ')}`)
+    } catch (error) {
+      this.warn((error as Error).message)
+    }
   }
 }

@@ -5,6 +5,7 @@ import Config from '../../../src/commands/project/config.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../../src/lib/bootstrap-full-install.js'
 import {isLoopressFullActive} from '../../../src/lib/plugin-detection.js'
+import {sweepTempAdmins} from '../../../src/lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../../src/lib/wp-authorize-flow.js'
 import {diagnoseWpSite} from '../../../src/lib/wp-site-diagnostic.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -21,6 +22,7 @@ vi.mock('../../../src/lib/wp-authorize-flow.js', () => ({authorizeWithBrowser: v
 vi.mock('../../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
 vi.mock('../../../src/lib/plugin-detection.js', () => ({isLoopressFullActive: vi.fn()}))
 vi.mock('../../../src/lib/bootstrap-full-install.js', () => ({bootstrapLoopressFull: vi.fn()}))
+vi.mock('../../../src/lib/temp-admin.js', () => ({sweepTempAdmins: vi.fn()}))
 
 // Tests run without a TTY; default to interactive so the prompt-driven flows stay testable,
 // and flip to false in the tests that cover the non-interactive policy.
@@ -62,6 +64,7 @@ describe('project config', () => {
     // introduced below doesn't inject an unexpected confirm() call into flows that don't care
     // about it; tests that do care override this per-case.
     vi.mocked(isLoopressFullActive).mockResolvedValue(true)
+    vi.mocked(sweepTempAdmins).mockResolvedValue([])
   })
 
   it('fails immediately with instructions in a non-interactive terminal', async () => {
@@ -638,6 +641,44 @@ describe('project config', () => {
       await expect(cmd.run()).resolves.toBeUndefined()
 
       expect(warn).toHaveBeenCalledWith('Could not install Loopress Full automatically.')
+    })
+  })
+
+  describe('leftover temporary admin sweep', () => {
+    it('removes leftovers even when Loopress Full is already active, and names them', async () => {
+      setUpNewProject()
+      vi.mocked(sweepTempAdmins).mockResolvedValue(['lps-temp-abc', 'lps-temp-def'])
+
+      const cmd = make()
+      const {log} = silenceLogs(cmd)
+      await cmd.run()
+
+      expect(sweepTempAdmins).toHaveBeenCalledTimes(1)
+      expect(log).toHaveBeenCalledWith('✓ Removed 2 leftover temporary admin accounts: lps-temp-abc, lps-temp-def')
+    })
+
+    it('stays silent when there is nothing to remove', async () => {
+      setUpNewProject()
+
+      const cmd = make()
+      const {log} = silenceLogs(cmd)
+      await cmd.run()
+
+      expect(log).not.toHaveBeenCalledWith(expect.stringContaining('leftover temporary admin'))
+    })
+
+    it('warns and still offers the install when the sweep fails', async () => {
+      setUpNewProject()
+      vi.mocked(sweepTempAdmins).mockRejectedValue(new Error('Failed to remove the temporary admin account "lps-temp-abc"'))
+      vi.mocked(isLoopressFullActive).mockResolvedValue(false)
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+
+      const cmd = make()
+      const {warn} = silenceLogs(cmd)
+      await expect(cmd.run()).resolves.toBeUndefined()
+
+      expect(warn).toHaveBeenCalledWith('Failed to remove the temporary admin account "lps-temp-abc"')
+      expect(bootstrapLoopressFull).toHaveBeenCalled()
     })
   })
 })
