@@ -1,5 +1,6 @@
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
+import {findTempAdmins} from '../lib/temp-admin.js'
 import {isNotFoundError} from '../lib/wp-client.js'
 import {diagnoseWpSite} from '../lib/wp-site-diagnostic.js'
 import {pluralize} from '../utils/pluralize.js'
@@ -50,7 +51,20 @@ export default class Doctor extends LoopressCommand {
 
         // wp/v2/users/me is WordPress core and requires authentication, so it validates the
         // application password without depending on any Loopress feature.
-        await this.check('Credentials accepted (authenticated request)', async () => this.wp.get('wp/v2/users/me'))
+        const isAuthenticated = await this.check('Credentials accepted (authenticated request)', async () =>
+          this.wp.get('wp/v2/users/me'),
+        )
+
+        // Report only, never deletes: a doctor run shouldn't change the site. A leftover is a
+        // live administrator with a password nobody holds, so it fails the run. Skipped when the
+        // credentials were just rejected: it would only repeat that same 401.
+        if (isAuthenticated) await this.check('No leftover temporary admin accounts', async () => {
+          const leftovers = await findTempAdmins(this.wp)
+          if (leftovers.length > 0) {
+            const names = leftovers.map((admin) => admin.username).join(', ')
+            throw new Error(`Found ${names}, left by an interrupted Loopress Full install. Re-run \`lps project config\` to remove them, or delete them in wp-admin > Users.`)
+          }
+        })
 
         pluginVersion = await this.reportPluginVersion()
       } else {

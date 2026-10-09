@@ -2,7 +2,7 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {createTempAdmin, deleteTempAdmin} from '../../src/lib/temp-admin.js'
+import {createTempAdmin, deleteTempAdmin, sweepTempAdmins} from '../../src/lib/temp-admin.js'
 import {WpClient} from '../../src/lib/wp-client.js'
 
 describe('createTempAdmin / deleteTempAdmin', () => {
@@ -114,5 +114,57 @@ describe('createTempAdmin / deleteTempAdmin', () => {
     await expect(deleteTempAdmin(wp, {id: 7, password: 'x', username: 'lps-temp-abc'})).rejects.toThrow(
       /still exists after deletion/,
     )
+  })
+
+  describe('sweepTempAdmins', () => {
+    const leftovers = [
+      {email: 'lps-temp-abc@lps-temp.invalid', id: 7, username: 'lps-temp-abc'},
+      {email: 'jane@acme.com', id: 8, username: 'lps-temp-jane'},
+      // WordPress search also matches emails and display names: the prefix must be on the username.
+      {email: 'x@lps-temp.invalid', id: 9, username: 'someone-lps-temp-'},
+    ]
+
+    it('deletes only accounts matching both the username prefix and the .invalid email', async () => {
+      const calls: string[] = []
+      const wp = await serve((req, res) => {
+        calls.push(`${req.method} ${req.url}`)
+        // Post-delete verification GET: the account is gone.
+        let status = 404
+        let body: unknown = {}
+        if (req.url?.startsWith('/wp-json/wp/v2/users?')) {
+          status = 200
+          body = leftovers
+        } else if (req.url === '/wp-json/wp/v2/users/me') {
+          status = 200
+          body = {id: 1}
+        } else if (req.method === 'DELETE') {
+          status = 200
+          body = {deleted: true}
+        }
+
+        res.writeHead(status, {'Content-Type': 'application/json'})
+        res.end(JSON.stringify(body))
+      })
+
+      await expect(sweepTempAdmins(wp)).resolves.toEqual(['lps-temp-abc'])
+      expect(calls).toEqual([
+        'GET /wp-json/wp/v2/users?context=edit&per_page=100&search=lps-temp-',
+        'GET /wp-json/wp/v2/users/me',
+        'DELETE /wp-json/wp/v2/users/7?reassign=1&force=true',
+        'GET /wp-json/wp/v2/users/7',
+      ])
+    })
+
+    it('returns an empty list and deletes nothing when no leftover exists', async () => {
+      const calls: string[] = []
+      const wp = await serve((req, res) => {
+        calls.push(`${req.method} ${req.url}`)
+        res.writeHead(200, {'Content-Type': 'application/json'})
+        res.end('[]')
+      })
+
+      await expect(sweepTempAdmins(wp)).resolves.toEqual([])
+      expect(calls).toHaveLength(1)
+    })
   })
 })
