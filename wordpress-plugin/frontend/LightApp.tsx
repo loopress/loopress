@@ -1,66 +1,43 @@
-import { Button, Card, CardBody, CardHeader, Notice } from '@wordpress/components';
+import { Button, TabPanel } from '@wordpress/components';
 import { AppShell } from './AppShell';
+import { ConfigPanel } from './config/ConfigPanel';
+import { MUTED } from './helpers';
+import { Overview } from './overview/Overview';
+import { useHashTab } from './useHashTab';
 
-const GET_STARTED_COMMANDS = [
-    'npm install -g @loopress/cli',
-    'lps project config',
-    'lps acf pull',
-    'lps seo pull',
-].join('\n');
+const TABS = [
+    { name: 'overview', title: 'Overview' },
+    { name: 'config', title: 'Config' },
+];
+const TAB_NAMES = TABS.map((tab) => tab.name);
 
 export default function LightApp() {
+    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'overview');
+
     return (
         <AppShell edition="Light">
             <p style={{ maxWidth: 600, fontSize: 13, marginTop: 0 }}>
-                Loopress Light syncs this site's ACF field groups, post types, taxonomies, and
-                options pages, and its SEO settings and redirects (Yoast, RankMath), with the
-                Loopress CLI, so all of it can live in Git: history, diffs, code review,
-                rollbacks, and moves between environments.
+                Loopress Light syncs this site's ACF field groups, post types, taxonomies and options
+                pages, SEO settings and redirects (Yoast, RankMath), menus, options and forms with the
+                Loopress CLI, so all of it can live in Git: history, diffs, code review, rollbacks, and
+                moves between environments.
             </p>
 
-            <div style={{ maxWidth: 600, marginTop: 20 }}>
-                <Card>
-                    <CardHeader>
-                        <h3 style={{ margin: 0, fontSize: 14 }}>Get started</h3>
-                    </CardHeader>
-                    <CardBody>
-                        <pre
-                            style={{
-                                background: '#1e1e1e',
-                                color: '#d4d4d4',
-                                padding: '10px 14px',
-                                borderRadius: 4,
-                                fontSize: 12,
-                                lineHeight: 1.8,
-                                margin: 0,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                            }}
-                        >
-                            {GET_STARTED_COMMANDS}
-                        </pre>
-                    </CardBody>
-                </Card>
-            </div>
+            <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
+                {(tab) => (
+                    <div style={{ marginTop: 16 }}>
+                        {tab.name === 'config' ? <ConfigPanel /> : <Overview />}
+                    </div>
+                )}
+            </TabPanel>
 
-            <div style={{ maxWidth: 600, marginTop: 20 }}>
-                <Notice status="info" isDismissible={false}>
-                    <p style={{ marginTop: 0 }}>
-                        <strong>Want more?</strong> Loopress Full adds code snippet sync (Code
-                        Snippets, WPCode), hooks, custom API routes, Composer dependency
-                        management, a security audit, and platform diagnostics, free of charge,
-                        downloaded directly from loopress.dev instead of wordpress.org.
-                    </p>
-                    <Button
-                        variant="primary"
-                        href="https://docs.loopress.dev/wordpress-plugin/"
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        Get Loopress Full
-                    </Button>
-                </Notice>
-            </div>
+            <p style={{ color: MUTED, fontSize: 13, marginTop: 32 }}>
+                Loopress Full adds snippets, hooks, custom API routes, static pages, single-page apps and
+                Composer dependencies, free, from loopress.dev instead of wordpress.org.{' '}
+                <Button variant="link" href="https://docs.loopress.dev/wordpress-plugin/" target="_blank" rel="noreferrer">
+                    Get Loopress Full
+                </Button>
+            </p>
         </AppShell>
     );
 }

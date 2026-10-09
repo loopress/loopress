@@ -5,6 +5,8 @@ import { apiFetch } from './api';
 import { AppShell } from './AppShell';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { CodePanel } from './CodePanel';
+import { ConfigPanel } from './config/ConfigPanel';
+import { Overview } from './overview/Overview';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
 import { useHashTab } from './useHashTab';
@@ -13,11 +15,20 @@ import { useHashTab } from './useHashTab';
 // (see Infrastructure\SiteHealth), and the Dependencies tab shows them only when something is
 // wrong. No update banner either: Loopress Full updates natively from the Plugins page.
 const TABS = [
-    { name: 'dependencies', title: 'Dependencies' },
+    { name: 'overview', title: 'Overview' },
+    { name: 'config', title: 'Config' },
     { name: 'code', title: 'Code' },
+    { name: 'dependencies', title: 'Dependencies' },
     { name: 'settings', title: 'Settings' },
 ];
 const TAB_NAMES = TABS.map((tab) => tab.name);
+
+const PANELS: Record<string, React.ReactNode> = {
+    config: <ConfigPanel />,
+    code: <CodePanel />,
+    dependencies: <DependencyManagement />,
+    settings: <SettingsPanel />,
+};
 
 const { autoloadError, fileModsAllowed } = window.loopressData;
 
@@ -41,7 +52,7 @@ function repairNotice(
 
 export default function App() {
     const queryClient = useQueryClient();
-    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'dependencies');
+    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'overview');
     // Repairing runs composer install: off limits under DISALLOW_FILE_MODS, the endpoint refuses.
     const canRepair = fileModsAllowed !== false;
 
@@ -79,13 +90,7 @@ export default function App() {
             <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
                 {(tab) => (
                     <div style={{ marginTop: 16 }}>
-                        {tab.name === 'code' ? (
-                            <CodePanel />
-                        ) : tab.name === 'settings' ? (
-                            <SettingsPanel />
-                        ) : (
-                            <DependencyManagement />
-                        )}
+                        {PANELS[tab.name] ?? <Overview />}
                     </div>
                 )}
             </TabPanel>

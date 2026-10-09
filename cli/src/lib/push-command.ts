@@ -104,7 +104,25 @@ export abstract class PushCommand extends LoopressCommand {
   }
 
   protected async recordSuccess(): Promise<void> {
-    if (!this.dryRun) await this.recordDeployment('success')
+    if (this.dryRun) return
+    await this.recordDeployment('success')
+    await this.reportPushToSite()
+  }
+
+  // Tells the plugin this push finished, for its Overview tab and the "managed by Loopress"
+  // warnings in wp-admin: one record per command (`this.id`, e.g. `acf:push`), since a single push
+  // sends one request per item. Best-effort like recordDeployment: a plugin older than the push
+  // log answers 404, one that doesn't know this command 400, neither may fail a push that landed.
+  protected async reportPushToSite(): Promise<void> {
+    if (!this.id) return
+
+    try {
+      // Bounded: the site fingerprints the pushed resource before answering, which a large
+      // site can make slow, and a finished push must not wait on its own bookkeeping.
+      await this.wp.post('loopress/v1/pushes', {resource: this.id}, {timeoutMs: 5000})
+    } catch {
+      // non-blocking, see above
+    }
   }
 
   // Reports one failed Listr task: status lines go through `task.output` when running inside a

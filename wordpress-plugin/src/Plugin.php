@@ -12,6 +12,7 @@ use Loopress\Form\Module\FormModule;
 use Loopress\Form\Service\FormService;
 use Loopress\Menu\Module\MenuModule;
 use Loopress\Options\Module\OptionsModule;
+use Loopress\Pushes\Module\PushesModule;
 use Loopress\RestCache\Module\RestCacheModule;
 use Loopress\Seo\Module\SeoModule;
 use Psr\Container\ContainerInterface;
@@ -41,6 +42,7 @@ class Plugin
             MenuModule::class,
             RestCacheModule::class,
             FormModule::class,
+            PushesModule::class,
         ]);
 
         foreach ($moduleClasses as $moduleClass) {

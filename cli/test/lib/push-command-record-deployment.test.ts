@@ -70,3 +70,33 @@ describe('PushCommand.recordDeployment()', () => {
     await expect(new TestPush([], {} as never).testRecordDeployment('success')).resolves.toBeUndefined()
   })
 })
+
+// The real reportPushToSite(), called by recordSuccess() after a real push.
+class ReportingPush extends PushCommand {
+  async run(): Promise<void> {}
+
+  async testReport(post: ReturnType<typeof vi.fn>) {
+    // Seeds the client the `wp` getter would otherwise build from real credentials.
+    Object.assign(this, {wpClient: {post}})
+    await this.reportPushToSite()
+  }
+}
+
+describe('PushCommand.reportPushToSite()', () => {
+  it('reports the finished push to the plugin under the command id', async () => {
+    const post = vi.fn().mockResolvedValue({})
+    const command = new ReportingPush([], {} as never)
+    command.id = 'acf:push'
+
+    await command.testReport(post)
+
+    expect(post).toHaveBeenCalledWith('loopress/v1/pushes', {resource: 'acf:push'}, {timeoutMs: 5000})
+  })
+
+  it('never fails the push when the plugin predates the push log', async () => {
+    const command = new ReportingPush([], {} as never)
+    command.id = 'acf:push'
+
+    await expect(command.testReport(vi.fn().mockRejectedValue(new Error('404')))).resolves.toBeUndefined()
+  })
+})

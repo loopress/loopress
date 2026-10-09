@@ -12,6 +12,7 @@ vi.mock('./api', async (importOriginal) => {
 
 function stubQuietEndpoints() {
     apiFetchMock.mockImplementation(async (path: string) => {
+        if (path === '/pushes') return { entries: [], resources: [] };
         if (path === '/composer/diagnostics') {
             return { php_version: '8.2.29', platform_php: '8.2.29', issues: [] };
         }
@@ -46,6 +47,7 @@ function renderApp(autoloadError: string | null, overrides: Partial<Window['loop
         pluginVersion: '2026.7.0',
         environment: 'production',
         restUrl: 'http://localhost/wp-json/',
+        siteUrl: 'http://localhost',
         fileModsAllowed: true,
         ...overrides,
     };
@@ -77,6 +79,9 @@ describe('App', () => {
         expect(screen.getByRole('heading', { name: 'Loopress' })).toBeInTheDocument();
         expect(screen.getByText('Full v2026.7.0')).toBeInTheDocument();
         expect(screen.getByText('Production')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+        expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Config', 'Code', 'Dependencies', 'Settings']);
+        expect(await screen.findByText('Connect your repository')).toBeInTheDocument();
         expect(screen.queryByText(/Repairing dependencies/i)).toBeNull();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());
     });
@@ -95,6 +100,7 @@ describe('App', () => {
 
     test('reports a failed auto-repair', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
+        if (path === '/pushes') return { entries: [], resources: [] };
             if (path === '/composer/repair') {
                 throw new Error('composer install failed');
             }
@@ -116,6 +122,7 @@ describe('App', () => {
 
     test('renders a Code tab that shows uploaded route files', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
+        if (path === '/pushes') return { entries: [], resources: [] };
             if (path === '/api-files') {
                 return [{ filename: 'hello-world', content: '<?php' }];
             }
@@ -144,6 +151,7 @@ describe('App', () => {
 
     test('renders a Code tab that lists deployed single-page apps', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
+        if (path === '/pushes') return { entries: [], resources: [] };
             if (path === '/apps') {
                 return [
                     {
@@ -183,6 +191,7 @@ describe('App', () => {
 
     test('renders a Code tab that also lists uploaded hook files with their bindings', async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
+        if (path === '/pushes') return { entries: [], resources: [] };
             if (path === '/hook-files') {
                 return [{ filename: 'content-filters', content: '<?php', hooks: [{ type: 'action', hook: 'init', recurrence: null }] }];
             }
