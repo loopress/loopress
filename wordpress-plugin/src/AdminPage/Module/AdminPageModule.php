@@ -77,6 +77,8 @@ class AdminPageModule implements Module
             'autoloadError' => null,
             'environment'   => wp_get_environment_type(),
             'restUrl'       => get_rest_url(),
+            // The URL to give `lps project config`, shown pre-filled before the first push.
+            'siteUrl'       => home_url(),
         ]));
     }
 

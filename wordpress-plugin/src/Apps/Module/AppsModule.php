@@ -24,6 +24,10 @@ class AppsModule implements Module
 
     public function boot(): void
     {
+        // Push log entries reported by this feature's `lps` command (the shared Pushes module
+        // reads them through this filter, never referenced from here by class).
+        add_filter('loopress_push_resources', static fn(array $resources): array => $resources + ['app:push' => ['label' => 'Single-page apps', 'routes' => ['/apps']]]);
+
         add_action('rest_api_init', function (): void {
             $this->controller->register_routes();
         });

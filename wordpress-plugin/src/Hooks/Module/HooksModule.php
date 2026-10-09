@@ -17,6 +17,10 @@ class HooksModule implements Module
 
     public function boot(): void
     {
+        // Push log entries reported by this feature's `lps` command (the shared Pushes module
+        // reads them through this filter, never referenced from here by class).
+        add_filter('loopress_push_resources', static fn(array $resources): array => $resources + ['hook:push' => ['label' => 'Hooks', 'routes' => ['/hook-files']]]);
+
         // The management endpoint (hook-files) is a REST route like any other, only ever
         // called by `lps hook push`/`pull`/`list`, so it registers on 'rest_api_init' same as
         // ApiFilesController. loadAndRegister() itself binds real add_action()/add_filter()

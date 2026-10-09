@@ -119,6 +119,29 @@ export interface RemoteApp {
     committed: boolean;
 }
 
+// Mirrors PushLog::record() / PushLog::summary() in the plugin.
+export interface PushEntry {
+    resource: string;
+    label: string;
+    at: string;
+    user: string;
+    appPassword: string | null;
+}
+
+export interface PushedResource {
+    resource: string;
+    label: string;
+    command: string;
+    lastPush: PushEntry;
+    // true: changed outside the CLI since that push. null: Loopress can't tell for this resource.
+    drift: boolean | null;
+}
+
+export interface PushSummary {
+    entries: PushEntry[];
+    resources: PushedResource[];
+}
+
 declare global {
     interface Window {
         loopressData: {
@@ -131,6 +154,8 @@ declare global {
             environment: string;
             // get_rest_url(), the site's REST root, to show full route URLs.
             restUrl: string;
+            // home_url(), what `lps project config` asks for.
+            siteUrl: string;
             // Full edition only (ComposerModule): false under DISALLOW_FILE_MODS, every Composer
             // route that writes files then refuses with a 403.
             fileModsAllowed?: boolean;

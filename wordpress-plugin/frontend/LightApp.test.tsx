@@ -2,6 +2,11 @@ import { describe, expect, test, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+vi.mock('./api', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./api')>();
+    return { ...actual, apiFetch: vi.fn().mockResolvedValue({ entries: [], resources: [] }) };
+});
+
 function renderApp() {
     window.loopressData = {
         apiUrl: 'http://localhost/wp-json/loopress/v1',
@@ -11,6 +16,7 @@ function renderApp() {
         pluginVersion: '2026.7.0',
         environment: 'staging',
         restUrl: 'http://localhost/wp-json/',
+        siteUrl: 'http://localhost',
     };
 
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -42,7 +48,7 @@ describe('LightApp', () => {
     test('points the user at the CLI pairing flow', async () => {
         await renderApp();
 
-        expect(screen.getByText(/lps acf pull/i)).toBeInTheDocument();
-        expect(screen.getByText(/lps seo pull/i)).toBeInTheDocument();
+        expect(await screen.findByText('Connect your repository')).toBeInTheDocument();
+        expect(screen.getByText(/lps project config/, { selector: 'pre' })).toBeInTheDocument();
     });
 });

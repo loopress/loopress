@@ -122,10 +122,24 @@ Installing Loopress Full deactivates Loopress Light automatically. From then on,
 
 ## Admin pages
 
-Loopress Full adds a **Loopress** page to the WordPress admin, with the site's environment type (production, staging...) shown next to its title:
+Both editions add a **Loopress** page to the WordPress admin, with the site's environment type (production, staging...) shown next to its title. Loopress Light shows the **Overview** below; Loopress Full adds three more tabs:
 
+- **Overview** (the default): what was pushed to this site from your repository, see [Push history and drift](#push-history-and-drift)
 - **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Code**: everything pushed with the CLI, read-only: [API routes](/api/admin-ui/) and their namespace setting, [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
 - **Settings**: crash reporting, and a reset of every Loopress setting
 
 Platform and webserver checks also appear in **Tools → Site Health**.
+
+### Push history and drift
+
+Every successful `lps <resource> push` (not a dry run) tells the plugin it happened, once per command. The **Overview** tab lists each pushed resource with:
+
+- **Last push**: when, by which WordPress user, and through which [application password](/application-passwords/) (its name, e.g. "CI"), so a push from CI is told apart from one from a laptop
+- **Status**: **In sync**, or **Changed since** when the resource changed on the site after that push, outside the CLI (an edit in wp-admin, WP-CLI, another plugin). Run [`lps diff`](/workflow/#lps-diff) to see what changed, then pull to keep the change or push again to undo it. Options and theme styles show **Not tracked**: Loopress can't fingerprint them.
+
+The last 50 pushes are kept. Before the first push, the tab shows how to connect the CLI, with this site's URL ready to copy.
+
+Once a resource has been pushed to a site, its own WordPress screens (ACF field groups, post types and taxonomies, **Appearance → Menus**, WPForms, Code Snippets or WPCode) show a **Managed by Loopress** notice: changes made there are overwritten by the next push, so make them in the repository instead.
+
+A CLI older than this feature simply doesn't report its pushes; the rest of the plugin works the same.

@@ -5,6 +5,7 @@ import { apiFetch } from './api';
 import { AppShell } from './AppShell';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { CodePanel } from './CodePanel';
+import { Overview } from './overview/Overview';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
 import { useHashTab } from './useHashTab';
@@ -13,6 +14,7 @@ import { useHashTab } from './useHashTab';
 // (see Infrastructure\SiteHealth), and the Dependencies tab shows them only when something is
 // wrong. No update banner either: Loopress Full updates natively from the Plugins page.
 const TABS = [
+    { name: 'overview', title: 'Overview' },
     { name: 'dependencies', title: 'Dependencies' },
     { name: 'code', title: 'Code' },
     { name: 'settings', title: 'Settings' },
@@ -41,7 +43,7 @@ function repairNotice(
 
 export default function App() {
     const queryClient = useQueryClient();
-    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'dependencies');
+    const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'overview');
     // Repairing runs composer install: off limits under DISALLOW_FILE_MODS, the endpoint refuses.
     const canRepair = fileModsAllowed !== false;
 
@@ -83,8 +85,10 @@ export default function App() {
                             <CodePanel />
                         ) : tab.name === 'settings' ? (
                             <SettingsPanel />
-                        ) : (
+                        ) : tab.name === 'dependencies' ? (
                             <DependencyManagement />
+                        ) : (
+                            <Overview />
                         )}
                     </div>
                 )}
