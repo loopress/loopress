@@ -19,7 +19,7 @@ The command first prints the project, environment and URL it targets (the same r
 | WordPress REST API reachable | The site is down, the URL is wrong, or a security plugin blocks `/wp-json/` |
 | Loopress plugin installed | The `loopress/v1` endpoints are missing: the plugin is not installed, not active, or outdated |
 | Credentials accepted | The application password is rejected by an authenticated core endpoint |
-| No leftover temporary admin accounts | An interrupted Loopress Full install (see [`project config`](/concepts/#configuring-an-environment)) left its temporary administrator behind. Re-run `lps project config` to remove it, or delete it in wp-admin > Users. The check only reports, it never deletes. Skipped when the credentials are rejected |
+| No leftover temporary admin accounts | An interrupted Loopress Full install (see [`project config`](/concepts/#configuring-an-environment)) left its temporary administrator behind. Re-run `lps project config` to remove it, or delete it in wp-admin > Users. The check only reports, it never deletes. Skipped when the credentials are rejected, and informational when they can't list users |
 | Plugin version | Informational: shown when the plugin exposes it (Loopress Full) |
 
 Each check prints ✓ or ✗ with the cause and the corrective action. If the site is unreachable or no credentials are stored, the remaining checks are skipped instead of piling up timeouts.
