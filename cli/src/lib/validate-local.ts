@@ -4,6 +4,7 @@ import {join} from 'node:path'
 import {configManager} from '../config/project-config.manager.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
+import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
 import {parseType} from '../utils/snippet-format.js'
 import {readLocalTemplates} from '../utils/template-format.js'
 import {loadSnippets} from './load-snippets.js'
@@ -29,10 +30,10 @@ const DEFAULT_DIR: Record<string, string> = {
   menuDir: 'menus',
   optionsDir: 'options',
   pageDir: 'pages',
-  partDir: 'parts',
+  partDir: RESOURCE_DIR_DEFAULTS.part,
   seoDir: 'seo',
   snippetsDir: 'snippets',
-  templateDir: 'templates',
+  templateDir: RESOURCE_DIR_DEFAULTS.template,
   themeStylesDir: 'theme',
 }
 

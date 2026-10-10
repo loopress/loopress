@@ -10,7 +10,7 @@ export const TEMPLATE_SLUG_RULE: SlugRule = {
   pattern: /^[a-z0-9_-]+$/,
 }
 
-// templates/<slug>.html. `title`/`postTypes` only when the header declares them: they become the
+// theme/templates/<slug>.html. `title`/`postTypes` only when the header declares them: they become the
 // template's `customTemplates` entry in the child theme's theme.json (ChildThemeController).
 export type Template = {
   html: string
@@ -19,7 +19,7 @@ export type Template = {
   title?: string
 }
 
-// parts/<slug>.html, always registered in the child's `templateParts`.
+// theme/parts/<slug>.html, always registered in the child's `templateParts`.
 export type Part = {
   area: string
   html: string

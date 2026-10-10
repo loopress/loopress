@@ -48,10 +48,10 @@ describe('resolveResourceDir', () => {
       menu: 'menus',
       options: 'options',
       page: 'pages',
-      part: 'parts',
+      part: 'theme/parts',
       seo: 'seo',
       snippets: 'snippets',
-      template: 'templates',
+      template: 'theme/templates',
       themeStyles: 'theme',
     })
   })

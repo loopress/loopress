@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs'
 import {join, sep} from 'node:path'
 
 import {type LoopressLocalConfig} from '../utils/loopress-config.js'
+import {resolveResourceDir} from '../utils/resource-dirs.js'
 
 export type ResourceType = 'api' | 'hooks' | 'pages' | 'parts' | 'plugins' | 'snippets' | 'templates'
 
@@ -31,8 +32,8 @@ export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLo
     hooks: {commandId: 'hook:push', path: join(rootDir, localConfig.hooksDir ?? 'hooks'), type: 'hooks'},
     pages: {commandId: 'page:push', path: join(rootDir, localConfig.pageDir ?? 'pages'), type: 'pages'},
     plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},
-    parts: {commandId: 'theme:template:push', path: join(rootDir, localConfig.partDir ?? 'parts'), type: 'parts'},
-    templates: {commandId: 'theme:template:push', path: join(rootDir, localConfig.templateDir ?? 'templates'), type: 'templates'},
+    parts: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('part', localConfig)), type: 'parts'},
+    templates: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('template', localConfig)), type: 'templates'},
     snippets: {commandId: 'snippet:push', path: join(rootDir, localConfig.snippetsDir ?? 'snippets'), type: 'snippets'},
   }
 

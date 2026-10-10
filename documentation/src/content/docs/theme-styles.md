@@ -93,6 +93,8 @@ lps theme style rollback --to <id>  # an older one
 ```
 theme/
   twentytwentyfour-global-styles.json
+  templates/   # block templates, see Templates and parts
+  parts/       # template parts
 ```
 
 Each file is named `<stylesheet-slug>-global-styles.json` and holds `{ "settings", "styles" }`, the same shape as the `settings`/`styles` keys of a theme's `theme.json`. WordPress bookkeeping fields (the post id, `_links`) are never part of the tracked file.
