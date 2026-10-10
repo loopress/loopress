@@ -19,7 +19,7 @@ class UsagePingTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
-        $this->options = ['timezone_string' => 'Europe/Paris'];
+        $this->options = [];
         Functions\when('get_option')->alias(fn(string $name, mixed $fallback = false): mixed => $this->options[$name] ?? $fallback);
         Functions\when('update_option')->alias(function (string $name, mixed $value): bool {
             $this->options[$name] = $value;
@@ -28,6 +28,7 @@ class UsagePingTest extends TestCase
         });
         Functions\when('get_bloginfo')->justReturn('6.8');
         Functions\when('get_locale')->justReturn('fr_FR');
+        Functions\when('wp_timezone_string')->justReturn('Europe/Paris');
         Functions\when('wp_get_environment_type')->justReturn('production');
         Functions\when('wp_generate_uuid4')->justReturn('0b7c1f3e-8a5d-4c2b-9e6f-1a2b3c4d5e6f');
         Functions\when('wp_json_encode')->alias('json_encode');
