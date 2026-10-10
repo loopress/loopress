@@ -26,6 +26,9 @@ const RESPONSES: Record<string, unknown> = {
         { slug: 'post', label: 'Posts', source: 'wordpress', count: 4, managed: false, conflict: false },
         { slug: 'book', label: 'Books', source: 'cptui', count: 2, managed: true, conflict: true },
     ],
+    '/registered-taxonomies': [
+        { slug: 'genre', label: 'Genres', source: 'loopress', count: 7, objectTypes: ['book', 'post'], managed: true, conflict: false },
+    ],
     '/forms': [{ id: 12, settings: { form_title: 'Contact' } }],
     '/seo/redirects': [{ id: 1, sources: [{ pattern: 'old-page' }], urlTo: '/new-page', headerCode: 301 }],
 };
@@ -56,6 +59,14 @@ describe('ConfigPanel', () => {
         expect(screen.getByText('CPT UI')).toBeInTheDocument();
         expect(screen.getByText('WordPress')).toBeInTheDocument();
         expect(screen.getAllByText('Conflict')).toHaveLength(1);
+    });
+
+    test('lists every taxonomy with its source and the post types it attaches to', async () => {
+        render(<ConfigPanel />, { wrapper });
+
+        expect(await screen.findByText('Genres')).toBeInTheDocument();
+        expect(screen.getByText('book, post')).toBeInTheDocument();
+        expect(screen.getByText('lps taxonomy pull')).toBeInTheDocument();
     });
 
     test("shows the endpoint's own reason when a plugin isn't active", async () => {

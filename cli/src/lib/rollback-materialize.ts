@@ -116,21 +116,22 @@ async function themeStyles(id: string, value: unknown, dir: string): Promise<voi
   await writeJson(join(dir, themeStylesFileName(id)), value)
 }
 
-// id is the slug, value the bare register_post_type() arguments (resource-state.ts's cptProvider).
-async function cpt(id: string, value: unknown, dir: string): Promise<void> {
+// id is the slug, value the bare register_*() arguments (resource-state.ts's declaredTypeProvider).
+async function declaredType(id: string, value: unknown, dir: string): Promise<void> {
   await writeJson(join(dir, `${id}.json`), value)
 }
 
 const MATERIALIZERS: Record<string, Materializer> = {
   acf,
   api: phpFile,
-  cpt,
+  cpt: declaredType,
   form,
   hook: phpFile,
   menu,
   option,
   seo,
   snippet,
+  taxonomy: declaredType,
   'theme-styles': themeStyles,
 }
 

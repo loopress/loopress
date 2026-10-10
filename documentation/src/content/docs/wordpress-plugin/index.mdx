@@ -7,7 +7,7 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase. Both are free:
 
-- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [SEO](/seo/), [Forms](/forms/), [Menus](/menus/), [Custom Post Types](/custom-post-types/), [Options](/options/), and [Theme Styles](/theme-styles/).
+- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [SEO](/seo/), [Forms](/forms/), [Menus](/menus/), [Custom Post Types](/custom-post-types/), [Taxonomies](/taxonomies/), [Options](/options/), and [Theme Styles](/theme-styles/).
 - **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
 
 Loopress Full is not a paid upgrade. It is distributed outside WordPress.org because the directory guidelines forbid installing code from Packagist and deploying PHP into another plugin, see [About WordPress.org-hosted plugins](#about-wordpressorg-hosted-plugins). Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on, and the two editions never run side by side.
@@ -28,6 +28,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | `lps menu pull` / `push` / `list` / `diff` | ✓ | ✓ |
 | Custom post types declared as JSON files | ✓ | ✓ |
 | `lps cpt pull` / `push` / `list` / `rm` / `diff` | ✓ | ✓ |
+| Taxonomies declared as JSON files (never their terms) | ✓ | ✓ |
+| `lps taxonomy pull` / `push` / `list` / `rm` / `diff` | ✓ | ✓ |
 | Option tracking (individual `wp_options` rows you choose) | ✓ | ✓ |
 | `lps option add` / `pull` / `push` / `list` / `remove` / `diff` | ✓ | ✓ |
 | Theme styles (block theme Global Styles, through WordPress core's own REST API) | ✓ | ✓ |
@@ -59,6 +61,7 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 - **Form sync**: pull and push [WPForms](https://wpforms.com/) forms as JSON with `lps form pull/push`
 - **Menu sync**: nav menus and the active theme's menu locations with `lps menu pull/push`
 - **Custom post types**: post types declared as `cpt/<slug>.json` files, registered by the plugin, with `lps cpt pull/push`
+- **Taxonomies**: taxonomies declared as `taxonomies/<slug>.json` files, attached to post types, with `lps taxonomy pull/push`. Terms stay content
 - **Option tracking**: the individual `wp_options` rows you choose, with `lps option add/pull/push`
 - **Theme styles**: the active block theme's Global Styles with `lps theme style pull/push`, through WordPress core's own REST API
 - **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role)
@@ -96,7 +99,7 @@ The tradeoff is a strict set of guidelines, and Loopress ran into two of them:
 - **Rule 8** forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Full's Composer dependency management does, so it cannot be hosted on WordPress.org regardless of implementation quality.
 - Separately, the review team classified snippet sync itself, REST endpoints that let arbitrary PHP/JS/CSS be submitted remotely and stored in another plugin (Code Snippets or WPCode) for later execution, as a remote code-deployment mechanism. This holds regardless of the authentication and capability checks in front of those endpoints: they establish who is allowed to call the endpoint, not whether the code submitted through it is safe. Every submission of Loopress Light that shipped snippet sync was rejected on this basis, and a subsequent appeal was rejected too, explicitly and finally.
 
-Loopress Light no longer ships snippet sync as a result: it covers only configuration stored as plain data (ACF, SEO, menus, custom post types, options), with no executable-code angle, and is published on the WordPress.org directory in that form. Theme styles go through WordPress core's own REST API, so they work with either edition.
+Loopress Light no longer ships snippet sync as a result: it covers only configuration stored as plain data (ACF, SEO, menus, custom post types, taxonomies, options), with no executable-code angle, and is published on the WordPress.org directory in that form. Theme styles go through WordPress core's own REST API, so they work with either edition.
 
 This is why the plugin ships as two editions instead of one: Loopress Light is on the WordPress.org directory, installed and updated in place like any other plugin from there. Loopress Full carries both rejected capabilities (Composer and snippet sync), so it is downloaded directly from loopress.dev, but it still updates itself through the normal Plugins page: it checks GitHub Releases for a newer `loopress-full.zip` and, once found, WordPress downloads and installs it the same way it would a WordPress.org-hosted plugin.
 
@@ -128,7 +131,7 @@ Installing Loopress Full deactivates Loopress Light automatically. From then on,
 Both editions add a **Loopress** page to the WordPress admin, with the site's environment type (production, staging...) shown next to its title. Loopress Light has the first two tabs below; Loopress Full has all five:
 
 - **Overview** (the default): what was pushed to this site from your repository, see [Push history and drift](#push-history-and-drift)
-- **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) on the site with its source, [forms](/forms/), and [SEO](/seo/) redirects, each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
+- **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) and [taxonomy](/taxonomies/) on the site with its source, [forms](/forms/), and [SEO](/seo/) redirects, each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
 - **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Code**: the code deployed with the CLI, read-only: [API routes](/api/admin-ui/) and their namespace setting, [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
 - **Settings**: crash reporting, and a reset of every Loopress setting

@@ -21,6 +21,7 @@ import {registerPromoteTools} from './tools/promote.js'
 import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
+import {registerTaxonomyTools} from './tools/taxonomy.js'
 import {registerThemeTools} from './tools/theme.js'
 import {registerThemeStylesTools} from './tools/theme-styles.js'
 import {registerValidateTools} from './tools/validate.js'
@@ -36,6 +37,7 @@ registerAcfTools(server)
 registerSeoTools(server)
 registerMenuTools(server)
 registerCptTools(server)
+registerTaxonomyTools(server)
 registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)

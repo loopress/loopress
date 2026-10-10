@@ -22,6 +22,7 @@ lps snippet rollback --dry-run  # show what would be restored
 | [Forms](/forms/) | `lps form rollback` |
 | [Menus](/menus/) | `lps menu rollback` |
 | [Custom Post Types](/custom-post-types/) | `lps cpt rollback` |
+| [Taxonomies](/taxonomies/) | `lps taxonomy rollback` |
 | [Options](/options/) | `lps option rollback` |
 | [Theme Styles](/theme-styles/) | `lps theme style rollback` |
 | [API routes](/api/cli/) | `lps api rollback` |

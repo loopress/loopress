@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {checkCptFile} from '../utils/cpt-format.js'
+import {CPT_SPEC, declaredFileChecker, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
 import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
@@ -35,6 +35,7 @@ const DEFAULT_DIR: Record<string, string> = {
   partDir: RESOURCE_DIR_DEFAULTS.part,
   seoDir: 'seo',
   snippetsDir: 'snippets',
+  taxonomyDir: 'taxonomies',
   templateDir: RESOURCE_DIR_DEFAULTS.template,
   themeStylesDir: 'theme',
 }
@@ -66,7 +67,8 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   // Same reader `option push` uses: a file missing "name", "autoload" or "value" is skipped
   // there with a warning, so it's a problem here.
   checked += await checkJsonDir(resolve('optionsDir'), problems, parseLocalOption)
-  checked += await checkJsonDir(resolve('cptDir'), problems, checkCptFile)
+  checked += await checkJsonDir(resolve('cptDir'), problems, declaredFileChecker(CPT_SPEC))
+  checked += await checkJsonDir(resolve('taxonomyDir'), problems, declaredFileChecker(TAXONOMY_SPEC))
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')

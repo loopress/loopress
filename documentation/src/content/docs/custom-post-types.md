@@ -169,5 +169,5 @@ The **Config** tab of the Loopress admin page lists every post type on the site,
 Pick one per post type: two sources registering the same slug is exactly the conflict the admin page flags.
 
 :::note
-Out of scope for now: taxonomies (a separate `lps taxonomy` is planned on the same model), importing post types from CPT UI, and syncing the posts themselves.
+Out of scope for now: importing post types from CPT UI, and syncing the posts themselves. Taxonomies have their own page: [Taxonomies](/taxonomies/).
 :::

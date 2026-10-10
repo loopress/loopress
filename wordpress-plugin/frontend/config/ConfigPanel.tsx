@@ -4,7 +4,7 @@ import { Pill, ResourceSection, Row, Table } from '../ui';
 import { CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
-// PostTypeService::registered(),
+// PostTypeService::registered(), TaxonomyService::registered(),
 // WPFormsProvider::toCanonical(), RankMathService::exportRedirection()), only the fields shown.
 interface AcfObject {
     key: string;
@@ -24,6 +24,11 @@ interface RegisteredPostType {
     count: number;
     managed: boolean;
     conflict: boolean;
+}
+
+// `count` is the number of terms here, published posts for a post type.
+interface RegisteredTaxonomy extends RegisteredPostType {
+    objectTypes: string[];
 }
 
 const SOURCE_LABELS: Record<RegisteredPostType['source'], string> = {
@@ -171,6 +176,46 @@ function PostTypesSection() {
     );
 }
 
+// Same as PostTypesSection: every taxonomy on the site, only its structure, never its terms.
+function TaxonomiesSection() {
+    const query = useQuery<RegisteredTaxonomy[]>({
+        queryKey: ['registered-taxonomies'],
+        queryFn: () => apiFetch<RegisteredTaxonomy[]>('/registered-taxonomies'),
+        staleTime: 30_000,
+    });
+    const taxonomies = query.data ?? [];
+
+    return (
+        <ResourceSection
+            title="Taxonomies"
+            description={<>Loopress taxonomies are declared in <code>taxonomies/</code> files and pulled with <code>lps taxonomy pull</code>. Their terms are never synced.</>}
+            query={query}
+            isEmpty={taxonomies.length === 0}
+            errorText={errorText(query.error, 'Failed to load taxonomies.')}
+            empty="No taxonomies."
+        >
+            <Table columns={['Name', 'Slug', 'Source', 'Attached to', 'Terms']}>
+                {taxonomies.map((taxonomy) => (
+                    <Row key={taxonomy.slug}>
+                        <td style={CELL}><strong>{taxonomy.label}</strong></td>
+                        <td style={MONO}>{taxonomy.slug}</td>
+                        <td style={CELL}>
+                            {SOURCE_LABELS[taxonomy.source]}
+                            {taxonomy.conflict && (
+                                <Pill tone="warning" title="Declared in taxonomies/, but this slug was already registered first: the Loopress version is skipped.">
+                                    Conflict
+                                </Pill>
+                            )}
+                        </td>
+                        <td style={MONO}>{taxonomy.objectTypes.join(', ')}</td>
+                        <td style={CELL}>{taxonomy.count}</td>
+                    </Row>
+                ))}
+            </Table>
+        </ResourceSection>
+    );
+}
+
 function FormsSection() {
     const query = useQuery<Form[]>({ queryKey: ['forms'], queryFn: () => apiFetch<Form[]>('/forms'), staleTime: 30_000 });
     const forms = query.data ?? [];
@@ -233,6 +278,7 @@ export function ConfigPanel() {
             <AcfSection />
             <MenusSection />
             <PostTypesSection />
+            <TaxonomiesSection />
             <FormsSection />
             <RedirectsSection />
         </>
