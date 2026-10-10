@@ -62,9 +62,10 @@ class UsagePing
             'wp'        => get_bloginfo('version'),
             'php'       => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
             'locale'    => get_locale(),
-            // Empty when the admin picked a raw UTC offset: the country is derived from this
-            // named zone in the api, deliberately not from the request IP (see Analytics.md).
-            'timezone'  => (string) get_option('timezone_string', ''),
+            // The named zone if the admin picked a city, else the raw offset ("+02:00"), which is
+            // WordPress's default ("UTC+0"). Country comes from this or the locale in the api,
+            // deliberately not from the request IP (see Analytics.md).
+            'timezone'  => wp_timezone_string(),
             'env'       => wp_get_environment_type(),
         ];
     }
