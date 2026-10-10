@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\PostTypes\RestApi;
 
 use Brain\Monkey;
-use Loopress\PostTypes\Exception\InvalidPostTypeException;
-use Loopress\PostTypes\Exception\StalePostTypeRevisionException;
-use Loopress\PostTypes\RestApi\PostTypesController;
+use Loopress\PostTypes\Exception\InvalidDeclarationException;
+use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
+use Loopress\PostTypes\RestApi\DeclaredTypesController;
 use Loopress\PostTypes\Service\PostTypeService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
-class PostTypesControllerTest extends TestCase
+class DeclaredTypesControllerTest extends TestCase
 {
-    private PostTypesController $controller;
+    private DeclaredTypesController $controller;
     private PostTypeService&MockObject $service;
 
     protected function setUp(): void
@@ -25,7 +25,7 @@ class PostTypesControllerTest extends TestCase
         Monkey\setUp();
 
         $this->service    = $this->createMock(PostTypeService::class);
-        $this->controller = new PostTypesController($this->service);
+        $this->controller = new DeclaredTypesController($this->service, 'post-types', 'Post type');
     }
 
     protected function tearDown(): void
@@ -46,7 +46,7 @@ class PostTypesControllerTest extends TestCase
     {
         $this->service->method('get')->willReturn(null);
 
-        $this->assertSame(404, $this->controller->get_post_type(new WP_REST_Request(['slug' => 'book']))->status);
+        $this->assertSame(404, $this->controller->get_item(new WP_REST_Request(['slug' => 'book']))->status);
     }
 
     public function test_upsert_passes_slug_args_and_revision_to_the_service(): void
@@ -54,7 +54,7 @@ class PostTypesControllerTest extends TestCase
         $this->service->expects($this->once())->method('upsert')->with('book', ['public' => true], 'rev-1')
             ->willReturn(['slug' => 'book', 'args' => ['public' => true], 'revision' => 'rev-2']);
 
-        $response = $this->controller->upsert_post_type($this->jsonRequest(['slug' => 'book', 'args' => ['public' => true], 'expectedRevision' => 'rev-1']));
+        $response = $this->controller->upsert_item($this->jsonRequest(['slug' => 'book', 'args' => ['public' => true], 'expectedRevision' => 'rev-1']));
 
         $this->assertSame(200, $response->status);
     }
@@ -75,25 +75,25 @@ class PostTypesControllerTest extends TestCase
     {
         $this->service->expects($this->never())->method('upsert');
 
-        $this->assertSame(400, $this->controller->upsert_post_type($this->jsonRequest($body))->status);
+        $this->assertSame(400, $this->controller->upsert_item($this->jsonRequest($body))->status);
     }
 
     public function test_upsert_maps_service_refusals(): void
     {
-        $this->service->method('upsert')->willThrowException(new InvalidPostTypeException('reserved'));
-        $this->assertSame(422, $this->controller->upsert_post_type($this->jsonRequest(['slug' => 'page', 'args' => []]))->status);
+        $this->service->method('upsert')->willThrowException(new InvalidDeclarationException('reserved'));
+        $this->assertSame(422, $this->controller->upsert_item($this->jsonRequest(['slug' => 'page', 'args' => []]))->status);
     }
 
     public function test_upsert_maps_a_stale_revision_to_412(): void
     {
-        $this->service->method('upsert')->willThrowException(new StalePostTypeRevisionException('stale'));
-        $this->assertSame(412, $this->controller->upsert_post_type($this->jsonRequest(['slug' => 'book', 'args' => [], 'expectedRevision' => 'x']))->status);
+        $this->service->method('upsert')->willThrowException(new StaleDeclarationRevisionException('stale'));
+        $this->assertSame(412, $this->controller->upsert_item($this->jsonRequest(['slug' => 'book', 'args' => [], 'expectedRevision' => 'x']))->status);
     }
 
     public function test_delete_returns_404_when_nothing_was_stored(): void
     {
         $this->service->method('delete')->willReturn(false);
 
-        $this->assertSame(404, $this->controller->delete_post_type(new WP_REST_Request(['slug' => 'book']))->status);
+        $this->assertSame(404, $this->controller->delete_item(new WP_REST_Request(['slug' => 'book']))->status);
     }
 }

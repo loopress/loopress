@@ -133,6 +133,9 @@
       "theme:style": {
         "description": "Manage the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing)"
       },
+      "taxonomy": {
+        "description": "Manage taxonomies declared in taxonomies/<slug>.json files (never their terms), and list every taxonomy on the site"
+      },
       "telemetry": {
         "description": "Manage error reporting preferences"
       }

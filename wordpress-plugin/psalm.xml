@@ -69,7 +69,7 @@
                 <!-- MenuController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Menu/RestApi" />
-                <!-- PostTypesController's endpoints are invoked by register_rest_route() like the
+                <!-- DeclaredTypesController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/PostTypes/RestApi" />
                 <!-- PushesController's endpoints are invoked by register_rest_route() like the
@@ -129,12 +129,15 @@
                 <referencedMethod name="Loopress\Hooks\Attribute\Cron::__construct" />
             </errorLevel>
         </PossiblyUnusedMethod>
-        <!-- PostTypeService::register() hands a cpt/<slug>.json file's arguments to
-             register_post_type() as-is: their shape is whatever the user declared, checked by
-             WordPress itself, not narrowed key by key to the stub's array shape. -->
+        <!-- src/PostTypes: register_post_type()/register_taxonomy() get a cpt/ or taxonomies/
+             file's arguments as-is (their shape is the user's file, checked by WordPress itself,
+             not narrowed key by key to the stub's array shape), slugs already proven lowercase by
+             AbstractDeclaredTypeService's regex (Psalm doesn't narrow strtolower()), and the
+             controller's routes are built from a "/"-prefixed base (non-falsy, Psalm only infers
+             non-empty). -->
         <ArgumentTypeCoercion>
             <errorLevel type="suppress">
-                <file name="src/PostTypes/Service/PostTypeService.php" />
+                <directory name="src/PostTypes" />
             </errorLevel>
         </ArgumentTypeCoercion>
         <PossiblyUnusedParam>

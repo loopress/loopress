@@ -6,8 +6,8 @@ namespace Loopress\Tests\Unit\PostTypes\Service;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\PostTypes\Exception\InvalidPostTypeException;
-use Loopress\PostTypes\Exception\StalePostTypeRevisionException;
+use Loopress\PostTypes\Exception\InvalidDeclarationException;
+use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
 use Loopress\PostTypes\Service\PostTypeService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -86,7 +86,7 @@ class PostTypeServiceTest extends TestCase
     {
         $this->service->upsert('book', ['public' => true]);
 
-        $this->expectException(StalePostTypeRevisionException::class);
+        $this->expectException(StaleDeclarationRevisionException::class);
         $this->service->upsert('book', ['public' => false], 'not-the-current-one');
     }
 
@@ -120,8 +120,8 @@ class PostTypeServiceTest extends TestCase
     {
         try {
             $this->service->upsert($slug, $args);
-            $this->fail('Expected InvalidPostTypeException');
-        } catch (InvalidPostTypeException) {
+            $this->fail('Expected InvalidDeclarationException');
+        } catch (InvalidDeclarationException) {
             $this->assertArrayNotHasKey(PostTypeService::OPTION, $this->options);
         }
     }

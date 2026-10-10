@@ -74,6 +74,11 @@
       "description": "Directory where custom post types (one JSON file of register_post_type() arguments per post type, named <slug>.json) are read from and written to, relative to rootDir.",
       "default": "cpt"
     },
+    "taxonomyDir": {
+      "type": "string",
+      "description": "Directory where taxonomies (one JSON file of register_taxonomy() arguments plus \"object_type\" per taxonomy, named <slug>.json) are read from and written to, relative to rootDir.",
+      "default": "taxonomies"
+    },
     "menuDir": {
       "type": "string",
       "description": "Directory where nav menus (one JSON file per menu, plus menu-locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",

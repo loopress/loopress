@@ -52,6 +52,7 @@ describe('resolveResourceDir', () => {
       part: 'theme/parts',
       seo: 'seo',
       snippets: 'snippets',
+      taxonomy: 'taxonomies',
       template: 'theme/templates',
       themeStyles: 'theme',
     })

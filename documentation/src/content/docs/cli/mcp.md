@@ -86,6 +86,11 @@ The server communicates over stdio from the directory your client launches it in
 | `cpt_list` | No | List every post type registered on WordPress and where it comes from |
 | `cpt_rm` | Yes | Stop registering one Loopress custom post type (its posts stay in the database, hidden) |
 | `cpt_rollback` | Yes | Restore custom post types to the snapshot saved automatically before an earlier `cpt_push` (`list` shows what's available) |
+| `taxonomy_push` | Yes | Push local `taxonomies/<slug>.json` taxonomies to WordPress (create or update only, never their terms) |
+| `taxonomy_pull` | No | Pull the taxonomies Loopress manages into `taxonomies/<slug>.json` files |
+| `taxonomy_list` | No | List every taxonomy registered on WordPress, where it comes from and the post types it attaches to |
+| `taxonomy_rm` | Yes | Stop registering one Loopress taxonomy (its terms stay in the database, hidden) |
+| `taxonomy_rollback` | Yes | Restore taxonomies to the snapshot saved automatically before an earlier `taxonomy_push` (`list` shows what's available) |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |

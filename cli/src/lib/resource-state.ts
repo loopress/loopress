@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
-import {CPT_ENDPOINT, parseCptArgs, type RemoteCpt} from '../utils/cpt-format.js'
+import {CPT_SPEC, type DeclaredTypeSpec, parseDeclaredArgs, type RemoteDeclaredType, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
@@ -472,28 +472,33 @@ const menuProvider: ResourceStateProvider = {
   title: 'Menus',
 }
 
-// ---- Custom post types ----------------------------------------------------------------------
+// ---- Custom post types and taxonomies ------------------------------------------------------
 
-// Keyed by slug (the local file name), compared on the bare register_post_type() arguments:
-// `revision` is push bookkeeping, never part of the file.
-const cptProvider: ResourceStateProvider = {
-  dirKind: 'cpt',
-  async local(dir, onWarn) {
-    const entries = await loadFiles<{args: Record<string, unknown>; slug: string}>(dir, {
-      extension: '.json',
-      onSkip: onWarn,
-      parse: (raw, filePath) => ({args: parseCptArgs(raw), slug: basename(filePath, '.json')}),
-    })
+// Keyed by slug (the local file name), compared on the bare arguments: `revision` is push
+// bookkeeping, never part of the file.
+function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceStateProvider {
+  return {
+    dirKind: spec.dirKind,
+    async local(dir, onWarn) {
+      const entries = await loadFiles<{args: Record<string, unknown>; slug: string}>(dir, {
+        extension: '.json',
+        onSkip: onWarn,
+        parse: (raw, filePath) => ({args: parseDeclaredArgs(raw), slug: basename(filePath, '.json')}),
+      })
 
-    return new Map(entries.map(({args, slug}) => [slug, args]))
-  },
-  async remote(wp) {
-    const postTypes = await wp.get<RemoteCpt[]>(CPT_ENDPOINT)
-    return new Map(postTypes.map(({args, slug}) => [slug, args]))
-  },
-  resource: 'cpt',
-  title: 'Post types',
+      return new Map(entries.map(({args, slug}) => [slug, args]))
+    },
+    async remote(wp) {
+      const items = await wp.get<RemoteDeclaredType[]>(spec.endpoint)
+      return new Map(items.map(({args, slug}) => [slug, args]))
+    },
+    resource: spec.cliName,
+    title,
+  }
 }
+
+const cptProvider = declaredTypeProvider(CPT_SPEC, 'Post types')
+const taxonomyProvider = declaredTypeProvider(TAXONOMY_SPEC, 'Taxonomies')
 
 // ---- Options ------------------------------------------------------------------------------
 
@@ -591,6 +596,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   seoProvider,
   menuProvider,
   cptProvider,
+  taxonomyProvider,
   optionsProvider,
   themeStylesProvider,
 ]

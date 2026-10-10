@@ -426,6 +426,17 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('taxonomy', () => {
+    it('compares the arguments, object_type included, by slug', async () => {
+      const remote = fakeWp({'loopress/v1/taxonomies': [{args: {object_type: ['book']}, revision: 'rev-1', slug: 'genre'}]})
+      writeFileSync(join(dir, 'genre.json'), JSON.stringify({object_type: ['book', 'post']}))
+
+      const diff = compareStates(await provider('taxonomy').remote(remote, noWarn, dir), await provider('taxonomy').local(dir, noWarn), labels)
+
+      expect(diff.changed.map((change) => change.id)).toEqual(['genre'])
+    })
+  })
+
   describe('cpt', () => {
     const cptProvider = provider('cpt')
 

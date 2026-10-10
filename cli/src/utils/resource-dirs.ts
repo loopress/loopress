@@ -17,6 +17,7 @@ export const RESOURCE_DIR_DEFAULTS = {
   part: 'theme/parts',
   seo: 'seo',
   snippets: 'snippets',
+  taxonomy: 'taxonomies',
   template: 'theme/templates',
   themeStyles: 'theme',
 } as const
@@ -36,6 +37,7 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   part: 'partDir',
   seo: 'seoDir',
   snippets: 'snippetsDir',
+  taxonomy: 'taxonomyDir',
   template: 'templateDir',
   themeStyles: 'themeStylesDir',
 }
