@@ -1,5 +1,18 @@
 # @loopress/cli
 
+## 0.30.0
+
+### Minor Changes
+
+- a1a5147: New `lps cpt` commands for custom post types declared as `cpt/<slug>.json` files: `push`, `pull`, `list` (every post type on the site and its source), `rm`, `diff` and `rollback`. `lps push` and `lps pull` include them, `lps validate` checks the file names and refuses arguments that would run code. Needs the matching plugin release.
+- aa60465: Commands no longer remember an environment. Without `--env`, they target the project's `local` environment, or its only environment when it has just one. A project with several environments and no `local` one needs `--env` on every command. `lps project switch` now picks a project only, and `lps project list` tags the default environment with `[default]` instead of an arrow on the switched one (`isDefault` replaces `isCurrent` per environment in `--json`). An existing `config.json` keeps working: the `env` field of `currentProject` is ignored and dropped on the next write.
+- 03d3da0: A successful push now tells the site it happened (once per `lps <resource> push`, never on a dry run), so the plugin's Overview tab can show what was pushed, when, and whether it changed since. An older plugin that doesn't know about it is ignored silently.
+- 5fdd7ee: Block templates and template parts now live under `theme/`, next to the Global Styles file: `theme/templates/` and `theme/parts/` by default instead of `templates/` and `parts/` at the project root. Everything `lps theme` manages sits in one directory. A project that keeps the old layout sets `templateDir: "templates"` and `partDir: "parts"` in `loopress.json`.
+
+### Patch Changes
+
+- b87fa13: `lps project config` now removes any temporary administrator account left behind by an interrupted Loopress Full install (a killed process, a lost connection), and `lps doctor` reports one as a failed check. Only accounts matching both the `lps-temp-` username prefix and the `@lps-temp.invalid` email are touched.
+
 ## 0.29.0
 
 ### Minor Changes

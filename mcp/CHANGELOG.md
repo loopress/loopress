@@ -1,5 +1,21 @@
 # @loopress/mcp
 
+## 0.30.0
+
+### Minor Changes
+
+- a1a5147: New `cpt_push`, `cpt_pull`, `cpt_list`, `cpt_rm` and `cpt_rollback` tools for custom post types, and `project_diff` accepts `cpt`.
+
+### Patch Changes
+
+- aa60465: Commands no longer remember an environment. Without `--env`, they target the project's `local` environment, or its only environment when it has just one. A project with several environments and no `local` one needs `--env` on every command. `lps project switch` now picks a project only, and `lps project list` tags the default environment with `[default]` instead of an arrow on the switched one (`isDefault` replaces `isCurrent` per environment in `--json`). An existing `config.json` keeps working: the `env` field of `currentProject` is ignored and dropped on the next write.
+- Updated dependencies [a1a5147]
+- Updated dependencies [aa60465]
+- Updated dependencies [03d3da0]
+- Updated dependencies [b87fa13]
+- Updated dependencies [5fdd7ee]
+  - @loopress/cli@0.30.0
+
 ## 0.29.0
 
 ### Minor Changes
