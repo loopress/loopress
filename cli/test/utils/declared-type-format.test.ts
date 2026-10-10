@@ -61,6 +61,12 @@ describe('declared-type-format', () => {
       }).toThrow('"object_type" must be a JSON object or array')
     })
 
+    it('refuses default_term, which would create a term', () => {
+      expect(() => {
+        checkTaxonomyFile('{"default_term": {"name": "Fiction"}}', 'taxonomies/genre.json')
+      }).toThrow('"default_term" creates a term')
+    })
+
     it('refuses a callback argument', () => {
       expect(() => {
         checkTaxonomyFile('{"meta_box_cb": "system"}', 'taxonomies/genre.json')

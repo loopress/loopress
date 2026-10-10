@@ -74,7 +74,9 @@ Every argument documented by WordPress works, except the ones it would run as co
 - `meta_box_cb`, `meta_box_sanitize_cb`, `update_count_callback`
 - `rest_controller_class`
 
-Need one of those? Register that taxonomy from a [hook](/hooks/) instead. `labels`, `capabilities` and `object_type` must be JSON objects or arrays, `rewrite` an object or `true`/`false`: a wrong type is refused at push. `lps validate` checks all of this before you push.
+Need one of those? Register that taxonomy from a [hook](/hooks/) instead.
+
+`default_term` is refused too: WordPress creates that term when it doesn't exist, and Loopress doesn't sync terms. Create the default term in wp-admin instead. `labels`, `capabilities` and `object_type` must be JSON objects or arrays, `rewrite` an object or `true`/`false`: a wrong type is refused at push. `lps validate` checks all of this before you push.
 
 ## In wp-admin
 

@@ -26,6 +26,8 @@ export type DeclaredTypeSpec = {
   // What `register_*()` the file feeds, for messages.
   registerFunction: string
   slugMaxLength: number
+  // Arguments that make WordPress create terms (content), which Loopress doesn't sync.
+  termArgs: string[]
 }
 
 export const CPT_SPEC: DeclaredTypeSpec = {
@@ -40,6 +42,7 @@ export const CPT_SPEC: DeclaredTypeSpec = {
   registeredEndpoint: 'loopress/v1/registered-post-types',
   registerFunction: 'register_post_type()',
   slugMaxLength: 20,
+  termArgs: [],
 }
 
 // `object_type` is the one key that isn't a register_taxonomy() argument: its second parameter,
@@ -56,6 +59,8 @@ export const TAXONOMY_SPEC: DeclaredTypeSpec = {
   registeredEndpoint: 'loopress/v1/registered-taxonomies',
   registerFunction: 'register_taxonomy()',
   slugMaxLength: 32,
+  // register_taxonomy() creates the default term when it doesn't exist yet.
+  termArgs: ['default_term'],
 }
 
 export function itemEndpoint(spec: DeclaredTypeSpec, slug: string): string {
@@ -111,6 +116,9 @@ export function declaredFileChecker(spec: DeclaredTypeSpec): (raw: string, fileP
         throw new Error(`"${key}" must be a JSON object or array${or}`)
       }
     }
+
+    const term = spec.termArgs.find((key) => Object.hasOwn(args, key))
+    if (term) throw new Error(`"${term}" creates a term, and Loopress doesn't sync terms: remove it and create the term in wp-admin`)
 
     const code = spec.codeArgs.find((key) => Object.hasOwn(args, key))
     if (code) throw new Error(`"${code}" runs PHP code, use a hook instead of a file for it`)

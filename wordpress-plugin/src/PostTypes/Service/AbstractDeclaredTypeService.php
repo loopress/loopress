@@ -171,9 +171,18 @@ abstract class AbstractDeclaredTypeService
 
     // Same object, not just same slug: a theme or plugin registering this slug again later in
     // `init` silently replaces ours, which is then a conflict, not a Loopress declaration.
-    protected function isOurs(string $slug, object $object): bool
+    protected function isOurs(string $slug, object $registered): bool
     {
-        return ($this->registered[$slug] ?? null) === $object;
+        return ($this->registered[$slug] ?? null) === $registered;
+    }
+
+    /**
+     * @return list<string> Arguments that make WordPress create terms (content), which Loopress
+     *         doesn't sync: refused like code arguments, with their own message.
+     */
+    protected function termArgs(): array
+    {
+        return [];
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -205,6 +214,12 @@ abstract class AbstractDeclaredTypeService
                 // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
                 throw new InvalidDeclarationException("{$this->noun()} \"{$slug}\": \"{$key}\" must be a JSON object or array{$or}.");
             }
+        }
+
+        $terms = array_values(array_intersect($this->termArgs(), array_keys($args)));
+        if ($terms !== []) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
+            throw new InvalidDeclarationException("{$this->noun()} \"{$slug}\": \"{$terms[0]}\" creates a term, and Loopress doesn't sync terms. Remove it and create the term in wp-admin.");
         }
 
         $code = array_values(array_intersect($this->codeArgs(), array_keys($args)));

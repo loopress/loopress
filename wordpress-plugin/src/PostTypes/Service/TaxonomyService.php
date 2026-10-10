@@ -94,6 +94,12 @@ class TaxonomyService extends AbstractDeclaredTypeService
         return ['meta_box_cb', 'meta_box_sanitize_cb', 'update_count_callback', 'rest_controller_class'];
     }
 
+    // register_taxonomy() creates the default term when it doesn't exist yet.
+    protected function termArgs(): array
+    {
+        return ['default_term'];
+    }
+
     protected function arrayArgs(): array
     {
         return ['object_type' => [], 'labels' => [], 'capabilities' => [], 'rewrite' => [true, false]];

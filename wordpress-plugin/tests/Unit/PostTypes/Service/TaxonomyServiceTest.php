@@ -86,6 +86,7 @@ class TaxonomyServiceTest extends TestCase
             'object_type string'  => ['genre', ['object_type' => 'book']],
             'meta box callback'   => ['genre', ['meta_box_cb' => 'system']],
             'count callback'      => ['genre', ['update_count_callback' => 'system']],
+            'default term'        => ['genre', ['default_term' => ['name' => 'Fiction']]],
         ];
     }
 
