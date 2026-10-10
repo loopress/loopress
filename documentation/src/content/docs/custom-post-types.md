@@ -150,7 +150,9 @@ The content is the `$args` array of `register_post_type()`, as JSON. Every argum
 - `register_meta_box_cb`
 - `rest_controller_class`, `autosave_rest_controller_class`, `revisions_rest_controller_class`
 
-Need one of those? Register that post type from a [hook](/hooks/) instead. `lps validate` checks the file name and these arguments before you push.
+Need one of those? Register that post type from a [hook](/hooks/) instead.
+
+Arguments WordPress uses as arrays must be arrays: `capabilities`, `labels`, `taxonomies` and `template` always, `supports` or `false`, `rewrite` or `true`/`false`. A wrong type is refused at push, it would otherwise break every page of the site. `lps validate` checks the file name and all of the above before you push.
 
 ## In wp-admin
 

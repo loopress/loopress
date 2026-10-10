@@ -135,7 +135,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `option`,
+(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `cpt`, `option`,
 `theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real

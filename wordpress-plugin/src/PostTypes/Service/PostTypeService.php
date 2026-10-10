@@ -32,7 +32,14 @@ class PostTypeService
         'register_meta_box_cb', 'rest_controller_class', 'autosave_rest_controller_class', 'revisions_rest_controller_class',
     ];
 
-    /** @var array<string, true> Slugs this request actually registered, see register(). */
+    // Arguments WordPress uses as arrays (array_merge(), foreach) without checking first: a
+    // string there is a fatal TypeError on every request. Value: what else it may be, if anything.
+    private const ARRAY_ARGS = [
+        'capabilities' => [], 'labels' => [], 'taxonomies' => [], 'template' => [],
+        'supports' => [false], 'rewrite' => [true, false],
+    ];
+
+    /** @var array<string, object> The object each slug this request registered got, see register(). */
     private array $registered = [];
 
     /** @return list<array{slug: string, args: array<string, mixed>, revision: string}> */
@@ -115,10 +122,17 @@ class PostTypeService
                 continue;
             }
 
-            // The args shape is the user's file, checked by WordPress itself, not by this class.
-            $result = register_post_type($slug, $args);
+            // Past assertValid(), the args shape is the user's file, checked by WordPress itself.
+            // A WordPress-side error throws before anything is registered: skip that one entry
+            // rather than take the whole site down on every request.
+            try {
+                $result = register_post_type($slug, $args);
+            } catch (\Throwable) {
+                continue;
+            }
+
             if (!is_wp_error($result)) {
-                $this->registered[$slug] = true;
+                $this->registered[$slug] = $result;
             }
         }
     }
@@ -149,7 +163,9 @@ class PostTypeService
 
         $result = [];
         foreach (get_post_types([], 'objects') as $slug => $object) {
-            $ours    = isset($this->registered[$slug]);
+            // Same object, not just same slug: a theme or plugin registering this slug again later
+            // in `init` silently replaces ours, which is then a conflict, not a Loopress type.
+            $ours    = ($this->registered[$slug] ?? null) === $object;
             $visible = $object->public || ($object->show_ui && $object->show_in_menu && !$object->_builtin);
             if (!$ours && !$visible && !isset($stored[$slug])) {
                 continue;
@@ -188,6 +204,13 @@ class PostTypeService
         if (in_array($slug, self::RESERVED_SLUGS, true) || str_starts_with($slug, 'wp_')) {
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
             throw new InvalidPostTypeException("Post type slug \"{$slug}\" is reserved by WordPress.");
+        }
+
+        foreach (self::ARRAY_ARGS as $key => $alsoAllowed) {
+            if (array_key_exists($key, $args) && !is_array($args[$key]) && !in_array($args[$key], $alsoAllowed, true)) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
+                throw new InvalidPostTypeException("Post type \"{$slug}\": \"{$key}\" must be a JSON object or array" . ($alsoAllowed === [] ? '.' : ' (or ' . implode(', ', array_map(static fn(bool $value): string => $value ? 'true' : 'false', $alsoAllowed)) . ').'));
+            }
         }
 
         $code = array_values(array_intersect(self::CODE_ARGS, array_keys($args)));

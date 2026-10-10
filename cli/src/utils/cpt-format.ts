@@ -44,7 +44,19 @@ export function parseCptArgs(raw: string): CptArgs {
 // code), flagged here first so `lps validate` catches them before a push.
 const CODE_ARGS = ['register_meta_box_cb', 'rest_controller_class', 'autosave_rest_controller_class', 'revisions_rest_controller_class']
 
-// `lps validate`'s check of one cpt/ file: the file name is a valid slug and no argument is code.
+// Arguments WordPress uses as arrays without checking first (a fatal error on every request
+// otherwise), with the other values it accepts. Mirrors PostTypeService::ARRAY_ARGS.
+const ARRAY_ARGS: Record<string, unknown[]> = {
+  capabilities: [],
+  labels: [],
+  rewrite: [true, false],
+  supports: [false],
+  taxonomies: [],
+  template: [],
+}
+
+// `lps validate`'s check of one cpt/ file: the file name is a valid slug, array arguments are
+// arrays, and no argument is code.
 export function checkCptFile(raw: string, filePath: string): void {
   const slug = basename(filePath, '.json')
   if (!CPT_SLUG_PATTERN.test(slug)) {
@@ -52,6 +64,14 @@ export function checkCptFile(raw: string, filePath: string): void {
   }
 
   const args = parseCptArgs(raw)
+  for (const [key, alsoAllowed] of Object.entries(ARRAY_ARGS)) {
+    const value = args[key]
+    if (Object.hasOwn(args, key) && (typeof value !== 'object' || value === null) && !alsoAllowed.includes(value)) {
+      const or = alsoAllowed.length > 0 ? ' (or ' + alsoAllowed.join(', ') + ')' : ''
+      throw new Error(`"${key}" must be a JSON object or array${or}`)
+    }
+  }
+
   const code = CODE_ARGS.find((key) => Object.hasOwn(args, key))
   if (code) throw new Error(`"${code}" runs PHP code, use a hook instead of a cpt/ file for it`)
 }

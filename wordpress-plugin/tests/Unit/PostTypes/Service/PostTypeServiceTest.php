@@ -20,6 +20,9 @@ class PostTypeServiceTest extends TestCase
     /** @var array<string, array<string, mixed>> What register_post_type() received. */
     private array $wpRegistered = [];
 
+    /** @var array<string, object> What register_post_type() returned, as WordPress keeps it. */
+    private array $wpObjects = [];
+
     private PostTypeService $service;
 
     protected function setUp(): void
@@ -41,7 +44,9 @@ class PostTypeServiceTest extends TestCase
         Functions\when('post_type_exists')->alias(fn (string $slug): bool => isset($this->wpRegistered[$slug]));
         Functions\when('register_post_type')->alias(function (string $slug, array $args): object {
             $this->wpRegistered[$slug] = $args;
-            return (object) [];
+            return $this->wpObjects[$slug] = (object) [
+                'label' => $args['label'] ?? $slug, '_builtin' => false, 'public' => false, 'show_ui' => false, 'show_in_menu' => false,
+            ];
         });
 
         $this->service = new PostTypeService();
@@ -101,6 +106,9 @@ class PostTypeServiceTest extends TestCase
             'wp_ prefix'           => ['wp_thing', []],
             'meta box callback'    => ['book', ['register_meta_box_cb' => 'system']],
             'rest controller class' => ['book', ['rest_controller_class' => 'Some\\Class']],
+            'capabilities string'  => ['book', ['capabilities' => 'edit_posts']],
+            'supports true'        => ['book', ['supports' => true]],
+            'labels string'        => ['book', ['labels' => 'Books']],
         ];
     }
 
@@ -136,9 +144,48 @@ class PostTypeServiceTest extends TestCase
         $this->assertSame(['label' => 'Movies'], $this->wpRegistered['movie']);
     }
 
+    public function test_upsert_accepts_the_non_array_values_wordpress_allows(): void
+    {
+        $this->assertSame(['supports' => false, 'rewrite' => false], $this->service->upsert('book', ['supports' => false, 'rewrite' => false])['args']);
+    }
+
+    public function test_register_skips_an_entry_wordpress_throws_on_and_keeps_the_others(): void
+    {
+        $this->options[PostTypeService::OPTION] = ['book' => ['label' => 'Bad'], 'movie' => ['label' => 'Movies']];
+        Functions\when('register_post_type')->alias(function (string $slug, array $args): object {
+            if ($slug === 'book') {
+                throw new \TypeError('array_merge(): Argument #2 must be of type array');
+            }
+
+            $this->wpRegistered[$slug] = $args;
+            return (object) [];
+        });
+
+        $this->service->register();
+
+        $this->assertSame(['movie'], array_keys($this->wpRegistered));
+    }
+
+    public function test_registered_reports_a_loopress_type_replaced_later_as_a_conflict(): void
+    {
+        $this->options[PostTypeService::OPTION] = ['book' => []];
+        $this->service->register();
+
+        // Another plugin registered "book" again after Loopress: WordPress now holds its object.
+        Functions\when('get_post_types')->justReturn([
+            'book' => (object) ['label' => 'Books', '_builtin' => false, 'public' => true, 'show_ui' => true, 'show_in_menu' => true],
+        ]);
+        Functions\when('wp_count_posts')->justReturn((object) ['publish' => 0]);
+
+        $this->assertSame(
+            [['slug' => 'book', 'label' => 'Books', 'source' => 'other', 'count' => 0, 'managed' => true, 'conflict' => true]],
+            $this->service->registered(),
+        );
+    }
+
     public function test_registered_reports_the_source_and_conflicts(): void
     {
-        $this->options[PostTypeService::OPTION] = ['book' => [], 'movie' => []];
+        $this->options[PostTypeService::OPTION] = ['book' => [], 'movie' => ['label' => 'Movies']];
         $this->options['cptui_post_types']      = ['book' => []];
         $this->wpRegistered['book']             = [];
         $this->service->register();
@@ -150,7 +197,7 @@ class PostTypeServiceTest extends TestCase
             'post'          => $type('Posts', true, true),
             'wp_block'      => $type('Patterns', true, false, true),
             'book'          => $type('Books', false, true),
-            'movie'         => $type('Movies', false, false),
+            'movie'         => $this->wpObjects['movie'],
             'acf-field-group' => $type('Field Groups', false, false),
         ]);
         Functions\when('wp_count_posts')->justReturn((object) ['publish' => 3]);

@@ -47,7 +47,7 @@ Advanced Custom Fields (options pages require ACF PRO), and either Yoast SEO or 
 
 = Does the plugin execute code by itself? =
 
-No. Loopress Light only reads and writes ACF field group definitions, SEO metadata, form definitions, menus, custom post type arguments, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code: script tags, inline event handlers, and `javascript:` URLs are stripped from every pushed value.
+No. Loopress Light only reads and writes ACF field group definitions, SEO metadata, form definitions, menus, custom post type arguments, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code: script tags, inline event handlers, and `javascript:` URLs are stripped from pushed ACF, SEO, and form values, and a custom post type file only holds `register_post_type()` settings, any argument that would run code (a callback, a REST controller class) is refused.
 
 = Which options can be synced? =
 

@@ -19,6 +19,22 @@ describe('cpt-format', () => {
     expect(() => { checkCptFile('{}', filePath); }).toThrow('not a valid post type slug')
   })
 
+  it.each([
+    ['{"capabilities": "edit_posts"}', '"capabilities" must be a JSON object or array'],
+    ['{"supports": true}', '"supports" must be a JSON object or array (or false)'],
+    ['{"labels": null}', '"labels" must be a JSON object or array'],
+  ])('refuses %s, not an array where WordPress needs one', (raw, message) => {
+    expect(() => {
+      checkCptFile(raw, 'cpt/book.json')
+    }).toThrow(message)
+  })
+
+  it('accepts the non-array values WordPress allows', () => {
+    expect(() => {
+      checkCptFile('{"rewrite": false, "supports": false}', 'cpt/book.json')
+    }).not.toThrow()
+  })
+
   it('refuses an argument WordPress would run as code', () => {
     expect(() => { checkCptFile('{"register_meta_box_cb": "system"}', 'cpt/book.json'); }).toThrow('"register_meta_box_cb" runs PHP code')
   })
