@@ -1,5 +1,18 @@
 # @loopress/wordpress-plugin
 
+## 2026.15.0
+
+### Minor Changes
+
+- 03d3da0: The Loopress admin page opens on a new Overview tab, in both editions: what was pushed to the site from your repository, when, by whom and through which application password, and whether each resource changed on the site since its last push, outside the CLI. Before the first push it shows how to connect the CLI, with the site's URL ready to copy. Once a resource has been pushed, its own WordPress screens (ACF, Menus, WPForms, Code Snippets, WPCode) warn that changes made there are overwritten by the next push. A new Config tab lists, read-only, the configuration Loopress syncs (ACF objects, menus, forms, SEO redirects), next to the Code tab for deployed code. Loopress Light's page gets the Overview and Config tabs instead of a static introduction.
+- 33df017: The Loopress admin page is reorganized into three tabs: Dependencies, Code (API routes, hooks and single-page apps, read-only) and Settings. The site's environment type now shows next to the title, and on a production site installing, updating or removing a Composer package asks for a confirmation first. `DISALLOW_FILE_MODS` is now respected: Composer dependencies become read-only in the admin, and every Composer endpoint that writes files answers 403, `lps composer push` included. Platform and webserver checks moved out of the removed Diagnostics tab into Tools > Site Health, and only show on the Dependencies tab when they find something. The Code tab adds a source view and a copyable URL for each API route, a copyable shortcode for each app, and when each named cron runs next. The update banner is gone, since updates already appear on the Plugins page.
+- a1a5147: Custom post types can now be declared in code: each `cpt/<slug>.json` file in your repository holds the `register_post_type()` arguments, and the plugin registers it on every request, in both editions. Arguments WordPress would run as code (`register_meta_box_cb`, the REST controller classes) are refused, and a slug already registered by a theme or another plugin is skipped, never overwritten. Permalinks are refreshed once after a change. The Config tab lists every post type on the site with where it comes from (Loopress, WordPress, ACF, CPT UI, a theme or plugin), its published count, and a Conflict badge for a skipped Loopress one.
+- b87fa13: Loopress Full now removes, every hour, any temporary administrator account left behind by an interrupted `lps project config` install, once it is more than 15 minutes old. Until then, administrators see a wp-admin notice naming it. Only accounts matching both the `lps-temp-` username prefix and the `@lps-temp.invalid` email are touched.
+
+### Patch Changes
+
+- cb1fb49: The usage ping now sends the site's UTC offset (for example `+02:00`) when no city is picked under Settings → General, instead of an empty timezone. WordPress defaults to an offset, so most sites sent nothing.
+
 ## 2026.14.0
 
 ### Minor Changes
