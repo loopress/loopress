@@ -125,6 +125,7 @@ export default defineConfig({
 										{ label: "Forms", slug: "forms" },
 										{ label: "Menus", slug: "menus" },
 										{ label: "Custom Post Types", slug: "custom-post-types" },
+										{ label: "Taxonomies", slug: "taxonomies" },
 										{ label: "Options", slug: "options" },
 										{ label: "Theme Styles", slug: "theme-styles" },
 									],

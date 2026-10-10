@@ -9,7 +9,7 @@ import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 type PushInternals = {
   dryRun: boolean
   failedCount: number
-  pushPostType(postType: {args: Record<string, unknown>; slug: string}, task?: {output: string}): Promise<void>
+  pushItem(postType: {args: Record<string, unknown>; slug: string}, task?: {output: string}): Promise<void>
   wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>}
 }
 
@@ -41,7 +41,7 @@ describe('cpt push', () => {
     cmd.wpClient = {get, post}
     const task = {output: ''}
 
-    await cmd.pushPostType({args: {public: true}, slug: 'book'}, task)
+    await cmd.pushItem({args: {public: true}, slug: 'book'}, task)
 
     expect(get).toHaveBeenCalledWith('loopress/v1/post-types/book')
     expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {public: true}, expectedRevision: 'rev-1', slug: 'book'})
@@ -53,7 +53,7 @@ describe('cpt push', () => {
     const post = vi.fn().mockResolvedValueOnce({})
     cmd.wpClient = {get: vi.fn().mockRejectedValueOnce(notFoundError()), post}
 
-    await cmd.pushPostType({args: {}, slug: 'book'})
+    await cmd.pushItem({args: {}, slug: 'book'})
 
     expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {}, slug: 'book'})
   })
@@ -62,7 +62,7 @@ describe('cpt push', () => {
     const cmd = makeCmd()
     cmd.wpClient = {get: vi.fn().mockRejectedValueOnce(notFoundError()), post: vi.fn().mockRejectedValueOnce(new Error('reserved'))}
 
-    await expect(cmd.pushPostType({args: {}, slug: 'page'}, {output: ''})).rejects.toThrow('reserved')
+    await expect(cmd.pushItem({args: {}, slug: 'page'}, {output: ''})).rejects.toThrow('reserved')
     expect(cmd.failedCount).toBe(1)
   })
 
@@ -71,7 +71,7 @@ describe('cpt push', () => {
     cmd.dryRun = true
     cmd.wpClient = {get: vi.fn(), post: vi.fn()}
 
-    await cmd.pushPostType({args: {}, slug: 'book'})
+    await cmd.pushItem({args: {}, slug: 'book'})
 
     expect(cmd.wpClient.post).not.toHaveBeenCalled()
   })

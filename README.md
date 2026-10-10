@@ -61,7 +61,7 @@ WordPress.org does not allow a plugin to deploy, so it ships from loopress.dev. 
 | ACF field groups, post types, taxonomies | ✓ | ✓ |
 | SEO (Rank Math, Yoast) | ✓ | ✓ |
 | Menus, options, block theme styles | ✓ | ✓ |
-| Custom post types (JSON files, like CPT UI in Git) | ✓ | ✓ |
+| Custom post types and taxonomies (JSON files, like CPT UI in Git) | ✓ | ✓ |
 | Hooks, filters, cron (PHP classes) | | ✓ |
 | REST API routes | | ✓ |
 | Apps (React, Vue, Svelte bundles) | | ✓ |
