@@ -12,6 +12,7 @@ use Loopress\Form\Module\FormModule;
 use Loopress\Form\Service\FormService;
 use Loopress\Menu\Module\MenuModule;
 use Loopress\Options\Module\OptionsModule;
+use Loopress\PostTypes\Module\PostTypesModule;
 use Loopress\Pushes\Module\PushesModule;
 use Loopress\RestCache\Module\RestCacheModule;
 use Loopress\Seo\Module\SeoModule;
@@ -40,6 +41,7 @@ class Plugin
             SeoModule::class,
             OptionsModule::class,
             MenuModule::class,
+            PostTypesModule::class,
             RestCacheModule::class,
             FormModule::class,
             PushesModule::class,

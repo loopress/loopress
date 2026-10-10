@@ -43,6 +43,7 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `seoDir` | `seo` | SEO settings, post meta and redirects | [`lps seo`](/seo/) |
 | `formDir` | `forms` | WPForms forms | [`lps form`](/forms/) |
 | `menuDir` | `menus` | Nav menus, one file per menu, plus `menu-locations.json` | [`lps menu`](/menus/) |
+| `cptDir` | `cpt` | Custom post types, one `<slug>.json` file of `register_post_type()` arguments each | [`lps cpt`](/custom-post-types/) |
 | `optionsDir` | `options` | Tracked `wp_options` rows, only the ones added with `lps option add` | [`lps option`](/options/) |
 | `themeStylesDir` | `theme` | The active block theme's Global Styles | [`lps theme style`](/theme-styles/) |
 | `apiDir` | `api` | Custom API route files | [`lps api`](/api/cli/) |

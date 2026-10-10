@@ -124,6 +124,7 @@ export default defineConfig({
 										{ label: "SEO", slug: "seo" },
 										{ label: "Forms", slug: "forms" },
 										{ label: "Menus", slug: "menus" },
+										{ label: "Custom Post Types", slug: "custom-post-types" },
 										{ label: "Options", slug: "options" },
 										{ label: "Theme Styles", slug: "theme-styles" },
 									],

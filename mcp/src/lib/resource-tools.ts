@@ -18,7 +18,8 @@ export const PREVIEW_SUFFIX =
   ' Without confirmToken, returns a dry-run preview and a confirmToken instead of making any change; call again with that confirmToken to apply it.'
 
 type ResourceToolsSpec = {
-  descriptions: {list: string; pull: string; push: string; rm?: string}
+  // rmTarget: the rm tool's `filename` description, for a resource whose items aren't .php files.
+  descriptions: {list: string; pull: string; push: string; rm?: string; rmTarget?: string}
   // Noun dropped into the path arg's description, e.g. 'forms directory'.
   pathNoun: string
   // CLI topic and tool-name prefix: 'form' -> `lps form pull` and the `form_pull` tool.
@@ -170,7 +171,7 @@ export function registerResourceTools(
           filename: z
             .string()
             .refine((value) => !value.startsWith('-'), 'must not start with "-"')
-            .describe(`The ${resource} file slug to remove, without the .php extension (e.g. "hello")`),
+            .describe(descriptions.rmTarget ?? `The ${resource} file slug to remove, without the .php extension (e.g. "hello")`),
         },
       },
       async ({confirmToken, env, filename}) => {

@@ -20,6 +20,8 @@ type PushResult = {results: PushTargetResult[]}
 const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'plugin:push', label: 'plugins'},
   {commandId: 'composer:push', label: 'composer'},
+  // Before ACF: a field group's location rule can target a Loopress post type.
+  {commandId: 'cpt:push', label: 'post types'},
   {commandId: 'acf:push', label: 'ACF'},
   {commandId: 'api:push', label: 'API routes'},
   {commandId: 'hook:push', label: 'hooks'},
@@ -35,7 +37,7 @@ const PUSH_TARGETS: PushTarget[] = [
 
 export default class Push extends LoopressCommand {
   static description =
-    'Push all local content, plugins, composer dependencies, ACF, API routes, hooks, forms, templates, pages, SEO, menus, options, and snippets, to WordPress'
+    'Push all local content, plugins, composer dependencies, post types, ACF, API routes, hooks, forms, templates, pages, SEO, menus, options, and snippets, to WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']

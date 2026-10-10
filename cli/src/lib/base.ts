@@ -207,6 +207,10 @@ export abstract class LoopressCommand extends Command {
     return resolveResourceDir('apps', this.localConfig, override)
   }
 
+  protected resolveCptPath(override?: string): string {
+    return resolveResourceDir('cpt', this.localConfig, override)
+  }
+
   protected resolveFormPath(override?: string): string {
     return resolveResourceDir('form', this.localConfig, override)
   }

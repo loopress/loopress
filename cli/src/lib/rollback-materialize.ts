@@ -116,9 +116,15 @@ async function themeStyles(id: string, value: unknown, dir: string): Promise<voi
   await writeJson(join(dir, themeStylesFileName(id)), value)
 }
 
+// id is the slug, value the bare register_post_type() arguments (resource-state.ts's cptProvider).
+async function cpt(id: string, value: unknown, dir: string): Promise<void> {
+  await writeJson(join(dir, `${id}.json`), value)
+}
+
 const MATERIALIZERS: Record<string, Materializer> = {
   acf,
   api: phpFile,
+  cpt,
   form,
   hook: phpFile,
   menu,

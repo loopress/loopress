@@ -41,6 +41,8 @@ deptrac:
         - type: classNameRegex
           value: '#^Loopress\\Pushes\\.+$#'
         - type: classNameRegex
+          value: '#^Loopress\\PostTypes\\.+$#'
+        - type: classNameRegex
           value: '#^Loopress\\Plugin$#'
 
     - name: Plus

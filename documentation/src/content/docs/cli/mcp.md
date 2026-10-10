@@ -81,6 +81,11 @@ The server communicates over stdio from the directory your client launches it in
 | `menu_pull` | No | Pull nav menus and the active theme menu locations from WordPress into local files |
 | `menu_list` | No | List nav menus and the active theme menu locations currently on WordPress |
 | `menu_rollback` | Yes | Restore nav menus and menu locations to the snapshot saved automatically before an earlier `menu_push` (`list` shows what's available) |
+| `cpt_push` | Yes | Push local `cpt/<slug>.json` custom post types to WordPress (create or update only) |
+| `cpt_pull` | No | Pull the custom post types Loopress manages into `cpt/<slug>.json` files |
+| `cpt_list` | No | List every post type registered on WordPress and where it comes from |
+| `cpt_rm` | Yes | Stop registering one Loopress custom post type (its posts stay in the database, hidden) |
+| `cpt_rollback` | Yes | Restore custom post types to the snapshot saved automatically before an earlier `cpt_push` (`list` shows what's available) |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |

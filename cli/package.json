@@ -103,6 +103,9 @@
       "api": {
         "description": "Manage custom WordPress REST API routes"
       },
+      "cpt": {
+        "description": "Manage custom post types declared in cpt/<slug>.json files, and list every post type on the site"
+      },
       "composer": {
         "description": "Sync composer.json and composer.lock between your project and WordPress"
       },

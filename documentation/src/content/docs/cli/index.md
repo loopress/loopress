@@ -52,6 +52,7 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | `lps seo` | `pull` `push` `list` `diff` `rollback` | [SEO](/seo/) |
 | `lps form` | `pull` `push` `list` `diff` `rollback` | [Forms](/forms/) |
 | `lps menu` | `pull` `push` `list` `diff` `rollback` | [Menus](/menus/) |
+| `lps cpt` | `pull` `push` `list` `rm` `diff` `rollback` | [Custom Post Types](/custom-post-types/) |
 | `lps option` | `add` `pull` `push` `list` `diff` `rollback` `remove` | [Options](/options/) |
 | `lps plugin` | `add` `pull` `push` `status` `audit` | [Plugins](/plugins/) |
 | `lps theme` | `add` `pull` `push` `status`, `version pull/push` | [Themes](/themes/) |

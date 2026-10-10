@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
+import {checkCptFile} from '../utils/cpt-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
 import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
@@ -25,6 +26,7 @@ const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir', 'menuDir', 'themeStyl
 const DEFAULT_DIR: Record<string, string> = {
   acfDir: 'acf',
   apiDir: 'api',
+  cptDir: 'cpt',
   formDir: 'forms',
   hooksDir: 'hooks',
   menuDir: 'menus',
@@ -64,6 +66,7 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   // Same reader `option push` uses: a file missing "name", "autoload" or "value" is skipped
   // there with a warning, so it's a problem here.
   checked += await checkJsonDir(resolve('optionsDir'), problems, parseLocalOption)
+  checked += await checkJsonDir(resolve('cptDir'), problems, checkCptFile)
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')
@@ -133,7 +136,7 @@ async function checkComposerJson(cwd: string, problems: Problem[]): Promise<numb
 // post meta and redirects (seo/post-meta/<type>/*.json, seo/redirects/*.json); a top-level-only
 // scan silently never checked any of those. `shape` runs on files that are JSON objects and
 // throws to report a resource-specific problem.
-async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: string) => unknown): Promise<number> {
+async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: string, filePath: string) => unknown): Promise<number> {
   const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})
   let checked = 0
 
@@ -157,7 +160,7 @@ async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: stri
     }
 
     try {
-      shape?.(raw)
+      shape?.(raw, filePath)
     } catch (error) {
       problems.push({file: filePath, message: (error as Error).message})
     }
