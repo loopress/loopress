@@ -4,7 +4,7 @@ import { Pill, ResourceSection, Row, Table } from '../ui';
 import { CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
-// PostTypeService::registered(), TaxonomyService::registered(),
+// PostTypeService::registered(), TaxonomyService::registered(), PostMetaService::registered(),
 // WPFormsProvider::toCanonical(), RankMathService::exportRedirection()), only the fields shown.
 interface AcfObject {
     key: string;
@@ -29,6 +29,16 @@ interface RegisteredPostType {
 // `count` is the number of terms here, published posts for a post type.
 interface RegisteredTaxonomy extends RegisteredPostType {
     objectTypes: string[];
+}
+
+interface RegisteredMeta {
+    postType: string;
+    key: string;
+    type: string;
+    showInRest: boolean;
+    source: 'loopress' | 'other';
+    acf: boolean;
+    conflict: boolean;
 }
 
 const SOURCE_LABELS: Record<RegisteredPostType['source'], string> = {
@@ -216,6 +226,48 @@ function TaxonomiesSection() {
     );
 }
 
+// Meta keys registered per post type, only the keys, never their values. Most plugins don't
+// register theirs, so this lists what register_post_meta() knows about, not every key in use.
+function MetaSection() {
+    const query = useQuery<RegisteredMeta[]>({
+        queryKey: ['registered-post-meta'],
+        queryFn: () => apiFetch<RegisteredMeta[]>('/registered-post-meta'),
+        staleTime: 30_000,
+    });
+    const keys = query.data ?? [];
+
+    return (
+        <ResourceSection
+            title="Meta"
+            description={<>Loopress meta keys are declared in <code>meta/</code> files and pulled with <code>lps meta pull</code>. Their values are never synced.</>}
+            query={query}
+            isEmpty={keys.length === 0}
+            errorText={errorText(query.error, 'Failed to load meta keys.')}
+            empty="No registered meta keys."
+        >
+            <Table columns={['Key', 'Post type', 'Type', 'Source', 'REST']}>
+                {keys.map((meta) => (
+                    <Row key={`${meta.postType}/${meta.key}`}>
+                        <td style={MONO}>{meta.key}</td>
+                        <td style={MONO}>{meta.postType}</td>
+                        <td style={CELL}>{meta.type}</td>
+                        <td style={CELL}>
+                            {meta.source === 'loopress' ? 'Loopress' : 'Theme or plugin'}
+                            {meta.conflict && (
+                                <Pill tone="warning" title="Declared in meta/, but this key was already registered first: the Loopress version is skipped.">
+                                    Conflict
+                                </Pill>
+                            )}
+                            {meta.acf && <Pill title="An ACF field uses the same name. Information only, it changes nothing.">ACF field</Pill>}
+                        </td>
+                        <td style={CELL}>{meta.showInRest ? 'Yes' : 'No'}</td>
+                    </Row>
+                ))}
+            </Table>
+        </ResourceSection>
+    );
+}
+
 function FormsSection() {
     const query = useQuery<Form[]>({ queryKey: ['forms'], queryFn: () => apiFetch<Form[]>('/forms'), staleTime: 30_000 });
     const forms = query.data ?? [];
@@ -279,6 +331,7 @@ export function ConfigPanel() {
             <MenusSection />
             <PostTypesSection />
             <TaxonomiesSection />
+            <MetaSection />
             <FormsSection />
             <RedirectsSection />
         </>

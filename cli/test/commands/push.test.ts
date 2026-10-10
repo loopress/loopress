@@ -25,6 +25,7 @@ const ALL_COMMAND_IDS = [
   'composer:push',
   'cpt:push',
   'taxonomy:push',
+  'meta:push',
   'acf:push',
   'api:push',
   'hook:push',

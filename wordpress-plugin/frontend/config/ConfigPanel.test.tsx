@@ -29,6 +29,9 @@ const RESPONSES: Record<string, unknown> = {
     '/registered-taxonomies': [
         { slug: 'genre', label: 'Genres', source: 'loopress', count: 7, objectTypes: ['book', 'post'], managed: true, conflict: false },
     ],
+    '/registered-post-meta': [
+        { postType: 'book', key: 'isbn', type: 'string', showInRest: true, source: 'loopress', acf: true, conflict: false },
+    ],
     '/forms': [{ id: 12, settings: { form_title: 'Contact' } }],
     '/seo/redirects': [{ id: 1, sources: [{ pattern: 'old-page' }], urlTo: '/new-page', headerCode: 301 }],
 };
@@ -44,7 +47,7 @@ describe('ConfigPanel', () => {
 
         expect(await screen.findByText('Hero')).toBeInTheDocument();
         expect(screen.getByText('Events')).toBeInTheDocument();
-        expect(screen.getByText('Post type')).toBeInTheDocument();
+        expect(screen.getByRole('cell', { name: 'Post type' })).toBeInTheDocument();
         expect(await screen.findByText('Main menu')).toBeInTheDocument();
         expect(screen.getByText('3')).toBeInTheDocument();
         expect(await screen.findByText('Contact')).toBeInTheDocument();
@@ -67,6 +70,14 @@ describe('ConfigPanel', () => {
         expect(await screen.findByText('Genres')).toBeInTheDocument();
         expect(screen.getByText('book, post')).toBeInTheDocument();
         expect(screen.getByText('lps taxonomy pull')).toBeInTheDocument();
+    });
+
+    test('lists the registered meta keys, an ACF field of the same name flagged for information', async () => {
+        render(<ConfigPanel />, { wrapper });
+
+        expect(await screen.findByText('isbn')).toBeInTheDocument();
+        expect(screen.getByText('ACF field')).toBeInTheDocument();
+        expect(screen.getByText('lps meta pull')).toBeInTheDocument();
     });
 
     test("shows the endpoint's own reason when a plugin isn't active", async () => {

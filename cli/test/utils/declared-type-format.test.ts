@@ -1,9 +1,10 @@
 import {describe, expect, it} from 'vitest'
 
-import {CPT_SPEC, declaredFileChecker, parseDeclaredArgs, TAXONOMY_SPEC} from '../../src/utils/declared-type-format.js'
+import {CPT_SPEC, declaredFileChecker, META_SPEC, parseDeclaredArgs, TAXONOMY_SPEC} from '../../src/utils/declared-type-format.js'
 
 const checkCptFile = declaredFileChecker(CPT_SPEC)
 const checkTaxonomyFile = declaredFileChecker(TAXONOMY_SPEC)
+const checkMetaFile = declaredFileChecker(META_SPEC)
 
 describe('declared-type-format', () => {
   it('parses a JSON object of register_post_type() arguments', () => {
@@ -71,6 +72,34 @@ describe('declared-type-format', () => {
       expect(() => {
         checkTaxonomyFile('{"meta_box_cb": "system"}', 'taxonomies/genre.json')
       }).toThrow('"meta_box_cb" runs PHP code')
+    })
+  })
+
+  describe('post meta', () => {
+    it('accepts a built-in post type, a protected key, and an array with a REST schema', () => {
+      const file = {
+        _note: {type: 'string'},
+        authors: {show_in_rest: {schema: {items: {type: 'string'}}}, single: true, type: 'array'},
+        pages: {default: 0, type: 'integer'},
+      }
+      expect(() => {
+        checkMetaFile(JSON.stringify(file), 'meta/post.json')
+      }).not.toThrow()
+    })
+
+    it.each([
+      [{isbn: 'string'}, '"isbn" must be a JSON object'],
+      [{isbn: {single: true}}, '"type" must be one of'],
+      [{isbn: {sanitize_callback: 'system', type: 'string'}}, '"sanitize_callback" runs PHP code'],
+      [{isbn: {auth_callback: '__return_true', type: 'string'}}, '"auth_callback" runs PHP code'],
+      [{isbn: {single: 'yes', type: 'string'}}, '"single" must be true or false'],
+      [{authors: {show_in_rest: true, type: 'array'}}, 'needs "show_in_rest": { "schema"'],
+      [{pages: {default: '0', type: 'integer'}}, '"default" must be a integer'],
+      [{'my key': {type: 'string'}}, 'not a valid meta key'],
+    ])('refuses %j', (file, message) => {
+      expect(() => {
+        checkMetaFile(JSON.stringify(file), 'meta/book.json')
+      }).toThrow(message)
     })
   })
 })

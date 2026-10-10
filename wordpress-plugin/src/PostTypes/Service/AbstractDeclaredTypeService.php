@@ -11,7 +11,7 @@ use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
 // `taxonomies/<slug>.json`): the plain arguments of its `register_*()` call, stored as data in one
 // option and registered on every request. Data only, never code: arguments WordPress would call or
 // instantiate are refused (codeArgs()), which is what keeps these resources in Loopress Light.
-// Post types and taxonomies differ only in the hooks below and in what registered() reports.
+// Post types, taxonomies and post meta differ only in the hooks below and in what registered() reports.
 abstract class AbstractDeclaredTypeService
 {
     // Set by every write, consumed once on the next `init` (see flushIfNeeded()): rewrite rules
@@ -185,6 +185,21 @@ abstract class AbstractDeclaredTypeService
         return [];
     }
 
+    /**
+     * Checks specific to one kind, after the shared ones (post meta: its arguments are one level
+     * deeper, per key).
+     *
+     * @param array<string, mixed> $args
+     * @throws InvalidDeclarationException
+     */
+    protected function assertArgs(string $slug, array $args): void {}
+
+    /** Whether a write changes rewrite rules (post types and taxonomies do, post meta doesn't). */
+    protected function flushesRewriteRules(): bool
+    {
+        return true;
+    }
+
     /** @return array<string, array<string, mixed>> */
     protected function stored(): array
     {
@@ -227,6 +242,8 @@ abstract class AbstractDeclaredTypeService
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
             throw new InvalidDeclarationException("{$this->noun()} \"{$slug}\": \"{$code[0]}\" runs PHP code, use a hook instead of a {$this->directory()}/ file for it.");
         }
+
+        $this->assertArgs($slug, $args);
     }
 
     private function lowerNoun(): string
@@ -239,7 +256,9 @@ abstract class AbstractDeclaredTypeService
     {
         ksort($stored);
         update_option($this->option(), $stored, true);
-        update_option(self::FLUSH_OPTION, 1, false);
+        if ($this->flushesRewriteRules()) {
+            update_option(self::FLUSH_OPTION, 1, false);
+        }
     }
 
     /**

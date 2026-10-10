@@ -47,6 +47,7 @@ describe('resolveResourceDir', () => {
       form: 'forms',
       hooks: 'hooks',
       menu: 'menus',
+      meta: 'meta',
       options: 'options',
       page: 'pages',
       part: 'theme/parts',
