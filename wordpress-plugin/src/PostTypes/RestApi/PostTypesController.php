@@ -90,8 +90,9 @@ class PostTypesController
         $slug = $body['slug'] ?? null;
         $args = $body['args'] ?? null;
 
-        // A JSON array (`[]`) decodes to a PHP list too, but register_post_type() wants keys.
-        if (!is_string($slug) || !is_array($args) || ($args !== [] && array_is_list($args))) {
+        // A JSON array (`[1, 2]`) decodes to a PHP array too, but register_post_type() wants
+        // named keys. Not array_is_list(): Plugin Check reads it as WP 6.5+, Light supports 6.2.
+        if (!is_string($slug) || !is_array($args) || ($args !== [] && !is_string(array_key_first($args)))) {
             return new WP_REST_Response(['error' => 'Request body must include a string "slug" and an "args" object.'], 400);
         }
 
