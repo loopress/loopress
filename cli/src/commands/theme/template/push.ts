@@ -16,7 +16,7 @@ type PushResult = {
 
 export default class Push extends PushCommand {
   static description =
-    'Push block templates (templates/<slug>.html) and template parts (parts/<slug>.html) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is never activated for you.'
+    'Push block templates (theme/templates/<slug>.html) and template parts (theme/parts/<slug>.html) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is never activated for you.'
 
   static enableJsonFlag = true
   static examples = ['$ lps theme template push', '$ lps theme template push --dry-run']

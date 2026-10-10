@@ -41,21 +41,21 @@ The directory is `pages/` by default, set `pageDir` in [`loopress.json`](/loopre
 
 ## Templates and parts
 
-On a block theme, your project can also version the theme's templates and template parts, as `.html` files of block markup (what the Site Editor saves): `templates/<slug>.html` and `parts/<slug>.html`.
+On a block theme, your project can also version the theme's templates and template parts, as `.html` files of block markup (what the Site Editor saves): `theme/templates/<slug>.html` and `theme/parts/<slug>.html`, next to the [Global Styles](/theme-styles/) file.
 
 `lps theme template push` writes them as the files of a **child theme** of your block theme, named after it with a `-loopress` suffix: `twentytwentyfive-loopress`, "Twenty Twenty-Five Loopress". That's the way WordPress expects a site to override a theme: the parent theme stays untouched and keeps receiving its updates, and everything the child doesn't override still comes from the parent.
 
 ```
-templates/single.html        → twentytwentyfive-loopress/templates/single.html
-templates/bare-landing.html  → twentytwentyfive-loopress/templates/bare-landing.html
-parts/header.html            → twentytwentyfive-loopress/parts/header.html
+theme/templates/single.html        → twentytwentyfive-loopress/templates/single.html
+theme/templates/bare-landing.html  → twentytwentyfive-loopress/templates/bare-landing.html
+theme/parts/header.html            → twentytwentyfive-loopress/parts/header.html
 ```
 
 - **Any template of the [template hierarchy](https://developer.wordpress.org/themes/templates/template-hierarchy/)**: `single`, `single-post`, `archive`, `category-news`, `taxonomy-download_tag`, `page-no-title`... WordPress resolves the name. Override a parent template by using its name, or add your own.
 - **Your own page templates**: a template with a header becomes a custom template a page can pick with its `template` header:
 
   ```html
-  <!-- templates/bare-landing.html -->
+  <!-- theme/templates/bare-landing.html -->
   <!--
   title: Bare landing
   postTypes: page
@@ -97,7 +97,7 @@ parts/header.html            → twentytwentyfive-loopress/parts/header.html
   Dynamic blocks that read the current post when they render work in a loop as they are.
 - Requires a block theme as the active theme (or the Loopress child itself). Another child theme can't be extended, WordPress has no grandchild themes.
 
-File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `templates/` and `parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/loopress-json/#resource-directories) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
+File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `theme/templates/` and `theme/parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/loopress-json/#resource-directories) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
 
 ## Commands
 
@@ -140,7 +140,7 @@ Show the child theme: active or not, its templates and parts, and those edited i
 
 ### `lps theme template diff`
 
-Show what differs between `templates/` + `parts/` and the child theme, Site Editor edits included. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only template`, `--only part`).
+Show what differs between `theme/templates/` + `theme/parts/` and the child theme, Site Editor edits included. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only template`, `--only part`).
 
 Pages and templates are also part of [`lps push`, `lps diff`, and `lps dev`](/workflow/) (a saved file is pushed to your local environment right away).
 

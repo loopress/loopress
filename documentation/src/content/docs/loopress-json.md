@@ -48,8 +48,8 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `apiDir` | `api` | Custom API route files | [`lps api`](/api/cli/) |
 | `hooksDir` | `hooks` | Hook files (actions, filters, cron) | [`lps hook`](/hooks/) |
 | `pageDir` | `pages` | Static HTML pages | [`lps page`](/pages/) |
-| `templateDir` | `templates` | Block templates, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
-| `partDir` | `parts` | Block template parts, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
+| `templateDir` | `theme/templates` | Block templates, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
+| `partDir` | `theme/parts` | Block template parts, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
 | `appsDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |
 
 ## Plugins and themes

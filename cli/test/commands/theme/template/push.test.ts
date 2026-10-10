@@ -38,8 +38,8 @@ describe('template push', () => {
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-template-push-test-'))
-    mkdirSync(join(dir, 'templates'))
-    mkdirSync(join(dir, 'parts'))
+    mkdirSync(join(dir, 'theme', 'templates'), {recursive: true})
+    mkdirSync(join(dir, 'theme', 'parts'), {recursive: true})
   })
 
   afterEach(() => {
@@ -47,8 +47,8 @@ describe('template push', () => {
   })
 
   it('PUTs every template and part to the child theme endpoint in one request', async () => {
-    writeFileSync(join(dir, 'templates', 'single.html'), '<!-- wp:post-content /-->')
-    writeFileSync(join(dir, 'parts', 'header.html'), '<p>h</p>')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<!-- wp:post-content /-->')
+    writeFileSync(join(dir, 'theme', 'parts', 'header.html'), '<p>h</p>')
     const put = vi.fn().mockResolvedValue(child)
 
     const result = await makeCommand(put).run()
@@ -61,7 +61,7 @@ describe('template push', () => {
   })
 
   it('warns when the child is not active and when the Site Editor still overrides a file', async () => {
-    writeFileSync(join(dir, 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
     const cmd = makeCommand(vi.fn().mockResolvedValue({...child, active: false, customized: ['templates/single']}))
 
     await cmd.run()
@@ -71,7 +71,7 @@ describe('template push', () => {
   })
 
   it('refuses the whole push before any network call when a file is invalid', async () => {
-    writeFileSync(join(dir, 'templates', 'single.html'), '<!-- wp:template-part {"slug":"header","theme":"twentytwentyfive"} /-->')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<!-- wp:template-part {"slug":"header","theme":"twentytwentyfive"} /-->')
     const put = vi.fn()
 
     await expect(makeCommand(put).run()).rejects.toThrow('"theme" attribute')
@@ -79,7 +79,7 @@ describe('template push', () => {
   })
 
   it('writes nothing on a dry run', async () => {
-    writeFileSync(join(dir, 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
     const put = vi.fn()
     const cmd = makeCommand(put)
     cmd.dryRun = true

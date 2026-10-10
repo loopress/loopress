@@ -57,12 +57,12 @@
     "templateDir": {
       "type": "string",
       "description": "Directory where block templates (one <slug>.html per template, written to the Loopress child theme of the active block theme) are read from, relative to rootDir. A static page uses one with its `template` header.",
-      "default": "templates"
+      "default": "theme/templates"
     },
     "partDir": {
       "type": "string",
       "description": "Directory where block template parts (one <slug>.html per part, written to the Loopress child theme of the active block theme) are read from, relative to rootDir.",
-      "default": "parts"
+      "default": "theme/parts"
     },
     "optionsDir": {
       "type": "string",

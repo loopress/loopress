@@ -31,9 +31,9 @@ const RESOURCES: HtmlResource[] = [
   {
     command: ['theme', 'template'],
     descriptions: {
-      diff: 'Show what differs between the local templates/ and parts/ directories and the Loopress child theme on WordPress, including templates and parts edited in the Site Editor.',
+      diff: 'Show what differs between the local theme/templates/ and theme/parts/ directories and the Loopress child theme on WordPress, including templates and parts edited in the Site Editor.',
       list: 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor.',
-      push: 'Push local block templates (templates/<slug>.html) and template parts (parts/<slug>.html) as the files of the child theme <parent>-loopress, mirroring them. The child is never activated.',
+      push: 'Push local block templates (theme/templates/<slug>.html) and template parts (theme/parts/<slug>.html) as the files of the child theme <parent>-loopress, mirroring them. The child is never activated.',
     },
     kind: 'template',
   },
