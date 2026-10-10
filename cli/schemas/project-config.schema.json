@@ -69,6 +69,11 @@
       "description": "Directory where explicitly tracked WordPress options (wp_options rows) are read from and written to, relative to rootDir. Only options added via `lps option add` live here, this is never the whole options table.",
       "default": "options"
     },
+    "cptDir": {
+      "type": "string",
+      "description": "Directory where custom post types (one JSON file of register_post_type() arguments per post type, named <slug>.json) are read from and written to, relative to rootDir.",
+      "default": "cpt"
+    },
     "menuDir": {
       "type": "string",
       "description": "Directory where nav menus (one JSON file per menu, plus menu-locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",

@@ -426,6 +426,27 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('cpt', () => {
+    const cptProvider = provider('cpt')
+
+    it('compares the arguments by slug, ignoring the push revision', async () => {
+      const remote = fakeWp({'loopress/v1/post-types': [{args: {public: true}, revision: 'rev-1', slug: 'book'}]})
+      writeFileSync(join(dir, 'book.json'), JSON.stringify({public: true}))
+
+      const diff = compareStates(await cptProvider.remote(remote, noWarn, dir), await cptProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('reports a post type only declared locally as added', async () => {
+      writeFileSync(join(dir, 'movie.json'), JSON.stringify({public: false}))
+
+      const diff = compareStates(await cptProvider.remote(fakeWp({}), noWarn, dir), await cptProvider.local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(false)
+    })
+  })
+
   describe('menu', () => {
     const menuProvider = provider('menu')
 

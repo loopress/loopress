@@ -1,9 +1,10 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../api';
-import { ResourceSection, Row, Table } from '../ui';
+import { Pill, ResourceSection, Row, Table } from '../ui';
 import { CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
+// PostTypeService::registered(),
 // WPFormsProvider::toCanonical(), RankMathService::exportRedirection()), only the fields shown.
 interface AcfObject {
     key: string;
@@ -15,6 +16,23 @@ interface Menu {
     name: string;
     items: unknown[];
 }
+
+interface RegisteredPostType {
+    slug: string;
+    label: string;
+    source: 'loopress' | 'wordpress' | 'acf' | 'cptui' | 'other';
+    count: number;
+    managed: boolean;
+    conflict: boolean;
+}
+
+const SOURCE_LABELS: Record<RegisteredPostType['source'], string> = {
+    loopress: 'Loopress',
+    wordpress: 'WordPress',
+    acf: 'ACF',
+    cptui: 'CPT UI',
+    other: 'Theme or plugin',
+};
 
 interface Form {
     id: number;
@@ -113,6 +131,46 @@ function MenusSection() {
     );
 }
 
+// Every post type on the site, not only Loopress's, so a site can be reviewed before moving its
+// post types into cpt/ files.
+function PostTypesSection() {
+    const query = useQuery<RegisteredPostType[]>({
+        queryKey: ['registered-post-types'],
+        queryFn: () => apiFetch<RegisteredPostType[]>('/registered-post-types'),
+        staleTime: 30_000,
+    });
+    const postTypes = query.data ?? [];
+
+    return (
+        <ResourceSection
+            title="Post types"
+            description={<>Loopress post types are declared in <code>cpt/</code> files and pulled with <code>lps cpt pull</code>.</>}
+            query={query}
+            isEmpty={postTypes.length === 0}
+            errorText={errorText(query.error, 'Failed to load post types.')}
+            empty="No post types."
+        >
+            <Table columns={['Name', 'Slug', 'Source', 'Published']}>
+                {postTypes.map((postType) => (
+                    <Row key={postType.slug}>
+                        <td style={CELL}><strong>{postType.label}</strong></td>
+                        <td style={MONO}>{postType.slug}</td>
+                        <td style={CELL}>
+                            {SOURCE_LABELS[postType.source]}
+                            {postType.conflict && (
+                                <Pill tone="warning" title="Declared in cpt/, but this slug was already registered first: the Loopress version is skipped.">
+                                    Conflict
+                                </Pill>
+                            )}
+                        </td>
+                        <td style={CELL}>{postType.count}</td>
+                    </Row>
+                ))}
+            </Table>
+        </ResourceSection>
+    );
+}
+
 function FormsSection() {
     const query = useQuery<Form[]>({ queryKey: ['forms'], queryFn: () => apiFetch<Form[]>('/forms'), staleTime: 30_000 });
     const forms = query.data ?? [];
@@ -174,6 +232,7 @@ export function ConfigPanel() {
             </p>
             <AcfSection />
             <MenusSection />
+            <PostTypesSection />
             <FormsSection />
             <RedirectsSection />
         </>

@@ -18,6 +18,7 @@ const RESOURCES = [
   'page',
   'seo',
   'menu',
+  'cpt',
   'option',
   'theme-styles',
   'composer',
@@ -30,7 +31,7 @@ export function registerDiffTools(server: McpServer): void {
     'project_diff',
     {
       description:
-        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, SEO, menus, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status.',
+        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, SEO, menus, custom post types, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status.',
       inputSchema: {
         against: z
           .string()

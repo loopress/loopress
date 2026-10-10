@@ -92,6 +92,11 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `menu_pull` | No | `env?`, `path?` | Pull nav menus and the active theme menu locations from WordPress into local files |
 | `menu_list` | No | `env?` | List nav menus and the active theme menu locations currently on WordPress |
 | `menu_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore nav menus and menu locations to the snapshot saved automatically before an earlier `menu_push` (`list` shows what's available) |
+| `cpt_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local `cpt/<slug>.json` custom post types to WordPress (create or update only) |
+| `cpt_pull` | No | `env?`, `path?` | Pull the custom post types Loopress manages into `cpt/<slug>.json` files |
+| `cpt_list` | No | `env?` | List every post type registered on WordPress and where it comes from |
+| `cpt_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress custom post type (its posts stay in the database, hidden) |
+| `cpt_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore custom post types to the snapshot saved automatically before an earlier `cpt_push` (`list` shows what's available) |
 | `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
 | `option_list` | No | `env?`, `noCore?` | List WordPress option names and autoload flags currently on the site (names only, never values) |

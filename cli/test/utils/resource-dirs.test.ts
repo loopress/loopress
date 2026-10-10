@@ -43,6 +43,7 @@ describe('resolveResourceDir', () => {
       acf: 'acf',
       api: 'api',
       apps: 'apps',
+      cpt: 'cpt',
       form: 'forms',
       hooks: 'hooks',
       menu: 'menus',

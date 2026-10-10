@@ -8,6 +8,7 @@ import {registerApiTools} from './tools/api.js'
 import {registerAppTools} from './tools/app.js'
 import {registerBulkTools} from './tools/bulk.js'
 import {registerComposerTools} from './tools/composer.js'
+import {registerCptTools} from './tools/cpt.js'
 import {registerDiffTools} from './tools/diff.js'
 import {registerDoctorTools} from './tools/doctor.js'
 import {registerFormTools} from './tools/form.js'
@@ -34,6 +35,7 @@ registerAppTools(server)
 registerAcfTools(server)
 registerSeoTools(server)
 registerMenuTools(server)
+registerCptTools(server)
 registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)

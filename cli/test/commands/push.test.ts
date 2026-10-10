@@ -23,6 +23,7 @@ vi.mock('../../src/lib/interactive.js', () => ({
 const ALL_COMMAND_IDS = [
   'plugin:push',
   'composer:push',
+  'cpt:push',
   'acf:push',
   'api:push',
   'hook:push',
@@ -140,7 +141,7 @@ describe('push', () => {
       .mockResolvedValue({})
     const {cmd} = make()
 
-    await expect(cmd.run()).rejects.toThrow('2 resources failed to push. plugins: boom; ACF: bang')
+    await expect(cmd.run()).rejects.toThrow('2 resources failed to push. plugins: boom; post types: bang')
   })
 
   describe('production guard', () => {

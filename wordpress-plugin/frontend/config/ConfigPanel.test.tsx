@@ -22,6 +22,10 @@ const RESPONSES: Record<string, unknown> = {
     '/acf/taxonomies': [],
     '/acf/options-pages': [],
     '/menus': [{ slug: 'main', name: 'Main menu', items: [{}, {}, {}] }],
+    '/registered-post-types': [
+        { slug: 'post', label: 'Posts', source: 'wordpress', count: 4, managed: false, conflict: false },
+        { slug: 'book', label: 'Books', source: 'cptui', count: 2, managed: true, conflict: true },
+    ],
     '/forms': [{ id: 12, settings: { form_title: 'Contact' } }],
     '/seo/redirects': [{ id: 1, sources: [{ pattern: 'old-page' }], urlTo: '/new-page', headerCode: 301 }],
 };
@@ -43,6 +47,15 @@ describe('ConfigPanel', () => {
         expect(await screen.findByText('Contact')).toBeInTheDocument();
         expect(await screen.findByText('old-page')).toBeInTheDocument();
         expect(screen.getByText('lps acf pull')).toBeInTheDocument();
+    });
+
+    test('lists every post type with its source and flags a Loopress one skipped for a conflict', async () => {
+        render(<ConfigPanel />, { wrapper });
+
+        expect(await screen.findByText('Books')).toBeInTheDocument();
+        expect(screen.getByText('CPT UI')).toBeInTheDocument();
+        expect(screen.getByText('WordPress')).toBeInTheDocument();
+        expect(screen.getAllByText('Conflict')).toHaveLength(1);
     });
 
     test("shows the endpoint's own reason when a plugin isn't active", async () => {
