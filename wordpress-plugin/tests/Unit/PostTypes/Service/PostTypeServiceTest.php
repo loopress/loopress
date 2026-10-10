@@ -44,9 +44,11 @@ class PostTypeServiceTest extends TestCase
         Functions\when('post_type_exists')->alias(fn (string $slug): bool => isset($this->wpRegistered[$slug]));
         Functions\when('register_post_type')->alias(function (string $slug, array $args): object {
             $this->wpRegistered[$slug] = $args;
-            return $this->wpObjects[$slug] = (object) [
+            $this->wpObjects[$slug] = (object) [
                 'label' => $args['label'] ?? $slug, '_builtin' => false, 'public' => false, 'show_ui' => false, 'show_in_menu' => false,
             ];
+
+            return $this->wpObjects[$slug];
         });
 
         $this->service = new PostTypeService();
