@@ -52,37 +52,15 @@ interface TestFixtures {
 interface WorkerFixtures {
   requestUtils: RequestUtils
   wp: WpCredentials
-  workerStorageState: string
 }
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
-  // Log into wp-admin once per worker and reuse the session for every test, instead of
-  // re-submitting the login form (a full navigation + settle) before each test that touches
-  // `page`. Playwright's standard "authenticate once" pattern: this worker fixture produces a
-  // storage-state file, the `storageState` override below points every context at it.
-  workerStorageState: [
-    async ({browser, wp}, use) => {
-      const file = join(mkdtempSync(join(tmpdir(), 'lps-e2e-auth-')), 'state.json')
-      const page = await browser.newPage({storageState: undefined})
-      await loginToWpAdmin(page, wp)
-      await page.context().storageState({path: file})
-      await page.close()
-      await use(file)
-    },
-    {scope: 'worker'},
-  ],
-
-  storageState: async ({workerStorageState}, use) => {
-    await use(workerStorageState)
-  },
-
-  // The built-in `request` fixture inherits `storageState` too. Sending the wp-admin cookie
-  // without a nonce makes WordPress drop the request to anonymous, overriding the Basic-auth
-  // app password every REST assertion relies on (401s). Keep REST calls cookie-free.
-  request: async ({playwright}, use) => {
-    const request = await playwright.request.newContext()
-    await use(request)
-    await request.dispose()
+  // Every test's `page` starts logged into wp-admin: without this, each spec would have to
+  // remember to call `loginToWpAdmin` itself, and a forgotten call fails as a slow, confusing
+  // "element not found" (silently redirected to wp-login.php) rather than an obvious error.
+  page: async ({page, wp}, use) => {
+    await loginToWpAdmin(page, wp)
+    await use(page)
   },
 
   homeDir: async ({}, use) => {
