@@ -76,6 +76,15 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(workerStorageState)
   },
 
+  // The built-in `request` fixture inherits `storageState` too. Sending the wp-admin cookie
+  // without a nonce makes WordPress drop the request to anonymous, overriding the Basic-auth
+  // app password every REST assertion relies on (401s). Keep REST calls cookie-free.
+  request: async ({playwright}, use) => {
+    const request = await playwright.request.newContext()
+    await use(request)
+    await request.dispose()
+  },
+
   homeDir: async ({}, use) => {
     await use(mkdtempSync(join(tmpdir(), 'lps-e2e-home-')))
   },
