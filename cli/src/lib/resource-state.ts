@@ -8,15 +8,6 @@ import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu
 import {type LocalOption, optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
 import {formatPageProblems, type Page, PAGES_ENDPOINT, readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
 import {type ResourceDirKind} from '../utils/resource-dirs.js'
-import {
-  DEFAULT_POST_TYPES,
-  type RemoteSeoPostMeta,
-  type RemoteSeoSettings,
-  SEO_REDIRECTS_ENDPOINT,
-  SEO_SETTINGS_ENDPOINT,
-  seoPostMetaEndpoint,
-  type SeoRedirect,
-} from '../utils/seo-format.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../utils/snippet-format.js'
 import {CHILD_THEME_ENDPOINT, type ChildTheme, parsePartFile, parseTemplateFile, type Part, type Template, TEMPLATE_SLUG_RULE} from '../utils/template-format.js'
 import {
@@ -69,8 +60,6 @@ function omit(object: Record<string, unknown>, keys: readonly string[]): Record<
 const ACF_VOLATILE_KEYS = ['modified'] as const
 // A WPForms form is a WP post; `modified`/`modified_gmt` move on every edit.
 const FORM_VOLATILE_KEYS = ['modified', 'modified_gmt'] as const
-// A RankMath redirect's `hits` is a live visit counter.
-const REDIRECT_VOLATILE_KEYS = ['hits'] as const
 
 // ---- snippets -------------------------------------------------------------------------------
 
@@ -332,88 +321,6 @@ const partProvider: ResourceStateProvider = {
   title: 'Template parts',
 }
 
-// ---- SEO --------------------------------------------------------------------------------
-
-function canonicalRedirect(redirect: Record<string, unknown>): Record<string, unknown> {
-  return omit(redirect, REDIRECT_VOLATILE_KEYS)
-}
-
-const seoProvider: ResourceStateProvider = {
-  dirKind: 'seo',
-  async local(dir, onWarn) {
-    const state: ResourceState = new Map()
-
-    // The provider settings blob (Yoast / RankMath) is compared whole. If a real payload turns
-    // out to carry install-specific noise (a plugin version, a license hash), add those keys
-    // to an omit() list here, the e2e round-trip is what will surface them.
-    const settingsPath = join(dir, 'settings.json')
-    try {
-      const settings = readJson(await readFile(settingsPath, 'utf8'))
-      state.set('settings', settings)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        onWarn(`Skipping "${settingsPath}": ${(error as Error).message}`)
-      }
-    }
-
-    for (const postType of DEFAULT_POST_TYPES) {
-      const metaDir = join(dir, 'post-meta', postType)
-      const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(metaDir, {
-        extension: '.json',
-        onSkip: onWarn,
-        parse: (raw, filePath) => ({file: basename(filePath, '.json'), value: readJson(raw)}),
-      })
-      for (const {file, value} of entries) {
-        const slug = typeof value.slug === 'string' && value.slug !== '' ? value.slug : `local:${file}`
-        state.set(`post-meta/${postType}/${slug}`, value)
-      }
-    }
-
-    const redirects = await loadFiles<Record<string, unknown>>(join(dir, 'redirects'), {
-      extension: '.json',
-      onSkip: onWarn,
-      parse: readJson,
-    })
-    for (const redirect of redirects) {
-      const id = Number(redirect.id)
-      if (Number.isSafeInteger(id) && id > 0) state.set(`redirects/${id}`, canonicalRedirect(redirect))
-    }
-
-    return state
-  },
-  async remote(wp, onWarn) {
-    const state: ResourceState = new Map()
-
-    // `revision` (#234) is dropped from both, same as optionsProvider.remote() does for
-    // RemoteOption.revision below: it's bookkeeping for the conditional-write precondition, not
-    // configuration, and comparing it here would flag drift whenever the mere act of reading
-    // changed nothing meaningful.
-    const {settings} = await wp.get<RemoteSeoSettings>(SEO_SETTINGS_ENDPOINT)
-    state.set('settings', settings)
-
-    for (const postType of DEFAULT_POST_TYPES) {
-      const posts = await wp.get<RemoteSeoPostMeta[]>(seoPostMetaEndpoint(postType))
-      for (const {meta, slug, title} of posts) state.set(`post-meta/${postType}/${slug}`, {meta, slug, title})
-    }
-
-    // Redirects are a RankMath-only feature; on Yoast the endpoint 404s, same graceful skip
-    // as `seo pull`.
-    try {
-      const redirects = await wp.get<SeoRedirect[]>(SEO_REDIRECTS_ENDPOINT)
-      for (const redirect of redirects) {
-        state.set(`redirects/${redirect.id}`, canonicalRedirect(redirect))
-      }
-    } catch (error) {
-      if (!isNotFoundError(error)) throw error
-      onWarn(`Skipping redirects: not supported by the active SEO plugin`)
-    }
-
-    return state
-  },
-  resource: 'seo',
-  title: 'SEO',
-}
-
 // ---- Menus --------------------------------------------------------------------------------
 
 // Every item's post_type/taxonomy target is already resolved to `object`/`objectSlug` by the
@@ -594,7 +501,6 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   templateProvider,
   partProvider,
   pageProvider,
-  seoProvider,
   menuProvider,
   cptProvider,
   taxonomyProvider,

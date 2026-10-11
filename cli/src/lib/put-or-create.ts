@@ -10,10 +10,9 @@ type PutOrCreateOptions = {
   putEndpoint: (id: number) => string
 }
 
-// Update-or-create dance shared by every id-based resource (form, seo redirect,
-// snippet, unlike ACF which is key-based and only ever POSTs): PUT to the known id, and only
-// fall back to POST when the site doesn't recognize that id (404), e.g. a fresh install or a
-// database reset.
+// Update-or-create dance shared by every id-based resource (form, snippet, unlike ACF which
+// is key-based and only ever POSTs): PUT to the known id, and only fall back to POST when the
+// site doesn't recognize that id (404), e.g. a fresh install or a database reset.
 export async function putOrCreate<T>(wp: WpClient, options: PutOrCreateOptions): Promise<{body: T; created: boolean}> {
   const {id, payload, postEndpoint, postPayload = payload, putEndpoint} = options
 

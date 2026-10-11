@@ -24,11 +24,6 @@
       "description": "Directory where ACF field groups, post types, taxonomies and options pages are read from and written to, relative to rootDir.",
       "default": "acf"
     },
-    "seoDir": {
-      "type": "string",
-      "description": "Directory where SEO settings, post meta, and redirects (RankMath and Yoast SEO, whichever is active) are read from and written to, relative to rootDir.",
-      "default": "seo"
-    },
     "formDir": {
       "type": "string",
       "description": "Directory where forms (WPForms today) are read from and written to, relative to rootDir.",

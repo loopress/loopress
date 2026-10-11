@@ -40,7 +40,6 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 |-------|---------|-------|---------|
 | `snippetsDir` | `snippets` | Code snippets and their `.json` sidecars | [`lps snippet`](/snippets/) |
 | `acfDir` | `acf` | ACF field groups, post types, taxonomies and options pages | [`lps acf`](/acf/) |
-| `seoDir` | `seo` | SEO settings, post meta and redirects | [`lps seo`](/seo/) |
 | `formDir` | `forms` | WPForms forms | [`lps form`](/forms/) |
 | `menuDir` | `menus` | Nav menus, one file per menu, plus `menu-locations.json` | [`lps menu`](/menus/) |
 | `cptDir` | `cpt` | Custom post types, one `<slug>.json` file of `register_post_type()` arguments each | [`lps cpt`](/custom-post-types/) |

@@ -33,7 +33,6 @@ const RESPONSES: Record<string, unknown> = {
         { postType: 'book', key: 'isbn', type: 'string', showInRest: true, source: 'loopress', acf: true, conflict: false },
     ],
     '/forms': [{ id: 12, settings: { form_title: 'Contact' } }],
-    '/seo/redirects': [{ id: 1, sources: [{ pattern: 'old-page' }], urlTo: '/new-page', headerCode: 301 }],
 };
 
 describe('ConfigPanel', () => {
@@ -51,7 +50,6 @@ describe('ConfigPanel', () => {
         expect(await screen.findByText('Main menu')).toBeInTheDocument();
         expect(screen.getByText('3')).toBeInTheDocument();
         expect(await screen.findByText('Contact')).toBeInTheDocument();
-        expect(await screen.findByText('old-page')).toBeInTheDocument();
         expect(screen.getByText('lps acf pull')).toBeInTheDocument();
     });
 
@@ -83,14 +81,14 @@ describe('ConfigPanel', () => {
     test("shows the endpoint's own reason when a plugin isn't active", async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
             if (path.startsWith('/acf/')) throw new ApiError('ACF is not active');
-            if (path === '/seo/redirects') throw new ApiError('No supported SEO plugin is active');
+            if (path === '/forms') throw new ApiError('WPForms is not active');
             return RESPONSES[path] ?? [];
         });
 
         render(<ConfigPanel />, { wrapper });
 
         expect(await screen.findByText('ACF is not active')).toBeInTheDocument();
-        expect(await screen.findByText('No supported SEO plugin is active')).toBeInTheDocument();
+        expect(await screen.findByText('WPForms is not active')).toBeInTheDocument();
         expect(await screen.findByText('Main menu')).toBeInTheDocument();
     });
 });

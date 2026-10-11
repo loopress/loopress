@@ -35,7 +35,7 @@ class PostByPathTest extends TestCase
         $this->assertSame($profile, PostByPath::find('account/profile', 'page'));
     }
 
-    // The NFT bug: a menu or SEO file holding `profile` for the child page `account/profile`.
+    // The NFT bug: a menu file holding `profile` for the child page `account/profile`.
     public function test_find_falls_back_to_the_only_post_with_that_slug(): void
     {
         $profile = $this->post(7, 'profile');

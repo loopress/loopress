@@ -5,7 +5,7 @@ import { CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
 // PostTypeService::registered(), TaxonomyService::registered(), PostMetaService::registered(),
-// WPFormsProvider::toCanonical(), RankMathService::exportRedirection()), only the fields shown.
+// WPFormsProvider::toCanonical()), only the fields shown.
 interface AcfObject {
     key: string;
     title?: string;
@@ -54,13 +54,6 @@ interface Form {
     settings?: { form_title?: string };
 }
 
-interface Redirect {
-    id: number;
-    sources: { pattern?: string }[] | string;
-    urlTo: string;
-    headerCode: number;
-}
-
 const ACF_TYPES = [
     { route: 'field-groups', label: 'Field group' },
     { route: 'post-types', label: 'Post type' },
@@ -68,15 +61,10 @@ const ACF_TYPES = [
     { route: 'options-pages', label: 'Options page' },
 ];
 
-// The error the endpoint itself gives ("ACF is not active", "No supported SEO plugin is
-// active"...) says more than a generic failure.
+// The error the endpoint itself gives ("ACF is not active", "WPForms is not active"...) says
+// more than a generic failure.
 function errorText(error: Error | null, fallback: string): string {
     return error?.message || fallback;
-}
-
-function sourcesOf(redirect: Redirect): string {
-    if (typeof redirect.sources === 'string') return redirect.sources;
-    return redirect.sources.map((source) => source.pattern ?? '').filter(Boolean).join(', ');
 }
 
 function Pull({ command }: Readonly<{ command: string }>) {
@@ -293,32 +281,6 @@ function FormsSection() {
     );
 }
 
-function RedirectsSection() {
-    const query = useQuery<Redirect[]>({ queryKey: ['seo-redirects'], queryFn: () => apiFetch<Redirect[]>('/seo/redirects'), staleTime: 30_000 });
-    const redirects = query.data ?? [];
-
-    return (
-        <ResourceSection
-            title="SEO redirects"
-            description={<>SEO settings and redirects are pulled with <code>lps seo pull</code>.</>}
-            query={query}
-            isEmpty={redirects.length === 0}
-            errorText={errorText(query.error, 'Failed to load redirects.')}
-            empty="No redirects yet."
-        >
-            <Table columns={['From', 'To', 'Code']}>
-                {redirects.map((redirect) => (
-                    <Row key={redirect.id}>
-                        <td style={MONO}>{sourcesOf(redirect)}</td>
-                        <td style={MONO}>{redirect.urlTo}</td>
-                        <td style={CELL}>{redirect.headerCode}</td>
-                    </Row>
-                ))}
-            </Table>
-        </ResourceSection>
-    );
-}
-
 // The configuration Loopress syncs (Loopress Light's whole scope), next to the Code tab's
 // deployed code (Full only): the same split as the two editions. Read-only, like Code.
 export function ConfigPanel() {
@@ -333,7 +295,6 @@ export function ConfigPanel() {
             <TaxonomiesSection />
             <MetaSection />
             <FormsSection />
-            <RedirectsSection />
         </>
     );
 }

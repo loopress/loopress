@@ -396,11 +396,10 @@ jobs:
             echo "::error::Loopress Light artifact PHP source references Composer/Packagist"
             exit 1
           fi
-          # Matches the actual namespace/route, not bare class names: SeoService.php and
-          # AcfService.php legitimately mention "SnippetService"/"CodeSnippetsSnippetProvider"
-          # by name in explanatory comments (contrasting their own single-provider/no-provider
-          # shape with the snippets feature's multi-provider one), which a bare class-name grep
-          # would false-positive on.
+          # Matches the actual namespace/route, not bare class names: AcfService.php legitimately
+          # mentions "SnippetService"/"CodeSnippetsSnippetProvider" by name in explanatory comments
+          # (contrasting its own no-provider shape with the snippets feature's multi-provider
+          # one), which a bare class-name grep would false-positive on.
           if grep -RiIl --include='*.php' -E 'Loopress\\Snippets|loopress/v1/snippets' /tmp/loopress-light-check/loopress-light/src /tmp/loopress-light-check/loopress-light/loopress.php; then
             echo "::error::Loopress Light artifact PHP source references the Snippets feature"
             exit 1

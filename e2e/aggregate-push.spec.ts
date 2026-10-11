@@ -3,8 +3,8 @@ import { join } from "node:path";
 
 import { expect, test, unwrap } from "./helpers/environment.js";
 
-// `lps push` fans out to eight resource-specific `push` commands in dependency order (plugins,
-// composer, ACF, api, hooks, forms, SEO, snippets), each run non-interactively with --yes and
+// `lps push` fans out to the resource-specific `push` commands in dependency order (plugins,
+// composer, ACF, api, hooks, forms, snippets...), each run non-interactively with --yes and
 // the default environment. Every other spec in this suite drives one resource directly (`lps
 // snippet push`, `lps api push`, ...); none of them exercise the aggregate command itself, so a
 // regression in its own orchestration, an unhandled resource, a dropped --yes/--env, a failure
@@ -59,7 +59,7 @@ test("lps push runs every resource, pushing what's local and reporting exactly w
 
 	// ...but every other resource still ran and succeeded, in the documented order, none of
 	// them skipped because an earlier one failed.
-	const succeeded = ["ACF", "API routes", "hooks", "forms", "SEO", "snippets"];
+	const succeeded = ["ACF", "API routes", "hooks", "forms", "snippets"];
 	for (const label of succeeded) {
 		expect(push.stdout).toContain(`✓ ${label} pushed`);
 	}

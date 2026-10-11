@@ -49,7 +49,6 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | `lps app` | `pull` `push` `list` `remove` | [Single-Page Apps](/apps/cli/) |
 | `lps page` | `push` `list` `diff` | [Static Pages](/pages/) |
 | `lps acf` | `pull` `push` `list` `diff` `rollback` | [ACF](/acf/) |
-| `lps seo` | `pull` `push` `list` `diff` `rollback` | [SEO](/seo/) |
 | `lps form` | `pull` `push` `list` `diff` `rollback` | [Forms](/forms/) |
 | `lps menu` | `pull` `push` `list` `diff` `rollback` | [Menus](/menus/) |
 | `lps cpt` | `pull` `push` `list` `rm` `diff` `rollback` | [Custom Post Types](/custom-post-types/) |

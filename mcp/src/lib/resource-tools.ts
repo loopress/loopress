@@ -37,7 +37,7 @@ type ResourceToolsSpec = {
 // Registers `<resource>_rollback`: restores the snapshot `<resource>_push` automatically saved
 // right before an earlier real push, or (with `list`) just lists what's available. Shared by
 // registerResourceTools below and by the resources that register their other tools directly
-// (acf, seo, option, theme style), since rollback's shape never varies with their extra flags.
+// (acf, option, theme style), since rollback's shape never varies with their extra flags.
 // `resource` is the CLI topic, space-separated when nested (e.g. `theme style`).
 export function registerRollbackTool(
   server: McpServer,
@@ -106,8 +106,7 @@ export function registerAddTool(server: McpServer, {exampleSlug, resource}: {exa
 // Registers push/pull/list for a directory-backed resource whose tools differ only in wording
 // (api, hook, form, snippet). push runs through the confirmToken handshake; pull and list are
 // plain reads; list takes no path. api and hook additionally get `prune` on push and a `rm`
-// tool (supportsPrune / supportsRm). Resources with an extra flag (acf's `type`, seo's
-// `post-type`) register their tools directly instead.
+// tool (supportsPrune / supportsRm). Resources with an extra flag (acf's `type`) register their tools directly instead.
 export function registerResourceTools(
   server: McpServer,
   {descriptions, pathNoun, resource, supportsPrune, supportsRm, supportsRollback}: ResourceToolsSpec,

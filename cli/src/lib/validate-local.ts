@@ -21,7 +21,7 @@ export type ValidateResult = {
 
 // Directories holding one JSON document per resource. Snippets (code file plus JSON sidecar)
 // and api routes (`.php`, not JSON) are checked separately, options too (a stricter shape).
-const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'seoDir', 'menuDir', 'themeStylesDir'] as const
+const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'menuDir', 'themeStylesDir'] as const
 
 const DEFAULT_DIR: Record<string, string> = {
   acfDir: 'acf',
@@ -34,7 +34,6 @@ const DEFAULT_DIR: Record<string, string> = {
   optionsDir: 'options',
   pageDir: 'pages',
   partDir: RESOURCE_DIR_DEFAULTS.part,
-  seoDir: 'seo',
   snippetsDir: 'snippets',
   taxonomyDir: 'taxonomies',
   templateDir: RESOURCE_DIR_DEFAULTS.template,
@@ -136,9 +135,8 @@ async function checkComposerJson(cwd: string, problems: Problem[]): Promise<numb
   return 1
 }
 
-// Recursive: ACF keeps one subdirectory per object type (acf/field-groups/*.json) and SEO its
-// post meta and redirects (seo/post-meta/<type>/*.json, seo/redirects/*.json); a top-level-only
-// scan silently never checked any of those. `shape` runs on files that are JSON objects and
+// Recursive: ACF keeps one subdirectory per object type (acf/field-groups/*.json); a
+// top-level-only scan silently never checked those. `shape` runs on files that are JSON objects and
 // throws to report a resource-specific problem.
 async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: string, filePath: string) => unknown): Promise<number> {
   const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})

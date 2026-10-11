@@ -19,7 +19,6 @@ import {registerOptionTools} from './tools/option.js'
 import {registerPageTools} from './tools/page.js'
 import {registerPluginTools} from './tools/plugin.js'
 import {registerPromoteTools} from './tools/promote.js'
-import {registerSeoTools} from './tools/seo.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
 import {registerTaxonomyTools} from './tools/taxonomy.js'
@@ -35,7 +34,6 @@ registerHookTools(server)
 registerPageTools(server)
 registerAppTools(server)
 registerAcfTools(server)
-registerSeoTools(server)
 registerMenuTools(server)
 registerCptTools(server)
 registerTaxonomyTools(server)

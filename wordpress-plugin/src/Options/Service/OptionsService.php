@@ -9,9 +9,8 @@ use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\Exception\UnsupportedOptionValueException;
 
-// Direct, agnostic access to the wp_options table: no adapter, no per-plugin knowledge, unlike
-// Seo\Service\* which has to know which option name each SEO plugin uses. Every option name is
-// fair game except the reserved list below, already owned by another Loopress resource, the
+// Direct, agnostic access to the wp_options table: no adapter, no per-plugin knowledge. Every
+// option name is fair game except the reserved list below, already owned by another Loopress resource, the
 // safety denylists (see assertReadable()/assertWritable()), and anything a site rules out via
 // the loopress_option_readable / loopress_option_writable filters.
 class OptionsService

@@ -5,7 +5,6 @@ import {getAcfKey} from '../utils/acf-format.js'
 import {getFormId, getFormTitle} from '../utils/form-format.js'
 import {getMenuSlug} from '../utils/menu-format.js'
 import {defaultReadonlyFor, type LocalOption, optionFileName} from '../utils/option-format.js'
-import {redirectFileBase, type SeoRedirect} from '../utils/seo-format.js'
 import {buildMetaFile, buildSnippetFile, type NormalizedSnippet, type SnippetType} from '../utils/snippet-format.js'
 import {themeStylesFileName} from '../utils/theme-styles-format.js'
 import {toSlug} from '../utils/to-slug.js'
@@ -62,32 +61,6 @@ async function phpFile(id: string, value: unknown, dir: string): Promise<void> {
   await writeFile(filePath, String(value))
 }
 
-// ids are 'settings', `post-meta/<postType>/<slug>`, or `redirects/<id>` (see resource-state.ts's
-// seoProvider). Each value round-trips to the exact file `seo pull` would have written.
-async function seo(id: string, value: unknown, dir: string): Promise<void> {
-  if (id === 'settings') {
-    await writeJson(join(dir, 'settings.json'), value)
-    return
-  }
-
-  if (id.startsWith('post-meta/')) {
-    const rest = id.slice('post-meta/'.length)
-    const separator = rest.indexOf('/')
-    const postType = rest.slice(0, separator)
-    const slug = rest.slice(separator + 1)
-    await writeJson(join(dir, 'post-meta', postType, `${slug}.json`), value)
-    return
-  }
-
-  if (id.startsWith('redirects/')) {
-    const redirect = value as SeoRedirect
-    await writeJson(join(dir, 'redirects', `${redirectFileBase(redirect)}.json`), redirect)
-    return
-  }
-
-  throw new Error(`Unrecognized SEO snapshot id "${id}"`)
-}
-
 // ids are 'menu-locations' or `menu/<slug>` (see resource-state.ts's menuProvider).
 async function menu(id: string, value: unknown, dir: string): Promise<void> {
   if (id === 'menu-locations') {
@@ -130,7 +103,6 @@ const MATERIALIZERS: Record<string, Materializer> = {
   menu,
   meta: declaredType,
   option,
-  seo,
   snippet,
   taxonomy: declaredType,
   'theme-styles': themeStyles,

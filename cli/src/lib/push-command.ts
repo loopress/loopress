@@ -161,8 +161,8 @@ export abstract class PushCommand extends LoopressCommand {
   // with a fresh remote read taken right after the push, and writes both as one rollback
   // snapshot. Reading the after-state from WordPress itself, rather than assuming it matches
   // the local files that were pushed, is what keeps this correct for every resource's own
-  // partial-push semantics: a readonly option skipped by `option push`, a snippet or SEO
-  // redirect that gets a server-assigned id on create, a theme-styles push that only touches the
+  // partial-push semantics: a readonly option skipped by `option push`, a snippet or form
+  // that gets a server-assigned id on create, a theme-styles push that only touches the
   // active stylesheet, an API/hook push that leaves server-side files alone unless `--prune`.
   // `lps <resource> rollback`'s drift check compares the environment's state at rollback time
   // against exactly this after-state, so it has to be what actually landed, not what was sent.

@@ -471,8 +471,8 @@ class MenuServiceTest extends TestCase
         $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => '/a']]);
     }
 
-    // Warned, never blocked: unlike RankMathService's redirect guard, a menu is allowed to link
-    // off-site, this is only a nudge to double-check before syncing the same menu elsewhere.
+    // Warned, never blocked: a menu is allowed to link off-site, this is only a nudge to
+    // double-check before syncing the same menu elsewhere.
     public function test_upsert_menu_warns_but_does_not_block_a_custom_item_pointing_off_environment(): void
     {
         $this->installFreshMenuCreation(10);

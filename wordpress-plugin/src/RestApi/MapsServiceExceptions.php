@@ -6,7 +6,7 @@ namespace Loopress\RestApi;
 
 use WP_REST_Response;
 
-// Every resource controller (SEO, forms, snippets...) turns the same handful of service-layer
+// Every resource controller (forms, snippets, menus...) turns the same handful of service-layer
 // exceptions into the same `['error' => <message>]` responses: a domain exception maps to a 4xx
 // or 5xx the caller picks, and any other \RuntimeException is a 500. This centralises that so
 // the envelope shape and the catch-all live in one place instead of being retyped in every

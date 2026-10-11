@@ -31,7 +31,6 @@ Not every resource takes part in every aggregate command:
 | [Forms](/forms/) | ✓ | ✓ | ✓ | |
 | [Templates and parts](/pages/#templates-and-parts) | no pull | ✓ | ✓ | ✓ |
 | [Static pages](/pages/) | no pull | ✓ | ✓ | ✓ |
-| [SEO](/seo/) | ✓ | ✓ | ✓ | |
 | [Menus](/menus/) | ✓ | ✓ | ✓ | |
 | [Options](/options/) | ✓ | ✓ | ✓ | |
 | [Snippets](/snippets/) | ✓ | ✓ | ✓ | ✓ |
@@ -66,7 +65,7 @@ Composer runs before plugins, so that with a `composer.json` the live plugin ver
 
 ## `lps push`
 
-Push every resource to WordPress, in dependency order: plugins and Composer first, then ACF, API routes, hooks, forms, templates and parts, pages, SEO, menus, options, and snippets last.
+Push every resource to WordPress, in dependency order: plugins and Composer first, then ACF, API routes, hooks, forms, templates and parts, pages, menus, options, and snippets last.
 
 ```bash
 lps push
@@ -94,7 +93,7 @@ lps diff --skip composer
 | `--only <resource>` | Only compare these resources. Repeatable |
 | `--skip <resource>` | Compare every resource except these. Repeatable |
 
-Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `seo`, `menu`, `option`, `theme-styles`, `composer`.
+Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `option`, `theme-styles`, `composer`.
 
 The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 

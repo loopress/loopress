@@ -256,12 +256,12 @@ describe('PushCommand', () => {
         cmd.testCaptureBeforePushState(
           fakeProvider({
             async remote() {
-              throw new Error('No supported SEO plugin is active')
+              throw new Error('ACF is not active')
             },
           }),
           rootDir,
         ),
-      ).rejects.toThrow('The site would refuse this push: No supported SEO plugin is active')
+      ).rejects.toThrow('The site would refuse this push: ACF is not active')
     })
 
     it('captureBeforePushState warns and returns undefined when the remote read fails', async () => {

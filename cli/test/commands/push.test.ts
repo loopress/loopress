@@ -32,7 +32,6 @@ const ALL_COMMAND_IDS = [
   'form:push',
   'theme:template:push',
   'page:push',
-  'seo:push',
   'menu:push',
   'option:push',
   'snippet:push',

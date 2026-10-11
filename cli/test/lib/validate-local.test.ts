@@ -36,7 +36,6 @@ describe('validateLocal', () => {
     write('composer.json', JSON.stringify({require: {php: '^8.1'}}))
     write('acf/group_1.json', JSON.stringify({key: 'group_1'}))
     write('forms/5-contact.json', JSON.stringify({id: 5, title: 'Contact'}))
-    write('seo/settings.json', JSON.stringify({titleSep: '-'}))
     write('snippets/7-x.php', '<?php echo 1;')
     write('snippets/7-x.json', JSON.stringify({id: 7, type: 'php'}))
     write('api/ping.php', '<?php\ndeclare(strict_types=1);')
@@ -45,22 +44,20 @@ describe('validateLocal', () => {
     const result = await validateLocal(dir)
 
     expect(result).toMatchObject({valid: true, problems: []})
-    // One check per: loopress.json, composer.json, acf, form, seo (1 each), snippets (code +
+    // One check per: loopress.json, composer.json, acf, form (1 each), snippets (code +
     // sidecar = 2), api, hooks. Exact count, not just >0, so a miscounted resource is caught.
-    expect(result.checked).toBe(9)
+    expect(result.checked).toBe(8)
   })
 
-  it('checks JSON files nested in resource subdirectories (acf/<type>/, seo/post-meta/<type>/, seo/redirects/)', async () => {
+  it('checks JSON files nested in resource subdirectories (acf/<type>/)', async () => {
     write('acf/field-groups/group_1.json', '{not json')
-    write('seo/post-meta/page/about.json', '[]')
-    write('seo/redirects/3-old.json', JSON.stringify({id: 3}))
+    write('acf/taxonomies/genre.json', JSON.stringify({key: 'genre'}))
 
     const result = await validateLocal(dir)
 
-    expect(result.checked).toBe(4)
+    expect(result.checked).toBe(3)
     expect(result.problems).toEqual([
       {file: join(dir, 'acf', 'field-groups', 'group_1.json'), message: expect.stringContaining('not valid JSON')},
-      {file: join(dir, 'seo', 'post-meta', 'page', 'about.json'), message: 'expected a JSON object'},
     ])
   })
 

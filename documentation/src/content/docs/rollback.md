@@ -18,7 +18,6 @@ lps snippet rollback --dry-run  # show what would be restored
 |----------|---------|
 | [Snippets](/snippets/) | `lps snippet rollback` |
 | [ACF](/acf/) | `lps acf rollback` |
-| [SEO](/seo/) | `lps seo rollback` |
 | [Forms](/forms/) | `lps form rollback` |
 | [Menus](/menus/) | `lps menu rollback` |
 | [Custom Post Types](/custom-post-types/) | `lps cpt rollback` |

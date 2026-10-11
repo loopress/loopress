@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Loopress Light
- * Description: Sync ACF field groups and SEO settings (Yoast, RankMath) with the Loopress CLI and keep them in Git.
+ * Description: Sync ACF field groups, menus, forms and options with the Loopress CLI and keep them in Git.
  * Version: 2026.9.0
  * Author: jean-smaug
  * Text Domain: loopress

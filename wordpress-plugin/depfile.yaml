@@ -3,8 +3,7 @@ deptrac:
     - ./src
   layers:
     # The one interface both Light and Plus legitimately depend on. Matched by exact
-    # FQCN, not the whole Contract namespace: Seo's own Contract\{SeoProvider,
-    # SeoRedirectProvider} live under Loopress\Seo\Contract\ (Light-only) instead.
+    # FQCN, not the whole Contract namespace.
     - name: Shared
       collectors:
         - type: classNameRegex
@@ -30,8 +29,6 @@ deptrac:
       collectors:
         - type: classNameRegex
           value: '#^Loopress\\Acf\\.+$#'
-        - type: classNameRegex
-          value: '#^Loopress\\Seo\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\AdminPage\\.+$#'
         - type: classNameRegex

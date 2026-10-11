@@ -18,7 +18,7 @@ export default function LightApp() {
         <AppShell edition="Light">
             <p style={{ maxWidth: 600, fontSize: 13, marginTop: 0 }}>
                 Loopress Light syncs this site's ACF field groups, post types, taxonomies and options
-                pages, SEO settings and redirects (Yoast, RankMath), menus, options and forms with the
+                pages, menus, options and forms with the
                 Loopress CLI, so all of it can live in Git: history, diffs, code review, rollbacks, and
                 moves between environments.
             </p>
