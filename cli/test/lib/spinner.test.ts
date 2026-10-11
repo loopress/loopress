@@ -1,14 +1,14 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, type Mock, vi} from 'vitest'
 
 import {withoutSpinner, withSpinner} from '../../src/lib/spinner.js'
 
 describe('withSpinner', () => {
   const originalIsTTY = process.stderr.isTTY
   const originalCI = process.env.CI
-  let stderrWrite: ReturnType<typeof vi.fn>
+  let stderrWrite: Mock<(chunk: unknown) => boolean>
 
   beforeEach(() => {
-    stderrWrite = vi.fn(() => true)
+    stderrWrite = vi.fn<(chunk: unknown) => boolean>(() => true)
     vi.spyOn(process.stderr, 'write').mockImplementation(stderrWrite)
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     process.stderr.isTTY = true
