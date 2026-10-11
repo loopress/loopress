@@ -109,7 +109,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
           // that has either set, the CLI would silently miss the config.json seeded above and
           // read/write the developer's real global Loopress config instead.
           env: {...process.env, HOME: homeDir, XDG_CONFIG_HOME: undefined, XDG_DATA_HOME: undefined},
-          timeout: 60_000,
+          // Matches the per-test timeout in playwright.config.ts: a CLI call that outlives the
+          // test can't be the thing under assertion anyway, so fail it here (clean "CLI exited
+          // non-zero" + captured stderr) rather than leaving the child running past a bare
+          // Playwright test-timeout.
+          timeout: 30_000,
         })
         return {exitCode: 0, stderr, stdout}
       } catch (error) {

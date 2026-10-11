@@ -8,6 +8,9 @@ export default defineConfig({
   expect: {timeout: 15_000},
   forbidOnly: Boolean(process.env.CI),
   fullyParallel: false,
+  // Surfaces the slowest spec files at the end of a run (default threshold is 5 min, too high
+  // to ever fire here): the data needed to rebalance CI shards when one becomes the long pole.
+  reportSlowTests: {max: 10, threshold: 20_000},
   reporter: process.env.CI ? [['github'], ['html', {open: 'never'}]] : [['list']],
   // These hit a real, shared WordPress instance (plugin activation state, page render
   // timing) and inherit some amount of that environment's own jitter; one retry absorbs it
