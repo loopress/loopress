@@ -94,6 +94,7 @@ describe('declared-type-format', () => {
       [{isbn: {auth_callback: '__return_true', type: 'string'}}, '"auth_callback" runs PHP code'],
       [{isbn: {single: 'yes', type: 'string'}}, '"single" must be true or false'],
       [{authors: {show_in_rest: true, type: 'array'}}, 'needs "show_in_rest": { "schema"'],
+      [{isbn: {show_in_rest: {prepare_callback: 'system'}, type: 'string'}}, '"show_in_rest.prepare_callback" runs PHP code'],
       [{pages: {default: '0', type: 'integer'}}, '"default" must be a integer'],
       [{'my key': {type: 'string'}}, 'not a valid meta key'],
     ])('refuses %j', (file, message) => {

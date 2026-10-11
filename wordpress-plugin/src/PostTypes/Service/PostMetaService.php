@@ -141,6 +141,11 @@ class PostMetaService extends AbstractDeclaredTypeService
                 $this->refuse($slug, "\"{$key}\": \"show_in_rest\" must be true, false or an object.");
             }
 
+            // WordPress calls it with each value on every REST read (WP_REST_Meta_Fields).
+            if (is_array($rest) && array_key_exists('prepare_callback', $rest)) {
+                $this->refuse($slug, "\"{$key}\": \"show_in_rest.prepare_callback\" runs PHP code, use a hook instead of a meta/ file for it.");
+            }
+
             // WordPress silently leaves an array or object key out of REST without a schema.
             if ($rest !== false && ($type === 'array' || $type === 'object') && !is_array($rest['schema'] ?? null)) {
                 $this->refuse($slug, "\"{$key}\": a {$type} exposed in REST needs \"show_in_rest\": { \"schema\": {...} }.");
@@ -165,6 +170,10 @@ class PostMetaService extends AbstractDeclaredTypeService
                 continue;
             }
 
+            if (($meta['type'] ?? null) === 'integer' && is_float($meta['default'] ?? null)) {
+                $meta['default'] = (int) $meta['default'];
+            }
+
             try {
                 if (register_post_meta($slug, $key, $meta)) {
                     $this->ours[$slug][$key] = get_registered_meta_keys('post', $slug)[$key] ?? [];
@@ -182,7 +191,9 @@ class PostMetaService extends AbstractDeclaredTypeService
         return match ($type) {
             'string' => is_string($value),
             'boolean' => is_bool($value),
-            'integer' => is_int($value),
+            // A whole float too (`1.0`, `1e3` decode as floats): JavaScript can't tell them from `1`, so
+            // `lps validate` accepts them. Cast back to int in registerOne().
+            'integer' => is_int($value) || (is_float($value) && floor($value) === $value),
             'number' => is_int($value) || is_float($value),
             default => is_array($value),
         };

@@ -104,6 +104,8 @@ class PostMetaServiceTest extends TestCase
             'auth callback'             => ['book', ['isbn' => ['type' => 'string', 'auth_callback' => '__return_true']]],
             'single not a boolean'      => ['book', ['isbn' => ['type' => 'string', 'single' => 'yes']]],
             'show_in_rest a string'     => ['book', ['isbn' => ['type' => 'string', 'show_in_rest' => 'yes']]],
+            'REST prepare callback'     => ['book', ['isbn' => ['type' => 'string', 'show_in_rest' => ['prepare_callback' => 'system']]]],
+            'non-whole integer default' => ['book', ['pages' => ['type' => 'integer', 'default' => 1.5]]],
             'array in REST, no schema'  => ['book', ['authors' => ['type' => 'array', 'show_in_rest' => true]]],
             'default of the wrong type' => ['book', ['pages' => ['type' => 'integer', 'default' => '0']]],
         ];
@@ -115,6 +117,14 @@ class PostMetaServiceTest extends TestCase
     {
         $this->expectException(InvalidDeclarationException::class);
         $this->service->upsert($slug, $args);
+    }
+
+    public function test_a_whole_float_integer_default_is_accepted_and_registered_as_an_int(): void
+    {
+        $this->service->upsert('book', ['pages' => ['type' => 'integer', 'default' => 1000.0]]);
+        $this->service->register();
+
+        $this->assertSame(1000, $this->wpMeta['book']['pages']['default']);
     }
 
     public function test_an_array_with_a_rest_schema_and_a_typed_default_are_accepted(): void

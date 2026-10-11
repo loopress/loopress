@@ -80,6 +80,11 @@ const META_TYPES: Record<string, (value: unknown) => boolean> = {
 function checkMetaRest(key: string, type: string, rest: unknown): void {
   if (typeof rest !== 'boolean' && !isObject(rest)) throw new Error(`"${key}": "show_in_rest" must be true, false or an object`)
 
+  // WordPress calls it with each value on every REST read (WP_REST_Meta_Fields).
+  if (isObject(rest) && Object.hasOwn(rest, 'prepare_callback')) {
+    throw new Error(`"${key}": "show_in_rest.prepare_callback" runs PHP code, use a hook instead of a file for it`)
+  }
+
   // WordPress silently leaves an array or object key out of REST without a schema.
   if (rest !== false && (type === 'array' || type === 'object') && !(isObject(rest) && isObject(rest.schema))) {
     throw new Error(`"${key}": a ${type} exposed in REST needs "show_in_rest": { "schema": {...} }`)

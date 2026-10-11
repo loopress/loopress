@@ -87,7 +87,7 @@ An `array` key exposed in REST, for example:
 }
 ```
 
-`sanitize_callback` and `auth_callback` are refused: WordPress would run them as code. Need one? Register that key from a [hook](/hooks/) instead. A key that something else registered first for the same post type is skipped, never overwritten. `lps validate` checks all of this before you push.
+`sanitize_callback`, `auth_callback` and `show_in_rest.prepare_callback` are refused: WordPress would run them as code. Need one? Register that key from a [hook](/hooks/) instead. A key that something else registered first for the same post type is skipped, never overwritten. `lps validate` checks all of this before you push.
 
 ### REST and custom post types
 
