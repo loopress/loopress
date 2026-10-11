@@ -36,10 +36,18 @@ async function report(context: Hook.Context, options: Parameters<Hook.Finally>[0
       dsn: SENTRY_DSN,
       environment: resolveEnvironment(),
       release: context.config.version,
+      // Sentry 11 collects all of these by default. Headers carry the app password, stack frame
+      // locals can hold it too, and this reports from users' own machines: collect none of it.
+      dataCollection: {
+        cookies: false,
+        httpBodies: [],
+        httpHeaders: false,
+        stackFrameVariables: false,
+        urlQueryParams: false,
+        userInfo: false,
+      },
       // Node defaults `server_name` to os.hostname(), which is often the user's real name
-      // (e.g. "jane-doe-macbook-pro"). sendDefaultPii covers IP addresses and similar, off by
-      // default but set explicitly since this reports from users' own machines.
-      sendDefaultPii: false,
+      // (e.g. "jane-doe-macbook-pro").
       serverName: 'loopress',
     })
 
