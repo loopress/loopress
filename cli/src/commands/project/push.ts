@@ -7,6 +7,7 @@ import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
+import {withoutSpinner} from '../../lib/spinner.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
@@ -122,19 +123,21 @@ export default class Push extends Command {
     if (envsNeedingWork.length === 0) return 0
 
     let count = 0
-    await new Listr(
-      envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
-        task: async (_ctx, task) => {
-          await this.applyEnvironment(api, apiProjectId, envPlan, task)
-          count++
-        },
-        title:
-          envPlan.action === 'create'
-            ? `Create environment "${envPlan.env.name}" on "${projectName}"`
-            : `Link environment "${envPlan.env.name}" on "${projectName}"`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
+    await withoutSpinner(async () => {
+      await new Listr(
+        envsNeedingWork.map(({apiProjectId, envPlan, projectName}) => ({
+          task: async (_ctx, task) => {
+            await this.applyEnvironment(api, apiProjectId, envPlan, task)
+            count++
+          },
+          title:
+            envPlan.action === 'create'
+              ? `Create environment "${envPlan.env.name}" on "${projectName}"`
+              : `Link environment "${envPlan.env.name}" on "${projectName}"`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
+    })
 
     return count
   }
@@ -163,19 +166,21 @@ export default class Push extends Command {
     if (projectsNeedingWork.length === 0) return 0
 
     let count = 0
-    await new Listr(
-      projectsNeedingWork.map((plan) => ({
-        task: async (_ctx, task) => {
-          await this.applyProject(api, plan, task)
-          count++
-        },
-        title:
-          plan.action === 'create'
-            ? `Create project "${plan.project.name}" on the API`
-            : `Link project "${plan.project.name}" to the API`,
-      })),
-      {concurrent: false, exitOnError: false},
-    ).run()
+    await withoutSpinner(async () => {
+      await new Listr(
+        projectsNeedingWork.map((plan) => ({
+          task: async (_ctx, task) => {
+            await this.applyProject(api, plan, task)
+            count++
+          },
+          title:
+            plan.action === 'create'
+              ? `Create project "${plan.project.name}" on the API`
+              : `Link project "${plan.project.name}" to the API`,
+        })),
+        {concurrent: false, exitOnError: false},
+      ).run()
+    })
 
     return count
   }

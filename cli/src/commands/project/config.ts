@@ -5,6 +5,7 @@ import {configManager} from '../../config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {isLoopressFullActive} from '../../lib/plugin-detection.js'
+import {withSpinner} from '../../lib/spinner.js'
 import {sweepTempAdmins} from '../../lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
 import {isLocalEnvironment, WpClient} from '../../lib/wp-client.js'
@@ -144,7 +145,11 @@ export default class Config extends Command {
     if (!isProceed) return
 
     try {
-      await bootstrapLoopressFull(wp, url, (message) => { this.log(message); })
+      await withSpinner('Installing Loopress Full', async () =>
+        bootstrapLoopressFull(wp, url, (message) => {
+          this.log(message)
+        }),
+      )
     } catch (error) {
       this.warn((error as Error).message)
     }

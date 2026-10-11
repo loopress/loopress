@@ -1,6 +1,8 @@
 import got, {type Got} from 'got'
 import {Buffer} from 'node:buffer'
 
+import {withSpinner} from './spinner.js'
+
 export const REQUEST_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'delete' | 'get' | 'post' | 'put'
@@ -103,7 +105,9 @@ export class WpClient {
   ): Promise<T> {
     const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS
     try {
-      const response = await this.client(path, {json, method, timeout: {request: timeoutMs}})
+      const response = await withSpinner(`Waiting for ${new URL(this.siteUrl).host}`, async () =>
+        this.client(path, {json, method, timeout: {request: timeoutMs}}),
+      )
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
       throw new Error(formatWpError(error, `${this.siteUrl}/wp-json/${path}`, timeoutMs), {cause: error})

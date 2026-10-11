@@ -12,6 +12,7 @@ import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
+import {withoutSpinner} from './spinner.js'
 import {WpClient} from './wp-client.js'
 
 type ParsedBaseFlags = {
@@ -151,16 +152,18 @@ export abstract class LoopressCommand extends Command {
 
     if (options.alwaysCreateDir === true || items.length > 0) await mkdir(dir, {recursive: true})
 
-    await new Listr(
-      items.map((item) => ({
-        async task(_ctx, task) {
-          await options.write(item, dir)
-          task.output = `Pulled: ${options.title(item)}`
-        },
-        title: `Pull ${options.title(item)}`,
-      })),
-      {renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
+    await withoutSpinner(async () => {
+      await new Listr(
+        items.map((item) => ({
+          async task(_ctx, task) {
+            await options.write(item, dir)
+            task.output = `Pulled: ${options.title(item)}`
+          },
+          title: `Pull ${options.title(item)}`,
+        })),
+        {renderer: this.jsonEnabled() ? 'silent' : 'default'},
+      ).run()
+    })
 
     await this.removeOrphanedFiles(dir, orphans, options.orphanReason)
 

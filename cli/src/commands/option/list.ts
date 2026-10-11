@@ -2,6 +2,7 @@ import {Flags, ux} from '@oclif/core'
 import ttyTable from 'tty-table'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {withSpinner} from '../../lib/spinner.js'
 import {type ListedOption, OPTIONS_ENDPOINT} from '../../utils/option-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -145,13 +146,9 @@ export default class List extends LoopressCommand {
     // Every call scans active plugins' own PHP source for names the naming guess missed (not
     // opt-in, roughly 1-3s on a real site once vendor/tests/languages are pruned from the scan;
     // see OptionsService::listOptionNames() server-side), hence the spinner unconditionally.
-    ux.action.start('Fetching and verifying options')
-    let options: ListedOption[]
-    try {
-      options = await this.wp.get<ListedOption[]>(OPTIONS_ENDPOINT)
-    } finally {
-      ux.action.stop()
-    }
+    let options = await withSpinner('Fetching and verifying options', async () =>
+      this.wp.get<ListedOption[]>(OPTIONS_ENDPOINT),
+    )
 
     if (flags['no-core']) options = options.filter((option) => !option.core)
 

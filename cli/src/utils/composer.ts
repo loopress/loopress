@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
 
+import {withSpinner} from '../lib/spinner.js'
 import {type SyncIntent} from './plugin-sync.js'
 import {type MergeResult} from './plugins.js'
 import {isExactVersion} from './version.js'
@@ -70,7 +71,7 @@ async function isOnWordPressOrg(kind: 'plugin' | 'theme', slug: string): Promise
 
   let response: Response
   try {
-    response = await fetch(url)
+    response = await withSpinner(`Checking WordPress.org for ${slug}`, async () => fetch(url))
   } catch (error) {
     throw fail(`network error: ${(error as Error).message}`)
   }

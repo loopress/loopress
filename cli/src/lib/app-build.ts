@@ -3,6 +3,8 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
 
+import {withSpinner} from './spinner.js'
+
 // The package managers `lps app push` may spawn. An allowlist, not the raw `packageManager`
 // field: the name ends up as a process to run.
 const PACKAGE_MANAGERS = ['bun', 'npm', 'pnpm', 'yarn'] as const
@@ -51,7 +53,7 @@ export async function buildApp(appDir: string, onStart?: (command: string) => vo
   const command = `${pm} run build`
   onStart?.(command)
 
-  const {code, output} = await new Promise<{code: null | number; output: string}>((resolve, reject) => {
+  const build = new Promise<{code: null | number; output: string}>((resolve, reject) => {
     // Windows resolves `npm` to `npm.cmd`, which only a shell finds. `pm` comes from the
     // allowlist above, so the shell never sees user input.
     const child = spawn(pm, ['run', 'build'], {cwd: appDir, shell: process.platform === 'win32'})
@@ -67,6 +69,7 @@ export async function buildApp(appDir: string, onStart?: (command: string) => vo
       resolve({code: exitCode, output: out})
     })
   })
+  const {code, output} = await withSpinner(`Running ${command}`, async () => build)
 
   if (code !== 0) {
     const tail = output.trimEnd().split('\n').slice(-OUTPUT_TAIL_LINES).join('\n')

@@ -4,6 +4,7 @@ import {createServer, type IncomingMessage, type ServerResponse} from 'node:http
 import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
+import {withSpinner} from './spinner.js'
 
 /** Constant-time compare that also tolerates a length mismatch without throwing. */
 function safeEqual(a: string, b: string): boolean {
@@ -49,7 +50,7 @@ export async function waitForLocalCallback<T>(options: {
   const timeoutMs = options.timeoutMs ?? 5 * 60 * 1000
   const state = randomBytes(32).toString('hex')
 
-  return new Promise((resolve, reject) => {
+  const callback = new Promise<T>((resolve, reject) => {
     function finish(res: ServerResponse, page: string): void {
       // `Connection: close` (here and below): server.close() only refuses new connections, a
       // kept-alive socket would otherwise still reach this handler after the shutdown.
@@ -131,6 +132,8 @@ export async function waitForLocalCallback<T>(options: {
       openBrowser(targetUrl)
     })
   })
+
+  return withSpinner('Waiting for the browser', async () => callback)
 }
 
 /**

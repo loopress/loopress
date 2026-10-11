@@ -10,6 +10,7 @@ import {type ResourceState} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {type ResourceStateProvider} from './resource-state.js'
 import {writeSnapshot} from './snapshot-store.js'
+import {withoutSpinner, withSpinner} from './spinner.js'
 
 export abstract class PushCommand extends LoopressCommand {
   // Passed by an aggregate command (`lps theme push`) that already confirmed production once,
@@ -93,11 +94,13 @@ export abstract class PushCommand extends LoopressCommand {
     if (!token) return
 
     try {
-      await got.post(`${API_URL}/deployments`, {
-        headers: {Authorization: `Bearer ${token}`},
-        json: {status, url: this.siteConfig.url},
-        timeout: {request: 3000},
-      })
+      await withSpinner('Recording the deployment', async () =>
+        got.post(`${API_URL}/deployments`, {
+          headers: {Authorization: `Bearer ${token}`},
+          json: {status, url: this.siteConfig.url},
+          timeout: {request: 3000},
+        }),
+      )
     } catch {
       // non-blocking: recording must never interrupt the push flow
     }
@@ -148,13 +151,15 @@ export abstract class PushCommand extends LoopressCommand {
     label: (item: T) => string,
     task: (item: T, task?: {output: string}) => Promise<void>,
   ): Promise<void> {
-    await new Listr(
-      items.map((item) => ({
-        task: async (_ctx, taskCtx) => task(item, taskCtx),
-        title: `Push ${label(item)}`,
-      })),
-      {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
-    ).run()
+    await withoutSpinner(async () => {
+      await new Listr(
+        items.map((item) => ({
+          task: async (_ctx, taskCtx) => task(item, taskCtx),
+          title: `Push ${label(item)}`,
+        })),
+        {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
+      ).run()
+    })
   }
 
   // Pairs `beforeState` (from captureBeforePushState, read before this push touched anything)
