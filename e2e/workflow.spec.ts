@@ -3,7 +3,7 @@ import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
-import {restDelete, restGet, restPut, uniqueSlug} from './helpers/rest.js'
+import {restDelete, restPut, uniqueSlug} from './helpers/rest.js'
 
 // The project-wide commands (status, validate, pull, promote, --env): every other spec drives one
 // resource at a time, these orchestrate several against the same environment config.
@@ -60,15 +60,18 @@ test.describe('lps status', () => {
     expect((JSON.parse(status.stdout) as {note: string}).note).toContain('loopress.json pins project "gone"')
   })
 
-  test('a resource command run with --env targets that environment', async ({homeDir, runCli}) => {
+  // Every other environment of the seeded project points at the same http:// site as "local":
+  // resolving --env to it is proven by the CLI refusing to send its credentials in cleartext.
+  test('a resource command run with --env targets that environment, and refuses plain HTTP for it', async ({homeDir, runCli}) => {
     addEnvironment(homeDir, 'staging')
 
     const list = await runCli(['cpt', 'list', '--env', 'staging'])
-    expect(list.exitCode, output(list)).toBe(0)
+    expect(list.exitCode).not.toBe(0)
+    expect(output(list)).toContain('Refusing to send credentials over plain HTTP for the "staging" environment')
 
     const unknown = await runCli(['cpt', 'list', '--env', 'nope'])
     expect(unknown.exitCode).not.toBe(0)
-    expect(output(unknown)).toContain('nope')
+    expect(output(unknown)).toContain('Environment "nope" not found in project "e2e"')
   })
 })
 
@@ -125,6 +128,24 @@ test.describe('lps validate', () => {
   })
 })
 
+// A resource whose plugin isn't usable on this site fails on its own (the CI site has no form
+// plugin, and both SEO plugins active at once), never stopping or hiding the others.
+const PULL_FAILURES_ALLOWED: Record<string, string> = {
+  SEO: 'Multiple SEO plugins are active at once',
+  forms: 'No supported form plugin is active',
+}
+
+function pullFailures(text: string): Record<string, string> {
+  return Object.fromEntries([...text.matchAll(/✗ (.+?) failed: (.+?)(?= → | ✓ | › Error| Error:|$)/g)].map((match) => [match[1], match[2]]))
+}
+
+function expectOnlyAllowedFailures(text: string): void {
+  for (const [label, reason] of Object.entries(pullFailures(text))) {
+    expect(Object.keys(PULL_FAILURES_ALLOWED), `unexpected failure for ${label}: ${reason}`).toContain(label)
+    expect(reason).toContain(PULL_FAILURES_ALLOWED[label])
+  }
+}
+
 test.describe('lps pull', () => {
   test('pulls every resource in one run: a pushed post type and a tracked option land locally', async ({
     projectDir,
@@ -142,26 +163,18 @@ test.describe('lps pull', () => {
     writeFileSync(join(projectDir, 'options', `${option}.json`), JSON.stringify({autoload: 'off', name: option, value: 'stale'}))
 
     try {
-      const pull = await runCli(['pull', '--yes', '--json'])
-      const {results} = JSON.parse(pull.stdout) as {results: Array<{error?: string; label: string; status: string}>}
-      const failed = results.filter((result) => result.status === 'failed')
-      expect(failed, JSON.stringify(failed)).toEqual([])
-      expect(pull.exitCode).toBe(0)
-      expect(results.map((result) => result.label)).toEqual([
-        'composer',
-        'plugins',
-        'post types',
-        'taxonomies',
-        'post meta',
-        'ACF',
-        'API routes',
-        'hooks',
-        'forms',
-        'SEO',
-        'menus',
-        'options',
-        'snippets',
-      ])
+      const pull = await runCli(['pull', '--yes'])
+      const text = output(pull)
+
+      expectOnlyAllowedFailures(text)
+      const failed = Object.keys(pullFailures(text))
+      expect(pull.exitCode === 0).toBe(failed.length === 0)
+      if (failed.length > 0) expect(text).toContain(`${failed.length} resource`)
+      // Every resource ran, in order, whatever failed before it.
+      const order = ['composer', 'plugins', 'post types', 'taxonomies', 'post meta', 'ACF', 'API routes', 'hooks', 'forms', 'SEO', 'menus', 'options', 'snippets']
+      const positions = order.map((label) => text.indexOf(`→ Pulling ${label}...`))
+      expect(positions.every((position) => position >= 0), text).toBe(true)
+      expect([...positions].sort((a, b) => a - b)).toEqual(positions)
 
       expect(existsSync(join(projectDir, 'cpt', `${slug}.json`))).toBe(true)
       const pulledOption = JSON.parse(readFileSync(join(projectDir, 'options', `${option}.json`), 'utf8')) as {value: string}
@@ -175,8 +188,9 @@ test.describe('lps pull', () => {
   test('--dry-run writes nothing locally', async ({projectDir, runCli}) => {
     const pull = await runCli(['pull', '--dry-run'])
 
-    expect(pull.exitCode, output(pull)).toBe(0)
-    for (const dir of ['cpt', 'taxonomies', 'meta', 'acf', 'menus', 'snippets']) {
+    expectOnlyAllowedFailures(output(pull))
+    expect(output(pull)).toContain('[dry-run]')
+    for (const dir of ['cpt', 'taxonomies', 'meta', 'acf', 'api', 'hooks', 'menus', 'snippets']) {
       expect(existsSync(join(projectDir, dir)), `${dir}/ should not be created by a dry run`).toBe(false)
     }
   })
@@ -205,35 +219,25 @@ test.describe('lps promote', () => {
     expect(existsSync(join(projectDir, 'cpt'))).toBe(false)
   })
 
-  test('--dry-run pulls into a throwaway copy and previews the push, leaving local files untouched', async ({
+  // The seeded "staging" is http:// like "local", so the CLI refuses to pull from it: exactly the
+  // partial-pull case promote must stop on before touching <to>.
+  test('a pull from <from> that fails stops the promotion before anything is pushed to <to>', async ({
     homeDir,
     projectDir,
-    request,
     runCli,
-    wp,
   }) => {
     addEnvironment(homeDir, 'staging')
-    const slug = uniqueSlug('e2e')
     mkdirSync(join(projectDir, 'cpt'), {recursive: true})
-    const file = join(projectDir, 'cpt', `${slug}.json`)
-    writeFileSync(file, JSON.stringify({labels: {name: 'E2E Promote'}, public: true}))
-    expect((await runCli(['cpt', 'push'])).exitCode).toBe(0)
-    // A local edit not pushed yet: a dry-run promote must neither overwrite it with the
-    // WordPress version nor push it.
-    const localEdit = JSON.stringify({labels: {name: 'E2E Promote local edit'}, public: true})
-    writeFileSync(file, localEdit)
+    const file = join(projectDir, 'cpt', 'e2e_untouched.json')
+    const content = JSON.stringify({public: true})
+    writeFileSync(file, content)
 
-    try {
-      const promote = await runCli(['promote', 'local', 'staging', '--dry-run'])
-      expect(promote.exitCode, output(promote)).toBe(0)
-      expect(promote.stdout).toContain('[dry-run] local would be promoted to staging.')
+    const promote = await runCli(['promote', 'staging', 'local', '--yes'])
 
-      expect(readFileSync(file, 'utf8')).toBe(localEdit)
-      const type = await restGet(request, wp, `wp/v2/types/${slug}`)
-      expect(((await type.json()) as {name: string}).name).toBe('E2E Promote')
-    } finally {
-      await runCli(['cpt', 'rm', slug, '--yes'])
-    }
+    expect(promote.exitCode).not.toBe(0)
+    expect(output(promote)).toContain('Pull from staging failed, local left untouched')
+    expect(output(promote)).not.toContain('=== Pushing to local')
+    expect(readFileSync(file, 'utf8')).toBe(content)
   })
 
   test('--dry-run refuses a resource directory outside the project, before pulling anything', async ({homeDir, projectDir, runCli}) => {

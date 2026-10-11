@@ -113,15 +113,16 @@ test.describe('lps plugin push guards', () => {
   })
 
   test('--dry-run plans the install of a new plugin without installing it', async ({projectDir, runCli}) => {
-    setPlugins(projectDir, {'hello-dolly': '1.7.2'})
+    // Not hello-dolly: the wordpress image ships it, installed outside Loopress like ACF.
+    setPlugins(projectDir, {'classic-editor': '1.6.7'})
 
     const push = await runCli(['plugin', 'push', '--dry-run', '--json'])
 
     expect(push.exitCode, output(push)).toBe(0)
-    expect(JSON.parse(push.stdout)).toMatchObject({installed: ['hello-dolly'], status: 'dry-run'})
+    expect(JSON.parse(push.stdout)).toMatchObject({installed: ['classic-editor'], status: 'dry-run'})
 
     const status = await runCli(['plugin', 'status'])
-    expect(status.stdout).toContain('Not installed: hello-dolly')
+    expect(status.stdout).toContain('Not installed: classic-editor')
   })
 
   test('--activate is refused for a loopress.json project, which records active state itself', async ({projectDir, runCli}) => {
