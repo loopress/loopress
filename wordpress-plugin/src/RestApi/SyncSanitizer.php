@@ -6,8 +6,8 @@ namespace Loopress\RestApi;
 
 // Neutralises the active-content vectors (script/style blocks, inline event handlers,
 // javascript:/data:text-html URLs) in values that the sync resources write straight into
-// storage that other plugins later render: SEO settings and post meta into <head>, ACF
-// labels/instructions/message fields into the block editor (F12). Deliberately targeted, not
+// storage that other plugins later render: ACF labels/instructions/message fields into the
+// block editor, WPForms labels into the public form (F12). Deliberately targeted, not
 // wp_kses(): benign HTML and plain text pass through byte-for-byte, so a pull -> edit -> push
 // round trip stays stable and `lps <resource> diff` does not report permanent drift on content
 // that was never an attack. Lives in Loopress\RestApi (not a Full-only src/ dir, see

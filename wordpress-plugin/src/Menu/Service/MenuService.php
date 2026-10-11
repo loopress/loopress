@@ -14,8 +14,7 @@ use Loopress\Menu\Exception\StaleMenuRevisionException;
 // same across two WordPress installs. Pushing them raw would silently point a menu link at
 // whatever unrelated content happens to own that ID on the target site. So every item is
 // exported and resolved by identity instead: `object` (a post type or taxonomy slug) plus
-// `objectSlug` (that post's/term's own slug), the same "resolve by slug, never by raw id"
-// approach Seo\Service\AbstractSeoService::findPost() already uses for post-meta. `custom` items
+// `objectSlug` (that post's/term's own slug): resolve by slug, never by raw id. `custom` items
 // (a raw URL) have no target to resolve, they round-trip untouched.
 //
 // A menu item's own post ID has no natural, human-meaningful identity to diff or match against
@@ -384,8 +383,8 @@ class MenuService
      * item's `object`/`objectSlug` must resolve to real, existing content on this environment,
      * and every item's `type` must be one Loopress round-trips (see SUPPORTED_ITEM_TYPES).
      * Throws immediately on the first problem, so replaceItems() never runs against a
-     * partially-invalid tree. `custom` items whose URL points off-environment aren't blocked
-     * (unlike Seo\Service\RankMathService's redirect guard), only warned about: a menu can
+     * partially-invalid tree. `custom` items whose URL points off-environment aren't blocked,
+     * only warned about: a menu can
      * legitimately link off-site, this is just a nudge to check that was intentional before
      * syncing the same menu to another environment.
      *
@@ -459,7 +458,7 @@ class MenuService
 
     // The identity resolution this whole service exists for: never trust a raw
     // `_menu_item_object_id` from another environment, always re-look-up the target by its
-    // stable slug on THIS environment (PostByPath, shared with AbstractSeoService::findPost()).
+    // stable slug on THIS environment (PostByPath).
     private function resolveObjectId(string $type, string $objectType, string $objectSlug): int
     {
         if ($type === 'taxonomy') {

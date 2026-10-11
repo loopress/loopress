@@ -11,8 +11,7 @@ const pathArg = z.string().optional().describe('Path to the options directory (o
 const nameArg = z.string().describe('Option name (see option_list to find it)')
 const noCoreFlag = z.boolean().optional().describe('Hide WordPress-native default options from the result')
 
-// Registered directly, not via registerResourceTools (see seo.ts for the same reason): list
-// takes an extra flag (noCore) the shared helper's shape doesn't support.
+// Registered directly, not via registerResourceTools: list takes an extra flag (noCore) the shared helper's shape doesn't support.
 export function registerOptionTools(server: McpServer): void {
   server.registerTool(
     'option_push',

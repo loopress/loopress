@@ -36,8 +36,8 @@ if (!defined('LOOPRESS_VERSION')) {
     define('LOOPRESS_VERSION', '2026.7.0');
 }
 
-// WordPress core $wpdb result-format constant. RankMathService references it at real test
-// runtime (passed straight through to the FakeWpdb double), same reasoning as HOUR_IN_SECONDS.
+// WordPress core $wpdb result-format constant. OptionsService references it at real test
+// runtime (passed straight through to the FakeOptionsWpdb double), same reasoning as HOUR_IN_SECONDS.
 if (!defined('ARRAY_A')) {
     define('ARRAY_A', 'ARRAY_A');
 }

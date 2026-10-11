@@ -3,7 +3,7 @@ title: MCP Server
 description: Connect an AI agent to your WordPress site with the Loopress MCP server.
 ---
 
-`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and block templates and parts, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
+`@loopress/mcp` is an [MCP](https://modelcontextprotocol.io/) server that exposes Loopress CLI operations as tool calls, so an AI agent (Claude Code, Claude Desktop, or any MCP client) can pull and push snippets, API routes, hooks, ACF objects, forms, nav menus, plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and block templates and parts, which don't support pull), one resource at a time or all at once, and check project status. It ships as the `lps-mcp` binary.
 
 It doesn't reimplement any sync logic: every tool runs the [CLI](/cli/) installed alongside it (both installed globally with `npm install -g`), falling back to the `lps` binary on your `PATH`.
 
@@ -73,10 +73,6 @@ The server communicates over stdio from the directory your client launches it in
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |
 | `acf_rollback` | Yes | Restore ACF objects to the snapshot saved automatically before an earlier `acf_push` (`list` shows what's available) |
-| `seo_push` | Yes | Push SEO settings, post meta and redirects to WordPress (`allowExternalRedirects` to permit an off-site redirect target) |
-| `seo_pull` | No | Pull SEO settings, post meta and redirects from WordPress into local files |
-| `seo_list` | No | List posts with SEO meta, and redirects if supported, on WordPress |
-| `seo_rollback` | Yes | Restore SEO settings, post meta and redirects to the snapshot saved automatically before an earlier `seo_push` (`list` shows what's available) |
 | `menu_push` | Yes | Push local nav menus and the active theme menu locations to WordPress |
 | `menu_pull` | No | Pull nav menus and the active theme menu locations from WordPress into local files |
 | `menu_list` | No | List nav menus and the active theme menu locations currently on WordPress |
@@ -130,7 +126,7 @@ The server communicates over stdio from the directory your client launches it in
 | `project_doctor` | No | Diagnose connectivity, plugin and credential problems for the targeted environment |
 | `validate_local` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-Every tool accepts an optional `env` to target a specific environment instead of the project's default one (`local`, or its only environment). The `_push`, `_pull`, `_list` and `_rollback` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array and the SEO tools an optional `postType` array to scope the operation, mirroring the CLI's `--type` and `--post-type` flags. `project_diff` also takes optional `only`/`skip` resource-name arrays (the same names as `lps diff --only`, including `template`, `part` and `page`) and an `against` environment name to compare two environments instead of an environment against local files. Each `_rollback` tool restores the snapshot its resource's `_push` tool saved automatically right before the last real push; pass `list: true` to see what's available instead (id, timestamp, environment) or `to` to pick an older one. The preview result's `drift` field reports whether the environment changed since that push, and if it changes again between the preview and the confirmed call, the confirmed call is refused rather than applied, the same staleness check every other mutating tool's confirmation handshake now does.
+Every tool accepts an optional `env` to target a specific environment instead of the project's default one (`local`, or its only environment). The `_push`, `_pull`, `_list` and `_rollback` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`. The ACF tools take an optional `type` array to scope the operation, mirroring the CLI's `--type` flag. `project_diff` also takes optional `only`/`skip` resource-name arrays (the same names as `lps diff --only`, including `template`, `part` and `page`) and an `against` environment name to compare two environments instead of an environment against local files. Each `_rollback` tool restores the snapshot its resource's `_push` tool saved automatically right before the last real push; pass `list: true` to see what's available instead (id, timestamp, environment) or `to` to pick an older one. The preview result's `drift` field reports whether the environment changed since that push, and if it changes again between the preview and the confirmed call, the confirmed call is refused rather than applied, the same staleness check every other mutating tool's confirmation handshake now does.
 
 ## Confirming changes
 

@@ -39,7 +39,6 @@
         <PossiblyUnusedMethod>
             <errorLevel type="suppress">
                 <directory name="src/Acf/RestApi" />
-                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
@@ -87,7 +86,6 @@
                 <referencedMethod name="Loopress\Contract\FeatureProvider::definitions" />
                 <referencedMethod name="Loopress\Contract\FeatureProvider::moduleClasses" />
                 <referencedMethod name="Loopress\Acf\Module\AcfModule::__construct" />
-                <referencedMethod name="Loopress\Seo\Module\SeoModule::__construct" />
                 <referencedMethod name="Loopress\Options\Module\OptionsModule::__construct" />
                 <referencedMethod name="Loopress\Menu\Module\MenuModule::__construct" />
                 <referencedMethod name="Loopress\PostTypes\Module\PostTypesModule::__construct" />
@@ -143,7 +141,6 @@
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/Acf/RestApi" />
-                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Update/RestApi" />
                 <directory name="src/Snippets/RestApi" />
@@ -169,7 +166,6 @@
         <PossiblyNullArgument>
             <errorLevel type="suppress">
                 <directory name="src/Acf/RestApi" />
-                <directory name="src/Seo/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
                 <directory name="src/Snippets/RestApi" />
                 <directory name="src/Form/RestApi" />

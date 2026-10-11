@@ -31,7 +31,6 @@ const PUSH_TARGETS: PushTarget[] = [
   // Before pages: WordPress refuses a page whose `template` it doesn't know yet.
   {commandId: 'theme:template:push', label: 'templates and parts'},
   {commandId: 'page:push', label: 'pages'},
-  {commandId: 'seo:push', label: 'SEO'},
   {commandId: 'menu:push', label: 'menus'},
   {commandId: 'option:push', label: 'options'},
   {commandId: 'snippet:push', label: 'snippets'},
@@ -39,7 +38,7 @@ const PUSH_TARGETS: PushTarget[] = [
 
 export default class Push extends LoopressCommand {
   static description =
-    'Push all local content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, templates, pages, SEO, menus, options, and snippets, to WordPress'
+    'Push all local content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, templates, pages, menus, options, and snippets, to WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
@@ -52,6 +51,7 @@ export default class Push extends LoopressCommand {
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
+    this.warnRemovedSeoModule()
 
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []

@@ -189,8 +189,7 @@ test('form diff reports no drift after a push + pull, then flags a local edit', 
 })
 
 // FormService::requireActiveProvider() only has one real provider today (WPForms), so "multiple
-// active at once" isn't reachable, unlike seo-sync.spec.ts's RankMath/Yoast pair. "Zero active"
-// is the one reachable failure mode, mirrors acf-sync.spec.ts's "ACF plugin inactive" block.
+// active at once" isn't reachable. "Zero active" is the one reachable failure mode, mirrors acf-sync.spec.ts's "ACF plugin inactive" block.
 test.describe('no active form plugin', () => {
   test.beforeAll(async ({requestUtils}) => {
     await setPluginActive(requestUtils, WPFORMS_SLUG, false)
@@ -207,7 +206,7 @@ test.describe('no active form plugin', () => {
     expect(unwrap(result.stderr)).toContain('No supported form plugin is active')
   })
 
-  // Regression coverage, same shape as the SEO 409-not-500 test: FormController checks
+  // Regression coverage: FormController checks
   // isActive() up front on every route, so this must never fall through to a generic 500.
   test('the underlying REST response is a 409, not a 500', async ({request, wp}) => {
     const response = await request.get(`${wp.url}/wp-json/loopress/v1/forms`, {

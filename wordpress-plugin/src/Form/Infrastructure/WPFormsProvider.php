@@ -123,7 +123,7 @@ class WPFormsProvider implements FormProvider
      * validated and message bodies are stripped of active content.
      *
      * Every other string leaf (field labels, descriptions, the HTML field's `code`) is stripped
-     * of active content too, same as ACF and SEO: WPForms renders them on the public form.
+     * of active content too, same as ACF: WPForms renders them on the public form.
      *
      * @param array<string, mixed> $data
      * @param array<string, mixed>|null $existing the form's current canonical data, on update

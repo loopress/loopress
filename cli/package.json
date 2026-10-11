@@ -115,9 +115,6 @@
       "project": {
         "description": "Manage WordPress project and environment configurations"
       },
-      "seo": {
-        "description": "Manage SEO settings, post meta, and redirects (RankMath or Yoast SEO, whichever is active)"
-      },
       "snippet": {
         "description": "Manage WordPress code snippets"
       },

@@ -15,14 +15,13 @@ const ALL_COMMAND_IDS = [
   'api:pull',
   'hook:pull',
   'form:pull',
-  'seo:pull',
   'menu:pull',
   'option:pull',
   'snippet:pull',
 ]
 
 // The commands that delete orphaned local files and so accept --yes.
-const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'cpt:pull', 'form:pull', 'hook:pull', 'menu:pull', 'meta:pull', 'option:pull', 'seo:pull', 'snippet:pull', 'taxonomy:pull'])
+const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'cpt:pull', 'form:pull', 'hook:pull', 'menu:pull', 'meta:pull', 'option:pull', 'snippet:pull', 'taxonomy:pull'])
 
 class TestPull extends Pull {
   setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
@@ -60,6 +59,18 @@ describe('pull', () => {
     for (const [index, commandId] of ALL_COMMAND_IDS.entries()) {
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(index + 1, commandId, ['--env', 'staging'])
     }
+  })
+
+  it('warns about the removed SEO module only when the project still configures it', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const clean = make()
+    await clean.cmd.run()
+    expect(clean.logs.warn).not.toHaveBeenCalled()
+
+    const legacy = make()
+    ;(legacy.cmd as unknown as {localConfig: Record<string, unknown>}).localConfig = {seoDir: 'seo'}
+    await legacy.cmd.run()
+    expect(legacy.logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps option add rank-math-options-titles'))
   })
 
   it('forwards --dry-run to every delegated pull', async () => {

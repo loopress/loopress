@@ -8,7 +8,7 @@ use Loopress\Contract\ActivatableProvider;
 
 /**
  * Shared arbitration for a feature backed by a fixed pool of interchangeable, self-reporting
- * providers (SeoProvider, SnippetProvider, FormProvider): exactly one must be active at a
+ * providers (SnippetProvider, FormProvider): exactly one must be active at a
  * time, since syncing through two at once would land in whichever one happens to win, with no
  * way for the user to know which storage is authoritative. Kept outside every Full-only src/
  * directory (see scripts/build-flavor.cjs) so both editions' services can use it, same

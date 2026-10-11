@@ -8,16 +8,15 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync ACF field groups, SEO settings, and code snippets with the Loopress CLI, and install, audit, and sync Composer dependencies from the WordPress admin.
+Sync ACF field groups, menus, options, and code snippets with the Loopress CLI, and install, audit, and sync Composer dependencies from the WordPress admin.
 
 == Description ==
 
-Loopress Full is the full edition of the Loopress WordPress plugin. It connects your WordPress site to your development workflow: ACF field groups, SEO settings (Yoast, RankMath), and code snippets (integrating with Code Snippets and WPCode) all sync with the Loopress CLI, and Composer dependency management sits on top: search Packagist, install and remove PHP packages, audit them for known security advisories, and sync your dependency manifest with the Loopress CLI, all without SSH access.
+Loopress Full is the full edition of the Loopress WordPress plugin. It connects your WordPress site to your development workflow: ACF field groups, menus, options, and code snippets (integrating with Code Snippets and WPCode) all sync with the Loopress CLI, and Composer dependency management sits on top: search Packagist, install and remove PHP packages, audit them for known security advisories, and sync your dependency manifest with the Loopress CLI, all without SSH access.
 
 Features:
 
 * Sync ACF field groups, post types, taxonomies, and options pages with `lps acf pull` / `lps acf push`
-* Sync SEO settings and redirects (Yoast, RankMath) with `lps seo pull` / `lps seo push`
 * Works with Code Snippets and WPCode, no migration needed
 * Pull snippets from the site as files with `lps snippet pull`, push edits back with `lps snippet push`
 * Install and remove Composer packages from the admin panel

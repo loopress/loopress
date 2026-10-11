@@ -31,7 +31,7 @@ describe('buildArgs', () => {
   })
 
   it('ignores repeatFlags entries whose value is undefined or an empty array', () => {
-    expect(buildArgs(['seo', 'list'], {repeatFlags: {'post-type': undefined}})).toEqual(['seo', 'list'])
-    expect(buildArgs(['seo', 'list'], {repeatFlags: {'post-type': []}})).toEqual(['seo', 'list'])
+    expect(buildArgs(['acf', 'list'], {repeatFlags: {type: undefined}})).toEqual(['acf', 'list'])
+    expect(buildArgs(['acf', 'list'], {repeatFlags: {type: []}})).toEqual(['acf', 'list'])
   })
 })

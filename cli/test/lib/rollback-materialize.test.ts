@@ -81,18 +81,6 @@ describe('rollback-materialize', () => {
     expect(await roundTrip('hook', state)).toEqual(state)
   })
 
-  it('round-trips SEO settings, post meta, and a redirect', async () => {
-    // `hits` is dropped: it's a volatile visit counter (see REDIRECT_VOLATILE_KEYS in
-    // resource-state.ts), never part of the canonical state a real snapshot would carry.
-    const state = {
-      'post-meta/post/hello-world': {meta: {title: 'Hello'}, slug: 'hello-world', title: 'Hello'},
-      'redirects/3': {createdAt: '2024-01-01T00:00:00.000Z', headerCode: 301, id: 3, sources: ['/old'], status: 'active', updatedAt: '2024-01-01T00:00:00.000Z', urlTo: '/new'},
-      settings: {title: 'Site title'},
-    }
-
-    expect(await roundTrip('seo', state)).toEqual(state)
-  })
-
   it('round-trips a menu and menu locations', async () => {
     const state = {
       'menu-locations': {primary: 'main-menu'},

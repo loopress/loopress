@@ -24,7 +24,7 @@ lps pull             # the site, as files
 
 ```text
    ┌────────────── build ───────────────┐
-   │  acf/  seo/  menus/  cpt/  hooks/  │
+   │  acf/  menus/  cpt/  hooks/        │
    │  api/  apps/  loopress.json        │
    └──────────────────┬─────────────────┘
                       │  git commit
@@ -47,7 +47,7 @@ lps pull             # the site, as files
 ## Why
 
 If you look after several WordPress sites, most of what can break them lives in the database:
-field groups, SEO settings, menus, a snippet someone pasted in the admin. None of it has a
+field groups, plugin settings, menus, a snippet someone pasted in the admin. None of it has a
 history, a review, or an undo. Loopress gives it all three, without asking you to restructure the
 site or move hosts.
 
@@ -59,7 +59,6 @@ WordPress.org does not allow a plugin to deploy, so it ships from loopress.dev. 
 | | Light | Full |
 | --- | :---: | :---: |
 | ACF field groups, post types, taxonomies | ✓ | ✓ |
-| SEO (Rank Math, Yoast) | ✓ | ✓ |
 | Menus, options, block theme styles | ✓ | ✓ |
 | Custom post types, taxonomies and post meta keys (JSON files, like CPT UI in Git) | ✓ | ✓ |
 | Hooks, filters, cron (PHP classes) | | ✓ |

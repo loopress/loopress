@@ -42,10 +42,6 @@ matching what that script sets).
   shared WordPress instance, so they can't run concurrently. CI gets its speed by sharding
   instead (`--shard` matrix in `.github/workflows/ci.yml`): each shard is its own runner with
   its own fresh WordPress, so specs must not rely on another spec file having run first.
-- `seo-sync.spec.ts` expects both RankMath (`seo-by-rank-math`) and Yoast SEO (`wordpress-seo`)
-  to be pre-installed, same as ACF and WPCode. They're mutually exclusive at the `lps seo`
-  level (`SeoService` refuses to guess which one is authoritative if both are active at once),
-  so each describe block deactivates one, runs against the other, and restores both afterward.
 - Each test gets its own isolated `HOME` and project directory (see `helpers/environment.ts`)
   so it never touches your real `~/.config/loopress/config.json`.
 - There's no snippet delete endpoint, so test data accumulates on the target site across

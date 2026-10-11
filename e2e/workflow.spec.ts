@@ -129,9 +129,8 @@ test.describe('lps validate', () => {
 })
 
 // A resource whose plugin isn't usable on this site fails on its own (the CI site has no form
-// plugin, and both SEO plugins active at once), never stopping or hiding the others.
+// plugin), never stopping or hiding the others.
 const PULL_FAILURES_ALLOWED: Record<string, string> = {
-  SEO: 'Multiple SEO plugins are active at once',
   forms: 'No supported form plugin is active',
 }
 
@@ -171,7 +170,7 @@ test.describe('lps pull', () => {
       expect(pull.exitCode === 0).toBe(failed.length === 0)
       if (failed.length > 0) expect(text).toContain(`${failed.length} resource`)
       // Every resource ran, in order, whatever failed before it.
-      const order = ['composer', 'plugins', 'post types', 'taxonomies', 'post meta', 'ACF', 'API routes', 'hooks', 'forms', 'SEO', 'menus', 'options', 'snippets']
+      const order = ['composer', 'plugins', 'post types', 'taxonomies', 'post meta', 'ACF', 'API routes', 'hooks', 'forms', 'menus', 'options', 'snippets']
       const positions = order.map((label) => text.indexOf(`→ Pulling ${label}...`))
       expect(positions.every((position) => position >= 0), text).toBe(true)
       expect([...positions].sort((a, b) => a - b)).toEqual(positions)

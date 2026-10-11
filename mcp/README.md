@@ -1,7 +1,7 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, API routes, hooks, ACF objects, SEO settings, forms, nav menus,
+agent can pull and push snippets, API routes, hooks, ACF objects, forms, nav menus,
 plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and block templates, which
 don't support pull), one resource at a time or all at once, plus check project status. Ships as the
 `lps-mcp` binary.
@@ -84,10 +84,6 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |
 | `acf_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore ACF objects to the snapshot saved automatically before an earlier `acf_push` (`list` shows what's available) |
-| `seo_push` | Yes | `env?`, `path?`, `allowExternalRedirects?`, `confirmToken?` | Push SEO settings, post meta and redirects to WordPress |
-| `seo_pull` | No | `env?`, `path?`, `postType?` | Pull SEO settings, post meta and redirects from WordPress into local files |
-| `seo_list` | No | `env?`, `postType?` | List posts with SEO meta, and redirects if supported, on WordPress |
-| `seo_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore SEO settings, post meta and redirects to the snapshot saved automatically before an earlier `seo_push` (`list` shows what's available) |
 | `menu_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local nav menus and the active theme menu locations to WordPress |
 | `menu_pull` | No | `env?`, `path?` | Pull nav menus and the active theme menu locations from WordPress into local files |
 | `menu_list` | No | `env?` | List nav menus and the active theme menu locations currently on WordPress |
@@ -142,10 +138,9 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `validate_local` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
 `env` picks the environment for that call, instead of the project's default (`local`, or its only one). `path` overrides the directory
-configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
-arrays that scope the operation to specific object types, matching the CLI's `--type` and
-`--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `cpt`, `taxonomy`, `meta`, `option`,
+configured in `loopress.json` for that feature. `type` (ACF) is an optional
+array that scopes the operation to specific object types, matching the CLI's `--type` flag. `project_diff`'s `only`/`skip` are optional arrays of resource names
+(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `menu`, `cpt`, `taxonomy`, `meta`, `option`,
 `theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real

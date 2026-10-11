@@ -2,11 +2,10 @@ import {mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
-import {restGet, restPost} from './helpers/rest.js'
-import {setPluginActive} from './helpers/wp-admin.js'
+import {restGet} from './helpers/rest.js'
 
-// `<resource> rollback` (and `seo diff`) for the resources whose own spec only covers push/pull:
-// ACF, menus, SEO and Global Styles. Each one is the same scenario: push v1, push v2, roll back,
+// `<resource> rollback` for the resources whose own spec only covers push/pull: ACF, menus and
+// Global Styles. Each one is the same scenario: push v1, push v2, roll back,
 // and check WordPress itself holds v1 again. Forms are left out: the CI site has no form plugin.
 
 test('acf rollback restores a field group title from before the last push', async ({projectDir, runCli}) => {
@@ -64,65 +63,6 @@ test('menu rollback restores the menu name from before the last push', async ({p
   const menus = await restGet(request, wp, `wp/v2/menus?slug=${slug}`)
   const [menu] = (await menus.json()) as Array<{name: string}>
   expect(menu.name).toBe('E2E menu one')
-})
-
-test.describe('SEO history (RankMath active alone)', () => {
-  // Restored as found, not assumed active: later spec files see the same plugin state as before.
-  let yoastWasActive: boolean
-
-  test.beforeAll(async ({requestUtils}) => {
-    const plugins = await requestUtils.rest<Array<{plugin: string; status: string}>>({path: '/wp/v2/plugins'})
-    yoastWasActive = plugins.find((plugin) => plugin.plugin.startsWith('wordpress-seo/'))?.status === 'active'
-    await setPluginActive(requestUtils, 'wordpress-seo', false)
-  })
-
-  test.afterAll(async ({requestUtils}) => {
-    await setPluginActive(requestUtils, 'wordpress-seo', yoastWasActive)
-  })
-
-  async function createPost(request: Parameters<typeof restPost>[0], wp: Parameters<typeof restPost>[1], slug: string): Promise<void> {
-    const response = await restPost(request, wp, 'wp/v2/posts', {slug, status: 'publish', title: `E2E ${slug}`})
-    expect(response.ok()).toBe(true)
-  }
-
-  function writeMeta(projectDir: string, slug: string, title: string): string {
-    const dir = join(projectDir, 'seo', 'post-meta', 'post')
-    mkdirSync(dir, {recursive: true})
-    const file = join(dir, `${slug}.json`)
-    writeFileSync(file, JSON.stringify({meta: {'rank_math_title': title}, slug, title: `E2E ${slug}`}))
-    return file
-  }
-
-  test('seo diff flags a local edit to post meta after a push', async ({projectDir, request, runCli, wp}) => {
-    const slug = `e2e-seo-diff-${Date.now()}`
-    await createPost(request, wp, slug)
-    writeMeta(projectDir, slug, 'E2E SEO one')
-    expect((await runCli(['seo', 'push'])).exitCode).toBe(0)
-    // Pull everything the shared instance has, so the only difference left is the edit below.
-    expect((await runCli(['seo', 'pull', '--yes'])).exitCode).toBe(0)
-
-    writeMeta(projectDir, slug, 'E2E SEO edited')
-    const drifted = await runCli(['seo', 'diff'])
-
-    expect(drifted.exitCode).toBe(1)
-    expect(drifted.stdout).toContain('Drift detected')
-    expect(output(drifted)).toMatch(new RegExp(`~ \\S*${slug}`))
-  })
-
-  test('seo rollback restores post meta from before the last push', async ({projectDir, request, runCli, wp}) => {
-    const slug = `e2e-seo-rb-${Date.now()}`
-    await createPost(request, wp, slug)
-    writeMeta(projectDir, slug, 'E2E SEO one')
-    expect((await runCli(['seo', 'push'])).exitCode).toBe(0)
-    writeMeta(projectDir, slug, 'E2E SEO two')
-    expect((await runCli(['seo', 'push'])).exitCode).toBe(0)
-
-    const rollback = await runCli(['seo', 'rollback', '--yes'])
-    expect(rollback.exitCode, output(rollback)).toBe(0)
-
-    const meta = await restGet(request, wp, `loopress/v1/seo/post-meta/post/${slug}`)
-    expect(((await meta.json()) as {meta: Record<string, unknown>}).meta.rank_math_title).toBe('E2E SEO one')
-  })
 })
 
 test.describe('Global Styles history (block theme)', () => {

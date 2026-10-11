@@ -6,12 +6,12 @@ namespace Loopress\Infrastructure;
 
 /**
  * Finds a post by the identity Loopress syncs it under, on THIS environment: never a raw ID
- * from another environment. Shared by menus and SEO (and option page references), which all
+ * from another environment. Shared by menus and option page references, which both
  * hit the same trap: get_page_by_path() wants a child page's full path (`account/profile`), so
  * a bare `profile` misses a page that is right there.
  *
- * The full path is tried first. A bare slug (SEO files, whose identity is post_name, or menu
- * files pulled before paths were written) then falls back to a post_name match, but only when
+ * The full path is tried first. A bare slug (menu files pulled before paths were
+ * written) then falls back to a post_name match, but only when
  * exactly one post has it: post_name is unique per parent, not per site, so `account/profile`
  * and `team/profile` can both exist, and picking one would point at the wrong page.
  */

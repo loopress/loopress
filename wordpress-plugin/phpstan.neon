@@ -15,14 +15,13 @@ parameters:
         - vendor
 
     ignoreErrors:
-        # Acf/, Seo/, Dependencies/ (array<string, mixed> for post-meta/settings/redirect/
-        # composer payloads) and CodeSnippetsSnippetProvider's raw REST dispatch helpers
+        # Acf/, Dependencies/ (array<string, mixed> for field-group/composer
+        # payloads) and CodeSnippetsSnippetProvider's raw REST dispatch helpers
         # aren't typed as precisely as Snippets/ (see SnippetData, US-15) yet; narrowing them
         # the same way is future work, not part of this PHPStan-level story.
         - message: '#has no value type specified in iterable type array#'
           paths:
               - src/Acf/*
-              - src/Seo/*
               - src/Dependencies/*
               - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
               - src/Form/*
@@ -44,5 +43,4 @@ parameters:
               - src/Options/RestApi/OptionsController.php
               - src/Menu/RestApi/MenuController.php
               - src/PostTypes/RestApi/DeclaredTypesController.php
-              - src/Seo/RestApi/SeoController.php
 

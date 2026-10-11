@@ -39,7 +39,9 @@ export default defineConfig({
 		// Functional re-cut of the docs: technical CLI/WordPress Plugin split replaced by
 		// one page/section per feature. Old URLs kept alive for bookmarks and backlinks.
 		"/cli/acf": "/acf",
-		"/cli/seo": "/seo",
+		"/cli/seo": "/options",
+		// The SEO module was removed: its only configuration part is one option row.
+		"/seo": "/options",
 		"/cli/forms": "/forms",
 		"/cli/plugins": "/plugins",
 		"/cli/snippets": "/snippets",
@@ -121,7 +123,6 @@ export default defineConfig({
 									label: "Configuration",
 									items: [
 										{ label: "ACF", slug: "acf" },
-										{ label: "SEO", slug: "seo" },
 										{ label: "Forms", slug: "forms" },
 										{ label: "Menus", slug: "menus" },
 										{ label: "Custom Post Types", slug: "custom-post-types" },

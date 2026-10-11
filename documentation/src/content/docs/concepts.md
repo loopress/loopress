@@ -80,7 +80,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 
 A `pull` writes one local file per object on WordPress, and **removes local files whose object no longer exists there**, so the directory always mirrors the site. In a terminal, the files about to be removed are listed and a confirmation is asked first (`--yes` skips it). In scripts and CI they are removed and reported, so existing pipelines keep working. Each feature page states which local files count as tracked, files outside that convention are never touched.
 
-Single-file resources (`seo/settings.json`, `menus/menu-locations.json`, Global Styles) are always overwritten in place.
+Single-file resources (`menus/menu-locations.json`, Global Styles) are always overwritten in place.
 
 ### Every file carries its identity
 

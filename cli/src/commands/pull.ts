@@ -24,7 +24,6 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'api:pull', label: 'API routes', supportsYes: true},
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
-  {commandId: 'seo:pull', label: 'SEO', supportsYes: true},
   {commandId: 'menu:pull', label: 'menus', supportsYes: true},
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', supportsYes: true},
@@ -32,7 +31,7 @@ const PULL_TARGETS: PullTarget[] = [
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull all content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, SEO, menus, options, and snippets, from WordPress'
+    'Pull all content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, menus, options, and snippets, from WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
@@ -45,6 +44,7 @@ export default class Pull extends LoopressCommand {
 
   async run(): Promise<PullResult> {
     const results: PullTargetResult[] = []
+    this.warnRemovedSeoModule()
 
     for (const target of PULL_TARGETS) {
       this.log(`\n→ Pulling ${target.label}...`)

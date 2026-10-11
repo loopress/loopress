@@ -72,7 +72,6 @@
          applied to this directory in psalm.xml (PossiblyUnusedParam). -->
     <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
         <exclude-pattern>src/Acf/RestApi/*</exclude-pattern>
-        <exclude-pattern>src/Seo/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Dependencies/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Update/RestApi/*</exclude-pattern>
         <exclude-pattern>src/Snippets/RestApi/*</exclude-pattern>
@@ -128,11 +127,10 @@
         <exclude-pattern>tests/InfectionPatchworkBridge.php</exclude-pattern>
     </rule>
 
-    <!-- RankMathServiceTest, OptionsServiceTest and PagesControllerTest substitute the global
+    <!-- OptionsServiceTest and PagesControllerTest substitute the global
          $wpdb with a fake double, the same swap-the-global approach WordPress core's own test
          suite uses, to unit-test raw SQL without a real database. -->
     <rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
-        <exclude-pattern>tests/Unit/Seo/Service/RankMathServiceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Options/Service/OptionsServiceTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Options/Service/OptionsServiceSourceScanTest.php</exclude-pattern>
         <exclude-pattern>tests/Unit/Pages/PagesControllerTest.php</exclude-pattern>

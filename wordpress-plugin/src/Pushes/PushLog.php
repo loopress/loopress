@@ -37,7 +37,6 @@ class PushLog
             'routes'  => ['/acf/field-groups', '/acf/post-types', '/acf/taxonomies', '/acf/options-pages'],
             'screens' => ['acf-field-group', 'acf-post-type', 'acf-taxonomy', 'acf-ui-options-page'],
         ],
-        'seo:push'         => ['label' => 'SEO settings and redirects', 'routes' => ['/seo/settings', '/seo/redirects']],
         'menu:push'        => ['label' => 'Menus', 'routes' => ['/menus', '/menu-locations'], 'screens' => ['nav-menus']],
         'cpt:push'         => ['label' => 'Post types', 'routes' => ['/post-types']],
         'taxonomy:push'    => ['label' => 'Taxonomies', 'routes' => ['/taxonomies']],
@@ -148,7 +147,7 @@ class PushLog
         }
 
         // The same responses the CLI reads, errors included: a route answering the same error
-        // twice (no SEO plugin active, say) is stable, one that starts or stops failing is a change.
+        // twice (ACF not active, say) is stable, one that starts or stops failing is a change.
         $data = array_map(
             static fn(string $route): mixed => rest_do_request(new WP_REST_Request('GET', '/loopress/v1' . $route))->get_data(),
             $routes,

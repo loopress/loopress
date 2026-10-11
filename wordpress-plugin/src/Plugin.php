@@ -15,7 +15,6 @@ use Loopress\Options\Module\OptionsModule;
 use Loopress\PostTypes\Module\PostTypesModule;
 use Loopress\Pushes\Module\PushesModule;
 use Loopress\RestCache\Module\RestCacheModule;
-use Loopress\Seo\Module\SeoModule;
 use Psr\Container\ContainerInterface;
 
 use function DI\factory;
@@ -38,7 +37,6 @@ class Plugin
         $moduleClasses = apply_filters('loopress_module_classes', [
             AdminPageModule::class,
             AcfModule::class,
-            SeoModule::class,
             OptionsModule::class,
             MenuModule::class,
             PostTypesModule::class,

@@ -121,6 +121,17 @@ Some options must not be copied from one environment to another, even when you w
 
 `readonly` is a local flag only. Set it to `false` in the file to push such an option anyway, or to `true` on any option you want to track without ever pushing it.
 
+## SEO plugin settings
+
+Site-wide SEO settings (title templates, robots and schema defaults) are one option row per plugin. Track the one for the SEO plugin you use:
+
+```bash
+lps option add rank-math-options-titles   # Rank Math
+lps option add wpseo_titles               # Yoast SEO
+```
+
+Per-post SEO meta and redirects are content, edited in wp-admin, and are not versioned. Projects that used the former `lps seo` commands can delete their `seo/` folder (and any `seoDir` key in `loopress.json`) once the option above is tracked.
+
 ## Options that point to a page
 
 Some plugins store a page's ID in their settings: Easy Digital Downloads keeps its checkout and confirmation pages in `edd_settings`, WooCommerce its shop page in `woocommerce_shop_page_id`. IDs differ between environments, so copying them would point at the wrong page, or at nothing.
