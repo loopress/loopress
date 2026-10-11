@@ -67,12 +67,17 @@ test('menu rollback restores the menu name from before the last push', async ({p
 })
 
 test.describe('SEO history (RankMath active alone)', () => {
+  // Restored as found, not assumed active: later spec files see the same plugin state as before.
+  let yoastWasActive: boolean
+
   test.beforeAll(async ({requestUtils}) => {
+    const plugins = await requestUtils.rest<Array<{plugin: string; status: string}>>({path: '/wp/v2/plugins'})
+    yoastWasActive = plugins.find((plugin) => plugin.plugin.startsWith('wordpress-seo/'))?.status === 'active'
     await setPluginActive(requestUtils, 'wordpress-seo', false)
   })
 
   test.afterAll(async ({requestUtils}) => {
-    await setPluginActive(requestUtils, 'wordpress-seo', true)
+    await setPluginActive(requestUtils, 'wordpress-seo', yoastWasActive)
   })
 
   async function createPost(request: Parameters<typeof restPost>[0], wp: Parameters<typeof restPost>[1], slug: string): Promise<void> {

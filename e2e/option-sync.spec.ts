@@ -30,9 +30,12 @@ function uniqueName(): string {
 }
 
 // Options this test created on the shared instance, deleted through the plugin's own endpoint.
+// Pages too, children before their parent: force-deleted, not left in the trash.
 const created: string[] = []
+const createdPages: number[] = []
 test.afterEach(async ({request, wp}) => {
   for (const name of created.splice(0)) await restDelete(request, wp, `loopress/v1/options/${name}`)
+  for (const id of createdPages.splice(0).reverse()) await restDelete(request, wp, `wp/v2/pages/${id}?force=true`)
 })
 
 test('push creates an untracked-yet option on WordPress with the exact JSON value', async ({projectDir, request, runCli, wp}) => {
@@ -188,6 +191,7 @@ test('refs: a page reference travels as its path and lands as this environment\'
   const stamp = Date.now()
   const parent = await restPost(request, wp, 'wp/v2/pages', {slug: `e2e-shop-${stamp}`, status: 'publish', title: 'E2E Shop'})
   const {id: parentId} = (await parent.json()) as {id: number}
+  createdPages.push(parentId)
   const child = await restPost(request, wp, 'wp/v2/pages', {
     parent: parentId,
     slug: 'checkout',
@@ -195,6 +199,7 @@ test('refs: a page reference travels as its path and lands as this environment\'
     title: 'E2E Checkout',
   })
   const {id: childId} = (await child.json()) as {id: number}
+  createdPages.push(childId)
 
   const name = uniqueName()
   created.push(name)

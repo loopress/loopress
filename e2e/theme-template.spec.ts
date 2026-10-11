@@ -45,7 +45,8 @@ test.describe('theme template sync (block theme)', () => {
   test.afterEach(async ({projectDir, requestUtils, runCli}) => {
     await requestUtils.activateTheme(BLOCK_THEME)
     rmSync(join(projectDir, 'theme'), {force: true, recursive: true})
-    await runCli(['theme', 'template', 'push', '--yes'])
+    const cleanup = await runCli(['theme', 'template', 'push', '--yes'])
+    expect(cleanup.exitCode, output(cleanup)).toBe(0)
   })
 
   test('pushes a template and a part as a child theme that renders them once activated, never activating it itself', async ({
