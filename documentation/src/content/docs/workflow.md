@@ -30,6 +30,7 @@ Not every resource takes part in every aggregate command:
 | [Hooks](/hooks/) | ✓ | ✓ | ✓ | ✓ |
 | [Forms](/forms/) | ✓ | ✓ | ✓ | |
 | [Templates and parts](/pages/#templates-and-parts) | no pull | ✓ | ✓ | ✓ |
+| [Theme CSS](/pages/#theme-css) | no pull | ✓ | | ✓ |
 | [Static pages](/pages/) | no pull | ✓ | ✓ | ✓ |
 | [Menus](/menus/) | ✓ | ✓ | ✓ | |
 | [Options](/options/) | ✓ | ✓ | ✓ | |
@@ -133,6 +134,6 @@ lps dev --skip=plugins
 | `--only <types>` | Only watch these resource types, comma-separated |
 | `--skip <types>` | Skip these resource types, comma-separated |
 
-Watched types: `snippets`, `templates`, `parts`, `pages`, `api`, `hooks`, `plugins`.
+Watched types: `snippets`, `templates`, `parts`, `css`, `blocks`, `pages`, `api`, `hooks`, `plugins`.
 
 `lps dev` always targets the environment named `local`, never any other: add one with `lps project config` first. To push to another environment, run the feature's `push` command with `--env`.

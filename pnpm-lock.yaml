@@ -242,6 +242,9 @@ importers:
       diff:
         specifier: ^9.0.0
         version: 9.0.0
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       got:
         specifier: ^16.0.0
         version: 16.0.0

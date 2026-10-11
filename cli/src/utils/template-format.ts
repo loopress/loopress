@@ -37,6 +37,9 @@ export type ChildTheme = {
   parts: Part[]
   stylesheet: string
   templates: Template[]
+  // Names of the pushed theme/blocks/ files that no block is registered under on the site.
+  // Absent from a plugin older than the theme CSS.
+  unknownBlocks?: string[]
 }
 
 // A block delimiter as the first line (`<!-- wp:template-part ... /-->`, the usual one) is markup,

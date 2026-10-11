@@ -4,9 +4,9 @@ import {join, sep} from 'node:path'
 import {type LoopressLocalConfig} from '../utils/loopress-config.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 
-export type ResourceType = 'api' | 'hooks' | 'pages' | 'parts' | 'plugins' | 'snippets' | 'templates'
+export type ResourceType = 'api' | 'blocks' | 'css' | 'hooks' | 'pages' | 'parts' | 'plugins' | 'snippets' | 'templates'
 
-export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'templates', 'parts', 'pages', 'api', 'hooks', 'plugins']
+export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'templates', 'parts', 'css', 'blocks', 'pages', 'api', 'hooks', 'plugins']
 
 export type WatchTarget = {
   commandId: string
@@ -29,6 +29,9 @@ export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLo
   const rootDir = join(cwd, localConfig.rootDir ?? '.')
   const candidates: Record<ResourceType, WatchTarget> = {
     api: {commandId: 'api:push', path: join(rootDir, localConfig.apiDir ?? 'api'), type: 'api'},
+    // The theme CSS is bundled into the child theme with the templates, by the same push.
+    blocks: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('blockCss', localConfig)), type: 'blocks'},
+    css: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('css', localConfig)), type: 'css'},
     hooks: {commandId: 'hook:push', path: join(rootDir, localConfig.hooksDir ?? 'hooks'), type: 'hooks'},
     pages: {commandId: 'page:push', path: join(rootDir, localConfig.pageDir ?? 'pages'), type: 'pages'},
     plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},

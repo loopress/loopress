@@ -59,6 +59,16 @@
       "description": "Directory where block template parts (one <slug>.html per part, written to the Loopress child theme of the active block theme) are read from, relative to rootDir.",
       "default": "theme/parts"
     },
+    "cssDir": {
+      "type": "string",
+      "description": "Directory of the theme's global CSS, relative to rootDir. Its style.css is the entry: it @imports the other files, bundled into the style.css of the Loopress child theme and loaded on every page.",
+      "default": "theme/css"
+    },
+    "blockCssDir": {
+      "type": "string",
+      "description": "Directory of per-block CSS (one <namespace>/<block>.css per block, e.g. core/button.css), relative to rootDir. Each file is bundled into the Loopress child theme and only loaded on pages that render that block.",
+      "default": "theme/blocks"
+    },
     "optionsDir": {
       "type": "string",
       "description": "Directory where explicitly tracked WordPress options (wp_options rows) are read from and written to, relative to rootDir. Only options added via `lps option add` live here, this is never the whole options table.",

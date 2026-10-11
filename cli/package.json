@@ -19,6 +19,7 @@
     "chokidar": "^5.0.0",
     "compare-versions": "^6.1.1",
     "diff": "^9.0.0",
+    "esbuild": "0.28.2",
     "got": "^16.0.0",
     "listr2": "^11.1.1",
     "microdiff": "^1.6.0",
