@@ -1,6 +1,7 @@
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {withSpinner} from '../../lib/spinner.js'
 import {pinVersion} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
 
@@ -45,7 +46,7 @@ export default class Audit extends LoopressCommand {
     const advisories: Advisory[] = []
     const health: HealthNote[] = []
     for (const slug of slugs) {
-      const found = await this.auditOne(slug, pinVersion(manifest[slug]))
+      const found = await withSpinner(`Auditing ${slug}`, async () => this.auditOne(slug, pinVersion(manifest[slug])))
       advisories.push(...found.advisories)
       health.push(...found.health)
     }

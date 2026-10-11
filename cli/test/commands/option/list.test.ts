@@ -1,15 +1,12 @@
-import type * as OclifCore from '@oclif/core'
-
-import {ux} from '@oclif/core'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import List from '../../../src/commands/option/list.js'
+import {withSpinner} from '../../../src/lib/spinner.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
-vi.mock('@oclif/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof OclifCore>()
-  return {...actual, ux: {...actual.ux, action: {start: vi.fn(), stop: vi.fn()}}}
-})
+vi.mock('../../../src/lib/spinner.js', () => ({
+  withSpinner: vi.fn(async (_message: string, work: () => Promise<unknown>) => work()),
+}))
 
 type ListWithWpClient = {wpClient: {get: ReturnType<typeof vi.fn>}}
 
@@ -36,8 +33,7 @@ function tableRows(logs: ReturnType<typeof silenceLogs>): string[] {
 
 describe('option list', () => {
   beforeEach(() => {
-    vi.mocked(ux.action.start).mockClear()
-    vi.mocked(ux.action.stop).mockClear()
+    vi.mocked(withSpinner).mockClear()
   })
 
   it('fetches the options endpoint and renders name/autoload/core/source/plugin as a bordered table, never the value', async () => {
@@ -97,15 +93,14 @@ describe('option list', () => {
     expect(logs.log).toHaveBeenCalledWith('■ confirmed   ■ guessed, unconfirmed (?)')
   })
 
-  it('shows a spinner while fetching, and stops it even if the request fails', async () => {
+  it('shows a spinner while fetching, and still surfaces a failed request', async () => {
     const {cmd} = makeCmd([])
     const get = vi.fn().mockRejectedValueOnce(new Error('boom'))
     ;(cmd as unknown as ListWithWpClient).wpClient = {get}
 
     await expect(cmd.run()).rejects.toThrow('boom')
 
-    expect(ux.action.start).toHaveBeenCalledWith('Fetching and verifying options')
-    expect(ux.action.stop).toHaveBeenCalledOnce()
+    expect(withSpinner).toHaveBeenCalledWith('Fetching and verifying options', expect.any(Function))
   })
 
   // Found live against a real site: a plugin (WPForms) writes filesystem paths into an option

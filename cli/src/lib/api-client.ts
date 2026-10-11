@@ -1,5 +1,6 @@
 import got, {type Got} from 'got'
 
+import {withSpinner} from './spinner.js'
 import {REQUEST_TIMEOUT_MS} from './wp-client.js'
 
 export const API_URL = process.env.LPS_API_URL ?? 'https://api.loopress.dev'
@@ -39,7 +40,7 @@ export class ApiClient {
 
   private async request<T>(method: HttpMethod, path: string, json?: Record<string, unknown>): Promise<T> {
     try {
-      const response = await this.client(path, {json, method})
+      const response = await withSpinner('Waiting for the Loopress API', async () => this.client(path, {json, method}))
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
       throw new Error(formatApiError(error, `${this.baseUrl}/${path}`, this.timeoutMs), {cause: error})

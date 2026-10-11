@@ -4,6 +4,7 @@ import {Listr} from 'listr2'
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
+import {withoutSpinner} from '../../lib/spinner.js'
 import {type EnvironmentConfig} from '../../types/config.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -49,17 +50,19 @@ export default class Pull extends Command {
     let environmentCount = 0
 
     if (newApiProjects.length > 0) {
-      await new Listr(
-        newApiProjects.map((apiProject) => ({
-          task: (_ctx, task) => {
-            this.pullProject(apiProject, task)
-            projectCount++
-            environmentCount += apiProject.environments.length
-          },
-          title: `Pull project "${apiProject.name}" from the API`,
-        })),
-        {concurrent: false, exitOnError: false},
-      ).run()
+      await withoutSpinner(async () => {
+        await new Listr(
+          newApiProjects.map((apiProject) => ({
+            task: (_ctx, task) => {
+              this.pullProject(apiProject, task)
+              projectCount++
+              environmentCount += apiProject.environments.length
+            },
+            title: `Pull project "${apiProject.name}" from the API`,
+          })),
+          {concurrent: false, exitOnError: false},
+        ).run()
+      })
     }
 
     this.log(

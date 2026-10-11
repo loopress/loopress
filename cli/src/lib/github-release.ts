@@ -5,6 +5,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {pipeline} from 'node:stream/promises'
 
+import {withSpinner} from './spinner.js'
+
 const REPO = 'loopress/loopress'
 const ASSET_NAME = 'loopress-full.zip'
 
@@ -29,6 +31,10 @@ type GithubRelease = {
  * "the one zip asset".
  */
 export async function downloadLatestFullZip(): Promise<string> {
+  return withSpinner('Downloading Loopress Full', download)
+}
+
+async function download(): Promise<string> {
   const releases = await got(`https://api.github.com/repos/${REPO}/releases`, {
     headers: {accept: 'application/vnd.github+json', 'user-agent': 'loopress-cli'},
     searchParams: {'per_page': 30},

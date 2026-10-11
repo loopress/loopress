@@ -1,5 +1,7 @@
 import got from 'got'
 
+import {withSpinner} from './spinner.js'
+
 export const REQUEST_TIMEOUT_MS = 10_000
 
 /**
@@ -29,7 +31,9 @@ type WpIndexResponse = undefined | {authentication?: Record<string, unknown>}
 export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult> {
   let index: WpIndexResponse
   try {
-    index = await got.get(`${siteUrl}/wp-json/`, {timeout: {request: REQUEST_TIMEOUT_MS}}).json<WpIndexResponse>()
+    index = await withSpinner(`Checking ${siteUrl}`, async () =>
+      got.get(`${siteUrl}/wp-json/`, {timeout: {request: REQUEST_TIMEOUT_MS}}).json<WpIndexResponse>(),
+    )
   } catch (error) {
     return {
       ok: false,
@@ -68,7 +72,9 @@ async function detectWpVersion(siteUrl: string): Promise<string | undefined> {
 
   for (const {pattern, url} of sources) {
     try {
-      const body = await got.get(url, {timeout: {request: REQUEST_TIMEOUT_MS}}).text()
+      const body = await withSpinner(`Checking ${siteUrl}`, async () =>
+        got.get(url, {timeout: {request: REQUEST_TIMEOUT_MS}}).text(),
+      )
       const version = pattern.exec(body)?.[1]
       if (version) return version
     } catch {
