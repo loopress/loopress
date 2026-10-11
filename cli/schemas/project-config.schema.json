@@ -79,6 +79,11 @@
       "description": "Directory where taxonomies (one JSON file of register_taxonomy() arguments plus \"object_type\" per taxonomy, named <slug>.json) are read from and written to, relative to rootDir.",
       "default": "taxonomies"
     },
+    "metaDir": {
+      "type": "string",
+      "description": "Directory where post meta keys (one JSON file per post type, named <post-type>.json, mapping each meta key to its register_post_meta() arguments) are read from and written to, relative to rootDir.",
+      "default": "meta"
+    },
     "menuDir": {
       "type": "string",
       "description": "Directory where nav menus (one JSON file per menu, plus menu-locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",

@@ -91,6 +91,11 @@ The server communicates over stdio from the directory your client launches it in
 | `taxonomy_list` | No | List every taxonomy registered on WordPress, where it comes from and the post types it attaches to |
 | `taxonomy_rm` | Yes | Stop registering one Loopress taxonomy (its terms stay in the database, hidden) |
 | `taxonomy_rollback` | Yes | Restore taxonomies to the snapshot saved automatically before an earlier `taxonomy_push` (`list` shows what's available) |
+| `meta_push` | Yes | Push local `meta/<post-type>.json` meta keys to WordPress (create or update only, never their values) |
+| `meta_pull` | No | Pull the post meta keys Loopress manages into `meta/<post-type>.json` files |
+| `meta_list` | No | List the meta keys registered for each post type on WordPress, and whether Loopress declares them |
+| `meta_rm` | Yes | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
+| `meta_rollback` | Yes | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |

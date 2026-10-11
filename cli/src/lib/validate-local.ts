@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {CPT_SPEC, declaredFileChecker, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
+import {CPT_SPEC, declaredFileChecker, META_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalPages} from '../utils/page-format.js'
 import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
@@ -30,6 +30,7 @@ const DEFAULT_DIR: Record<string, string> = {
   formDir: 'forms',
   hooksDir: 'hooks',
   menuDir: 'menus',
+  metaDir: 'meta',
   optionsDir: 'options',
   pageDir: 'pages',
   partDir: RESOURCE_DIR_DEFAULTS.part,
@@ -69,6 +70,7 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += await checkJsonDir(resolve('optionsDir'), problems, parseLocalOption)
   checked += await checkJsonDir(resolve('cptDir'), problems, declaredFileChecker(CPT_SPEC))
   checked += await checkJsonDir(resolve('taxonomyDir'), problems, declaredFileChecker(TAXONOMY_SPEC))
+  checked += await checkJsonDir(resolve('metaDir'), problems, declaredFileChecker(META_SPEC))
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')

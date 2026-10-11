@@ -6,19 +6,22 @@ namespace Loopress\PostTypes\Module;
 
 use Loopress\Contract\Module;
 use Loopress\PostTypes\RestApi\DeclaredTypesController;
+use Loopress\PostTypes\Service\PostMetaService;
 use Loopress\PostTypes\Service\PostTypeService;
 use Loopress\PostTypes\Service\TaxonomyService;
 
-// Post types (`lps cpt`) and taxonomies (`lps taxonomy`) declared as JSON files.
+// Post types (`lps cpt`), taxonomies (`lps taxonomy`) and post meta keys (`lps meta`) declared as JSON files.
 class PostTypesModule implements Module
 {
     private readonly PostTypeService $postTypes;
     private readonly TaxonomyService $taxonomies;
+    private readonly PostMetaService $postMeta;
 
     public function __construct()
     {
         $this->postTypes  = new PostTypeService();
         $this->taxonomies = new TaxonomyService();
+        $this->postMeta   = new PostMetaService();
     }
 
     public function boot(): void
@@ -30,11 +33,14 @@ class PostTypesModule implements Module
         // order WordPress recommends for rewrite rules.
         add_action('init', [$this->taxonomies, 'register'], 19);
         add_action('init', [$this->postTypes, 'register'], 20);
-        // One flag for both (AbstractDeclaredTypeService::FLUSH_OPTION), so one flush.
+        // Post meta after the post types, so a key whose post type comes from cpt/ finds it registered.
+        add_action('init', [$this->postMeta, 'register'], 21);
+        // One flag for post types and taxonomies (AbstractDeclaredTypeService::FLUSH_OPTION), so one flush.
         add_action('init', [$this->postTypes, 'flushIfNeeded'], 21);
         add_action('rest_api_init', function (): void {
             (new DeclaredTypesController($this->postTypes, 'post-types', 'Post type'))->register_routes();
             (new DeclaredTypesController($this->taxonomies, 'taxonomies', 'Taxonomy'))->register_routes();
+            (new DeclaredTypesController($this->postMeta, 'post-meta', 'Post meta'))->register_routes();
         });
     }
 }

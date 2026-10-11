@@ -126,6 +126,7 @@ export default defineConfig({
 										{ label: "Menus", slug: "menus" },
 										{ label: "Custom Post Types", slug: "custom-post-types" },
 										{ label: "Taxonomies", slug: "taxonomies" },
+										{ label: "Post Meta", slug: "post-meta" },
 										{ label: "Options", slug: "options" },
 										{ label: "Theme Styles", slug: "theme-styles" },
 									],

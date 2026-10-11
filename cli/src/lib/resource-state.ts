@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
-import {CPT_SPEC, type DeclaredTypeSpec, parseDeclaredArgs, type RemoteDeclaredType, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
+import {CPT_SPEC, type DeclaredTypeSpec, META_SPEC, parseDeclaredArgs, type RemoteDeclaredType, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
@@ -472,7 +472,7 @@ const menuProvider: ResourceStateProvider = {
   title: 'Menus',
 }
 
-// ---- Custom post types and taxonomies ------------------------------------------------------
+// ---- Custom post types, taxonomies and post meta ------------------------------------------------------
 
 // Keyed by slug (the local file name), compared on the bare arguments: `revision` is push
 // bookkeeping, never part of the file.
@@ -499,6 +499,7 @@ function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceSt
 
 const cptProvider = declaredTypeProvider(CPT_SPEC, 'Post types')
 const taxonomyProvider = declaredTypeProvider(TAXONOMY_SPEC, 'Taxonomies')
+const metaProvider = declaredTypeProvider(META_SPEC, 'Post meta')
 
 // ---- Options ------------------------------------------------------------------------------
 
@@ -597,6 +598,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   menuProvider,
   cptProvider,
   taxonomyProvider,
+  metaProvider,
   optionsProvider,
   themeStylesProvider,
 ]

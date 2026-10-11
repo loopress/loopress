@@ -102,6 +102,11 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `taxonomy_list` | No | `env?` | List every taxonomy registered on WordPress, where it comes from and the post types it attaches to |
 | `taxonomy_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress taxonomy (its terms stay in the database, hidden) |
 | `taxonomy_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore taxonomies to the snapshot saved automatically before an earlier `taxonomy_push` (`list` shows what's available) |
+| `meta_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local `meta/<post-type>.json` meta keys to WordPress (create or update only, never their values) |
+| `meta_pull` | No | `env?`, `path?` | Pull the post meta keys Loopress manages into `meta/<post-type>.json` files |
+| `meta_list` | No | `env?` | List the meta keys registered for each post type on WordPress, and whether Loopress declares them |
+| `meta_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
+| `meta_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
 | `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
 | `option_list` | No | `env?`, `noCore?` | List WordPress option names and autoload flags currently on the site (names only, never values) |
@@ -140,7 +145,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 configured in `loopress.json` for that feature. `type` (ACF) and `postType` (SEO) are optional
 arrays that scope the operation to specific object types, matching the CLI's `--type` and
 `--post-type` flags. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `cpt`, `taxonomy`, `option`,
+(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `seo`, `menu`, `cpt`, `taxonomy`, `meta`, `option`,
 `theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real

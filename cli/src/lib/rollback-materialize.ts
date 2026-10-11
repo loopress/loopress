@@ -128,6 +128,7 @@ const MATERIALIZERS: Record<string, Materializer> = {
   form,
   hook: phpFile,
   menu,
+  meta: declaredType,
   option,
   seo,
   snippet,
