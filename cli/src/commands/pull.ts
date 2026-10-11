@@ -20,10 +20,12 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'cpt:pull', label: 'post types', supportsYes: true},
   {commandId: 'taxonomy:pull', label: 'taxonomies', supportsYes: true},
   {commandId: 'meta:pull', label: 'post meta', supportsYes: true},
+  {commandId: 'role:pull', label: 'roles', supportsYes: true},
   {commandId: 'acf:pull', label: 'ACF', supportsYes: true},
   {commandId: 'api:pull', label: 'API routes', supportsYes: true},
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', supportsYes: true},
+  {commandId: 'pattern:pull', label: 'patterns', supportsYes: true},
   {commandId: 'menu:pull', label: 'menus', supportsYes: true},
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', supportsYes: true},
@@ -31,7 +33,7 @@ const PULL_TARGETS: PullTarget[] = [
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull all content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, menus, options, and snippets, from WordPress'
+    'Pull all content, plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, menus, options, and snippets, from WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']

@@ -61,6 +61,21 @@ describe('validateLocal', () => {
     ])
   })
 
+  it('checks pattern files like pattern push, and role files like role push', async () => {
+    write('patterns/hero.html', '<!--\ntitle: Hero\n-->\n<p>Hi</p>')
+    write('patterns/bad.html', '<!--\ninserter: maybe\n-->\n')
+    write('patterns/notes.txt', 'draft')
+    write('roles/client.json', JSON.stringify({capabilities: {read: true}}))
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([
+      {file: join(dir, 'roles', 'client.json'), message: '"name" must be a non-empty string'},
+      {file: join(dir, 'patterns', 'bad.html'), message: '"inserter" must be "true" or "false", got "maybe"'},
+      {file: join(dir, 'patterns', 'notes.txt'), message: expect.stringContaining('only .html files')},
+    ])
+  })
+
   it('checks tracked option files have a name, an autoload and a value', async () => {
     write('options/blogname.json', JSON.stringify({autoload: 'on', name: 'blogname', value: 'Acme'}))
     write('options/broken.json', JSON.stringify({autoload: 'on', name: 'broken'}))

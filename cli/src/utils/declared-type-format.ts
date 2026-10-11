@@ -1,5 +1,6 @@
 import {basename} from 'node:path'
 
+import {parseHtmlHeader, titleFromSlug} from './page-format.js'
 import {type ResourceDirKind} from './resource-dirs.js'
 
 // A WordPress object type declared as one JSON file per item: post types (`lps cpt`, cpt/),
@@ -14,13 +15,20 @@ export type DeclaredTypeSpec = {
   // Checks specific to one kind, after the shared ones: throws with the problem.
   checkArgs?: (args: DeclaredArgs) => void
   // `lps <cliName>`, also the resource-state provider and snapshot name.
-  cliName: 'cpt' | 'meta' | 'taxonomy'
+  cliName: 'cpt' | 'meta' | 'pattern' | 'role' | 'taxonomy'
   // Arguments WordPress calls or instantiates: a file is data, never code.
   codeArgs: string[]
   // The default directory name (loopress.json can override it), for messages.
   dir: string
   dirKind: ResourceDirKind
   endpoint: string
+  // How a file maps to the arguments when it isn't the JSON arguments themselves (patterns: HTML
+  // with a header). `parse` throws with the problem.
+  file?: {
+    extension: string
+    format(args: DeclaredArgs): string
+    parse(slug: string, raw: string): DeclaredArgs
+  }
   // What the item is for the user, singular and lowercase ("post type").
   noun: string
   plural: string
@@ -132,6 +140,118 @@ export const META_SPEC: DeclaredTypeSpec = {
   termArgs: [],
 }
 
+// Same checks as the plugin's RoleService::assertArgs().
+function checkRoleArgs(args: DeclaredArgs): void {
+  if (typeof args.name !== 'string' || args.name.trim() === '') throw new Error('"name" must be a non-empty string')
+
+  const capabilities = args.capabilities ?? {}
+  if (!isObject(capabilities) || Object.values(capabilities).some((granted) => typeof granted !== 'boolean')) {
+    throw new Error('"capabilities" must map each capability name to true or false')
+  }
+}
+
+// `{"name": ..., "capabilities": {cap: bool}}`, added in memory on every request, never written
+// to the roles option. Built-in roles are refused by the plugin.
+export const ROLE_SPEC: DeclaredTypeSpec = {
+  arrayArgs: {capabilities: []},
+  checkArgs: checkRoleArgs,
+  cliName: 'role',
+  codeArgs: [],
+  dir: 'roles',
+  dirKind: 'role',
+  endpoint: 'loopress/v1/roles',
+  noun: 'role',
+  plural: 'roles',
+  registeredEndpoint: 'loopress/v1/registered-roles',
+  registerFunction: 'add_role()',
+  slugMaxLength: 50,
+  termArgs: [],
+}
+
+// Header key => register_block_pattern() property, and how its text is read.
+const PATTERN_HEADER = {
+  'block-types': {key: 'blockTypes', type: 'list'},
+  categories: {key: 'categories', type: 'list'},
+  description: {key: 'description', type: 'text'},
+  inserter: {key: 'inserter', type: 'boolean'},
+  keywords: {key: 'keywords', type: 'list'},
+  'post-types': {key: 'postTypes', type: 'list'},
+  'template-types': {key: 'templateTypes', type: 'list'},
+  title: {key: 'title', type: 'text'},
+  'viewport-width': {key: 'viewportWidth', type: 'integer'},
+} as const
+
+function readPatternValue(header: string, type: string, value: string): unknown {
+  if (type === 'list') return value.split(',').map((item) => item.trim()).filter(Boolean)
+  if (type === 'boolean') {
+    if (value !== 'true' && value !== 'false') throw new Error(`"${header}" must be "true" or "false", got "${value}"`)
+    return value === 'true'
+  }
+
+  if (type === 'integer') {
+    if (!/^\d+$/.test(value)) throw new Error(`"${header}" must be a whole number, got "${value}"`)
+    return Number(value)
+  }
+
+  return value
+}
+
+// A pattern file is its block markup, opened by the same `key: value` comment header as a page.
+export function parsePatternFile(slug: string, raw: string): DeclaredArgs {
+  const {body, meta} = parseHtmlHeader(raw, Object.keys(PATTERN_HEADER))
+  const args: DeclaredArgs = {title: titleFromSlug(slug)}
+  for (const [header, value] of Object.entries(meta)) {
+    const {key, type} = PATTERN_HEADER[header as keyof typeof PATTERN_HEADER]
+    args[key] = readPatternValue(header, type, value)
+  }
+
+  args.content = body
+  return args
+}
+
+export function formatPatternFile(args: DeclaredArgs): string {
+  const lines = Object.entries(PATTERN_HEADER)
+    .filter(([, {key}]) => args[key] !== undefined)
+    .map(([header, {key}]) => `${header}: ${Array.isArray(args[key]) ? args[key].join(', ') : String(args[key])}`)
+
+  return `<!--\n${lines.join('\n')}\n-->\n${typeof args.content === 'string' ? args.content : ''}`
+}
+
+function checkPatternArgs(args: DeclaredArgs): void {
+  if (typeof args.title !== 'string' || args.title.trim() === '') throw new Error('"title" must be a non-empty string')
+}
+
+// Registered as `loopress/<slug>`, referenced with `<!-- wp:pattern {"slug":"loopress/<slug>"} /-->`.
+export const PATTERN_SPEC: DeclaredTypeSpec = {
+  arrayArgs: {blockTypes: [], categories: [], keywords: [], postTypes: [], templateTypes: []},
+  checkArgs: checkPatternArgs,
+  cliName: 'pattern',
+  codeArgs: ['filePath'],
+  dir: 'patterns',
+  dirKind: 'pattern',
+  endpoint: 'loopress/v1/patterns',
+  file: {extension: '.html', format: formatPatternFile, parse: parsePatternFile},
+  noun: 'pattern',
+  plural: 'patterns',
+  registeredEndpoint: 'loopress/v1/registered-patterns',
+  registerFunction: 'register_block_pattern()',
+  slugMaxLength: 100,
+  termArgs: [],
+}
+
+export function fileExtension(spec: DeclaredTypeSpec): string {
+  return spec.file?.extension ?? '.json'
+}
+
+export function parseDeclaredFile(spec: DeclaredTypeSpec, filePath: string, raw: string): {args: DeclaredArgs; slug: string} {
+  const slug = basename(filePath, fileExtension(spec))
+  return {args: spec.file ? spec.file.parse(slug, raw) : parseDeclaredArgs(raw), slug}
+}
+
+export function formatDeclaredFile(spec: DeclaredTypeSpec, args: DeclaredArgs): string {
+  return spec.file ? spec.file.format(args) : JSON.stringify(args, null, 2) + '\n'
+}
+
 export function itemEndpoint(spec: DeclaredTypeSpec, slug: string): string {
   return `${spec.endpoint}/${encodeURIComponent(slug)}`
 }
@@ -147,7 +267,7 @@ export type RemoteDeclaredType = {
 
 export type RegisteredItem = {
   conflict: boolean
-  // Published posts for a post type, terms for a taxonomy.
+  // Published posts for a post type, terms for a taxonomy, users for a role, 0 for a pattern.
   count: number
   label: string
   managed: boolean
@@ -172,12 +292,12 @@ export function declaredFileChecker(spec: DeclaredTypeSpec): (raw: string, fileP
   const slugPattern = new RegExp(`^[a-z0-9_-]{1,${spec.slugMaxLength}}$`)
 
   return (raw, filePath) => {
-    const slug = basename(filePath, '.json')
+    const slug = basename(filePath, fileExtension(spec))
     if (!slugPattern.test(slug)) {
       throw new Error(`"${slug}" is not a valid ${spec.noun} slug: 1 to ${spec.slugMaxLength} lowercase letters, digits, "_" or "-"`)
     }
 
-    const args = parseDeclaredArgs(raw)
+    const {args} = parseDeclaredFile(spec, filePath, raw)
     for (const [key, alsoAllowed] of Object.entries(spec.arrayArgs)) {
       const value = args[key]
       if (Object.hasOwn(args, key) && (typeof value !== 'object' || value === null) && !alsoAllowed.includes(value)) {

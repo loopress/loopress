@@ -60,11 +60,11 @@ WordPress.org does not allow a plugin to deploy, so it ships from loopress.dev. 
 | --- | :---: | :---: |
 | ACF field groups, post types, taxonomies | ✓ | ✓ |
 | Menus, options, block theme styles | ✓ | ✓ |
-| Custom post types, taxonomies and post meta keys (JSON files, like CPT UI in Git) | ✓ | ✓ |
+| Custom post types, taxonomies, post meta keys and roles (JSON files, like CPT UI in Git) | ✓ | ✓ |
 | Hooks, filters, cron (PHP classes) | | ✓ |
 | REST API routes | | ✓ |
 | Apps (React, Vue, Svelte bundles) | | ✓ |
-| Pages, snippets, forms | | ✓ |
+| Pages, block patterns, snippets, forms | | ✓ |
 | Plugin and theme lockfile, Composer | | ✓ |
 | Get it | [WordPress.org](https://wordpress.org/plugins/loopress-light/) | [loopress.dev](https://docs.loopress.dev/wordpress-plugin/) |
 

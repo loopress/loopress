@@ -5,6 +5,7 @@ import { CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
 // PostTypeService::registered(), TaxonomyService::registered(), PostMetaService::registered(),
+// RoleService::registered(),
 // WPFormsProvider::toCanonical()), only the fields shown.
 interface AcfObject {
     key: string;
@@ -256,6 +257,45 @@ function MetaSection() {
     );
 }
 
+// Every role on the site. Loopress roles live in memory only, never in the roles option.
+function RolesSection() {
+    const query = useQuery<RegisteredPostType[]>({
+        queryKey: ['registered-roles'],
+        queryFn: () => apiFetch<RegisteredPostType[]>('/registered-roles'),
+        staleTime: 30_000,
+    });
+    const roles = query.data ?? [];
+
+    return (
+        <ResourceSection
+            title="Roles"
+            description={<>Loopress roles are declared in <code>roles/</code> files and pulled with <code>lps role pull</code>. Which users have them is never synced.</>}
+            query={query}
+            isEmpty={roles.length === 0}
+            errorText={errorText(query.error, 'Failed to load roles.')}
+            empty="No roles."
+        >
+            <Table columns={['Name', 'Slug', 'Source', 'Users']}>
+                {roles.map((role) => (
+                    <Row key={role.slug}>
+                        <td style={CELL}><strong>{role.label}</strong></td>
+                        <td style={MONO}>{role.slug}</td>
+                        <td style={CELL}>
+                            {SOURCE_LABELS[role.source]}
+                            {role.conflict && (
+                                <Pill tone="warning" title="Declared in roles/, but a role with this slug is already saved on the site: the Loopress version is skipped.">
+                                    Conflict
+                                </Pill>
+                            )}
+                        </td>
+                        <td style={CELL}>{role.count}</td>
+                    </Row>
+                ))}
+            </Table>
+        </ResourceSection>
+    );
+}
+
 function FormsSection() {
     const query = useQuery<Form[]>({ queryKey: ['forms'], queryFn: () => apiFetch<Form[]>('/forms'), staleTime: 30_000 });
     const forms = query.data ?? [];
@@ -294,6 +334,7 @@ export function ConfigPanel() {
             <PostTypesSection />
             <TaxonomiesSection />
             <MetaSection />
+            <RolesSection />
             <FormsSection />
         </>
     );

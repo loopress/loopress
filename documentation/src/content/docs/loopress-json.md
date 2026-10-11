@@ -45,11 +45,13 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `cptDir` | `cpt` | Custom post types, one `<slug>.json` file of `register_post_type()` arguments each | [`lps cpt`](/custom-post-types/) |
 | `taxonomyDir` | `taxonomies` | Taxonomies, one `<slug>.json` file of `register_taxonomy()` arguments plus `object_type` each | [`lps taxonomy`](/taxonomies/) |
 | `metaDir` | `meta` | Post meta keys, one `<post-type>.json` file mapping each key to its `register_post_meta()` arguments | [`lps meta`](/post-meta/) |
+| `roleDir` | `roles` | User roles, one `<slug>.json` file with a name and capabilities | [`lps role`](/roles/) |
 | `optionsDir` | `options` | Tracked `wp_options` rows, only the ones added with `lps option add` | [`lps option`](/options/) |
 | `themeStylesDir` | `theme` | The active block theme's Global Styles | [`lps theme style`](/theme-styles/) |
 | `apiDir` | `api` | Custom API route files | [`lps api`](/api/cli/) |
 | `hooksDir` | `hooks` | Hook files (actions, filters, cron) | [`lps hook`](/hooks/) |
 | `pageDir` | `pages` | Static HTML pages | [`lps page`](/pages/) |
+| `patternDir` | `patterns` | Block patterns, one `<slug>.html` file of block markup, registered as `loopress/<slug>` | [`lps pattern`](/block-patterns/) |
 | `templateDir` | `theme/templates` | Block templates, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
 | `partDir` | `theme/parts` | Block template parts, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
 | `appsDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |

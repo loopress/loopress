@@ -32,6 +32,9 @@ const RESPONSES: Record<string, unknown> = {
     '/registered-post-meta': [
         { postType: 'book', key: 'isbn', type: 'string', showInRest: true, source: 'loopress', acf: true, conflict: false },
     ],
+    '/registered-roles': [
+        { slug: 'client', label: 'Client editor', source: 'loopress', count: 5, managed: true, conflict: false },
+    ],
     '/forms': [{ id: 12, settings: { form_title: 'Contact' } }],
 };
 
@@ -76,6 +79,14 @@ describe('ConfigPanel', () => {
         expect(await screen.findByText('isbn')).toBeInTheDocument();
         expect(screen.getByText('ACF field')).toBeInTheDocument();
         expect(screen.getByText('lps meta pull')).toBeInTheDocument();
+    });
+
+    test('lists every role with its source and user count', async () => {
+        render(<ConfigPanel />, { wrapper });
+
+        expect(await screen.findByText('Client editor')).toBeInTheDocument();
+        expect(screen.getByText('5')).toBeInTheDocument();
+        expect(screen.getByText('lps role pull')).toBeInTheDocument();
     });
 
     test("shows the endpoint's own reason when a plugin isn't active", async () => {

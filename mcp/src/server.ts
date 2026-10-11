@@ -17,8 +17,10 @@ import {registerMenuTools} from './tools/menu.js'
 import {registerMetaTools} from './tools/meta.js'
 import {registerOptionTools} from './tools/option.js'
 import {registerPageTools} from './tools/page.js'
+import {registerPatternTools} from './tools/pattern.js'
 import {registerPluginTools} from './tools/plugin.js'
 import {registerPromoteTools} from './tools/promote.js'
+import {registerRoleTools} from './tools/role.js'
 import {registerSnippetTools} from './tools/snippet.js'
 import {registerStatusTools} from './tools/status.js'
 import {registerTaxonomyTools} from './tools/taxonomy.js'
@@ -38,6 +40,8 @@ registerMenuTools(server)
 registerCptTools(server)
 registerTaxonomyTools(server)
 registerMetaTools(server)
+registerRoleTools(server)
+registerPatternTools(server)
 registerOptionTools(server)
 registerFormTools(server)
 registerPluginTools(server)

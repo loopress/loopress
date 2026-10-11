@@ -24,6 +24,10 @@ deptrac:
         # needing HTTP could depend on it too.
         - type: classNameRegex
           value: '#^Loopress\\Infrastructure\\.+$#'
+        # The declared-type base (`lps cpt`, `lps role`... in Light) that `lps pattern` (Pages, Full)
+        # extends: generic, nothing Light-specific in it.
+        - type: classNameRegex
+          value: '#^Loopress\\PostTypes\\(Service\\AbstractDeclaredTypeService|RestApi\\DeclaredTypesController|Exception\\.+)$#'
 
     - name: Light
       collectors:
@@ -38,7 +42,7 @@ deptrac:
         - type: classNameRegex
           value: '#^Loopress\\Pushes\\.+$#'
         - type: classNameRegex
-          value: '#^Loopress\\PostTypes\\.+$#'
+          value: '#^Loopress\\PostTypes\\(?!Service\\AbstractDeclaredTypeService$|RestApi\\DeclaredTypesController$|Exception\\).+$#'
         - type: classNameRegex
           value: '#^Loopress\\Plugin$#'
 

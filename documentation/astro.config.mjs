@@ -117,6 +117,7 @@ export default defineConfig({
 											],
 										},
 										{ label: "Static Pages", slug: "pages" },
+										{ label: "Block Patterns", slug: "block-patterns" },
 									],
 								},
 								{
@@ -128,6 +129,7 @@ export default defineConfig({
 										{ label: "Custom Post Types", slug: "custom-post-types" },
 										{ label: "Taxonomies", slug: "taxonomies" },
 										{ label: "Post Meta", slug: "post-meta" },
+										{ label: "Roles", slug: "roles" },
 										{ label: "Options", slug: "options" },
 										{ label: "Theme Styles", slug: "theme-styles" },
 									],

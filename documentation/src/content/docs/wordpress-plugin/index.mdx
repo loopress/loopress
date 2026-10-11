@@ -7,8 +7,8 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase. Both are free:
 
-- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [Forms](/forms/), [Menus](/menus/), [Custom Post Types](/custom-post-types/), [Taxonomies](/taxonomies/), [Post Meta](/post-meta/), [Options](/options/), and [Theme Styles](/theme-styles/).
-- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
+- **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [Forms](/forms/), [Menus](/menus/), [Custom Post Types](/custom-post-types/), [Taxonomies](/taxonomies/), [Post Meta](/post-meta/), [Roles](/roles/), [Options](/options/), and [Theme Styles](/theme-styles/).
+- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Block Patterns](/block-patterns/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
 
 Loopress Full is not a paid upgrade. It is distributed outside WordPress.org because the directory guidelines forbid installing code from Packagist and deploying PHP into another plugin, see [About WordPress.org-hosted plugins](#about-wordpressorg-hosted-plugins). Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on, and the two editions never run side by side.
 
@@ -30,6 +30,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | `lps taxonomy pull` / `push` / `list` / `rm` / `diff` | ✓ | ✓ |
 | Post meta keys declared as JSON files (never their values) | ✓ | ✓ |
 | `lps meta pull` / `push` / `list` / `rm` / `diff` | ✓ | ✓ |
+| User roles declared as JSON files (never which users have them) | ✓ | ✓ |
+| `lps role pull` / `push` / `list` / `rm` / `diff` | ✓ | ✓ |
 | Option tracking (individual `wp_options` rows you choose) | ✓ | ✓ |
 | `lps option add` / `pull` / `push` / `list` / `remove` / `diff` | ✓ | ✓ |
 | Theme styles (block theme Global Styles, through WordPress core's own REST API) | ✓ | ✓ |
@@ -41,6 +43,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | `lps hook pull` / `push` / `list` / `rm` | | ✓ |
 | Static pages (hand-written HTML pages rendered by the theme) | | ✓ |
 | `lps page push` / `list` / `diff` | | ✓ |
+| Block patterns (HTML files, included in pages, templates and parts with `wp:pattern`) | | ✓ |
+| `lps pattern pull` / `push` / `list` / `rm` / `diff` | | ✓ |
 | Single-page apps (ship a built Vue, React or Svelte bundle, mount with a shortcode) | | ✓ |
 | `lps app pull` / `push` / `list` / `remove` | | ✓ |
 | Plugin and theme lockfile (pin WordPress.org plugins and themes, install via Composer + WPackagist) | | ✓ |
@@ -62,6 +66,7 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 - **Custom post types**: post types declared as `cpt/<slug>.json` files, registered by the plugin, with `lps cpt pull/push`
 - **Taxonomies**: taxonomies declared as `taxonomies/<slug>.json` files, attached to post types, with `lps taxonomy pull/push`. Terms stay content
 - **Post meta**: meta keys declared per post type as `meta/<post-type>.json` files, with their type, default and REST exposure, with `lps meta pull/push`. Values stay content
+- **Roles**: custom user roles and their capabilities declared as `roles/<slug>.json` files, with `lps role pull/push`. Which users have them stays content
 - **Option tracking**: the individual `wp_options` rows you choose, with `lps option add/pull/push`
 - **Theme styles**: the active block theme's Global Styles with `lps theme style pull/push`, through WordPress core's own REST API
 - **REST API for the CLI**: everything runs over `loopress/v1`, restricted to the `manage_options` capability (administrator role)
@@ -76,6 +81,7 @@ Everything in Loopress Light, plus:
 - **Hooks**: WordPress actions, filters and cron jobs deployed from PHP files with `lps hook push`
 - **Custom API routes**: REST API endpoints as plain PHP files with `lps api push`, each file becomes one route
 - **Static pages**: hand-written HTML files pushed as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, plus block templates and parts in a child theme
+- **Block patterns**: groups of blocks as `patterns/<slug>.html` files with `lps pattern push`, referenced from pages, templates and parts so one change updates them all
 - **Single-page apps**: a pre-built Vue, React or Svelte bundle shipped with `lps app push` and mounted in any page with a shortcode
 - **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme version push`, via Composer and WPackagist
 - **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/) in the admin, or sync `composer.json` with `lps composer push/pull`
@@ -131,7 +137,7 @@ Installing Loopress Full deactivates Loopress Light automatically. From then on,
 Both editions add a **Loopress** page to the WordPress admin, with the site's environment type (production, staging...) shown next to its title. Loopress Light has the first two tabs below; Loopress Full has all five:
 
 - **Overview** (the default): what was pushed to this site from your repository, see [Push history and drift](#push-history-and-drift)
-- **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) and [taxonomy](/taxonomies/) on the site with its source, registered [meta keys](/post-meta/), and [forms](/forms/), each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
+- **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) and [taxonomy](/taxonomies/) on the site with its source, registered [meta keys](/post-meta/), every [role](/roles/) with its number of users, and [forms](/forms/), each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
 - **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Code**: the code deployed with the CLI, read-only: [API routes](/api/admin-ui/) and their namespace setting, [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
 - **Settings**: crash reporting, and a reset of every Loopress setting
