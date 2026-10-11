@@ -71,17 +71,18 @@ jobs:
         run: pnpm test
 
   cli-e2e:
-    name: CLI:E2E tests (Playwright ${{ matrix.shard }}/3)
+    name: CLI:E2E tests (Playwright ${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # The suite is serial (workers: 1, tests mutate global WordPress state), so the only way to
     # run it concurrently is one WordPress per runner. Each shard boots its own fresh instance
-    # and runs a third of the spec files. Bump the shard count (here and in --shard) if the
-    # suite grows; each shard pays ~2 min of fixed setup, so past that it stops paying off.
+    # and runs its share of the spec files. Add a shard to the list if the suite grows (the
+    # "Slow test file" notices at the end of each run show which files weigh the most); each
+    # shard pays ~2 min of fixed setup, so past a point it stops paying off.
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1 v4
         with:
@@ -102,6 +103,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/cli... --filter @loopress/wordpress-plugin... --filter .
+
+      # Runs in the background so it overlaps the plugin build and WordPress startup below,
+      # awaited by "Wait for Playwright browsers". setup-ci's own apt-get runs inside the
+      # WordPress container, so it doesn't fight this one over the host's apt lock.
+      - name: Install Playwright browsers (background)
+        run: |
+          (npx playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1
+           echo $? > "$RUNNER_TEMP/playwright-install.exit") &
 
       # `loopress/setup-ci` installs the last *published* release of the plugin, since it's
       # also used to smoke-test real releases. That means these e2e tests would otherwise
@@ -152,8 +161,11 @@ jobs:
           TOKEN=$(jq -r '.projects[.currentProject.id].environments.local.token' "${XDG_CONFIG_HOME:-$HOME/.config}/loopress/config.json")
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Wait for Playwright browsers
+        run: |
+          while [ ! -f "$RUNNER_TEMP/playwright-install.exit" ]; do sleep 1; done
+          cat "$RUNNER_TEMP/playwright-install.log"
+          exit "$(cat "$RUNNER_TEMP/playwright-install.exit")"
 
       - name: Run CLI e2e tests
         env:
@@ -170,7 +182,7 @@ jobs:
           WP_ADMIN_PASSWORD: admin
           WP_APP_PASSWORD: ${{ steps.wp-creds.outputs.app-password }}
         # `pretest:e2e` builds the CLI first, so there's no separate build step.
-        run: pnpm test:e2e --shard=${{ matrix.shard }}/3
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       # Videos and traces are only kept for failed tests (playwright.config.ts:
       # video/trace: 'retain-on-failure'), so this is near-empty on a green run and the one
