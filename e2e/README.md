@@ -39,7 +39,9 @@ matching what that script sets).
 ## Notes
 
 - Tests run with `workers: 1`: several of them flip global state (active plugins) on the
-  shared WordPress instance, so they can't run concurrently.
+  shared WordPress instance, so they can't run concurrently. CI gets its speed by sharding
+  instead (`--shard=N/3` in `.github/workflows/ci.yml`): each shard is its own runner with
+  its own fresh WordPress, so specs must not rely on another spec file having run first.
 - `seo-sync.spec.ts` expects both RankMath (`seo-by-rank-math`) and Yoast SEO (`wordpress-seo`)
   to be pre-installed, same as ACF and WPCode. They're mutually exclusive at the `lps seo`
   level (`SeoService` refuses to guess which one is authoritative if both are active at once),
