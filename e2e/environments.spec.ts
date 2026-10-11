@@ -1,4 +1,4 @@
-import {readFileSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
@@ -125,5 +125,69 @@ test.describe('local config commands', () => {
     const disabled = await runCli(['telemetry', 'disable'])
     expect(disabled.stdout).toContain('Error reporting disabled.')
     expect(readConfig(homeDir).telemetry).toEqual({disabled: true})
+  })
+})
+
+// The commands that need a terminal or a Loopress account: in CI they must fail fast with the
+// way forward, never hang on a prompt or crash. The account-side flows themselves (Google OAuth,
+// the cloud API) are out of scope here, see the monorepo's own e2e suite.
+test.describe('interactive-only and account commands without a terminal or a login', () => {
+  test('init refuses without a terminal and leaves loopress.json alone', async ({projectDir, runCli}) => {
+    const before = readFileSync(join(projectDir, 'loopress.json'), 'utf8')
+
+    const init = await runCli(['init'])
+
+    expect(init.exitCode).not.toBe(0)
+    expect(output(init)).toContain('lps init asks its questions interactively and needs a terminal')
+    expect(readFileSync(join(projectDir, 'loopress.json'), 'utf8')).toBe(before)
+  })
+
+  test('project config refuses without a terminal and points to --env for CI', async ({runCli}) => {
+    const config = await runCli(['project', 'config'])
+
+    expect(config.exitCode).not.toBe(0)
+    expect(output(config)).toContain('lps project config asks its questions interactively and needs a terminal')
+  })
+
+  for (const command of [
+    ['project', 'pull'],
+    ['project', 'push'],
+    ['snippet', 'publish'],
+    ['api', 'publish'],
+  ]) {
+    test(`${command.join(' ')} asks to log in first`, async ({runCli}) => {
+      const result = await runCli(command)
+
+      expect(result.exitCode).not.toBe(0)
+      expect(output(result)).toContain('Not logged in. Run `lps login` first.')
+    })
+  }
+
+  test('publish needs the project linked to the account, even when logged in', async ({homeDir, runCli}) => {
+    const {dataDir} = JSON.parse((await runCli(['status', '--json'])).stdout) as {dataDir: string}
+    expect(dataDir.startsWith(homeDir)).toBe(true)
+    mkdirSync(dataDir, {recursive: true})
+    writeFileSync(join(dataDir, 'auth.json'), JSON.stringify({email: 'e2e@example.com', savedAt: new Date().toISOString(), token: 'e2e'}))
+
+    const publish = await runCli(['snippet', 'publish'])
+
+    expect(publish.exitCode).not.toBe(0)
+    expect(output(publish)).toContain('Project "e2e" is not linked to your Loopress account yet. Run `lps project push` first.')
+  })
+
+  test('logout clears a stored session, and says so when there is none', async ({homeDir, runCli}) => {
+    const {dataDir} = JSON.parse((await runCli(['status', '--json'])).stdout) as {dataDir: string}
+    expect(dataDir.startsWith(homeDir)).toBe(true)
+    mkdirSync(dataDir, {recursive: true})
+    const authFile = join(dataDir, 'auth.json')
+    writeFileSync(authFile, JSON.stringify({email: 'e2e@example.com', savedAt: new Date().toISOString(), token: 'e2e'}))
+
+    const logout = await runCli(['logout'])
+    expect(logout.exitCode, output(logout)).toBe(0)
+    expect(logout.stdout).toContain('Logged out (e2e@example.com).')
+    expect(existsSync(authFile)).toBe(false)
+
+    const again = await runCli(['logout'])
+    expect(again.stdout).toContain('You are not logged in.')
   })
 })
