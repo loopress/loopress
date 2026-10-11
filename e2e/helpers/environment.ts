@@ -146,4 +146,10 @@ export function unwrap(text: string): string {
   return text.replaceAll(/\s+/g, ' ')
 }
 
+// Everything a command printed, as one line: Listr's non-TTY renderer and oclif's warn()/error()
+// split messages across stdout and stderr, and oclif prefixes each wrapped error line with " › ".
+export function output(result: CliResult): string {
+  return unwrap(result.stdout + result.stderr).replaceAll(' › ', ' ')
+}
+
 export {expect} from '@playwright/test'

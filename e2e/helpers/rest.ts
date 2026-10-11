@@ -1,5 +1,7 @@
 import type {APIRequestContext, APIResponse} from '@playwright/test'
 
+import {randomInt} from 'node:crypto'
+
 import type {WpCredentials} from './environment.js'
 
 // Basic auth with the app password: the same auth path the CLI's WpClient uses, so a REST
@@ -26,5 +28,5 @@ export function restDelete(request: APIRequestContext, wp: WpCredentials, path: 
 
 // A short, unique, lowercase slug: post type slugs max out at 20 characters.
 export function uniqueSlug(prefix: string): string {
-  return `${prefix}${Date.now().toString(36)}${Math.floor(Math.random() * 36 ** 2).toString(36)}`
+  return `${prefix}${Date.now().toString(36)}${randomInt(36 ** 2).toString(36)}`
 }

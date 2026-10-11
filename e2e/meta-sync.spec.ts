@@ -2,7 +2,7 @@
 import {mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {expect, test, unwrap} from './helpers/environment.js'
+import {expect, output, test} from './helpers/environment.js'
 import {restGet, restPost, uniqueSlug} from './helpers/rest.js'
 
 // meta/<post-type>.json holds every Loopress key of that post type, and `meta rm` drops the whole
@@ -25,9 +25,6 @@ function writeMeta(projectDir: string, postType: string, keys: Record<string, un
   return file
 }
 
-function output(result: {stderr: string; stdout: string}): string {
-  return unwrap(result.stdout + result.stderr)
-}
 
 const hosts: string[] = []
 test.afterEach(async ({runCli}) => {

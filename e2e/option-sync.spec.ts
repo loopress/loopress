@@ -1,8 +1,9 @@
 /* eslint-disable camelcase -- option values mirror real plugin settings, which are snake_case. */
+import {randomInt} from 'node:crypto'
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {expect, test, unwrap} from './helpers/environment.js'
+import {expect, output, test} from './helpers/environment.js'
 import {restDelete, restGet, restPost, restPut} from './helpers/rest.js'
 
 type LocalOption = {autoload: string; name: string; readonly?: boolean; refs?: Record<string, string>; value: unknown}
@@ -22,13 +23,10 @@ function readOption(projectDir: string, name: string): LocalOption {
   return JSON.parse(readFileSync(optionFile(projectDir, name), 'utf8')) as LocalOption
 }
 
-function output(result: {stderr: string; stdout: string}): string {
-  return unwrap(result.stdout + result.stderr)
-}
 
 // Avoids every name pattern the plugin refuses to read as a likely secret (_key, token, ...).
 function uniqueName(): string {
-  return `e2e_opt_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+  return `e2e_opt_${Date.now()}_${randomInt(1000)}`
 }
 
 // Options this test created on the shared instance, deleted through the plugin's own endpoint.

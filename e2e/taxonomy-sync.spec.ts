@@ -2,7 +2,7 @@
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {expect, test, unwrap} from './helpers/environment.js'
+import {expect, output, test} from './helpers/environment.js'
 import {restGet, restPost, uniqueSlug} from './helpers/rest.js'
 
 function writeTaxonomy(projectDir: string, slug: string, args: Record<string, unknown>): string {
@@ -17,9 +17,6 @@ function taxonomyArgs(label: string, objectType: string[] = ['post']): Record<st
   return {hierarchical: true, labels: {name: label, singular_name: label}, object_type: objectType, public: true, show_in_rest: true}
 }
 
-function output(result: {stderr: string; stdout: string}): string {
-  return unwrap(result.stdout + result.stderr)
-}
 
 const declared: string[] = []
 test.afterEach(async ({runCli}) => {

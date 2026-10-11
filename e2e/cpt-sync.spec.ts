@@ -2,7 +2,7 @@
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
-import {expect, test, unwrap} from './helpers/environment.js'
+import {expect, output, test} from './helpers/environment.js'
 import {restGet, restPost, uniqueSlug} from './helpers/rest.js'
 
 function writeCpt(projectDir: string, slug: string, args: Record<string, unknown>): string {
@@ -17,11 +17,6 @@ function cptArgs(label: string): Record<string, unknown> {
   return {labels: {name: label, singular_name: label}, public: true, show_in_rest: true, supports: ['title', 'editor']}
 }
 
-// Listr's non-TTY renderer and oclif's warn() don't agree on stdout vs stderr, so a failure
-// message is looked for in both.
-function output(result: {stderr: string; stdout: string}): string {
-  return unwrap(result.stdout + result.stderr)
-}
 
 // Every test cleans up the post type it declared: the e2e instance is shared and long-lived,
 // and a leftover Loopress post type is registered on every request from then on.
