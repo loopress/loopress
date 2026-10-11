@@ -12,7 +12,7 @@ Sync ACF field groups, WPForms forms, menus, and options with the Loopress CLI: 
 
 == Description ==
 
-Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, WPForms forms, navigation menus, custom post types, taxonomies and post meta keys declared as JSON files, and the WordPress options you choose to track, exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
+Loopress Light connects your WordPress site's configuration to your development workflow. It reads and writes ACF (Advanced Custom Fields) field groups, post types, taxonomies, and options pages, WPForms forms, navigation menus, custom post types, taxonomies, post meta keys and user roles declared as JSON files, and the WordPress options you choose to track, exposing all of it to the Loopress CLI (`lps`) as JSON so it can live in Git like any other code.
 
 Features:
 
@@ -22,6 +22,7 @@ Features:
 * Declare custom post types as JSON files, like CPT UI but in Git: `lps cpt pull` / `lps cpt push` / `lps cpt list`
 * Declare taxonomies the same way, attached to your post types (their terms stay content): `lps taxonomy pull` / `lps taxonomy push` / `lps taxonomy list`
 * Declare the meta keys of each post type (type, default, REST exposure; their values stay content): `lps meta pull` / `lps meta push` / `lps meta list`
+* Declare custom user roles and their capabilities, identical on every environment (which users have them stays content): `lps role pull` / `lps role push` / `lps role list`
 * Sync the WordPress options listed in your project (Settings screens, plugin settings): `lps option pull` / `lps option push` / `lps option list`
 * Keep configuration in Git: history, diffs, code review, rollbacks
 * Move configuration between environments (local, staging, production)
@@ -40,7 +41,7 @@ Need code snippet sync (Code Snippets, WPCode) or Composer dependency management
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs ACF, WPForms forms, menus, custom post types, taxonomies, post meta keys, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
+Loopress Light (this plugin) syncs ACF, WPForms forms, menus, custom post types, taxonomies, post meta keys, user roles, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
 = Which ACF versions are supported? =
 
@@ -48,7 +49,7 @@ Advanced Custom Fields (options pages require ACF PRO). You keep using its inter
 
 = Does the plugin execute code by itself? =
 
-No. Loopress Light only reads and writes ACF field group definitions, form definitions, menus, custom post type, taxonomy and post meta arguments, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code: script tags, inline event handlers, and `javascript:` URLs are stripped from pushed ACF and form values, and a custom post type, taxonomy or post meta file only holds `register_post_type()`, `register_taxonomy()` or `register_post_meta()` settings, any argument that would run code (a callback, a REST controller class) is refused.
+No. Loopress Light only reads and writes ACF field group definitions, form definitions, menus, custom post type, taxonomy, post meta and role arguments, and options through the WordPress and plugin APIs, exactly as when you edit them by hand in their interface. It never accepts or stores arbitrary code: script tags, inline event handlers, and `javascript:` URLs are stripped from pushed ACF and form values, and a custom post type, taxonomy, post meta or role file only holds `register_post_type()`, `register_taxonomy()` or `register_post_meta()` settings or a role's name and capabilities, any argument that would run code (a callback, a REST controller class) is refused.
 
 = Which options can be synced? =
 

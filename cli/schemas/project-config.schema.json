@@ -74,6 +74,16 @@
       "description": "Directory where taxonomies (one JSON file of register_taxonomy() arguments plus \"object_type\" per taxonomy, named <slug>.json) are read from and written to, relative to rootDir.",
       "default": "taxonomies"
     },
+    "roleDir": {
+      "type": "string",
+      "description": "Directory where user roles (one JSON file of \"name\" and \"capabilities\" per role, named <slug>.json) are read from and written to, relative to rootDir.",
+      "default": "roles"
+    },
+    "patternDir": {
+      "type": "string",
+      "description": "Directory where block patterns (one <slug>.html of block markup per pattern, registered as loopress/<slug>) are read from and written to, relative to rootDir.",
+      "default": "patterns"
+    },
     "metaDir": {
       "type": "string",
       "description": "Directory where post meta keys (one JSON file per post type, named <post-type>.json, mapping each meta key to its register_post_meta() arguments) are read from and written to, relative to rootDir.",

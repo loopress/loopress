@@ -1,13 +1,15 @@
 import {confirm} from '@inquirer/prompts'
 import {Args} from '@oclif/core'
 import {writeFile} from 'node:fs/promises'
-import {basename, join} from 'node:path'
+import {join} from 'node:path'
 
 import {
   type DeclaredArgs,
   type DeclaredTypeSpec,
+  fileExtension,
+  formatDeclaredFile,
   itemEndpoint,
-  parseDeclaredArgs,
+  parseDeclaredFile,
   type RegisteredItem,
   type RemoteDeclaredType,
 } from '../utils/declared-type-format.js'
@@ -22,8 +24,8 @@ import {PushCommand} from './push-command.js'
 import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404, isNotFoundError} from './wp-client.js'
 
-// `lps cpt` and `lps taxonomy`: the same push/pull/list/rm over a one-JSON-file-per-item
-// directory, built from the resource's DeclaredTypeSpec (same factory approach as
+// `lps cpt`, `lps taxonomy`, `lps meta`, `lps role` and `lps pattern`: the same push/pull/list/rm
+// over a one-file-per-item directory (JSON, or the spec's own `file` format), built from the resource's DeclaredTypeSpec (same factory approach as
 // php-files-command.ts). diff and rollback come from resourceDiffCommand/resourceRollbackCommand.
 
 type LocalItem = {args: DeclaredArgs; slug: string}
@@ -64,11 +66,11 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
       const beforeState = await this.captureBeforePushState(provider, path)
 
       const items = await loadFiles<LocalItem>(path, {
-        extension: '.json',
+        extension: fileExtension(spec),
         onSkip: (message) => {
           this.warn(message)
         },
-        parse: (raw, filePath) => ({args: parseDeclaredArgs(raw), slug: basename(filePath, '.json')}),
+        parse: (raw, filePath) => parseDeclaredFile(spec, filePath, raw),
       })
 
       this.log(`Found ${pluralize(items.length, spec.noun, spec.plural)} to push`)
@@ -147,7 +149,7 @@ export function declaredPullCommand(spec: DeclaredTypeSpec, description: string)
       this.log(`Path: ${path}`)
 
       const remote = await this.wp.get<RemoteDeclaredType[]>(spec.endpoint)
-      const orphans = await findOrphanedFiles(path, new Set(remote.map(({slug}) => slug)), {extensions: ['.json'], key: basenameKey})
+      const orphans = await findOrphanedFiles(path, new Set(remote.map(({slug}) => slug)), {extensions: [fileExtension(spec)], key: basenameKey})
 
       await this.pullDirectory(path, remote, orphans, {
         dryRunMessage: `Would pull ${pluralize(remote.length, spec.noun, spec.plural)} to ${path}`,
@@ -156,7 +158,7 @@ export function declaredPullCommand(spec: DeclaredTypeSpec, description: string)
         title: ({slug}) => slug,
         // Only the arguments: the slug is the file name, the revision is push bookkeeping.
         async write(item, dir) {
-          await writeFile(join(dir, `${item.slug}.json`), JSON.stringify(item.args, null, 2) + '\n')
+          await writeFile(join(dir, `${item.slug}${fileExtension(spec)}`), formatDeclaredFile(spec, item.args))
         },
       })
 
@@ -169,7 +171,8 @@ export function declaredPullCommand(spec: DeclaredTypeSpec, description: string)
 
 export type DeclaredListCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RegisteredItem[]>}
 
-// `countLabel` renders the item's count: "3 published" for a post type, "3 terms" for a taxonomy.
+// `countLabel` renders the item's count: "3 published" for a post type, "3 terms" for a taxonomy,
+// nothing when it returns an empty string.
 export function declaredListCommand(
   spec: DeclaredTypeSpec,
   description: string,
@@ -185,7 +188,9 @@ export function declaredListCommand(
 
       for (const item of items) {
         const attached = item.objectTypes && item.objectTypes.length > 0 ? `, on ${item.objectTypes.join(', ')}` : ''
-        this.log(`${item.slug} (${item.label}): ${SOURCE_LABELS[item.source]}, ${countLabel(item.count)}${attached}`)
+        const count = countLabel(item.count)
+        const counted = count ? ', ' + count : ''
+        this.log(`${item.slug} (${item.label}): ${SOURCE_LABELS[item.source]}${counted}${attached}`)
         if (item.conflict) {
           this.warn(`${item.slug}: declared in ${spec.dir}/ but already registered by ${SOURCE_LABELS[item.source]}, the Loopress version is skipped`)
         }
@@ -201,13 +206,13 @@ export function declaredListCommand(
 export type DeclaredRmCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmResult>}
 
 // The only way a Loopress item leaves WordPress: push never deletes (see Push Deletion Rules in
-// the product docs). The local file is left alone, same as `hook rm`. `contentNote` says what
-// stays in the database ("Its posts", "Its terms").
-export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, contentNote: string): CommandClass<DeclaredRmCommand> {
+// the product docs). The local file is left alone, same as `hook rm`. `keptNote` says what
+// happens to what used it ("Its posts stay in the database, hidden until it's pushed again.").
+export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, keptNote: string): CommandClass<DeclaredRmCommand> {
   class DeclaredRm extends LoopressCommand {
     static aliases = [`${spec.cliName}:remove`]
     static args = {
-      slug: Args.string({description: `The ${spec.noun} slug, its ${spec.dir}/ file name without .json`, required: true}),
+      slug: Args.string({description: `The ${spec.noun} slug, its ${spec.dir}/ file name without ${fileExtension(spec)}`, required: true}),
     }
 
     static description = description
@@ -228,7 +233,7 @@ export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, c
       if (!this.yes) {
         if (!isInteractive()) this.error(`Removing ${spec.noun} ${slug} needs confirmation. Re-run with --yes.`)
 
-        const ok = await confirm({default: false, message: `Remove ${spec.noun} ${slug} from ${url}? ${contentNote} stay in the database, hidden.`})
+        const ok = await confirm({default: false, message: `Remove ${spec.noun} ${slug} from ${url}? ${keptNote}`})
         if (!ok) {
           this.log('Aborted.')
           return {removed: false, slug, status: 'aborted'}
@@ -243,7 +248,7 @@ export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, c
         throw error
       }
 
-      this.log(`Removed ${spec.noun} ${slug} from ${url}. ${contentNote} are kept, hidden until it's pushed again.`)
+      this.log(`Removed ${spec.noun} ${slug} from ${url}. ${keptNote}`)
       return {removed: true, slug, status: 'success'}
     }
   }

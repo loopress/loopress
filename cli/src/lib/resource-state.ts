@@ -2,7 +2,17 @@ import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
-import {CPT_SPEC, type DeclaredTypeSpec, META_SPEC, parseDeclaredArgs, type RemoteDeclaredType, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
+import {
+  CPT_SPEC,
+  type DeclaredTypeSpec,
+  fileExtension,
+  META_SPEC,
+  parseDeclaredFile,
+  PATTERN_SPEC,
+  type RemoteDeclaredType,
+  ROLE_SPEC,
+  TAXONOMY_SPEC,
+} from '../utils/declared-type-format.js'
 import {FORM_ENDPOINT, getFormId} from '../utils/form-format.js'
 import {getMenuSlug, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT} from '../utils/menu-format.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, type RemoteOption} from '../utils/option-format.js'
@@ -379,7 +389,7 @@ const menuProvider: ResourceStateProvider = {
   title: 'Menus',
 }
 
-// ---- Custom post types, taxonomies and post meta ------------------------------------------------------
+// ---- Custom post types, taxonomies, post meta, roles and patterns ---------------------------------------
 
 // Keyed by slug (the local file name), compared on the bare arguments: `revision` is push
 // bookkeeping, never part of the file.
@@ -388,9 +398,9 @@ function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceSt
     dirKind: spec.dirKind,
     async local(dir, onWarn) {
       const entries = await loadFiles<{args: Record<string, unknown>; slug: string}>(dir, {
-        extension: '.json',
+        extension: fileExtension(spec),
         onSkip: onWarn,
-        parse: (raw, filePath) => ({args: parseDeclaredArgs(raw), slug: basename(filePath, '.json')}),
+        parse: (raw, filePath) => parseDeclaredFile(spec, filePath, raw),
       })
 
       return new Map(entries.map(({args, slug}) => [slug, args]))
@@ -407,6 +417,8 @@ function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceSt
 const cptProvider = declaredTypeProvider(CPT_SPEC, 'Post types')
 const taxonomyProvider = declaredTypeProvider(TAXONOMY_SPEC, 'Taxonomies')
 const metaProvider = declaredTypeProvider(META_SPEC, 'Post meta')
+const roleProvider = declaredTypeProvider(ROLE_SPEC, 'Roles')
+const patternProvider = declaredTypeProvider(PATTERN_SPEC, 'Patterns')
 
 // ---- Options ------------------------------------------------------------------------------
 
@@ -505,6 +517,8 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   cptProvider,
   taxonomyProvider,
   metaProvider,
+  roleProvider,
+  patternProvider,
   optionsProvider,
   themeStylesProvider,
 ]

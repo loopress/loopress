@@ -135,6 +135,63 @@ if (!class_exists('WP_Term')) {
     }
 }
 
+if (!class_exists('WP_Role')) {
+    class WP_Role
+    {
+        /** @param array<string, bool> $capabilities */
+        public function __construct(public string $name, public array $capabilities) {}
+    }
+}
+
+if (!class_exists('WP_Roles')) {
+    class WP_Roles
+    {
+        /** @var array<string, array{name: string, capabilities: array<string, bool>}> */
+        public array $roles = [];
+        /** @var array<string, WP_Role> */
+        public array $role_objects = [];
+        /** @var array<string, string> */
+        public array $role_names = [];
+        public string $role_key = 'wp_user_roles';
+
+        public function get_role(string $role): ?WP_Role
+        {
+            return $this->role_objects[$role] ?? null;
+        }
+    }
+}
+
+if (!class_exists('WP_Block_Patterns_Registry')) {
+    class WP_Block_Patterns_Registry
+    {
+        private static ?self $instance = null;
+
+        /** @var array<string, array<string, mixed>> Tests write it directly, name => properties. */
+        public array $patterns = [];
+
+        public static function get_instance(): self
+        {
+            return self::$instance ??= new self();
+        }
+
+        public static function reset(): void
+        {
+            self::$instance = null;
+        }
+
+        public function is_registered(string $name): bool
+        {
+            return isset($this->patterns[$name]);
+        }
+
+        /** @return list<array<string, mixed>> */
+        public function get_all_registered(): array
+        {
+            return array_values($this->patterns);
+        }
+    }
+}
+
 if (!class_exists('WP_Error')) {
     class WP_Error
     {

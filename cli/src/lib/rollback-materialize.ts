@@ -2,6 +2,7 @@ import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
 
 import {getAcfKey} from '../utils/acf-format.js'
+import {CPT_SPEC, type DeclaredTypeSpec, fileExtension, formatDeclaredFile, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {getFormId, getFormTitle} from '../utils/form-format.js'
 import {getMenuSlug} from '../utils/menu-format.js'
 import {defaultReadonlyFor, type LocalOption, optionFileName} from '../utils/option-format.js'
@@ -89,22 +90,27 @@ async function themeStyles(id: string, value: unknown, dir: string): Promise<voi
   await writeJson(join(dir, themeStylesFileName(id)), value)
 }
 
-// id is the slug, value the bare register_*() arguments (resource-state.ts's declaredTypeProvider).
-async function declaredType(id: string, value: unknown, dir: string): Promise<void> {
-  await writeJson(join(dir, `${id}.json`), value)
+// id is the slug, value the bare register_*() arguments (resource-state.ts's declaredTypeProvider),
+// written in the spec's file format like `<resource> pull` does.
+function declaredType(spec: DeclaredTypeSpec): Materializer {
+  return async (id, value, dir) => {
+    await writeFile(join(dir, `${id}${fileExtension(spec)}`), formatDeclaredFile(spec, value as Record<string, unknown>))
+  }
 }
 
 const MATERIALIZERS: Record<string, Materializer> = {
   acf,
   api: phpFile,
-  cpt: declaredType,
+  cpt: declaredType(CPT_SPEC),
   form,
   hook: phpFile,
   menu,
-  meta: declaredType,
+  meta: declaredType(META_SPEC),
   option,
+  pattern: declaredType(PATTERN_SPEC),
+  role: declaredType(ROLE_SPEC),
   snippet,
-  taxonomy: declaredType,
+  taxonomy: declaredType(TAXONOMY_SPEC),
   'theme-styles': themeStyles,
 }
 

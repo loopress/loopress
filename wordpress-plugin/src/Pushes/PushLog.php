@@ -41,6 +41,7 @@ class PushLog
         'cpt:push'         => ['label' => 'Post types', 'routes' => ['/post-types']],
         'taxonomy:push'    => ['label' => 'Taxonomies', 'routes' => ['/taxonomies']],
         'meta:push'        => ['label' => 'Post meta', 'routes' => ['/post-meta']],
+        'role:push'        => ['label' => 'Roles', 'routes' => ['/roles']],
         // Option values have no list route to fingerprint (GET /options lists names only).
         'option:push'      => ['label' => 'Options', 'routes' => []],
         'form:push'        => ['label' => 'Forms', 'routes' => ['/forms'], 'screens' => ['wpforms']],

@@ -2,9 +2,9 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
-import {CPT_SPEC, declaredFileChecker, META_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
+import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
-import {readLocalPages} from '../utils/page-format.js'
+import {readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
 import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
 import {parseType} from '../utils/snippet-format.js'
 import {readLocalTemplates} from '../utils/template-format.js'
@@ -34,6 +34,8 @@ const DEFAULT_DIR: Record<string, string> = {
   optionsDir: 'options',
   pageDir: 'pages',
   partDir: RESOURCE_DIR_DEFAULTS.part,
+  patternDir: RESOURCE_DIR_DEFAULTS.pattern,
+  roleDir: RESOURCE_DIR_DEFAULTS.role,
   snippetsDir: 'snippets',
   taxonomyDir: 'taxonomies',
   templateDir: RESOURCE_DIR_DEFAULTS.template,
@@ -70,6 +72,8 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += await checkJsonDir(resolve('cptDir'), problems, declaredFileChecker(CPT_SPEC))
   checked += await checkJsonDir(resolve('taxonomyDir'), problems, declaredFileChecker(TAXONOMY_SPEC))
   checked += await checkJsonDir(resolve('metaDir'), problems, declaredFileChecker(META_SPEC))
+  checked += await checkJsonDir(resolve('roleDir'), problems, declaredFileChecker(ROLE_SPEC))
+  checked += await checkPatterns(resolve('patternDir'), problems)
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')
@@ -84,6 +88,19 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   problems.push(...templates.problems)
 
   return {checked, problems, valid: problems.length === 0}
+}
+
+// Same directory rules as pages (flat, .html only), then the same checks as `pattern push`.
+async function checkPatterns(dir: string, problems: Problem[]): Promise<number> {
+  const check = declaredFileChecker(PATTERN_SPEC)
+  const {files, problems: found} = await readLocalHtmlFiles(dir, (slug, raw) => {
+    check(raw, join(dir, `${slug}.html`))
+  }, {
+    message: `the file name must be 1 to ${PATTERN_SPEC.slugMaxLength} lowercase letters, digits, "_" or "-"`,
+    pattern: new RegExp(`^[a-z0-9_-]{1,${PATTERN_SPEC.slugMaxLength}}$`),
+  })
+  problems.push(...found)
+  return files.length + found.length
 }
 
 // Recursive: both api/ and hooks/ files can live in a nested path-segment directory

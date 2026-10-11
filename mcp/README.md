@@ -103,6 +103,16 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `meta_list` | No | `env?` | List the meta keys registered for each post type on WordPress, and whether Loopress declares them |
 | `meta_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
 | `meta_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
+| `role_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local `roles/<slug>.json` roles to WordPress (create or update only, never changes which users have them) |
+| `role_pull` | No | `env?`, `path?` | Pull the roles Loopress manages into `roles/<slug>.json` files |
+| `role_list` | No | `env?` | List every user role on WordPress, where it comes from and how many users have it |
+| `role_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress role (its users keep it, with no capability) |
+| `role_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore roles to the snapshot saved automatically before an earlier `role_push` (`list` shows what's available) |
+| `pattern_push` | Yes | `env?`, `path?`, `confirmToken?` | Push local `patterns/<slug>.html` block patterns to WordPress, registered as `loopress/<slug>` (create or update only) |
+| `pattern_pull` | No | `env?`, `path?` | Pull the block patterns Loopress manages into `patterns/<slug>.html` files |
+| `pattern_list` | No | `env?` | List the block patterns registered by Loopress, the theme and plugins |
+| `pattern_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress block pattern (references to it render nothing) |
+| `pattern_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore block patterns to the snapshot saved automatically before an earlier `pattern_push` (`list` shows what's available) |
 | `option_push` | Yes | `env?`, `path?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
 | `option_list` | No | `env?`, `noCore?` | List WordPress option names and autoload flags currently on the site (names only, never values) |
@@ -140,7 +150,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 `env` picks the environment for that call, instead of the project's default (`local`, or its only one). `path` overrides the directory
 configured in `loopress.json` for that feature. `type` (ACF) is an optional
 array that scopes the operation to specific object types, matching the CLI's `--type` flag. `project_diff`'s `only`/`skip` are optional arrays of resource names
-(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `menu`, `cpt`, `taxonomy`, `meta`, `option`,
+(`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`,
 `theme-styles`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real

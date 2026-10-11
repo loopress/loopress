@@ -130,6 +130,12 @@
       "theme:style": {
         "description": "Manage the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing)"
       },
+      "pattern": {
+        "description": "Manage block patterns declared in patterns/<slug>.html files (registered as loopress/<slug>), and list the theme and plugin ones"
+      },
+      "role": {
+        "description": "Manage user roles declared in roles/<slug>.json files (never which users have them), and list every role on the site"
+      },
       "meta": {
         "description": "Manage post meta keys declared in meta/<post-type>.json files (never their values), and list every registered meta key"
       },

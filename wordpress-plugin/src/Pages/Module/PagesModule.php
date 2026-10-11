@@ -8,6 +8,8 @@ use Loopress\Contract\Module;
 use Loopress\Pages\Frontend\PageFilters;
 use Loopress\Pages\RestApi\PagesController;
 use Loopress\Pages\RestApi\ChildThemeController;
+use Loopress\Pages\Service\PatternService;
+use Loopress\PostTypes\RestApi\DeclaredTypesController;
 
 class PagesModule implements Module
 {
@@ -18,7 +20,12 @@ class PagesModule implements Module
         add_filter('loopress_push_resources', static fn(array $resources): array => $resources + [
             'page:push'           => ['label' => 'Pages', 'routes' => ['/pages']],
             'theme:template:push' => ['label' => 'Block templates', 'routes' => ['/child-theme']],
+            'pattern:push'        => ['label' => 'Patterns', 'routes' => ['/patterns']],
         ]);
+
+        $patterns = new PatternService();
+        add_action('init', [$patterns, 'register'], 20);
+        add_action('rest_api_init', static fn() => (new DeclaredTypesController($patterns, 'patterns', 'Pattern'))->register_routes());
 
         add_action('rest_api_init', fn() => (new PagesController())->register_routes());
         add_action('rest_api_init', fn() => (new ChildThemeController())->register_routes());

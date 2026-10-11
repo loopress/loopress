@@ -24,10 +24,13 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'cpt:push', label: 'post types'},
   {commandId: 'taxonomy:push', label: 'taxonomies'},
   {commandId: 'meta:push', label: 'post meta'},
+  {commandId: 'role:push', label: 'roles'},
   {commandId: 'acf:push', label: 'ACF'},
   {commandId: 'api:push', label: 'API routes'},
   {commandId: 'hook:push', label: 'hooks'},
   {commandId: 'form:push', label: 'forms'},
+  // Before templates and pages, which can reference them (`wp:pattern`).
+  {commandId: 'pattern:push', label: 'patterns'},
   // Before pages: WordPress refuses a page whose `template` it doesn't know yet.
   {commandId: 'theme:template:push', label: 'templates and parts'},
   {commandId: 'page:push', label: 'pages'},
@@ -38,7 +41,7 @@ const PUSH_TARGETS: PushTarget[] = [
 
 export default class Push extends LoopressCommand {
   static description =
-    'Push all local content, plugins, composer dependencies, post types, taxonomies, post meta, ACF, API routes, hooks, forms, templates, pages, menus, options, and snippets, to WordPress'
+    'Push all local content, plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates, pages, menus, options, and snippets, to WordPress'
 
   static enableJsonFlag = true
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']

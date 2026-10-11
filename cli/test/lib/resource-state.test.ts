@@ -310,6 +310,19 @@ describe('resource-state providers', () => {
     })
   })
 
+  describe('pattern', () => {
+    it('compares the arguments read from the HTML file header and body', async () => {
+      const remote = fakeWp({
+        'loopress/v1/patterns': [{args: {categories: ['banner'], content: '<p>Hi</p>\n', title: 'Hero'}, revision: 'rev-1', slug: 'hero'}],
+      })
+      writeFileSync(join(dir, 'hero.html'), '<!--\ntitle: Hero\ncategories: banner\n-->\n<p>Hi</p>\n')
+
+      const diff = compareStates(await provider('pattern').remote(remote, noWarn, dir), await provider('pattern').local(dir, noWarn), labels)
+
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+  })
+
   describe('cpt', () => {
     const cptProvider = provider('cpt')
 

@@ -92,6 +92,16 @@ The server communicates over stdio from the directory your client launches it in
 | `meta_list` | No | List the meta keys registered for each post type on WordPress, and whether Loopress declares them |
 | `meta_rm` | Yes | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
 | `meta_rollback` | Yes | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
+| `role_push` | Yes | Push local `roles/<slug>.json` roles to WordPress (create or update only, never changes which users have them) |
+| `role_pull` | No | Pull the roles Loopress manages into `roles/<slug>.json` files |
+| `role_list` | No | List every user role on WordPress, where it comes from and how many users have it |
+| `role_rm` | Yes | Stop registering one Loopress role (its users keep it, with no capability) |
+| `role_rollback` | Yes | Restore roles to the snapshot saved automatically before an earlier `role_push` (`list` shows what's available) |
+| `pattern_push` | Yes | Push local `patterns/<slug>.html` block patterns to WordPress, registered as `loopress/<slug>` (create or update only) |
+| `pattern_pull` | No | Pull the block patterns Loopress manages into `patterns/<slug>.html` files |
+| `pattern_list` | No | List the block patterns registered by Loopress, the theme and plugins |
+| `pattern_rm` | Yes | Stop registering one Loopress block pattern (references to it render nothing) |
+| `pattern_rollback` | Yes | Restore block patterns to the snapshot saved automatically before an earlier `pattern_push` (`list` shows what's available) |
 | `option_push` | Yes | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |

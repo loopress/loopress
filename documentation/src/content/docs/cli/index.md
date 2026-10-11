@@ -48,12 +48,14 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | `lps api` | `pull` `push` `list` `diff` `rollback` `remove` `publish` | [Custom API Routes](/api/cli/) |
 | `lps app` | `pull` `push` `list` `remove` | [Single-Page Apps](/apps/cli/) |
 | `lps page` | `push` `list` `diff` | [Static Pages](/pages/) |
+| `lps pattern` | `pull` `push` `list` `rm` `diff` `rollback` | [Block Patterns](/block-patterns/) |
 | `lps acf` | `pull` `push` `list` `diff` `rollback` | [ACF](/acf/) |
 | `lps form` | `pull` `push` `list` `diff` `rollback` | [Forms](/forms/) |
 | `lps menu` | `pull` `push` `list` `diff` `rollback` | [Menus](/menus/) |
 | `lps cpt` | `pull` `push` `list` `rm` `diff` `rollback` | [Custom Post Types](/custom-post-types/) |
 | `lps taxonomy` | `pull` `push` `list` `rm` `diff` `rollback` | [Taxonomies](/taxonomies/) |
 | `lps meta` | `pull` `push` `list` `rm` `diff` `rollback` | [Post Meta](/post-meta/) |
+| `lps role` | `pull` `push` `list` `rm` `diff` `rollback` | [Roles](/roles/) |
 | `lps option` | `add` `pull` `push` `list` `diff` `rollback` `remove` | [Options](/options/) |
 | `lps plugin` | `add` `pull` `push` `status` `audit` | [Plugins](/plugins/) |
 | `lps theme` | `add` `pull` `push` `status`, `version pull/push` | [Themes](/themes/) |

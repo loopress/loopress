@@ -189,6 +189,8 @@
                 <file name="src/Update/Infrastructure/PluginUpdater.php" />
                 <!-- the_content / map_meta_cap / display_post_states filter callbacks. -->
                 <file name="src/Pages/Frontend/PageFilters.php" />
+                <!-- keepOutOfDatabase() is a pre_update_option filter callback. -->
+                <file name="src/PostTypes/Service/RoleService.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
 

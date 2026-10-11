@@ -1,6 +1,16 @@
 import {describe, expect, it} from 'vitest'
 
-import {CPT_SPEC, declaredFileChecker, META_SPEC, parseDeclaredArgs, TAXONOMY_SPEC} from '../../src/utils/declared-type-format.js'
+import {
+  CPT_SPEC,
+  declaredFileChecker,
+  formatPatternFile,
+  META_SPEC,
+  parseDeclaredArgs,
+  parsePatternFile,
+  PATTERN_SPEC,
+  ROLE_SPEC,
+  TAXONOMY_SPEC,
+} from '../../src/utils/declared-type-format.js'
 
 const checkCptFile = declaredFileChecker(CPT_SPEC)
 const checkTaxonomyFile = declaredFileChecker(TAXONOMY_SPEC)
@@ -100,6 +110,58 @@ describe('declared-type-format', () => {
     ])('refuses %j', (file, message) => {
       expect(() => {
         checkMetaFile(JSON.stringify(file), 'meta/book.json')
+      }).toThrow(message)
+    })
+  })
+
+  describe('roles', () => {
+    const checkRoleFile = declaredFileChecker(ROLE_SPEC)
+
+    it('accepts a name and boolean capabilities', () => {
+      expect(() => {
+        checkRoleFile('{"name": "Client", "capabilities": {"read": true, "edit_posts": false}}', 'roles/client.json')
+      }).not.toThrow()
+    })
+
+    it.each([
+      ['{"capabilities": {}}', '"name" must be a non-empty string'],
+      ['{"name": "Client", "capabilities": {"read": 1}}', '"capabilities" must map each capability name to true or false'],
+      ['{"name": "Client", "capabilities": ["read"]}', '"capabilities" must map each capability name to true or false'],
+    ])('refuses %s', (raw, message) => {
+      expect(() => {
+        checkRoleFile(raw, 'roles/client.json')
+      }).toThrow(message)
+    })
+  })
+
+  describe('patterns', () => {
+    const file = '<!--\ntitle: Hero\ncategories: banner, call-to-action\nviewport-width: 1200\ninserter: false\n-->\n<!-- wp:paragraph --><p>Hi</p><!-- /wp:paragraph -->\n'
+
+    it('reads the header into register_block_pattern() properties and the body into content', () => {
+      expect(parsePatternFile('hero', file)).toEqual({
+        categories: ['banner', 'call-to-action'],
+        content: '<!-- wp:paragraph --><p>Hi</p><!-- /wp:paragraph -->\n',
+        inserter: false,
+        title: 'Hero',
+        viewportWidth: 1200,
+      })
+    })
+
+    it('round-trips through formatPatternFile()', () => {
+      expect(parsePatternFile('hero', formatPatternFile(parsePatternFile('hero', file)))).toEqual(parsePatternFile('hero', file))
+    })
+
+    it('defaults the title to the slug', () => {
+      expect(parsePatternFile('call-to-action', '<p>Go</p>')).toEqual({content: '<p>Go</p>', title: 'Call to action'})
+    })
+
+    it.each([
+      ['<!--\nviewport-width: wide\n-->\n', '"viewport-width" must be a whole number'],
+      ['<!--\ninserter: no\n-->\n', '"inserter" must be "true" or "false"'],
+      ['<!--\nsource: theme\n-->\n', 'unknown header key "source"'],
+    ])('refuses %j', (raw, message) => {
+      expect(() => {
+        declaredFileChecker(PATTERN_SPEC)(raw, 'patterns/hero.html')
       }).toThrow(message)
     })
   })
