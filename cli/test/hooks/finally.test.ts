@@ -62,8 +62,15 @@ describe('finally hook', () => {
       beforeSend: scrubEvent,
       dsn: SENTRY_DSN,
       environment: 'test-env',
+      dataCollection: {
+        cookies: false,
+        httpBodies: [],
+        httpHeaders: false,
+        stackFrameVariables: false,
+        urlQueryParams: false,
+        userInfo: false,
+      },
       release: '1.2.3',
-      sendDefaultPii: false,
       serverName: 'loopress',
     })
     expect(sentry.captureException).toHaveBeenCalledWith(error, {
