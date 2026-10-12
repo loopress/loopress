@@ -24,6 +24,17 @@ describe('hook list', () => {
     expect(logs.log).toHaveBeenCalledWith('  content-hooks')
   })
 
+  it('shows the last error a hook threw while running under its file', async () => {
+    const {cmd, logs} = makeCmd([])
+    const runtimeError = {at: '2026-10-12T10:00:00+00:00', message: 'boom', method: 'grant', type: 'filter'}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get: vi.fn().mockResolvedValueOnce([{filename: 'caps', runtimeError}])}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('  caps')
+    expect(logs.log).toHaveBeenCalledWith('    grant() threw while running as a filter, last at 2026-10-12T10:00:00+00:00: boom')
+  })
+
   it('uses singular/plural correctly for more than one file', async () => {
     const {cmd, logs} = makeCmd([])
     const get = vi.fn().mockResolvedValueOnce([

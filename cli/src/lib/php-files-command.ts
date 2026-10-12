@@ -68,13 +68,21 @@ type PhpFile = {
 // `expectedRevisionFor`), rather than depending on the server also echoing this field back
 // through the list endpoint, so there is exactly one place that needs to reproduce the
 // server's hash algorithm correctly. Kept in the type only so it is not a surprise field to
-// whoever inspects the raw JSON.
+// whoever inspects the raw JSON. `runtimeError` (hooks only) is the last error one of the
+// file's callbacks threw while running, as long as the file is still the version that threw it.
 type RemotePhpFile = {
   content?: string
   error?: string
   filename: string
   public?: boolean
   revision?: string
+  runtimeError?: RuntimeError
+}
+
+export type RuntimeError = {at: string; message: string; method: string; type: 'action' | 'cron' | 'filter'}
+
+export function formatRuntimeError(error: RuntimeError): string {
+  return `${error.method}() threw while running as a ${error.type}, last at ${error.at}: ${error.message}`
 }
 
 type PushResult = {
@@ -417,6 +425,7 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
       for (const file of files) {
         const badges = [file.public ? '[PUBLIC]' : '', file.error ? `(${file.error})` : ''].filter(Boolean).join('  ')
         this.log(badges ? `  ${file.filename}  ${badges}` : `  ${file.filename}`)
+        if (file.runtimeError) this.log(`    ${formatRuntimeError(file.runtimeError)}`)
       }
 
       if (files.some((file) => file.public)) {

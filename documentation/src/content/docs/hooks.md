@@ -66,7 +66,7 @@ public function shorten(int $length): int
 }
 ```
 
-If a hook method throws, it's caught and logged rather than left to break the page for every visitor: an `#[Action]` simply doesn't run, a `#[Filter]` falls back to the original, unfiltered value.
+If a hook method throws, it's caught and logged rather than left to break the page for every visitor: an `#[Action]` simply doesn't run, a `#[Filter]` falls back to the original, unfiltered value. The last error each file threw is also kept on the site and shown by [`lps hook list`](#lps-hook-list) and [`lps doctor`](/cli/doctor/), so a hook that keeps failing doesn't just look like it does nothing.
 
 ## `#[Cron]`
 
@@ -163,11 +163,18 @@ Without `--prune`, pushing never removes a hook file from the server.
 
 ### `lps hook list`
 
-Print all hook files currently on WordPress.
+Print all hook files currently on WordPress, with the reason a file failed to load, and the last error one of its methods threw while running:
 
-```bash
-lps hook list
+```console
+$ lps hook list
+Found 2 hook files:
+
+  content-hooks
+  caps
+    grant() threw while running as a filter, last at 2026-10-12T10:00:00+00:00: Undefined array key "role"
 ```
+
+A runtime error is reported until the file changes: push a fixed version and it disappears. The same error is recorded at most once a minute, so a hook failing on every request doesn't write to the database on every request.
 
 | Flag | Description |
 |------|-------------|

@@ -123,6 +123,40 @@ class HookFilesControllerTest extends TestCase
         $this->assertSame('expected exactly one class declaration, found none', $response->data[0]['error']);
     }
 
+    public function test_list_files_reports_the_last_runtime_error_of_the_file_version_that_threw_it(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
+        $this->stubRuntimeErrors(['hello' => ['type' => 'filter', 'method' => 'tweak', 'message' => 'boom', 'at' => 0, 'revision' => hash('sha256', $content)]]);
+        $this->directory->method('listSlugs')->willReturn(['hello']);
+        $this->directory->method('read')->with('hello')->willReturn($content);
+
+        $response = $this->controller->list_files();
+
+        $this->assertSame(
+            ['type' => 'filter', 'method' => 'tweak', 'message' => 'boom', 'at' => '1970-01-01T00:00:00+00:00'],
+            $response->data[0]['runtimeError'],
+        );
+    }
+
+    public function test_list_files_drops_a_runtime_error_once_the_file_was_pushed_again(): void
+    {
+        $this->stubRuntimeErrors(['hello' => ['type' => 'filter', 'method' => 'tweak', 'message' => 'boom', 'at' => 0, 'revision' => 'older-version']]);
+        $this->directory->method('listSlugs')->willReturn(['hello']);
+        $this->directory->method('read')->with('hello')->willReturn("<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n");
+
+        $response = $this->controller->list_files();
+
+        $this->assertArrayNotHasKey('runtimeError', $response->data[0]);
+    }
+
+    /** @param array<string, mixed> $errors */
+    private function stubRuntimeErrors(array $errors): void
+    {
+        Functions\when('get_option')->alias(
+            static fn (string $name, mixed $fallback = false): mixed => $name === HooksDirectory::RUNTIME_ERRORS_OPTION ? $errors : $fallback,
+        );
+    }
+
     public function test_list_files_omits_the_error_field_for_a_file_absent_from_the_load_errors_option(): void
     {
         Functions\when('get_option')->justReturn(['some-other-file' => 'boom']);

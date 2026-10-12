@@ -19,4 +19,9 @@ class HooksDirectory extends AbstractFilesDirectory
     // every loadAndRegister() pass, overwritten in full each time, read by HookFilesController
     // to annotate the CLI/admin view with per-file load failures.
     public const LOAD_ERRORS_OPTION = 'loopress_hooks_load_errors';
+
+    // The last error a bound callback threw while running, per file. Separate from
+    // LOAD_ERRORS_OPTION, which HookLoader rewrites in full on every request. Written by
+    // HookLoader::recordRuntimeError(), read by HookFilesController.
+    public const RUNTIME_ERRORS_OPTION = 'loopress_hooks_runtime_errors';
 }

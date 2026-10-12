@@ -1,5 +1,6 @@
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
+import {formatRuntimeError, HOOK_FILES_RESOURCE, type RuntimeError} from '../lib/php-files-command.js'
 import {findTempAdmins} from '../lib/temp-admin.js'
 import {isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
 import {diagnoseWpSite} from '../lib/wp-site-diagnostic.js'
@@ -56,7 +57,10 @@ export default class Doctor extends LoopressCommand {
         )
 
         // Skipped when the credentials were just rejected: it would only repeat that same 401.
-        if (isAuthenticated) await this.checkLeftoverTempAdmins()
+        if (isAuthenticated) {
+          await this.checkLeftoverTempAdmins()
+          await this.checkHookErrors()
+        }
 
         pluginVersion = await this.reportPluginVersion()
       } else {
@@ -97,6 +101,28 @@ export default class Doctor extends LoopressCommand {
       this.out(`  ${message}`)
       return false
     }
+  }
+
+  // A hook that fails to load or throws while running doesn't break the site, it just quietly
+  // does nothing, and its only trace is an error_log nobody reads on managed hosting.
+  private async checkHookErrors(): Promise<void> {
+    let lookup: {error: unknown} | {files: Array<{error?: string; filename: string; runtimeError?: RuntimeError}>}
+    try {
+      lookup = {files: await this.wp.get(HOOK_FILES_RESOURCE.endpoint)}
+    } catch (error) {
+      if (isNotFoundError(error)) return // Loopress Light has no hooks
+      lookup = {error}
+    }
+
+    await this.check('Hooks load and run without errors', async () => {
+      if ('error' in lookup) throw lookup.error
+      const files = Array.isArray(lookup.files) ? lookup.files : []
+      const problems = files.flatMap((file) => [
+        ...(file.error ? [`hooks/${file.filename}.php failed to load: ${file.error}`] : []),
+        ...(file.runtimeError ? [`hooks/${file.filename}.php: ${formatRuntimeError(file.runtimeError)}`] : []),
+      ])
+      if (problems.length > 0) throw new Error(problems.join('\n  '))
+    })
   }
 
   // Report only, never deletes: a doctor run shouldn't change the site. A leftover is a live
