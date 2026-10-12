@@ -6,6 +6,7 @@ namespace Loopress;
 
 use Loopress\Acf\Module\AcfModule;
 use Loopress\AdminPage\Module\AdminPageModule;
+use Loopress\Content\Module\ContentModule;
 use Loopress\Contract\Module;
 use Loopress\Form\Infrastructure\WPFormsProvider;
 use Loopress\Form\Module\FormModule;
@@ -43,6 +44,7 @@ class Plugin
             RestCacheModule::class,
             FormModule::class,
             PushesModule::class,
+            ContentModule::class,
         ]);
 
         foreach ($moduleClasses as $moduleClass) {

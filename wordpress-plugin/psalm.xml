@@ -74,6 +74,9 @@
                 <!-- PushesController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Pushes/RestApi" />
+                <!-- ContentController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above. -->
+                <directory name="src/Content/RestApi" />
                 <!-- AbstractFilesController::list_files()/push_file() are the shared base of
                      ApiFilesController and HookFilesController above: invoked by
                      register_rest_route() (through each subclass's register_routes()), never a
@@ -90,6 +93,7 @@
                 <referencedMethod name="Loopress\Menu\Module\MenuModule::__construct" />
                 <referencedMethod name="Loopress\PostTypes\Module\PostTypesModule::__construct" />
                 <referencedMethod name="Loopress\Pushes\Module\PushesModule::__construct" />
+                <referencedMethod name="Loopress\Content\Module\ContentModule::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />
@@ -189,6 +193,8 @@
                 <file name="src/Update/Infrastructure/PluginUpdater.php" />
                 <!-- the_content / map_meta_cap / display_post_states filter callbacks. -->
                 <file name="src/Pages/Frontend/PageFilters.php" />
+                <!-- wp_get_attachment_url / wp_calculate_image_srcset filter callbacks. -->
+                <file name="src/Content/Service/RemoteUploads.php" />
                 <!-- keepOutOfDatabase() is a pre_update_option filter callback. -->
                 <file name="src/PostTypes/Service/RoleService.php" />
             </errorLevel>

@@ -142,6 +142,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `push_all` | Yes | `env?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`) |
 | `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`) |
 | `project_promote` | Yes | `from`, `to`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
+| `content_copy` | Yes | `from`, `confirmToken?` | Replace the local site's posts, pages and terms with `from`'s, then push the project to local (`lps content copy`) |
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 | `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
 | `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |
