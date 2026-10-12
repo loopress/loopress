@@ -105,7 +105,7 @@ Changed on https://acme.com outside Loopress since your last push (2026-10-12T09
 
 Review the difference with `lps diff --only <resource>`, then either bring the site's version into your files (`pull`, or copy the change by hand), or push with `--overwrite` to replace it. In a terminal the push asks instead of stopping, and a `--dry-run` only warns.
 
-Objects added on the site and absent from your files are never flagged, a push doesn't touch them. Once a `pull` brings the change into your files, the push goes through.
+Objects added on the site and absent from your files are never flagged, a push doesn't touch them. Nor are objects deleted on the site (in wp-admin, or with a `remove` command): pushing them again overwrites nothing. Once a `pull` brings the change into your files, the push goes through.
 
 This relies on the [snapshots](/rollback/#where-snapshots-live) kept on the machine that pushed, so it protects a push from the same machine. The first push from a new clone or a CI runner has nothing to compare with and isn't checked. Templates and template parts don't need it: a Site Editor edit stays in the database and keeps winning over the pushed file, and the push warns about it.
 

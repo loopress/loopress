@@ -95,7 +95,11 @@ export abstract class DiffCommand extends LoopressCommand {
     // Every resource failing the same way (site down, bad credentials) is one problem: say it
     // once instead of once per resource.
     const sharedError = sharedFailure(results.map((result) => result.json.error))
-    if (sharedError !== undefined) this.out(c('red', `error: ${sharedError}`))
+    if (sharedError !== undefined) {
+      // Named, since some resources may have compared fine (one that needs no request).
+      const failedTitles = results.filter((result) => result.json.error !== undefined).map((result) => result.title)
+      this.out(c('red', `error (${failedTitles.join(', ')}): ${sharedError}`))
+    }
 
     const resources: Record<string, ResourceDiffJson> = {}
     let drift = false

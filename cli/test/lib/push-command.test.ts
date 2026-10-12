@@ -247,10 +247,18 @@ describe('PushCommand', () => {
       )
     })
 
-    it('refuses to recreate an item deleted on the site since the last push', async () => {
+    // `lps <resource> rm` deletes on the site and leaves the local file: recreating loses nothing.
+    it('lets the push recreate an item deleted on the site since the last push', async () => {
       await lastPushLeft([['1', {name: 'pushed'}]])
 
-      await expect(capture({local: [['1', {name: 'pushed'}]], remote: []})).rejects.toThrow('overwrite: 1.')
+      await expect(capture({local: [['1', {name: 'pushed'}]], remote: []})).resolves.toBeDefined()
+    })
+
+    // A PHP file too large for the site to send back is listed without its content.
+    it('ignores a site entry whose content it cannot read', async () => {
+      await lastPushLeft([])
+
+      await expect(capture({local: [['big', '<?php']], remote: [['big', undefined]]})).resolves.toBeDefined()
     })
 
     it('lets the push through once the site change was pulled into the local files', async () => {

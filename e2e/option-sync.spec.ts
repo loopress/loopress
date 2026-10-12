@@ -267,9 +267,11 @@ test('option diff flags a WordPress-side change, and rollback undoes the last pu
   expect(drifted.exitCode).toBe(1)
   expect(drifted.stdout).toContain(name)
 
-  // Put the file back in charge, then push v2 and roll it back to v1.
+  // Put the file back in charge (--overwrite: that WordPress-side change is exactly what the push
+  // refuses to overwrite silently), then push v2 and roll it back to v1.
   writeOption(projectDir, {...readOption(projectDir, name), value: 'v1'})
-  expect((await runCli(['option', 'push'])).exitCode).toBe(0)
+  const overwritten = await runCli(['option', 'push', '--overwrite'])
+  expect(overwritten.exitCode, output(overwritten)).toBe(0)
   writeOption(projectDir, {...readOption(projectDir, name), value: 'v2'})
   expect((await runCli(['option', 'push'])).exitCode).toBe(0)
 

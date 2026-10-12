@@ -194,6 +194,9 @@ describe('diff', () => {
     expect(result.resources.composer.error).toBe(down)
     const errorLines = logs.log.mock.calls.filter(([line]) => String(line).includes(down))
     expect(errorLines).toHaveLength(1)
+    // Option needs no request without local options, so the failed ones are named.
+    expect(errorLines[0][0]).toContain('Snippets')
+    expect(errorLines[0][0]).not.toContain('Options')
     expect(process.exitCode).toBe(2)
   })
 

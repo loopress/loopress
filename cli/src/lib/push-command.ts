@@ -211,7 +211,10 @@ export abstract class PushCommand extends LoopressCommand {
   //   same reference rollback's drift check uses), and
   // - this push would write a different value over it (local differs from the site), so a
   //   `pull` that already brought the change into the local files is no reason to stop.
-  // Only ids present locally count: a push is additive, it never touches a site-only id.
+  // Only ids present locally count: a push is additive, it never touches a site-only id. And
+  // only ids the site still has with readable content: pushing over a deletion (`lps <resource>
+  // rm`, or wp-admin) loses nothing, and a file the site lists without its content (too large
+  // to send) can't be compared, so it would otherwise block every push.
   // Ceiling: snapshots live in git-ignored `.loopress/`, so only the machine that pushed last
   // is protected; a record kept on the site would cover teammates and CI.
   private async guardOutsideEdits(provider: ResourceStateProvider, dir: string, remote: ResourceState, writes?: (id: string) => boolean): Promise<void> {
@@ -231,7 +234,11 @@ export abstract class PushCommand extends LoopressCommand {
     }
 
     const overwritten = [...local.keys()].filter(
-      (id) => (writes?.(id) ?? true) && !sameEntry(remote, expected, id) && !sameEntry(local, remote, id),
+      (id) =>
+        (writes?.(id) ?? true) &&
+        remote.get(id) !== undefined &&
+        !sameEntry(remote, expected, id) &&
+        !sameEntry(local, remote, id),
     )
     if (overwritten.length === 0) return
 

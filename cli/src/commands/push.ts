@@ -11,7 +11,7 @@ import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
 
 type PushTarget = {commandId: string; label: string}
 
-type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed'}
+type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed' | 'skipped'}
 
 type PushResult = {results: PushTargetResult[]}
 
@@ -58,12 +58,13 @@ export default class Push extends LoopressCommand {
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
 
-    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+    const skips = await this.skippedTargets()
 
     for (const target of PUSH_TARGETS) {
-      if (composerPushedByPlugins && target.commandId === 'composer:push') {
-        this.log('\n→ composer: already pushed whole by plugins')
-        results.push({label: target.label, status: 'pushed'})
+      const skip = skips.get(target.commandId)
+      if (skip) {
+        this.log(`\n→ ${target.label}: ${skip.note}`)
+        results.push({label: target.label, status: skip.status})
         continue
       }
 
@@ -102,7 +103,7 @@ export default class Push extends LoopressCommand {
   // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
   // safety), so `composer:push` would only run Composer on the server a second time.
   private async composerDeclaresPlugins(): Promise<boolean> {
-    const path = join(process.cwd(), this.rootDir, 'composer.json')
+    const path = this.composerJsonPath()
     if (!existsSync(path)) return false
     try {
       const composerJson = JSON.parse(await readFile(path, 'utf8')) as ComposerJson
@@ -111,6 +112,10 @@ export default class Push extends LoopressCommand {
       // Unreadable: let both commands run and report the parse error themselves.
       return false
     }
+  }
+
+  private composerJsonPath(): string {
+    return join(process.cwd(), this.rootDir, 'composer.json')
   }
 
   // Guards once here (shared with PushCommand, lib/push-command.ts) rather than once per
@@ -122,5 +127,23 @@ export default class Push extends LoopressCommand {
       siteConfig: this.siteConfig,
       yes: this.yes,
     })
+  }
+
+  // Unconfigured is not a failure: a project that doesn't manage plugins or composer through
+  // Loopress must not stop the run before anything else gets pushed.
+  private async skippedTargets(): Promise<Map<string, {note: string; status: 'pushed' | 'skipped'}>> {
+    const skips = new Map<string, {note: string; status: 'pushed' | 'skipped'}>()
+    const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
+    const hasComposerJson = existsSync(this.composerJsonPath())
+    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+
+    if (composerPushedByPlugins) skips.set('composer:push', {note: 'already pushed whole by plugins', status: 'pushed'})
+    else if (!hasComposerJson) skips.set('composer:push', notConfigured)
+
+    // With a composer.json, plugins come from it only; otherwise from loopress.json.
+    const pluginsConfigured = hasComposerJson ? composerPushedByPlugins : Object.keys(this.localConfig.plugins ?? {}).length > 0
+    if (!pluginsConfigured) skips.set('plugin:push', notConfigured)
+
+    return skips
   }
 }

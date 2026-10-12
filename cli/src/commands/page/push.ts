@@ -57,13 +57,14 @@ export default class Push extends PushCommand {
       },
     )
 
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
+
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'page')} failed to push.`)
     }
 
     if (this.dryRun) return {pushed, status: 'dry-run'}
 
-    await this.writeAfterPushSnapshot(provider, path, beforeState)
     await this.recordSuccess()
     this.log('All pages pushed.')
     return {pushed, status: 'success'}

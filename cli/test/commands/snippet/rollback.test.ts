@@ -153,7 +153,8 @@ describe('snippet rollback', () => {
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
     const [commandId, argv] = vi.mocked(fakeOclifConfig.runCommand).mock.calls[0]
     expect(commandId).toBe('snippet:push')
-    expect(argv).toEqual([expect.any(String), '--env', 'staging', '--yes'])
+    // --overwrite: the drift check above already answered the push's outside-edit question.
+    expect(argv).toEqual([expect.any(String), '--env', 'staging', '--yes', '--overwrite'])
     // The temp dir materialized the old, pre-push name.
     expect(materializedFiles.some((file) => file.includes('old-name'))).toBe(true)
   })

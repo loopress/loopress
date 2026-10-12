@@ -69,7 +69,7 @@ public function shorten(int $length): int
 If a hook method throws, it's caught and logged rather than left to break the page for every visitor: an `#[Action]` simply doesn't run, a `#[Filter]` falls back to the original, unfiltered value.
 
 :::caution[Filters that restrict access fail open]
-Falling back to the unfiltered value is right for `the_content`, wrong for a filter that denies something: if a `user_has_cap`, `rest_authentication_errors` or checkout validation filter throws, the original value goes through, and access is granted. A file that fails to load (a syntax error) isn't registered at all, with the same result. Catch errors yourself in those filters and return the restrictive answer:
+Falling back to the unfiltered value is right for `the_content`, wrong for a filter that denies something: if a `user_has_cap`, `rest_authentication_errors` or checkout validation filter throws, the original value goes through and your restriction is skipped: access is then only as limited as WordPress's own checks make it. A file that fails to load (a syntax error) isn't registered at all, with the same result. Catch errors yourself in those filters and return the restrictive answer:
 
 ```php
 #[Filter('rest_authentication_errors')]
