@@ -37,6 +37,11 @@ class UrlRewriterTest extends TestCase
         );
     }
 
+    public function test_leaves_a_longer_host_alone(): void
+    {
+        $this->assertSame('https://prod.testing.com/a https://site.local', $this->rewriter->rewrite('https://prod.testing.com/a https://prod.test'));
+    }
+
     public function test_keeps_serialized_lengths_valid(): void
     {
         $value = serialize(['link' => 'https://prod.test/shop', 'nested' => [serialize('https://prod.test/')], 'n' => 3]);

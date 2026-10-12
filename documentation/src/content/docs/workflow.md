@@ -123,6 +123,8 @@ lps content copy staging --dry-run
 It is not a `pull`: nothing is written to your project files. It replaces the posts of every public post type (posts, pages, products, ...) and the terms of every public taxonomy on the `local` environment, always the target, with the source's, IDs unchanged, then runs `lps push` to the local site so your tracked configuration (menus, ACF, snippets, templates...) wins over the source's. The local content is **deleted** first, so it asks for confirmation (`--yes` to skip it).
 
 - Media are not downloaded: an image missing locally is served from the source site's uploads URL. Files you upload locally keep their local URL.
+- A local row whose ID is also used by an incoming post or term is replaced, whatever its type. Tracked configuration (ACF, menus, snippets, templates...) comes back with the push that follows. Anything else that only exists locally, a test order for example, is lost.
+- If the copy stops halfway (network, timeout), run it again: it starts over from a clean local content.
 - Users, comments and orders are never copied. Every imported post is attributed to the local user running the command.
 - The source URL is rewritten to the local one in content and meta, including serialized values. JSON-escaped URLs (some page builders store them that way) are left as they are.
 - The plugin refuses the import on any site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is not `local`. LocalWP sets it, elsewhere add `define('WP_ENVIRONMENT_TYPE', 'local');` to `wp-config.php`.

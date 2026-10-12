@@ -174,7 +174,7 @@ class ContentService
                 $this->rewriteColumn($rewriter, $row, $column);
             }
 
-            $wpdb->insert($wpdb->posts, ['post_author' => $author, 'comment_count' => 0] + $row);
+            $this->write($wpdb->posts, ['post_author' => $author, 'comment_count' => 0] + $row);
         }
 
         $known = array_flip($ids);
@@ -182,14 +182,14 @@ class ContentService
             $row = $this->pick($meta, ['post_id', ...self::META_COLUMNS]);
             if (isset($known[(int) $row['post_id']])) {
                 $this->rewriteColumn($rewriter, $row, 'meta_value');
-                $wpdb->insert($wpdb->postmeta, $row);
+                $this->write($wpdb->postmeta, $row);
             }
         }
 
         foreach ($relationships as $relationship) {
             $row = $this->pick($relationship, self::RELATIONSHIP_COLUMNS);
             if (isset($known[(int) $row['object_id']])) {
-                $wpdb->replace($wpdb->term_relationships, $row);
+                $this->write($wpdb->term_relationships, $row, true);
             }
         }
 
@@ -216,12 +216,12 @@ class ContentService
 
         $known = array_flip($ids);
         foreach ($termRows as $row) {
-            $wpdb->insert($wpdb->terms, $row);
+            $this->write($wpdb->terms, $row);
         }
 
         foreach ($taxonomyRows as $row) {
             if (isset($known[(int) $row['term_id']])) {
-                $wpdb->insert($wpdb->term_taxonomy, $row);
+                $this->write($wpdb->term_taxonomy, $row);
             }
         }
 
@@ -230,7 +230,7 @@ class ContentService
             $row = $this->pick($meta, ['term_id', ...self::META_COLUMNS]);
             if (isset($known[(int) $row['term_id']])) {
                 $this->rewriteColumn($rewriter, $row, 'meta_value');
-                $wpdb->insert($wpdb->termmeta, $row);
+                $this->write($wpdb->termmeta, $row);
             }
         }
 
@@ -283,6 +283,21 @@ class ContentService
             $in = implode(',', $chunk);
             $wpdb->query("DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ({$in})");
             $wpdb->query("DELETE FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id IN ({$in})");
+        }
+    }
+
+    // A failed write must fail the batch: reported as imported, it would let the CLI carry on and
+    // push over a site that is missing rows.
+    /** @param array<string, null|scalar> $row */
+    private function write(string $table, array $row, bool $replace = false): void
+    {
+        global $wpdb;
+
+        $written = $replace ? $wpdb->replace($table, $row) : $wpdb->insert($table, $row);
+        if ($written === false) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
+            throw new \RuntimeException("Could not write to {$table}: {$wpdb->last_error}");
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 

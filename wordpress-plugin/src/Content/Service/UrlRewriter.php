@@ -25,7 +25,8 @@ final readonly class UrlRewriter
         $this->to   = rtrim($to, '/');
         $kept       = str_starts_with($keepUnder, $this->from) ? substr($keepUnder, strlen($this->from)) : '';
         $lookahead  = $kept === '' ? '' : '(?!' . preg_quote($kept, '#') . ')';
-        $this->pattern = '#' . preg_quote($this->from, '#') . $lookahead . '#';
+        // Host boundary: https://prod.test must not match https://prod.testing.com.
+        $this->pattern = '#' . preg_quote($this->from, '#') . '(?![\w.:-])' . $lookahead . '#';
     }
 
     public function rewrite(?string $value): ?string
