@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Content\Service;
 
+// phpcs:disable WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- building and reading serialized fixtures is what this test is about.
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Content\Exception\NotLocalEnvironmentException;
@@ -19,7 +21,7 @@ class UrlRewriterTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
-        Functions\when('is_serialized')->alias(static fn (string $value): bool => $value === 'b:0;' || @unserialize($value) !== false);
+        Functions\when('is_serialized')->alias(static fn (string $value): bool => preg_match('/^[as]:\d+:/', $value) === 1);
         $this->rewriter = new UrlRewriter('https://prod.test', 'https://site.local', 'https://prod.test/wp-content/uploads');
     }
 
