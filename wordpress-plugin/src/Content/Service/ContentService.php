@@ -251,7 +251,7 @@ class ContentService
         }
     }
 
-    /** @param list<int> $ids */
+    /** @param array<int> $ids */
     private function deletePosts(array $ids): void
     {
         global $wpdb;
@@ -265,8 +265,8 @@ class ContentService
     }
 
     /**
-     * @param list<int> $termIds
-     * @param list<int> $termTaxonomyIds rows to delete on top of those of $termIds
+     * @param array<int> $termIds
+     * @param array<int> $termTaxonomyIds rows to delete on top of those of $termIds
      */
     private function deleteTerms(array $termIds, array $termTaxonomyIds): void
     {
@@ -296,7 +296,9 @@ class ContentService
     private function pick(mixed $row, array $columns): array
     {
         if (!is_array($row) || !isset($row[$columns[0]])) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new InvalidContentRowException("Each row must be a JSON object with a \"{$columns[0]}\".");
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         $picked = [];
@@ -307,7 +309,9 @@ class ContentService
 
             $value = $row[$column];
             if ($value !== null && !is_scalar($value)) {
+                // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
                 throw new InvalidContentRowException("Column \"{$column}\" must be a scalar or null.");
+                // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
             }
 
             $picked[$column] = $value;

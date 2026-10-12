@@ -20,7 +20,7 @@ class UrlRewriterTest extends TestCase
         parent::setUp();
         Monkey\setUp();
         Functions\when('is_serialized')->alias(static fn (string $value): bool => $value === 'b:0;' || @unserialize($value) !== false);
-        $this->rewriter = new UrlRewriter('https://prod.test', 'http://site.local', 'https://prod.test/wp-content/uploads');
+        $this->rewriter = new UrlRewriter('https://prod.test', 'https://site.local', 'https://prod.test/wp-content/uploads');
     }
 
     protected function tearDown(): void
@@ -32,7 +32,7 @@ class UrlRewriterTest extends TestCase
     public function test_rewrites_links_but_keeps_media_on_the_source_site(): void
     {
         $this->assertSame(
-            '<a href="http://site.local/about/">x</a><img src="https://prod.test/wp-content/uploads/a.jpg">',
+            '<a href="https://site.local/about/">x</a><img src="https://prod.test/wp-content/uploads/a.jpg">',
             $this->rewriter->rewrite('<a href="https://prod.test/about/">x</a><img src="https://prod.test/wp-content/uploads/a.jpg">'),
         );
     }
@@ -42,7 +42,7 @@ class UrlRewriterTest extends TestCase
         $value = serialize(['link' => 'https://prod.test/shop', 'nested' => [serialize('https://prod.test/')], 'n' => 3]);
 
         $this->assertSame(
-            ['link' => 'http://site.local/shop', 'nested' => [serialize('http://site.local/')], 'n' => 3],
+            ['link' => 'https://site.local/shop', 'nested' => [serialize('https://site.local/')], 'n' => 3],
             unserialize((string) $this->rewriter->rewrite($value)),
         );
     }

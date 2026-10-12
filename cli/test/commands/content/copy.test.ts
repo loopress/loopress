@@ -20,7 +20,7 @@ function make(argv: string[], target = 'local') {
   internals.dryRun = argv.includes('--dry-run')
   const source = {get: vi.fn(async (path: string) => PAGES[path])}
   internals.sourceWp = vi.fn(() => source)
-  const local = {post: vi.fn(async () => ({}))}
+  const local = {post: vi.fn(async (_path: string, _body?: unknown) => ({}))}
   internals.wpClient = local
   silenceLogs(cmd)
   return {cmd, internals, local}

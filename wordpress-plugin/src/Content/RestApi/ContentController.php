@@ -26,23 +26,25 @@ class ContentController
 
     private const MAX_LIMIT = 500;
 
+    private const NAMESPACE = 'loopress/v1';
+
     public function __construct(private ContentService $service) {}
 
     public function register_routes(): void
     {
-        register_rest_route('loopress/v1', '/content', [
+        register_rest_route(self::NAMESPACE, '/content', [
             'methods'             => 'GET',
             'callback'            => fn(): WP_REST_Response => new WP_REST_Response($this->service->info(), 200),
             'permission_callback' => $this->permissionCallback(),
         ]);
 
-        register_rest_route('loopress/v1', '/content/reset', [
+        register_rest_route(self::NAMESPACE, '/content/reset', [
             'methods'             => 'POST',
             'callback'            => [$this, 'reset'],
             'permission_callback' => $this->permissionCallback(),
         ]);
 
-        register_rest_route('loopress/v1', '/content/posts', [
+        register_rest_route(self::NAMESPACE, '/content/posts', [
             [
                 'methods'             => 'GET',
                 'callback'            => fn(WP_REST_Request $request): WP_REST_Response => $this->page($request, $this->service->exportPosts(...)),
@@ -58,7 +60,7 @@ class ContentController
             ],
         ]);
 
-        register_rest_route('loopress/v1', '/content/terms', [
+        register_rest_route(self::NAMESPACE, '/content/terms', [
             [
                 'methods'             => 'GET',
                 'callback'            => fn(WP_REST_Request $request): WP_REST_Response => $this->page($request, $this->service->exportTerms(...)),
@@ -78,8 +80,13 @@ class ContentController
     public function reset(WP_REST_Request $request): WP_REST_Response
     {
         $body    = $request->get_json_params();
-        $home    = is_array($body) ? ($body['home'] ?? null) : null;
-        $uploads = is_array($body) ? ($body['uploadsUrl'] ?? null) : null;
+        $home    = null;
+        $uploads = null;
+        if (is_array($body)) {
+            $home    = $body['home'] ?? null;
+            $uploads = $body['uploadsUrl'] ?? null;
+        }
+
         if (!is_string($home) || !is_string($uploads) || $home === '') {
             return new WP_REST_Response(['error' => 'Request body must include the source site\'s "home" and "uploadsUrl".'], 400);
         }
@@ -117,10 +124,14 @@ class ContentController
     private function list(array $body, string $key): array
     {
         $value = $body[$key] ?? [];
-        if (!is_array($value) || !array_is_list($value)) {
+        // Not array_is_list(): WordPress polyfills it only from 6.5, the plugin supports 6.2.
+        $list = is_array($value) ? array_values($value) : null;
+        if ($list === null || $list !== $value) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new InvalidContentRowException("\"{$key}\" must be an array.");
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
-        return $value;
+        return $list;
     }
 }

@@ -12,11 +12,12 @@ namespace Loopress\Content\Service;
 // string replace would change their lengths and corrupt them.
 // ponytail: JSON-escaped URLs (`https:\/\/...`, Elementor data) are not rewritten, add a second
 // pattern if a builder plugin needs it.
-final class UrlRewriter
+final readonly class UrlRewriter
 {
-    private readonly string $from;
-    private readonly string $to;
-    private readonly string $pattern;
+    private string $from;
+    private string $to;
+    /** @var non-empty-string */
+    private string $pattern;
 
     public function __construct(string $from, string $to, string $keepUnder)
     {
@@ -29,7 +30,11 @@ final class UrlRewriter
 
     public function rewrite(?string $value): ?string
     {
-        if ($value === null || $this->from === '' || $this->from === $this->to || !str_contains($value, $this->from)) {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($this->from === '' || $this->from === $this->to || !str_contains($value, $this->from)) {
             return $value;
         }
 
