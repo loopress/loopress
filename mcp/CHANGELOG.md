@@ -1,5 +1,33 @@
 # @loopress/mcp
 
+## 0.30.0
+
+### Minor Changes
+
+- a1a5147: New `cpt_push`, `cpt_pull`, `cpt_list`, `cpt_rm` and `cpt_rollback` tools for custom post types, and `project_diff` accepts `cpt`.
+- 049d127: New `meta_push`, `meta_pull`, `meta_list`, `meta_rm` and `meta_rollback` tools, and `project_diff` accepts `meta`.
+- 22894f6: Breaking: the `seo_list`, `seo_pull`, `seo_push` and `seo_rollback` tools are removed, following the removal of `lps seo`. Track SEO plugin settings with `option_add` (`rank-math-options-titles` or `wpseo_titles`) instead.
+- cd4b340: New `role_*` and `pattern_*` tools (push, pull, list, rm, rollback), and `project_diff` accepts `role` and `pattern`.
+- 66790cb: New `taxonomy_push`, `taxonomy_pull`, `taxonomy_list`, `taxonomy_rm` and `taxonomy_rollback` tools, and `project_diff` accepts `taxonomy`.
+- 7139fd8: `template_push` now also pushes the theme CSS (`theme/css/`, `theme/blocks/`) to the Loopress child theme.
+
+### Patch Changes
+
+- aa60465: Commands no longer remember an environment. Without `--env`, they target the project's `local` environment, or its only environment when it has just one. A project with several environments and no `local` one needs `--env` on every command. `lps project switch` now picks a project only, and `lps project list` tags the default environment with `[default]` instead of an arrow on the switched one (`isDefault` replaces `isCurrent` per environment in `--json`). An existing `config.json` keeps working: the `env` field of `currentProject` is ignored and dropped on the next write.
+- Updated dependencies [a1a5147]
+- Updated dependencies [95d9f8c]
+- Updated dependencies [aa60465]
+- Updated dependencies [049d127]
+- Updated dependencies [22894f6]
+- Updated dependencies [03d3da0]
+- Updated dependencies [cd4b340]
+- Updated dependencies [3bbe20d]
+- Updated dependencies [b87fa13]
+- Updated dependencies [66790cb]
+- Updated dependencies [7139fd8]
+- Updated dependencies [5fdd7ee]
+  - @loopress/cli@0.30.0
+
 ## 0.29.0
 
 ### Minor Changes
