@@ -1,5 +1,25 @@
 # @loopress/cli
 
+## 0.30.0
+
+### Minor Changes
+
+- a1a5147: New `lps cpt` commands for custom post types declared as `cpt/<slug>.json` files: `push`, `pull`, `list` (every post type on the site and its source), `rm`, `diff` and `rollback`. `lps push` and `lps pull` include them, `lps validate` checks the file names and refuses arguments that would run code. Needs the matching plugin release.
+- aa60465: Commands no longer remember an environment. Without `--env`, they target the project's `local` environment, or its only environment when it has just one. A project with several environments and no `local` one needs `--env` on every command. `lps project switch` now picks a project only, and `lps project list` tags the default environment with `[default]` instead of an arrow on the switched one (`isDefault` replaces `isCurrent` per environment in `--json`). An existing `config.json` keeps working: the `env` field of `currentProject` is ignored and dropped on the next write.
+- 049d127: New `lps meta` commands for post meta keys declared as `meta/<post-type>.json` files: `push`, `pull`, `list` (every registered meta key per post type, and whether Loopress declares it), `rm`, `diff` and `rollback`. Values are never synced. `lps push`, `lps pull` and `lps validate` include them. Needs the matching plugin release.
+- 22894f6: Breaking: the `lps seo` command group (`pull`, `push`, `list`, `diff`, `rollback`) is removed, along with its step in `lps pull`, `lps push` and `lps diff` and the `seoDir` key in `loopress.json`. Loopress versions configuration, never content: per-post SEO meta and redirects belong to the content editors manage in wp-admin, and most of that meta is data the SEO plugin generates itself. The site-wide SEO settings are one option row, tracked like any other option. To migrate, run `lps option add rank-math-options-titles` (Rank Math) or `lps option add wpseo_titles` (Yoast SEO), then delete the `seo/` folder and any `seoDir` key. `lps pull` and `lps push` warn while either is still there.
+- 03d3da0: A successful push now tells the site it happened (once per `lps <resource> push`, never on a dry run), so the plugin's Overview tab can show what was pushed, when, and whether it changed since. An older plugin that doesn't know about it is ignored silently.
+- cd4b340: New `lps role` commands for user roles declared as `roles/<slug>.json` files, and `lps pattern` commands for block patterns written as `patterns/<slug>.html` files (block markup under a `title`/`categories` header, registered as `loopress/<slug>`, Loopress Full only): `push`, `pull`, `list`, `rm`, `diff` and `rollback` for both. `lps push`, `lps pull` and `lps validate` include them, patterns pushed before templates and pages. Needs the matching plugin release.
+- 66790cb: New `lps taxonomy` commands for taxonomies declared as `taxonomies/<slug>.json` files: `push`, `pull`, `list` (every taxonomy on the site, its source and the post types it attaches to), `rm`, `diff` and `rollback`. Terms are never synced. `lps push`, `lps pull` and `lps validate` include them. Needs the matching plugin release.
+- 7139fd8: `lps theme template push` now also pushes the theme CSS, bundled with esbuild: `theme/css/style.css` (the entry, it `@import`s the rest of `theme/css/` in cascade order) becomes the Loopress child theme's `style.css`, loaded on every page, and each `theme/blocks/<namespace>/<block>.css` is loaded only on pages that render that block. Relative `url()` fonts and images are copied next to the CSS. The push warns about a block file named after no block registered on the site. New `cssDir` and `blockCssDir` keys in `loopress.json`, and `lps dev` watches both folders (`css`, `blocks`). Needs the matching plugin release.
+- 5fdd7ee: Block templates and template parts now live under `theme/`, next to the Global Styles file: `theme/templates/` and `theme/parts/` by default instead of `templates/` and `parts/` at the project root. Everything `lps theme` manages sits in one directory. A project that keeps the old layout sets `templateDir: "templates"` and `partDir: "parts"` in `loopress.json`.
+
+### Patch Changes
+
+- 95d9f8c: `lps dev` runs a push once per batch when several changed types share it: saving a template and a stylesheet together (`templates`, `parts`, `css`, `blocks`) rewrites the child theme once instead of once per type.
+- 3bbe20d: Error reports sent to Sentry no longer include HTTP headers, bodies, cookies, query params or stack frame variables, which Sentry 11 now collects by default.
+- b87fa13: `lps project config` now removes any temporary administrator account left behind by an interrupted Loopress Full install (a killed process, a lost connection), and `lps doctor` reports one as a failed check. Only accounts matching both the `lps-temp-` username prefix and the `@lps-temp.invalid` email are touched.
+
 ## 0.29.0
 
 ### Minor Changes
