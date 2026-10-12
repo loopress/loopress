@@ -1,15 +1,18 @@
+import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import got from 'got'
 import {Listr} from 'listr2'
 import {resolve} from 'node:path'
+import {isDeepStrictEqual} from 'node:util'
 
 import {authManager} from '../config/auth.manager.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
+import {isInteractive} from './interactive.js'
 import {type ResourceStateProvider} from './resource-state.js'
-import {writeSnapshot} from './snapshot-store.js'
+import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
 
 export abstract class PushCommand extends LoopressCommand {
@@ -17,6 +20,7 @@ export abstract class PushCommand extends LoopressCommand {
   // so its steps skip that prompt while still asking their own confirmations (uninstalls).
   static baseFlags = {
     ...LoopressCommand.baseFlags,
+    overwrite: Flags.boolean({description: 'Push even over changes made on the site outside Loopress since your last push'}),
     'production-confirmed': Flags.boolean({hidden: true}),
   }
 
@@ -32,14 +36,18 @@ export abstract class PushCommand extends LoopressCommand {
   // `writeAfterPushSnapshot` there is no restore point to complete.
   //
   // On a dry run, the same read is the preview's check against the site (see previewRemote).
-  protected async captureBeforePushState(provider: ResourceStateProvider, dir: string): Promise<ResourceState | undefined> {
+  //
+  // `writes` narrows the outside-edit check to the ids this push actually writes, for a push that
+  // skips some local items (`lps page push <slug>`, readonly options, `lps acf push --type`).
+  protected async captureBeforePushState(provider: ResourceStateProvider, dir: string, writes?: (id: string) => boolean): Promise<ResourceState | undefined> {
     if (this.dryRun) {
-      await this.previewRemote(provider, dir)
+      await this.guardOutsideEdits(provider, dir, await this.previewRemote(provider, dir), writes)
       return undefined
     }
 
+    let remote: ResourceState
     try {
-      return await provider.remote(
+      remote = await provider.remote(
         this.wp,
         (message) => {
           this.warn(message)
@@ -50,6 +58,9 @@ export abstract class PushCommand extends LoopressCommand {
       this.warn(`Could not read remote state for a rollback snapshot: ${(error as Error).message}`)
       return undefined
     }
+
+    await this.guardOutsideEdits(provider, dir, remote, writes)
+    return remote
   }
 
   async catch(err: Error): Promise<void> {
@@ -81,9 +92,9 @@ export abstract class PushCommand extends LoopressCommand {
   // (ACF or Rank Math missing: a 400 or 409 on the real push). It now reads the site the same way
   // `lps diff` does and fails the same way, so the preview, and the MCP server's preview and
   // pre-apply check built on it, see what the real push will hit.
-  protected async previewRemote(provider: ResourceStateProvider, dir: string): Promise<void> {
+  protected async previewRemote(provider: ResourceStateProvider, dir: string): Promise<ResourceState> {
     try {
-      await provider.remote(this.wp, () => {}, dir)
+      return await provider.remote(this.wp, () => {}, dir)
     } catch (error) {
       this.error(`The site would refuse this push: ${(error as Error).message}`)
     }
@@ -193,4 +204,53 @@ export abstract class PushCommand extends LoopressCommand {
       this.warn(`Could not save a rollback snapshot after this push: ${(error as Error).message}`)
     }
   }
+
+  // Refuses to silently overwrite a change made on the site outside Loopress (wp-admin, another
+  // tool) since this machine's last push. Flags an id only when both hold:
+  // - the site no longer matches what that push left (the latest snapshot's `afterState`, the
+  //   same reference rollback's drift check uses), and
+  // - this push would write a different value over it (local differs from the site), so a
+  //   `pull` that already brought the change into the local files is no reason to stop.
+  // Only ids present locally count: a push is additive, it never touches a site-only id.
+  // Ceiling: snapshots live in git-ignored `.loopress/`, so only the machine that pushed last
+  // is protected; a record kept on the site would cover teammates and CI.
+  private async guardOutsideEdits(provider: ResourceStateProvider, dir: string, remote: ResourceState, writes?: (id: string) => boolean): Promise<void> {
+    if (this.overwrite) return
+
+    let expected: ResourceState
+    let local: ResourceState
+    let pushedAt: string
+    try {
+      const snapshot = await readSnapshot(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name)
+      expected = recordToState(snapshot.afterState)
+      pushedAt = snapshot.createdAt
+      local = await provider.local(dir, () => {})
+    } catch {
+      // No earlier push from this machine, or unreadable local files the push reports itself.
+      return
+    }
+
+    const overwritten = [...local.keys()].filter(
+      (id) => (writes?.(id) ?? true) && !sameEntry(remote, expected, id) && !sameEntry(local, remote, id),
+    )
+    if (overwritten.length === 0) return
+
+    const message =
+      `Changed on ${this.siteConfig.url} outside Loopress since your last push (${pushedAt}), this push would overwrite: ${overwritten.join(', ')}. ` +
+      `Review with \`lps diff --only ${provider.resource}\`, bring the site's version into your files, or pass --overwrite.`
+    // A dry run only previews: say what the real push would stop on.
+    if (this.dryRun) {
+      this.warn(message)
+      return
+    }
+
+    if (!isInteractive()) this.error(message)
+
+    this.warn(message)
+    if (!(await confirm({default: false, message: 'Overwrite those changes?'}))) this.error('Aborted.')
+  }
+}
+
+function sameEntry(left: ResourceState, right: ResourceState, id: string): boolean {
+  return left.has(id) === right.has(id) && isDeepStrictEqual(left.get(id), right.get(id))
 }

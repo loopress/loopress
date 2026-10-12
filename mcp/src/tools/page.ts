@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -52,6 +52,8 @@ export function registerPageTools(server: McpServer): void {
           ...(slugExample === undefined
             ? {}
             : {
+                // Pages only: template pushes never overwrite Site Editor edits (their database copy wins).
+                overwrite: overwriteFlag,
                 slug: z
                   .string()
                   // Same pattern as the CLI's file names, which also keeps it from reading as a flag.
@@ -61,8 +63,10 @@ export function registerPageTools(server: McpServer): void {
               }),
         },
       },
-      async ({confirmToken, env, slug}: {confirmToken?: string; env?: string; slug?: string}) =>
-        toCallToolResult(await runMutatingTool(`${kind}_push`, buildArgs(slug ? [...command, 'push', slug] : [...command, 'push'], {env}), confirmToken)),
+      async ({confirmToken, env, overwrite, slug}: {confirmToken?: string; env?: string; overwrite?: boolean; slug?: string}) =>
+        toCallToolResult(
+          await runMutatingTool(`${kind}_push`, buildArgs(slug ? [...command, 'push', slug] : [...command, 'push'], {env, overwrite}), confirmToken),
+        ),
     )
 
     server.registerTool(

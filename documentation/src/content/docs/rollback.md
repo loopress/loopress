@@ -44,7 +44,7 @@ Plugins, themes, Composer, static pages, templates and apps have no rollback: to
 
 ## Where snapshots live
 
-Snapshots are written on the machine that ran the push, in `.loopress/snapshots/<resource>/<environment>/` at the root of your project. The CLI keeps the last 10 per resource and environment, pruning the oldest. The `.loopress/` directory ignores itself in Git, so snapshots are never committed.
+Snapshots are written on the machine that ran the push, in `.loopress/snapshots/<resource>/<environment>/` at the root of your project. The next push also reads the latest one to detect [changes made outside Loopress](/concepts/#changes-made-outside-loopress) since then (static pages keep snapshots for that reason, without a rollback command). The CLI keeps the last 10 per resource and environment, pruning the oldest. The `.loopress/` directory ignores itself in Git, so snapshots are never committed.
 
 A push run in CI therefore saves its snapshot on the runner, where it disappears with the job. To undo a CI deploy, revert the commit and let the pipeline push again.
 

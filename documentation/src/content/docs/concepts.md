@@ -72,6 +72,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 | `--env <name>` | Target this environment instead of the active one. Accepted by every command that talks to WordPress. |
 | `--dry-run` / `-d` | Show what would happen without changing anything, see [dry runs](#dry-runs). |
 | `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to `production`, `--prune`, removals, rollbacks. |
+| `--overwrite` | Push even over changes made on the site outside Loopress since your last push, see [changes made outside Loopress](#changes-made-outside-loopress). Not implied by `--yes`. |
 | `--json` | Print a structured result instead of formatted text, for scripts and the [MCP server](/cli/mcp/). |
 
 ## How pull and push treat your files
@@ -93,6 +94,20 @@ When a file's id doesn't exist on the target site (a fresh install, another envi
 A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: `--prune` on [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) deletes server files absent locally, `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) uninstalls it, and the `remove` commands delete one object on purpose.
 
 Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/).
+
+### Changes made outside Loopress
+
+Before writing, a push compares the site with the state your last push from this machine left it in. If an object was changed there since (an edit in wp-admin, another tool) and the push would write a different version over it, the push stops and names those objects:
+
+```text
+Changed on https://acme.com outside Loopress since your last push (2026-10-12T09:14:02.000Z), this push would overwrite: header-menu.
+```
+
+Review the difference with `lps diff --only <resource>`, then either bring the site's version into your files (`pull`, or copy the change by hand), or push with `--overwrite` to replace it. In a terminal the push asks instead of stopping, and a `--dry-run` only warns.
+
+Objects added on the site and absent from your files are never flagged, a push doesn't touch them. Once a `pull` brings the change into your files, the push goes through.
+
+This relies on the [snapshots](/rollback/#where-snapshots-live) kept on the machine that pushed, so it protects a push from the same machine. The first push from a new clone or a CI runner has nothing to compare with and isn't checked. Templates and template parts don't need it: a Site Editor edit stays in the database and keeps winning over the pushed file, and the push warns about it.
 
 ## Dry runs
 
@@ -117,6 +132,7 @@ Without a TTY, or when the `CI` environment variable is set, the CLI never hangs
 lps snippet push --env production --yes
 ```
 
+- A push that would overwrite changes made on the site outside Loopress fails and names them. Pass `--overwrite` to push anyway, see [changes made outside Loopress](#changes-made-outside-loopress).
 - Pull commands that would delete local files no longer present on WordPress remove them and report them, see [pull mirrors the site](#pull-mirrors-the-site).
 
 See [CI/CD Integration](/ci/) for complete pipelines.

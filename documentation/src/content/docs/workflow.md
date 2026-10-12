@@ -74,7 +74,11 @@ lps push --env staging --yes
 lps push --dry-run
 ```
 
-When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server. Like `lps pull`, a failing resource doesn't stop the others.
+When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
+
+Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged.
+
+`--overwrite` is passed on to every resource, see [changes made outside Loopress](/concepts/#changes-made-outside-loopress).
 
 ## `lps diff`
 

@@ -166,7 +166,7 @@ export function isInvalidPageNumber(error: unknown): boolean {
 }
 
 export function formatWpError(error: unknown, url: string, timeoutMs: number = REQUEST_TIMEOUT_MS): string {
-  const err = error as {message?: string; name?: string; response?: {body?: string; statusCode?: number}}
+  const err = error as {code?: string; message?: string; name?: string; response?: {body?: string; statusCode?: number}}
   const status = err.response?.statusCode
 
   if (status === 401 || status === 403) {
@@ -196,7 +196,21 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
     return `Request timed out after ${timeoutMs / 1000}s on ${url}. Is the site reachable?`
   }
 
-  return `Request to ${url} failed: ${err.message ?? String(error)}`
+  const reason = err.code ? NETWORK_ERROR_HINTS[err.code] : undefined
+  // The site, not the endpoint: every resource fails the same way when the site is down, so
+  // `lps diff` can print it once (see DiffCommand.report).
+  if (reason) return `Could not reach ${new URL(url).origin}: ${reason}. Run \`lps doctor\` to check the environment.`
+
+  // Node leaves `message` empty on some network errors (an AggregateError over IPv4 + IPv6):
+  // fall back to the error code so the reason is never blank.
+  return `Request to ${url} failed: ${err.message?.length ? err.message : (err.code ?? String(error))}`
+}
+
+const NETWORK_ERROR_HINTS: Record<string, string> = {
+  ECONNREFUSED: 'connection refused, the site may be down',
+  ECONNRESET: 'connection reset by the server',
+  ENOTFOUND: 'host not found, check the URL',
+  ETIMEDOUT: 'connection timed out',
 }
 
 function extractLoopressError(body: string | undefined): string | undefined {

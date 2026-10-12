@@ -13,6 +13,12 @@ export const confirmTokenFlag = z
   .optional()
   .describe('Token from a prior preview call of this same tool, to apply it for real')
 
+// On every push that checks for changes made on the site outside Loopress (`lps <resource> push --overwrite`).
+export const overwriteFlag = z
+  .boolean()
+  .optional()
+  .describe('Push even over changes made on the site outside Loopress since the last push, which the push otherwise refuses, naming them')
+
 // Every `*_push` tool's description ends with this two-call handshake note, verbatim.
 export const PREVIEW_SUFFIX =
   ' Without confirmToken, returns a dry-run preview and a confirmToken instead of making any change; call again with that confirmToken to apply it.'
@@ -121,12 +127,13 @@ export function registerResourceTools(
         inputSchema: {
           confirmToken: confirmTokenFlag,
           env: envFlag,
+          overwrite: overwriteFlag,
           path: pathArg,
           prune: z.boolean().optional().describe(`After pushing, delete server-side ${resource} files not present locally`),
         },
       },
-      async ({confirmToken, env, path, prune}) => {
-        const args = buildArgs([resource, 'push'], {env, path})
+      async ({confirmToken, env, overwrite, path, prune}) => {
+        const args = buildArgs([resource, 'push'], {env, overwrite, path})
         // --yes: prune refuses to delete server-side files in a non-TTY (which the MCP server
         // always is) without it. The confirmToken handshake is the actual approval gate.
         if (prune) args.push('--prune', '--yes')
@@ -138,11 +145,11 @@ export function registerResourceTools(
       `${resource}_push`,
       {
         description: descriptions.push + PREVIEW_SUFFIX,
-        inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, path: pathArg},
+        inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg},
       },
-      async ({confirmToken, env, path}) =>
+      async ({confirmToken, env, overwrite, path}) =>
         toCallToolResult(
-          await runMutatingTool(`${resource}_push`, buildArgs([resource, 'push'], {env, path}), confirmToken),
+          await runMutatingTool(`${resource}_push`, buildArgs([resource, 'push'], {env, overwrite, path}), confirmToken),
         ),
     )
   }

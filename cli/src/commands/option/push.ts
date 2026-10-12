@@ -37,9 +37,6 @@ export default class Push extends PushCommand {
     this.log(`Pushing tracked options to ${url}`)
     this.log(`Options path: ${dir}`)
 
-    const provider = getResourceStateProvider('option')
-    const beforeState = await this.captureBeforePushState(provider, dir)
-
     const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',
       onSkip: (message) => {
@@ -49,6 +46,11 @@ export default class Push extends PushCommand {
     })
 
     const {skipped, writable} = partitionByReadonly(tracked)
+
+    const provider = getResourceStateProvider('option')
+    // Readonly options are never written, so a site-side change to one is no reason to stop.
+    const writableNames = new Set(writable.map((option) => option.name))
+    const beforeState = await this.captureBeforePushState(provider, dir, (name) => writableNames.has(name))
 
     if (skipped.length > 0) {
       this.log(`Skipping ${pluralize(skipped.length, 'readonly option')}: ${skipped.map((option) => option.name).join(', ')}`)

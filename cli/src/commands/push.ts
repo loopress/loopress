@@ -5,9 +5,9 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
-import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
 
@@ -48,9 +48,8 @@ export default class Push extends LoopressCommand {
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    overwrite: PushCommand.baseFlags.overwrite,
   }
-
-  private failedCount = 0
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
@@ -74,20 +73,15 @@ export default class Push extends LoopressCommand {
         this.log(this.dryRun ? `✓ ${target.label} would push` : `✓ ${target.label} pushed`)
         results.push({label: target.label, status: 'pushed'})
       } catch (error) {
-        this.failedCount++
         const {message} = error as Error
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
+        // Stop here: later targets depend on earlier ones (hooks use what composer installs,
+        // pages need their templates), so pushing them anyway can ship a silently broken site.
+        const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1).map((next) => next.label)
+        const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+        this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
-    }
-
-    if (this.failedCount > 0) {
-      // Each failure's own reason, not just the count: under --json the per-resource lines above
-      // never reach stdout, and this message is all an MCP caller or a script gets to see.
-      const failures = results
-        .filter((result) => result.status === 'failed')
-        .map((result) => `${result.label}: ${result.error}`)
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to push. ${failures.join('; ')}`)
     }
 
     this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
@@ -100,6 +94,8 @@ export default class Push extends LoopressCommand {
   private buildArgv(): string[] {
     const argv = ['--env', this.siteConfig.name, '--yes']
     if (this.dryRun) argv.push('--dry-run')
+    // Not implied by --yes: overwriting changes made outside Loopress is its own decision.
+    if (this.overwrite) argv.push('--overwrite')
     return argv
   }
 

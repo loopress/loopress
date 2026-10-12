@@ -1,6 +1,6 @@
 {
   "name": "@loopress/cli",
-  "description": "CLI tool for syncing WordPress code snippets, plugins, and Composer dependencies via the REST API",
+  "description": "Build, review and ship WordPress, in one loop: pull, diff, push and roll back a site's code and config from git",
   "version": "0.30.0",
   "author": "jean-smaug",
   "bin": {

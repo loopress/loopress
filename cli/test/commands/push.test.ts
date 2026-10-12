@@ -40,18 +40,20 @@ const ALL_COMMAND_IDS = [
 ]
 
 class TestPush extends Push {
-  setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
+  setup(options: {dryRun?: boolean; overwrite?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
     this.dryRun = options.dryRun ?? false
+    this.overwrite = options.overwrite ?? false
     this.yes = options.yes ?? false
     this.siteConfig = options.siteConfig
     this.localConfig = {}
   }
 }
 
-function make(options: {dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
+function make(options: {dryRun?: boolean; overwrite?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
   const cmd = new TestPush([], fakeOclifConfig)
   cmd.setup({
     dryRun: options.dryRun,
+    overwrite: options.overwrite,
     siteConfig: options.siteConfig ?? makeEnv('staging', 'https://staging.acme.com'),
     yes: options.yes,
   })
@@ -106,6 +108,16 @@ describe('push', () => {
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes', '--dry-run'])
   })
 
+  // --yes is always forwarded, so it must never stand in for --overwrite.
+  it('forwards --overwrite only when given', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    await make().cmd.run()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes'])
+
+    await make({overwrite: true}).cmd.run()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes', '--overwrite'])
+  })
+
   it('reports success once every resource pushed', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make()
@@ -125,26 +137,23 @@ describe('push', () => {
     expect(result.results.every((entry) => entry.status === 'pushed')).toBe(true)
   })
 
-  it('continues past a failed resource and still pushes the rest', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({})
+  it('stops at the first failed resource and names the ones not attempted', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('boom'))
     const {cmd, logs} = make()
 
-    await expect(cmd.run()).rejects.toThrow('1 resource failed to push.')
+    await expect(cmd.run()).rejects.toThrow('composer failed to push: boom. Not attempted: post types, taxonomies,')
 
-    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(ALL_COMMAND_IDS.length)
-    expect(logs.log).toHaveBeenCalledWith('✗ plugins failed: boom')
-    expect(logs.log).toHaveBeenCalledWith('✓ composer pushed')
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
+    expect(logs.log).toHaveBeenCalledWith('✗ composer failed: boom')
   })
 
-  it('reports the plural count when multiple resources fail', async () => {
-    vi.mocked(fakeOclifConfig.runCommand)
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error('bang'))
-      .mockResolvedValue({})
+  it('names nothing as skipped when the last resource fails', async () => {
+    const calls = vi.mocked(fakeOclifConfig.runCommand)
+    for (let i = 0; i < ALL_COMMAND_IDS.length - 1; i++) calls.mockResolvedValueOnce({})
+    calls.mockRejectedValueOnce(new Error('bang'))
     const {cmd} = make()
 
-    await expect(cmd.run()).rejects.toThrow('2 resources failed to push. plugins: boom; post types: bang')
+    await expect(cmd.run()).rejects.toThrow(/^snippets failed to push: bang\.$/)
   })
 
   describe('production guard', () => {

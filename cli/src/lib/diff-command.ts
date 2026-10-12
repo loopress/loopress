@@ -36,6 +36,9 @@ export type DiffTarget = {
 type DiffSides = {
   againstWp: undefined | WpClient
   leftLabel: string
+  // The header's name for the right side: "local files", not "local", since the local
+  // environment is itself named "local" ("Comparing local → local").
+  rightHeading: string
   rightLabel: string
   warn: (message: string) => void
 }
@@ -85,9 +88,14 @@ export abstract class DiffCommand extends LoopressCommand {
   // a tally, and the verdict, then returns the structured result. Exit code: 1 on drift, 2
   // when a resource could not be compared (inconclusive), so the command doubles as a CI gate.
   protected async report(targets: DiffTarget[], sides: DiffSides): Promise<DiffJson> {
-    this.out(`Comparing ${c('bold', sides.leftLabel)} ${c('dim', '→')} ${c('bold', sides.rightLabel)}\n`)
+    this.out(`Comparing ${c('bold', sides.leftLabel)} ${c('dim', '→')} ${c('bold', sides.rightHeading)}\n`)
 
     const results = await Promise.all(targets.map(async (target) => this.computeResource(target, sides)))
+
+    // Every resource failing the same way (site down, bad credentials) is one problem: say it
+    // once instead of once per resource.
+    const sharedError = sharedFailure(results.map((result) => result.json.error))
+    if (sharedError !== undefined) this.out(c('red', `error: ${sharedError}`))
 
     const resources: Record<string, ResourceDiffJson> = {}
     let drift = false
@@ -102,8 +110,7 @@ export abstract class DiffCommand extends LoopressCommand {
 
       if (result.json.error !== undefined) {
         failed = true
-        const errorLabel = c('red', `error: ${result.json.error}`)
-        this.out(`${c('bold', result.title)}  ${errorLabel}`)
+        this.renderFailure(result.title, result.json.error, sharedError)
         continue
       }
 
@@ -133,6 +140,7 @@ export abstract class DiffCommand extends LoopressCommand {
     return {
       againstWp: against ? this.wpForEnvironment(against) : undefined,
       leftLabel: this.siteConfig.name,
+      rightHeading: against ?? 'local files',
       rightLabel: against ?? 'local',
       warn: (message) => {
         this.warn(message)
@@ -168,6 +176,13 @@ export abstract class DiffCommand extends LoopressCommand {
 
   private out(message: string): void {
     if (!this.jsonEnabled()) this.log(message)
+  }
+
+  private renderFailure(title: string, error: string, sharedError: string | undefined): void {
+    // Already printed once by `report` when every failure is the same.
+    if (sharedError !== undefined) return
+    const errorLabel = c('red', `error: ${error}`)
+    this.out(`${c('bold', title)}  ${errorLabel}`)
   }
 
   private renderSection(title: string, stateDiff: StateDiff): void {
@@ -240,4 +255,11 @@ function indentPatch(patch: string): string {
     .map((line) => (line === '' ? line : `    ${line}`))
     .join('\n')
     .trimEnd()
+}
+
+// The one error every failed resource shares, when more than one failed (see `report`).
+function sharedFailure(errors: Array<string | undefined>): string | undefined {
+  const failures = errors.filter((error) => error !== undefined)
+  const distinct = new Set(failures)
+  return failures.length > 1 && distinct.size === 1 ? failures[0] : undefined
 }
