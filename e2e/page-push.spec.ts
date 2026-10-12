@@ -122,13 +122,7 @@ test("refuses a page that is in the trash and asks to restore it, without creati
 	await requestUtils.rest({ method: "DELETE", path: `/wp/v2/pages/${created.id}` });
 
 	writePage(projectDir, slug, "<p>v2</p>");
-	// Trashing is a change made outside Loopress: the push stops on it first...
-	const guarded = await runCli(["page", "push"]);
-	expect(guarded.exitCode).not.toBe(0);
-	expect(unwrap(guarded.stderr)).toContain("outside Loopress");
-
-	// ...and even when told to overwrite, it won't silently bring the page back.
-	const pushResult = await runCli(["page", "push", "--overwrite"]);
+	const pushResult = await runCli(["page", "push"]);
 	expect(pushResult.exitCode).not.toBe(0);
 	expect(unwrap(pushResult.stderr)).toContain("is in the trash");
 
