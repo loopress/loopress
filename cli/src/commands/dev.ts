@@ -60,17 +60,28 @@ export default class Dev extends Command {
 
   // Sequential on purpose (see notes technique: parallelizing push is out of scope). A failed
   // push is logged and swallowed here, never thrown, so one bad batch can't take the watcher down.
+  // Types sharing a command run it once: templates, parts, css and blocks all rewrite the whole
+  // child theme through `theme:template:push`.
   private async pushBatch(changesByType: Map<ResourceType, string[]>, targets: WatchTarget[]): Promise<void> {
+    const byCommand = new Map<string, {paths: string[]; types: ResourceType[]}>()
     for (const [type, paths] of changesByType) {
       const target = targets.find((t) => t.type === type)
       if (!target) continue
 
-      this.log(`\n→ ${type} changed (${paths.map((path) => basename(path)).join(', ')}), pushing to local...`)
+      const batch = byCommand.get(target.commandId) ?? {paths: [], types: []}
+      batch.types.push(type)
+      batch.paths.push(...paths)
+      byCommand.set(target.commandId, batch)
+    }
+
+    for (const [commandId, {paths, types}] of byCommand) {
+      const label = types.join(', ')
+      this.log(`\n→ ${label} changed (${paths.map((path) => basename(path)).join(', ')}), pushing to local...`)
       try {
-        await this.config.runCommand(target.commandId, ['--env', 'local'])
-        this.log(`✓ ${type} synced`)
+        await this.config.runCommand(commandId, ['--env', 'local'])
+        this.log(`✓ ${label} synced`)
       } catch (error) {
-        this.log(`✗ ${type} failed: ${(error as Error).message}`)
+        this.log(`✗ ${label} failed: ${(error as Error).message}`)
       }
     }
   }
