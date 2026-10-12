@@ -20,7 +20,7 @@ function make(siteConfig: EnvironmentConfig = makeEnv('production', 'https://acm
   const cmd = new TestDoctor([], fakeOclifConfig)
   cmd.setup(siteConfig)
   const logs = silenceLogs(cmd)
-  const get = vi.fn()
+  const get = vi.fn<(path: string) => Promise<unknown>>()
   // The leftover temp admin listing (the only getAll caller) gets its own mock, so the generic
   // `get` stubs below don't have to return an array for it; tests about leftovers override it.
   const users = vi.fn().mockResolvedValue([])
@@ -192,5 +192,49 @@ describe('doctor', () => {
     expect(result.ok).toBe(false)
     expect(logs.log).toHaveBeenCalledWith('✗ No leftover temporary admin accounts')
     expect(logs.log).toHaveBeenCalledWith('  Request failed (500).')
+  })
+
+  describe('hook errors', () => {
+    function withHookFiles(get: ReturnType<typeof vi.fn<(path: string) => Promise<unknown>>>, hookFiles: () => Promise<unknown>) {
+      get.mockImplementation(async (path) => (path === 'loopress/v1/hook-files' ? hookFiles() : {'current_version': '2026.7.1'}))
+    }
+
+    it('passes when every hook loads and runs cleanly', async () => {
+      const {cmd, get, logs} = make()
+      withHookFiles(get, async () => [{filename: 'hello'}])
+
+      await cmd.run()
+
+      expect(logs.log).toHaveBeenCalledWith('✓ Hooks load and run without errors')
+    })
+
+    it('fails, naming the file, method and message, when a hook threw while running', async () => {
+      const {cmd, get, logs} = make()
+      withHookFiles(get, async () => [
+        {filename: 'caps', runtimeError: {at: '2026-10-12T10:00:00+00:00', message: 'boom', method: 'grant', type: 'filter'}},
+        {error: 'expected exactly one class declaration, found none', filename: 'broken'},
+      ])
+
+      const result = await cmd.run()
+
+      expect(result.ok).toBe(false)
+      expect(logs.log).toHaveBeenCalledWith('✗ Hooks load and run without errors')
+      expect(logs.log).toHaveBeenCalledWith(
+        '  hooks/caps.php: grant() threw while running as a filter, last at 2026-10-12T10:00:00+00:00: boom\n' +
+          '  hooks/broken.php failed to load: expected exactly one class declaration, found none',
+      )
+    })
+
+    it('skips the check on Loopress Light, which has no hooks', async () => {
+      const {cmd, get, logs} = make()
+      withHookFiles(get, async () => {
+        throw new Error('Endpoint not found (404).', {cause: {response: {statusCode: 404}}})
+      })
+
+      const result = await cmd.run()
+
+      expect(result.ok).toBe(true)
+      expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Hooks load and run'))
+    })
   })
 })

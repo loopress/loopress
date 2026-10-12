@@ -17,6 +17,8 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class HookFilesController extends AbstractFilesController
 {
+    private mixed $runtimeErrors = null;
+
     public function __construct(private readonly HooksDirectory $directory) {}
 
     protected function directory(): AbstractFilesDirectory
@@ -68,7 +70,36 @@ class HookFilesController extends AbstractFilesController
             static fn(array $binding): array => self::withNextRun($binding),
             HookAttributeScanner::bindingsIn($rawContent),
         );
+
+        $runtimeError = $this->runtimeErrorFor($entry);
+        if ($runtimeError !== null) {
+            $entry['runtimeError'] = $runtimeError;
+        }
+
         return $entry;
+    }
+
+    // The last error this file's callbacks threw while running (see HookLoader::
+    // recordRuntimeError()), only while the file is still the version that threw it: a
+    // re-pushed file has a new revision, so its old error is no longer reported.
+    /**
+     * @param array<string, mixed> $entry
+     * @return array{type: string, method: string, message: string, at: string}|null
+     */
+    private function runtimeErrorFor(array $entry): ?array
+    {
+        $this->runtimeErrors ??= get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);
+        $stored = is_array($this->runtimeErrors) ? ($this->runtimeErrors[$entry['filename']] ?? null) : null;
+        if (!is_array($stored) || ($stored['revision'] ?? null) !== ($entry['revision'] ?? null)) {
+            return null;
+        }
+
+        return [
+            'type'    => (string) $stored['type'],
+            'method'  => (string) $stored['method'],
+            'message' => (string) $stored['message'],
+            'at'      => gmdate('c', (int) $stored['at']),
+        ];
     }
 
     // When a #[Cron] fires next, the one thing anyone asks about a cron. Only for crons naming

@@ -11,6 +11,7 @@ use Loopress\Hooks\Attribute\Filter;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Infrastructure\AbstractFileLoader;
 use Loopress\Infrastructure\AbstractFilesDirectory;
+use Loopress\Infrastructure\FileWriter;
 
 /**
  * Scans wp-content/loopress/hooks/*.php, requires each file, and binds what its class
@@ -39,6 +40,13 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  */
 class HookLoader extends AbstractFileLoader
 {
+    // A callback that throws on every request of a busy site must not write to the database on
+    // every request: the same error for the same file is stored at most once per this window.
+    private const RUNTIME_ERROR_WRITE_INTERVAL = 60;
+
+    /** @var array<string, array{type: string, method: string, message: string, at: int, revision: string}>|null */
+    private ?array $runtimeErrors = null;
+
     public function __construct(private readonly HooksDirectory $directory, private readonly LoopressEnvironment $environment) {}
 
     protected function directory(): AbstractFilesDirectory
@@ -177,7 +185,7 @@ class HookLoader extends AbstractFileLoader
             try {
                 call_user_func_array([$instance, $method], $args);
             } catch (\Throwable $e) {
-                $this->log("hooks/{$slug}.php: {$method}() threw during an action callback: " . $e->getMessage());
+                $this->recordRuntimeError($slug, 'action', $method, $e);
             }
         };
     }
@@ -198,7 +206,7 @@ class HookLoader extends AbstractFileLoader
             try {
                 return call_user_func_array([$instance, $method], array_slice($args, 0, $acceptedArgs));
             } catch (\Throwable $e) {
-                $this->log("hooks/{$slug}.php: {$method}() threw during a filter callback: " . $e->getMessage());
+                $this->recordRuntimeError($slug, 'filter', $method, $e);
                 return $original;
             }
         };
@@ -216,9 +224,73 @@ class HookLoader extends AbstractFileLoader
             try {
                 call_user_func([$instance, $method]);
             } catch (\Throwable $e) {
-                $this->log("hooks/{$slug}.php: {$method}() threw during a scheduled cron run: " . $e->getMessage());
+                $this->recordRuntimeError($slug, 'cron', $method, $e);
             }
         };
+    }
+
+    // error_log alone goes unread on managed hosting, so a filter that keeps failing looked like
+    // a filter doing nothing: the last error per file is also kept for `lps hook list` and
+    // `lps doctor`. Tagged with the file's revision, so a fixed and re-pushed file stops
+    // reporting it without any cleanup. Recording must never break the request either.
+    private function recordRuntimeError(string $slug, string $type, string $method, \Throwable $error): void
+    {
+        $this->log("hooks/{$slug}.php: {$method}() threw during a {$type} callback: " . $error->getMessage());
+
+        try {
+            $content = $this->directory->read($slug);
+            if ($content === null) {
+                return;
+            }
+
+            $this->runtimeErrors ??= self::storedRuntimeErrors();
+            $previous = self::validRuntimeError($this->runtimeErrors[$slug] ?? null);
+            $entry    = [
+                'type'     => $type,
+                'method'   => $method,
+                'message'  => $error->getMessage(),
+                'at'       => time(),
+                'revision' => hash('sha256', FileWriter::stripGuard($content)),
+            ];
+
+            if (
+                $previous !== null
+                && $previous['message'] === $entry['message']
+                && $previous['revision'] === $entry['revision']
+                && $entry['at'] - $previous['at'] < self::RUNTIME_ERROR_WRITE_INTERVAL
+            ) {
+                return;
+            }
+
+            $this->runtimeErrors[$slug] = $entry;
+            update_option(HooksDirectory::RUNTIME_ERRORS_OPTION, $this->runtimeErrors, false);
+        } catch (\Throwable $e) {
+            $this->log('could not record a hook runtime error: ' . $e->getMessage());
+        }
+    }
+
+    // The option is free for anyone to edit (wp option update): a malformed entry must count as
+    // no previous record, or reading its fields would throw on every later error of that file.
+    /** @return array{message: string, at: int, revision: string}|null */
+    private static function validRuntimeError(mixed $entry): ?array
+    {
+        if (
+            !is_array($entry)
+            || !is_string($entry['message'] ?? null)
+            || !is_string($entry['revision'] ?? null)
+            || !is_int($entry['at'] ?? null)
+        ) {
+            return null;
+        }
+
+        return ['message' => $entry['message'], 'at' => $entry['at'], 'revision' => $entry['revision']];
+    }
+
+    /** @return array<string, array{type: string, method: string, message: string, at: int, revision: string}> */
+    private static function storedRuntimeErrors(): array
+    {
+        $stored = get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);
+        return is_array($stored) ? $stored : [];
     }
 
     // Bound unconditionally: add_action() is cheap and idempotent from WP's own side.

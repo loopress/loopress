@@ -129,6 +129,70 @@ class HookLoaderTest extends TestCase
         $this->assertSame('original', ($binding['callback'])('original'));
     }
 
+    public function test_a_throwing_callback_records_its_error_for_the_file_version_that_threw_it(): void
+    {
+        $content = "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n";
+        $this->directory->write('throwing', $content);
+        Functions\when('get_option')->justReturn([]);
+        Functions\expect('update_option')
+            ->once()
+            ->with(HooksDirectory::RUNTIME_ERRORS_OPTION, \Mockery::on(static function (array $errors) use ($content): bool {
+                $entry = $errors['throwing'];
+                return $entry['type'] === 'filter'
+                    && $entry['method'] === 'tweak'
+                    && $entry['message'] === 'boom on: original'
+                    && $entry['revision'] === hash('sha256', $content);
+            }), false)
+            ->andReturn(true);
+
+        $loader  = new HookLoader($this->directory, $this->environment);
+        $binding = $loader->bindingsFor(new HookLoaderTestFixtureThrowingFilter(), 'throwing')['filters'][0];
+
+        $this->assertSame('original', ($binding['callback'])('original'));
+    }
+
+    public function test_the_same_runtime_error_is_written_at_most_once_a_minute(): void
+    {
+        $this->directory->write('throwing', "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n");
+        Functions\when('get_option')->justReturn([]);
+        Functions\expect('update_option')->once()->andReturn(true);
+
+        $loader  = new HookLoader($this->directory, $this->environment);
+        $binding = $loader->bindingsFor(new HookLoaderTestFixtureThrowingFilter(), 'throwing')['filters'][0];
+
+        ($binding['callback'])('original');
+        ($binding['callback'])('original');
+        ($binding['callback'])('original');
+
+        $this->addToAssertionCount(1); // Mockery verifies the single write above in tearDown
+    }
+
+    public function test_a_malformed_stored_entry_counts_as_no_previous_record(): void
+    {
+        $this->directory->write('throwing', "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n");
+        Functions\when('get_option')->justReturn(['throwing' => 'not an entry']);
+        Functions\expect('update_option')->once()->andReturn(true);
+
+        $loader  = new HookLoader($this->directory, $this->environment);
+        $binding = $loader->bindingsFor(new HookLoaderTestFixtureThrowingFilter(), 'throwing')['filters'][0];
+
+        $this->assertSame('original', ($binding['callback'])('original'));
+    }
+
+    public function test_a_failure_to_record_a_runtime_error_never_breaks_the_request(): void
+    {
+        $this->directory->write('throwing', "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n");
+        Functions\when('get_option')->justReturn([]);
+        Functions\when('update_option')->alias(static function (): never {
+            throw new \RuntimeException('database gone');
+        });
+
+        $loader  = new HookLoader($this->directory, $this->environment);
+        $binding = $loader->bindingsFor(new HookLoaderTestFixtureThrowingFilter(), 'throwing')['filters'][0];
+
+        $this->assertSame('original', ($binding['callback'])('original'));
+    }
+
     public function test_bindingsFor_filter_binding_requests_at_least_one_accepted_arg_from_wp_even_when_declared_as_zero(): void
     {
         // add_filter()'s own $accepted_args controls how many args *our wrapper* receives from
