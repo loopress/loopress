@@ -99,6 +99,34 @@ theme/parts/header.html            → twentytwentyfive-loopress/parts/header.ht
 
 File names are lowercase letters, digits, `_` and `-`, the characters of a post type or taxonomy slug (`taxonomy-download_tag.html`). Same directory rules as pages otherwise. The directories are `theme/templates/` and `theme/parts/` by default, set `templateDir` and `partDir` in [`loopress.json`](/loopress-json/#resource-directories) to change them. `lps push` pushes templates and parts before pages, so a new page can use a template pushed in the same run.
 
+## Theme CSS
+
+The same push bundles your theme's CSS into the child theme, with [esbuild](https://esbuild.github.io/), and the plugin loads it with WordPress's own functions. Two folders, two ways of loading:
+
+```
+theme/css/style.css             → twentytwentyfive-loopress/style.css, on every page
+theme/blocks/core/button.css    → twentytwentyfive-loopress/blocks/core/button.css, only where a button renders
+```
+
+- **`theme/css/style.css` is the entry.** It `@import`s the other files of `theme/css/` in the order you want, which is the cascade order. Split it the way you like, one file per component works well (BEM, for example):
+
+  ```css
+  /* theme/css/style.css */
+  @import "./reset.css";
+  @import "./layout.css";
+  @import "./c-card.css";
+  ```
+
+  CSS files without a `style.css` to import them are refused, nothing would load them.
+- **`theme/blocks/<namespace>/<block>.css` styles one block**, named like the block: `core/button.css`, `core/navigation.css`, `woocommerce/product-price.css`. WordPress only prints it on a page that renders that block ([`wp_enqueue_block_style()`](https://developer.wordpress.org/reference/functions/wp_enqueue_block_style/)). A block style variation such as `is-style-outline` goes in its block's file. The push warns about a file named after no block registered on the site: a typo, or a block from a plugin that isn't active there.
+- **Bundled.** `@import` is resolved, a relative `url()` to a font or an image is copied to the child's `assets/` and rewritten, and the result is minified. Absolute URLs are left alone. Sass and vendor prefixes aren't part of it: native CSS nesting and custom properties cover most of what they did.
+- **Loaded on the site and in the editor**, once the child is the active theme. A small stylesheet is inlined in the page instead of costing a request. Every push changes its version, so browsers never keep a stale copy.
+- **Classes without a block of their own go in `theme/css/`.** A `.c-card` typed in the **Additional CSS class** field of a Group has nothing for WordPress to load it on. Same for blocks on nearly every page (`core/group`, `core/paragraph`): their file loads everywhere anyway.
+- **Content loaded later can miss its block CSS.** A block rendered by a shortcode gets its CSS at the end of the page, so it can show unstyled for a moment. Content loaded with JavaScript (AJAX, REST) never gets it. Move that CSS to `theme/css/`.
+- **Colors, fonts and spacing belong in [Global Styles](/theme-styles/)** first: WordPress turns them into CSS variables you can use here.
+
+The directories are `theme/css/` and `theme/blocks/` by default, set `cssDir` and `blockCssDir` in [`loopress.json`](/loopress-json/#resource-directories) to change them.
+
 ## Commands
 
 Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies. Pages and templates have no `pull` and no `rollback`: the files in Git are the source of truth.
@@ -128,7 +156,7 @@ Show what differs (HTML, title, status) between `pages/` and WordPress. Also par
 
 ### `lps theme template push`
 
-Write every template and part to the Loopress child theme. Supports `--dry-run`.
+Write every template, part and the [theme CSS](#theme-css) to the Loopress child theme. Supports `--dry-run`.
 
 ---
 

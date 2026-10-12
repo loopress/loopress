@@ -227,3 +227,21 @@ if (!function_exists('esc_html')) {
         return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
     }
 }
+
+if (!class_exists('WP_Block_Type_Registry')) {
+    class WP_Block_Type_Registry
+    {
+        /** @var string[] block names a test declares registered */
+        public static array $registered = [];
+
+        public static function get_instance(): self
+        {
+            return new self();
+        }
+
+        public function is_registered(string $name): bool
+        {
+            return in_array($name, self::$registered, true);
+        }
+    }
+}

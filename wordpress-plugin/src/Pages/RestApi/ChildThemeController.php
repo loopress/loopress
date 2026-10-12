@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Loopress\Pages\RestApi;
 
 use Loopress\Infrastructure\AbstractFilesDirectory;
+use Loopress\Pages\Frontend\ChildThemeStyles;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Symfony\Component\Filesystem\Filesystem;
 use WP_REST_Request;
 use WP_REST_Response;
 
 /**
- * `lps theme template push`/`list`/`diff`: the project's templates/ and parts/ written as files of a
- * child theme of the block theme in use, `<parent>-loopress`, the way WordPress itself expects a
+ * `lps theme template push`/`list`/`diff`: the project's templates/, parts/ and theme CSS (bundled
+ * by the CLI) written as files of a child theme of the block theme in use, `<parent>-loopress`, the way WordPress itself expects a
  * site to override a parent's templates (Theme Handbook, "Child Themes"). The child directory is
  * a mirror of the repository, owned by Loopress: every push rewrites it whole. The database is
  * never written: it's the Site Editor's own layer, only read here to report drift.
@@ -24,6 +25,10 @@ use WP_REST_Response;
  * @psalm-type Part = array{slug: string, html: string, title?: string, area?: string}
  * @phpstan-type Template array{slug: string, html: string, title?: string, postTypes?: string[]}
  * @phpstan-type Part array{slug: string, html: string, title?: string, area?: string}
+ * @psalm-type BlockStyle = array{name: string, css: string}
+ * @psalm-type Asset = array{path: string, content: string}
+ * @phpstan-type BlockStyle array{name: string, css: string}
+ * @phpstan-type Asset array{path: string, content: string}
  */
 class ChildThemeController
 {
@@ -38,6 +43,13 @@ class ChildThemeController
     // Mirrored in cli/src/utils/template-format.ts. sanitize_key()'s charset, not a page slug's:
     // the template hierarchy embeds post type and taxonomy slugs as is (taxonomy-download_tag).
     private const SLUG_PATTERN = '^[a-z0-9_-]+$';
+
+    // register_block_type()'s own rule. Also what keeps a block style file inside blocks/.
+    public const BLOCK_NAME_PATTERN = '^[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$';
+
+    // Fonts and images a url() of the CSS points at (cli/src/utils/theme-css.ts), never a script
+    // or PHP: these files are served from the theme directory. No leading dot, so never "..".
+    public const ASSET_PATH_PATTERN = '^assets/[A-Za-z0-9_-][A-Za-z0-9._-]*\\.(avif|eot|gif|jpe?g|otf|png|svg|ttf|webp|woff2?)$';
 
     private const SIZE_FILTER_SUBJECT = 'templates';
 
@@ -54,6 +66,22 @@ class ChildThemeController
 
     public function register_routes(): void
     {
+        $blockStyle = [
+            'type'       => 'object',
+            'required'   => ['name', 'css'],
+            'properties' => [
+                'name' => ['type' => 'string', 'pattern' => self::BLOCK_NAME_PATTERN],
+                'css'  => ['type' => 'string'],
+            ],
+        ];
+        $asset = [
+            'type'       => 'object',
+            'required'   => ['path', 'content'],
+            'properties' => [
+                'path'    => ['type' => 'string', 'pattern' => self::ASSET_PATH_PATTERN],
+                'content' => ['type' => 'string'],
+            ],
+        ];
         $file = [
             'type'       => 'object',
             'required'   => ['slug', 'html'],
@@ -76,6 +104,10 @@ class ChildThemeController
                 'args'                => [
                     'templates' => ['required' => true, 'type' => 'array', 'items' => $file],
                     'parts'     => ['required' => true, 'type' => 'array', 'items' => $file],
+                    // Optional, so a CLI older than the theme CSS still pushes its templates.
+                    'style'     => ['type' => 'string', 'default' => ''],
+                    'blocks'    => ['type' => 'array', 'default' => [], 'items' => $blockStyle],
+                    'assets'    => ['type' => 'array', 'default' => [], 'items' => $asset],
                 ],
             ],
         ]);
@@ -102,14 +134,38 @@ class ChildThemeController
         $templates = (array) $request->get_param('templates');
         /** @var array<int, Part> $parts */
         $parts = (array) $request->get_param('parts');
+        $style = (string) $request->get_param('style');
+        /** @var array<int, BlockStyle> $blocks */
+        $blocks = (array) ($request->get_param('blocks') ?? []);
+        /** @var array<int, Asset> $assets */
+        $assets = (array) ($request->get_param('assets') ?? []);
 
-        $sizeError = $this->sizeError(array_merge($templates, $parts));
+        $files = ['style.css' => $style];
+        foreach ($templates as $template) {
+            $files["templates/{$template['slug']}.html"] = $template['html'];
+        }
+        foreach ($parts as $part) {
+            $files["parts/{$part['slug']}.html"] = $part['html'];
+        }
+        foreach ($blocks as $block) {
+            $files["blocks/{$block['name']}.css"] = $block['css'];
+        }
+        foreach ($assets as $asset) {
+            // Fonts and images are binary, JSON carries them as base64. Written as files, never run.
+            $content = base64_decode($asset['content'], true); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+            if ($content === false) {
+                return $this->error(400, sprintf('"%s" is not valid base64.', $asset['path']));
+            }
+            $files[$asset['path']] = $content;
+        }
+
+        $sizeError = $this->sizeError($files);
         if ($sizeError !== null) {
             return $this->error(413, $sizeError);
         }
 
         try {
-            $this->write($parentTheme, $templates, $parts);
+            $this->write($parentTheme, $templates, $parts, $files);
         } catch (\RuntimeException $e) {
             return $this->error(500, $e->getMessage());
         }
@@ -137,7 +193,7 @@ class ChildThemeController
     }
 
     /**
-     * @param array<int, Template|Part> $files
+     * @param array<string, string> $files contents by path in the child
      */
     private function sizeError(array $files): ?string
     {
@@ -145,16 +201,16 @@ class ChildThemeController
         $maxTotal = (int) apply_filters('loopress_max_files_total_bytes', AbstractFilesDirectory::MAX_TOTAL_BYTES, self::SIZE_FILTER_SUBJECT);
         $total    = 0;
 
-        foreach ($files as $file) {
-            $bytes  = strlen($file['html']);
+        foreach ($files as $path => $content) {
+            $bytes  = strlen($content);
             $total += $bytes;
             if ($bytes > $maxFile) {
-                return sprintf('"%s" is %d bytes, over the %d byte limit. Raise the loopress_max_file_bytes filter.', $file['slug'], $bytes, $maxFile);
+                return sprintf('"%s" is %d bytes, over the %d byte limit. Raise the loopress_max_file_bytes filter.', $path, $bytes, $maxFile);
             }
         }
 
         return $total > $maxTotal
-            ? sprintf('Templates and parts total %d bytes, over the %d byte limit. Raise the loopress_max_files_total_bytes filter.', $total, $maxTotal)
+            ? sprintf('The child theme files total %d bytes, over the %d byte limit. Raise the loopress_max_files_total_bytes filter.', $total, $maxTotal)
             : null;
     }
 
@@ -165,8 +221,9 @@ class ChildThemeController
      *
      * @param array<int, Template> $templates
      * @param array<int, Part> $parts
+     * @param array<string, string> $files every file but style.css's header, theme.json and the manifest, by path
      */
-    private function write(string $parentTheme, array $templates, array $parts): void
+    private function write(string $parentTheme, array $templates, array $parts, array $files): void
     {
         $child   = $parentTheme . self::SUFFIX;
         $live    = "{$this->themeRoot}/{$child}";
@@ -183,14 +240,11 @@ class ChildThemeController
 
         try {
             $this->filesystem->remove([$staging, $old]);
-            $this->filesystem->dumpFile("{$staging}/style.css", $this->styleCss($parentTheme));
+            $files['style.css'] = $this->styleCss($parentTheme) . $files['style.css'];
             $this->filesystem->dumpFile("{$staging}/theme.json", $this->json($this->themeJson($parentTheme, $templates, $parts)));
             $this->filesystem->dumpFile("{$staging}/" . self::MANIFEST, $this->json($this->manifest($templates, $parts)));
-            foreach ($templates as $template) {
-                $this->filesystem->dumpFile("{$staging}/templates/{$template['slug']}.html", $template['html']);
-            }
-            foreach ($parts as $part) {
-                $this->filesystem->dumpFile("{$staging}/parts/{$part['slug']}.html", $part['html']);
+            foreach ($files as $path => $content) {
+                $this->filesystem->dumpFile("{$staging}/{$path}", $content);
             }
 
             $this->swap($staging, $live, $old);
@@ -234,7 +288,7 @@ class ChildThemeController
         $name = (string) wp_get_theme($parentTheme)->get('Name');
 
         return "/*\nTheme Name: {$name} Loopress\nTemplate: {$parentTheme}\n"
-            . "Description: Generated by Loopress from the project's templates/ and parts/. Every lps theme template push rewrites this theme, edit the project files instead.\n*/\n";
+            . "Description: Generated by Loopress from the project's theme/ folder. Every lps theme template push rewrites this theme, edit the project files instead.\n*/\n";
     }
 
     /**
@@ -322,7 +376,25 @@ class ChildThemeController
             'templates'  => $this->readFiles("{$dir}/templates", (array) ($manifest['templates'] ?? [])),
             'parts'      => $this->readFiles("{$dir}/parts", (array) ($manifest['parts'] ?? [])),
             'customized' => $active ? $this->customized() : [],
+            'unknownBlocks' => $this->unknownBlocks($dir),
         ];
+    }
+
+    /**
+     * Block style files of the child named after no registered block: wp_enqueue_block_style()
+     * would never load them, silently. Read from the registry of this site, so a block from a
+     * plugin inactive here shows up too: the CLI warns, it never refuses.
+     *
+     * @return string[] e.g. ['core/buton']
+     */
+    private function unknownBlocks(string $dir): array
+    {
+        $registry = \WP_Block_Type_Registry::get_instance();
+
+        return array_values(array_filter(
+            array_keys(ChildThemeStyles::blockStyles($dir)),
+            fn(string $name): bool => !$registry->is_registered($name)
+        ));
     }
 
     /**

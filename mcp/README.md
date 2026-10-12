@@ -73,7 +73,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `page_push` | Yes | `env?`, `slug?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
 | `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
 | `page_diff` | No | `env?` | Show what differs (HTML, title, status) between the local pages and WordPress |
-| `template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`templates/<slug>.html`) and parts (`parts/<slug>.html`) as the files of the Loopress child theme |
+| `template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`theme/templates/<slug>.html`), parts (`theme/parts/<slug>.html`) and theme CSS (`theme/css/`, `theme/blocks/`) as the files of the Loopress child theme |
 | `template_list` | No | `env?` | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
 | `template_diff` | No | `env?` | Show what differs between the local templates and parts and the child theme, Site Editor edits included |
 | `app_push` | Yes | `env?`, `name?`, `noBuild?`, `confirmToken?` | Build (package.json `build` script) and push single-page app bundles (`apps/<name>/dist/`) to WordPress |

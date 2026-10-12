@@ -44,6 +44,7 @@ class ChildThemeControllerTest extends TestCase
         });
         Functions\when('wp_json_encode')->alias(fn(mixed $data, int $flags = 0): string|false => json_encode($data, $flags));
         Functions\when('wp_clean_themes_cache')->justReturn(null);
+        \WP_Block_Type_Registry::$registered = ['core/button', 'core/quote'];
         Functions\when('get_block_templates')->alias(fn(array $query, string $type): array => $this->blockTemplates[$type]);
     }
 
@@ -62,10 +63,11 @@ class ChildThemeControllerTest extends TestCase
     /**
      * @param array<int, array<string, mixed>> $templates
      * @param array<int, array<string, mixed>> $parts
+     * @param array<string, mixed> $css style, blocks and assets, all optional like in the route
      */
-    private function put(array $templates, array $parts = []): \WP_REST_Response
+    private function put(array $templates, array $parts = [], array $css = []): \WP_REST_Response
     {
-        return $this->controller()->put_child_theme(new WP_REST_Request(['templates' => $templates, 'parts' => $parts]));
+        return $this->controller()->put_child_theme(new WP_REST_Request(['templates' => $templates, 'parts' => $parts] + $css));
     }
 
     private function child(string $file): string
@@ -158,6 +160,64 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame(500, $response->status);
         $this->assertStringContainsString('disk full', $response->get_data()['error']);
         $this->assertSame('before', $this->child('templates/single.html'));
+    }
+
+    public function test_writes_the_bundled_css_under_the_style_header_and_reports_unknown_blocks(): void
+    {
+        $response = $this->put([], [], [
+            'style'  => '.c-card{padding:1rem}',
+            'blocks' => [['name' => 'core/button', 'css' => '.a{}'], ['name' => 'core/buton', 'css' => '.b{}']],
+            'assets' => [['path' => 'assets/inter-AB12.woff2', 'content' => base64_encode("\0\1\2")]],
+        ]);
+
+        $this->assertSame(200, $response->status);
+        $this->assertMatchesRegularExpression("/^\\/\\*\nTheme Name: Twenty Twenty-Five Loopress\n[\\s\\S]*\\*\\/\n\\.c-card\\{padding:1rem\\}$/", $this->child('style.css'));
+        $this->assertSame('.a{}', $this->child('blocks/core/button.css'));
+        $this->assertSame("\0\1\2", $this->child('assets/inter-AB12.woff2'));
+        $this->assertSame(['core/buton'], $response->get_data()['unknownBlocks']);
+
+        // A push without CSS, from an older CLI or a project without theme/css, removes it.
+        $this->put([['slug' => 'single', 'html' => 'a']]);
+
+        $this->assertFileDoesNotExist("{$this->root}/twentytwentyfive-loopress/blocks/core/button.css");
+        $this->assertStringEndsWith("*/\n", $this->child('style.css'));
+    }
+
+    public function test_refuses_an_asset_that_is_not_base64_without_writing(): void
+    {
+        $response = $this->put([], [], ['assets' => [['path' => 'assets/a.png', 'content' => '!!']]]);
+
+        $this->assertSame(400, $response->status);
+        $this->assertDirectoryDoesNotExist("{$this->root}/twentytwentyfive-loopress");
+    }
+
+    public function test_css_paths_stay_inside_their_folder_and_assets_are_never_code(): void
+    {
+        $args = null;
+        Functions\when('register_rest_route')->alias(
+            static function (string $restNamespace, string $route, array $routeArgs) use (&$args): bool {
+                $args = $routeArgs[1]['args'];
+
+                return true;
+            },
+        );
+        $this->controller()->register_routes();
+
+        $block = $args['blocks']['items']['properties']['name']['pattern'];
+        $asset = $args['assets']['items']['properties']['path']['pattern'];
+
+        foreach (['core/button', 'woocommerce/product-price', 'acme/hero-2'] as $name) {
+            $this->assertSame(1, preg_match("#{$block}#", $name), $name);
+        }
+        foreach (['button', '../core/button', 'core/../x', 'Core/Button', 'core/button/x', 'core/'] as $name) {
+            $this->assertSame(0, preg_match("#{$block}#", $name), $name);
+        }
+        foreach (['assets/inter-AB12.woff2', 'assets/hero.v2-X1.jpg'] as $path) {
+            $this->assertSame(1, preg_match("#{$asset}#", $path), $path);
+        }
+        foreach (['assets/../functions.php', 'assets/x.php', 'assets/..woff2', 'assets/a/b.png', 'style.css', 'assets/x.js'] as $path) {
+            $this->assertSame(0, preg_match("#{$asset}#", $path), $path);
+        }
     }
 
     public function test_refuses_a_classic_theme(): void

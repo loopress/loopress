@@ -18,7 +18,7 @@ type PushInternals = {
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
 
-const child = {active: true, customized: [], exists: true, parent: 'twentytwentyfive', parts: [], stylesheet: 'twentytwentyfive-loopress', templates: []}
+const child = {active: true, customized: [], exists: true, parent: 'twentytwentyfive', parts: [], stylesheet: 'twentytwentyfive-loopress', templates: [], unknownBlocks: []}
 
 describe('template push', () => {
   let dir: string
@@ -54,10 +54,40 @@ describe('template push', () => {
     const result = await makeCommand(put).run()
 
     expect(put).toHaveBeenCalledWith('loopress/v1/child-theme', {
+      assets: [],
+      blocks: [],
       parts: [{area: 'header', html: '<p>h</p>', slug: 'header', title: 'Header'}],
+      style: '',
       templates: [{html: '<!-- wp:post-content /-->', slug: 'single'}],
     })
-    expect(result).toEqual({active: true, customized: [], parts: ['header'], status: 'success', stylesheet: 'twentytwentyfive-loopress', templates: ['single']})
+    expect(result).toEqual({
+      active: true,
+      blockStyles: [],
+      customized: [],
+      parts: ['header'],
+      status: 'success',
+      stylesheet: 'twentytwentyfive-loopress',
+      templates: ['single'],
+      unknownBlocks: [],
+    })
+  })
+
+  it('sends the bundled CSS with the templates, and warns about a block the site does not know', async () => {
+    mkdirSync(join(dir, 'theme', 'css'), {recursive: true})
+    mkdirSync(join(dir, 'theme', 'blocks', 'core'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'css', 'style.css'), '.c-card { padding: 1rem; }')
+    writeFileSync(join(dir, 'theme', 'blocks', 'core', 'buton.css'), '.wp-block-button { color: red; }')
+    const put = vi.fn().mockResolvedValue({...child, unknownBlocks: ['core/buton']})
+    const cmd = makeCommand(put)
+
+    const result = await cmd.run()
+
+    expect(put).toHaveBeenCalledWith(
+      'loopress/v1/child-theme',
+      expect.objectContaining({blocks: [{css: expect.stringContaining('color:red'), name: 'core/buton'}], style: expect.stringContaining('.c-card{padding:1rem}')}),
+    )
+    expect(cmd.warn).toHaveBeenCalledWith(expect.stringContaining('core/buton'))
+    expect(result).toMatchObject({blockStyles: ['core/buton'], unknownBlocks: ['core/buton']})
   })
 
   it('warns when the child is not active and when the Site Editor still overrides a file', async () => {
@@ -85,7 +115,7 @@ describe('template push', () => {
     cmd.dryRun = true
     ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({customized: [], parts: [], templates: []})
 
-    expect(await cmd.run()).toEqual({parts: [], status: 'dry-run', templates: ['single']})
+    expect(await cmd.run()).toEqual({blockStyles: [], parts: [], status: 'dry-run', templates: ['single']})
     expect(put).not.toHaveBeenCalled()
   })
 })

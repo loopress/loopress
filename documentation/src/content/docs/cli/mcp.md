@@ -62,7 +62,7 @@ The server communicates over stdio from the directory your client launches it in
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |
-| `template_push` | Yes | Push local block templates and parts as the files of the Loopress child theme |
+| `template_push` | Yes | Push local block templates, parts and theme CSS as the files of the Loopress child theme |
 | `template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
 | `template_diff` | No | Show what differs between the local templates and parts and WordPress, Site Editor edits included |
 | `app_push` | Yes | Build and push single-page app bundles to WordPress |

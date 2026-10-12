@@ -54,6 +54,8 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `patternDir` | `patterns` | Block patterns, one `<slug>.html` file of block markup, registered as `loopress/<slug>` | [`lps pattern`](/block-patterns/) |
 | `templateDir` | `theme/templates` | Block templates, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
 | `partDir` | `theme/parts` | Block template parts, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
+| `cssDir` | `theme/css` | Global theme CSS, `style.css` is the entry, bundled into the child's `style.css` | [`lps theme template`](/pages/#theme-css) |
+| `blockCssDir` | `theme/blocks` | Per-block CSS (`<namespace>/<block>.css`), loaded only where the block renders | [`lps theme template`](/pages/#theme-css) |
 | `appsDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |
 
 ## Plugins and themes
