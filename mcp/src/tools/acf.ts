@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -19,11 +19,11 @@ export function registerAcfTools(server: McpServer): void {
     {
       description:
         'Push local ACF field groups, post types, taxonomies, and options pages to WordPress.' + PREVIEW_SUFFIX,
-      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, path: pathArg, type: typeFlag},
+      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg, type: typeFlag},
     },
-    async ({confirmToken, env, path, type}) =>
+    async ({confirmToken, env, overwrite, path, type}) =>
       toCallToolResult(
-        await runMutatingTool('acf_push', buildArgs(['acf', 'push'], {env, path, repeatFlags: {type}}), confirmToken),
+        await runMutatingTool('acf_push', buildArgs(['acf', 'push'], {env, overwrite, path, repeatFlags: {type}}), confirmToken),
       ),
   )
 

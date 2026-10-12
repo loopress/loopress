@@ -1,18 +1,18 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { expect, test, unwrap } from "./helpers/environment.js";
+import { expect, test } from "./helpers/environment.js";
 
 // `lps push` fans out to the resource-specific `push` commands in dependency order (plugins,
 // composer, ACF, api, hooks, forms, snippets...), each run non-interactively with --yes and
 // the default environment. Every other spec in this suite drives one resource directly (`lps
 // snippet push`, `lps api push`, ...); none of them exercise the aggregate command itself, so a
-// regression in its own orchestration, an unhandled resource, a dropped --yes/--env, a failure
-// in one resource silently swallowing the rest, would have no coverage. This project deliberately
-// leaves `plugins` unconfigured and never runs `composer init`, the common case for a project
-// that doesn't manage either through Loopress, so the run also has to prove a real per-resource
-// failure doesn't stop or hide the resources that do have something to push.
-test("lps push runs every resource, pushing what's local and reporting exactly what failed", async ({
+// regression in its own orchestration, an unhandled resource, a dropped --yes/--env, would have
+// no coverage. This project deliberately leaves `plugins` unconfigured and never runs `composer
+// init`, the common case for a project that doesn't manage either through Loopress, so the run
+// also has to prove an unconfigured resource is skipped rather than stopping the run (a real
+// failure does stop it, so later resources never land on a site missing what they depend on).
+test("lps push runs every resource, pushing what's local and skipping what isn't configured", async ({
 	projectDir,
 	request,
 	runCli,
@@ -50,15 +50,12 @@ test("lps push runs every resource, pushing what's local and reporting exactly w
 
 	const push = await runCli(["push"]);
 
-	// plugins and composer are unconfigured: the run must still fail overall (a real failure
-	// must not go unreported)...
-	expect(push.exitCode).not.toBe(0);
-	expect(unwrap(push.stderr)).toContain("2 resources failed to push");
-	expect(push.stdout).toContain("✗ plugins failed:");
-	expect(push.stdout).toContain("✗ composer failed:");
+	// plugins and composer are unconfigured: skipped, not failed.
+	expect(push.exitCode).toBe(0);
+	expect(push.stdout).toContain("→ plugins: not configured, skipped");
+	expect(push.stdout).toContain("→ composer: not configured, skipped");
 
-	// ...but every other resource still ran and succeeded, in the documented order, none of
-	// them skipped because an earlier one failed.
+	// Every other resource ran and succeeded, in the documented order.
 	const succeeded = ["ACF", "API routes", "hooks", "forms", "snippets"];
 	for (const label of succeeded) {
 		expect(push.stdout).toContain(`✓ ${label} pushed`);

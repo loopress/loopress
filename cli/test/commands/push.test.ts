@@ -2,10 +2,11 @@ import {confirm} from '@inquirer/prompts'
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../src/commands/push.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
+import {type LoopressLocalConfig} from '../../src/utils/loopress-config.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -39,19 +40,40 @@ const ALL_COMMAND_IDS = [
   'snippet:push',
 ]
 
+// The default fixture manages plugins through loopress.json and has no composer.json, so
+// composer:push is skipped as unconfigured.
+const DELEGATED_IDS = ALL_COMMAND_IDS.filter((id) => id !== 'composer:push')
+
 class TestPush extends Push {
-  setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
+  setup(options: {
+    dryRun?: boolean
+    localConfig?: LoopressLocalConfig
+    overwrite?: boolean
+    siteConfig: EnvironmentConfig
+    yes?: boolean
+  }) {
     this.dryRun = options.dryRun ?? false
+    this.overwrite = options.overwrite ?? false
     this.yes = options.yes ?? false
     this.siteConfig = options.siteConfig
-    this.localConfig = {}
+    this.localConfig = options.localConfig ?? {plugins: {akismet: '5.3.3'}}
   }
 }
 
-function make(options: {dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
+function make(
+  options: {
+    dryRun?: boolean
+    localConfig?: LoopressLocalConfig
+    overwrite?: boolean
+    siteConfig?: EnvironmentConfig
+    yes?: boolean
+  } = {},
+) {
   const cmd = new TestPush([], fakeOclifConfig)
   cmd.setup({
     dryRun: options.dryRun,
+    localConfig: options.localConfig,
+    overwrite: options.overwrite,
     siteConfig: options.siteConfig ?? makeEnv('staging', 'https://staging.acme.com'),
     yes: options.yes,
   })
@@ -60,25 +82,28 @@ function make(options: {dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: 
 }
 
 describe('push', () => {
+  let projectDir: string
+
   beforeEach(() => {
     resetFakeOclifConfig()
     vi.clearAllMocks()
     interactive.value = false
+    // An empty project: the cli/ package's own composer.json must not count as the project's.
+    projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
+  })
+
+  afterEach(() => {
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(projectDir, {force: true, recursive: true})
   })
 
   it('skips composer:push when plugin:push already pushes a composer.json that declares plugins', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
-    vi.spyOn(process, 'cwd').mockReturnValue(dir)
-    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '5.3.3'}}))
+    writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '5.3.3'}}))
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make()
 
-    try {
-      await cmd.run()
-    } finally {
-      vi.mocked(process.cwd).mockRestore()
-      rmSync(dir, {force: true, recursive: true})
-    }
+    await cmd.run()
 
     const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
     expect(ran).toEqual(ALL_COMMAND_IDS.filter((id) => id !== 'composer:push'))
@@ -91,8 +116,8 @@ describe('push', () => {
 
     await cmd.run()
 
-    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(ALL_COMMAND_IDS.length)
-    for (const [index, commandId] of ALL_COMMAND_IDS.entries()) {
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(DELEGATED_IDS.length)
+    for (const [index, commandId] of DELEGATED_IDS.entries()) {
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(index + 1, commandId, ['--env', 'staging', '--yes'])
     }
   })
@@ -104,6 +129,16 @@ describe('push', () => {
     await cmd.run()
 
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes', '--dry-run'])
+  })
+
+  // --yes is always forwarded, so it must never stand in for --overwrite.
+  it('forwards --overwrite only when given', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    await make().cmd.run()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes'])
+
+    await make({overwrite: true}).cmd.run()
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:push', ['--env', 'staging', '--yes', '--overwrite'])
   })
 
   it('reports success once every resource pushed', async () => {
@@ -122,29 +157,41 @@ describe('push', () => {
     const result = await cmd.run()
 
     expect(result.results).toHaveLength(ALL_COMMAND_IDS.length)
-    expect(result.results.every((entry) => entry.status === 'pushed')).toBe(true)
+    expect(result.results.filter((entry) => entry.status !== 'pushed')).toEqual([{label: 'composer', status: 'skipped'}])
   })
 
-  it('continues past a failed resource and still pushes the rest', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({})
+  // Unconfigured is the common case, not a failure: it must not stop the run before anything
+  // else is pushed.
+  it('skips plugins and composer when the project manages neither', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({localConfig: {}})
+
+    await cmd.run()
+
+    const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+    expect(ran).toEqual(ALL_COMMAND_IDS.filter((id) => id !== 'plugin:push' && id !== 'composer:push'))
+    expect(logs.log).toHaveBeenCalledWith('\n→ plugins: not configured, skipped')
+    expect(logs.log).toHaveBeenCalledWith('\n→ composer: not configured, skipped')
+    expect(logs.log).toHaveBeenCalledWith('\nAll resources pushed.')
+  })
+
+  it('stops at the first failed resource and names the ones not attempted', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('boom'))
     const {cmd, logs} = make()
 
-    await expect(cmd.run()).rejects.toThrow('1 resource failed to push.')
+    await expect(cmd.run()).rejects.toThrow('post types failed to push: boom. Not attempted: taxonomies, post meta,')
 
-    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(ALL_COMMAND_IDS.length)
-    expect(logs.log).toHaveBeenCalledWith('✗ plugins failed: boom')
-    expect(logs.log).toHaveBeenCalledWith('✓ composer pushed')
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
+    expect(logs.log).toHaveBeenCalledWith('✗ post types failed: boom')
   })
 
-  it('reports the plural count when multiple resources fail', async () => {
-    vi.mocked(fakeOclifConfig.runCommand)
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error('bang'))
-      .mockResolvedValue({})
+  it('names nothing as skipped when the last resource fails', async () => {
+    const calls = vi.mocked(fakeOclifConfig.runCommand)
+    for (let i = 0; i < DELEGATED_IDS.length - 1; i++) calls.mockResolvedValueOnce({})
+    calls.mockRejectedValueOnce(new Error('bang'))
     const {cmd} = make()
 
-    await expect(cmd.run()).rejects.toThrow('2 resources failed to push. plugins: boom; post types: bang')
+    await expect(cmd.run()).rejects.toThrow(/^snippets failed to push: bang\.$/)
   })
 
   describe('production guard', () => {

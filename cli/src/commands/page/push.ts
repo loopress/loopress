@@ -44,7 +44,8 @@ export default class Push extends PushCommand {
     }
 
     this.log(`Found ${pluralize(selected.length, 'page')} to push`)
-    if (this.dryRun) await this.previewRemote(getResourceStateProvider('page'), path)
+    const provider = getResourceStateProvider('page')
+    const beforeState = await this.captureBeforePushState(provider, path, args.slug === undefined ? undefined : (id) => id === args.slug)
 
     const pushed: string[] = []
     await this.runPushTasks(
@@ -55,6 +56,8 @@ export default class Push extends PushCommand {
         pushed.push(page.slug)
       },
     )
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'page')} failed to push.`)

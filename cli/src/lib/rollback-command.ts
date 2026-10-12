@@ -166,8 +166,15 @@ export function resourceRollbackCommand(
         // commands/snippet/push.ts's `static args`), not a --path flag. --env/--yes: the
         // production guard and the drift confirmation above already covered what the delegated
         // push's own guard would ask again, same reasoning as the top-level `lps push`
-        // delegating to each resource's push command in commands/push.ts.
-        await this.config.runCommand(`${command.replaceAll(' ', ':')}:push`, [tmpDir, '--env', this.siteConfig.name, '--yes'])
+        // delegating to each resource's push command in commands/push.ts. --overwrite: the drift
+        // check above is the same question as the push's outside-edit check, already answered.
+        await this.config.runCommand(`${command.replaceAll(' ', ':')}:push`, [
+          tmpDir,
+          '--env',
+          this.siteConfig.name,
+          '--yes',
+          '--overwrite',
+        ])
       } finally {
         // A cleanup failure here must never hide a real error from the push above: warn about
         // it and let the original error (if any) keep propagating instead of being replaced.

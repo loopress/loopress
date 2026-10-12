@@ -34,4 +34,9 @@ describe('buildArgs', () => {
     expect(buildArgs(['acf', 'list'], {repeatFlags: {type: undefined}})).toEqual(['acf', 'list'])
     expect(buildArgs(['acf', 'list'], {repeatFlags: {type: []}})).toEqual(['acf', 'list'])
   })
+
+  it('adds --overwrite only when set', () => {
+    expect(buildArgs(['menu', 'push'], {overwrite: true})).toEqual(['menu', 'push', '--overwrite'])
+    expect(buildArgs(['menu', 'push'], {overwrite: false})).toEqual(['menu', 'push'])
+  })
 })

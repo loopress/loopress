@@ -34,7 +34,8 @@ export default class Push extends PushCommand {
     this.log(`ACF path: ${path}`)
 
     const provider = getResourceStateProvider('acf')
-    const beforeState = await this.captureBeforePushState(provider, path)
+    // `--type` leaves the other types untouched: only the pushed ones count as overwritten.
+    const beforeState = await this.captureBeforePushState(provider, path, (id) => types.some((type) => id.startsWith(`${type}/`)))
 
     for (const type of types) {
       await this.pushType(type, path)

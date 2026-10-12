@@ -215,7 +215,7 @@ describe('hook push', () => {
 
     function make(argv: string[] = []) {
       const cmd = new TestPush(argv, fakeOclifConfig)
-      cmd.setup({}, makeEnv('production', 'https://acme.com'))
+      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
       const post = vi.fn<(...args: unknown[]) => Promise<BatchPushResult>>().mockResolvedValue({files: [{filename: 'hello'}], pruned: []})
       const get = vi.fn().mockResolvedValue([])

@@ -316,6 +316,16 @@ describe('WpClient', () => {
 describe('formatWpError', () => {
   const url = 'https://example.com/wp-json/loopress/v1/plugins'
 
+  it('names the cause of a refused connection, whose message Node leaves empty', () => {
+    expect(formatWpError({code: 'ECONNREFUSED', message: '', name: 'RequestError'}, url)).toBe(
+      `Could not reach https://example.com: connection refused, the site may be down. Run \`lps doctor\` to check the environment.`,
+    )
+  })
+
+  it('falls back to the error code when an unknown network error has no message', () => {
+    expect(formatWpError({code: 'EPROTO', message: ''}, url)).toBe(`Request to ${url} failed: EPROTO`)
+  })
+
   it('suggests lps project config on 401 and 403', () => {
     for (const statusCode of [401, 403]) {
       const message = formatWpError({response: {statusCode}}, url)

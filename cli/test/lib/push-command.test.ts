@@ -7,7 +7,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {type ResourceState} from '../../src/lib/diff-state.js'
 import {PushCommand} from '../../src/lib/push-command.js'
 import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
-import {listSnapshots} from '../../src/lib/snapshot-store.js'
+import {listSnapshots, writeSnapshot} from '../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
 vi.mock('@inquirer/prompts', () => ({
@@ -33,6 +33,10 @@ class TestPush extends PushCommand {
 
   async run(): Promise<void> {}
 
+  setOverwrite(value: boolean) {
+    this.overwrite = value
+  }
+
   setProductionConfirmed(value: boolean) {
     this.productionConfirmed = value
   }
@@ -50,8 +54,8 @@ class TestPush extends PushCommand {
     this.yes = value
   }
 
-  async testCaptureBeforePushState(provider: ResourceStateProvider, dir: string) {
-    return this.captureBeforePushState(provider, dir)
+  async testCaptureBeforePushState(provider: ResourceStateProvider, dir: string, writes?: (id: string) => boolean) {
+    return this.captureBeforePushState(provider, dir, writes)
   }
 
   async testCatch(err: Error) {
@@ -207,6 +211,125 @@ describe('PushCommand', () => {
       const cmd = make(false)
       await cmd.testCatch(new Error('boom'))
       expect(cmd.calls).toHaveLength(0)
+    })
+  })
+
+  describe('captureBeforePushState() outside-edit check', () => {
+    let rootDir: string
+
+    beforeEach(() => {
+      rootDir = mkdtempSync(join(tmpdir(), 'lps-push-command-outside-edit-'))
+    })
+
+    afterEach(() => {
+      rmSync(rootDir, {force: true, recursive: true})
+    })
+
+    // The state the last push from this machine left on the site.
+    async function lastPushLeft(state: Array<[string, unknown]>) {
+      await writeSnapshot({afterState: new Map(state), beforeState: new Map(), environment: 'test', resource: 'snippet', rootDir})
+    }
+
+    async function capture(options: {local: Array<[string, unknown]>; overwrite?: boolean; remote: Array<[string, unknown]>; writes?: (id: string) => boolean}) {
+      const cmd = make(false, SITE)
+      cmd.setRootDir(rootDir)
+      cmd.setOverwrite(options.overwrite ?? false)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      const provider = fakeProvider({local: async () => new Map(options.local), remote: async () => new Map(options.remote)})
+      return cmd.testCaptureBeforePushState(provider, rootDir, options.writes)
+    }
+
+    it('refuses to overwrite an item changed on the site since the last push', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'pushed'}]], remote: [['1', {name: 'edited in wp-admin'}]]})).rejects.toThrow(
+        /outside Loopress since your last push .*overwrite: 1\. .*--overwrite/,
+      )
+    })
+
+    // `lps <resource> rm` deletes on the site and leaves the local file: recreating loses nothing.
+    it('lets the push recreate an item deleted on the site since the last push', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'pushed'}]], remote: []})).resolves.toBeDefined()
+    })
+
+    // A PHP file too large for the site to send back is listed without its content.
+    it('ignores a site entry whose content it cannot read', async () => {
+      await lastPushLeft([])
+
+      await expect(capture({local: [['big', '<?php']], remote: [['big', undefined]]})).resolves.toBeDefined()
+    })
+
+    it('lets the push through once the site change was pulled into the local files', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      const state = await capture({local: [['1', {name: 'edited in wp-admin'}]], remote: [['1', {name: 'edited in wp-admin'}]]})
+
+      expect(state).toEqual(new Map([['1', {name: 'edited in wp-admin'}]]))
+    })
+
+    it('lets a local change through when the site is as the last push left it', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'edited locally'}]], remote: [['1', {name: 'pushed'}]]})).resolves.toBeDefined()
+    })
+
+    it('ignores an item added on the site only, which an additive push never touches', async () => {
+      await lastPushLeft([])
+
+      await expect(capture({local: [], remote: [['2', {name: 'added in wp-admin'}]]})).resolves.toBeDefined()
+    })
+
+    it('checks only the items this push writes when narrowed', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}], ['2', {name: 'pushed'}]])
+
+      await expect(
+        capture({
+          local: [['1', {name: 'pushed'}], ['2', {name: 'pushed'}]],
+          writes: (id) => id === '1',
+          remote: [['1', {name: 'pushed'}], ['2', {name: 'edited in wp-admin'}]],
+        }),
+      ).resolves.toBeDefined()
+    })
+
+    it('only warns on a dry run', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+      const cmd = make(true, SITE)
+      cmd.setRootDir(rootDir)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
+      const provider = fakeProvider({local: async () => new Map([['1', {name: 'pushed'}]]), remote: async () => new Map([['1', {name: 'edited'}]])})
+
+      await expect(cmd.testCaptureBeforePushState(provider, rootDir)).resolves.toBeUndefined()
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('this push would overwrite: 1.'))
+    })
+
+    it('skips the check with --overwrite', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'pushed'}]], overwrite: true, remote: [['1', {name: 'edited'}]]})).resolves.toBeDefined()
+    })
+
+    it('skips the check when this machine never pushed to the environment', async () => {
+      await expect(capture({local: [['1', {name: 'local'}]], remote: [['1', {name: 'remote'}]]})).resolves.toBeDefined()
+    })
+
+    it('asks in a TTY, and aborts on no', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'pushed'}]], remote: [['1', {name: 'edited'}]]})).rejects.toThrow('Aborted.')
+      expect(confirm).toHaveBeenCalledWith({default: false, message: 'Overwrite those changes?'})
+    })
+
+    it('asks in a TTY, and pushes on yes', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      await lastPushLeft([['1', {name: 'pushed'}]])
+
+      await expect(capture({local: [['1', {name: 'pushed'}]], remote: [['1', {name: 'edited'}]]})).resolves.toBeDefined()
     })
   })
 

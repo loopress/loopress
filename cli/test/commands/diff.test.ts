@@ -179,6 +179,35 @@ describe('diff', () => {
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('inconclusive'))
   })
 
+  it('prints a site-wide failure once instead of once per resource', async () => {
+    const down = 'Could not reach https://staging.acme.com: connection refused'
+    const {cmd, logs} = make(
+      [],
+      vi.fn(async () => {
+        throw new Error(down)
+      }),
+    )
+
+    const result = await cmd.run()
+
+    expect(result.resources.snippet.error).toBe(down)
+    expect(result.resources.composer.error).toBe(down)
+    const errorLines = logs.log.mock.calls.filter(([line]) => String(line).includes(down))
+    expect(errorLines).toHaveLength(1)
+    // Option needs no request without local options, so the failed ones are named.
+    expect(errorLines[0][0]).toContain('Snippets')
+    expect(errorLines[0][0]).not.toContain('Options')
+    expect(process.exitCode).toBe(2)
+  })
+
+  it('labels the local side "local files" in the header', async () => {
+    const {cmd, logs} = make([], baselineGet())
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('local files'))
+  })
+
   it('reads local Composer files from an absolute rootDir instead of prefixing the cwd', async () => {
     // cwd is elsewhere; rootDir is the absolute project dir. join() would look under
     // <cwd>/<dir> and wrongly report composer.json as remote-only.

@@ -2,7 +2,7 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -17,11 +17,11 @@ export function registerBulkTools(server: McpServer): void {
       description:
         'Push every local resource (plugins, composer, ACF, API routes, hooks, forms, templates and parts, pages, menus, options, snippets) to WordPress in one run, the equivalent of `lps push`.' +
         PREVIEW_SUFFIX,
-      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag},
+      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag},
     },
-    async ({confirmToken, env}) =>
+    async ({confirmToken, env, overwrite}) =>
       toCallToolResult(
-        await runMutatingTool('push_all', buildArgs(['push'], {env}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
+        await runMutatingTool('push_all', buildArgs(['push'], {env, overwrite}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
       ),
   )
 

@@ -5,13 +5,13 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
-import {pluralize} from '../utils/pluralize.js'
 
 type PushTarget = {commandId: string; label: string}
 
-type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed'}
+type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed' | 'skipped'}
 
 type PushResult = {results: PushTargetResult[]}
 
@@ -48,9 +48,8 @@ export default class Push extends LoopressCommand {
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    overwrite: PushCommand.baseFlags.overwrite,
   }
-
-  private failedCount = 0
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
@@ -59,12 +58,13 @@ export default class Push extends LoopressCommand {
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
 
-    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+    const skips = await this.skippedTargets()
 
     for (const target of PUSH_TARGETS) {
-      if (composerPushedByPlugins && target.commandId === 'composer:push') {
-        this.log('\n→ composer: already pushed whole by plugins')
-        results.push({label: target.label, status: 'pushed'})
+      const skip = skips.get(target.commandId)
+      if (skip) {
+        this.log(`\n→ ${target.label}: ${skip.note}`)
+        results.push({label: target.label, status: skip.status})
         continue
       }
 
@@ -74,20 +74,15 @@ export default class Push extends LoopressCommand {
         this.log(this.dryRun ? `✓ ${target.label} would push` : `✓ ${target.label} pushed`)
         results.push({label: target.label, status: 'pushed'})
       } catch (error) {
-        this.failedCount++
         const {message} = error as Error
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
+        // Stop here: later targets depend on earlier ones (hooks use what composer installs,
+        // pages need their templates), so pushing them anyway can ship a silently broken site.
+        const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1).map((next) => next.label)
+        const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+        this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
-    }
-
-    if (this.failedCount > 0) {
-      // Each failure's own reason, not just the count: under --json the per-resource lines above
-      // never reach stdout, and this message is all an MCP caller or a script gets to see.
-      const failures = results
-        .filter((result) => result.status === 'failed')
-        .map((result) => `${result.label}: ${result.error}`)
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to push. ${failures.join('; ')}`)
     }
 
     this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
@@ -100,13 +95,15 @@ export default class Push extends LoopressCommand {
   private buildArgv(): string[] {
     const argv = ['--env', this.siteConfig.name, '--yes']
     if (this.dryRun) argv.push('--dry-run')
+    // Not implied by --yes: overwriting changes made outside Loopress is its own decision.
+    if (this.overwrite) argv.push('--overwrite')
     return argv
   }
 
   // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
   // safety), so `composer:push` would only run Composer on the server a second time.
   private async composerDeclaresPlugins(): Promise<boolean> {
-    const path = join(process.cwd(), this.rootDir, 'composer.json')
+    const path = this.composerJsonPath()
     if (!existsSync(path)) return false
     try {
       const composerJson = JSON.parse(await readFile(path, 'utf8')) as ComposerJson
@@ -115,6 +112,10 @@ export default class Push extends LoopressCommand {
       // Unreadable: let both commands run and report the parse error themselves.
       return false
     }
+  }
+
+  private composerJsonPath(): string {
+    return join(process.cwd(), this.rootDir, 'composer.json')
   }
 
   // Guards once here (shared with PushCommand, lib/push-command.ts) rather than once per
@@ -126,5 +127,23 @@ export default class Push extends LoopressCommand {
       siteConfig: this.siteConfig,
       yes: this.yes,
     })
+  }
+
+  // Unconfigured is not a failure: a project that doesn't manage plugins or composer through
+  // Loopress must not stop the run before anything else gets pushed.
+  private async skippedTargets(): Promise<Map<string, {note: string; status: 'pushed' | 'skipped'}>> {
+    const skips = new Map<string, {note: string; status: 'pushed' | 'skipped'}>()
+    const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
+    const hasComposerJson = existsSync(this.composerJsonPath())
+    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+
+    if (composerPushedByPlugins) skips.set('composer:push', {note: 'already pushed whole by plugins', status: 'pushed'})
+    else if (!hasComposerJson) skips.set('composer:push', notConfigured)
+
+    // With a composer.json, plugins come from it only; otherwise from loopress.json.
+    const pluginsConfigured = hasComposerJson ? composerPushedByPlugins : Object.keys(this.localConfig.plugins ?? {}).length > 0
+    if (!pluginsConfigured) skips.set('plugin:push', notConfigured)
+
+    return skips
   }
 }
