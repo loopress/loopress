@@ -103,6 +103,9 @@
       "api": {
         "description": "Manage custom WordPress REST API routes"
       },
+      "content": {
+        "description": "Copy an environment's content (posts, pages, terms) into the local site, never the reverse"
+      },
       "cpt": {
         "description": "Manage custom post types declared in cpt/<slug>.json files, and list every post type on the site"
       },

@@ -12,6 +12,7 @@ Each feature has its own `pull`/`push`/`diff` commands. The commands on this pag
 | [`lps push`](#lps-push) | Push every resource to WordPress |
 | [`lps diff`](#lps-diff) | Compare local files with an environment, or two environments |
 | [`lps promote`](#lps-promote) | Copy every tracked resource from one environment to another |
+| [`lps content copy`](#lps-content-copy) | Replace the local site's content with an environment's |
 | [`lps validate`](#lps-validate) | Check local files are push-ready, without contacting WordPress |
 | [`lps dev`](#lps-dev) | Watch files and push each change to the `local` environment |
 
@@ -109,6 +110,24 @@ lps promote production staging --dry-run
 A real promotion **overwrites your local tracked files** with the source environment's, so it always asks for confirmation (`--yes` in CI), whatever the target's name. If the pull fails, nothing is pushed.
 
 With `--dry-run`, the source is pulled into a throwaway copy of the project and the push is only previewed from there: the preview shows what a real promotion would push, and your own files stay untouched. It refuses to run when `loopress.json` points a directory outside the project, use `lps diff --env <from> --against <to>` instead.
+
+## `lps content copy`
+
+Code goes up, content comes down. Your configuration is versioned and pushed from local to production, while posts, pages and terms belong to production. `lps content copy` copies them into your local site so you can work on templates against real content:
+
+```bash
+lps content copy production
+lps content copy staging --dry-run
+```
+
+It is not a `pull`: nothing is written to your project files. It replaces the posts of every public post type (posts, pages, products, ...) and the terms of every public taxonomy on the `local` environment, always the target, with the source's, IDs unchanged, then runs `lps push` to the local site so your tracked configuration (menus, ACF, snippets, templates...) wins over the source's. The local content is **deleted** first, so it asks for confirmation (`--yes` to skip it).
+
+- Media are not downloaded: an image missing locally is served from the source site's uploads URL. Files you upload locally keep their local URL.
+- Users, comments and orders are never copied. Every imported post is attributed to the local user running the command.
+- The source URL is rewritten to the local one in content and meta, including serialized values. JSON-escaped URLs (some page builders store them that way) are left as they are.
+- The plugin refuses the import on any site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is not `local`. LocalWP sets it, elsewhere add `define('WP_ENVIRONMENT_TYPE', 'local');` to `wp-config.php`.
+
+Content never goes the other way: there is no `lps content push`.
 
 ## `lps validate`
 

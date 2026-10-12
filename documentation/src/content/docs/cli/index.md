@@ -35,6 +35,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 | [`lps push`](/workflow/#lps-push) | Push every resource to WordPress |
 | [`lps diff`](/workflow/#lps-diff) | Compare local files with an environment, or two environments. Exits 1 on drift |
 | [`lps promote`](/workflow/#lps-promote) | Copy every tracked resource from one environment to another |
+| [`lps content copy`](/workflow/#lps-content-copy) | Replace the local site's content with an environment's |
 | [`lps dev`](/workflow/#lps-dev) | Watch files and push each change to the `local` environment |
 
 ## Features
