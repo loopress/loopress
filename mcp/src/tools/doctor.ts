@@ -10,7 +10,7 @@ export function registerDoctorTools(server: McpServer): void {
     'project_doctor',
     {
       description:
-        'Diagnose connectivity, plugin and credential problems for the targeted WordPress environment: whether the site is reachable, the Loopress plugin is installed, and the stored credentials are accepted.',
+        'Diagnose connectivity, plugin, credential and hook problems for the targeted WordPress environment: whether the site is reachable, the Loopress plugin is installed, the stored credentials are accepted, and the pushed hooks load and run without errors.',
       inputSchema: {env: envFlag},
     },
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['doctor'], {env})))),

@@ -167,6 +167,18 @@ class HookLoaderTest extends TestCase
         $this->addToAssertionCount(1); // Mockery verifies the single write above in tearDown
     }
 
+    public function test_a_malformed_stored_entry_counts_as_no_previous_record(): void
+    {
+        $this->directory->write('throwing', "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n");
+        Functions\when('get_option')->justReturn(['throwing' => 'not an entry']);
+        Functions\expect('update_option')->once()->andReturn(true);
+
+        $loader  = new HookLoader($this->directory, $this->environment);
+        $binding = $loader->bindingsFor(new HookLoaderTestFixtureThrowingFilter(), 'throwing')['filters'][0];
+
+        $this->assertSame('original', ($binding['callback'])('original'));
+    }
+
     public function test_a_failure_to_record_a_runtime_error_never_breaks_the_request(): void
     {
         $this->directory->write('throwing', "<?php\ndeclare(strict_types=1);\nfinal class Throwing {}\n");

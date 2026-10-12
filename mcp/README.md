@@ -144,7 +144,7 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `project_promote` | Yes | `from`, `to`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
 | `project_status` | No | `env?` | Show which project and environment the other tools will target |
 | `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
-| `project_doctor` | No | `env?` | Diagnose connectivity, plugin and credential problems for the targeted environment |
+| `project_doctor` | No | `env?` | Diagnose connectivity, plugin, credential and hook problems for the targeted environment |
 | `validate_local` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
 `env` picks the environment for that call, instead of the project's default (`local`, or its only one). `path` overrides the directory
