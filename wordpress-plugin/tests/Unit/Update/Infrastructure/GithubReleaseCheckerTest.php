@@ -152,4 +152,24 @@ class GithubReleaseCheckerTest extends TestCase
 
         $this->assertNull($this->checker->getLatestVersion());
     }
+
+    public function test_forget_drops_the_cache_so_the_next_read_asks_github_again(): void
+    {
+        $cache = ['version' => '2026.8.1', 'zip_url' => null];
+        Functions\when('get_transient')->alias(static function () use (&$cache): array|false {
+            return $cache;
+        });
+        Functions\expect('delete_transient')->once()->with('loopress_full_latest_release')
+            ->andReturnUsing(static function () use (&$cache): bool {
+                $cache = false;
+
+                return true;
+            });
+        Functions\when('set_transient')->justReturn(true);
+        $this->stubReleasesResponse([['tag_name' => 'wordpress-plugin@2026.9.0', 'assets' => []]]);
+
+        $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->checker->forget();
+        $this->assertSame('2026.9.0', $this->checker->getLatestVersion());
+    }
 }

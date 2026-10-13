@@ -14,7 +14,11 @@ const STICKY_HEADER = `
 const pluginVersion = window.loopressData?.pluginVersion ?? '';
 const environment = window.loopressData?.environment;
 
-export function AppShell({ edition, children }: Readonly<{ edition: 'Full' | 'Light'; children: React.ReactNode }>) {
+export function AppShell({ edition, actions, children }: Readonly<{
+    edition: 'Full' | 'Light';
+    actions?: React.ReactNode;
+    children: React.ReactNode;
+}>) {
     return (
         <Page
             title="Loopress"
@@ -25,6 +29,7 @@ export function AppShell({ edition, children }: Readonly<{ edition: 'Full' | 'Li
                     {environment && <EnvironmentBadge environment={environment} />}
                 </span>
             }
+            actions={actions}
             showSidebarToggle={false}
             hasPadding
         >

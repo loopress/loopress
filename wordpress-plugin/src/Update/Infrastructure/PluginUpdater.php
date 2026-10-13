@@ -32,6 +32,21 @@ class PluginUpdater
     {
         add_filter('pre_set_site_transient_update_plugins', [$this, 'injectUpdate']);
         add_filter('plugins_api', [$this, 'pluginInformation'], 10, 3);
+        // Before core's own wp_update_plugins() on this hook (priority 10).
+        add_action('load-update-core.php', [$this, 'forgetOnForceCheck'], 9);
+    }
+
+    /**
+     * Dashboard > Updates rechecks plugins on every visit, but that recheck reads the 12h release
+     * cache: without this, its "Check again" link (force-check=1) could not see a release
+     * published since.
+     */
+    public function forgetOnForceCheck(): void
+    {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a flag that only drops a cache, core reads it unverified too.
+        if (!empty($_GET['force-check'])) {
+            $this->checker->forget();
+        }
     }
 
     public function injectUpdate(mixed $transient): mixed

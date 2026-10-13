@@ -10,3 +10,4 @@ Admin page redesign:
 - Config tab: Loopress-owned post types, taxonomies, roles and meta keys stand out in the Source column. When ACF or a form plugin isn't installed, its section shows a quiet note instead of a red error, and the admin page no longer retries requests the server refused with a 4xx.
 - The page header no longer slides under the WordPress admin bar when scrolling.
 - The API routes namespace moves from under the routes list to the Settings tab, and to a gear popover in the API routes card header.
+- A **Check for updates** button in the page header asks GitHub right away instead of waiting for the twice-daily check, and offers the update when there is one. Dashboard → Updates' **Check again** now really asks GitHub too.

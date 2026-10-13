@@ -10,11 +10,13 @@ import { FullIssues } from './overview/FullIssues';
 import { Overview } from './overview/Overview';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
+import { UpdateCheck } from './update/UpdateCheck';
 import { useHashTab } from './useHashTab';
 
 // No Diagnostics tab: platform and webserver checks live in WordPress's own Site Health
 // (see Infrastructure\SiteHealth), and the Dependencies tab shows them only when something is
-// wrong. No update banner either: Loopress Full updates natively from the Plugins page.
+// wrong. No update banner either: Loopress Full updates natively from the Plugins page, the header's
+// "Check for updates" only forces that check now (UpdateCheck).
 const TABS = [
     { name: 'overview', title: 'Overview' },
     { name: 'config', title: 'Config' },
@@ -74,7 +76,7 @@ export default function App() {
     const repair = repairNotice(canRepair, autoRepairing, autoRepairDone, autoRepairFailed);
 
     return (
-        <AppShell edition="Full">
+        <AppShell edition="Full" actions={<UpdateCheck />}>
             <SentryConsentAlert />
 
             {autoloadError && (
