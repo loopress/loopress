@@ -79,4 +79,17 @@ class UpdateControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
     }
+
+    public function test_check_now_asks_github_again_and_refreshes_wordpress_update_data(): void
+    {
+        $this->checker->expects($this->once())->method('forget');
+        $this->checker->method('getLatestVersion')->willReturn('2999.1.1');
+        Monkey\Functions\expect('delete_site_transient')->once()->with('update_plugins');
+        Monkey\Functions\expect('wp_update_plugins')->once();
+
+        $data = $this->controller->check_now(new WP_REST_Request())->get_data();
+
+        $this->assertTrue($data['update_available']);
+        $this->assertSame('2999.1.1', $data['latest_version']);
+    }
 }

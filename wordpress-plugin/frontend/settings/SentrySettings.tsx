@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardBody, ToggleControl } from '@wordpress/components';
+import { ToggleControl } from '@wordpress/components';
 import { apiFetch } from '../api';
 import type { SentryConsent } from '../types';
 
@@ -20,16 +20,14 @@ export function SentrySettings() {
     });
 
     return (
-        <Card style={{ maxWidth: 600 }}>
-            <CardBody>
-                <ToggleControl
-                    label="Send crash reports to Loopress"
-                    checked={data?.enabled ?? false}
-                    disabled={!data || isPending}
-                    onChange={(enabled: boolean) => setEnabled(enabled)}
-                    help="Off by default. When enabled, errors from Loopress's own code are sent to Loopress so we can fix bugs faster. No data from your theme, other plugins, or site visitors is included."
-                />
-            </CardBody>
-        </Card>
+        <div style={{ maxWidth: 640 }}>
+            <ToggleControl
+                label="Send crash reports to Loopress"
+                checked={data?.enabled ?? false}
+                disabled={!data || isPending}
+                onChange={(enabled: boolean) => setEnabled(enabled)}
+                help="Off by default. When enabled, errors from Loopress's own code are sent to Loopress so we can fix bugs faster. No data from your theme, other plugins, or site visitors is included."
+            />
+        </div>
     );
 }

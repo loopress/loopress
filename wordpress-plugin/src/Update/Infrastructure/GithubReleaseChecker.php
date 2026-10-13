@@ -51,6 +51,17 @@ class GithubReleaseChecker
     }
 
     /**
+     * Drops the cached release so the next read asks GitHub again: the admin page's "Check for
+     * updates" button and Dashboard > Updates' "Check again" link, see PluginUpdater.
+     */
+    public function forget(): void
+    {
+        delete_transient(self::CACHE_KEY);
+        $this->releaseCache       = null;
+        $this->releaseCacheLoaded = false;
+    }
+
+    /**
      * Memoized per instance, not just per transient: PluginUpdater calls both
      * getLatestVersion() and getLatestDownloadUrl() on the same request, and without this
      * a transient cache miss would hit GitHub (and re-run set_transient) twice.

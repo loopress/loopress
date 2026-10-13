@@ -144,4 +144,23 @@ class PluginUpdaterTest extends TestCase
         $this->assertSame('2999.1.1', $info->version);
         $this->assertSame('https://example.com/loopress-full.zip', $info->download_link);
     }
+
+    public function test_check_again_on_the_updates_screen_drops_the_release_cache(): void
+    {
+        $this->checker->expects($this->once())->method('forget');
+        $_GET['force-check'] = '1';
+
+        try {
+            $this->updater->forgetOnForceCheck();
+        } finally {
+            unset($_GET['force-check']);
+        }
+    }
+
+    public function test_a_plain_visit_to_the_updates_screen_keeps_the_release_cache(): void
+    {
+        $this->checker->expects($this->never())->method('forget');
+
+        $this->updater->forgetOnForceCheck();
+    }
 }

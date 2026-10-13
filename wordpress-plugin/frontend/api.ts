@@ -1,9 +1,11 @@
 export class ApiError extends Error {
     output?: string;
-    constructor(message: string, output?: string) {
+    status?: number;
+    constructor(message: string, output?: string, status?: number) {
         super(message);
         this.name = 'ApiError';
         this.output = output;
+        this.status = status;
     }
 }
 
@@ -27,6 +29,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
         throw new ApiError(
             typeof body.error === 'string' ? body.error : `HTTP ${response.status}`,
             typeof body.output === 'string' ? body.output : undefined,
+            response.status,
         );
     }
 

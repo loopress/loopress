@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
-import { Pill, Row, Skeleton, Table } from '../ui';
+import { Pill, Row, Section, Skeleton, Table } from '../ui';
 import { CELL, confirmChange, MONO, MUTED } from '../helpers';
 import { ComposerOutput } from './ComposerOutput';
 import type { Package, OutdatedPackage, ComposerResult } from '../types';
@@ -63,11 +63,7 @@ export function InstalledPackages({ readOnly = false }: Readonly<{ readOnly?: bo
     });
 
     return (
-        <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <strong style={{ fontSize: 13 }}>Installed packages</strong>
-                {isFetching && !isPending && <Spinner />}
-            </div>
+        <Section title="Installed packages" busy={isFetching && !isPending}>
 
             {isError && (
                 <Notice status="error" isDismissible={false}>
@@ -149,6 +145,6 @@ export function InstalledPackages({ readOnly = false }: Readonly<{ readOnly?: bo
                     <ComposerOutput output={actionResult.output} />
                 </div>
             )}
-        </div>
+        </Section>
     );
 }

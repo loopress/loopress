@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardBody, CardHeader, Notice } from '@wordpress/components';
 import { apiFetch } from '../api';
-import { CopyButton, Pill, Row, Skeleton, Table } from '../ui';
+import { CopyButton, Pill, Row, Section, Skeleton, Table } from '../ui';
 import { CELL, MUTED, timeAgo } from '../helpers';
 import type { PushEntry, PushedResource, PushSummary } from '../types';
 
@@ -73,8 +73,7 @@ export function Overview() {
                 </div>
             )}
 
-            <section style={{ marginBottom: 32 }}>
-                <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>Pushed from your repository</h2>
+            <Section title="Pushed from your repository">
                 <Table columns={['What', 'Last push', 'Status']}>
                     {data.resources.map((resource) => (
                         <Row key={resource.resource}>
@@ -90,18 +89,19 @@ export function Overview() {
                         </Row>
                     ))}
                 </Table>
-            </section>
+            </Section>
 
-            <section style={{ marginBottom: 32 }}>
-                <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>Recent pushes</h2>
-                <ul style={{ margin: 0, fontSize: 13 }}>
+            <Section title="Recent pushes">
+                <Table columns={['What', 'When', 'By']}>
                     {data.entries.slice(0, RECENT).map((entry) => (
-                        <li key={`${entry.at}-${entry.resource}`} title={entry.at}>
-                            <strong>{entry.label}</strong>, {timeAgo(entry.at)}, by {who(entry)}
-                        </li>
+                        <Row key={`${entry.at}-${entry.resource}`}>
+                            <td style={CELL}><strong>{entry.label}</strong></td>
+                            <td style={CELL} title={entry.at}>{timeAgo(entry.at)}</td>
+                            <td style={{ ...CELL, color: MUTED }}>{who(entry)}</td>
+                        </Row>
                     ))}
-                </ul>
-            </section>
+                </Table>
+            </Section>
 
         </>
     );

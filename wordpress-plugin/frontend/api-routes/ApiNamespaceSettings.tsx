@@ -28,34 +28,31 @@ export function ApiNamespaceSettings() {
         },
     });
 
-    // Next to the routes it renames rather than on the Settings tab: changing it changes every
-    // URL listed right above.
+    // Rendered twice: on the Settings tab, and in the gear popover of the API routes card, since
+    // changing it changes every route URL listed there.
     return (
-        <details style={{ marginTop: 16 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 13 }}>Change the routes namespace</summary>
-            <div style={{ maxWidth: 480, marginTop: 8 }}>
-                <TextControl
-                    label="API routes namespace"
-                    value={value}
-                    disabled={!data || isPending}
-                    onChange={setDraft}
-                    help="REST namespace your api/ files register under, e.g. hello.php becomes {namespace}/hello. Changing this changes every route's URL."
-                />
-                {error instanceof ApiError && (
-                    <Notice status="error" isDismissible={false}>
-                        {error.message}
-                    </Notice>
-                )}
-                <Button
-                    variant="secondary"
-                    size="small"
-                    disabled={!data || isPending || value === data?.namespace}
-                    onClick={() => save(value)}
-                    style={{ marginTop: 8 }}
-                >
-                    Save
-                </Button>
-            </div>
-        </details>
+        <div style={{ maxWidth: 480 }}>
+            <TextControl
+                label="API routes namespace"
+                value={value}
+                disabled={!data || isPending}
+                onChange={setDraft}
+                help="REST namespace your api/ files register under, e.g. hello.php becomes {namespace}/hello. Changing this changes every route's URL."
+            />
+            {error instanceof ApiError && (
+                <Notice status="error" isDismissible={false}>
+                    {error.message}
+                </Notice>
+            )}
+            <Button
+                variant="secondary"
+                size="small"
+                disabled={!data || isPending || value === data?.namespace}
+                onClick={() => save(value)}
+                style={{ marginTop: 8 }}
+            >
+                Save
+            </Button>
+        </div>
     );
 }

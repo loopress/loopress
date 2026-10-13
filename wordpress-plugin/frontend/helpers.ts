@@ -35,3 +35,31 @@ export function confirmChange(message: string, always = false): boolean {
     if (isProduction()) return window.confirm(`This is the PRODUCTION site.\n\n${message}`);
     return always ? window.confirm(message) : true;
 }
+
+export type PhpToken = { text: string; kind: 'comment' | 'attribute' | 'string' | 'variable' | 'keyword' | 'tag' | 'number' | null };
+
+// Order matters: a comment or a string swallows whatever looks like code inside it.
+const PHP_TOKENS = new RegExp([
+    String.raw`(?<comment>\/\/.*|#(?!\[).*|\/\*[\s\S]*?\*\/)`,
+    String.raw`(?<attribute>#\[[^\]]*\])`,
+    String.raw`(?<string>'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*")`,
+    String.raw`(?<variable>\$[A-Za-z_]\w*)`,
+    String.raw`(?<tag><\?php|\?>)`,
+    String.raw`(?<keyword>\b(?:abstract|array|as|bool|break|callable|case|catch|class|const|continue|declare|default|do|echo|else|elseif|enum|extends|false|final|float|fn|for|foreach|function|global|if|implements|instanceof|int|interface|iterable|match|mixed|namespace|never|new|null|object|parent|private|protected|public|readonly|return|self|static|string|switch|throw|trait|true|try|use|void|while|yield)\b)`,
+    String.raw`(?<number>\b\d+(?:\.\d+)?\b)`,
+].join('|'), 'g');
+
+// Just enough PHP highlighting for the source drawer: a full grammar would be a dependency
+// for files that are read, never edited, here.
+export function highlightPhp(code: string): PhpToken[] {
+    const tokens: PhpToken[] = [];
+    let last = 0;
+    for (const match of code.matchAll(PHP_TOKENS)) {
+        if (match.index > last) tokens.push({ text: code.slice(last, match.index), kind: null });
+        const kind = Object.entries(match.groups ?? {}).find(([, value]) => value !== undefined)?.[0] as PhpToken['kind'];
+        tokens.push({ text: match[0], kind });
+        last = match.index + match[0].length;
+    }
+    if (last < code.length) tokens.push({ text: code.slice(last), kind: null });
+    return tokens;
+}

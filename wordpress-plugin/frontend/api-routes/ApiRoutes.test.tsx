@@ -1,5 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiRoutes } from './ApiRoutes';
 import type { ApiFile } from '../types';
@@ -85,5 +86,14 @@ describe('ApiRoutes', () => {
         expect(screen.getByText('Public')).toBeInTheDocument();
         // exactly one badge, on the public route only
         expect(screen.getAllByText('Public')).toHaveLength(1);
+    });
+
+    test('opens the namespace form from the gear in the section header', async () => {
+        apiFetchMock.mockResolvedValue({ namespace: 'site/v1' });
+        render(<ApiRoutes />, { wrapper: wrapperWithFiles([{ filename: 'hello', content: '<?php' }]) });
+
+        expect(screen.queryByLabelText(/API routes namespace/i)).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Routes namespace' }));
+        expect(await screen.findByLabelText(/API routes namespace/i)).toBeInTheDocument();
     });
 });

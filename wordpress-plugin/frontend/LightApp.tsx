@@ -2,6 +2,7 @@ import { Button, TabPanel } from '@wordpress/components';
 import { AppShell } from './AppShell';
 import { ConfigPanel } from './config/ConfigPanel';
 import { MUTED } from './helpers';
+import { ConflictsBanner } from './overview/ConflictsBanner';
 import { Overview } from './overview/Overview';
 import { useHashTab } from './useHashTab';
 
@@ -26,7 +27,7 @@ export default function LightApp() {
             <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
                 {(tab) => (
                     <div style={{ marginTop: 16 }}>
-                        {tab.name === 'config' ? <ConfigPanel /> : <Overview />}
+                        {tab.name === 'config' ? <ConfigPanel /> : <><ConflictsBanner /><Overview /></>}
                     </div>
                 )}
             </TabPanel>

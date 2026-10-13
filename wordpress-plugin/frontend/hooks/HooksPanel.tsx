@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../api';
-import { Pill, ResourceSection, Row, Table } from '../ui';
+import { Pill, ResourceSection, Row, SourceDrawer, Table } from '../ui';
 import { CELL, MONO, MUTED, timeAgo } from '../helpers';
 import type { HookBinding, HookFile } from '../types';
 
@@ -34,6 +34,7 @@ export function HooksPanel() {
                             <strong>{file.filename}.php</strong>
                             {file.error && <Pill tone="error">Failed to load</Pill>}
                             {file.error && <div style={{ marginTop: 4, fontSize: 12, color: '#991b1b' }}>{file.error}</div>}
+                            <div><SourceDrawer title={`${file.filename}.php`} content={file.content} /></div>
                         </td>
                         <td style={MONO}>
                             {file.hooks.length > 0

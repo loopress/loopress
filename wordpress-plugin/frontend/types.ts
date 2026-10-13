@@ -108,6 +108,14 @@ export interface HookFile {
     hooks: HookBinding[];
 }
 
+// Mirrors UpdateController::get_status() in the plugin.
+export interface UpdateStatus {
+    current_version: string;
+    latest_version: string | null;
+    update_available: boolean;
+    release_url: string | null;
+}
+
 // Mirrors AppsController::list_apps() in the plugin.
 export interface RemoteApp {
     name: string;
