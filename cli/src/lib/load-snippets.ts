@@ -55,8 +55,8 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
     // `||`, not `??`: an empty-string name in the sidecar JSON counts as absent too.
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     name = meta.name || undefined
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    description = meta.description || undefined
+    // Kept even when empty: a description cleared on purpose, not one to replace with "Imported from <path>".
+    description = meta.description
     type = parseType(meta.type) ?? undefined
     isActive = Boolean(meta.active)
     tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []

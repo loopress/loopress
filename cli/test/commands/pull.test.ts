@@ -146,7 +146,11 @@ describe('pull', () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => {
-      if (id === 'acf:pull') throw new Error('Request failed (400) on https://x/wp-json/loopress/v1/acf/field-groups: ACF is not active')
+      if (id === 'acf:pull') {
+        process.exitCode = 1 // what oclif's Command.catch does before rethrowing
+        throw new Error('Request failed (400) on https://x/wp-json/loopress/v1/acf/field-groups: ACF is not active')
+      }
+
       return {}
     })
     const {cmd, logs} = make()
@@ -155,6 +159,7 @@ describe('pull', () => {
 
     expect(result.results).toContainEqual({label: 'ACF', status: 'skipped'})
     expect(logs.log).toHaveBeenCalledWith('→ ACF: not configured, skipped')
+    expect(process.exitCode).toBeUndefined()
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

@@ -70,6 +70,9 @@ export default class Pull extends LoopressCommand {
         // as long as the project doesn't use that resource: a vanilla site must pull, and a
         // promote must not stop on it. A project that does use it still fails.
         if (target.needsPlugin && PLUGIN_MISSING.test(message) && !this.usesResource(target.needsPlugin)) {
+          // oclif's catch already set exitCode to 1 for the sub-command; a real failure still
+          // exits non-zero through the this.error() below.
+          process.exitCode = undefined
           this.log(`→ ${target.label}: not configured, skipped`)
           results.push({label: target.label, status: 'skipped'})
           continue
