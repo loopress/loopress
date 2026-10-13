@@ -651,6 +651,17 @@ abstract class AbstractFilesController
     /** @return array{status: 'ok'|'error'|'unavailable', message: ?string} */
     private function checkSyntax(string $code): array
     {
+        // PHP's own parser, in-process: no `exec` and no CLI binary, so a parse error is refused
+        // under php-fpm on Local and on managed hosts too. It only parses, it doesn't compile (a
+        // method declared twice passes), so `php -l` below still runs wherever it can.
+        if (function_exists('token_get_all')) {
+            try {
+                token_get_all($code, TOKEN_PARSE);
+            } catch (\ParseError $e) {
+                return ['status' => 'error', 'message' => 'PHP Parse error: ' . $e->getMessage() . ' on line ' . $e->getLine()];
+            }
+        }
+
         if (!function_exists('exec') || self::execDisabled()) {
             return ['status' => 'unavailable', 'message' => null];
         }

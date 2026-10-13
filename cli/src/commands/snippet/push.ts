@@ -49,7 +49,7 @@ export default class Push extends PushCommand {
     const provider = getResourceStateProvider('snippet')
     const beforeState = await this.captureBeforePushState(provider, path)
 
-    const snippets = await this.loadSnippets(path)
+    const snippets = this.withoutDuplicateIds(await this.loadSnippets(path))
     this.log(`Found ${pluralize(snippets.length, 'snippet')} to push`)
 
     const pushed: PushedSnippet[] = []
@@ -183,8 +183,11 @@ export default class Push extends PushCommand {
   private toPayload(snippet: Snippet): Record<string, unknown> {
     return {
       active: snippet.active,
-      code: stripPhpOpeningTag(snippet.code),
-      description: `Imported from ${snippet.path}`,
+      // Only PHP files carry an editor-only `<?php` tag: an HTML snippet starting with an inline
+      // `<?php ... ?>` block is its real content and must reach WordPress untouched.
+      code: snippet.type === 'php' ? stripPhpOpeningTag(snippet.code) : snippet.code,
+      // The sidecar's description wins, so a pull then push never erases one written in wp-admin.
+      description: snippet.description ?? `Imported from ${snippet.path}`,
       insertMethod: snippet.insertMethod,
       location: snippet.location,
       name: snippet.name,
@@ -193,5 +196,23 @@ export default class Push extends PushCommand {
       tags: snippet.tags,
       type: snippet.type,
     }
+  }
+
+  // Two files claiming the same id would each PUT over that id, the last one silently replacing
+  // the other on the site (seen after switching snippet provider, whose ids restart). Neither is
+  // pushed, and the push fails, until the files are fixed by hand.
+  private withoutDuplicateIds(snippets: Snippet[]): Snippet[] {
+    const pathsById = new Map<number, string[]>()
+    for (const {id, path} of snippets) {
+      if (id !== undefined) pathsById.set(id, [...(pathsById.get(id) ?? []), path])
+    }
+
+    return snippets.filter((snippet) => {
+      const paths = snippet.id === undefined ? [] : pathsById.get(snippet.id)!
+      if (paths.length < 2) return true
+      this.failedCount++
+      this.warn(`Skipping "${snippet.path}": id ${snippet.id} is also used by ${paths.filter((p) => p !== snippet.path).join(', ')}.`)
+      return false
+    })
   }
 }

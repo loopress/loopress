@@ -234,7 +234,7 @@ test.describe('lps promote', () => {
     const promote = await runCli(['promote', 'staging', 'local', '--yes'])
 
     expect(promote.exitCode).not.toBe(0)
-    expect(output(promote)).toContain('Pull from staging failed, local left untouched')
+    expect(output(promote)).toContain('Pull from staging failed, nothing was pushed to local.')
     expect(output(promote)).not.toContain('=== Pushing to local')
     expect(readFileSync(file, 'utf8')).toBe(content)
   })

@@ -1,6 +1,6 @@
 import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
@@ -8,6 +8,7 @@ import {stdoutToStderr} from '../lib/json-delegation.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
+import {resolveResourceDir} from '../utils/resource-dirs.js'
 
 type PushTarget = {commandId: string; label: string}
 
@@ -143,6 +144,10 @@ export default class Push extends LoopressCommand {
     // With a composer.json, plugins come from it only; otherwise from loopress.json.
     const pluginsConfigured = hasComposerJson ? composerPushedByPlugins : Object.keys(this.localConfig.plugins ?? {}).length > 0
     if (!pluginsConfigured) skips.set('plugin:push', notConfigured)
+
+    // The only push that fails on a missing directory (the others find 0 files), so a project
+    // that never used snippets would otherwise end every `lps push` on an ENOENT.
+    if (!existsSync(resolve(resolveResourceDir('snippets', this.localConfig)))) skips.set('snippet:push', notConfigured)
 
     return skips
   }

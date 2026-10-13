@@ -383,6 +383,45 @@ describe('snippet push', () => {
       expect(get).not.toHaveBeenCalled()
     })
 
+    it('keeps an HTML snippet\'s inline <?php tag and the sidecar description, so a pull then push changes nothing', async () => {
+      writeFileSync(join(dir, '4-current-year.html'), "<?php echo date( 'Y' ); ?>")
+      const htmlSnippet: Snippet = {
+        ...snippet,
+        code: "<?php echo date( 'Y' ); ?>",
+        description: 'Shortcode for inserting the current year.',
+        id: 4,
+        path: join(dir, '4-current-year.html'),
+        type: 'html',
+      }
+
+      const cmd = new Push([], fakeOclifConfig)
+      silenceLogs(cmd)
+      const get = vi.fn().mockResolvedValueOnce({revision: 'rev-1'})
+      const put = vi.fn().mockResolvedValueOnce({})
+      ;(cmd as unknown as PushWithPushSnippet).wpClient = {get, post: vi.fn(), put}
+
+      await (cmd as unknown as PushWithPushSnippet).pushSnippet(htmlSnippet)
+
+      expect(put).toHaveBeenCalledWith(
+        `${SNIPPETS_ENDPOINT}/4`,
+        expect.objectContaining({code: "<?php echo date( 'Y' ); ?>", description: 'Shortcode for inserting the current year.'}),
+      )
+    })
+
+    it('skips every file sharing an id with another one instead of letting the last write win', () => {
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+      const a = {...snippet, id: 9, path: join(dir, '9-disable-admin-bar.php')}
+      const b = {...snippet, id: 9, path: join(dir, '9-qa-css.css')}
+      const c = {...snippet, id: 10, path: join(dir, '10-other.php')}
+
+      const kept = (cmd as unknown as {withoutDuplicateIds(s: Snippet[]): Snippet[]}).withoutDuplicateIds([a, b, c])
+
+      expect(kept).toEqual([c])
+      expect((cmd as unknown as PushWithPushSnippet).failedCount).toBe(2)
+      expect(logs.warn).toHaveBeenCalledTimes(2)
+    })
+
     it('returns the existing id when updating an already-linked snippet', async () => {
       writeFileSync(join(dir, '8-demo.php'), '<?php echo 1;')
       const existingSnippet = {...snippet, path: join(dir, '8-demo.php')}

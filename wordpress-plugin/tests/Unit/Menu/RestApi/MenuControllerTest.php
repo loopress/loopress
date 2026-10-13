@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Menu\RestApi;
 
 use Brain\Monkey;
+use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\RestApi\MenuController;
 use Loopress\Menu\Service\MenuService;
@@ -52,6 +53,15 @@ class MenuControllerTest extends TestCase
         $response = $this->controller->list_menus();
 
         $this->assertSame(500, $response->status);
+    }
+
+    public function test_upsert_menu_returns_422_when_an_item_targets_content_missing_on_this_environment(): void
+    {
+        $this->menuService->method('upsertMenu')->willThrowException(new MenuTargetNotFoundException('No "page" post with slug "about"'));
+
+        $response = $this->controller->upsert_menu(new WP_REST_Request(['slug' => 'main', 'name' => 'Main', 'items' => []]));
+
+        $this->assertSame(422, $response->status);
     }
 
     public function test_get_menu_returns_404_when_not_found(): void

@@ -40,6 +40,7 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
 
   let id: number | undefined
   let name: string | undefined
+  let description: string | undefined
   let type: SnippetType | undefined
   let isActive = false
   let tags: string[] = []
@@ -54,6 +55,8 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
     // `||`, not `??`: an empty-string name in the sidecar JSON counts as absent too.
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     name = meta.name || undefined
+    // Kept even when empty: a description cleared on purpose, not one to replace with "Imported from <path>".
+    description = meta.description
     type = parseType(meta.type) ?? undefined
     isActive = Boolean(meta.active)
     tags = Array.isArray(meta.tags) ? meta.tags.map(String) : []
@@ -73,6 +76,7 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
   return {
     active: isActive,
     code: content,
+    description,
     id,
     insertMethod: insertMethod ?? 'auto',
     location: location ?? defaultLocationForType(resolvedType),

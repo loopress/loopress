@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Menu\Service;
 
 use Loopress\Infrastructure\PostByPath;
+use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
 
 // Syncs WordPress nav menus (a `nav_menu` term plus its `nav_menu_item` posts) as a portable
@@ -285,8 +286,10 @@ class MenuService
             'classes'     => $this->exportClasses($item->ID),
             // wp_update_nav_menu_item() writes menu-item-description to post_content, not
             // post_excerpt (that holds menu-item-attr-title instead, which this plugin doesn't
-            // sync), confirmed against wp-includes/nav-menu.php's own $post array.
-            'description' => (string) $item->post_content,
+            // sync), confirmed against wp-includes/nav-menu.php's own $post array. Core saves an
+            // empty description on a post or term item as a single space, read back as "" so a
+            // pushed `"description": ""` doesn't show as drift forever.
+            'description' => $item->post_content === ' ' ? '' : (string) $item->post_content,
             'object'      => null,
             'objectSlug'  => null,
             'target'      => (string) get_post_meta($item->ID, '_menu_item_target', true),
@@ -464,7 +467,7 @@ class MenuService
         if ($type === 'taxonomy') {
             $term = get_term_by('slug', $objectSlug, $objectType);
             if (!$term instanceof \WP_Term) {
-                throw new \RuntimeException(esc_html(
+                throw new MenuTargetNotFoundException(esc_html(
                     "No \"{$objectType}\" term with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
                     'identity, they cannot reference content that does not exist here.',
                 ));
@@ -475,7 +478,7 @@ class MenuService
 
         $post = PostByPath::find($objectSlug, $objectType);
         if ($post === null) {
-            throw new \RuntimeException(esc_html(
+            throw new MenuTargetNotFoundException(esc_html(
                 "No \"{$objectType}\" post with slug \"{$objectSlug}\" was found on this environment. Menu items are resolved by " .
                 'identity, they cannot reference content that does not exist here.',
             ));

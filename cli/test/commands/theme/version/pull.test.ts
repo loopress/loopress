@@ -60,6 +60,17 @@ describe('theme pull', () => {
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 themes to loopress.json')
   })
 
+  it('skips a theme with no version, like the Loopress child theme, which theme version push could not install', async () => {
+    const {cmd, get, logs} = make(false)
+    get.mockResolvedValue([nativeTheme('twentytwentyfive', '1.5'), nativeTheme('twentytwentyfive-loopress', '')])
+
+    await cmd.run()
+
+    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    expect(written.themes).toEqual({twentytwentyfive: '1.5'})
+    expect(logs.log).toHaveBeenCalledWith('  - Skipped: twentytwentyfive-loopress (no version to pin)')
+  })
+
   it('pins live versions into composer.json instead of loopress.json when one exists', async () => {
     writeFileSync(
       join(dir, 'composer.json'),

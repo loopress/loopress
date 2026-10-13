@@ -112,7 +112,7 @@ lps promote staging production
 lps promote production staging --dry-run
 ```
 
-A real promotion **overwrites your local tracked files** with the source environment's, so it always asks for confirmation (`--yes` in CI), whatever the target's name. If the pull fails, nothing is pushed.
+A real promotion **overwrites your local tracked files** with the source environment's, so it always asks for confirmation (`--yes` in CI), whatever the target's name. If the pull fails, nothing is pushed. Changes made on the target outside Loopress stop the push the same way they stop `lps push`: pass `--overwrite` to promote anyway.
 
 With `--dry-run`, the source is pulled into a throwaway copy of the project and the push is only previewed from there: the preview shows what a real promotion would push, and your own files stay untouched. It refuses to run when `loopress.json` points a directory outside the project, use `lps diff --env <from> --against <to>` instead.
 

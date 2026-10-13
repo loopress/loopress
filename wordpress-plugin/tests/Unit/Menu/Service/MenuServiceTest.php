@@ -149,6 +149,18 @@ class MenuServiceTest extends TestCase
         $this->assertSame('A description', $menu['items'][0]['description']);
     }
 
+    // Core saves an empty description on a post or term item as a single space.
+    public function test_get_menu_reads_a_single_space_description_as_empty(): void
+    {
+        Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Main Menu'));
+        Functions\when('wp_get_nav_menu_items')->justReturn([$this->fakeItemPost(1, '', ' ', 1)]);
+        $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
+
+        $menu = $this->service->getMenu('main');
+
+        $this->assertSame('', $menu['items'][0]['description']);
+    }
+
     // wp_update_nav_menu_item() stores _menu_item_classes as one array element per class, not a
     // single joined string; every class must survive the round trip, not just the first.
     public function test_get_menu_preserves_every_menu_item_class(): void

@@ -33,6 +33,12 @@ class PageFiltersTest extends TestCase
         Functions\when('get_query_var')->justReturn(false);
     }
 
+    // WordPress's stack of the filters running right now, which PageFilters reads.
+    private function inContentRuns(int $count): void
+    {
+        $GLOBALS['wp_current_filter'] = array_fill(0, $count, 'the_content'); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- simulates nested the_content runs
+    }
+
     protected function tearDown(): void
     {
         Monkey\tearDown();
@@ -50,6 +56,31 @@ class PageFiltersTest extends TestCase
         $this->assertSame('rendered', $this->filters->restoreAutop('rendered'));
         // A second run for a regular post must not re-add wpautop again.
         $this->filters->restoreAutop('x');
+    }
+
+    public function test_gives_nothing_back_to_a_nested_run_for_the_page_being_rendered(): void
+    {
+        // An empty enclosing shortcode on the page runs the_content('') on its inner text while
+        // the page's own run is still going: returning the body there recursed until a 502.
+        Functions\when('get_the_ID')->justReturn(5);
+        Functions\when('has_filter')->justReturn(false);
+
+        $this->inContentRuns(1);
+        $this->assertSame('<section>raw</section>', $this->filters->renderContent(''));
+
+        $this->inContentRuns(2);
+        $this->assertSame('', $this->filters->renderContent(''));
+        $this->filters->restoreAutop('');
+
+        // Still nested after the inner run ended, the outer run hasn't.
+        $this->assertSame('', $this->filters->renderContent(''));
+
+        $this->inContentRuns(1);
+        $this->filters->restoreAutop('done');
+
+        // A later run renders the page again.
+        $this->assertSame('<section>raw</section>', $this->filters->renderContent(''));
+        $this->inContentRuns(0);
     }
 
     public function test_leaves_any_non_empty_content_alone_on_a_managed_page(): void

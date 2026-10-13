@@ -60,10 +60,12 @@ test("push, break something, roll back, and land back on the exact prior state",
 	// v2: "breaks something" (a different name and a different, deliberately broken-looking
 	// body). This push writes a snapshot of the v1 state (the environment right before this
 	// push) to `.loopress/snapshots/snippet/`.
-	const [{ id: v1Id }] = readSidecars(snippetsDir);
+	// Edit the pushed file in place (push renamed it to `<id>-<slug>`): a second file with the
+	// same id would be refused as a duplicate.
+	const [{ base: v1Base, id: v1Id }] = readSidecars(snippetsDir);
 	writeSnippet(
 		snippetsDir,
-		`${v1Id}-rollback-demo`,
+		v1Base,
 		nameV2,
 		'<?php\n\necho "version two, oops";\n',
 		Number(v1Id),
@@ -135,7 +137,7 @@ test("rollback refuses when there is nothing to roll back to yet", async ({
 // the filename convention `snippet push`/`pull` use (see cli/src/utils/snippet-format.ts).
 function readSidecars(
 	dir: string,
-): Array<{ code: string; id: string; name: string }> {
+): Array<{ base: string; code: string; id: string; name: string }> {
 	const files = readdirSync(dir);
 	const bases = [
 		...new Set(
@@ -153,6 +155,7 @@ function readSidecars(
 			(file) => file.startsWith(`${base}.`) && !file.endsWith(".json"),
 		)!;
 		return {
+			base,
 			code: readFileSync(join(dir, codeFile), "utf8"),
 			id: String(meta.id ?? ""),
 			name: meta.name,

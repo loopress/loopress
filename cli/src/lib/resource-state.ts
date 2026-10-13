@@ -73,10 +73,10 @@ const FORM_VOLATILE_KEYS = ['modified', 'modified_gmt'] as const
 
 // ---- snippets -------------------------------------------------------------------------------
 
-// `description` is dropped: `snippet push` overwrites it with "Imported from <path>" on every
-// push and `loadSnippets` never reads it back, so it is not part of the synced state. `id`
-// becomes the map key. `code` has its leading `<?php` stripped on both sides: `snippet pull`
-// re-adds it to PHP files for editor friendliness, WordPress stores only the body.
+// `description` is dropped: a sidecar without one gets "Imported from <path>" on push, so
+// comparing it would flag every such snippet as drifted. `id` becomes the map key. A PHP
+// snippet's `code` has its leading `<?php` stripped on both sides: `snippet pull` re-adds it
+// for editor friendliness, WordPress stores only the body. Other types keep it, it's content.
 function canonicalSnippet(snippet: {
   active: boolean
   code: string
@@ -90,7 +90,7 @@ function canonicalSnippet(snippet: {
 }): Record<string, unknown> {
   return {
     active: snippet.active,
-    code: stripPhpOpeningTag(snippet.code),
+    code: snippet.type === 'php' ? stripPhpOpeningTag(snippet.code) : snippet.code,
     insertMethod: snippet.insertMethod,
     location: snippet.location,
     name: snippet.name,

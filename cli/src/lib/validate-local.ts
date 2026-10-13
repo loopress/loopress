@@ -206,12 +206,19 @@ function checkLoopressJson(localConfig: Record<string, unknown>, problems: Probl
   if (plugins === undefined) return
 
   if (typeof plugins !== 'object' || plugins === null || Array.isArray(plugins)) {
-    problems.push({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string'})
+    problems.push({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string or {version, active}'})
     return
   }
 
   for (const [slug, version] of Object.entries(plugins)) {
-    if (typeof version !== 'string') problems.push({file: 'loopress.json', message: `plugin "${slug}" must map to a string`})
+    // The object form is what `plugin pull` writes for a plugin installed but inactive (see PluginPin).
+    const isPin =
+      typeof version === 'string' ||
+      (typeof version === 'object' &&
+        version !== null &&
+        typeof (version as {version?: unknown}).version === 'string' &&
+        ['boolean', 'undefined'].includes(typeof (version as {active?: unknown}).active))
+    if (!isPin) problems.push({file: 'loopress.json', message: `plugin "${slug}" must map to a version string or {version, active}`})
   }
 }
 

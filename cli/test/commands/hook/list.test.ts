@@ -35,6 +35,16 @@ describe('hook list', () => {
     expect(logs.log).toHaveBeenCalledWith('    grant() threw while running as a filter, last at 2026-10-12T10:00:00+00:00: boom')
   })
 
+  it('says "an action", not "a action"', async () => {
+    const {cmd, logs} = makeCmd([])
+    const runtimeError = {at: '2026-10-12T10:00:00+00:00', message: 'boom', method: 'notify', type: 'action'}
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get: vi.fn().mockResolvedValueOnce([{filename: 'mail', runtimeError}])}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('    notify() threw while running as an action, last at 2026-10-12T10:00:00+00:00: boom')
+  })
+
   it('uses singular/plural correctly for more than one file', async () => {
     const {cmd, logs} = makeCmd([])
     const get = vi.fn().mockResolvedValueOnce([

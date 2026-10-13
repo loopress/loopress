@@ -83,6 +83,17 @@ class WPFormsProviderTest extends TestCase
         $this->assertNull($this->provider->get(5));
     }
 
+    public function test_get_returns_null_for_a_trashed_form_so_a_push_recreates_it(): void
+    {
+        $post              = new WP_Post();
+        $post->ID          = 35;
+        $post->post_type   = 'wpforms';
+        $post->post_status = 'trash';
+        Functions\when('get_post')->justReturn($post);
+
+        $this->assertNull($this->provider->get(35));
+    }
+
     public function test_get_returns_decoded_content_merged_with_the_post_id(): void
     {
         $post               = new WP_Post();

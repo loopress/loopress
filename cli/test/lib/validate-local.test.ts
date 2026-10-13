@@ -266,7 +266,7 @@ describe('validateLocal', () => {
     const result = await validateLocal(dir)
 
     expect(result.problems).toEqual([
-      expect.objectContaining({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string'}),
+      expect.objectContaining({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string or {version, active}'}),
     ])
   })
 
@@ -276,7 +276,7 @@ describe('validateLocal', () => {
     const result = await validateLocal(dir)
 
     expect(result.problems).toEqual([
-      expect.objectContaining({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string'}),
+      expect.objectContaining({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string or {version, active}'}),
     ])
   })
 
@@ -286,8 +286,16 @@ describe('validateLocal', () => {
     const result = await validateLocal(dir)
 
     expect(result.problems).toEqual([
-      expect.objectContaining({file: 'loopress.json', message: 'plugin "contact-form-7" must map to a string'}),
+      expect.objectContaining({file: 'loopress.json', message: 'plugin "contact-form-7" must map to a version string or {version, active}'}),
     ])
+  })
+
+  it('accepts the {version, active} pin plugin pull writes for an inactive plugin', async () => {
+    write('loopress.json', JSON.stringify({plugins: {'code-snippets': {active: false, version: 'latest'}, woocommerce: 'latest'}}))
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([])
   })
 
   it('flags composer.json whose require section is not an object', async () => {

@@ -9,6 +9,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
 import {isInteractive} from '../lib/interactive.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {PushCommand} from '../lib/push-command.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
@@ -29,11 +30,12 @@ export default class Promote extends Command {
   static flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    overwrite: PushCommand.baseFlags.overwrite,
   }
 
   async run(): Promise<PromoteResult> {
     const {args, flags} = await this.parse(Promote)
-    const {yes} = flags
+    const {overwrite, yes} = flags
     const dryRun = flags['dry-run']
 
     const {environments, projectName} = await this.resolveProject()
@@ -62,11 +64,13 @@ export default class Promote extends Command {
         await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('pull', this.delegateArgv(from.name, false)))
       } catch (error) {
         // A partial pull must never be pushed onward: stop before touching <to>.
-        this.error(`Pull from ${from.name} failed, ${to.name} left untouched: ${(error as Error).message}`)
+        // "untouched" is only true of <to>: a real (non dry-run) pull has already rewritten the files.
+        const filesNote = dryRun ? '' : ` Your local files may already hold part of ${from.name}, review them before pushing.`
+        this.error(`Pull from ${from.name} failed, nothing was pushed to ${to.name}.${filesNote} ${(error as Error).message}`)
       }
 
       this.log(`\n=== Pushing to ${to.name} (${to.url}) ===`)
-      await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', this.delegateArgv(to.name, dryRun)))
+      await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', [...this.delegateArgv(to.name, dryRun), ...(overwrite ? ['--overwrite'] : [])]))
     } finally {
       if (scratch) {
         if (previousNoRotate === undefined) delete process.env.LOOPRESS_NO_AUTO_ROTATE

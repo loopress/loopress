@@ -18,6 +18,13 @@ class PageFilters
     // post in a loop). Null when nothing was unhooked.
     private ?int $removedAutopPriority = null;
 
+    // Post ID => the_content nesting depth of the run rendering that page's body, until the run
+    // ends (restoreAutop). A deeper run for the same page is a call made while its body is still
+    // being filtered, e.g. an empty enclosing shortcode `[tabs][/tabs]` running the_content('')
+    // on its inner text: handing it the body again would recurse until PHP runs out of stack.
+    /** @var array<int, int> */
+    private array $renderingAt = [];
+
     public function register(): void
     {
         // Priority 0: ahead of do_blocks (9), wpautop (10) and do_shortcode (11), so the HTML
@@ -45,6 +52,12 @@ class PageFilters
             return $content;
         }
 
+        $depth = self::contentDepth();
+        if (isset($this->renderingAt[$postId]) && $depth > $this->renderingAt[$postId]) {
+            return $content;
+        }
+        $this->renderingAt[$postId] = $depth;
+
         // wpautop would sprinkle <p>/<br> into hand-written HTML. Unhooked for this page only;
         // restoreAutop() puts it back at the end of this same the_content run.
         $priority = has_filter('the_content', 'wpautop');
@@ -58,12 +71,23 @@ class PageFilters
 
     public function restoreAutop(mixed $content): mixed
     {
+        $depth             = self::contentDepth();
+        $this->renderingAt = array_filter($this->renderingAt, static fn(int $at): bool => $at < $depth);
+
         if ($this->removedAutopPriority !== null) {
             add_filter('the_content', 'wpautop', $this->removedAutopPriority);
             $this->removedAutopPriority = null;
         }
 
         return $content;
+    }
+
+    // How many the_content runs are in progress, the current one included (0 outside a filter).
+    private static function contentDepth(): int
+    {
+        global $wp_current_filter;
+
+        return count(array_keys(is_array($wp_current_filter) ? $wp_current_filter : [], 'the_content', true));
     }
 
     /**

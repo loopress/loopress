@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Menu\RestApi;
 
 use Loopress\Infrastructure\AmbiguousPostSlugException;
+use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\Service\MenuService;
 use Loopress\RestApi\MapsServiceExceptions;
@@ -20,6 +21,7 @@ class MenuController
     private const STATUSES = [
         StaleMenuRevisionException::class => 412,
         AmbiguousPostSlugException::class => 409,
+        MenuTargetNotFoundException::class => 422,
     ];
 
     public function __construct(private MenuService $menuService) {}

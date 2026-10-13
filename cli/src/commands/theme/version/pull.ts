@@ -29,8 +29,12 @@ export default class Pull extends LoopressCommand {
     this.log(`Pulling themes from ${url}`)
 
     const raw = await this.wp.get<WpNativeTheme[]>('wp/v2/themes')
+    // A theme with no Version header can't be pinned, and `theme version push` would then fail on
+    // it: the Loopress child theme (`<parent>-loopress`, written by `theme template push`) is one.
     const installed = parseInstalledThemes(raw)
-    const incoming = Object.fromEntries(installed.map((t) => [t.slug, t.version]))
+    const unversioned = installed.filter((t) => t.version === '').map((t) => t.slug)
+    const incoming = Object.fromEntries(installed.filter((t) => t.version !== '').map((t) => [t.slug, t.version]))
+    if (unversioned.length > 0) this.log(`  - Skipped: ${unversioned.join(', ')} (no version to pin)`)
 
     // A composer.json is authoritative over loopress.json: pin the live versions there instead.
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
