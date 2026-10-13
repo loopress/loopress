@@ -1,5 +1,21 @@
 # @loopress/cli
 
+## 0.31.0
+
+### Minor Changes
+
+- 60ef881: New `lps content copy <from>`: replaces the local site's posts, pages, public custom post types and terms with those of `<from>`, then pushes the project to the local site so tracked configuration wins. Media stay served by the source site, users, comments and orders are never copied.
+- 5bb3a54: `lps hook list` shows the last error each hook file threw while running, and `lps doctor` gets a "Hooks load and run without errors" check that fails on a hook that couldn't load or keeps throwing. Needs the matching plugin release.
+- ad4500c: A push no longer silently overwrites changes made on the site outside Loopress (wp-admin, another tool). Before writing, it compares the site with the state your last push from this machine left it in, using the existing rollback snapshots: an object changed there since, that the push would write a different version over, stops the push and is named (a terminal asks instead, a `--dry-run` only warns). Pass `--overwrite` to push anyway, `--yes` doesn't imply it. Pages now keep snapshots too, for this check.
+  
+  `lps push` stops at the first resource that fails and lists the ones it didn't attempt, instead of pushing the rest on top of a failed dependency (hooks without the Composer packages they use). Plugins and Composer are skipped when the project doesn't manage them.
+  
+  A site that can't be reached now says why (connection refused, host not found, timeout) with a hint to run `lps doctor`, instead of an empty reason, and `lps diff` prints an error shared by every resource once. Its header reads "local files" instead of "local → local".
+
+### Patch Changes
+
+- 90779f2: `lps snippet push` keeps an HTML snippet's inline `<?php ... ?>` block instead of stripping it, keeps the description from the snippet's `.json` file instead of replacing it with "Imported from <path>", and skips, with a failed push, every file whose id another file also uses, instead of letting the last one silently overwrite the other on the site. `lps diff` now shows a removed `<?php` on a non-PHP snippet as drift. `lps validate` accepts the `{"version", "active"}` plugin pin `lps plugin pull` writes for an inactive plugin. `lps promote` takes `--overwrite`, passed to its push, and says the local files may already hold part of `<from>` when its pull fails. `lps hook list` says "an action", and `lps doctor` no longer repeats "failed to load". `lps push` skips snippets on a project with no `snippets/` directory instead of ending on an ENOENT error. `lps form push` writes the id WordPress assigned into a new form's file, so the next push updates that form instead of creating a duplicate. `lps theme version pull` skips a theme with no version, the Loopress child theme included, instead of pinning it to an empty version `lps theme version push` then fails on. `lps plugin audit` reads the affected version range wpvulnerability.net actually returns (`operator`), so it no longer reports every advisory ever published for a plugin, audits a `latest` pin as the newest WordPress.org release, decodes HTML entities in advisory names, and keeps its `--json` output when it exits with 1. `lps composer push` names the WordPress.org plugins and themes the site has and composer.json lacks, which the push uninstalls, on a dry run too, and asks before uninstalling them in a terminal. `lps pull` (and so `lps promote`) skips ACF, forms and snippets, instead of failing, on a site without the plugin they need when the project has no directory for them.
+
 ## 0.30.0
 
 ### Minor Changes
