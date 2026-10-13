@@ -224,5 +224,12 @@
                 <file name="src/TempAdmin/Feature.php" />
             </errorLevel>
         </UnusedClass>
+        <!-- AbstractFilesController::checkSyntax() calls token_get_all() for the ParseError
+             it throws, not its tokens. -->
+        <UnusedFunctionCall>
+            <errorLevel type="suppress">
+                <file name="src/Infrastructure/AbstractFilesController.php" />
+            </errorLevel>
+        </UnusedFunctionCall>
     </issueHandlers>
 </psalm>

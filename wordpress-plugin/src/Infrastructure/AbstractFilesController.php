@@ -656,7 +656,7 @@ abstract class AbstractFilesController
         // method declared twice passes), so `php -l` below still runs wherever it can.
         if (function_exists('token_get_all')) {
             try {
-                token_get_all($code, TOKEN_PARSE); // @phpstan-ignore function.resultUnused (called for the ParseError it throws, not its tokens)
+                token_get_all($code, TOKEN_PARSE);
             } catch (\ParseError $e) {
                 return ['status' => 'error', 'message' => 'PHP Parse error: ' . $e->getMessage() . ' on line ' . $e->getLine()];
             }
