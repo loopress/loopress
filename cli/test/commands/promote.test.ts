@@ -59,6 +59,16 @@ describe('promote', () => {
     expect(result).toEqual({from: 'staging', status: 'promoted', to: 'production'})
   })
 
+  it('forwards --overwrite to the push only, never to the pull', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make(['staging', 'production', '--yes', '--overwrite'])
+
+    await cmd.run()
+
+    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes'])
+    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--overwrite'])
+  })
+
   it('on --dry-run, really pulls into a scratch copy of the project and dry-runs the push from it', async () => {
     const project = mkdtempSync(join(tmpdir(), 'lps-promote-test-'))
     writeFileSync(join(project, 'loopress.json'), '{}')
@@ -147,7 +157,7 @@ describe('promote', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('2 resources failed to pull.'))
     const {cmd} = make(['staging', 'production', '--yes'])
 
-    await expect(cmd.run()).rejects.toThrow(/Pull from staging failed, production left untouched: 2 resources failed to pull\./)
+    await expect(cmd.run()).rejects.toThrow(/Pull from staging failed, nothing was pushed to production\. Your local files may already hold part of staging, review them before pushing\. 2 resources failed to pull\./)
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
   })
 

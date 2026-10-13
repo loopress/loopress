@@ -29,8 +29,10 @@ function make(dryRun: boolean, argv: string[] = [], envName = 'production') {
   cmd.setup({dryRun, siteConfig: makeEnv(envName, 'https://acme.com')})
   const logs = silenceLogs(cmd)
   const post = vi.fn().mockResolvedValue(OK)
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {post}
-  return {cmd, logs, post}
+  // The site's current composer.json, read to name what the push would uninstall.
+  const get = vi.fn().mockResolvedValue({composerJson: '{"require":{}}'})
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post}
+  return {cmd, get, logs, post}
 }
 
 describe('composer push', () => {
@@ -59,6 +61,18 @@ describe('composer push', () => {
     expect(post).not.toHaveBeenCalled()
     expect(cmd.deployments).toEqual([])
     expect(logs.log).toHaveBeenCalledWith('Pushing composer.json (1 package) to https://acme.com')
+  })
+
+  it('names the WordPress.org packages the site has and composer.json lacks, even on a dry run', async () => {
+    writeFileSync(join(dir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/hello-dolly': '*'}}))
+    const {cmd, get, logs} = make(true)
+    get.mockResolvedValue({
+      composerJson: JSON.stringify({require: {'composer/installers': '^2.0', 'psr/log': '^3.0', 'wpackagist-plugin/advanced-custom-fields': '*', 'wpackagist-plugin/hello-dolly': '*'}}),
+    })
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('Would uninstall from the site, absent from composer.json: wpackagist-plugin/advanced-custom-fields')
   })
 
   it('splits the require map into libraries / plugins / themes intent namespaces', async () => {

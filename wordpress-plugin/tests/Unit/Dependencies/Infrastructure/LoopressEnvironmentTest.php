@@ -259,6 +259,15 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
     }
 
+    public function test_writeComposerJson_writes_an_empty_require_as_an_object_composer_accepts(): void
+    {
+        $env = new LoopressEnvironment();
+        $env->writeComposerJson(['name' => 'loopress/site-dependencies', 'require' => []]);
+
+        $raw = (string) file_get_contents(WP_CONTENT_DIR . '/loopress/composer.json'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $this->assertStringContainsString('"require": {}', $raw);
+    }
+
     // ── WPackagist scaffold (plugin/theme lockfile) ─────────────────────────
 
     public function test_ensureInitialized_scaffolds_wpackagist_repo_on_a_new_site(): void

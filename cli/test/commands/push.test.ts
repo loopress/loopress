@@ -1,5 +1,5 @@
 import {confirm} from '@inquirer/prompts'
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -90,6 +90,8 @@ describe('push', () => {
     interactive.value = false
     // An empty project: the cli/ package's own composer.json must not count as the project's.
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
+    // snippet:push is skipped without its directory, see the dedicated test below.
+    mkdirSync(join(projectDir, 'snippets'))
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
   })
 
@@ -173,6 +175,18 @@ describe('push', () => {
     expect(logs.log).toHaveBeenCalledWith('\n→ plugins: not configured, skipped')
     expect(logs.log).toHaveBeenCalledWith('\n→ composer: not configured, skipped')
     expect(logs.log).toHaveBeenCalledWith('\nAll resources pushed.')
+  })
+
+  it('skips snippets when the project has no snippets directory, instead of failing on ENOENT', async () => {
+    rmSync(join(projectDir, 'snippets'), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    await cmd.run()
+
+    const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+    expect(ran).not.toContain('snippet:push')
+    expect(logs.log).toHaveBeenCalledWith('\n→ snippets: not configured, skipped')
   })
 
   it('stops at the first failed resource and names the ones not attempted', async () => {

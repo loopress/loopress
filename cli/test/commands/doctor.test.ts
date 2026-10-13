@@ -221,7 +221,7 @@ describe('doctor', () => {
       expect(logs.log).toHaveBeenCalledWith('✗ Hooks load and run without errors')
       expect(logs.log).toHaveBeenCalledWith(
         '  hooks/caps.php: grant() threw while running as a filter, last at 2026-10-12T10:00:00+00:00: boom\n' +
-          '  hooks/broken.php failed to load: expected exactly one class declaration, found none',
+          '  hooks/broken.php: expected exactly one class declaration, found none',
       )
     })
 

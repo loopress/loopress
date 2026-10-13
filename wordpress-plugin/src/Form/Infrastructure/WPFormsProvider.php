@@ -31,7 +31,9 @@ class WPFormsProvider implements FormProvider
     {
         $form = get_post($id);
 
-        return $form instanceof \WP_Post && in_array($form->post_type, ['wpforms'], true)
+        // A trashed form counts as gone, as in the list: updating it in place would report a
+        // successful push for a form that stays in the trash, invisible on the site.
+        return $form instanceof \WP_Post && in_array($form->post_type, ['wpforms'], true) && $form->post_status !== 'trash'
             ? $this->toCanonical($form)
             : null;
     }

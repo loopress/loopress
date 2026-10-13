@@ -118,7 +118,7 @@ export default class Doctor extends LoopressCommand {
       if ('error' in lookup) throw lookup.error
       const files = Array.isArray(lookup.files) ? lookup.files : []
       const problems = files.flatMap((file) => [
-        ...(file.error ? [`hooks/${file.filename}.php failed to load: ${file.error}`] : []),
+        ...(file.error ? [`hooks/${file.filename}.php: ${file.error}`] : []),
         ...(file.runtimeError ? [`hooks/${file.filename}.php: ${formatRuntimeError(file.runtimeError)}`] : []),
       ])
       if (problems.length > 0) throw new Error(problems.join('\n  '))

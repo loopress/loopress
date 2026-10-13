@@ -73,7 +73,7 @@ describe('plugin audit', () => {
             {
               cve: 'CVE-2024-1234',
               cvss: {score: 7.5, severity: 'high'},
-              impact: {software: [{versions: [{to_compare: '<', to_version: '5.3.3'}]}]},
+              operator: {max_operator: 'lt', max_version: '5.3.3'},
               name: 'XSS bug',
             },
           ],
@@ -96,7 +96,7 @@ describe('plugin audit', () => {
       vuln: () => ({
         data: {
           vulnerability: [
-            {impact: {software: [{versions: [{to_compare: '<', to_version: '5.0.0'}]}]}, name: 'Old bug'},
+            {operator: {max_operator: 'lt', max_version: '5.0.0'}, name: 'Old bug'},
           ],
         },
       }),
@@ -115,7 +115,7 @@ describe('plugin audit', () => {
       vuln: () => ({
         data: {
           vulnerability: [
-            {impact: {software: [{versions: [{to_compare: '<', to_version: '99.0.0'}]}]}, name: 'Whatever'},
+            {operator: {max_operator: 'lt', max_version: '99.0.0'}, name: 'Whatever'},
           ],
         },
       }),
@@ -126,6 +126,65 @@ describe('plugin audit', () => {
     await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
 
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('⚠ akismet: Whatever'))
+  })
+
+  it('audits a "latest" pin as the newest WordPress.org release, not as every version ever', async () => {
+    mockGot({
+      vuln: () => ({
+        data: {
+          vulnerability: [
+            {name: 'Fixed long ago', operator: {max_operator: 'lt', max_version: '5.0.0'}},
+            {name: 'Still open', operator: {max_operator: 'le', max_version: '6.0.0'}},
+          ],
+        },
+      }),
+      wporg: {version: '6.0.0'},
+    })
+    const {cmd, logs} = make({plugins: {akismet: 'latest'}})
+
+    await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('⚠ akismet: Still open'))
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Fixed long ago'))
+  })
+
+  it('honours a lower bound: a version below the affected range is clean', async () => {
+    mockGot({
+      vuln: () => ({
+        data: {
+          vulnerability: [
+            {name: 'Range bug', operator: {max_operator: 'le', max_version: '6.0.2', min_operator: 'ge', min_version: '3.1.1'}},
+          ],
+        },
+      }),
+      wporg: null,
+    })
+    const {cmd} = make({plugins: {akismet: '3.0.0'}})
+
+    const result = await cmd.run()
+
+    expect(result.advisories).toEqual([])
+  })
+
+  it('treats an "eq" bound as that single version', async () => {
+    mockGot({vuln: () => ({data: {vulnerability: [{name: 'Only 1.7.8', operator: {max_operator: 'eq', max_version: '1.7.8'}}]}}), wporg: null})
+    const {cmd} = make({plugins: {akismet: '2.0.2'}})
+
+    const result = await cmd.run()
+
+    expect(result.advisories).toEqual([])
+  })
+
+  it('decodes the HTML entities of advisory names', async () => {
+    mockGot({
+      vuln: () => ({data: {vulnerability: [{name: 'WPForms &#8211; Forms &amp; More', operator: {max_operator: 'lt', max_version: '9.0'}}]}}),
+      wporg: null,
+    })
+    const {cmd, logs} = make({plugins: {akismet: '1.0'}})
+
+    await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('WPForms \u{2013} Forms & More'))
   })
 
   it('includes an advisory with no known fixedIn (cannot tell, report anyway)', async () => {
@@ -143,7 +202,7 @@ describe('plugin audit', () => {
     mockGot({
       vuln: () => ({
         data: {
-          vulnerability: [{impact: {software: [{versions: [{to_compare: '<', to_version: '5.0.0'}]}]}, name: 'Bug'}],
+          vulnerability: [{operator: {max_operator: 'lt', max_version: '5.0.0'}, name: 'Bug'}],
         },
       }),
       wporg: null,
@@ -283,6 +342,18 @@ describe('plugin audit', () => {
     const {cmd} = make({plugins: {x: '1.0.0'}})
 
     await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+  })
+
+  it('keeps the --json result when there are advisories, failing through the exit code instead', async () => {
+    mockGot({vuln: () => ({data: {vulnerability: [{name: 'Bug', operator: {max_operator: 'lt', max_version: '9.0'}}]}}), wporg: null})
+    const {cmd} = make({plugins: {akismet: '1.0'}})
+    vi.spyOn(cmd, 'jsonEnabled').mockReturnValue(true)
+
+    const result = await cmd.run()
+
+    expect(result.status).toBe('issues')
+    expect(process.exitCode).toBe(1)
+    process.exitCode = undefined
   })
 
   it('does not exit with an error code when there are only health notes, no advisories', async () => {

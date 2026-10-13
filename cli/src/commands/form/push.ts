@@ -1,5 +1,5 @@
 import {Args, Flags} from '@oclif/core'
-import {readFile, rename} from 'node:fs/promises'
+import {readFile, rename, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
 import {PushCommand} from '../../lib/push-command.js'
@@ -149,6 +149,8 @@ export default class Push extends PushCommand {
       })
 
       const canonicalId = created ? getFormId(body) : id
+      // The id is read from the file, not its name: without it the next push creates the form again.
+      if (created && canonicalId !== null) await writeFile(filePath, JSON.stringify({...data, id: canonicalId}, null, 2) + '\n')
       if (canonicalId !== null) await this.ensureCanonicalFilename(filePath, canonicalId, title)
 
       if (task) task.output = `Pushed: ${title}`

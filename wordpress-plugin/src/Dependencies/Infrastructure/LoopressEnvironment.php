@@ -370,6 +370,15 @@ class LoopressEnvironment
         // being absent, not against the client setting it to something other than 'lib/'.
         $json['autoload']['psr-4']['LoopressLib\\'] = 'lib/';
 
+        // An empty PHP array encodes as `[]`, which Composer's schema refuses for these maps
+        // ("require : Array value found, but an object is required"): a sync with no package
+        // at all on a site that never had one failed on it.
+        foreach (['require', 'require-dev'] as $map) {
+            if (($json[$map] ?? null) === []) {
+                $json[$map] = new \stdClass();
+            }
+        }
+
         $encoded = wp_json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
             throw new \RuntimeException('Failed to encode composer.json: ' . esc_html(json_last_error_msg()));

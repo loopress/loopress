@@ -14,6 +14,10 @@ type Advisory = {
   title: string
 }
 
+// The affected range of one advisory, from wpvulnerability's `operator` object.
+type Range = {max?: Bound; min?: Bound}
+type Bound = {op: string; version: string}
+
 type HealthNote = {
   message: string
   slug: string
@@ -56,7 +60,12 @@ export default class Audit extends LoopressCommand {
 
   private async auditOne(slug: string, pinned: string): Promise<{advisories: Advisory[]; health: HealthNote[]}> {
     const [vulns, info] = await Promise.all([this.fetchVulnerabilities(slug), this.fetchHealth(slug)])
-    const advisories = vulns.filter((v) => pinned === 'latest' || affects(pinned, v.fixedIn)).map((v) => ({...v, slug}))
+    // "latest" is the newest WordPress.org release, the one a push installs: audit that version.
+    // Unknown (WordPress.org unreachable), every advisory is reported, safer than none.
+    const version = pinned === 'latest' && typeof info?.version === 'string' ? info.version : pinned
+    const advisories = vulns
+      .filter((v) => version === 'latest' || affects(version, v.range))
+      .map(({range: _range, ...v}) => ({...v, slug}))
     const health = info ? describeHealth(slug, pinned, info) : []
     return {advisories, health}
   }
@@ -73,7 +82,7 @@ export default class Audit extends LoopressCommand {
     }
   }
 
-  private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'>>> {
+  private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'> & {range: Range}>> {
     let body: {data?: {vulnerability?: unknown[]}}
     try {
       body = await got(`${WPVULN_BASE}/${encodeURIComponent(slug)}/`, {
@@ -108,7 +117,12 @@ export default class Audit extends LoopressCommand {
         'Vulnerability data: wpvulnerability.net.',
     )
 
-    if (advisories.length > 0) this.exit(1)
+    // exit() throws before oclif prints the --json result, which a CI reading it needs most here.
+    if (advisories.length > 0) {
+      if (this.jsonEnabled()) process.exitCode = 1
+      else this.exit(1)
+    }
+
     return {advisories, health, status: 'issues'}
   }
 }
@@ -119,41 +133,52 @@ function advisoryMeta(a: Advisory): string {
   return parts.length > 0 ? ` (${parts.join(', ')})` : ''
 }
 
-function normalizeAdvisory(raw: Record<string, unknown>): Omit<Advisory, 'slug'> {
+function normalizeAdvisory(raw: Record<string, unknown>): Omit<Advisory, 'slug'> & {range: Range} {
   const cvss = (raw.cvss ?? {}) as {score?: number; severity?: string}
   const source = Array.isArray(raw.source) ? (raw.source as Array<{id?: string}>) : []
   const cve = typeof raw.cve === 'string' ? raw.cve : source.find((s) => s.id?.startsWith('CVE-'))?.id
 
+  const range = extractRange(raw)
   return {
     cve,
-    fixedIn: extractFixedIn(raw),
+    fixedIn: range.max?.op === 'lt' ? range.max.version : undefined,
+    range,
     score: cvss.score,
     severity: cvss.severity,
-    title: typeof raw.name === 'string' ? raw.name : 'Unnamed advisory',
+    title: typeof raw.name === 'string' ? decodeEntities(raw.name) : 'Unnamed advisory',
   }
 }
 
-// wpvulnerability's `impact.software[].versions[]` carries `to_version` / `to_compare`; the
-// first "< X" bound is the version the fix landed in. Best-effort: the shape varies, so a
-// missing bound just means we can't tell and the advisory is reported anyway.
-function extractFixedIn(raw: Record<string, unknown>): string | undefined {
-  const impact = raw.impact as
-    undefined | {software?: Array<{versions?: Array<{to_compare?: string; to_version?: string}>}>}
-  for (const sw of impact?.software ?? []) {
-    for (const v of sw.versions ?? []) {
-      if (v.to_compare === '<' && typeof v.to_version === 'string') return v.to_version
-    }
-  }
-
-  return undefined
+// wpvulnerability's `operator`: `max_version` with `max_operator` "lt" (fixed in that version),
+// "le" (affected up to it, no fix yet) or "eq" (that version only), and an optional lower bound `min_version` with
+// `min_operator` "gt" or "ge". No upper bound means every version from the lower one on.
+function extractRange(raw: Record<string, unknown>): Range {
+  const op = (raw.operator ?? {}) as Record<string, unknown>
+  const bound = (version: unknown, operator: unknown): Bound | undefined =>
+    typeof version === 'string' && version !== '' && typeof operator === 'string' ? {op: operator, version} : undefined
+  return {max: bound(op.max_version, op.max_operator), min: bound(op.min_version, op.min_operator)}
 }
 
-// If we know the fix version, a pin below it is affected. If we can't compare (odd version
-// strings), report it anyway: a false positive is safer than hiding an advisory.
-function affects(pinned: string, fixedIn: string | undefined): boolean {
-  if (!fixedIn) return true
-  const order = compareVersions(pinned, fixedIn)
-  return order === null || order < 0
+// A bound we can't evaluate (odd version strings, unknown operator) counts as affected: a false
+// positive is safer than hiding an advisory.
+function affects(version: string, range: Range): boolean {
+  const within = (bound: Bound | undefined, ok: Record<string, (order: number) => boolean>): boolean => {
+    if (!bound) return true
+    const order = compareVersions(version, bound.version)
+    return order === null || !Object.hasOwn(ok, bound.op) || ok[bound.op](order)
+  }
+
+  return (
+    within(range.min, {ge: (o) => o >= 0, gt: (o) => o > 0}) && within(range.max, {eq: (o) => o === 0, le: (o) => o <= 0, lt: (o) => o < 0})
+  )
+}
+
+// Advisory names come HTML-encoded ("WPForms &#8211; AI Form Builder").
+function decodeEntities(text: string): string {
+  return text
+    .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replaceAll('&quot;', '"')
+    .replaceAll('&amp;', '&')
 }
 
 function describeHealth(slug: string, pinned: string, info: Record<string, unknown>): HealthNote[] {

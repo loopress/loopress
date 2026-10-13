@@ -82,7 +82,7 @@ type RemotePhpFile = {
 export type RuntimeError = {at: string; message: string; method: string; type: 'action' | 'cron' | 'filter'}
 
 export function formatRuntimeError(error: RuntimeError): string {
-  return `${error.method}() threw while running as a ${error.type}, last at ${error.at}: ${error.message}`
+  return `${error.method}() threw while running as ${error.type === 'action' ? 'an' : 'a'} ${error.type}, last at ${error.at}: ${error.message}`
 }
 
 type PushResult = {

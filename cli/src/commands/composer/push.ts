@@ -3,6 +3,7 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {confirmUninstall} from '../../lib/interactive.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isLocalEnvironment, isTimeoutError} from '../../lib/wp-client.js'
 import {type ComposerJson, requireToInstall, toIntent} from '../../utils/composer.js'
@@ -57,7 +58,14 @@ export default class ComposerPush extends PushCommand {
     this.log(`Pushing composer.json (${packageCount} ${packageCount === 1 ? 'package' : 'packages'}) to ${url}`)
     if (lock) this.log('  + composer.lock sent for drift comparison (the server resolves versions from composer.json)')
 
+    // The server renders composer.json from this intent alone, so a WordPress.org plugin or theme
+    // the site has and this file lacks gets uninstalled, active or not: say so before it happens.
+    const toRemove = await this.wpackagistToRemove(require)
+    if (toRemove.length > 0) this.log(`Would uninstall from the site, absent from composer.json: ${toRemove.join(', ')}`)
+
     if (this.dryRun) return {hasLock, lockDrift: [], packageCount, status: 'dry-run'}
+
+    if (!(await confirmUninstall(toRemove, this.yes))) this.error('Aborted.')
 
     this.log('Running Composer on the server, this can take a few minutes...')
 
@@ -106,5 +114,11 @@ export default class ComposerPush extends PushCommand {
     }
 
     this.log('Run `lps composer pull` to update your local composer.json and composer.lock.')
+  }
+
+  private async wpackagistToRemove(require: Record<string, string>): Promise<string[]> {
+    const {composerJson} = await this.wp.get<{composerJson: string}>('loopress/v1/composer/json')
+    const current = (JSON.parse(composerJson) as ComposerJson).require ?? {}
+    return Object.keys(current).filter((name) => name.startsWith('wpackagist-') && !Object.hasOwn(require, name))
   }
 }

@@ -1,3 +1,6 @@
+import {mkdirSync, mkdtempSync, rmSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Pull from '../../src/commands/pull.js'
@@ -137,6 +140,38 @@ describe('pull', () => {
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(ALL_COMMAND_IDS.length)
     expect(logs.log).toHaveBeenCalledWith('✗ composer failed: boom')
     expect(logs.log).toHaveBeenCalledWith('✓ plugins pulled')
+  })
+
+  it('skips, without failing, a resource whose plugin the site lacks when the project does not use it', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => {
+      if (id === 'acf:pull') throw new Error('Request failed (400) on https://x/wp-json/loopress/v1/acf/field-groups: ACF is not active')
+      return {}
+    })
+    const {cmd, logs} = make()
+
+    const result = await cmd.run()
+
+    expect(result.results).toContainEqual({label: 'ACF', status: 'skipped'})
+    expect(logs.log).toHaveBeenCalledWith('→ ACF: not configured, skipped')
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('still fails on a missing plugin when the project uses that resource', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'snippets'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => {
+      if (id === 'snippet:pull') throw new Error('Request failed (409) on https://x/wp-json/loopress/v1/snippets: No supported snippet plugin is active')
+      return {}
+    })
+    const {cmd} = make()
+
+    await expect(cmd.run()).rejects.toThrow('1 resource failed to pull.')
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
   })
 
   it('reports the plural count when multiple resources fail', async () => {
