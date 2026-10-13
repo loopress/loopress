@@ -22,6 +22,12 @@ vi.mock('@wordpress/components', () => ({
             )}
         </div>
     ),
+    Modal: ({ title, children, onRequestClose }: any) => (
+        <div role="dialog" aria-label={title}>
+            {children}
+            <button type="button" onClick={onRequestClose}>Close</button>
+        </div>
+    ),
     Spinner: () => <span aria-label="loading" />,
     ToggleControl: ({ checked, onChange, label, disabled, help }: any) => (
         <label>

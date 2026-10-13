@@ -6,6 +6,7 @@ import { AppShell } from './AppShell';
 import { DependencyManagement } from './dependencies/DependencyManagement';
 import { CodePanel } from './CodePanel';
 import { ConfigPanel } from './config/ConfigPanel';
+import { FullIssues } from './overview/FullIssues';
 import { Overview } from './overview/Overview';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { SentryConsentAlert } from './settings/SentryConsentAlert';
@@ -90,7 +91,7 @@ export default function App() {
             <TabPanel key={activeTab} tabs={TABS} initialTabName={activeTab} onSelect={onSelect}>
                 {(tab) => (
                     <div style={{ marginTop: 16 }}>
-                        {PANELS[tab.name] ?? <Overview />}
+                        {PANELS[tab.name] ?? <><FullIssues /><Overview /></>}
                     </div>
                 )}
             </TabPanel>

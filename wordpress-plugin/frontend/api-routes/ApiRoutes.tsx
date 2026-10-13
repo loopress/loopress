@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../api';
-import { CopyButton, Pill, ResourceSection, Row, Table } from '../ui';
+import { CopyButton, Pill, ResourceSection, Row, SourceDrawer, Table } from '../ui';
 import { CELL, MONO } from '../helpers';
 import { ApiNamespaceSettings } from './ApiNamespaceSettings';
 import type { ApiFile, ApiNamespace } from '../types';
@@ -44,15 +44,7 @@ export function ApiRoutes() {
                             )}
                             {file.error && <Pill tone="error">Failed to load</Pill>}
                             {file.error && <div style={{ marginTop: 4, fontSize: 12, color: '#991b1b' }}>{file.error}</div>}
-                            <details style={{ marginTop: 4 }}>
-                                <summary style={{ cursor: 'pointer', fontSize: 12 }}>View source</summary>
-                                <pre style={{
-                                    background: '#1e1e1e', color: '#d4d4d4', padding: '10px 14px', borderRadius: 4,
-                                    maxHeight: 400, overflow: 'auto', fontSize: 12, marginTop: 6,
-                                }}>
-                                    {file.content}
-                                </pre>
-                            </details>
+                            <div><SourceDrawer title={`${file.filename}.php`} content={file.content} /></div>
                         </td>
                         <td style={MONO}>
                             <span>{namespace}/{file.filename}</span>

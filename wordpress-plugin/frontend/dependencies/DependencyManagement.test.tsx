@@ -38,10 +38,10 @@ describe('DependencyManagement', () => {
         window.loopressData = originalData;
     });
 
-    test('renders the section header, search and installed packages', () => {
+    test('renders the add and installed packages sections', () => {
         render(<DependencyManagement />, { wrapper: makeWrapper() });
 
-        expect(screen.getByText('Composer dependencies')).toBeInTheDocument();
+        expect(screen.getByText('Add a package')).toBeInTheDocument();
         expect(screen.getByLabelText(/search a composer package/i)).toBeInTheDocument();
         expect(screen.getByText('Installed packages')).toBeInTheDocument();
     });

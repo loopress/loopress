@@ -1,7 +1,7 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { apiFetch } from '../api';
+import { apiFetch, ApiError } from '../api';
 import { Pill, ResourceSection, Row, Table } from '../ui';
-import { CELL, MONO, MUTED } from '../helpers';
+import { ACCENT, CELL, MONO, MUTED } from '../helpers';
 
 // Mirrors the plugin's list endpoints (AcfService::list(), MenuService::exportMenu(),
 // PostTypeService::registered(), TaxonomyService::registered(), PostMetaService::registered(),
@@ -68,6 +68,17 @@ function errorText(error: Error | null, fallback: string): string {
     return error?.message || fallback;
 }
 
+// ACF (400) and the forms endpoint (409) refuse with that reason when their plugin isn't
+// installed: an optional integration, not a failure, so it reads as a note, not a red error.
+function notActive(error: Error | null | undefined): string | null {
+    return error instanceof ApiError && (error.status === 400 || error.status === 409) ? error.message : null;
+}
+
+// Loopress-owned rows stand out among the WordPress and third-party ones listed beside them.
+function Source({ label }: Readonly<{ label: string }>) {
+    return label === 'Loopress' ? <strong style={{ color: ACCENT }}>{label}</strong> : <>{label}</>;
+}
+
 function Pull({ command }: Readonly<{ command: string }>) {
     return <>Pulled into your repository with <code>{command}</code>.</>;
 }
@@ -82,6 +93,7 @@ function AcfSection() {
     });
     const rows = results.flatMap((result, i) => (result.data ?? []).map((object) => ({ ...object, type: ACF_TYPES[i].label })));
     const failed = results.find((result) => result.isError);
+    const off = notActive(failed?.error);
 
     return (
         <ResourceSection
@@ -90,11 +102,11 @@ function AcfSection() {
             query={{
                 isPending: results.some((result) => result.isPending),
                 isFetching: results.some((result) => result.isFetching),
-                isError: Boolean(failed),
+                isError: Boolean(failed) && !off,
             }}
             isEmpty={rows.length === 0}
             errorText={errorText(failed?.error ?? null, 'Failed to load ACF objects.')}
-            empty="No field groups, post types, taxonomies or options pages yet."
+            empty={off ?? 'No field groups, post types, taxonomies or options pages yet.'}
         >
             <Table columns={['Name', 'Type', 'Key']}>
                 {rows.map((object) => (
@@ -160,7 +172,7 @@ function PostTypesSection() {
                         <td style={CELL}><strong>{postType.label}</strong></td>
                         <td style={MONO}>{postType.slug}</td>
                         <td style={CELL}>
-                            {SOURCE_LABELS[postType.source]}
+                            <Source label={SOURCE_LABELS[postType.source]} />
                             {postType.conflict && (
                                 <Pill tone="warning" title="Declared in cpt/, but this slug was already registered first: the Loopress version is skipped.">
                                     Conflict
@@ -199,7 +211,7 @@ function TaxonomiesSection() {
                         <td style={CELL}><strong>{taxonomy.label}</strong></td>
                         <td style={MONO}>{taxonomy.slug}</td>
                         <td style={CELL}>
-                            {SOURCE_LABELS[taxonomy.source]}
+                            <Source label={SOURCE_LABELS[taxonomy.source]} />
                             {taxonomy.conflict && (
                                 <Pill tone="warning" title="Declared in taxonomies/, but this slug was already registered first: the Loopress version is skipped.">
                                     Conflict
@@ -241,7 +253,7 @@ function MetaSection() {
                         <td style={MONO}>{meta.postType}</td>
                         <td style={CELL}>{meta.type}</td>
                         <td style={CELL}>
-                            {meta.source === 'loopress' ? 'Loopress' : 'Theme or plugin'}
+                            <Source label={meta.source === 'loopress' ? 'Loopress' : 'Theme or plugin'} />
                             {meta.conflict && (
                                 <Pill tone="warning" title="Declared in meta/, but this key was already registered first: the Loopress version is skipped.">
                                     Conflict
@@ -281,7 +293,7 @@ function RolesSection() {
                         <td style={CELL}><strong>{role.label}</strong></td>
                         <td style={MONO}>{role.slug}</td>
                         <td style={CELL}>
-                            {SOURCE_LABELS[role.source]}
+                            <Source label={SOURCE_LABELS[role.source]} />
                             {role.conflict && (
                                 <Pill tone="warning" title="Declared in roles/, but a role with this slug is already saved on the site: the Loopress version is skipped.">
                                     Conflict
@@ -299,15 +311,16 @@ function RolesSection() {
 function FormsSection() {
     const query = useQuery<Form[]>({ queryKey: ['forms'], queryFn: () => apiFetch<Form[]>('/forms'), staleTime: 30_000 });
     const forms = query.data ?? [];
+    const off = notActive(query.error);
 
     return (
         <ResourceSection
             title="Forms"
             description={<Pull command="lps form pull" />}
-            query={query}
+            query={{ ...query, isError: query.isError && !off }}
             isEmpty={forms.length === 0}
             errorText={errorText(query.error, 'Failed to load forms.')}
-            empty="No forms yet."
+            empty={off ?? 'No forms yet.'}
         >
             <Table columns={['Form', 'ID']}>
                 {forms.map((form) => (

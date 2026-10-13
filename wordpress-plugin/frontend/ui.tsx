@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Notice, Spinner } from '@wordpress/components';
+import { Button, Card, CardBody, CardHeader, Modal, Notice, Spinner } from '@wordpress/components';
 import { MUTED } from './helpers';
 
 // Shared building blocks for every panel, kept outside frontend/dependencies/ so the Light
@@ -52,10 +52,33 @@ export function Skeleton({ rows = 3 }: Readonly<{ rows?: number }>) {
     );
 }
 
-// Header, loading, error and empty states shared by every list panel: only the table differs.
-export function ResourceSection({ title, description, query, isEmpty, empty, errorText, children }: Readonly<{
+// The white card every block of every tab sits in, so all tabs share one look.
+export function Section({ title, description, busy = false, children }: Readonly<{
     title: string;
     description?: React.ReactNode;
+    busy?: boolean;
+    children: React.ReactNode;
+}>) {
+    return (
+        <Card style={{ marginBottom: 24 }}>
+            <CardHeader>
+                <div>
+                    <h2 style={{ fontSize: 14, margin: 0 }}>{title}</h2>
+                    {description && <p style={{ color: MUTED, fontSize: 13, margin: '4px 0 0' }}>{description}</p>}
+                </div>
+                {busy && <Spinner />}
+            </CardHeader>
+            <CardBody>{children}</CardBody>
+        </Card>
+    );
+}
+
+// Header, loading, error and empty states shared by every list panel: only the table differs.
+export function ResourceSection({ title, description, alert, query, isEmpty, empty, errorText, children }: Readonly<{
+    title: string;
+    description?: React.ReactNode;
+    // Shown inside the card even when the list is empty, e.g. a server issue about this resource.
+    alert?: React.ReactNode;
     query: { isPending: boolean; isFetching: boolean; isError: boolean };
     isEmpty: boolean;
     empty: React.ReactNode;
@@ -65,18 +88,13 @@ export function ResourceSection({ title, description, query, isEmpty, empty, err
     const { isPending, isFetching, isError } = query;
 
     return (
-        <section style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: 14, margin: 0 }}>{title}</h2>
-                {isFetching && !isPending && <Spinner />}
-            </div>
-            {description && <p style={{ color: MUTED, fontSize: 13, margin: '4px 0 12px' }}>{description}</p>}
-
+        <Section title={title} description={description} busy={isFetching && !isPending}>
+            {alert}
             {isError && <Notice status="error" isDismissible={false}>{errorText}</Notice>}
             {isPending && <Skeleton />}
             {!isPending && !isError && isEmpty && <p style={{ color: MUTED, fontSize: 13, margin: 0 }}>{empty}</p>}
             {!isEmpty && children}
-        </section>
+        </Section>
     );
 }
 
@@ -84,9 +102,9 @@ export function Table({ columns, children }: Readonly<{ columns: string[]; child
     return (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-                <tr style={{ borderBottom: '2px solid #dcdcde', textAlign: 'left' }}>
+                <tr style={{ borderBottom: '1px solid #dcdcde', textAlign: 'left', color: MUTED }}>
                     {columns.map((column) => (
-                        <th key={column} style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{column}</th>
+                        <th key={column} style={{ padding: '6px 8px', whiteSpace: 'nowrap', fontSize: 12, fontWeight: 600 }}>{column}</th>
                     ))}
                 </tr>
             </thead>
@@ -111,6 +129,7 @@ export function CopyButton({ text, label = 'Copy' }: Readonly<{ text: string; la
             variant="tertiary"
             size="small"
             aria-label={`${label}: ${text}`}
+            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontWeight: 400 }}
             onClick={() => {
                 // navigator.clipboard only exists in a secure context: a wp-admin served over
                 // plain HTTP has none, say so instead of doing nothing.
@@ -126,3 +145,39 @@ export function CopyButton({ text, label = 'Copy' }: Readonly<{ text: string; la
     );
 }
 
+
+// WordPress's own Modal (focus trap, Escape, close button) pinned to the right edge instead of
+// centered: the file stays readable next to the list it was opened from.
+const DRAWER = `
+.components-modal__frame.lp-drawer{position:relative;margin:0 0 0 auto;width:min(760px,100vw);max-width:100vw;height:100%;max-height:100%;border-radius:0;animation:lp-slide .2s ease-out}
+.lp-drawer .components-modal__content{display:flex;flex-direction:column}
+.lp-drawer .components-modal__content>div:has(>pre){flex:1;display:flex;flex-direction:column}
+@keyframes lp-slide{from{transform:translateX(100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.components-modal__frame.lp-drawer{animation:none}}
+`;
+
+export function SourceDrawer({ title, content }: Readonly<{ title: string; content: string }>) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <Button variant="link" onClick={() => setOpen(true)} style={{ fontSize: 12, marginTop: 4 }}>
+                View source
+            </Button>
+            {open && (
+                <Modal title={title} className="lp-drawer" onRequestClose={() => setOpen(false)}>
+                    <style>{DRAWER}</style>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                        <CopyButton label="Copy source" text={content} />
+                    </div>
+                    <pre style={{
+                        flex: 1, background: '#1e1e1e', color: '#d4d4d4', padding: '10px 14px', borderRadius: 4,
+                        overflow: 'auto', fontSize: 12, margin: 0,
+                    }}>
+                        {content}
+                    </pre>
+                </Modal>
+            )}
+        </>
+    );
+}

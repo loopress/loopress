@@ -89,17 +89,30 @@ describe('ConfigPanel', () => {
         expect(screen.getByText('lps role pull')).toBeInTheDocument();
     });
 
-    test("shows the endpoint's own reason when a plugin isn't active", async () => {
+    test("shows the endpoint's own reason as a note, not an error, when a plugin isn't active", async () => {
         apiFetchMock.mockImplementation(async (path: string) => {
-            if (path.startsWith('/acf/')) throw new ApiError('ACF is not active');
-            if (path === '/forms') throw new ApiError('WPForms is not active');
+            if (path.startsWith('/acf/')) throw new ApiError('ACF is not active', undefined, 400);
+            if (path === '/forms') throw new ApiError('No supported form plugin is active', undefined, 409);
             return RESPONSES[path] ?? [];
         });
 
         render(<ConfigPanel />, { wrapper });
 
         expect(await screen.findByText('ACF is not active')).toBeInTheDocument();
-        expect(await screen.findByText('WPForms is not active')).toBeInTheDocument();
+        expect(await screen.findByText('No supported form plugin is active')).toBeInTheDocument();
         expect(await screen.findByText('Main menu')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    test('still reports a real failure as an error', async () => {
+        apiFetchMock.mockImplementation(async (path: string) => {
+            if (path === '/forms') throw new ApiError('HTTP 500', undefined, 500);
+            return RESPONSES[path] ?? [];
+        });
+
+        render(<ConfigPanel />, { wrapper });
+
+        expect(await screen.findByText('HTTP 500')).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveAttribute('data-status', 'error');
     });
 });

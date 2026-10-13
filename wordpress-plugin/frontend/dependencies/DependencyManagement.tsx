@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardBody, CardHeader, Notice, Spinner } from '@wordpress/components';
+import { Notice, Spinner } from '@wordpress/components';
 import { apiFetch, ApiError } from '../api';
 import { confirmChange, MUTED } from '../helpers';
+import { Section } from '../ui';
 import { AuditBanner } from './AuditBanner';
 import { ComposerOutput } from './ComposerOutput';
 import { DiagnosticsBanner } from './DiagnosticsBanner';
@@ -54,52 +55,46 @@ export function DependencyManagement() {
                 </div>
             )}
 
-            <Card>
-                <CardHeader><h2 style={{ margin: 0, fontSize: 14 }}>Composer dependencies</h2></CardHeader>
-                <CardBody>
-                    <p style={{ color: MUTED, fontSize: 13, marginTop: 0 }}>
-                        Changes made here edit this site&apos;s composer.json. Run <code>lps composer pull</code> afterwards
-                        to bring them back into your repository.
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, alignItems: 'start' }}>
-                        {!readOnly && (
-                            <div>
-                                <PackageSearch
-                                    onInstall={async (packageName, version) => {
-                                        if (!confirmChange(`Install ${packageName} ${version}?`)) return;
-                                        resetInstall();
-                                        // `mutate`, not `mutateAsync`: errors are reported through the
-                                        // mutation's own isError/error state below, so nothing here
-                                        // needs to await or catch a rejection.
-                                        installPackage({ packageName, version });
-                                    }}
-                                    disabled={installing}
-                                />
+            {!readOnly && (
+                <Section
+                    title="Add a package"
+                    description={<>Changes made here edit this site&apos;s composer.json. Run <code>lps composer pull</code> afterwards to bring them back into your repository.</>}
+                >
+                    <div style={{ maxWidth: 560 }}>
+                        <PackageSearch
+                            onInstall={async (packageName, version) => {
+                                if (!confirmChange(`Install ${packageName} ${version}?`)) return;
+                                resetInstall();
+                                // `mutate`, not `mutateAsync`: errors are reported through the
+                                // mutation's own isError/error state below, so nothing here
+                                // needs to await or catch a rejection.
+                                installPackage({ packageName, version });
+                            }}
+                            disabled={installing}
+                        />
 
-                                {installing && (
-                                    <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, color: MUTED }}>
-                                        <Spinner /> Installing <strong>{installedName}</strong>…
-                                    </div>
-                                )}
-
-                                {(installSuccess || installError) && (
-                                    <div style={{ marginTop: 16 }}>
-                                        <Notice status={installSuccess ? 'success' : 'error'} isDismissible={false}>
-                                            {installSuccess
-                                                ? `${installedName} installed successfully.`
-                                                : `Failed to install ${installedName}: ${installErrorData?.message}`
-                                            }
-                                        </Notice>
-                                        <ComposerOutput output={installData?.output ?? installErrorData?.output} />
-                                    </div>
-                                )}
+                        {installing && (
+                            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, color: MUTED }}>
+                                <Spinner /> Installing <strong>{installedName}</strong>…
                             </div>
                         )}
 
-                        <InstalledPackages readOnly={readOnly} />
+                        {(installSuccess || installError) && (
+                            <div style={{ marginTop: 16 }}>
+                                <Notice status={installSuccess ? 'success' : 'error'} isDismissible={false}>
+                                    {installSuccess
+                                        ? `${installedName} installed successfully.`
+                                        : `Failed to install ${installedName}: ${installErrorData?.message}`
+                                    }
+                                </Notice>
+                                <ComposerOutput output={installData?.output ?? installErrorData?.output} />
+                            </div>
+                        )}
                     </div>
-                </CardBody>
-            </Card>
+                </Section>
+            )}
+
+            <InstalledPackages readOnly={readOnly} />
         </>
     );
 }

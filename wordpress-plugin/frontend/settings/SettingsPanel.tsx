@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@wordpress/components';
 import { apiFetch } from '../api';
+import { Section } from '../ui';
 import { SentrySettings } from './SentrySettings';
 import { UsageStatsSettings } from './UsageStatsSettings';
 
@@ -20,7 +21,7 @@ export function SettingsPanel() {
     });
 
     return (
-        <div>
+        <Section title="Data sharing" description="What this site sends to Loopress.">
             <SentrySettings />
             <UsageStatsSettings />
             <Button
@@ -30,10 +31,10 @@ export function SettingsPanel() {
                 onClick={() => {
                     if (window.confirm('Reset every Loopress setting to its default, including the API routes namespace?')) resetAll();
                 }}
-                style={{ marginTop: 12 }}
+                style={{ marginTop: 16 }}
             >
                 Reset all settings to default
             </Button>
-        </div>
+        </Section>
     );
 }

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CopyButton } from './ui';
+import { CopyButton, SourceDrawer } from './ui';
 
 describe('CopyButton', () => {
     afterEach(() => {
@@ -38,5 +38,15 @@ describe('CopyButton', () => {
 
         expect(await screen.findByText('Copied')).toBeInTheDocument();
         expect(writeText).toHaveBeenCalledWith('https://example.test');
+    });
+
+    test('SourceDrawer opens the file in a dialog and closes it', async () => {
+        render(<SourceDrawer title="hello.php" content="<?php echo 1;" />);
+
+        expect(screen.queryByRole('dialog')).toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: 'View source' }));
+        expect(screen.getByRole('dialog', { name: 'hello.php' })).toHaveTextContent('<?php echo 1;');
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+        expect(screen.queryByRole('dialog')).toBeNull();
     });
 });
