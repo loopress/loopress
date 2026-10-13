@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Card, CardBody, CardHeader, Modal, Notice, Spinner } from '@wordpress/components';
-import { MUTED } from './helpers';
+import { highlightPhp, MUTED, type PhpToken } from './helpers';
 
 // Shared building blocks for every panel, kept outside frontend/dependencies/ so the Light
 // bundle can import them without pulling in any Composer UI. Plain values and functions live
@@ -156,6 +156,17 @@ const DRAWER = `
 @media (prefers-reduced-motion:reduce){.components-modal__frame.lp-drawer{animation:none}}
 `;
 
+// VS Code's Dark+ colors, on the same #1e1e1e background.
+const TOKEN_COLORS: Record<NonNullable<PhpToken['kind']>, string> = {
+    comment: '#6a9955',
+    attribute: '#dcdcaa',
+    string: '#ce9178',
+    variable: '#9cdcfe',
+    tag: '#569cd6',
+    keyword: '#569cd6',
+    number: '#b5cea8',
+};
+
 export function SourceDrawer({ title, content }: Readonly<{ title: string; content: string }>) {
     const [open, setOpen] = useState(false);
 
@@ -174,7 +185,10 @@ export function SourceDrawer({ title, content }: Readonly<{ title: string; conte
                         flex: 1, background: '#1e1e1e', color: '#d4d4d4', padding: '10px 14px', borderRadius: 4,
                         overflow: 'auto', fontSize: 12, margin: 0,
                     }}>
-                        {content}
+                        {highlightPhp(content).map((token, i) => (
+                            // eslint-disable-next-line @eslint-react/no-array-index-key -- a static token list, never reordered
+                            <span key={i} style={token.kind ? { color: TOKEN_COLORS[token.kind] } : undefined}>{token.text}</span>
+                        ))}
                     </pre>
                 </Modal>
             )}

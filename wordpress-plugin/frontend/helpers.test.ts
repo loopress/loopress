@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { confirmChange, timeAgo } from './helpers';
+import { confirmChange, highlightPhp, timeAgo } from './helpers';
 
 const NOW = Date.parse('2026-10-09T12:00:00Z');
 
@@ -37,5 +37,22 @@ describe('confirmChange', () => {
 
         expect(confirmChange('Install x?')).toBe(true);
         expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('PRODUCTION'));
+    });
+});
+
+describe('highlightPhp', () => {
+    const kinds = (code: string) => highlightPhp(code).filter((t) => t.kind).map((t) => `${t.kind}:${t.text}`);
+
+    test('colors keywords, variables, strings, attributes and comments', () => {
+        expect(kinds("<?php\n#[Action('init')]\npublic function run($x) { return 'a'; } // done")).toEqual([
+            'tag:<?php', "attribute:#[Action('init')]", 'keyword:public', 'keyword:function',
+            'variable:$x', 'keyword:return', "string:'a'", 'comment:// done',
+        ]);
+    });
+
+    test('leaves keywords inside strings and comments alone, and loses no text', () => {
+        const code = "echo \"return $y\"; /* new class */ $total = 42;";
+        expect(kinds(code)).toEqual(['keyword:echo', 'string:"return $y"', 'comment:/* new class */', 'variable:$total', 'number:42']);
+        expect(highlightPhp(code).map((t) => t.text).join('')).toBe(code);
     });
 });
