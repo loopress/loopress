@@ -53,10 +53,12 @@ export function Skeleton({ rows = 3 }: Readonly<{ rows?: number }>) {
 }
 
 // The white card every block of every tab sits in, so all tabs share one look.
-export function Section({ title, description, busy = false, children }: Readonly<{
+export function Section({ title, description, busy = false, actions, children }: Readonly<{
     title: string;
     description?: React.ReactNode;
     busy?: boolean;
+    // Small controls on the right of the header, e.g. a settings gear.
+    actions?: React.ReactNode;
     children: React.ReactNode;
 }>) {
     return (
@@ -66,7 +68,10 @@ export function Section({ title, description, busy = false, children }: Readonly
                     <h2 style={{ fontSize: 14, margin: 0 }}>{title}</h2>
                     {description && <p style={{ color: MUTED, fontSize: 13, margin: '4px 0 0' }}>{description}</p>}
                 </div>
-                {busy && <Spinner />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {busy && <Spinner />}
+                    {actions}
+                </div>
             </CardHeader>
             <CardBody>{children}</CardBody>
         </Card>
@@ -74,9 +79,10 @@ export function Section({ title, description, busy = false, children }: Readonly
 }
 
 // Header, loading, error and empty states shared by every list panel: only the table differs.
-export function ResourceSection({ title, description, alert, query, isEmpty, empty, errorText, children }: Readonly<{
+export function ResourceSection({ title, description, actions, alert, query, isEmpty, empty, errorText, children }: Readonly<{
     title: string;
     description?: React.ReactNode;
+    actions?: React.ReactNode;
     // Shown inside the card even when the list is empty, e.g. a server issue about this resource.
     alert?: React.ReactNode;
     query: { isPending: boolean; isFetching: boolean; isError: boolean };
@@ -88,7 +94,7 @@ export function ResourceSection({ title, description, alert, query, isEmpty, emp
     const { isPending, isFetching, isError } = query;
 
     return (
-        <Section title={title} description={description} busy={isFetching && !isPending}>
+        <Section title={title} description={description} busy={isFetching && !isPending} actions={actions}>
             {alert}
             {isError && <Notice status="error" isDismissible={false}>{errorText}</Notice>}
             {isPending && <Skeleton />}

@@ -6,8 +6,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 vi.mock('@wordpress/components', () => ({
-    Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style, ...rest }: any) => (
-        <button onClick={onClick} disabled={disabled} type={type ?? 'button'} style={style} {...rest}>
+    Button: ({ children, onClick, disabled, variant, isDestructive, size, type, style, icon, label, ...rest }: any) => (
+        <button onClick={onClick} disabled={disabled} type={type ?? 'button'} style={style} aria-label={label} {...rest}>
             {children}
         </button>
     ),
@@ -22,6 +22,15 @@ vi.mock('@wordpress/components', () => ({
             )}
         </div>
     ),
+    Dropdown: ({ renderToggle, renderContent }: any) => {
+        const [isOpen, setIsOpen] = React.useState(false);
+        return (
+            <>
+                {renderToggle({ isOpen, onToggle: () => setIsOpen(!isOpen) })}
+                {isOpen && renderContent({ onClose: () => setIsOpen(false) })}
+            </>
+        );
+    },
     Modal: ({ title, children, onRequestClose }: any) => (
         <div role="dialog" aria-label={title}>
             {children}

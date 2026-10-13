@@ -9,3 +9,4 @@ Admin page redesign:
 - Code tab: "View source" on API routes and hooks opens the file in a drawer on the right, with a copy button, instead of expanding it inline, with PHP syntax colors.
 - Config tab: Loopress-owned post types, taxonomies, roles and meta keys stand out in the Source column. When ACF or a form plugin isn't installed, its section shows a quiet note instead of a red error, and the admin page no longer retries requests the server refused with a 4xx.
 - The page header no longer slides under the WordPress admin bar when scrolling.
+- The API routes namespace moves from under the routes list to the Settings tab, and to a gear popover in the API routes card header.

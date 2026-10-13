@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Button, Dropdown } from '@wordpress/components';
 import { apiFetch } from '../api';
 import { CopyButton, Pill, ResourceSection, Row, SourceDrawer, Table } from '../ui';
 import { CELL, MONO } from '../helpers';
@@ -27,6 +28,15 @@ export function ApiRoutes() {
     return (
         <ResourceSection
             title="API routes"
+            actions={(
+                <Dropdown
+                    popoverProps={{ placement: 'bottom-end' }}
+                    renderToggle={({ isOpen, onToggle }) => (
+                        <Button icon="admin-generic" label="Routes namespace" size="small" onClick={onToggle} aria-expanded={isOpen} />
+                    )}
+                    renderContent={() => <div style={{ padding: 16, width: 360 }}><ApiNamespaceSettings /></div>}
+                />
+            )}
             query={query}
             isEmpty={files.length === 0}
             errorText="Failed to load API routes."
@@ -53,7 +63,6 @@ export function ApiRoutes() {
                     </Row>
                 ))}
             </Table>
-            <ApiNamespaceSettings />
         </ResourceSection>
     );
 }

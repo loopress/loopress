@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@wordpress/components';
 import { apiFetch } from '../api';
+import { ApiNamespaceSettings } from '../api-routes/ApiNamespaceSettings';
 import { Section } from '../ui';
 import { SentrySettings } from './SentrySettings';
 import { UsageStatsSettings } from './UsageStatsSettings';
@@ -21,9 +22,14 @@ export function SettingsPanel() {
     });
 
     return (
-        <Section title="Data sharing" description="What this site sends to Loopress.">
-            <SentrySettings />
-            <UsageStatsSettings />
+        <>
+            <Section title="API routes">
+                <ApiNamespaceSettings />
+            </Section>
+            <Section title="Data sharing" description="What this site sends to Loopress.">
+                <SentrySettings />
+                <UsageStatsSettings />
+            </Section>
             <Button
                 variant="tertiary"
                 size="small"
@@ -31,10 +37,9 @@ export function SettingsPanel() {
                 onClick={() => {
                     if (window.confirm('Reset every Loopress setting to its default, including the API routes namespace?')) resetAll();
                 }}
-                style={{ marginTop: 16 }}
             >
                 Reset all settings to default
             </Button>
-        </Section>
+        </>
     );
 }
