@@ -105,6 +105,23 @@ class TaxonomyServiceTest extends TestCase
         $this->assertSame($slug, $this->service->upsert($slug, [])['slug']);
     }
 
+    public function test_registered_reports_a_loopress_taxonomy_replaced_later_as_a_conflict(): void
+    {
+        $this->options[TaxonomyService::OPTION] = ['genre' => ['object_type' => ['book']]];
+        $this->service->register();
+
+        // Another plugin registered "genre" again after Loopress: WordPress now holds its object.
+        Functions\when('get_taxonomies')->justReturn([
+            'genre' => (object) ['label' => 'Genres', '_builtin' => false, 'public' => true, 'show_ui' => true, 'object_type' => ['book']],
+        ]);
+        Functions\when('wp_count_terms')->justReturn('0');
+
+        $this->assertSame(
+            [['slug' => 'genre', 'label' => 'Genres', 'source' => 'other', 'count' => 0, 'objectTypes' => ['book'], 'managed' => true, 'conflict' => true]],
+            $this->service->registered(),
+        );
+    }
+
     public function test_registered_reports_the_source_terms_and_attached_post_types(): void
     {
         $this->options[TaxonomyService::OPTION] = ['genre' => ['object_type' => ['book']]];

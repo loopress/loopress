@@ -30,13 +30,13 @@ class PostTypesModule implements Module
 
     public function boot(): void
     {
-        // Priority 20, after the default 10 most themes and plugins (CPT UI included) use: a slug
-        // they already registered is then skipped instead of silently overwritten (see
-        // AbstractDeclaredTypeService::register()). Code that needs a Loopress post type or
-        // taxonomy during `init` must run after 20 too. Taxonomies one step earlier (19), the
-        // order WordPress recommends for rewrite rules.
-        add_action('init', [$this->taxonomies, 'register'], 19);
-        add_action('init', [$this->postTypes, 'register'], 20);
+        // Priority 9, before the default 10: plugins that read post types during `init` and cache
+        // them (Rank Math's labels) see ours. A slug registered earlier is skipped, one registered
+        // again later replaces ours: both are reported as a conflict (AbstractDeclaredTypeService::
+        // register() and isOurs()). Taxonomies one step earlier (8), the order WordPress
+        // recommends for rewrite rules.
+        add_action('init', [$this->taxonomies, 'register'], 8);
+        add_action('init', [$this->postTypes, 'register'], 9);
         // Post meta after the post types, so a key whose post type comes from cpt/ finds it registered.
         add_action('init', [$this->postMeta, 'register'], 21);
         // One flag for post types and taxonomies (AbstractDeclaredTypeService::FLUSH_OPTION), so one flush.
