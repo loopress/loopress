@@ -1,5 +1,21 @@
 # @loopress/mcp
 
+## 0.31.0
+
+### Minor Changes
+
+- 60ef881: New `content_copy` tool, the equivalent of `lps content copy`.
+- ad4500c: `push_all`, `page_push` and every push tool with a matching `_rollback` tool take an optional `overwrite` boolean (the CLI's `--overwrite`): without it, a confirmed push over a change made on the site outside Loopress fails and names what it would overwrite.
+
+### Patch Changes
+
+- 90779f2: `project_promote` takes an optional `overwrite` boolean, passed to `lps promote --overwrite`.
+- Updated dependencies [60ef881]
+- Updated dependencies [5bb3a54]
+- Updated dependencies [ad4500c]
+- Updated dependencies [90779f2]
+  - @loopress/cli@0.31.0
+
 ## 0.30.0
 
 ### Minor Changes

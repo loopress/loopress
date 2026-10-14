@@ -1,5 +1,26 @@
 # @loopress/wordpress-plugin
 
+## 2026.16.0
+
+### Minor Changes
+
+- 60ef881: Content export and import endpoints for `lps content copy`, in both editions. The import deletes the site's posts and terms, so it only runs on a site whose environment type is `local`. After an import, images missing locally are served from the source site's uploads URL.
+- 5bb3a54: The last error a hook method threw while running is now kept per file (method, message, time), and returned as `runtimeError` by the hook list endpoint while the file is still the version that threw it. The same error is written at most once a minute. Until now it only went to the PHP error log.
+
+### Patch Changes
+
+- ef30ef3: Admin page redesign:
+  
+  - Every block of every tab now sits in its own white card, so all tabs share one look. Recent pushes on Overview is a table, Settings groups both data-sharing toggles in one card, and Dependencies stacks "Add a package" above "Installed packages" (the table no longer overflows its card).
+  - Overview now repeats every issue the other tabs raise: server configuration, Composer platform problems, security advisories and abandoned packages, code files that failed to load, and Loopress declarations skipped because something registered the same slug first.
+  - Code tab: "View source" on API routes and hooks opens the file in a drawer on the right, with a copy button, instead of expanding it inline, with PHP syntax colors.
+  - Config tab: Loopress-owned post types, taxonomies, roles and meta keys stand out in the Source column. When ACF or a form plugin isn't installed, its section shows a quiet note instead of a red error, and the admin page no longer retries requests the server refused with a 4xx.
+  - The page header no longer slides under the WordPress admin bar when scrolling.
+  - The API routes namespace moves from under the routes list to the Settings tab, and to a gear popover in the API routes card header.
+  - A **Check for updates** button in the page header asks GitHub right away instead of waiting for the twice-daily check, and offers the update when there is one. Dashboard → Updates' **Check again** now really asks GitHub too.
+- b4e6151: Post types from `cpt/` and taxonomies from `taxonomies/` are now registered on `init` priority 9 and 8 (was 20 and 19), before the default 10. Plugins that read post types during `init` and cache them, like Rank Math for its sitemap settings, now see them. A slug another plugin registers again later is still reported as a conflict.
+- 90779f2: API route and hook files are now syntax-checked with PHP's own parser before they are written, so a broken file is refused at push time on every host, Local by Flywheel and managed hosts included, instead of only where a `php` binary is on the PATH. A menu item pointing at a page or term missing on the site answers 422 instead of 500, and an empty menu item description no longer reads back as a single space, which showed as drift after every push. A static page holding an empty enclosing shortcode (`[tabs][/tabs]`) that runs `the_content` on its inner text no longer recurses until a 502: a nested `the_content` run for the page being rendered gets nothing back instead of the page. A form in the trash now counts as gone for `lps form push`, which recreates it, instead of updating it in the trash and reporting a successful push. A Composer sync with no package at all, on a site that never had one, no longer fails with a 500 ("require : Array value found, but an object is required"): an empty `require` is written as `{}`.
+
 ## 2026.15.0
 
 ### Minor Changes
