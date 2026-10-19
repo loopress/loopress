@@ -52,6 +52,8 @@ JSON config.
 
 The server communicates over stdio and takes no CLI arguments of its own.
 
+On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loopress project is, and the documentation page of each resource's file format. A test checks every link points to an existing page in `documentation/`.
+
 ## Tools
 
 | Tool | Mutating | Args | Description |

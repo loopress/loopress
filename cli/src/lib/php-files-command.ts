@@ -6,6 +6,7 @@ import {dirname, join, relative, sep} from 'node:path'
 
 import {authManager} from '../config/auth.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
+import {firstTopLevelSideEffect, startsWithStrictTypes} from '../utils/php-top-level.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {ApiClient} from './api-client.js'
@@ -126,6 +127,33 @@ export type RmFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmRe
 // unambiguous insertion point for the ABSPATH guard). Matching "exactly once" here, not just
 // presence, so a file that would still fail server-side doesn't falsely pass this check.
 const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
+
+// What push checks on a route or hook file before sending it (the server rejects the same):
+// shared with `lps validate`. The server still runs what needs WordPress (PHP syntax, class-name
+// collisions), so passing these doesn't guarantee the push.
+// `filename`: the path under the resource dir, without `.php`.
+export function phpFileProblems(spec: Pick<PhpFilesResource, 'filenamePattern' | 'invalidFilenameHint'>, filename: string, content: string): string[] {
+  const problems: string[] = []
+  if (!spec.filenamePattern.test(filename)) problems.push(`Invalid filename "${filename}": ${spec.invalidFilenameHint}`)
+
+  const declareCount = content.match(DECLARE_PATTERN)?.length ?? 0
+  if (declareCount !== 1) {
+    const reason = declareCount === 0 ? 'is missing' : 'appears more than once'
+    problems.push(`${filename}.php: "declare(strict_types=1);" ${reason}, it must appear exactly once as the first statement`)
+  } else if (!startsWithStrictTypes(content)) {
+    problems.push(`${filename}.php: "declare(strict_types=1);" must be the first statement, right after <?php (one in a comment doesn't count)`)
+  }
+
+  const sideEffect = firstTopLevelSideEffect(content)
+  if (sideEffect !== null) {
+    problems.push(
+      `${filename}.php: code outside the class (${sideEffect}) would run at load time, move it into the class. ` +
+        "Don't add an ABSPATH guard: the plugin adds one on push.",
+    )
+  }
+
+  return problems
+}
 
 // A file's expected revision (#234), computed from `beforeState`: the remote listing already
 // read by `captureBeforePushState` right before this push, for the rollback snapshot. Its value
@@ -322,15 +350,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     }
 
     private validateFileLocally(file: PhpFile, task?: {output: string}): void {
-      if (!spec.filenamePattern.test(file.filename)) {
-        const message = `Invalid filename "${file.filename}": ${spec.invalidFilenameHint}`
-        this.reportTaskFailure(message, new Error(message), task)
-      }
-
-      const declareCount = file.content.match(DECLARE_PATTERN)?.length ?? 0
-      if (declareCount !== 1) {
-        const reason = declareCount === 0 ? 'is missing' : 'appears more than once'
-        const message = `${file.filename}.php: "declare(strict_types=1);" ${reason}, it must appear exactly once as the first statement`
+      for (const message of phpFileProblems(spec, file.filename, file.content)) {
         this.reportTaskFailure(message, new Error(message), task)
       }
 

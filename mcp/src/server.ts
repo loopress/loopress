@@ -27,9 +27,10 @@ import {registerStatusTools} from './tools/status.js'
 import {registerTaxonomyTools} from './tools/taxonomy.js'
 import {registerThemeTools} from './tools/theme.js'
 import {registerThemeStylesTools} from './tools/theme-styles.js'
+import {SERVER_INSTRUCTIONS} from './instructions.js'
 import {registerValidateTools} from './tools/validate.js'
 
-const server = new McpServer({name: 'loopress', version: '0.1.0'})
+const server = new McpServer({name: 'loopress', version: '0.1.0'}, {instructions: SERVER_INSTRUCTIONS})
 
 registerSnippetTools(server)
 registerApiTools(server)

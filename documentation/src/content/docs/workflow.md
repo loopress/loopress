@@ -138,7 +138,7 @@ Content never goes the other way: there is no `lps content push`.
 
 ## `lps validate`
 
-Check that local tracked files are well formed and push-ready, without contacting WordPress. Exits `1` when it finds a problem, so it fits a pre-commit hook or the first step of a CI job.
+Check that local tracked files are well formed and push-ready, without contacting WordPress. Exits `1` when it finds a problem, so it fits a pre-commit hook or the first step of a CI job. Hook and API route files get the same checks as push (file name, `declare(strict_types=1);` exactly once, no code outside the class), so those problems surface before push. The server still checks what needs WordPress, PHP syntax and class-name collisions, so a push can still refuse a file `lps validate` passed.
 
 ```bash
 lps validate
