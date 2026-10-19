@@ -9,6 +9,7 @@ import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../.
 type AcfPullResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
 
 export default class Pull extends LoopressCommand {
+  static aliases = ['scf:pull']
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }

@@ -99,7 +99,7 @@
     "topicSeparator": " ",
     "topics": {
       "acf": {
-        "description": "Manage ACF field groups, post types, taxonomies, and options pages"
+        "description": "Manage ACF or SCF field groups, post types, taxonomies, and options pages (alias: scf)"
       },
       "api": {
         "description": "Manage custom WordPress REST API routes"
