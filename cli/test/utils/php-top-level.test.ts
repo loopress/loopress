@@ -57,6 +57,7 @@ final class ReadingTime
     ['<?php\n// head\nDECLARE ( strict_types = 1 );', true],
     ['<?php\nclass A {}\ndeclare(strict_types=1);', false],
     ['<?php\n// declare(strict_types=1);\nclass A {}', false],
+    ["<?php\nclass A { const D = 'declare(strict_types=1);'; }", false],
   ])('startsWithStrictTypes(%j) is %s', (content, expected) => {
     expect(startsWithStrictTypes(content)).toBe(expected)
   })
