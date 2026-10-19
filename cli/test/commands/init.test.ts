@@ -54,26 +54,12 @@ describe('init', () => {
     expect(writeLocalConfig).not.toHaveBeenCalled()
   })
 
-  it('runs `plugin:add` for the chosen snippet provider and reports it in the summary', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
-
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('code-snippets')
-    vi.mocked(input).mockResolvedValueOnce('.')
-
-    const cmd = make()
-    const {log} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('plugin:add', ['code-snippets'])
-    expect(log).toHaveBeenCalledWith('  Plugin:   code-snippets')
-  })
-
   it.each([
     [true, 'reports it'],
     [false, 'stays quiet'],
   ])('pins LF line endings in .gitattributes (changed: %s, %s)', async (isChanged) => {
     vi.mocked(ensureLfGitattributes).mockResolvedValueOnce(isChanged)
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -83,31 +69,6 @@ describe('init', () => {
     expect(ensureLfGitattributes).toHaveBeenCalledOnce()
     const reported = log.mock.calls.some(([line]) => String(line).includes('.gitattributes'))
     expect(reported).toBe(isChanged)
-  })
-
-  it('does not run plugin:add when the user has no snippet provider to configure', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
-    vi.mocked(input).mockResolvedValueOnce('.')
-
-    const cmd = make()
-    silenceLogs(cmd)
-    await cmd.run()
-
-    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
-  })
-
-  it('warns and continues when `plugin:add` fails', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('Plugin "insert-headers-and-footers" not found on WordPress.org.'))
-
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('insert-headers-and-footers')
-    vi.mocked(input).mockResolvedValueOnce('.')
-
-    const cmd = make()
-    const {log, warn} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(warn).toHaveBeenCalledWith('Plugin "insert-headers-and-footers" not found on WordPress.org.')
-    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('Plugin:'))
   })
 
   it('aborts without prompting further when the user declines to overwrite an existing config', async () => {
@@ -127,7 +88,7 @@ describe('init', () => {
   it('proceeds with the prompts when the user confirms the overwrite', async () => {
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(confirm).mockResolvedValueOnce(true)
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -143,7 +104,7 @@ describe('init', () => {
       makeListedProject('id-acme', 'acme', {}),
       makeListedProject('id-beta', 'beta', {}),
     ])
-    vi.mocked(select).mockResolvedValueOnce('id-beta').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-beta')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -162,7 +123,7 @@ describe('init', () => {
   })
 
   it('prompts for a manual project ID when the user picks the manual-entry option', async () => {
-    vi.mocked(select).mockResolvedValueOnce('__manual__').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('__manual__')
     vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -173,7 +134,7 @@ describe('init', () => {
   })
 
   it('rejects an empty manual project ID and accepts a non-empty one', async () => {
-    vi.mocked(select).mockResolvedValueOnce('__manual__').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('__manual__')
     vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -192,7 +153,6 @@ describe('init', () => {
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
     vi.mocked(input).mockResolvedValueOnce('.')
-    vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -208,7 +168,6 @@ describe('init', () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.mocked(confirm).mockResolvedValueOnce(false)
     vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
-    vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -228,7 +187,6 @@ describe('init', () => {
     vi.mocked(confirm).mockResolvedValueOnce(true)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({})
     vi.mocked(input).mockResolvedValueOnce('manual-id').mockResolvedValueOnce('.')
-    vi.mocked(select).mockResolvedValueOnce('__none__')
 
     const cmd = make()
     const {log} = silenceLogs(cmd)
@@ -239,7 +197,7 @@ describe('init', () => {
   })
 
   it('leaves resource directories out of loopress.json so every command uses its default', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -251,7 +209,7 @@ describe('init', () => {
   })
 
   it('suggests the next command in the summary', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
@@ -263,7 +221,7 @@ describe('init', () => {
   })
 
   it('prompts for the root directory with its default and reports it', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('./wp-content')
 
     const cmd = make()
@@ -274,26 +232,20 @@ describe('init', () => {
     expect(log).toHaveBeenCalledWith('  Root:     ./wp-content')
   })
 
-  it('offers the snippet providers plus a none option', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+  it('never asks about a snippet provider: a snippet user adds one with `lps plugin add`', async () => {
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()
     silenceLogs(cmd)
     await cmd.run()
 
-    expect(select).toHaveBeenCalledWith({
-      choices: [
-        {name: 'Code Snippets', value: 'code-snippets'},
-        {name: 'WPCode', value: 'insert-headers-and-footers'},
-        {name: 'None / already installed', value: '__none__'},
-      ],
-      message: 'Snippet provider',
-    })
+    expect(select).toHaveBeenCalledOnce()
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
   })
 
   it('prints the full success banner', async () => {
-    vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('__none__')
+    vi.mocked(select).mockResolvedValueOnce('id-acme')
     vi.mocked(input).mockResolvedValueOnce('.')
 
     const cmd = make()

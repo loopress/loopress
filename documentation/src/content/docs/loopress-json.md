@@ -62,7 +62,7 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 
 | Field | Description |
 |-------|-------------|
-| `plugins` | WordPress.org plugins the project pins, keyed by slug. A value is an exact version (`"9.4.2"`), `"latest"`, or `{"version": "1.7.2", "active": false}` for a plugin kept installed but inactive. Written by `lps plugin pull`, `lps plugin add`, and the snippet provider prompt of `lps init`. See [Plugins](/plugins/#the-lockfile). |
+| `plugins` | WordPress.org plugins the project pins, keyed by slug. A value is an exact version (`"9.4.2"`), `"latest"`, or `{"version": "1.7.2", "active": false}` for a plugin kept installed but inactive. Written by `lps plugin pull` and `lps plugin add`. See [Plugins](/plugins/#the-lockfile). |
 | `themes` | WordPress.org themes the project pins, keyed by slug, with an exact version or `"latest"`. Written by `lps theme version pull` and `lps theme add`. Never switches the active theme. See [Themes](/themes/). |
 
 When the repository has a `composer.json`, that file is authoritative for plugins and themes instead, see [where the Composer files live](/plugins/#where-the-composer-files-live).

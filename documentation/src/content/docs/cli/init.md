@@ -17,7 +17,6 @@ The command is interactive: it prompts you for each field and writes the result 
 |--------|-------------|
 | WordPress project | Select a project you have already configured with `lps project config`, or enter a project ID manually. When no project exists yet, `lps init` offers to run `lps project config` right away and continues with the project you create. |
 | Root directory | Base directory for the project. All other paths are resolved relative to it. Defaults to `.`. |
-| Snippet provider | The WordPress plugin used to manage snippets: [Code Snippets](https://wordpress.org/plugins/code-snippets/), [WPCode](https://wpcode.com/), or none if it's already installed. When you pick one, it's added to `plugins`. |
 
 It also adds `* text=auto eol=lf` at the top of a `.gitattributes` file next to `loopress.json`. It creates the file if needed, leaves it alone if the rule is already there, and keeps your own rules after it so they still take precedence (for example `*.bat text eol=crlf`). Git for Windows checks files out with CRLF line endings by default, so without this rule a snippet cloned on Windows would no longer match, byte for byte, what `pull` writes.
 
@@ -30,10 +29,7 @@ The final summary lists what was configured and the next useful command.
 ```json
 {
   "projectId": "my-site",
-  "rootDir": ".",
-  "plugins": {
-    "code-snippets": "latest"
-  }
+  "rootDir": "."
 }
 ```
 
