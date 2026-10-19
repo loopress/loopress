@@ -4,6 +4,7 @@ import {LoopressCommand} from '../../lib/base.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class List extends LoopressCommand {
+  static aliases = ['scf:list']
   static description = 'List ACF field groups, post types, taxonomies, and options pages from WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps acf list', '$ lps acf list --type field-groups']

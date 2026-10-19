@@ -11,6 +11,7 @@ import {pluralize} from '../../utils/pluralize.js'
 type AcfPushResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
 
 export default class Push extends PushCommand {
+  static aliases = ['scf:push']
   static args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
