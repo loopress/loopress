@@ -47,6 +47,7 @@ Several structural requirements are enforced at push time, with a clear error if
 
 - The file must contain `declare(strict_types=1);` exactly once. More than once (even inside a comment) or zero times is rejected.
 - The file must declare exactly one class. `lps api push` rejects zero or several immediately, before anything is written; put code shared between several route files in [`lib/`](#sharing-code-between-route-files-and-snippets) instead of a second class in the same file.
+- Nothing may run outside the class: only its namespace, `use` imports and attributes. That includes an `ABSPATH` guard, which the plugin [adds on push](#where-files-live-on-the-server) itself.
 - The class name must not already be taken by another `api/` file, WordPress core, or another active plugin. `lps api push` checks all three and rejects the push immediately if any collide.
 - Every path segment must match the kebab-case pattern, or be a dynamic segment (see below), and the file can't be a root `api/index.php`. The CLI checks this before uploading, so a bad filename fails with an explicit message instead of a network error.
 - Two files can't resolve to the same route: `api/orders.php` next to `api/orders/index.php` is rejected at push time. A file deployed some other way (Git, rsync) that collides is skipped when routes load and reported by [`lps api list`](/api/cli/).

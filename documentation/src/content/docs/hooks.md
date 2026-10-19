@@ -44,7 +44,7 @@ Two things tie everything together:
 
 | Element | Rule |
 |---------|------|
-| Class | Exactly one class per file. The class name itself doesn't matter, discovered from the file's own tokens, not from its filename. |
+| Class | Exactly one class per file, and nothing outside it but its namespace, `use` imports and attributes. The class name itself doesn't matter, discovered from the file's own tokens, not from its filename. Don't write an `ABSPATH` guard: the plugin adds one on push, and a guard you write yourself is rejected as code outside the class. |
 | Method | Any public method attributed with `#[Action]`, `#[Filter]`, or `#[Cron]`. A file needs at least one, but a single class can carry as many as it wants, mixed freely. |
 
 ## `#[Action]` and `#[Filter]`
@@ -171,7 +171,7 @@ lps hook push [path]
 | `--prune` | After pushing, delete hook files on WordPress that have no local counterpart (confirmation prompt; needs `--yes` in a non-interactive shell) |
 | `--yes` / `-y` | Skip the `--prune` confirmation prompt |
 
-Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class, same validation as `lps api push` (syntax check, ABSPATH guard, class-name collision detection). Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
+Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class with no code outside it, same validation as `lps api push` (syntax check, class-name collision detection). On push the plugin adds an `ABSPATH` guard itself, right after the `declare` line, so a file is never reachable directly over HTTP: don't write one, it would be rejected as code outside the class. Pulls strip it again. Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
 
 Without `--prune`, pushing never removes a hook file from the server.
 

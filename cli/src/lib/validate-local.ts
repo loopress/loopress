@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {join, relative, sep} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
@@ -9,6 +9,7 @@ import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
 import {parseType} from '../utils/snippet-format.js'
 import {readLocalTemplates} from '../utils/template-format.js'
 import {loadSnippets} from './load-snippets.js'
+import {API_FILES_RESOURCE, HOOK_FILES_RESOURCE, phpFileProblems, type PhpFilesResource} from './php-files-command.js'
 import {readdirTolerant} from './readdir-tolerant.js'
 
 export type Problem = {file: string; message: string}
@@ -76,8 +77,8 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += await checkPatterns(resolve('patternDir'), problems)
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
-  checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty')
-  checked += await checkPhpDir(resolve('hooksDir'), problems, 'Hook file is empty')
+  checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty', API_FILES_RESOURCE)
+  checked += await checkPhpDir(resolve('hooksDir'), problems, 'Hook file is empty', HOOK_FILES_RESOURCE)
 
   const pages = await readLocalPages(resolve('pageDir'))
   checked += pages.pages.length + pages.problems.length
@@ -106,7 +107,7 @@ async function checkPatterns(dir: string, problems: Problem[]): Promise<number> 
 // Recursive: both api/ and hooks/ files can live in a nested path-segment directory
 // (invoice-pdf/[order_id].php, content/filters.php), a non-recursive scan would silently
 // never check those.
-async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: string): Promise<number> {
+async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: string, spec: PhpFilesResource): Promise<number> {
   const entries = await readdirTolerant(dir, {recursive: true, withFileTypes: true})
   let checked = 0
 
@@ -119,7 +120,14 @@ async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: strin
     // one level deep or more.
     const filePath = join(entry.parentPath, entry.name)
     const content = await readFile(filePath, 'utf8')
-    if (content.trim() === '') problems.push({file: filePath, message: emptyMessage})
+    if (content.trim() === '') {
+      problems.push({file: filePath, message: emptyMessage})
+      continue
+    }
+
+    // The same checks push runs, so a file that passes here doesn't fail there.
+    const filename = relative(dir, filePath).replaceAll(sep, '/').replace(/\.php$/, '')
+    for (const message of phpFileProblems(spec, filename, content)) problems.push({file: filePath, message})
   }
 
   return checked

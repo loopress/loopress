@@ -39,7 +39,7 @@ describe('validateLocal', () => {
     write('snippets/7-x.php', '<?php echo 1;')
     write('snippets/7-x.json', JSON.stringify({id: 7, type: 'php'}))
     write('api/ping.php', '<?php\ndeclare(strict_types=1);')
-    write('hooks/cleanup.php', '<?php do_action("x");')
+    write('hooks/cleanup.php', '<?php\ndeclare(strict_types=1);\nfinal class Cleanup {}')
 
     const result = await validateLocal(dir)
 
@@ -93,7 +93,7 @@ describe('validateLocal', () => {
     write('acf/notes.txt', 'not json, not counted')
     write('acf/group_1.json', JSON.stringify({key: 'group_1'}))
     write('api/README.md', 'notes, not a route file')
-    write('api/ping.php', '<?php echo 1;')
+    write('api/ping.php', '<?php\ndeclare(strict_types=1);\nfinal class Ping {}')
 
     const result = await validateLocal(dir)
 
@@ -205,6 +205,23 @@ describe('validateLocal', () => {
         expect.objectContaining({file: join(dir, 'hooks', 'content', 'filters.php'), message: 'Hook file is empty'}),
       ]),
     )
+  })
+
+  // Regression: validate passed a hook file push then rejected (no declare(strict_types=1)).
+  it('runs the same checks as push on hook and route files', async () => {
+    write('hooks/reading-time.php', "<?php\nadd_filter('the_content', fn ($c) => $c);")
+    write('hooks/Bad_Name.php', '<?php\ndeclare(strict_types=1);')
+    write('hooks/guarded.php', "<?php\ndeclare(strict_types=1);\ndefined('ABSPATH') || exit;\nfinal class Guarded {}")
+    write('api/invoice-pdf/[order_id].php', '<?php\ndeclare(strict_types=1);\nfinal class InvoicePdf {}')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([
+      {file: join(dir, 'hooks', 'Bad_Name.php'), message: expect.stringContaining('Invalid filename "Bad_Name"')},
+      {file: join(dir, 'hooks', 'guarded.php'), message: expect.stringContaining('code outside the class (defined)')},
+      {file: join(dir, 'hooks', 'reading-time.php'), message: expect.stringContaining('"declare(strict_types=1);" is missing')},
+      {file: join(dir, 'hooks', 'reading-time.php'), message: expect.stringContaining('code outside the class (add_filter)')},
+    ])
   })
 
   it('flags loopress.json that is not valid JSON', async () => {

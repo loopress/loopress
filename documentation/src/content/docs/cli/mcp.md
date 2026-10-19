@@ -41,6 +41,8 @@ On Windows, npm installs `lps-mcp` as a `.cmd` shim, so launch it through `cmd`:
 
 The server communicates over stdio from the directory your client launches it in, and takes no arguments of its own.
 
+When an agent connects, the server tells it what a Loopress project is and links the documentation page of each file format (hooks, API routes, ACF and the others). An agent asked for a feature then writes a Loopress hook, not plain WordPress code that push would refuse.
+
 ## Tools
 
 | Tool | Mutating | Description |
