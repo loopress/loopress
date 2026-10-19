@@ -2,7 +2,7 @@ import {LoopressCommand} from '../../lib/base.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List forms from WordPress'
+  static description = 'List forms currently on WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps form list']
 

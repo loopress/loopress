@@ -526,14 +526,14 @@ export const API_FILES_RESOURCE: PhpFilesResource = {
   invalidFilenameHint:
     'each path segment must be lowercase letters, digits, and hyphens, or a bracketed dynamic segment like "[order_id]" (e.g. "invoice-pdf/[order_id].php"), and a root "index.php" is reserved: name the file, or nest it (orders/index.php is the /orders route)',
   label: 'API routes',
-  listDescription: 'List custom API route files from WordPress',
+  listDescription: 'List custom API route files currently on WordPress',
   noun: 'route file',
   orphanReason: 'whose route no longer exists on WordPress',
   pathLabel: 'API',
   pathNoun: 'api directory',
-  pullDescription: 'Pull custom API route files from WordPress',
-  pushDescription: 'Push custom API route files to WordPress',
-  rmDescription: 'Remove a custom API route file from WordPress',
+  pullDescription: 'Pull custom API route files from WordPress into local files',
+  pushDescription: 'Push local custom API route files to WordPress',
+  rmDescription: 'Remove one custom API route file from WordPress',
 }
 
 export const HOOK_FILES_RESOURCE: PhpFilesResource = {
@@ -547,12 +547,12 @@ export const HOOK_FILES_RESOURCE: PhpFilesResource = {
   invalidFilenameHint:
     'each path segment must be lowercase letters, digits, and hyphens (e.g. "content-filters.php" or "content/filters.php")',
   label: 'hooks',
-  listDescription: 'List hook files (actions, filters, cron) from WordPress',
+  listDescription: 'List hook files (actions, filters, cron) currently on WordPress',
   noun: 'hook file',
   orphanReason: 'no longer present on WordPress',
   pathLabel: 'Hooks',
   pathNoun: 'hooks directory',
-  pullDescription: 'Pull hook files (actions, filters, cron) from WordPress',
-  pushDescription: 'Push hook files (actions, filters, cron) to WordPress',
-  rmDescription: 'Remove a hook file (action, filter, cron) from WordPress',
+  pullDescription: 'Pull hook files (actions, filters, cron) from WordPress into local files',
+  pushDescription: 'Push local hook files (actions, filters, cron) to WordPress',
+  rmDescription: 'Remove one hook file (action, filter, cron) from WordPress',
 }

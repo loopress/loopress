@@ -7,7 +7,7 @@ export function registerSnippetTools(server: McpServer): void {
     descriptions: {
       list: 'List snippets currently on WordPress.',
       pull: 'Pull snippets from WordPress into local files.',
-      push: 'Push local snippet files to WordPress.',
+      push: 'Push local snippet files to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.',
     },
     pathNoun: 'snippets directory',
     resource: 'snippet',

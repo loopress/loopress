@@ -23,13 +23,13 @@ export function registerThemeTools(server: McpServer): void {
     {
       command: ['theme', 'push'],
       description:
-        'Push everything theme related: WordPress.org theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.',
+        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.',
       name: 'theme_push',
     },
     {
       command: ['theme', 'version', 'push'],
       description:
-        'Install/pin WordPress.org themes on the site to match loopress.json, via Composer + WPackagist. Never switches the active theme.',
+        'Install WordPress.org themes on WordPress to match loopress.json, via Composer + WPackagist (versions only, never switches the active theme).',
       name: 'theme_version_push',
     },
   ]
@@ -46,7 +46,7 @@ export function registerThemeTools(server: McpServer): void {
   }
 
   const pulls = [
-    {command: ['theme', 'pull'], description: 'Pull theme versions into loopress.json and Global Styles into a local file.', name: 'theme_pull'},
+    {command: ['theme', 'pull'], description: 'Pull everything theme related from WordPress: theme versions into loopress.json, then Global Styles into a local file.', name: 'theme_pull'},
     {
       command: ['theme', 'version', 'pull'],
       description: 'Pull installed themes from WordPress into loopress.json, pinned to their live versions.',
@@ -62,7 +62,7 @@ export function registerThemeTools(server: McpServer): void {
   server.registerTool(
     'theme_status',
     {
-      description: 'Report version drift between the themes on WordPress and loopress.json.',
+      description: 'Compare the themes on WordPress against loopress.json and report version drift.',
       inputSchema: {env: envFlag},
     },
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['theme', 'status'], {env})))),

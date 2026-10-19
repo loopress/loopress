@@ -33,7 +33,7 @@ export function registerPluginTools(server: McpServer): void {
     'plugin_push',
     {
       description:
-        'Install/pin WordPress.org plugins on the site to match loopress.json (active state included), via Composer + WPackagist. ' +
+        'Install WordPress.org plugins on WordPress to match loopress.json (active state included), via Composer + WPackagist. ' +
         'With a composer.json, pushes that whole file instead and activates nothing unless `activate` is set.' +
         PREVIEW_SUFFIX,
       inputSchema: {activate: activateFlag, confirmToken: confirmTokenFlag, env: envFlag, force: forceFlag, prune: pruneFlag},
@@ -71,7 +71,7 @@ export function registerPluginTools(server: McpServer): void {
   server.registerTool(
     'plugin_status',
     {
-      description: 'Report drift between the plugins on WordPress and loopress.json (missing, wrong version, inactive, untracked).',
+      description: 'Compare the plugins on WordPress against loopress.json and report drift (missing, wrong version, inactive, untracked).',
       inputSchema: {env: envFlag},
     },
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['plugin', 'status'], {env})))),

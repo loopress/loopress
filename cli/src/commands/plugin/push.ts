@@ -58,7 +58,7 @@ type Source = {
 
 export default class Push extends PushCommand {
   static description =
-    'Install plugins on WordPress to match loopress.json (or composer.json), via Composer + WPackagist'
+    'Install WordPress.org plugins on WordPress to match loopress.json (active state included) or composer.json, via Composer + WPackagist'
 
   static enableJsonFlag = true
   static examples = ['$ lps plugin push', '$ lps plugin push --dry-run', '$ lps plugin push --force --prune']

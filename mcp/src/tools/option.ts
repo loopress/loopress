@@ -17,7 +17,7 @@ export function registerOptionTools(server: McpServer): void {
     'option_push',
     {
       description:
-        'Push locally tracked, non-readonly options to WordPress (upsert only). Options marked readonly in their local file are skipped.' +
+        'Push locally tracked, non-readonly options to WordPress (upsert only, never deletes an untracked option). Options marked "readonly": true in their local file are skipped.' +
         PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg},
     },

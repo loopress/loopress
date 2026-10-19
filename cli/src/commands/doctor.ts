@@ -18,7 +18,7 @@ export type DoctorResult = {
 }
 
 export default class Doctor extends LoopressCommand {
-  static description = 'Diagnose connectivity, plugin and credential problems for the targeted environment'
+  static description = 'Diagnose connectivity, plugin, credential and hook problems for the targeted environment'
   static enableJsonFlag = true
   static examples = ['$ lps doctor', '$ lps doctor --env production']
 

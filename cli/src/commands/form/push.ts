@@ -19,7 +19,7 @@ export default class Push extends PushCommand {
   }
 
   static description =
-    'Push forms to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
+    'Push local form files to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
 
   static enableJsonFlag = true
   static examples = ['$ lps form push', '$ lps form push --allow-notifications']

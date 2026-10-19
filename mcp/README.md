@@ -1,9 +1,9 @@
 # @loopress/mcp
 
 An MCP (Model Context Protocol) server exposing Loopress CLI operations as tool calls, so an AI
-agent can pull and push snippets, API routes, hooks, ACF objects, forms, nav menus,
-plugins and Composer dependencies on a WordPress site (plus push, list and diff static pages and block templates, which
-don't support pull), one resource at a time or all at once, plus check project status. Ships as the
+agent can pull and push snippets, API routes, hooks, ACF objects, forms, nav menus, custom post types, taxonomies, post meta, roles, block patterns, options, Global Styles, plugins, themes and Composer dependencies on a WordPress
+site (plus push, list and diff static pages and block templates, which don't support pull, and deploy
+single-page apps), one resource at a time or all at once, plus check project status. Ships as the
 `lps-mcp` binary.
 
 It does not reimplement any of that logic: every tool runs the CLI with `--json` and parses its
@@ -90,13 +90,13 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `menu_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore nav menus and menu locations to the snapshot saved automatically before an earlier `menu_push` (`list` shows what's available) |
 | `cpt_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `cpt/<slug>.json` custom post types to WordPress (create or update only) |
 | `cpt_pull` | No | `env?`, `path?` | Pull the custom post types Loopress manages into `cpt/<slug>.json` files |
-| `cpt_list` | No | `env?` | List every post type registered on WordPress and where it comes from |
-| `cpt_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress custom post type (its posts stay in the database, hidden) |
+| `cpt_list` | No | `env?` | List the post types registered on WordPress and where each comes from |
+| `cpt_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress custom post type (its posts stay in the database, hidden) |
 | `cpt_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore custom post types to the snapshot saved automatically before an earlier `cpt_push` (`list` shows what's available) |
 | `taxonomy_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `taxonomies/<slug>.json` taxonomies to WordPress (create or update only, never their terms) |
 | `taxonomy_pull` | No | `env?`, `path?` | Pull the taxonomies Loopress manages into `taxonomies/<slug>.json` files |
-| `taxonomy_list` | No | `env?` | List every taxonomy registered on WordPress, where it comes from and the post types it attaches to |
-| `taxonomy_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress taxonomy (its terms stay in the database, hidden) |
+| `taxonomy_list` | No | `env?` | List the taxonomies registered on WordPress, where each comes from and the post types it attaches to |
+| `taxonomy_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress taxonomy (its terms stay in the database, hidden) |
 | `taxonomy_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore taxonomies to the snapshot saved automatically before an earlier `taxonomy_push` (`list` shows what's available) |
 | `meta_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `meta/<post-type>.json` meta keys to WordPress (create or update only, never their values) |
 | `meta_pull` | No | `env?`, `path?` | Pull the post meta keys Loopress manages into `meta/<post-type>.json` files |
@@ -105,13 +105,13 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `meta_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
 | `role_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `roles/<slug>.json` roles to WordPress (create or update only, never changes which users have them) |
 | `role_pull` | No | `env?`, `path?` | Pull the roles Loopress manages into `roles/<slug>.json` files |
-| `role_list` | No | `env?` | List every user role on WordPress, where it comes from and how many users have it |
-| `role_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress role (its users keep it, with no capability) |
+| `role_list` | No | `env?` | List the user roles on WordPress, where each comes from and how many users have it |
+| `role_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress role (its users keep it, with no capability) |
 | `role_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore roles to the snapshot saved automatically before an earlier `role_push` (`list` shows what's available) |
 | `pattern_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `patterns/<slug>.html` block patterns to WordPress, registered as `loopress/<slug>` (create or update only) |
 | `pattern_pull` | No | `env?`, `path?` | Pull the block patterns Loopress manages into `patterns/<slug>.html` files |
 | `pattern_list` | No | `env?` | List the block patterns registered by Loopress, the theme and plugins |
-| `pattern_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering one Loopress block pattern (references to it render nothing) |
+| `pattern_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress block pattern (references to it render nothing) |
 | `pattern_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore block patterns to the snapshot saved automatically before an earlier `pattern_push` (`list` shows what's available) |
 | `option_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
@@ -124,16 +124,16 @@ The server communicates over stdio and takes no CLI arguments of its own.
 | `form_list` | No | `env?` | List forms currently on WordPress |
 | `form_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
 | `plugin_add` | No | `slug`, `version?` | Add a WordPress.org plugin to `loopress.json`, or change its pinned version (local file only) |
-| `plugin_push` | Yes | `env?`, `force?`, `prune?`, `activate?`, `confirmToken?` | Install/pin WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
+| `plugin_push` | Yes | `env?`, `force?`, `prune?`, `activate?`, `confirmToken?` | Install WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | `env?`, `plugins?` | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
-| `plugin_status` | No | `env?` | Report drift between the plugins on WordPress and `loopress.json` |
+| `plugin_status` | No | `env?` | Compare the plugins on WordPress against `loopress.json` and report drift |
 | `plugin_audit` | No | none | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
-| `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install/pin WordPress.org themes to match `loopress.json` (never switches the active theme) |
+| `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts, then Global Styles |
 | `theme_version_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
-| `theme_pull` | No | `env?` | Pull theme versions and Global Styles |
-| `theme_status` | No | `env?` | Report version drift between the themes on WordPress and `loopress.json` |
+| `theme_pull` | No | `env?` | Pull everything theme related: versions, then Global Styles |
+| `theme_status` | No | `env?` | Compare the themes on WordPress against `loopress.json` and report version drift |
 | `theme_styles_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
 | `theme_styles_pull` | No | `env?`, `path?` | Pull the active block theme's Global Styles customizations from WordPress into a local file |
 | `theme_styles_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore Global Styles to the snapshot saved automatically before an earlier `theme_styles_push` (`list` shows what's available) |

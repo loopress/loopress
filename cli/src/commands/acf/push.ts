@@ -16,7 +16,7 @@ export default class Push extends PushCommand {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
-  static description = 'Push ACF field groups, post types, taxonomies, and options pages to WordPress'
+  static description = 'Push local ACF field groups, post types, taxonomies, and options pages to WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps acf push', '$ lps acf push --type field-groups']
   static flags = {

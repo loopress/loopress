@@ -18,7 +18,7 @@ type StatusResult = {
 }
 
 export default class Status extends LoopressCommand {
-  static description = 'Compare the plugins on WordPress against loopress.json and report drift'
+  static description = 'Compare the plugins on WordPress against loopress.json and report drift (missing, wrong version, inactive, untracked)'
   static enableJsonFlag = true
   static examples = ['$ lps plugin status']
   static flags = {}

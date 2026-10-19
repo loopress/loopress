@@ -43,7 +43,7 @@ const PULL_TARGETS: PullTarget[] = [
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull all content, plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, menus, options, and snippets, from WordPress'
+    'Pull every tracked resource from WordPress into local files in one run: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, menus, options, and snippets'
 
   static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']

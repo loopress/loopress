@@ -19,7 +19,7 @@ type PushResult = {
 const IN_SYNC: PushResult = {installed: [], pinned: [], removed: [], status: 'in-sync'}
 
 export default class Push extends PushCommand {
-  static description = 'Install themes on WordPress to match loopress.json (versions only, never switches the active theme)'
+  static description = 'Install WordPress.org themes on WordPress to match loopress.json, via Composer + WPackagist (versions only, never switches the active theme)'
   static enableJsonFlag = true
   static examples = ['$ lps theme version push', '$ lps theme version push --force']
   static flags = {
