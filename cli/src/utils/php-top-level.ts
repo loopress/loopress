@@ -9,11 +9,16 @@ const OPEN_TAG = /<\?php\b/i
 
 type Token = {text: string; type: 'attribute' | 'html' | 'punct' | 'string' | 'word'}
 
+// `depth`: open class/function bodies (the code in them runs only when called). A bracketed
+// namespace's braces don't count, the statements in `namespace App { ... }` are top level too,
+// so `braces` remembers which kind each open brace is (true: a namespace's).
+type State = {atStart: boolean; braces: boolean[]; depth: number; namespaceHeader: boolean}
+
 // Returns a short description of the offending token, for the error message.
 export function firstTopLevelSideEffect(content: string): null | string {
   if (content.search(OPEN_TAG) !== 0) return 'inline HTML before <?php'
 
-  const state = {atStart: true, depth: 0}
+  const state: State = {atStart: true, braces: [], depth: 0, namespaceHeader: false}
   for (const token of lex(content.slice(5))) {
     const found = step(state, token)
     if (found !== null) return found
@@ -22,9 +27,22 @@ export function firstTopLevelSideEffect(content: string): null | string {
   return null
 }
 
+// True when the file's first statement is `declare(strict_types=1);` (PHP refuses it anywhere
+// else). A count of the text alone would also accept one that only sits in a comment.
+export function startsWithStrictTypes(content: string): boolean {
+  if (content.search(OPEN_TAG) !== 0) return false
+  const texts: string[] = []
+  for (const token of lex(content.slice(5))) {
+    texts.push(token.text.toLowerCase())
+    if (texts.length === 7) break
+  }
+
+  return texts.join('') === 'declare(strict_types=1);'
+}
+
 // Advances the brace depth and "a statement starts here" flag past one token; returns the token
 // when it starts a top-level statement that isn't a declaration.
-function step(state: {atStart: boolean; depth: number}, token: Token): null | string {
+function step(state: State, token: Token): null | string {
   if (token.type === 'html') {
     state.atStart = true
     return token.text === '' ? null : 'inline HTML after ?>'
@@ -33,19 +51,20 @@ function step(state: {atStart: boolean; depth: number}, token: Token): null | st
   const statementStart = state.depth === 0 && state.atStart
   switch (token.text) {
     case ';': {
-      if (state.depth === 0) state.atStart = true
+      if (state.depth === 0) {
+        state.atStart = true
+        state.namespaceHeader = false
+      }
+
       return null
     }
 
     case '{': {
-      // A '{' starting a statement is a bare block, its body runs at load time.
-      if (statementStart) return '{'
-      state.depth += 1
-      return null
+      return openBrace(state, statementStart)
     }
 
     case '}': {
-      state.depth = Math.max(0, state.depth - 1)
+      if (state.braces.pop() !== true) state.depth = Math.max(0, state.depth - 1)
       if (state.depth === 0) state.atStart = true
       return null
     }
@@ -53,9 +72,25 @@ function step(state: {atStart: boolean; depth: number}, token: Token): null | st
     default: {
       if (!statementStart) return null
       state.atStart = false
+      state.namespaceHeader = token.text.toLowerCase() === 'namespace'
       return isDeclaration(token) ? null : token.text
     }
   }
+}
+
+function openBrace(state: State, statementStart: boolean): null | string {
+  if (state.namespaceHeader) {
+    state.namespaceHeader = false
+    state.braces.push(true)
+    state.atStart = true
+    return null
+  }
+
+  // A '{' starting a statement is a bare block, its body runs at load time.
+  if (statementStart) return '{'
+  state.braces.push(false)
+  state.depth += 1
+  return null
 }
 
 function isDeclaration(token: Token): boolean {
@@ -78,8 +113,9 @@ function skipTrivia(source: string, start: number): number {
     if (/\s/.test(source[i] ?? '')) {
       i += 1
     } else if (source.startsWith('//', i) || (source[i] === '#' && source[i + 1] !== '[')) {
-      const end = source.indexOf('\n', i)
-      i = end === -1 ? source.length : end
+      // A line comment also ends at a closing tag, PHP outputs what follows it.
+      const end = source.slice(i).search(/\n|\?>/)
+      i = end === -1 ? source.length : i + end
     } else if (source.startsWith('/*', i)) {
       const end = source.indexOf('*/', i + 2)
       i = end === -1 ? source.length : end + 2

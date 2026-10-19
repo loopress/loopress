@@ -6,7 +6,7 @@ import {dirname, join, relative, sep} from 'node:path'
 
 import {authManager} from '../config/auth.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
-import {firstTopLevelSideEffect} from '../utils/php-top-level.js'
+import {firstTopLevelSideEffect, startsWithStrictTypes} from '../utils/php-top-level.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {ApiClient} from './api-client.js'
@@ -129,7 +129,8 @@ export type RmFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmRe
 const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
 
 // What push checks on a route or hook file before sending it (the server rejects the same):
-// shared with `lps validate`, so a file it calls push-ready really is.
+// shared with `lps validate`. The server still runs what needs WordPress (PHP syntax, class-name
+// collisions), so passing these doesn't guarantee the push.
 // `filename`: the path under the resource dir, without `.php`.
 export function phpFileProblems(spec: Pick<PhpFilesResource, 'filenamePattern' | 'invalidFilenameHint'>, filename: string, content: string): string[] {
   const problems: string[] = []
@@ -139,6 +140,8 @@ export function phpFileProblems(spec: Pick<PhpFilesResource, 'filenamePattern' |
   if (declareCount !== 1) {
     const reason = declareCount === 0 ? 'is missing' : 'appears more than once'
     problems.push(`${filename}.php: "declare(strict_types=1);" ${reason}, it must appear exactly once as the first statement`)
+  } else if (!startsWithStrictTypes(content)) {
+    problems.push(`${filename}.php: "declare(strict_types=1);" must be the first statement, right after <?php (one in a comment doesn't count)`)
   }
 
   const sideEffect = firstTopLevelSideEffect(content)

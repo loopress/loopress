@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {firstTopLevelSideEffect} from '../../src/utils/php-top-level.js'
+import {firstTopLevelSideEffect, startsWithStrictTypes} from '../../src/utils/php-top-level.js'
 
 const file = (body: string): string => `<?php\ndeclare(strict_types=1);\n${body}`
 
@@ -30,6 +30,7 @@ final class ReadingTime
 }`,
     ],
     ['top-level functions, constants and a trailing closing tag', 'const RATE = 200;\nfunction helper(): int { return 1; }\nclass A {}\n?>\n'],
+    ['a class in a bracketed namespace', 'namespace App {\n    use Foo\\Bar;\n    final class A { public function f() { return 1; } }\n}'],
   ])('accepts %s', (_, body) => {
     expect(firstTopLevelSideEffect(file(body))).toBeNull()
   })
@@ -41,11 +42,22 @@ final class ReadingTime
     ['$x = 1;\nclass A {}', '$x'],
     ['{ exit; }\nclass A {}', '{'],
     ['class A {}\n?>\n<p>hi</p>', 'inline HTML after ?>'],
+    ["namespace App {\n    add_filter('x', 'handler');\n    class A {}\n}", 'add_filter'],
+    ['class A {} // ?>output', 'inline HTML after ?>'],
   ])('flags %j as %s', (body, found) => {
     expect(firstTopLevelSideEffect(file(body))).toBe(found)
   })
 
   it('flags inline HTML before the opening tag', () => {
     expect(firstTopLevelSideEffect('\n<?php\nclass A {}')).toBe('inline HTML before <?php')
+  })
+
+  it.each([
+    ['<?php\ndeclare(strict_types=1);\nclass A {}', true],
+    ['<?php\n// head\nDECLARE ( strict_types = 1 );', true],
+    ['<?php\nclass A {}\ndeclare(strict_types=1);', false],
+    ['<?php\n// declare(strict_types=1);\nclass A {}', false],
+  ])('startsWithStrictTypes(%j) is %s', (content, expected) => {
+    expect(startsWithStrictTypes(content)).toBe(expected)
   })
 })

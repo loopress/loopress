@@ -22,4 +22,4 @@ Each resource has a strict file format, different from plain WordPress code: rea
 - forms/: https://docs.loopress.dev/forms/
 - plugins: https://docs.loopress.dev/plugins/
 
-To ship a change: edit the local files, run validate_local (the same checks push runs), then the resource's _push tool, which previews before applying. A push can be undone with the resource's _rollback tool.`
+To ship a change: edit the local files, run validate_local (it catches file format problems before push; the server still checks PHP syntax and class-name collisions), then the resource's _push tool, which previews before applying. Only resources with a _rollback tool can undo a push (hooks, api, snippets, acf, menus, options, forms, patterns, roles, post types, taxonomies, meta, theme styles): pages, templates, apps, plugins, themes and Composer dependencies can't.`
