@@ -7,13 +7,6 @@ import {configManager} from '../config/project-config.manager.js'
 import {isInteractive} from '../lib/interactive.js'
 import {ensureLfGitattributes, type LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
 
-// WordPress.org slugs for the two snippet plugins the Loopress WordPress plugin supports
-// (see SnippetModule.php, which wires up both providers and auto-detects the active one).
-const SNIPPET_PROVIDERS = [
-  {name: 'Code Snippets', slug: 'code-snippets'},
-  {name: 'WPCode', slug: 'insert-headers-and-footers'},
-]
-
 export default class Init extends Command {
   static description = 'Initialize a loopress.json config file in the current directory'
   static examples = ['$ lps init']
@@ -47,11 +40,6 @@ export default class Init extends Command {
       message: 'Root directory',
     })
 
-    const providerChoice = await select({
-      choices: [...SNIPPET_PROVIDERS.map((p) => ({name: p.name, value: p.slug})), {name: 'None / already installed', value: '__none__'}],
-      message: 'Snippet provider',
-    })
-
     // Resource directories are left out on purpose: every command falls back to its default
     // (utils/resource-dirs.ts), and a custom name is a one-line edit in loopress.json.
     const config: LoopressLocalConfig = {projectId, rootDir}
@@ -59,23 +47,9 @@ export default class Init extends Command {
     await writeLocalConfig(config)
     const isGitattributesUpdated = await ensureLfGitattributes()
 
-    let isProviderAdded = false
-    if (providerChoice !== '__none__') {
-      try {
-        await this.config.runCommand('plugin:add', [providerChoice])
-        isProviderAdded = true
-      } catch (error) {
-        this.warn((error as Error).message)
-      }
-    }
-
     this.log(`\n✓ loopress.json created`)
     this.log(`  Project:  ${projectLabel}`)
     this.log(`  Root:     ${rootDir}`)
-
-    if (isProviderAdded) {
-      this.log(`  Plugin:   ${providerChoice}`)
-    }
 
     if (isGitattributesUpdated) {
       this.log('✓ .gitattributes: LF line endings, so files match across macOS, Linux and Windows')

@@ -6,7 +6,7 @@ edition: full
 
 The `snippet` command group lets you version-control PHP snippets as plain files in Git. Each snippet is stored as a code file alongside a `.json` sidecar in a local directory that you commit like any other code.
 
-Works with either [WPCode](https://wpcode.com/) or the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin. The Loopress WordPress plugin detects whichever one is active on the site, so the CLI commands are the same either way.
+Works with either [WPCode](https://wpcode.com/) or the [Code Snippets](https://wordpress.org/plugins/code-snippets/) plugin. The Loopress WordPress plugin detects whichever one is active on the site, so the CLI commands are the same either way. If the site has neither, add one: `lps plugin add code-snippets` (or `insert-headers-and-footers` for WPCode).
 
 ## Typical workflow
 
