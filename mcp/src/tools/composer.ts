@@ -19,7 +19,7 @@ export function registerComposerTools(server: McpServer): void {
     'composer_push',
     {
       description:
-        'Push composer.json to WordPress and run Composer there to resolve and install dependencies.' +
+        'Push composer.json to WordPress and run Composer to resolve and install dependencies.' +
         PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, force: forceFlag},
     },
@@ -34,7 +34,7 @@ export function registerComposerTools(server: McpServer): void {
 
   server.registerTool(
     'composer_pull',
-    {description: 'Pull composer.json/composer.lock from WordPress.', inputSchema: {env: envFlag}},
+    {description: 'Pull composer.json and composer.lock from WordPress into local files.', inputSchema: {env: envFlag}},
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['composer', 'pull'], {env})))),
   )
 }

@@ -33,7 +33,7 @@ export default class Pull extends LoopressCommand {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
 
-  static description = 'Pull snippets from WordPress'
+  static description = 'Pull snippets from WordPress into local files'
   static enableJsonFlag = true
   static examples = ['$ lps snippet pull', '$ lps snippet pull ./snippets']
   static flags = {

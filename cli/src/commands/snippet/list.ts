@@ -3,7 +3,7 @@ import {pluralize} from '../../utils/pluralize.js'
 import {type NormalizedSnippet, normalizeSnippet, SNIPPETS_ENDPOINT} from '../../utils/snippet-format.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List snippets from WordPress'
+  static description = 'List snippets currently on WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps snippet list']
 

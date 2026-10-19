@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -43,7 +43,7 @@ export function registerAppTools(server: McpServer): void {
     'app_remove',
     {
       description:
-        'Remove a single-page app from WordPress (deletes its bundle and unregisters the shortcode; local files are left untouched). Without confirmToken, returns a dry-run preview and a confirmToken; call again with that confirmToken to apply it.',
+        'Remove a single-page app from WordPress: deletes its bundle from wp-content/loopress/apps/ and unregisters the shortcode. Local files are left untouched.' + PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, name: nameArg},
     },
     async ({confirmToken, env, name}) =>

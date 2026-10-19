@@ -26,7 +26,7 @@ type PullResult = {
 }
 
 export default class ComposerPull extends LoopressCommand {
-  static description = 'Pull composer.json and composer.lock from WordPress'
+  static description = 'Pull composer.json and composer.lock from WordPress into local files'
   static enableJsonFlag = true
   static examples = ['$ lps composer pull', '$ lps composer pull --dry-run']
   static flags = {

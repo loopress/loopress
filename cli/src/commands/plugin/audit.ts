@@ -33,7 +33,7 @@ const WPVULN_BASE = 'https://www.wpvulnerability.net/plugin'
 const WPORG_INFO = 'https://api.wordpress.org/plugins/info/1.2/'
 
 export default class Audit extends LoopressCommand {
-  static description = 'Check the plugins in loopress.json for known vulnerabilities and health issues'
+  static description = 'Check the plugins in loopress.json for known vulnerabilities (wpvulnerability.net) and health issues'
   static enableJsonFlag = true
   static examples = ['$ lps plugin audit']
   static flags = {}

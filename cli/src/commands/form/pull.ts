@@ -15,7 +15,7 @@ export default class Pull extends LoopressCommand {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
 
-  static description = 'Pull forms from WordPress'
+  static description = 'Pull forms from WordPress into local files'
   static enableJsonFlag = true
   static examples = ['$ lps form pull']
   static flags = {

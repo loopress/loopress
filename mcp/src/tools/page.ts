@@ -23,7 +23,7 @@ const RESOURCES: HtmlResource[] = [
     descriptions: {
       diff: 'Show what differs (HTML, title, status) between the local pages/ directory and the static pages on WordPress.',
       list: 'List the static pages managed by Loopress on WordPress (slug, status, URL).',
-      push: 'Push local static HTML pages (pages/<slug>.html) to WordPress, or only one when slug is given. The status header (draft or publish) is applied on every push.',
+      push: 'Push local static HTML pages (pages/<slug>.html) to WordPress, or only one when a slug is given. The `status` header (draft or publish, draft by default) is applied on every push.',
     },
     kind: 'page',
     slugExample: 'legal-notice',

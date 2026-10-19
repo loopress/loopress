@@ -1,6 +1,6 @@
 ---
 title: lps doctor
-description: Self-diagnose connectivity, plugin and credential problems for the targeted WordPress environment.
+description: Self-diagnose connectivity, plugin, credential and hook problems for the targeted WordPress environment.
 ---
 
 When a push or pull fails, `lps doctor` tells you whether the problem is the network, the plugin, or the credentials, without opening a ticket.

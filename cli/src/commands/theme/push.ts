@@ -20,7 +20,7 @@ const PUSH_TARGETS = [
 ]
 
 export default class Push extends LoopressCommand {
-  static description = 'Push everything theme related to WordPress: theme versions, templates and parts, then Global Styles'
+  static description = 'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.'
   static enableJsonFlag = true
   static examples = ['$ lps theme push', '$ lps theme push --env staging', '$ lps theme push --dry-run']
   static flags = {

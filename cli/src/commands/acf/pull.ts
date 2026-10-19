@@ -14,7 +14,7 @@ export default class Pull extends LoopressCommand {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
-  static description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress'
+  static description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress into local files'
   static enableJsonFlag = true
   static examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
   static flags = {

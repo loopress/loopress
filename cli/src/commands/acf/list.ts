@@ -5,7 +5,7 @@ import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../.
 
 export default class List extends LoopressCommand {
   static aliases = ['scf:list']
-  static description = 'List ACF field groups, post types, taxonomies, and options pages from WordPress'
+  static description = 'List ACF field groups, post types, taxonomies, and options pages currently on WordPress'
   static enableJsonFlag = true
   static examples = ['$ lps acf list', '$ lps acf list --type field-groups']
   static flags = {

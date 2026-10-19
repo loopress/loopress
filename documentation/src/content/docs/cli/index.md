@@ -13,7 +13,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 |---------|-------------|
 | [`lps init`](/cli/init/) | Create a `loopress.json` config file interactively |
 | [`lps status`](/workflow/#lps-status) | Show which project and environment commands will target |
-| [`lps doctor`](/cli/doctor/) | Diagnose connectivity, plugin and credential problems |
+| [`lps doctor`](/cli/doctor/) | Diagnose connectivity, plugin, credential and hook problems |
 | [`lps validate`](/workflow/#lps-validate) | Check local tracked files are push-ready, without contacting WordPress |
 | [`lps telemetry enable` / `disable`](/concepts/#error-reporting) | Turn crash reporting to Sentry on or off |
 
