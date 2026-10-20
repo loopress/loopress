@@ -53,7 +53,9 @@ export function registerPageTools(server: McpServer): void {
             ? {}
             : {
                 // Pages only: template pushes never overwrite Site Editor edits (their database copy wins).
-                overwrite: overwriteFlag,
+                overwrite: overwriteFlag.describe(
+                  `${overwriteFlag.description}. Also takes over a page with the same slug that Loopress did not create, which the push otherwise refuses`,
+                ),
                 slug: z
                   .string()
                   // Same pattern as the CLI's file names, which also keeps it from reading as a flag.

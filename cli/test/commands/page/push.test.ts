@@ -1,24 +1,35 @@
+import {confirm} from '@inquirer/prompts'
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/page/push.js'
+import {isInteractive} from '../../../src/lib/interactive.js'
 import {type Page} from '../../../src/utils/page-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+
+vi.mock('@inquirer/prompts', () => ({confirm: vi.fn()}))
+vi.mock('../../../src/lib/interactive.js', () => ({isInteractive: vi.fn(() => false)}))
 
 type PushInternals = {
   dryRun: boolean
   failedCount: number
   localConfig: {pageDir?: string; rootDir?: string}
+  overwrite: boolean
   parse: () => Promise<{args: {slug?: string}}>
-  pushPage(page: Page, task?: {output: string}): Promise<void>
+  pushPage(page: Page, task?: {output: string}): Promise<boolean>
   recordSuccess: () => Promise<void>
   run(): Promise<unknown>
   siteConfig: unknown
   wpClient: {put: ReturnType<typeof vi.fn>}
 }
+
+const notManaged = (): Error =>
+  new Error('A page with slug "about" already exists and is not managed by Loopress.', {
+    cause: {response: {body: JSON.stringify({code: 'loopress_page_not_managed', error: 'x'}), statusCode: 409}},
+  })
 
 const page: Page = {fullWidth: false, hideTitle: false, html: '<p>x</p>', slug: 'about', status: 'draft', template: '', title: 'About'}
 
@@ -161,6 +172,69 @@ describe('page push', () => {
       cmd.parse = async () => ({args: {}})
 
       await expect(cmd.run()).rejects.toThrow('1 page failed to push.')
+    })
+  })
+
+  describe('taking over a page Loopress did not create', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-page-adopt-test-'))
+      writeFileSync(join(dir, 'about.html'), '<p>a</p>')
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+      vi.mocked(isInteractive).mockReturnValue(false)
+    })
+
+    function makeRunCommand(put: ReturnType<typeof vi.fn>): PushInternals {
+      const cmd = makeCommand(put)
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {}})
+      return cmd
+    }
+
+    it('sends adopt on the first try with --overwrite', async () => {
+      const put = vi.fn().mockResolvedValue({link: '', status: 'draft'})
+      const cmd = makeRunCommand(put)
+      cmd.overwrite = true
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith('loopress/v1/pages', expect.objectContaining({adopt: true, slug: 'about'}))
+    })
+
+    it('fails without a terminal to ask in, naming --overwrite', async () => {
+      const cmd = makeRunCommand(vi.fn().mockRejectedValue(notManaged()))
+      const {warn} = (cmd as unknown as {warn: ReturnType<typeof vi.fn>})
+
+      await expect(cmd.run()).rejects.toThrow('1 page failed to push.')
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('not created by Loopress: about. '))
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('--overwrite'))
+      expect(confirm).not.toHaveBeenCalled()
+    })
+
+    it('asks once, then pushes again with adopt', async () => {
+      vi.mocked(isInteractive).mockReturnValue(true)
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      const put = vi.fn().mockRejectedValueOnce(notManaged()).mockResolvedValue({link: '', status: 'draft'})
+      const cmd = makeRunCommand(put)
+
+      const result = await cmd.run()
+
+      expect(result).toEqual({pushed: ['about'], status: 'success'})
+      expect(put).toHaveBeenLastCalledWith('loopress/v1/pages', expect.objectContaining({adopt: true}))
+    })
+
+    it('counts the page as failed when the takeover is declined', async () => {
+      vi.mocked(isInteractive).mockReturnValue(true)
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+      const put = vi.fn().mockRejectedValue(notManaged())
+      const cmd = makeRunCommand(put)
+
+      await expect(cmd.run()).rejects.toThrow('1 page failed to push.')
+      expect(put).toHaveBeenCalledTimes(1)
     })
   })
 

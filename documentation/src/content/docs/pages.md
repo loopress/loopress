@@ -133,12 +133,19 @@ Every command below also accepts the [common flags](/concepts/#common-flags): `-
 
 ### `lps page push`
 
-Push every page, or only `SLUG`. Supports `--dry-run`.
+Push every page, or only `SLUG`. Supports `--dry-run` and `--overwrite`.
 
 ```bash
 lps page push
 lps page push legal-notice
+lps page push about --overwrite
 ```
+
+#### Taking over an existing page
+
+When a page with the same slug already exists on WordPress but wasn't created by Loopress (you're rebuilding your current `/about/` page as a file), the push lists those pages and asks once whether to take them over. Without a terminal to ask in (CI, the MCP server), they count as failed unless you pass `--overwrite`.
+
+Taking over keeps the page's URL and ID, so its menu items, internal links and SEO plugin data keep working, which deleting it in wp-admin and pushing a new one would break. From then on the page shows your file and is locked in wp-admin like any Loopress page. Its original content is saved as a WordPress revision first, unless your site disables revisions. `--dry-run` doesn't detect these pages, only the real push does.
 
 ---
 
@@ -178,7 +185,7 @@ When several pages are pushed, each one is pushed on its own: a refused page doe
 
 The push is refused, and nothing is written, when:
 
-- a page with the same slug already exists on WordPress but wasn't created by Loopress. Rename your file, or remove that page in wp-admin.
+- a page with the same slug already exists on WordPress but wasn't created by Loopress, unless you [take it over](#taking-over-an-existing-page).
 - the Loopress page is in the trash. Restore it manually in wp-admin before pushing it again.
 - the slug is already used by another page, a media file, or is reserved by WordPress. WordPress would otherwise rename your page to `about-2` behind your back. Rename your file.
 - the HTML is over 512 KB, or all managed pages together are over 8 MB. Both limits can be raised with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters (the second argument is `'pages'`).

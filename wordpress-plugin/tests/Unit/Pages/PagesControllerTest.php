@@ -154,6 +154,7 @@ class PagesControllerTest extends TestCase
         bool $fullWidth = false,
         bool $hideTitle = false,
         string $template = '',
+        bool $adopt = false,
     ): \WP_REST_Response {
         return $this->controller->put_page(new WP_REST_Request([
             'slug'      => $slug,
@@ -163,6 +164,7 @@ class PagesControllerTest extends TestCase
             'fullWidth' => $fullWidth,
             'hideTitle' => $hideTitle,
             'template'  => $template,
+            'adopt'     => $adopt,
         ]));
     }
 
@@ -206,6 +208,8 @@ class PagesControllerTest extends TestCase
     {
         $this->pages[7] = ['name' => 'about', 'status' => 'publish', 'managed' => true, 'html' => 'old'];
 
+        Functions\expect('wp_save_post_revision')->never();
+
         $response = $this->put('about', 'new', 'draft');
 
         $this->assertSame(200, $response->status);
@@ -222,7 +226,26 @@ class PagesControllerTest extends TestCase
 
         $this->assertSame(409, $response->status);
         $this->assertStringContainsString('not managed by Loopress', $response->get_data()['error']);
+        $this->assertSame('loopress_page_not_managed', $response->get_data()['code']);
         $this->assertSame([], $this->writes);
+    }
+
+    public function test_adopt_takes_over_a_page_not_managed_by_loopress_saving_a_revision_first(): void
+    {
+        $this->pages[7] = ['name' => 'about', 'status' => 'publish', 'managed' => false, 'html' => ''];
+        Functions\expect('wp_save_post_revision')->once()->with(7)->andReturnUsing(function (): int {
+            $this->assertSame([], $this->writes);
+            return 8;
+        });
+
+        $response = $this->put('about', '<h1>Hi</h1>', 'publish', adopt: true);
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame('update', $this->writes[0]['fn']);
+        $postarr = $this->writes[0]['postarr'];
+        $this->assertSame(7, $postarr['ID']);
+        $this->assertSame('1', $postarr['meta_input']['_loopress_page']);
+        $this->assertSame('', $postarr['post_content']);
     }
 
     public function test_refuses_a_trashed_managed_page_and_asks_to_restore_it(): void
