@@ -68,7 +68,7 @@ Once the customizations are in a file, you have a choice most teams never get: l
 - **Block themes only.** A classic theme has no Styles screen and no `wp_global_styles` post, so the commands fail with an explicit error instead of syncing nothing.
 - **The active theme only.** Switch themes on the site and pull again, and you get a second file for the new theme. The first one is never deleted.
 - **One style set.** Named style variations (WordPress 6.6 and later) aren't synced yet, only the active set.
-- **Opt-in, not automatic.** The aggregate `lps push` and `lps pull`, and therefore `lps promote`, leave theme styles out, so a site on a classic theme doesn't break every routine sync. Run `lps theme style push` and `pull` explicitly.
+- **Opt-in, then automatic.** The aggregate `lps push` and `lps pull`, and therefore `lps promote`, include theme styles once the project has a Global Styles file: the first `lps theme style pull` opts in. On a classic theme they skip them with a note instead of breaking the routine sync.
 
 ---
 

@@ -34,6 +34,7 @@ const ALL_COMMAND_IDS = [
   'form:push',
   'pattern:push',
   'theme:template:push',
+  'theme:style:push',
   'page:push',
   'menu:push',
   'option:push',
@@ -43,6 +44,11 @@ const ALL_COMMAND_IDS = [
 // The default fixture manages plugins through loopress.json and has no composer.json, so
 // composer:push is skipped as unconfigured.
 const DELEGATED_IDS = ALL_COMMAND_IDS.filter((id) => id !== 'composer:push')
+
+// What `wp/v2/themes` answers: by default a block theme, matching the Global Styles file every
+// test project tracks.
+const ACTIVE_BLOCK_THEME = [{status: 'active', stylesheet: 'bakery', theme_supports: {'block-templates': true}}]
+const themes = vi.hoisted(() => ({value: [] as unknown[]}))
 
 class TestPush extends Push {
   setup(options: {
@@ -70,6 +76,7 @@ function make(
   } = {},
 ) {
   const cmd = new TestPush([], fakeOclifConfig)
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn(async () => themes.value)}
   cmd.setup({
     dryRun: options.dryRun,
     localConfig: options.localConfig,
@@ -90,8 +97,11 @@ describe('push', () => {
     interactive.value = false
     // An empty project: the cli/ package's own composer.json must not count as the project's.
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
-    // snippet:push is skipped without its directory, see the dedicated test below.
-    mkdirSync(join(projectDir, 'snippets'))
+    // Plugin-backed pushes and Global Styles are skipped when the project doesn't use them, see
+    // the dedicated tests below.
+    for (const dir of ['acf', 'forms', 'snippets', 'theme']) mkdirSync(join(projectDir, dir))
+    writeFileSync(join(projectDir, 'theme', 'bakery-global-styles.json'), '{}')
+    themes.value = ACTIVE_BLOCK_THEME
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
   })
 
@@ -187,6 +197,85 @@ describe('push', () => {
     const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
     expect(ran).not.toContain('snippet:push')
     expect(logs.log).toHaveBeenCalledWith('\n→ snippets: not configured, skipped')
+  })
+
+  // A dry run reads the site, so a missing form plugin used to fail it with a 409 (and warn on a
+  // real push) for a project that has no forms at all. Same for ACF.
+  it.each([
+    ['forms', 'form:push', 'forms'],
+    ['acf', 'acf:push', 'ACF'],
+  ])('skips %s when the project has no directory for it, dry run included', async (dir, commandId, label) => {
+    rmSync(join(projectDir, dir), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+
+    for (const dryRun of [false, true]) {
+      vi.mocked(fakeOclifConfig.runCommand).mockClear()
+      const {cmd, logs} = make({dryRun})
+
+      await cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran).not.toContain(commandId)
+      expect(logs.log).toHaveBeenCalledWith(`\n→ ${label}: not configured, skipped`)
+    }
+  })
+
+  describe('Global Styles', () => {
+    function ranStyles(): boolean {
+      return vi.mocked(fakeOclifConfig.runCommand).mock.calls.some(([id]) => id === 'theme:style:push')
+    }
+
+    it('pushes them right after templates and parts when the active block theme has its file', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      await make().cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran.indexOf('theme:style:push')).toBe(ran.indexOf('theme:template:push') + 1)
+    })
+
+    it('skips them without asking the site when the project tracks none', async () => {
+      rmSync(join(projectDir, 'theme', 'bakery-global-styles.json'))
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make()
+
+      await cmd.run()
+
+      expect(ranStyles()).toBe(false)
+      expect(logs.log).toHaveBeenCalledWith('\n→ Global Styles: not configured, skipped')
+    })
+
+    it('skips them on a classic theme instead of failing the run', async () => {
+      themes.value = [{status: 'active', stylesheet: 'storefront', theme_supports: {}}]
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make()
+
+      await cmd.run()
+
+      expect(ranStyles()).toBe(false)
+      expect(logs.log).toHaveBeenCalledWith('\n→ Global Styles: the active theme "storefront" is a classic theme, skipped')
+      expect(logs.log).toHaveBeenCalledWith('\nAll resources pushed.')
+    })
+
+    it('skips them when the only file is for another theme than the active one', async () => {
+      themes.value = [{status: 'active', stylesheet: 'twentytwentyfive', theme_supports: {'block-templates': true}}]
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make()
+
+      await cmd.run()
+
+      expect(ranStyles()).toBe(false)
+      expect(logs.log).toHaveBeenCalledWith('\n→ Global Styles: no file for the active theme "twentytwentyfive", skipped')
+    })
+
+    it('lets the step run and report it when the theme list cannot be read', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd} = make()
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn().mockRejectedValue(new Error('down'))}
+
+      await cmd.run()
+
+      expect(ranStyles()).toBe(true)
+    })
   })
 
   it('stops at the first failed resource and names the ones not attempted', async () => {

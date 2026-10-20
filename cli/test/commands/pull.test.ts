@@ -1,7 +1,7 @@
-import {mkdirSync, mkdtempSync, rmSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Pull from '../../src/commands/pull.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
@@ -127,8 +127,48 @@ describe('pull', () => {
 
     const result = await cmd.run()
 
-    expect(result.results).toHaveLength(ALL_COMMAND_IDS.length)
-    expect(result.results.every((entry) => entry.status === 'pulled')).toBe(true)
+    expect(result.results).toHaveLength(ALL_COMMAND_IDS.length + 1)
+    // This project tracks no Global Styles.
+    expect(result.results.filter((entry) => entry.status !== 'pulled')).toEqual([{label: 'Global Styles', status: 'skipped'}])
+  })
+
+  describe('Global Styles', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+      mkdirSync(join(dir, 'theme'))
+      writeFileSync(join(dir, 'theme', 'bakery-global-styles.json'), '{}')
+      vi.spyOn(process, 'cwd').mockReturnValue(dir)
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    })
+
+    afterEach(() => {
+      vi.mocked(process.cwd).mockRestore()
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    function withActiveTheme(theme: Record<string, unknown>) {
+      const made = make()
+      ;(made.cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn(async () => [{status: 'active', ...theme}])}
+      return made
+    }
+
+    it('pulls them once the project tracks them, on a block theme', async () => {
+      await withActiveTheme({stylesheet: 'twentytwentyfive', theme_supports: {'block-templates': true}}).cmd.run()
+
+      expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:style:pull', ['--env', 'staging'])
+    })
+
+    it('skips them on a classic theme instead of failing the run', async () => {
+      const {cmd, logs} = withActiveTheme({stylesheet: 'storefront', theme_supports: {}})
+
+      const result = await cmd.run()
+
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('theme:style:pull', expect.anything())
+      expect(logs.log).toHaveBeenCalledWith('\n→ Global Styles: the active theme "storefront" is a classic theme, skipped')
+      expect(result.results).toContainEqual({label: 'Global Styles', status: 'skipped'})
+    })
   })
 
   it('continues past a failed resource and still pulls the rest', async () => {

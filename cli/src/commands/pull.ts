@@ -1,10 +1,9 @@
-import {existsSync} from 'node:fs'
-import {resolve} from 'node:path'
-
 import {LoopressCommand} from '../lib/base.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {INTEGRATION_MISSING} from '../lib/plugin-detection.js'
 import {pluralize} from '../utils/pluralize.js'
-import {resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
+import {projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
+import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
 // `supportsYes` marks the commands that prompt before deleting orphaned local files and so
 // accept `--yes` to skip it. `composer:pull` and `plugin:pull` never delete anything and do
@@ -14,10 +13,6 @@ import {resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.j
 type PullTarget = {commandId: string; label: string; needsPlugin?: ResourceDirKind; supportsYes?: boolean}
 
 type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled' | 'skipped'}
-
-// How the plugin reports its integration missing: "ACF is not active", "No supported form
-// plugin is active", "No supported snippet plugin is active".
-const PLUGIN_MISSING = /\bis not active\b|\bNo supported .+ plugin is active\b/
 
 type PullResult = {results: PullTargetResult[]}
 
@@ -36,6 +31,9 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', needsPlugin: 'form', supportsYes: true},
   {commandId: 'pattern:pull', label: 'patterns', supportsYes: true},
+  // Templates and parts have no pull. Global Styles are pulled only once the project tracks them,
+  // see globalStylesSkipNote.
+  {commandId: 'theme:style:pull', label: 'Global Styles'},
   {commandId: 'menu:pull', label: 'menus', supportsYes: true},
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', needsPlugin: 'snippets', supportsYes: true},
@@ -43,7 +41,7 @@ const PULL_TARGETS: PullTarget[] = [
 
 export default class Pull extends LoopressCommand {
   static description =
-    'Pull every tracked resource from WordPress into local files in one run: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, menus, options, and snippets'
+    'Pull every tracked resource from WordPress into local files in one run: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets'
 
   static enableJsonFlag = true
   static examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']
@@ -59,6 +57,13 @@ export default class Pull extends LoopressCommand {
     this.warnRemovedSeoModule()
 
     for (const target of PULL_TARGETS) {
+      const skipNote = target.commandId === 'theme:style:pull' ? await this.globalStylesSkipNote() : undefined
+      if (skipNote) {
+        this.log(`\n→ ${target.label}: ${skipNote}`)
+        results.push({label: target.label, status: 'skipped'})
+        continue
+      }
+
       this.log(`\n→ Pulling ${target.label}...`)
       try {
         await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, this.buildArgv(target)))
@@ -69,7 +74,7 @@ export default class Pull extends LoopressCommand {
         // A site without ACF (or a form or snippet plugin) is the common case, not a failure,
         // as long as the project doesn't use that resource: a vanilla site must pull, and a
         // promote must not stop on it. A project that does use it still fails.
-        if (target.needsPlugin && PLUGIN_MISSING.test(message) && !this.usesResource(target.needsPlugin)) {
+        if (target.needsPlugin && INTEGRATION_MISSING.test(message) && !projectUses(target.needsPlugin, this.localConfig)) {
           // oclif's catch already set exitCode to 1 for the sub-command; a real failure still
           // exits non-zero through the this.error() below.
           process.exitCode = undefined
@@ -104,7 +109,12 @@ export default class Pull extends LoopressCommand {
     return argv
   }
 
-  private usesResource(kind: ResourceDirKind): boolean {
-    return existsSync(resolve(resolveResourceDir(kind, this.localConfig)))
+  // The site unreachable or the theme list refused: let the step run and report it itself.
+  private async globalStylesSkipNote(): Promise<string | undefined> {
+    try {
+      return await globalStylesSkipNote(this.wp, resolveResourceDir('themeStyles', this.localConfig), 'pull')
+    } catch {
+      return undefined
+    }
   }
 }

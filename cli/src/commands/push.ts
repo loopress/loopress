@@ -1,6 +1,6 @@
 import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
-import {join, resolve} from 'node:path'
+import {join} from 'node:path'
 
 import {LoopressCommand} from '../lib/base.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
@@ -8,13 +8,19 @@ import {stdoutToStderr} from '../lib/json-delegation.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
-import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
+import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
 type PushTarget = {commandId: string; label: string}
 
 type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed' | 'skipped'}
 
 type PushResult = {results: PushTargetResult[]}
+
+// Backed by a plugin the site may not have (ACF, a form or a snippet plugin): a project without
+// the resource's directory doesn't use it, and its push, dry run included, would only stop on the
+// site's 409 or the missing directory.
+const PLUGIN_BACKED: Record<string, ResourceDirKind> = {'acf:push': 'acf', 'form:push': 'form', 'snippet:push': 'snippets'}
 
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
@@ -34,6 +40,9 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'pattern:push', label: 'patterns'},
   // Before pages: WordPress refuses a page whose `template` it doesn't know yet.
   {commandId: 'theme:template:push', label: 'templates and parts'},
+  // Belong to whichever theme is active, so right after its templates. Theme versions stay out:
+  // installing or removing themes is `lps theme push`'s call.
+  {commandId: 'theme:style:push', label: 'Global Styles'},
   {commandId: 'page:push', label: 'pages'},
   {commandId: 'menu:push', label: 'menus'},
   {commandId: 'option:push', label: 'options'},
@@ -42,7 +51,7 @@ const PUSH_TARGETS: PushTarget[] = [
 
 export default class Push extends LoopressCommand {
   static description =
-    'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, pages, menus, options, and snippets'
+    'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets'
 
   static enableJsonFlag = true
   static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
@@ -119,6 +128,15 @@ export default class Push extends LoopressCommand {
     return join(process.cwd(), this.rootDir, 'composer.json')
   }
 
+  // The site unreachable or the theme list refused: let the step run and report it itself.
+  private async globalStylesSkipNote(): Promise<string | undefined> {
+    try {
+      return await globalStylesSkipNote(this.wp, resolveResourceDir('themeStyles', this.localConfig), 'push')
+    } catch {
+      return undefined
+    }
+  }
+
   // Guards once here (shared with PushCommand, lib/push-command.ts) rather than once per
   // delegated command.
   private async guardProductionPush(): Promise<void> {
@@ -145,9 +163,12 @@ export default class Push extends LoopressCommand {
     const pluginsConfigured = hasComposerJson ? composerPushedByPlugins : Object.keys(this.localConfig.plugins ?? {}).length > 0
     if (!pluginsConfigured) skips.set('plugin:push', notConfigured)
 
-    // The only push that fails on a missing directory (the others find 0 files), so a project
-    // that never used snippets would otherwise end every `lps push` on an ENOENT.
-    if (!existsSync(resolve(resolveResourceDir('snippets', this.localConfig)))) skips.set('snippet:push', notConfigured)
+    for (const [commandId, kind] of Object.entries(PLUGIN_BACKED)) {
+      if (!projectUses(kind, this.localConfig)) skips.set(commandId, notConfigured)
+    }
+
+    const stylesNote = await this.globalStylesSkipNote()
+    if (stylesNote) skips.set('theme:style:push', {note: stylesNote, status: 'skipped'})
 
     return skips
   }

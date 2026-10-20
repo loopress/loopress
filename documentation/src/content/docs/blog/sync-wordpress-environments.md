@@ -52,11 +52,11 @@ Two behaviours make it safe to use without thinking too hard:
 
 ## What it carries, and what it doesn't
 
-`promote` moves everything the aggregate `lps pull` and `lps push` handle: WordPress.org plugins (pinned in `loopress.json`), Composer dependencies, ACF, API routes, hooks, forms, SEO, menus, tracked options, and snippets. A few things behave differently, and they're worth knowing before your first promotion:
+`promote` moves everything the aggregate `lps pull` and `lps push` handle: WordPress.org plugins (pinned in `loopress.json`), Composer dependencies, ACF, API routes, hooks, forms, SEO, menus, tracked options, snippets, and Global Styles once the project tracks them. A few things behave differently, and they're worth knowing before your first promotion:
 
 - **Your local files are overwritten with staging's state.** That's how the pull half works. Commit or stash your work first, then look at `git diff` after the promotion: it's a precise record of what just moved to production.
 - **Static pages come from your files, not from staging.** Pages have no `pull` (the file is the source of truth), so the push half sends whatever is in your `pages/` directory.
-- **Theme styles are opt-in.** They're left out of the aggregate commands so a classic-theme site doesn't break every sync. Run `lps theme style pull --env staging` and `lps theme style push --env production` explicitly.
+- **Theme styles are opt-in.** They travel only once the project has a Global Styles file (run `lps theme style pull --env staging` once to start), and are skipped with a note on a classic-theme site instead of breaking the sync.
 - **Menus need their targets.** A menu item pointing at a page that doesn't exist on production fails that menu rather than guessing. Create the page first.
 - **Ids don't travel.** A tracked option whose value embeds a post or user id means something else on production. Mark it `readonly` or leave it out.
 

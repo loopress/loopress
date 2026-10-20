@@ -1,7 +1,9 @@
 import {Flags} from '@oclif/core'
 
 import {DiffCommand, type DiffJson, type DiffTarget} from '../lib/diff-command.js'
-import {RESOURCE_STATE_PROVIDERS} from '../lib/resource-state.js'
+import {RESOURCE_STATE_PROVIDERS, type ResourceStateProvider} from '../lib/resource-state.js'
+import {projectUses, resolveResourceDir} from '../utils/resource-dirs.js'
+import {globalStylesFiles} from '../utils/theme-styles-format.js'
 
 // Everything `lps diff` can compare, in report order. Composer isn't a directory-backed
 // provider (see resource-state.ts) so it's named here explicitly.
@@ -36,14 +38,25 @@ export default class Diff extends DiffCommand {
     const sides = this.resolveSides(flags.against)
     const selected = this.selectResources(flags.only, flags.skip)
 
+    const providers = RESOURCE_STATE_PROVIDERS.filter((provider) => selected.has(provider.resource))
     const targets: DiffTarget[] = [
-      ...RESOURCE_STATE_PROVIDERS.filter((provider) => selected.has(provider.resource)).map((provider) =>
-        this.providerTarget(provider, sides),
-      ),
+      ...(await Promise.all(
+        providers.map(async (provider) => ({...this.providerTarget(provider, sides), optional: !(await this.projectUses(provider))})),
+      )),
       ...(selected.has('composer') ? [this.composerTarget(sides)] : []),
     ]
 
     return this.report(targets, sides)
+  }
+
+  // Tells apart a resource the project doesn't use from one it does, for the ones a site can lack:
+  // a plugin-backed resource without its directory, Global Styles without a tracked file.
+  private async projectUses(provider: ResourceStateProvider): Promise<boolean> {
+    if (provider.dirKind === 'themeStyles') {
+      return (await globalStylesFiles(resolveResourceDir('themeStyles', this.localConfig))).length > 0
+    }
+
+    return projectUses(provider.dirKind, this.localConfig)
   }
 
   // `--only` narrows the default set, `--skip` then removes from whatever that set is, same

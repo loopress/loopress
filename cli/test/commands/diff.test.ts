@@ -179,6 +179,40 @@ describe('diff', () => {
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('inconclusive'))
   })
 
+  // A site without a form plugin is the common case: a project without forms/ must not make every
+  // `lps diff` inconclusive on it. Same for Global Styles on a classic theme without a tracked file.
+  it('skips a resource the site lacks when the project does not use it', async () => {
+    rmSync(join(dir, 'theme'), {force: true, recursive: true})
+    const get = vi.fn(async (path: string) => {
+      if (path === 'loopress/v1/forms') throw new Error('Request failed (409) on https://x/wp-json/loopress/v1/forms: No supported form plugin is active')
+      if (path === 'wp/v2/themes') return [{status: 'active', stylesheet: 'storefront', theme_supports: {}}]
+      return baselineGet()(path)
+    })
+    const {cmd, logs} = make([], get)
+
+    const result = await cmd.run()
+
+    expect(result.resources.form).toBeUndefined()
+    expect(result.resources['theme-styles']).toBeUndefined()
+    expect(process.exitCode).not.toBe(2)
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/))
+  })
+
+  it('still reports a missing plugin as inconclusive when the project uses that resource', async () => {
+    mkdirSync(join(dir, 'forms'))
+    const get = vi.fn(async (path: string) => {
+      if (path === 'loopress/v1/forms') throw new Error('No supported form plugin is active')
+      return baselineGet()(path)
+    })
+    const {cmd} = make([], get)
+
+    const result = await cmd.run()
+
+    expect(result.resources.form.error).toBe('No supported form plugin is active')
+    expect(process.exitCode).toBe(2)
+  })
+
   it('prints a site-wide failure once instead of once per resource', async () => {
     const down = 'Could not reach https://staging.acme.com: connection refused'
     const {cmd, logs} = make(

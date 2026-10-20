@@ -15,7 +15,7 @@ export function registerBulkTools(server: McpServer): void {
     'push_all',
     {
       description:
-        'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, pages, menus, options, and snippets.' +
+        'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets. Global Styles, ACF, forms and snippets are skipped when the project does not use them (no Global Styles file, no directory) or the site cannot take them (classic theme).' +
         PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag},
     },
@@ -29,7 +29,7 @@ export function registerBulkTools(server: McpServer): void {
     'pull_all',
     {
       description:
-        'Pull every tracked resource from WordPress into local files in one run, the equivalent of `lps pull`: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, menus, options, and snippets.',
+        'Pull every tracked resource from WordPress into local files in one run, the equivalent of `lps pull`: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets. Global Styles only once the project tracks them, on a block theme.',
       inputSchema: {env: envFlag},
     },
     async ({env}) =>

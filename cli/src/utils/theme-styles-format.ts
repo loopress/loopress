@@ -1,3 +1,6 @@
+import {resolve} from 'node:path'
+
+import {readdirTolerant} from '../lib/readdir-tolerant.js'
 import {type WpClient} from '../lib/wp-client.js'
 
 // Global Styles are the user's customizations from the Site Editor's "Styles" screen (colors,
@@ -46,14 +49,42 @@ export function getUserGlobalStylesId(theme: Pick<WpThemeSupportInfo, '_links'>)
   return match ? Number(match[1]) : null
 }
 
+async function getActiveTheme(wp: WpClient): Promise<WpThemeSupportInfo> {
+  const themes = await wp.get<WpThemeSupportInfo[]>('wp/v2/themes')
+  const active = themes.find((theme) => theme.status === 'active')
+  if (!active) throw new Error('Could not determine the active theme on WordPress.')
+  return active
+}
+
+// The project's Global Styles files, one per theme it was pulled from. None: the project doesn't
+// track them.
+export async function globalStylesFiles(dir: string): Promise<string[]> {
+  return (await readdirTolerant(resolve(dir))).filter((file) => file.endsWith(THEME_STYLES_FILE_SUFFIX))
+}
+
+// Why the aggregate `lps push` / `lps pull` leave Global Styles out of this run, or undefined to
+// include them. Only a project that tracks them (a `*-global-styles.json` file in `dir`) on a
+// site whose active theme is a block theme qualifies: unlike `lps theme style push`, a classic
+// theme is no error there, the rest of the run must go on. A push also needs the active theme's
+// own file, there is nothing to send otherwise.
+export async function globalStylesSkipNote(wp: WpClient, dir: string, action: 'pull' | 'push'): Promise<string | undefined> {
+  const files = await globalStylesFiles(dir)
+  if (files.length === 0) return 'not configured, skipped'
+
+  const active = await getActiveTheme(wp)
+  if (!isBlockTheme(active)) return `the active theme "${active.stylesheet}" is a classic theme, skipped`
+  if (action === 'push' && !files.includes(themeStylesFileName(active.stylesheet))) {
+    return `no file for the active theme "${active.stylesheet}", skipped`
+  }
+
+  return undefined
+}
+
 // Resolves the active theme's stylesheet slug and the id of its editable Global Styles post in
 // one call, failing clearly (rather than with a raw REST error later) when the active theme
 // isn't a block theme: classic themes have no Styles screen and no `wp_global_styles` post at all.
 export async function getActiveThemeGlobalStyles(wp: WpClient): Promise<{id: number; stylesheet: string}> {
-  const themes = await wp.get<WpThemeSupportInfo[]>('wp/v2/themes')
-  const active = themes.find((theme) => theme.status === 'active')
-  if (!active) throw new Error('Could not determine the active theme on WordPress.')
-
+  const active = await getActiveTheme(wp)
   if (!isBlockTheme(active)) {
     throw new Error(
       `Global Styles sync only supports block themes (Full Site Editing). The active theme "${active.stylesheet}" is a classic theme.`,
