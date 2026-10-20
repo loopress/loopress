@@ -30,6 +30,9 @@ export type Part = {
 // What ChildThemeController answers on GET and PUT.
 export type ChildTheme = {
   active: boolean
+  // sha256 of each CSS file as pushed (`style.css`, `blocks/core/button.css`). Absent from a
+  // plugin older than the dry run's CSS statuses.
+  css?: Record<string, string>
   // Templates/parts edited in the Site Editor: their database copy wins over the child's file.
   customized: string[]
   exists: boolean

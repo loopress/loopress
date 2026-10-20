@@ -2,13 +2,16 @@ import {Args, Flags} from '@oclif/core'
 import {join} from 'node:path'
 
 import {loadFiles} from '../../lib/load-files.js'
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, acfObjectEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, acfFieldChanges, acfObjectEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
-type AcfPushResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
+// A changed field group also names its fields that the push adds, removes or changes.
+type AcfChange = PushChange & {fields?: ReturnType<typeof acfFieldChanges>}
+
+type AcfPushResult = {changes?: AcfChange[]; path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
 
 export default class Push extends PushCommand {
   static aliases = ['scf:push']
@@ -48,7 +51,14 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'ACF object')} failed to push.`)
     }
 
-    if (this.dryRun) return {path, status: 'dry-run', types}
+    if (this.dryRun) {
+      const states = this.previewStates
+      const changes = this.previewChanges.map((change): AcfChange => {
+        if (!states || change.status !== 'changed' || !change.id.startsWith('field-groups/')) return change
+        return {...change, fields: acfFieldChanges(states.remote.get(change.id), states.local.get(change.id))}
+      })
+      return {changes, path, status: 'dry-run', types}
+    }
 
     await this.recordSuccess()
     this.log('All ACF objects pushed.')

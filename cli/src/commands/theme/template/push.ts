@@ -1,14 +1,22 @@
-import {PushCommand} from '../../../lib/push-command.js'
-import {getResourceStateProvider} from '../../../lib/resource-state.js'
+import {createHash} from 'node:crypto'
+
+import {type ResourceState} from '../../../lib/diff-state.js'
+import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
 import {pluralize} from '../../../utils/pluralize.js'
 import {resolveResourceDir} from '../../../utils/resource-dirs.js'
-import {CHILD_THEME_ENDPOINT, type ChildTheme, readLocalTemplates} from '../../../utils/template-format.js'
-import {bundleThemeCss} from '../../../utils/theme-css.js'
+import {CHILD_THEME_ENDPOINT, type ChildTheme, type Part, readLocalTemplates, type Template} from '../../../utils/template-format.js'
+import {bundleThemeCss, type ThemeCss} from '../../../utils/theme-css.js'
+
+// The site's CSS is only known to a plugin that reports it (ChildTheme.css): `unknown` otherwise.
+type CssChange = {id: string; status: 'unknown' | PushChange['status']}
 
 type PushResult = {
   active?: boolean
   blockStyles: string[]
+  // Dry run only, against the child theme on the site. The child mirrors the project, so a file
+  // it has and the project doesn't is `removed`.
+  changes?: {css: CssChange[]; parts: PushChange[]; templates: PushChange[]}
   customized?: string[]
   parts: string[]
   status: 'dry-run' | 'success'
@@ -57,9 +65,11 @@ export default class Push extends PushCommand {
     )
 
     if (this.dryRun) {
-      await this.previewRemote(getResourceStateProvider('template'), templatesPath)
-      this.log('[dry-run] Would rewrite the child theme with them.')
-      return {...names, status: 'dry-run'}
+      const changes = await this.previewChildTheme(templates, parts, css)
+      logChanges((message) => { this.log(message); }, changes.templates, 'templates/')
+      logChanges((message) => { this.log(message); }, changes.parts, 'parts/')
+      logChanges((message) => { this.log(message); }, changes.css, 'css/')
+      return {...names, changes, status: 'dry-run'}
     }
 
     const child = await this.wp.put<ChildTheme>(CHILD_THEME_ENDPOINT, {...css, parts, templates})
@@ -95,4 +105,34 @@ export default class Push extends PushCommand {
       unknownBlocks,
     }
   }
+
+  // Same read and same refusal as previewRemote, one GET for templates, parts and CSS.
+  private async previewChildTheme(templates: Template[], parts: Part[], css: ThemeCss): Promise<NonNullable<PushResult['changes']>> {
+    let child: ChildTheme
+    try {
+      child = await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
+    } catch (error) {
+      this.error(`The site would refuse this push: ${(error as Error).message}`)
+    }
+
+    const localCss: ResourceState = new Map(css.blocks.map((block) => [`blocks/${block.name}.css`, sha256(block.css)]))
+    if (css.style !== '') localCss.set('style.css', sha256(css.style))
+    const cssChanges: CssChange[] = child.css
+      ? pushChanges(localCss, new Map(Object.entries(child.css)), {mirror: true})
+      : [...localCss.keys()].toSorted((a, b) => a.localeCompare(b)).map((id) => ({id, status: 'unknown'}))
+
+    return {
+      css: cssChanges,
+      parts: pushChanges(bySlug(parts), bySlug(child.parts), {mirror: true}),
+      templates: pushChanges(bySlug(templates), bySlug(child.templates), {mirror: true}),
+    }
+  }
+}
+
+function bySlug(files: Array<Part | Template>): ResourceState {
+  return new Map(files.map(({slug, ...rest}) => [slug, rest]))
+}
+
+function sha256(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex')
 }

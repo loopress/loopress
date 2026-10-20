@@ -20,7 +20,7 @@ import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles} from './load-files.js'
 import {type CommandClass} from './php-files-command.js'
-import {PushCommand} from './push-command.js'
+import {type PushChange, PushCommand} from './push-command.js'
 import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404, isNotFoundError} from './wp-client.js'
 
@@ -30,7 +30,7 @@ import {isApplicative404, isNotFoundError} from './wp-client.js'
 
 type LocalItem = {args: DeclaredArgs; slug: string}
 
-type PushResult = {path: string; pushed: string[]; status: 'dry-run' | 'success'}
+type PushResult = {changes?: PushChange[]; path: string; pushed: string[]; status: 'dry-run' | 'success'}
 type PullResult = {path: string; status: 'dry-run' | 'success'}
 type RmResult = {removed: boolean; slug: string; status: 'aborted' | 'dry-run' | 'success'}
 
@@ -91,7 +91,7 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
         this.error(`${pluralize(this.failedCount, spec.noun, spec.plural)} failed to push.`)
       }
 
-      if (this.dryRun) return {path, pushed, status: 'dry-run'}
+      if (this.dryRun) return {changes: this.previewChanges, path, pushed, status: 'dry-run'}
 
       await this.recordSuccess()
       this.log(`All ${spec.plural} pushed.`)

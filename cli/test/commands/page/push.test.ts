@@ -161,7 +161,7 @@ describe('page push', () => {
 
       const result = await cmd.run()
 
-      expect(result).toEqual({pushed: ['about'], status: 'dry-run'})
+      expect(result).toEqual({changes: [{id: 'about', status: 'created'}], pushed: ['about'], status: 'dry-run'})
       expect(put).not.toHaveBeenCalled()
     })
 

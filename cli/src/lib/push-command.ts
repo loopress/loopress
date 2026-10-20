@@ -15,6 +15,28 @@ import {type ResourceStateProvider} from './resource-state.js'
 import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
 
+// One item of a dry run's preview, against the site's current state. `removed` only comes from a
+// push that mirrors the project (the child theme): every other push leaves site-only items alone.
+export type PushChange = {id: string; status: 'changed' | 'created' | 'removed' | 'unchanged'}
+
+export function pushChanges(local: ResourceState, remote: ResourceState, options: {mirror?: boolean; writes?: (id: string) => boolean} = {}): PushChange[] {
+  const changes: PushChange[] = [...local.keys()]
+    .filter((id) => options.writes?.(id) ?? true)
+    .map((id) => {
+      if (!remote.has(id)) return {id, status: 'created'}
+      return {id, status: isDeepStrictEqual(local.get(id), remote.get(id)) ? 'unchanged' : 'changed'}
+    })
+  if (options.mirror) {
+    for (const id of remote.keys()) if (!local.has(id)) changes.push({id, status: 'removed'})
+  }
+
+  return changes.toSorted((a, b) => a.id.localeCompare(b.id))
+}
+
+export function logChanges(log: (message: string) => void, changes: Array<{id: string; status: string}>, prefix = ''): void {
+  for (const change of changes) log(`[dry-run] ${change.status}: ${prefix}${change.id}`)
+}
+
 export abstract class PushCommand extends LoopressCommand {
   // Passed by an aggregate command (`lps theme push`) that already confirmed production once,
   // so its steps skip that prompt while still asking their own confirmations (uninstalls).
@@ -27,6 +49,11 @@ export abstract class PushCommand extends LoopressCommand {
   }
 
   protected failedCount = 0
+  // A dry run's per-item preview, set by captureBeforePushState: what the push would create,
+  // change or leave as it is on the site.
+  protected previewChanges: PushChange[] = []
+  // Both sides those statuses were computed from, for a push that details a changed item.
+  protected previewStates?: {local: ResourceState; remote: ResourceState}
   // Refusals of the production guard never reach the site, so they must not pollute the
   // deployment history with failure records.
   private refusedByGuard = false
@@ -37,13 +64,24 @@ export abstract class PushCommand extends LoopressCommand {
   // interrupt the push flow" stance recordDeployment takes; `undefined` tells
   // `writeAfterPushSnapshot` there is no restore point to complete.
   //
-  // On a dry run, the same read is the preview's check against the site (see previewRemote).
+  // On a dry run, the same read is the preview's check against the site (see previewRemote), and
+  // the reference for its per-item statuses (`previewChanges`).
   //
   // `writes` narrows the outside-edit check to the ids this push actually writes, for a push that
   // skips some local items (`lps page push <slug>`, readonly options, `lps acf push --type`).
   protected async captureBeforePushState(provider: ResourceStateProvider, dir: string, writes?: (id: string) => boolean): Promise<ResourceState | undefined> {
     if (this.dryRun) {
-      await this.guardOutsideEdits(provider, dir, await this.previewRemote(provider, dir), writes)
+      const remote = await this.previewRemote(provider, dir)
+      await this.guardOutsideEdits(provider, dir, remote, writes)
+      try {
+        const local = await provider.local(dir, () => {})
+        this.previewStates = {local, remote}
+        this.previewChanges = pushChanges(local, remote, {writes})
+      } catch {
+        // Unreadable local files: the push reports them itself.
+      }
+
+      logChanges((message) => { this.log(message); }, this.previewChanges)
       return undefined
     }
 

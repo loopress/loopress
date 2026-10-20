@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -18,7 +18,10 @@ export function registerAcfTools(server: McpServer): void {
     'acf_push',
     {
       description:
-        'Push local ACF field groups, post types, taxonomies, and options pages to WordPress.' + PREVIEW_SUFFIX,
+        'Push local ACF field groups, post types, taxonomies, and options pages to WordPress.' +
+        PREVIEW_SUFFIX +
+        CHANGES_SUFFIX +
+        ' Ids are `<type>/<key>` (e.g. `field-groups/group_product`), and a changed field group also names its top-level fields under `fields` (added, changed, removed).',
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg, type: typeFlag},
     },
     async ({confirmToken, env, overwrite, path, type}) =>

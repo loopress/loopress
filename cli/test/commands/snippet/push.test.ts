@@ -694,7 +694,7 @@ describe('snippet push', () => {
 
       const result = await cmd.run()
 
-      expect(result).toEqual({pushed: [{id: 7, name: 'Existing'}], status: 'dry-run'})
+      expect(result).toEqual({changes: [{id: '7', status: 'created'}], pushed: [{id: 7, name: 'Existing'}], status: 'dry-run'})
       expect(post).not.toHaveBeenCalled()
       expect(put).not.toHaveBeenCalled()
       expect(logs.log).not.toHaveBeenCalledWith('All snippets pushed.')

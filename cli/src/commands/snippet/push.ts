@@ -3,7 +3,7 @@ import {readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
@@ -19,6 +19,7 @@ type PushedSnippet = {
 }
 
 type PushResult = {
+  changes?: PushChange[]
   pushed: PushedSnippet[]
   status: 'dry-run' | 'success'
 }
@@ -69,7 +70,7 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'snippet')} failed to push.`)
     }
 
-    if (this.dryRun) return {pushed, status: 'dry-run'}
+    if (this.dryRun) return {changes: this.previewChanges, pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All snippets pushed.')
