@@ -103,7 +103,7 @@ export default class Push extends PushCommand {
   }
 
   // Resolves false when the page was set aside for adoptUnmanaged instead of pushed.
-  private async pushPage(page: Page, task?: {output: string}, adopt = this.overwrite): Promise<boolean> {
+  private async pushPage(page: Page, task?: {output: string; skip?: (message: string) => void}, adopt = this.overwrite): Promise<boolean> {
     if (this.dryRun) {
       if (task) task.output = `[dry-run] Would push: ${page.slug} (${page.status})`
       return true
@@ -116,7 +116,8 @@ export default class Push extends PushCommand {
     } catch (error) {
       if (!adopt && isConflictCode(error, 'loopress_page_not_managed')) {
         this.unmanaged.push(page)
-        if (task) task.output = `Skipped: ${page.slug} already exists on the site, not created by Loopress`
+        // skip(): Listr's own "skipped" mark, not the green check of a page that was pushed.
+        task?.skip?.(`${page.slug} already exists on the site, not created by Loopress`)
         return false
       }
 
