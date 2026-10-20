@@ -188,7 +188,7 @@ describe('page push', () => {
       vi.mocked(isInteractive).mockReturnValue(false)
     })
 
-    function makeRunCommand(put: ReturnType<typeof vi.fn>): PushInternals {
+    function makeRunCommand(put: Parameters<typeof makeCommand>[0]): PushInternals {
       const cmd = makeCommand(put)
       cmd.localConfig = {pageDir: '.', rootDir: dir}
       cmd.parse = async () => ({args: {}})
