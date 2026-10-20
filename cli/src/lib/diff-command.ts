@@ -5,6 +5,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
+import {INTEGRATION_MISSING} from './plugin-detection.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
 
@@ -26,6 +27,9 @@ export type DiffJson = {
 
 export type DiffTarget = {
   left: () => Promise<ResourceState>
+  // The project doesn't use this resource: a site without its plugin (or a classic theme, for
+  // Global Styles) skips it instead of making the whole run inconclusive.
+  optional?: boolean
   resource: string
   right: () => Promise<ResourceState>
   title: string
@@ -109,7 +113,8 @@ export abstract class DiffCommand extends LoopressCommand {
     let removed = 0
     let changed = 0
 
-    for (const result of results) {
+    const checked = results.filter((result) => !result.skipped)
+    for (const result of checked) {
       resources[result.resource] = result.json
 
       if (result.json.error !== undefined) {
@@ -125,6 +130,9 @@ export abstract class DiffCommand extends LoopressCommand {
       if (result.stateDiff) this.renderSection(result.title, result.stateDiff)
       if (result.drift) drift = true
     }
+
+    const skipped = results.filter((result) => result.skipped)
+    for (const result of skipped) this.out(`${c('bold', result.title)}  ${c('dim', 'not configured, skipped')}`)
 
     this.out(`\n${compared} compared: ${changed} changed, ${added} added, ${removed} removed`)
     if (failed) this.out(c('red', 'Some resources could not be compared; this run is inconclusive.'))
@@ -161,7 +169,7 @@ export abstract class DiffCommand extends LoopressCommand {
   private async computeResource(
     target: DiffTarget,
     sides: DiffSides,
-  ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; stateDiff?: StateDiff; title: string}> {
+  ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; skipped?: boolean; stateDiff?: StateDiff; title: string}> {
     try {
       const [leftState, rightState] = await Promise.all([target.left(), target.right()])
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
@@ -174,7 +182,9 @@ export abstract class DiffCommand extends LoopressCommand {
       }
     } catch (error) {
       const {message} = error as Error
-      return {drift: false, json: {added: [], changed: [], error: message, removed: []}, resource: target.resource, title: target.title}
+      const empty = {added: [], changed: [], removed: []}
+      if (target.optional && INTEGRATION_MISSING.test(message)) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
+      return {drift: false, json: {...empty, error: message}, resource: target.resource, title: target.title}
     }
   }
 

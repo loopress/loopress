@@ -1,4 +1,5 @@
-import {join} from 'node:path'
+import {existsSync} from 'node:fs'
+import {join, resolve} from 'node:path'
 
 import {type LoopressLocalConfig} from './loopress-config.js'
 
@@ -60,4 +61,10 @@ export function resolveResourceDir(kind: ResourceDirKind, localConfig: LoopressL
   const rootDir = localConfig.rootDir ?? '.'
   const configured = localConfig[CONFIG_KEY[kind]] as string | undefined
   return join(rootDir, configured ?? RESOURCE_DIR_DEFAULTS[kind])
+}
+
+// Whether the project uses a resource at all: its directory exists. What the aggregate `lps push`,
+// `lps pull` and `lps diff` go by for a resource backed by a plugin the site may not have.
+export function projectUses(kind: ResourceDirKind, localConfig: LoopressLocalConfig): boolean {
+  return existsSync(resolve(resolveResourceDir(kind, localConfig)))
 }

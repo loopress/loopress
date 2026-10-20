@@ -100,7 +100,7 @@ theme/
 Each file is named `<stylesheet-slug>-global-styles.json` and holds `{ "settings", "styles" }`, the same shape as the `settings`/`styles` keys of a theme's `theme.json`. WordPress bookkeeping fields (the post id, `_links`) are never part of the tracked file.
 
 :::note
-The aggregate [`lps push` and `lps pull`](/workflow/#what-each-command-covers) do not include theme styles, run `lps theme style push` / `lps theme style pull` (or the whole-topic [`lps theme push` / `lps theme pull`](/themes/#commands)) explicitly. This avoids breaking a run on a site whose active theme is a classic theme.
+The aggregate [`lps push` and `lps pull`](/workflow/#what-each-command-covers) include theme styles once the project tracks them: run `lps theme style pull` once to start. They skip them with a one-line note when the site's active theme is a classic theme (and `lps push` when there is no file for the active theme), instead of failing the run like `lps theme style push` does.
 :::
 
 :::note

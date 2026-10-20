@@ -36,11 +36,11 @@ Not every resource takes part in every aggregate command:
 | [Menus](/menus/) | ✓ | ✓ | ✓ | |
 | [Options](/options/) | ✓ | ✓ | ✓ | |
 | [Snippets](/snippets/) | ✓ | ✓ | ✓ | ✓ |
-| [Theme Styles](/theme-styles/) | | | ✓ | |
+| [Theme Styles](/theme-styles/) | ✓ | ✓ | ✓ | |
 | [Themes](/themes/) | | | `lps theme status` | |
 | [Single-Page Apps](/apps/) | | | | |
 
-Theme versions and Global Styles are left out of `lps push` and `lps pull` so a run doesn't break on a classic theme: use [`lps theme push` / `lps theme pull`](/themes/#commands). Apps are pushed with [`lps app push`](/apps/cli/#lps-app-push).
+Global Styles take part only once the project tracks them (a `*-global-styles.json` file, see [Theme Styles](/theme-styles/)) and only when the site's active theme is a block theme. Otherwise they're skipped with a one-line note, so a run never breaks on a classic theme. `lps push` also needs the file of the active theme itself. Theme versions stay out of `lps push` and `lps pull`: installing or removing themes is [`lps theme push` / `lps theme pull`](/themes/#commands)'s call. Apps are pushed with [`lps app push`](/apps/cli/#lps-app-push).
 
 ## `lps status`
 
@@ -63,11 +63,11 @@ lps pull --env staging
 lps pull --dry-run
 ```
 
-Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
+Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
 
 ## `lps push`
 
-Push every resource to WordPress, in dependency order: plugins and Composer first, then ACF, API routes, hooks, forms, templates and parts, pages, menus, options, and snippets last.
+Push every resource to WordPress, in dependency order: plugins and Composer first, then ACF, API routes, hooks, forms, templates and parts, Global Styles, pages, menus, options, and snippets last.
 
 ```bash
 lps push
@@ -77,7 +77,7 @@ lps push --dry-run
 
 When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
 
-Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged. Plugins and Composer are skipped, not failed, when the project doesn't manage them (no `plugins` in `loopress.json`, no `composer.json`).
+Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged. Plugins and Composer are skipped, not failed, when the project doesn't manage them (no `plugins` in `loopress.json`, no `composer.json`). So are ACF, forms and snippets when the project has no directory for them (`acf/`, `forms/`, `snippets/`), on a real push and on `--dry-run` alike: a site without a form plugin no longer fails the preview.
 
 `--overwrite` is passed on to every resource, see [changes made outside Loopress](/concepts/#changes-made-outside-loopress).
 
@@ -103,7 +103,7 @@ lps diff --skip composer
 
 Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `option`, `theme-styles`, `composer`.
 
-The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
+The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin or runs a classic theme. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 
 ## `lps promote`
 

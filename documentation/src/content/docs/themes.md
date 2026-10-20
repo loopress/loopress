@@ -58,5 +58,5 @@ The versions-only half of `pull` and `push`: `version pull` snapshots the instal
 If your repo has a `composer.json`, it is authoritative: `lps theme version pull` pins live versions into it as `wpackagist-theme/<slug>` entries (same rules as [plugins](/plugins/#lps-plugin-pull): constraints kept, themes not on WordPress.org skipped), and `lps theme version push` defers to [`lps composer push`](/composer/cli/).
 
 :::note
-The aggregate [`lps push`](/workflow/#what-each-command-covers) only includes templates and parts (`lps theme template push`). It skips theme versions and Global Styles, and `lps pull` and `lps promote` skip themes entirely. Run `lps theme push` / `lps theme pull` explicitly.
+The aggregate [`lps push`](/workflow/#what-each-command-covers) includes templates and parts and, once the project tracks them, [Global Styles](/theme-styles/). `lps pull` includes Global Styles too. Theme versions stay out of both, and so of `lps promote`: run `lps theme push` / `lps theme pull` explicitly.
 :::
