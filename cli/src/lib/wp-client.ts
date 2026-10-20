@@ -147,6 +147,19 @@ export function isApplicative404(error: unknown, marker: string): boolean {
   }
 }
 
+// A 409 a Loopress controller tags with a `code`, for a refusal the CLI can act on (e.g.
+// `loopress_page_not_managed`, which `lps page push` offers to take over).
+export function isConflictCode(error: unknown, code: string): boolean {
+  const response = (error as {cause?: {response?: {body?: string; statusCode?: number}}})?.cause?.response
+  if (response?.statusCode !== 409 || !response.body) return false
+
+  try {
+    return (JSON.parse(response.body) as {code?: unknown}).code === code
+  } catch {
+    return false
+  }
+}
+
 export function isTimeoutError(error: unknown): boolean {
   const cause = (error as {cause?: {name?: string}})?.cause
   return cause?.name === 'TimeoutError'

@@ -20,7 +20,9 @@ export abstract class PushCommand extends LoopressCommand {
   // so its steps skip that prompt while still asking their own confirmations (uninstalls).
   static baseFlags = {
     ...LoopressCommand.baseFlags,
-    overwrite: Flags.boolean({description: 'Push even over changes made on the site outside Loopress since your last push'}),
+    overwrite: Flags.boolean({
+      description: 'Push even over changes made on the site outside Loopress since your last push. Pages: also take over a same-slug page Loopress did not create',
+    }),
     'production-confirmed': Flags.boolean({hidden: true}),
   }
 

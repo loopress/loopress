@@ -58,6 +58,8 @@ class PagesController
                     'fullWidth' => ['required' => false, 'type' => 'boolean', 'default' => false],
                     'hideTitle' => ['required' => false, 'type' => 'boolean', 'default' => false],
                     'template'  => ['required' => false, 'type' => 'string', 'default' => ''],
+                    // `lps page push --overwrite`: take over a same-slug page made outside Loopress.
+                    'adopt'     => ['required' => false, 'type' => 'boolean', 'default' => false],
                 ],
             ],
         ]);
@@ -122,12 +124,16 @@ class PagesController
             ));
         }
 
+        // Taking over keeps the page's ID, so its menu items, links and SEO data keep working,
+        // which deleting it in wp-admin and pushing a new one would break. The CLI recognizes
+        // the `code` and asks before retrying with `adopt`.
         $existingId = $this->pageIdBySlug($slug);
-        if ($existingId !== null && !ManagedPage::isManaged($existingId)) {
+        $adopting   = $existingId !== null && !ManagedPage::isManaged($existingId);
+        if ($adopting && !(bool) $request->get_param('adopt')) {
             return $this->error(409, sprintf(
-                'A page with slug "%s" already exists and is not managed by Loopress. Rename the file, or remove that page in wp-admin.',
+                'A page with slug "%s" already exists and is not managed by Loopress. Push with --overwrite to take it over, or rename the file.',
                 $slug
-            ));
+            ), 'loopress_page_not_managed');
         }
 
         // wp_insert_post() would otherwise silently rename a taken slug ("about" -> "about-2")
@@ -169,6 +175,13 @@ class PagesController
                 ManagedPage::HIDE_TITLE_META => $hideTitle ? '1' : '0',
             ],
         ];
+
+        // Taking over blanks post_content like any managed page (search, RSS and SEO plugins
+        // still read it), so its original content is kept as a revision first. A no-op when the
+        // latest revision already matches, or when the site disables revisions.
+        if ($adopting) {
+            wp_save_post_revision($existingId);
+        }
 
         // wp_slash(): both functions, and update_post_meta() behind meta_input, unslash their
         // input. Without it every backslash in the pushed HTML (inline JS, a regex) is lost.
@@ -291,8 +304,8 @@ class PagesController
         ];
     }
 
-    private function error(int $status, string $message): WP_REST_Response
+    private function error(int $status, string $message, ?string $code = null): WP_REST_Response
     {
-        return new WP_REST_Response(['error' => $message], $status);
+        return new WP_REST_Response(['error' => $message] + ($code === null ? [] : ['code' => $code]), $status);
     }
 }

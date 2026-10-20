@@ -80,7 +80,11 @@ test("renders the pushed HTML inside the theme, without wpautop, and locks the p
 	expect(diffResult.exitCode, diffResult.stdout).toBe(0);
 });
 
-test("refuses to take over a page Loopress didn't create, without touching it", async ({ projectDir, requestUtils, runCli }) => {
+test("without --overwrite and no terminal, refuses to take over a page Loopress didn't create, without touching it", async ({
+	projectDir,
+	requestUtils,
+	runCli,
+}) => {
 	await requestUtils.rest({
 		method: "POST",
 		path: "/wp/v2/pages",
@@ -90,13 +94,35 @@ test("refuses to take over a page Loopress didn't create, without touching it", 
 
 	const pushResult = await runCli(["page", "push"]);
 	expect(pushResult.exitCode).not.toBe(0);
-	expect(unwrap(pushResult.stderr)).toContain("not managed by Loopress");
+	expect(unwrap(pushResult.stderr)).toContain("not created by Loopress");
+	expect(unwrap(pushResult.stderr)).toContain("Pass --overwrite");
 
 	const [untouched] = await requestUtils.rest<Array<{ content: { raw: string } }>>({
 		path: "/wp/v2/pages",
 		params: { slug, context: "edit" },
 	});
 	expect(untouched.content.raw).toBe("<p>keep me</p>");
+});
+
+test("--overwrite takes over a page Loopress didn't create, keeping its ID", async ({ projectDir, requestUtils, runCli }) => {
+	const handMade = await requestUtils.rest<WpPage>({
+		method: "POST",
+		path: "/wp/v2/pages",
+		data: { slug, status: "publish", title: "Hand made", content: "<p>keep me</p>" },
+	});
+	writePage(projectDir, slug, "<!-- status: publish -->\n<p>replacement</p>");
+
+	const pushResult = await runCli(["page", "push", "--overwrite"]);
+	expect(pushResult.exitCode, pushResult.stderr).toBe(0);
+
+	const listResult = await runCli(["page", "list"]);
+	expect(listResult.stdout).toContain(slug);
+	const [takenOver] = await requestUtils.rest<Array<WpPage & { content: { rendered: string } }>>({
+		path: "/wp/v2/pages",
+		params: { slug },
+	});
+	expect(takenOver.id).toBe(handMade.id);
+	expect(takenOver.content.rendered).toContain("replacement");
 });
 
 test("refuses a non-.html file in pages/ before any network call", async ({ projectDir, runCli }) => {
