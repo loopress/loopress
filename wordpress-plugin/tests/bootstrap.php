@@ -65,3 +65,9 @@ if (!defined('LOOPRESS_PLUGIN_PATH')) {
 if (!defined('LOOPRESS_PLUGIN_SLUG')) {
     define('LOOPRESS_PLUGIN_SLUG', 'loopress-full');
 }
+
+// Normally defined in loopress.php (outside src/, not autoloaded); AdminPageModule builds the
+// admin bar icon URL from it at real test runtime, same reasoning as LOOPRESS_VERSION above.
+if (!defined('LOOPRESS_PLUGIN_URL')) {
+    define('LOOPRESS_PLUGIN_URL', 'https://site.test/wp-content/plugins/loopress/');
+}

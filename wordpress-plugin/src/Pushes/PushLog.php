@@ -128,11 +128,11 @@ class PushLog
         return ['entries' => $log['entries'], 'resources' => array_values($resources)];
     }
 
-    /** @return array<string, mixed>|null The latest push of $command, null when never pushed. */
-    public function lastPush(string $command): ?array
+    /** @return array<string, mixed>|null The latest push of $command (of any resource when null), null when never pushed. */
+    public function lastPush(?string $command = null): ?array
     {
         foreach ($this->read()['entries'] as $entry) {
-            if ($entry['resource'] === $command) {
+            if ($command === null || $entry['resource'] === $command) {
                 return $entry;
             }
         }
