@@ -10,13 +10,12 @@ Loopress has two parts: a [WordPress plugin](/wordpress-plugin/) and a CLI, `lps
 ## What you can do with it
 
 - **Version WordPress configuration**: [ACF](/acf/) field groups, [custom post types](/custom-post-types/), [menus](/menus/), [options](/options/), [roles](/roles/) and more, stored as JSON files instead of clicked together in wp-admin on each site.
-- **Keep code snippets in Git**: [WPCode or Code Snippets](/snippets/) entries as plain `.php` files you review and diff.
 - **Deploy custom PHP**: [hooks](/hooks/), [REST API routes](/api/) and [Composer packages](/composer/) without FTP or a custom plugin.
 - **Move changes between environments**: [compare, push and promote](/workflow/) local, staging and production, and deploy from [CI](/ci/).
 
-Configuration works with either plugin edition, deploying code (snippets, hooks, API routes, Composer) needs Loopress Full. Both are free, see the [comparison](/wordpress-plugin/#feature-comparison).
+Configuration works with either plugin edition, deploying code (hooks, API routes, Composer) needs Loopress Full. Both are free, see the [comparison](/wordpress-plugin/#feature-comparison).
 
-Here's the whole setup, from installing the CLI to syncing the first snippets:
+Here's the whole setup, from installing the CLI to the first sync:
 
 <SetupVideo />
 
@@ -26,7 +25,6 @@ Here's the whole setup, from installing the CLI to syncing the first snippets:
 - PHP 8.2+ on the server
 - Node.js 22+ on your machine, for the CLI
 - A local Chrome, Edge, or Chromium install, only needed for the automatic plugin install below
-- For snippets: [WPCode](https://wpcode.com/) or [Code Snippets](https://wordpress.org/plugins/code-snippets/) active on the site
 
 ## Quick start
 
@@ -59,45 +57,53 @@ Run it at the root of your repository. It writes [`loopress.json`](/loopress-jso
 
 ### 4. Run your first sync
 
-Snippets make a small first example: one command, one directory, and the result is easy to check. Every other resource follows the same pull, edit, push loop.
+The site's tagline makes a small first example: every WordPress site has one, and the result is easy to check. Options are tracked one by one, so start tracking it:
 
 ```bash
-lps snippet pull
+lps option add blogdescription
 ```
 
-Each snippet on the site becomes a code file plus a `.json` sidecar holding its id and settings:
+It becomes one JSON file:
 
 ```
 my-site/
   .gitattributes
   loopress.json
-  snippets/
-    42-price-formatter.php
-    42-price-formatter.json
+  options/
+    blogdescription.json
+```
+
+```json
+{
+  "autoload": "on",
+  "name": "blogdescription",
+  "readonly": false,
+  "value": "Just another WordPress site"
+}
 ```
 
 All of it goes into Git: these files are the source of truth from now on. Credentials never do, they stay in your [machine's config](/concepts/#where-configuration-lives).
 
 ```bash
-git add loopress.json .gitattributes snippets/ && git commit -m "chore: import snippets"
+git add loopress.json .gitattributes options/ && git commit -m "chore: track the site tagline"
 ```
 
-Edit `42-price-formatter.php`, then push it back and check the site now matches your files:
+Change `value` in `options/blogdescription.json`, then push it back and check the site now matches your files:
 
 ```bash
-lps snippet push
-lps snippet diff   # "Everything is in sync." once the site matches
+lps option push
+lps option diff   # "Everything is in sync." once the site matches
 ```
 
-You can also open WPCode or Code Snippets in wp-admin and see the change there. If the site has no snippets yet, `pull` writes nothing: create one in wp-admin first, or drop a `.php` file into `snippets/` and push it.
+You can also see the new tagline under **Settings → General** in wp-admin. Every other resource follows the same pull, edit, push loop.
 
 Before going further, know what these commands do to your files and your site:
 
 - `pull` [mirrors the site](/concepts/#pull-mirrors-the-site): it overwrites local files and removes the ones whose object no longer exists on WordPress, after asking.
 - `push` [never deletes by default](/concepts/#push-never-deletes-by-default), and [stops](/concepts/#changes-made-outside-loopress) rather than overwrite a change made in wp-admin since your last push.
-- Most pushes, snippets included, can be [undone with `rollback`](/rollback/). Pushing to an environment named `production` asks for confirmation first (`--yes` in CI).
+- Most pushes, options included, can be [undone with `rollback`](/rollback/). Pushing to an environment named `production` asks for confirmation first (`--yes` in CI).
 
-### Beyond snippets
+### Beyond options
 
 The same commands exist for each resource (`lps acf pull`, `lps menu push`, `lps option diff`, ...), and three commands run them all at once:
 
