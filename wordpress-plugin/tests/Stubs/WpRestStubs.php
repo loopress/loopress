@@ -245,3 +245,18 @@ if (!class_exists('WP_Block_Type_Registry')) {
         }
     }
 }
+
+// Records nodes instead of rendering them, for AdminPageModule's admin bar entry.
+if (!class_exists('WP_Admin_Bar')) {
+    class WP_Admin_Bar
+    {
+        /** @var array<string, array<string, mixed>> */
+        public array $nodes = [];
+
+        /** @param array<string, mixed> $args */
+        public function add_node(array $args): void
+        {
+            $this->nodes[(string) $args['id']] = $args;
+        }
+    }
+}

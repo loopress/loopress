@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace Loopress\AdminPage\Module;
 
 use Loopress\Contract\Module;
+use Loopress\Pushes\PushLog;
+use WP_Admin_Bar;
 
 class AdminPageModule implements Module
 {
+    public function __construct(private readonly PushLog $pushLog) {}
+
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
+        // Front end included: the admin bar shows there too for logged-in admins.
+        add_action('admin_bar_menu', [$this, 'addAdminBarNode'], 100);
         // Fires on every admin screen, unlike enqueueScripts below, because the menu
         // icon it styles sits in the sidebar that's present on every admin screen.
         add_action('admin_enqueue_scripts', [$this, 'enqueueMenuIconStyle']);
@@ -28,6 +34,34 @@ class AdminPageModule implements Module
             LOOPRESS_PLUGIN_URL . 'assets/logo.svg',
             100
         );
+    }
+
+    // The Loopress link in the top bar, with the site's Loopress state in its hover dropdown.
+    public function addAdminBarNode(WP_Admin_Bar $bar): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $bar->add_node([
+            'id'    => 'loopress',
+            'title' => '<img src="' . esc_url(LOOPRESS_PLUGIN_URL . 'assets/logo.svg') . '" alt="" style="width:16px;height:16px;margin:0 6px 0 0;vertical-align:text-bottom" />Loopress',
+            'href'  => admin_url('admin.php?page=loopress'),
+        ]);
+
+        $push = $this->pushLog->lastPush();
+        $at   = $push === null ? false : strtotime((string) $push['at']);
+        $info = [
+            'version'     => 'Version: ' . LOOPRESS_VERSION,
+            'environment' => 'Environment: ' . wp_get_environment_type(),
+            'last-push'   => 'Last push: ' . ($push === null
+                ? 'never'
+                : sprintf('%s, %s ago', (string) $push['label'], human_time_diff($at === false ? time() : $at))),
+        ];
+
+        foreach ($info as $id => $text) {
+            $bar->add_node(['parent' => 'loopress', 'id' => "loopress-{$id}", 'title' => esc_html($text)]);
+        }
     }
 
     public function enqueueMenuIconStyle(): void
