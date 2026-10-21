@@ -145,7 +145,7 @@ test.describe('theme template sync (block theme)', () => {
     const push = await runCli(['theme', 'template', 'push', '--dry-run'])
 
     expect(push.exitCode, output(push)).toBe(0)
-    expect(push.stdout).toContain('[dry-run] Would rewrite the child theme with them.')
+    expect(push.stdout).toContain('[dry-run] created: templates/single')
     const list = await runCli(['theme', 'template', 'list', '--json'])
     expect((JSON.parse(list.stdout) as {templates: string[]}).templates).not.toContain('single')
   })
