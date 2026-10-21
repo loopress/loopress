@@ -120,7 +120,7 @@ lps composer push --dry-run
 
 A push's dry run still reads the target site, the same way [`lps diff`](/workflow/#lps-diff) does, so it fails when the real push would be refused: for example `lps acf push --dry-run` on a site where ACF isn't active.
 
-It also says, for each local item, what the push would do to the site's copy: `created` (the site doesn't have it), `changed` or `unchanged`. A file you didn't touch shows as `unchanged`, so you can see at a glance what the push will really change:
+It also says, for each local item, what the push would do to the site's copy: `created` (the site doesn't have it), `changed` or `unchanged`. A file whose local and site copies match shows as `unchanged`, so you can see at a glance what the push will really change:
 
 ```text
 $ lps hook push --dry-run

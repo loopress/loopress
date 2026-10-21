@@ -372,6 +372,18 @@ describe('PushCommand', () => {
       expect(beforeState).toBeUndefined()
     })
 
+    it('captureBeforePushState warns when a dry run cannot read the local files to list changes', async () => {
+      const cmd = makeWithClient(true, SITE)
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation(() => '')
+      const local = vi.fn(async () => {
+        throw new Error('bad file')
+      })
+
+      await cmd.testCaptureBeforePushState(fakeProvider({local, remote: async () => new Map()}), rootDir)
+
+      expect(warn).toHaveBeenCalledWith('Could not list what this push would change: bad file')
+    })
+
     it('captureBeforePushState fails a dry run when the site refuses the read', async () => {
       const cmd = makeWithClient(true, SITE)
 

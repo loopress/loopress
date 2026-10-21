@@ -77,8 +77,10 @@ export abstract class PushCommand extends LoopressCommand {
         const local = await provider.local(dir, () => {})
         this.previewStates = {local, remote}
         this.previewChanges = pushChanges(local, remote, {writes})
-      } catch {
-        // Unreadable local files: the push reports them itself.
+      } catch (error) {
+        // The push reports the unreadable files itself, but an empty `changes` must not read as
+        // "nothing changes".
+        this.warn(`Could not list what this push would change: ${(error as Error).message}`)
       }
 
       logChanges((message) => { this.log(message); }, this.previewChanges)
