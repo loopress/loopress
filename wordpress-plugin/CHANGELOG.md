@@ -1,5 +1,14 @@
 # @loopress/wordpress-plugin
 
+## 2026.17.0
+
+### Minor Changes
+
+- fcf44bc: A **Loopress** link in the WordPress top bar, for administrators. Hovering it shows the plugin version, the environment type, and the last push.
+- ad06a9a: `lps page push` can now take over a page with the same slug that Loopress did not create, instead of refusing it. It lists those pages and asks once, or takes them over directly with `--overwrite` (required in CI and through the MCP server). The page keeps its URL and ID, so menus, links and SEO data keep working, and its original content is saved as a WordPress revision first.
+- df54b2d: A push's dry run now says what it would change: each local item is `created`, `changed` or `unchanged` against the site, in the human output and under `changes` in `--json` (existing fields are kept). `lps acf push` also names the fields added, changed or removed in a changed field group, and `lps theme template push` lists templates, parts and CSS files separately, with `removed` for a file the child theme would drop. `lps push` and `lps theme push` now return each step's own result. The MCP push tools' previews are these results, and their descriptions now tell the agent so. The plugin's child theme endpoint reports a hash of each CSS file, so the dry run can tell whether the theme CSS changed.
+- 33baa84: Loopress Full now discloses its anonymous usage statistics in a wp-admin notice right after activation, with equal "Keep it on" and "Turn it off" buttons, instead of only in the Settings tab. The notice disappears once an administrator answers, either here or in Settings.
+
 ## 2026.16.0
 
 ### Minor Changes
