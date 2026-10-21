@@ -1,5 +1,24 @@
 # @loopress/mcp
 
+## 0.32.0
+
+### Minor Changes
+
+- 35310b3: The MCP server now tells a connecting agent what a Loopress project is and links the documentation of each file format, so an agent writes a Loopress hook instead of plain WordPress code. `lps validate` (and the MCP `validate_local` tool) now runs the same checks on hook and API route files as push: a valid file name, `declare(strict_types=1);` exactly once, and no code outside the class (a hand-written `ABSPATH` guard included, the plugin adds its own), and `declare(strict_types=1);` as the first statement. Those problems now surface before push; PHP syntax and class-name collisions are still checked by the server at push.
+- ad06a9a: `lps page push` can now take over a page with the same slug that Loopress did not create, instead of refusing it. It lists those pages and asks once, or takes them over directly with `--overwrite` (required in CI and through the MCP server). The page keeps its URL and ID, so menus, links and SEO data keep working, and its original content is saved as a WordPress revision first.
+- ad938a6: `lps push` and `lps pull` (and so `lps promote`, `lps content copy`, `push_all` and `pull_all`) now include Global Styles once the project tracks them, on a site whose active theme is a block theme, and skip them with a one-line note otherwise. Theme versions stay with `lps theme push`. ACF, forms and snippets are skipped when the project has no directory for them, so `lps push --dry-run` (and the `push_all` preview) no longer fails with a 409 on a site without a form plugin, and `lps diff` no longer reports such a resource as inconclusive.
+- df54b2d: A push's dry run now says what it would change: each local item is `created`, `changed` or `unchanged` against the site, in the human output and under `changes` in `--json` (existing fields are kept). `lps acf push` also names the fields added, changed or removed in a changed field group, and `lps theme template push` lists templates, parts and CSS files separately, with `removed` for a file the child theme would drop. `lps push` and `lps theme push` now return each step's own result. The MCP push tools' previews are these results, and their descriptions now tell the agent so. The plugin's child theme endpoint reports a hash of each CSS file, so the dry run can tell whether the theme CSS changed.
+
+### Patch Changes
+
+- Updated dependencies [3f3beb9]
+- Updated dependencies [35310b3]
+- Updated dependencies [ad06a9a]
+- Updated dependencies [ad938a6]
+- Updated dependencies [df54b2d]
+- Updated dependencies [515153d]
+  - @loopress/cli@0.32.0
+
 ## 0.31.0
 
 ### Minor Changes
