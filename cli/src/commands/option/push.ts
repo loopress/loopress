@@ -1,13 +1,14 @@
 import {Args} from '@oclif/core'
 
 import {loadFiles} from '../../lib/load-files.js'
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {type LocalOption, optionEndpoint, parseLocalOption, partitionByReadonly, type RemoteOption} from '../../utils/option-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type PushResult = {
+  changes?: PushChange[]
   pushed: string[]
   skipped: string[]
   status: 'dry-run' | 'success'
@@ -77,7 +78,7 @@ export default class Push extends PushCommand {
 
     const skippedNames = skipped.map((option) => option.name)
 
-    if (this.dryRun) return {pushed, skipped: skippedNames, status: 'dry-run'}
+    if (this.dryRun) return {changes: this.previewChanges, pushed, skipped: skippedNames, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All options pushed.')

@@ -15,7 +15,7 @@ import {type ResourceState} from './diff-state.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
-import {PushCommand} from './push-command.js'
+import {type PushChange, PushCommand} from './push-command.js'
 import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404} from './wp-client.js'
 
@@ -87,6 +87,8 @@ export function formatRuntimeError(error: RuntimeError): string {
 }
 
 type PushResult = {
+  // Dry run only: each local file against the site's copy.
+  changes?: PushChange[]
   pruned: string[]
   pushed: string[]
   status: 'dry-run' | 'success'
@@ -243,9 +245,8 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename))) : []
 
       if (this.dryRun) {
-        for (const file of files) this.log(`[dry-run] Would push: ${file.filename}`)
         await this.writeAfterPushSnapshot(provider, path, beforeState)
-        return {pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
+        return {changes: this.previewChanges, pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
       }
 
       const {pruned, pushed} =

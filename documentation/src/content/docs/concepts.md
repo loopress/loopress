@@ -120,6 +120,24 @@ lps composer push --dry-run
 
 A push's dry run still reads the target site, the same way [`lps diff`](/workflow/#lps-diff) does, so it fails when the real push would be refused: for example `lps acf push --dry-run` on a site where ACF isn't active.
 
+It also says, for each local item, what the push would do to the site's copy: `created` (the site doesn't have it), `changed` or `unchanged`. A file whose local and site copies match shows as `unchanged`, so you can see at a glance what the push will really change:
+
+```text
+$ lps hook push --dry-run
+[dry-run] unchanged: bakery-info
+[dry-run] changed: products
+```
+
+With `--json`, the same list is the result's `changes` array (`{"id": "products", "status": "changed"}`), next to the fields the result already had. A few pushes say more:
+
+- `lps acf push`: ids are `<type>/<key>` (`field-groups/group_product_details`), and a changed field group names its top-level fields under `fields` (`added`, `changed`, `removed`).
+- `lps theme template push`: `changes` is split into `templates`, `parts` and `css`. `css` has `style.css`, the bundle of `theme/css/`, and one entry per `theme/blocks/` file. The child theme mirrors the project, so a file it has and the project doesn't is `removed`. A CSS file is `unknown` when the site's Loopress plugin is too old to report its CSS.
+- `lps push` and `lps theme push`: each step under `results` carries that step's own result in `result`.
+
+`lps plugin push` and `lps theme version push` don't need them: their dry run already lists what it would install, update or remove. `lps composer push` and `lps app push` don't list per-item statuses yet.
+
+The statuses use the same comparison as `lps diff`, so a value WordPress stores in another form than your file (a default ACF fills in, a Global Styles value WordPress rewrites) makes the item `changed` even when the push wouldn't change what the site does.
+
 ## CI and non-interactive use
 
 Without a TTY, or when the `CI` environment variable is set, the CLI never hangs waiting for a prompt:

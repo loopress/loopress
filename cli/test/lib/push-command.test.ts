@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {type ResourceState} from '../../src/lib/diff-state.js'
-import {PushCommand} from '../../src/lib/push-command.js'
+import {pushChanges, PushCommand} from '../../src/lib/push-command.js'
 import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
 import {listSnapshots, writeSnapshot} from '../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
@@ -372,6 +372,18 @@ describe('PushCommand', () => {
       expect(beforeState).toBeUndefined()
     })
 
+    it('captureBeforePushState warns when a dry run cannot read the local files to list changes', async () => {
+      const cmd = makeWithClient(true, SITE)
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation(() => '')
+      const local = vi.fn(async () => {
+        throw new Error('bad file')
+      })
+
+      await cmd.testCaptureBeforePushState(fakeProvider({local, remote: async () => new Map()}), rootDir)
+
+      expect(warn).toHaveBeenCalledWith('Could not list what this push would change: bad file')
+    })
+
     it('captureBeforePushState fails a dry run when the site refuses the read', async () => {
       const cmd = makeWithClient(true, SITE)
 
@@ -458,5 +470,34 @@ describe('PushCommand', () => {
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('site unreachable'))
       expect(await listSnapshots(rootDir, 'snippet', 'test')).toEqual([])
     })
+  })
+})
+
+describe('pushChanges()', () => {
+  const local: ResourceState = new Map<string, unknown>([
+    ['a', {v: 1}],
+    ['b', {v: 2}],
+    ['c', {v: 3}],
+  ])
+  const remote: ResourceState = new Map<string, unknown>([
+    ['a', {v: 1}],
+    ['b', {v: 0}],
+    ['site-only', {v: 9}],
+  ])
+
+  it('marks each local item created, changed or unchanged, leaving site-only items out', () => {
+    expect(pushChanges(local, remote)).toEqual([
+      {id: 'a', status: 'unchanged'},
+      {id: 'b', status: 'changed'},
+      {id: 'c', status: 'created'},
+    ])
+  })
+
+  it('keeps only the items the push writes', () => {
+    expect(pushChanges(local, remote, {writes: (id) => id === 'b'})).toEqual([{id: 'b', status: 'changed'}])
+  })
+
+  it('reports site-only items as removed for a push that mirrors the project', () => {
+    expect(pushChanges(local, remote, {mirror: true})).toContainEqual({id: 'site-only', status: 'removed'})
   })
 })

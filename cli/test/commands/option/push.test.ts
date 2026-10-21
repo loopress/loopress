@@ -200,7 +200,7 @@ describe('option push', () => {
 
       const result = await cmd.run()
 
-      expect(result).toEqual({pushed: ['blogname'], skipped: [], status: 'dry-run'})
+      expect(result).toEqual({changes: [{id: 'blogname', status: 'created'}], pushed: ['blogname'], skipped: [], status: 'dry-run'})
       expect(put).not.toHaveBeenCalled()
       expect(logs.log).not.toHaveBeenCalledWith('All options pushed.')
     })

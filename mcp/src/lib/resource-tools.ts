@@ -23,6 +23,10 @@ export const overwriteFlag = z
 export const PREVIEW_SUFFIX =
   ' Without confirmToken, returns a dry-run preview and a confirmToken instead of making any change; call again with that confirmToken to apply it.'
 
+// Added to the push tools whose preview (the CLI's `--dry-run --json`) lists per-item `changes`.
+export const CHANGES_SUFFIX =
+  ' The preview lists each item the push writes under `changes`, as created, changed or unchanged against the site, so tell the user from it what will change instead of asking them to check by hand.'
+
 type ResourceToolsSpec = {
   // rmTarget: the rm tool's `filename` description, for a resource whose items aren't .php files.
   descriptions: {list: string; pull: string; push: string; rm?: string; rmTarget?: string}
@@ -123,7 +127,7 @@ export function registerResourceTools(
     server.registerTool(
       `${resource}_push`,
       {
-        description: descriptions.push + PREVIEW_SUFFIX,
+        description: descriptions.push + PREVIEW_SUFFIX + CHANGES_SUFFIX,
         inputSchema: {
           confirmToken: confirmTokenFlag,
           env: envFlag,
@@ -144,7 +148,7 @@ export function registerResourceTools(
     server.registerTool(
       `${resource}_push`,
       {
-        description: descriptions.push + PREVIEW_SUFFIX,
+        description: descriptions.push + PREVIEW_SUFFIX + CHANGES_SUFFIX,
         inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg},
       },
       async ({confirmToken, env, overwrite, path}) =>

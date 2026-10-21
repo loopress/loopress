@@ -2,11 +2,11 @@ import {Args} from '@oclif/core'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {PushCommand} from '../../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../../lib/push-command.js'
 import {getResourceStateProvider} from '../../../lib/resource-state.js'
 import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
 
-type ThemeStylePushResult = {file: string; status: 'dry-run' | 'success'}
+type ThemeStylePushResult = {changes?: PushChange[]; file: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
   static args = {
@@ -44,13 +44,11 @@ export default class Push extends PushCommand {
       throw error
     }
 
-    if (this.dryRun) {
-      this.log(`[dry-run] Would push: ${file}`)
-      return {file, status: 'dry-run'}
-    }
-
+    // Only the active theme's file is pushed, whatever else the directory holds.
     const provider = getResourceStateProvider('theme-styles')
-    const beforeState = await this.captureBeforePushState(provider, dir)
+    const beforeState = await this.captureBeforePushState(provider, dir, (name) => name === stylesheet)
+
+    if (this.dryRun) return {changes: this.previewChanges, file, status: 'dry-run'}
 
     const local = JSON.parse(raw) as {settings?: Record<string, unknown>; styles?: Record<string, unknown>}
     await this.wp.post(globalStylesEndpoint(id), {settings: local.settings ?? {}, styles: local.styles ?? {}})

@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -23,20 +23,24 @@ export function registerThemeTools(server: McpServer): void {
     {
       command: ['theme', 'push'],
       description:
-        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.',
+        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.' +
+        PREVIEW_SUFFIX +
+        CHANGES_SUFFIX +
+        ' Each step is under `results` with its own preview in `result`. The templates and parts step splits its `changes` as template_push describes.',
       name: 'theme_push',
     },
     {
       command: ['theme', 'version', 'push'],
       description:
-        'Install WordPress.org themes on WordPress to match loopress.json, via Composer + WPackagist (versions only, never switches the active theme).',
+        'Install WordPress.org themes on WordPress to match loopress.json, via Composer + WPackagist (versions only, never switches the active theme).' +
+        PREVIEW_SUFFIX,
       name: 'theme_version_push',
     },
   ]
   for (const {command, description, name} of pushes) {
     server.registerTool(
       name,
-      {description: description + PREVIEW_SUFFIX, inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, force: forceFlag}},
+      {description, inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, force: forceFlag}},
       async ({confirmToken, env, force}) => {
         const args = buildArgs(command, {env})
         if (force) args.push('--force')

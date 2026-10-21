@@ -49,6 +49,20 @@ describe('theme push', () => {
     ])
   })
 
+  // What the MCP server shows as the preview: each step's per-item changes, not just its label.
+  it("returns each step's own result", async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => ({step: id}))
+    const {cmd} = makePush({dryRun: true})
+
+    const {results} = await cmd.run()
+
+    expect(results.find((entry) => entry.label === 'templates and parts')).toEqual({
+      label: 'templates and parts',
+      result: {step: 'theme:template:push'},
+      status: 'pushed',
+    })
+  })
+
   it('forwards --yes only when the user passed it, so theme uninstalls still ask by default', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = makePush({yes: true})

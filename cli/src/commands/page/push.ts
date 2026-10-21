@@ -2,7 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {Args} from '@oclif/core'
 
 import {isInteractive} from '../../lib/interactive.js'
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isConflictCode} from '../../lib/wp-client.js'
 import {formatPageProblems, frontPageNote, type Page, PAGES_ENDPOINT, type PushedPage, readLocalPages} from '../../utils/page-format.js'
@@ -10,6 +10,7 @@ import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
 
 type PushResult = {
+  changes?: PushChange[]
   pushed: string[]
   status: 'dry-run' | 'success'
 }
@@ -69,7 +70,7 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'page')} failed to push.`)
     }
 
-    if (this.dryRun) return {pushed, status: 'dry-run'}
+    if (this.dryRun) return {changes: this.previewChanges, pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All pages pushed.')

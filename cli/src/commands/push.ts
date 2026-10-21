@@ -13,7 +13,8 @@ import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
 type PushTarget = {commandId: string; label: string}
 
-type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed' | 'skipped'}
+// `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
+type PushTargetResult = {error?: string; label: string; result?: unknown; status: 'failed' | 'pushed' | 'skipped'}
 
 type PushResult = {results: PushTargetResult[]}
 
@@ -80,9 +81,9 @@ export default class Push extends LoopressCommand {
 
       this.log(`\n→ Pushing ${target.label}...`)
       try {
-        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
+        const result = await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
         this.log(this.dryRun ? `✓ ${target.label} would push` : `✓ ${target.label} pushed`)
-        results.push({label: target.label, status: 'pushed'})
+        results.push({label: target.label, result, status: 'pushed'})
       } catch (error) {
         const {message} = error as Error
         this.log(`✗ ${target.label} failed: ${message}`)

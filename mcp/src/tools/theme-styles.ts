@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -15,7 +15,7 @@ export function registerThemeStylesTools(server: McpServer): void {
     {
       description:
         "Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress. Only supports block themes (Full Site Editing)." +
-        PREVIEW_SUFFIX,
+        PREVIEW_SUFFIX + CHANGES_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg},
     },
     async ({confirmToken, env, overwrite, path}) =>

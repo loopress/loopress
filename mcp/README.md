@@ -166,7 +166,9 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
 
 1. **Call without `confirmToken`**: runs `lps ... --dry-run`, returns the preview plus a
    single-use `confirmToken` (UUID, expires after 5 minutes, capped at 100 pending tokens
-   process-wide).
+   process-wide). Most push previews list each item they write under `changes`, as created,
+   changed or unchanged against the site (not the plugin, theme version, composer and app
+   pushes, whose previews have their own shape).
 2. **Call again with that `confirmToken`**: re-runs that same `--dry-run` once more against the
    frozen copy taken at preview time; if it reports anything different from the original preview
    (e.g. a rollback's `drift` field has changed because something else touched the environment

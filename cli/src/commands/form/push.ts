@@ -2,7 +2,7 @@ import {Args, Flags} from '@oclif/core'
 import {readFile, rename, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
@@ -11,7 +11,7 @@ import {FORM_ENDPOINT, formEndpoint, getFormId, getFormTitle, type RemoteForm} f
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
 
-type FormPushResult = {path: string; status: 'dry-run' | 'success'}
+type FormPushResult = {changes?: PushChange[]; path: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
   static args = {
@@ -62,7 +62,7 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
     }
 
-    if (this.dryRun) return {path, status: 'dry-run'}
+    if (this.dryRun) return {changes: this.previewChanges, path, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All forms pushed.')

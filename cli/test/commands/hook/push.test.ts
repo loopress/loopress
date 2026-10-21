@@ -280,6 +280,35 @@ describe('hook push', () => {
       expect(result.status).toBe('dry-run')
     })
 
+    it('marks each file of a dry run created, changed or unchanged against the site', async () => {
+      const content = '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n'
+      writeFileSync(join(dir, 'hello.php'), content)
+      writeFileSync(join(dir, 'info.php'), content.replace('Hello', 'Info'))
+      writeFileSync(join(dir, 'new.php'), content.replace('Hello', 'Fresh'))
+      const {cmd, get, logs} = make([dir])
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      get.mockResolvedValue([
+        {content, filename: 'hello'},
+        {content: 'old', filename: 'info'},
+        {content: 'site only', filename: 'other'},
+      ])
+
+      const result = await cmd.run()
+
+      // `pushed` keeps listing every local file, for consumers that read it.
+      expect(result).toEqual({
+        changes: [
+          {id: 'hello', status: 'unchanged'},
+          {id: 'info', status: 'changed'},
+          {id: 'new', status: 'created'},
+        ],
+        pruned: [],
+        pushed: ['hello', 'info', 'new'],
+        status: 'dry-run',
+      })
+      expect(logs.log).toHaveBeenCalledWith('[dry-run] unchanged: hello')
+    })
+
     it('prunes server-side files not present locally as part of the same atomic batch when --prune is passed', async () => {
       const {cmd, get, logs, post} = make([dir, '--prune'])
       ;(cmd as unknown as {yes: boolean}).yes = true

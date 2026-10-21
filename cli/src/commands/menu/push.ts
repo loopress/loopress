@@ -2,7 +2,7 @@ import {Args} from '@oclif/core'
 import {readFile} from 'node:fs/promises'
 import {extname, join} from 'node:path'
 
-import {PushCommand} from '../../lib/push-command.js'
+import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
@@ -13,7 +13,7 @@ import {pluralize} from '../../utils/pluralize.js'
 // than the plain "locations" this used to be (WordPress's own menu-locations feature).
 const LOCATIONS_FILENAME = 'menu-locations.json'
 
-type MenuPushResult = {path: string; status: 'dry-run' | 'success'}
+type MenuPushResult = {changes?: PushChange[]; path: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
   static args = {
@@ -50,7 +50,7 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'menu')} failed to push.`)
     }
 
-    if (this.dryRun) return {path, status: 'dry-run'}
+    if (this.dryRun) return {changes: this.previewChanges, path, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All nav menus pushed.')

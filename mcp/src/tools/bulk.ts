@@ -2,7 +2,7 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -16,7 +16,9 @@ export function registerBulkTools(server: McpServer): void {
     {
       description:
         'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets. Global Styles, ACF, forms and snippets are skipped when the project does not use them (no Global Styles file, no directory) or the site cannot take them (classic theme).' +
-        PREVIEW_SUFFIX,
+        PREVIEW_SUFFIX +
+        CHANGES_SUFFIX +
+        ' Each step is under `results` with its own preview in `result`.',
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag},
     },
     async ({confirmToken, env, overwrite}) =>

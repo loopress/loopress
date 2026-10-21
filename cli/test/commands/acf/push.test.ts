@@ -273,6 +273,33 @@ describe('acf push', () => {
       expect(logs.log).not.toHaveBeenCalledWith('All ACF objects pushed.')
     })
 
+    it('names each object a dry run would create, change or leave, and the fields of a changed group', async () => {
+      mkdirSync(join(dir, 'acf', 'field-groups'), {recursive: true})
+      const field = (key: string, name: string, label = name) => ({key, label, name, type: 'text'})
+      const group = {fields: [field('f1', 'price', 'Price'), field('f3', 'sku')], key: 'group_product', title: 'Product'}
+      writeFileSync(join(dir, 'acf', 'field-groups', 'group_product.json'), JSON.stringify(group))
+      writeObject('field-groups', 'group_same')
+      writeObject('taxonomies', 'taxonomy_new')
+      const {cmd, get} = makeRunCmd()
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      get.mockImplementation(async (endpoint: string) =>
+        endpoint === 'loopress/v1/acf/field-groups'
+          ? [
+              {...group, fields: [field('f1', 'price', 'Old price'), field('f2', 'weight')], modified: 1},
+              {key: 'group_same', modified: 2, title: 'group_same'},
+            ]
+          : [],
+      )
+
+      const result = await cmd.run()
+
+      expect(result.changes).toEqual([
+        {fields: {added: ['sku'], changed: ['price'], removed: ['weight']}, id: 'field-groups/group_product', status: 'changed'},
+        {id: 'field-groups/group_same', status: 'unchanged'},
+        {id: 'taxonomies/taxonomy_new', status: 'created'},
+      ])
+    })
+
     // The local site without ACF: the dry run used to announce "pushed", the real push got a 409.
     it('fails the dry run the way the real push would when the site refuses the read', async () => {
       writeObject('field-groups', 'group_1')

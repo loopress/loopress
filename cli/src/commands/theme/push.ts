@@ -7,7 +7,8 @@ import {guardProductionPush} from '../../lib/guard-production-push.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
 import {pluralize} from '../../utils/pluralize.js'
 
-type PushTargetResult = {error?: string; label: string; status: 'failed' | 'pushed'}
+// `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
+type PushTargetResult = {error?: string; label: string; result?: unknown; status: 'failed' | 'pushed'}
 
 type PushResult = {results: PushTargetResult[]}
 
@@ -56,9 +57,9 @@ export default class Push extends LoopressCommand {
 
       this.log(`\n→ Pushing ${target.label}...`)
       try {
-        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
+        const result = await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand(target.commandId, argv))
         this.log(`✓ ${target.label} pushed`)
-        results.push({label: target.label, status: 'pushed'})
+        results.push({label: target.label, result, status: 'pushed'})
       } catch (error) {
         const {message} = error as Error
         this.log(`✗ ${target.label} failed: ${message}`)

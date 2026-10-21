@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto'
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -108,14 +109,66 @@ describe('template push', () => {
     expect(put).not.toHaveBeenCalled()
   })
 
-  it('writes nothing on a dry run', async () => {
+  it('writes nothing on a dry run, and says what each file would become on the site', async () => {
     writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'templates', 'page.html'), '<p>new</p>')
     const put = vi.fn()
     const cmd = makeCommand(put)
     cmd.dryRun = true
-    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({customized: [], parts: [], templates: []})
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({
+      customized: [],
+      parts: [{area: 'header', html: 'x', slug: 'header', title: 'Header'}],
+      templates: [{html: '<p/>', slug: 'single'}, {html: '<p>old</p>', slug: 'page'}],
+    })
 
-    expect(await cmd.run()).toEqual({blockStyles: [], parts: [], status: 'dry-run', templates: ['single']})
+    expect(await cmd.run()).toEqual({
+      blockStyles: [],
+      // A plugin that doesn't report its CSS: nothing to say about a project without any either.
+      changes: {
+        css: [],
+        parts: [{id: 'header', status: 'removed'}],
+        templates: [
+          {id: 'page', status: 'changed'},
+          {id: 'single', status: 'unchanged'},
+        ],
+      },
+      parts: [],
+      status: 'dry-run',
+      templates: ['page', 'single'],
+    })
     expect(put).not.toHaveBeenCalled()
+  })
+
+  it('compares each CSS file with the hash the site reports for what was pushed', async () => {
+    mkdirSync(join(dir, 'theme', 'css'), {recursive: true})
+    mkdirSync(join(dir, 'theme', 'blocks', 'core'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'css', 'style.css'), '.c-card{padding:1rem}')
+    writeFileSync(join(dir, 'theme', 'blocks', 'core', 'button.css'), '.a{color:red}')
+    const put = vi.fn().mockResolvedValue(child)
+    await makeCommand(put).run()
+    const sent = put.mock.calls[0][1] as {style: string}
+    const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex')
+
+    const cmd = makeCommand(put)
+    cmd.dryRun = true
+    const css = {'blocks/core/button.css': 'stale', 'blocks/core/quote.css': 'x', 'style.css': sha256(sent.style)}
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({...child, css})
+
+    expect(((await cmd.run()) as {changes: unknown}).changes).toEqual({
+      css: [
+        {id: 'blocks/core/button.css', status: 'changed'},
+        {id: 'blocks/core/quote.css', status: 'removed'},
+        {id: 'style.css', status: 'unchanged'},
+      ],
+      parts: [],
+      templates: [],
+    })
+
+    // An older plugin reports no CSS: the files are listed, their status unknown.
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue(child)
+    expect(((await cmd.run()) as {changes: {css: unknown}}).changes.css).toEqual([
+      {id: 'blocks/core/button.css', status: 'unknown'},
+      {id: 'style.css', status: 'unknown'},
+    ])
   })
 })

@@ -377,7 +377,32 @@ class ChildThemeController
             'parts'      => $this->readFiles("{$dir}/parts", (array) ($manifest['parts'] ?? [])),
             'customized' => $active ? $this->customized() : [],
             'unknownBlocks' => $this->unknownBlocks($dir),
+            'css'        => (object) $this->cssHashes($dir),
         ];
+    }
+
+    /**
+     * sha256 of each CSS file as the CLI sent it (style.css without the header write() adds), for
+     * `lps theme template push --dry-run` to tell which ones the push would change. A header-only
+     * style.css means the project has none, so it is left out.
+     *
+     * @return array<string, string> e.g. ['style.css' => '…', 'blocks/core/button.css' => '…']
+     */
+    private function cssHashes(string $dir): array
+    {
+        $hashes = [];
+        // Local file of the child theme Loopress itself wrote, not a remote URL.
+        $style = is_file("{$dir}/style.css") ? (string) file_get_contents("{$dir}/style.css") : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $headerEnd = strpos($style, "*/\n");
+        $style = $headerEnd === false ? $style : substr($style, $headerEnd + 3);
+        if ($style !== '') {
+            $hashes['style.css'] = hash('sha256', $style);
+        }
+        foreach (ChildThemeStyles::blockStyles($dir) as $name => $path) {
+            $hashes["blocks/{$name}.css"] = (string) hash_file('sha256', $path);
+        }
+
+        return $hashes;
     }
 
     /**

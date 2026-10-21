@@ -175,12 +175,19 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame('.a{}', $this->child('blocks/core/button.css'));
         $this->assertSame("\0\1\2", $this->child('assets/inter-AB12.woff2'));
         $this->assertSame(['core/buton'], $response->get_data()['unknownBlocks']);
+        // Hashed as sent, without the header, for the CLI's dry run to compare.
+        $this->assertEquals((object) [
+            'style.css'              => hash('sha256', '.c-card{padding:1rem}'),
+            'blocks/core/button.css' => hash('sha256', '.a{}'),
+            'blocks/core/buton.css'  => hash('sha256', '.b{}'),
+        ], $response->get_data()['css']);
 
         // A push without CSS, from an older CLI or a project without theme/css, removes it.
         $this->put([['slug' => 'single', 'html' => 'a']]);
 
         $this->assertFileDoesNotExist("{$this->root}/twentytwentyfive-loopress/blocks/core/button.css");
         $this->assertStringEndsWith("*/\n", $this->child('style.css'));
+        $this->assertEquals((object) [], $this->controller()->get_child_theme()->get_data()['css']);
     }
 
     public function test_refuses_an_asset_that_is_not_base64_without_writing(): void
