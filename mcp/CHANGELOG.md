@@ -1,5 +1,13 @@
 # @loopress/mcp
 
+## 0.32.1
+
+### Patch Changes
+
+- 26fb36c: `lps validate` and `lps hook push` no longer reject a hook whose method outputs a template (`?> <p>...</p> <?php` inside the class) as "code outside the class": only inline HTML at the top level of the file is flagged, as the plugin does.
+- Updated dependencies [26fb36c]
+  - @loopress/cli@0.32.1
+
 ## 0.32.0
 
 ### Minor Changes

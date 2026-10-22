@@ -1,7 +1,7 @@
 {
   "name": "@loopress/cli",
   "description": "Build, review and ship WordPress, in one loop: pull, diff, push and roll back a site's code and config from git",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "author": "jean-smaug",
   "bin": {
     "loopress": "bin/run.js",
