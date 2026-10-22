@@ -115,4 +115,17 @@ class ClassScannerTest extends TestCase
         $code = "<?php\nnamespace Loopress\\Api;\nfinal class Orders\n{\n    public function run(): void { \$x = 1; if (\$x) { do_thing(); } }\n}\n";
         $this->assertNull(ClassScanner::firstTopLevelSideEffect($code));
     }
+
+    public function test_firstTopLevelSideEffect_allows_a_template_inside_a_method(): void
+    {
+        // Inline HTML in a method body only runs when the method is called.
+        $code = "<?php\ndeclare(strict_types=1);\nfinal class Card\n{\n    public function render(array \$items): string\n    {\n        ob_start();\n        ?>\n<ul><?php foreach (\$items as \$i) : ?><li><?= \$i ?></li><?php endforeach; ?></ul>\n        <?php\n        return ob_get_clean();\n    }\n}\n";
+        $this->assertNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
+
+    public function test_firstTopLevelSideEffect_flags_inline_html_after_a_class_with_a_template(): void
+    {
+        $code = "<?php\nfinal class Card { public function f(): void { ?><p>ok</p><?php } }\n?>\n<p>leak</p>\n";
+        $this->assertNotNull(ClassScanner::firstTopLevelSideEffect($code));
+    }
 }

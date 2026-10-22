@@ -123,7 +123,7 @@ jobs:
         run: pnpm run pack
 
       - name: Start WordPress
-        uses: loopress/setup-ci@bfe56721b0304cea246f2b7dff5ff72a4406e466 # main
+        uses: loopress/setup-ci@a1d4b6bcd02978ffc0c32bb2b0e9bf958dbf6958 # main before #7 (stops preinstalling the plugins the e2e specs use)
 
       - name: Install this branch's Loopress Full build over the released one
         run: |
@@ -162,6 +162,7 @@ jobs:
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
       - name: Wait for Playwright browsers
+        timeout-minutes: 3
         run: |
           while [ ! -f "$RUNNER_TEMP/playwright-install.exit" ]; do sleep 1; done
           cat "$RUNNER_TEMP/playwright-install.log"

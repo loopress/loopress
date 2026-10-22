@@ -43,10 +43,7 @@ export function startsWithStrictTypes(content: string): boolean {
 // Advances the brace depth and "a statement starts here" flag past one token; returns the token
 // when it starts a top-level statement that isn't a declaration.
 function step(state: State, token: Token): null | string {
-  if (token.type === 'html') {
-    state.atStart = true
-    return token.text === '' ? null : 'inline HTML after ?>'
-  }
+  if (token.type === 'html') return inlineHtml(state, token)
 
   const statementStart = state.depth === 0 && state.atStart
   switch (token.text) {
@@ -76,6 +73,13 @@ function step(state: State, token: Token): null | string {
       return isDeclaration(token) ? null : token.text
     }
   }
+}
+
+// A template inside a class or function body (`?> <p>...</p> <?php`) only runs when it is called.
+function inlineHtml(state: State, token: Token): null | string {
+  if (state.depth > 0) return null
+  state.atStart = true
+  return token.text === '' ? null : 'inline HTML after ?>'
 }
 
 function openBrace(state: State, statementStart: boolean): null | string {
