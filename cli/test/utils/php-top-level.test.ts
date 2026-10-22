@@ -30,7 +30,8 @@ final class ReadingTime
 }`,
     ],
     ['top-level functions, constants and a trailing closing tag', 'const RATE = 200;\nfunction helper(): int { return 1; }\nclass A {}\n?>\n'],
-    ['a class in a bracketed namespace', 'namespace App {\n    use Foo\\Bar;\n    final class A { public function f() { return 1; } }\n}'],
+    ['a method that outputs a template', 'class A {\n    public function f(): string {\n        ob_start();\n        ?>\n<p>hi</p>\n        <?php\n        return ob_get_clean();\n    }\n}'],
+    ['a class in a bracketed namespace','namespace App {\n    use Foo\\Bar;\n    final class A { public function f() { return 1; } }\n}'],
   ])('accepts %s', (_, body) => {
     expect(firstTopLevelSideEffect(file(body))).toBeNull()
   })

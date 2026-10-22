@@ -43,7 +43,9 @@ export function startsWithStrictTypes(content: string): boolean {
 // Advances the brace depth and "a statement starts here" flag past one token; returns the token
 // when it starts a top-level statement that isn't a declaration.
 function step(state: State, token: Token): null | string {
+  // A template inside a method (`?> <p>...</p> <?php`) only runs when the method is called.
   if (token.type === 'html') {
+    if (state.depth > 0) return null
     state.atStart = true
     return token.text === '' ? null : 'inline HTML after ?>'
   }
