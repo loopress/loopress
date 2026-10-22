@@ -162,6 +162,7 @@ jobs:
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
       - name: Wait for Playwright browsers
+        timeout-minutes: 3
         run: |
           while [ ! -f "$RUNNER_TEMP/playwright-install.exit" ]; do sleep 1; done
           cat "$RUNNER_TEMP/playwright-install.log"
