@@ -99,4 +99,41 @@ describe('theme style push', () => {
 
     expect(post).not.toHaveBeenCalled()
   })
+
+  it('defaults missing settings and styles, logs the file and returns it', async () => {
+    mkdirSync(join(dir, 'theme'), {recursive: true})
+    const file = join(dir, 'theme', 'tt4-global-styles.json')
+    writeFileSync(file, '{}')
+    const {cmd, get, logs, post} = make({rootDir: dir})
+    get.mockResolvedValue([activeTheme('tt4')])
+
+    expect(await cmd.run()).toEqual({file, status: 'success'})
+
+    expect(post).toHaveBeenCalledWith('wp/v2/global-styles/99', {settings: {}, styles: {}})
+    expect(logs.log).toHaveBeenCalledWith('Pushing Global Styles to https://acme.com')
+    expect(logs.log).toHaveBeenCalledWith(`Pushed: ${file}`)
+  })
+
+  it('rethrows a read error other than a missing file', async () => {
+    mkdirSync(join(dir, 'theme', 'tt4-global-styles.json'), {recursive: true})
+    const {cmd, get, post} = make({rootDir: dir})
+    get.mockResolvedValue([activeTheme('tt4')])
+
+    await expect(cmd.run()).rejects.toThrow(/EISDIR/)
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('previews only the active theme file on a dry run', async () => {
+    mkdirSync(join(dir, 'theme'), {recursive: true})
+    const file = join(dir, 'theme', 'tt4-global-styles.json')
+    writeFileSync(file, JSON.stringify({settings: {}, styles: {color: {text: 'red'}}}))
+    writeFileSync(join(dir, 'theme', 'other-global-styles.json'), JSON.stringify({settings: {}, styles: {}}))
+    const {cmd, get, post} = make({rootDir: dir}, [], true)
+    get.mockImplementation(async (path: string) => (path === 'wp/v2/themes' ? [activeTheme('tt4')] : {settings: {}, styles: {}}))
+
+    const result = await cmd.run()
+
+    expect(result).toEqual({changes: [{id: 'tt4', status: 'changed'}], file, status: 'dry-run'})
+    expect(post).not.toHaveBeenCalled()
+  })
 })
