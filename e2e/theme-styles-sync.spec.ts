@@ -43,22 +43,25 @@ test.describe('theme style sync (block theme)', () => {
     const initialThemes = await requestUtils.rest<Array<{stylesheet: string}>>({path: '/wp/v2/themes'})
     const candidates = initialThemes.map((theme) => theme.stylesheet).filter((slug) => slug !== BLOCK_THEME)
 
-    let classicSlug: string | undefined
-    for (const slug of candidates) {
-      await requestUtils.activateTheme(slug)
-      const themesOnceActive = await requestUtils.rest<Array<{status: string; stylesheet: string; theme_supports?: Record<string, unknown>}>>({
-        path: '/wp/v2/themes',
-      })
-      const active = themesOnceActive.find((theme) => theme.status === 'active')
-      if (active?.theme_supports?.['block-templates'] !== true) {
-        classicSlug = slug
-        break
-      }
-    }
-
-    test.skip(!classicSlug, 'No classic theme installed on this instance to activate for this assertion.')
-
+    // Every exit path, the skip included (test.skip throws), puts the block theme back: the
+    // loop below activates other themes, and a skip that left one of them active made the
+    // next test pull that theme's styles into a file under a different name.
     try {
+      let classicSlug: string | undefined
+      for (const slug of candidates) {
+        await requestUtils.activateTheme(slug)
+        const themesOnceActive = await requestUtils.rest<Array<{status: string; stylesheet: string; theme_supports?: Record<string, unknown>}>>({
+          path: '/wp/v2/themes',
+        })
+        const active = themesOnceActive.find((theme) => theme.status === 'active')
+        if (active?.theme_supports?.['block-templates'] !== true) {
+          classicSlug = slug
+          break
+        }
+      }
+
+      test.skip(!classicSlug, 'No classic theme installed on this instance to activate for this assertion.')
+
       const result = await runCli(['theme', 'style', 'pull'])
       expect(result.exitCode).not.toBe(0)
       expect(unwrap(result.stderr)).toContain('classic theme')

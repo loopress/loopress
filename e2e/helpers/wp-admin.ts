@@ -22,7 +22,19 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   // slowest wait in the suite. The admin bar is present and visible on every wp-admin page
   // once logged in, and absent on wp-login.php, so it's the "we're actually in, not bounced
   // back to the login form" signal.
-  await page.locator('#wpadminbar').waitFor({state: 'visible', timeout: 15_000})
+  const adminBar = page.locator('#wpadminbar')
+  await page.waitForURL((url) => !url.pathname.endsWith('/wp-login.php') || url.searchParams.has('action'), {timeout: 15_000}).catch(() => {})
+  if (await adminBar.isVisible()) return
+  // Logged in, but the first admin page after a plugin's activation can be that plugin's own
+  // full-screen welcome or setup wizard, with no admin bar (setup-ci activates several with
+  // wp-cli, which leaves their one-shot redirect pending for the first browser visit). That
+  // made the first test of a shard fail and pass on retry. The redirect only fires once, so
+  // load a plain admin page instead. A real login failure is still on the login form.
+  if (await page.locator('#loginform').isVisible()) {
+    throw new Error(`wp-admin login failed, still on the login form at ${page.url()}`)
+  }
+  await page.goto(`${wp.url}/wp-admin/profile.php`, {waitUntil: 'load'})
+  await adminBar.waitFor({state: 'visible', timeout: 15_000})
 }
 
 // RequestUtils.activatePlugin/deactivatePlugin key plugins by a kebab-cased `Plugin Name:`
