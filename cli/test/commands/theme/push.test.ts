@@ -18,7 +18,8 @@ class TestPush extends Push {
 }
 
 class TestPull extends Pull {
-  setup() {
+  setup(dryRun = false) {
+    this.dryRun = dryRun
     this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
     this.localConfig = {}
   }
@@ -112,5 +113,41 @@ describe('theme pull', () => {
       ['theme:style:pull', ['--env', 'staging']],
     ])
     expect(result.results.every((entry) => entry.status === 'pulled')).toBe(true)
+  })
+
+  it('forwards --dry-run and logs each step', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const cmd = new TestPull([], fakeOclifConfig)
+    cmd.setup(true)
+    const logs = silenceLogs(cmd)
+
+    await cmd.run()
+
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls[0]).toEqual(['theme:version:pull', ['--env', 'staging', '--dry-run']])
+    expect(logs.log.mock.calls.map(([line]) => line)).toEqual([
+      '\n→ Pulling theme versions...',
+      '✓ theme versions pulled',
+      '\n→ Pulling Global Styles...',
+      '✓ Global Styles pulled',
+    ])
+  })
+
+  it('continues past a failed step, then fails naming every failure', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('no themes')).mockRejectedValueOnce(new Error('classic theme'))
+    const cmd = new TestPull([], fakeOclifConfig)
+    cmd.setup()
+    const logs = silenceLogs(cmd)
+
+    await expect(cmd.run()).rejects.toThrow('2 theme resources failed to pull. theme versions: no themes; Global Styles: classic theme')
+    expect(logs.log).toHaveBeenCalledWith('✗ theme versions failed: no themes')
+  })
+
+  it('fails on a single failed step after running the others', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('classic theme'))
+    const cmd = new TestPull([], fakeOclifConfig)
+    cmd.setup()
+    silenceLogs(cmd)
+
+    await expect(cmd.run()).rejects.toThrow(/^1 theme resource failed to pull\. Global Styles: classic theme$/)
   })
 })
