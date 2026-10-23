@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import CptList from '../../src/commands/cpt/list.js'
 import CptPull from '../../src/commands/cpt/pull.js'
+import CptPush from '../../src/commands/cpt/push.js'
 import CptRm from '../../src/commands/cpt/rm.js'
 import PatternList from '../../src/commands/pattern/list.js'
 import PatternPull from '../../src/commands/pattern/pull.js'
@@ -231,6 +232,87 @@ describe('declared type commands', () => {
       internals.wpClient.delete.mockRejectedValue(notFound('rest_no_route'))
 
       await expect(cmd.run()).rejects.toThrow(/^not found$/)
+    })
+  })
+
+  describe('push', () => {
+    let dir: string
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'lps-declared-push-'))
+    })
+
+    afterEach(() => {
+      rmSync(dir, {force: true, recursive: true})
+    })
+
+    function makePush(argv: string[], {dryRun = false, get = vi.fn(), post = vi.fn()} = {}) {
+      const made = make(CptPush, argv, {dryRun, get, yes: true})
+      const seams = made.cmd as unknown as {
+        captureBeforePushState: ReturnType<typeof vi.fn>
+        previewChanges: unknown[]
+        recordSuccess: ReturnType<typeof vi.fn>
+        wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>}
+        writeAfterPushSnapshot: ReturnType<typeof vi.fn>
+      }
+      seams.captureBeforePushState = vi.fn().mockResolvedValue(new Map())
+      seams.writeAfterPushSnapshot = vi.fn().mockResolvedValue(undefined)
+      seams.recordSuccess = vi.fn().mockResolvedValue(undefined)
+      seams.wpClient = {get, post}
+      return {...made, seams}
+    }
+
+    it('pushes every file, warns about a broken one, and records the success', async () => {
+      writeFileSync(join(dir, 'book.json'), '{"public": true}')
+      writeFileSync(join(dir, 'movie.json'), '{}')
+      writeFileSync(join(dir, 'broken.json'), '{nope')
+      const get = vi.fn().mockRejectedValue(notFound())
+      const post = vi.fn().mockResolvedValue({})
+      const {cmd, logs, seams} = makePush([dir], {get, post})
+
+      expect(await cmd.run()).toEqual({path: dir, pushed: ['book', 'movie'], status: 'success'})
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {public: true}, slug: 'book'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {}, slug: 'movie'})
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('broken.json'))
+      expect(logs.log).toHaveBeenCalledWith('Pushing post types to https://acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Path: ${dir}`)
+      expect(logs.log).toHaveBeenCalledWith('Found 2 post types to push')
+      expect(logs.log).toHaveBeenCalledWith('All post types pushed.')
+      expect(seams.writeAfterPushSnapshot).toHaveBeenCalledWith(expect.objectContaining({resource: 'cpt'}), dir, expect.any(Map))
+      expect(seams.recordSuccess).toHaveBeenCalled()
+    })
+
+    it('fails with the count of refused items', async () => {
+      writeFileSync(join(dir, 'book.json'), '{}')
+      writeFileSync(join(dir, 'movie.json'), '{}')
+      const {cmd, seams} = makePush([dir], {get: vi.fn().mockRejectedValue(notFound()), post: vi.fn().mockRejectedValue(new Error('reserved'))})
+
+      await expect(cmd.run()).rejects.toThrow('2 post types failed to push.')
+      expect(seams.recordSuccess).not.toHaveBeenCalled()
+    })
+
+    it('returns the preview on a dry run, writing nothing', async () => {
+      writeFileSync(join(dir, 'book.json'), '{}')
+      const post = vi.fn()
+      const {cmd, seams} = makePush([dir], {dryRun: true, post})
+      seams.captureBeforePushState.mockImplementation(async () => {
+        seams.previewChanges = [{id: 'book', status: 'created'}]
+        return new Map()
+      })
+
+      expect(await cmd.run()).toEqual({changes: [{id: 'book', status: 'created'}], path: dir, pushed: ['book'], status: 'dry-run'})
+      expect(post).not.toHaveBeenCalled()
+      expect(seams.recordSuccess).not.toHaveBeenCalled()
+    })
+
+    it('rethrows a revision read failure other than a 404 as the item failure', async () => {
+      writeFileSync(join(dir, 'book.json'), '{}')
+      const post = vi.fn()
+      const {cmd} = makePush([dir], {get: vi.fn().mockRejectedValue(new Error('timeout')), post})
+
+      await expect(cmd.run()).rejects.toThrow('1 post type failed to push.')
+      expect(post).not.toHaveBeenCalled()
     })
   })
 })
