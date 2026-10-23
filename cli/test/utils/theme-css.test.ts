@@ -101,7 +101,7 @@ describe('bundleThemeCss', () => {
   it('explains where a block file belongs', async () => {
     write('theme/blocks/core/button.scss', '')
     write('theme/blocks/core/button/inner.css', '')
-    write('theme/blocks/Core/button.css', '')
+    write('theme/blocks/my_ns/button.css', '')
     write('theme/blocks/core/9button.css', '')
 
     const {css, problems} = await bundleThemeCss(cssDir, blocksDir)
@@ -109,7 +109,7 @@ describe('bundleThemeCss', () => {
     expect(css).toEqual({assets: [], blocks: [], style: ''})
     expect(problems.map((problem) => problem.file).toSorted((a, b) => a.localeCompare(b))).toEqual(
       [
-        join(blocksDir, 'Core/button.css'),
+        join(blocksDir, 'my_ns/button.css'),
         join(blocksDir, 'core/9button.css'),
         join(blocksDir, 'core/button.scss'),
         join(blocksDir, 'core/button/inner.css'),

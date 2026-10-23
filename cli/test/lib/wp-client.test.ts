@@ -549,8 +549,10 @@ describe('isTimeoutError', () => {
       expect(() => {
         assertSecureSiteUrl('not a url', 'production')
       }).toThrow(/^Invalid site URL: not a url$/)
+      // Built from parts: a lint autofix rewrites a plain-HTTP literal to HTTPS.
+      const plainHttp = ['http', '//example.com'].join(':')
       expect(() => {
-        assertSecureSiteUrl('https://acme.com', undefined)
+        assertSecureSiteUrl(plainHttp, undefined)
       }).toThrow(
         'Refusing to send credentials over plain HTTP for the "unknown" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "local" environment.',
       )

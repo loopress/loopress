@@ -116,10 +116,12 @@ describe('loadSnippets', () => {
     })
 
     expect(snippets.map((snippet) => snippet.name)).toEqual(['good'])
-    expect(skipped.toSorted((a, b) => a.localeCompare(b))).toEqual([
-      expect.stringMatching(new RegExp(`^Skipping "${join(dir, 'broken.json')}": .*JSON`)),
-      expect.stringMatching(new RegExp(`^Skipping "${join(dir, 'folder.js')}": .*EISDIR`)),
-    ])
+    const sortedSkips = skipped.toSorted((a, b) => a.localeCompare(b))
+    expect(sortedSkips).toHaveLength(2)
+    expect(sortedSkips[0]).toMatch(/JSON/)
+    expect(sortedSkips[0].startsWith(`Skipping "${join(dir, 'broken.json')}": `)).toBe(true)
+    expect(sortedSkips[1]).toMatch(/EISDIR/)
+    expect(sortedSkips[1].startsWith(`Skipping "${join(dir, 'folder.js')}": `)).toBe(true)
   })
 
   it('skips silently without a callback', async () => {
