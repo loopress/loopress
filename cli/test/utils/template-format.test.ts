@@ -87,4 +87,10 @@ describe('readLocalTemplates', () => {
   it('treats missing directories as empty', async () => {
     expect(await readLocalTemplates(join(dir, 'nope'), join(dir, 'nope2'))).toEqual({parts: [], problems: [], templates: []})
   })
+
+  it('drops empty post types and only reads a header or footer area from the slug start', () => {
+    expect(parseTemplateFile('single', '<!--\npostTypes: post, ,page,\n-->\n<p/>').postTypes).toEqual(['post', 'page'])
+    expect(parsePartFile('site-header', '<p/>').area).toBe('uncategorized')
+    expect(parsePartFile('footer', '<p/>').area).toBe('footer')
+  })
 })

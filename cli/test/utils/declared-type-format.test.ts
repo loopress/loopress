@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
   CPT_SPEC,
   declaredFileChecker,
+  formatDeclaredFile,
   formatPatternFile,
   META_SPEC,
   parseDeclaredArgs,
@@ -12,9 +13,10 @@ import {
   TAXONOMY_SPEC,
 } from '../../src/utils/declared-type-format.js'
 
-const checkCptFile = declaredFileChecker(CPT_SPEC)
-const checkTaxonomyFile = declaredFileChecker(TAXONOMY_SPEC)
-const checkMetaFile = declaredFileChecker(META_SPEC)
+// Built inside each test, so mutation testing ties the checker's code to the tests using it.
+const checkCptFile = (raw: string, filePath: string): void => { declaredFileChecker(CPT_SPEC)(raw, filePath); }
+const checkTaxonomyFile = (raw: string, filePath: string): void => { declaredFileChecker(TAXONOMY_SPEC)(raw, filePath); }
+const checkMetaFile = (raw: string, filePath: string): void => { declaredFileChecker(META_SPEC)(raw, filePath); }
 
 describe('declared-type-format', () => {
   it('parses a JSON object of register_post_type() arguments', () => {
@@ -37,10 +39,25 @@ describe('declared-type-format', () => {
     ['{"capabilities": "edit_posts"}', '"capabilities" must be a JSON object or array'],
     ['{"supports": true}', '"supports" must be a JSON object or array (or false)'],
     ['{"labels": null}', '"labels" must be a JSON object or array'],
+    ['{"rewrite": "books"}', '"rewrite" must be a JSON object or array (or true, false)'],
   ])('refuses %s, not an array where WordPress needs one', (raw, message) => {
     expect(() => {
       checkCptFile(raw, 'cpt/book.json')
     }).toThrow(message)
+  })
+
+  it('names no alternative when only an object or array is allowed', () => {
+    expect(() => {
+      checkCptFile('{"labels": "Books"}', 'cpt/book.json')
+    }).toThrow(/^"labels" must be a JSON object or array$/)
+  })
+
+  it('formats JSON arguments with a trailing newline', () => {
+    expect(formatDeclaredFile(CPT_SPEC, {public: true})).toBe('{\n  "public": true\n}\n')
+  })
+
+  it('formats a pattern as its HTML file', () => {
+    expect(formatDeclaredFile(PATTERN_SPEC, {content: '<p>Hi</p>', title: 'Hero'})).toBe('<!--\ntitle: Hero\n-->\n<p>Hi</p>')
   })
 
   it('accepts the non-array values WordPress allows', () => {
@@ -107,15 +124,48 @@ describe('declared-type-format', () => {
       [{isbn: {show_in_rest: {prepare_callback: 'system'}, type: 'string'}}, '"show_in_rest.prepare_callback" runs PHP code'],
       [{pages: {default: '0', type: 'integer'}}, '"default" must be a integer'],
       [{'my key': {type: 'string'}}, 'not a valid meta key'],
+      [{isbn: {type: 'text'}}, '"isbn": "type" must be one of array, boolean, integer, number, object, string'],
+      [{isbn: {type: 5}}, '"type" must be one of'],
+      [{isbn: {show_in_rest: 'yes', type: 'string'}}, '"isbn": "show_in_rest" must be true, false or an object'],
+      [{isbn: {show_in_rest: ['schema'], type: 'string'}}, '"show_in_rest" must be true, false or an object'],
+      [{data: {show_in_rest: true, type: 'object'}}, '"data": a object exposed in REST needs "show_in_rest": { "schema"'],
+      [{data: {show_in_rest: {}, type: 'object'}}, 'needs "show_in_rest": { "schema"'],
+      [{data: {show_in_rest: {schema: true}, type: 'array'}}, 'needs "show_in_rest": { "schema"'],
+      [{flag: {default: 'yes', type: 'boolean'}}, '"default" must be a boolean'],
+      [{rate: {default: '1.5', type: 'number'}}, '"default" must be a number'],
+      [{note: {default: 1, type: 'string'}}, '"default" must be a string'],
+      [{list: {default: {}, type: 'array'}}, '"default" must be a array'],
+      [{data: {default: [], type: 'object'}}, '"default" must be a object'],
     ])('refuses %j', (file, message) => {
       expect(() => {
         checkMetaFile(JSON.stringify(file), 'meta/book.json')
       }).toThrow(message)
     })
+
+    it.each([
+      [{flag: {default: false, type: 'boolean'}}],
+      [{rate: {default: 1.5, type: 'number'}}],
+      [{note: {default: 'n/a', type: 'string'}}],
+      [{data: {default: {}, type: 'object'}}],
+      [{data: {type: 'object'}}],
+      [{data: {show_in_rest: false, type: 'array'}}],
+      [{data: {show_in_rest: {schema: {type: 'object'}}, type: 'object'}}],
+      [{note: {show_in_rest: true, type: 'string'}}],
+    ])('accepts %j', (file) => {
+      expect(() => {
+        checkMetaFile(JSON.stringify(file), 'meta/book.json')
+      }).not.toThrow()
+    })
   })
 
   describe('roles', () => {
-    const checkRoleFile = declaredFileChecker(ROLE_SPEC)
+    const checkRoleFile = (raw: string, filePath: string): void => { declaredFileChecker(ROLE_SPEC)(raw, filePath); }
+
+    it('accepts a role without capabilities', () => {
+      expect(() => {
+        checkRoleFile('{"name": "Client"}', 'roles/client.json')
+      }).not.toThrow()
+    })
 
     it('accepts a name and boolean capabilities', () => {
       expect(() => {
@@ -125,6 +175,9 @@ describe('declared-type-format', () => {
 
     it.each([
       ['{"capabilities": {}}', '"name" must be a non-empty string'],
+      ['{"name": "  "}', '"name" must be a non-empty string'],
+      ['{"name": 5}', '"name" must be a non-empty string'],
+      ['{"name": "Client", "capabilities": {"read": true, "edit_posts": "yes"}}', '"capabilities" must map each capability name to true or false'],
       ['{"name": "Client", "capabilities": {"read": 1}}', '"capabilities" must map each capability name to true or false'],
       ['{"name": "Client", "capabilities": ["read"]}', '"capabilities" must map each capability name to true or false'],
     ])('refuses %s', (raw, message) => {
@@ -155,8 +208,32 @@ describe('declared-type-format', () => {
       expect(parsePatternFile('call-to-action', '<p>Go</p>')).toEqual({content: '<p>Go</p>', title: 'Call to action'})
     })
 
+    it('reads list items without the empty ones, and inserter: true', () => {
+      expect(parsePatternFile('hero', '<!--\nblock-types: core/post-content, ,core/group,\ninserter: true\n-->\n')).toEqual({
+        blockTypes: ['core/post-content', 'core/group'],
+        content: '',
+        inserter: true,
+        title: 'Hero',
+      })
+    })
+
+    it('formats a pattern without content as its header alone', () => {
+      expect(formatPatternFile({keywords: ['a', 'b'], title: 'Hero'})).toBe('<!--\nkeywords: a, b\ntitle: Hero\n-->\n')
+    })
+
+    it('accepts a valid pattern file', () => {
+      expect(() => {
+        declaredFileChecker(PATTERN_SPEC)(file, 'patterns/hero.html')
+      }).not.toThrow()
+    })
+
     it.each([
       ['<!--\nviewport-width: wide\n-->\n', '"viewport-width" must be a whole number'],
+      ['<!--\nviewport-width: 1200px\n-->\n', '"viewport-width" must be a whole number'],
+      ['<!--\nviewport-width: w1200\n-->\n', '"viewport-width" must be a whole number'],
+      ['<!--\ninserter: \n-->\n', '"inserter" must be "true" or "false"'],
+      ['<!--\ntitle: \n-->\n', '"title" must be a non-empty string'],
+      ['<!--\ntitle:    \n-->\n', '"title" must be a non-empty string'],
       ['<!--\ninserter: no\n-->\n', '"inserter" must be "true" or "false"'],
       ['<!--\nsource: theme\n-->\n', 'unknown header key "source"'],
     ])('refuses %j', (raw, message) => {

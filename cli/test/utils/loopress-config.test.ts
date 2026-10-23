@@ -92,5 +92,11 @@ describe('loopress-config', () => {
       expect(await ensureLfGitattributes()).toBe(false)
       expect(read()).toBe('*.png binary\r\n* text=auto eol=lf\r\n')
     })
+
+    it('finds the rule on any line of an LF file, indented or not', async () => {
+      writeFileSync(join(tmpDir, '.gitattributes'), '*.png binary\n  * text=auto eol=lf  \n')
+
+      expect(await ensureLfGitattributes()).toBe(false)
+    })
   })
 })

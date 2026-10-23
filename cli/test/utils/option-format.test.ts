@@ -165,4 +165,14 @@ describe('option-format', () => {
 
     expect(partitionByReadonly([option])).toEqual({skipped: [], writable: [option]})
   })
+
+  it.each([
+    [null],
+    [['page']],
+    [{'': 'page'}],
+    [{purchase_page: ''}],
+    [{other: 'page', purchase_page: 5}],
+  ])('refuses refs %j', (refs) => {
+    expect(() => parseLocalOption(JSON.stringify({autoload: 'auto', name: 'shop', refs, value: {}}))).toThrow('"refs" must map a value path to a post type')
+  })
 })

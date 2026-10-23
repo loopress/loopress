@@ -53,4 +53,23 @@ describe('acf-format', () => {
       expect(getAcfKey({key: 123})).toBeNull()
     })
   })
+
+  describe('acfFieldChanges on malformed groups', () => {
+    it('reads a missing group, a group without fields and fields without a key as no fields', () => {
+      expect(acfFieldChanges(undefined, {fields: [null, {name: 'no_key'}, {key: 'field_a', name: 'a'}]})).toEqual({
+        added: ['a'],
+        changed: [],
+        removed: [],
+      })
+      expect(acfFieldChanges({fields: 'nope'}, {})).toEqual({added: [], changed: [], removed: []})
+    })
+
+    it('names a field without a name by its key', () => {
+      expect(acfFieldChanges({fields: [{key: 'field_a', name: ''}]}, {fields: [{key: 'field_b'}]})).toEqual({
+        added: ['field_b'],
+        changed: [],
+        removed: ['field_a'],
+      })
+    })
+  })
 })

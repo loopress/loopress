@@ -82,4 +82,53 @@ describe('bundleThemeCss', () => {
 
     expect(broken.problems).toEqual([{file: expect.stringContaining('style.css:1'), message: expect.stringContaining('missing.css')}])
   })
+
+  it('bundles block files alone, sorted by name, skipping hidden files', async () => {
+    write('theme/blocks/core/quote.css', '.q { color: red; }\n')
+    write('theme/blocks/acme/card.css', '.c { color: blue; }\n')
+    write('theme/blocks/core/.DS_Store', '')
+    write('theme/css/notes.md', '# not CSS\n')
+
+    const {css, problems} = await bundleThemeCss(cssDir, blocksDir)
+
+    expect(problems).toEqual([])
+    expect(css.style).toBe('')
+    expect(css.assets).toEqual([])
+    expect(css.blocks.map((block) => block.name)).toEqual(['acme/card', 'core/quote'])
+    expect(css.blocks[1].css).toContain('.q{color:red}')
+  })
+
+  it('explains where a block file belongs', async () => {
+    write('theme/blocks/core/button.scss', '')
+    write('theme/blocks/core/button/inner.css', '')
+    write('theme/blocks/Core/button.css', '')
+    write('theme/blocks/core/9button.css', '')
+
+    const {css, problems} = await bundleThemeCss(cssDir, blocksDir)
+
+    expect(css).toEqual({assets: [], blocks: [], style: ''})
+    expect(problems.map((problem) => problem.file).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      [
+        join(blocksDir, 'Core/button.css'),
+        join(blocksDir, 'core/9button.css'),
+        join(blocksDir, 'core/button.scss'),
+        join(blocksDir, 'core/button/inner.css'),
+      ].toSorted((a, b) => a.localeCompare(b)),
+    )
+    expect(problems[0].message).toBe(`must be <namespace>/<block>.css, named after a block (e.g. ${join(blocksDir, 'core', 'button.css')})`)
+  })
+
+  it('explains that CSS files need the style.css entry', async () => {
+    write('theme/css/main.css', '.a { color: red; }\n')
+
+    expect((await bundleThemeCss(cssDir, blocksDir)).problems).toEqual([
+      {file: cssDir, message: 'has CSS files but no style.css, the entry that @imports them: nothing in it would be loaded'},
+    ])
+  })
+
+  it('throws when a folder cannot be read', async () => {
+    write('theme/blocks', 'not a folder')
+
+    await expect(bundleThemeCss(cssDir, blocksDir)).rejects.toThrow()
+  })
 })
