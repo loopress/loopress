@@ -99,7 +99,6 @@ describe('rollback-materialize', () => {
   it('protects a known-dangerous option (siteurl) by default even though the snapshot has no readonly flag', async () => {
     await materializeSnapshot('option', {siteurl: {autoload: 'yes', value: 'https://example.com'}}, dir)
 
-    const {readFileSync} = await import('node:fs')
     const local = JSON.parse(readFileSync(join(dir, 'siteurl.json'), 'utf8')) as {readonly?: boolean}
 
     expect(local.readonly).toBe(true)
