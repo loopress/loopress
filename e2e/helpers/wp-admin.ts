@@ -9,7 +9,12 @@ export async function loginToWpAdmin(page: Page, wp: WpCredentials): Promise<voi
   // that timer fires lost the password and bounced the test back to the login form, so wait
   // for its focus call first. Bounded and non-fatal: a login page without that script just
   // proceeds, and the value checks below still catch a blanked field before submitting.
-  await page.goto(`${wp.url}/wp-admin`, {waitUntil: 'load'})
+  //
+  // Lands on profile.php rather than the dashboard: the dashboard calls api.wordpress.org
+  // synchronously (browse-happy, keyed by user agent, so it can't be primed from CI) on its
+  // first view, which made the first login of a shard time out now and then. Tests navigate
+  // to their own page after login anyway, and profile.php has the admin bar too.
+  await page.goto(`${wp.url}/wp-admin/profile.php`, {waitUntil: 'load'})
   await page
     .waitForFunction(() => ['user_login', 'user_pass'].includes(document.activeElement?.id ?? ''), undefined, {timeout: 5000})
     .catch(() => {})

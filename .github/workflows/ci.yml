@@ -107,10 +107,20 @@ jobs:
       # Runs in the background so it overlaps the plugin build and WordPress startup below,
       # awaited by "Wait for Playwright browsers". setup-ci's own apt-get runs inside the
       # WordPress container, so it doesn't fight this one over the host's apt lock.
+      # An install usually takes under 90s, but now and then one stalls (apt or the browser
+      # download) and never finishes, which used to time out the wait step with no log at
+      # all. Each attempt is capped at 2 min and retried, so a stall costs one attempt
+      # instead of the whole shard.
       - name: Install Playwright browsers (background)
         run: |
-          (npx playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1
-           echo $? > "$RUNNER_TEMP/playwright-install.exit") &
+          (status=1
+           for attempt in 1 2 3; do
+             echo "::group::playwright install, attempt $attempt"
+             timeout 120 npx playwright install --with-deps chromium && status=0
+             echo "::endgroup::"
+             [ "$status" = 0 ] && break
+           done > "$RUNNER_TEMP/playwright-install.log" 2>&1
+           echo $status > "$RUNNER_TEMP/playwright-install.exit") &
 
       # `loopress/setup-ci` installs the last *published* release of the plugin, since it's
       # also used to smoke-test real releases. That means these e2e tests would otherwise
@@ -153,6 +163,12 @@ jobs:
           # already chowned wp-content once before this step. This is the last root-run command
           # before Playwright starts sending real HTTP traffic, served by Apache as www-data, so
           # fix ownership here, after it, rather than patching the (correct) plugin behavior.
+          # The first wp-admin page load of a fresh install runs WordPress's core, plugin and
+          # theme update checks synchronously (_maybe_update_* on admin_init), several calls
+          # to api.wordpress.org. On a slow network that made the first test of a shard miss
+          # the 15s post-login wait in loginToWpAdmin. Running them here fills the transients
+          # they cache into, so the browser login no longer pays for them.
+          docker exec "$CONTAINER" wp eval 'wp_version_check(); wp_update_plugins(); wp_update_themes();' --allow-root || true
           docker exec "$CONTAINER" chown -R www-data:www-data /var/www/html/wp-content
 
       - name: Extract app password
@@ -161,8 +177,11 @@ jobs:
           TOKEN=$(jq -r '.projects[.currentProject.id].environments.local.token' "${XDG_CONFIG_HOME:-$HOME/.config}/loopress/config.json")
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
 
+      # Bounded by the retries above (3 x 2 min), so the step's own timeout is only a backstop.
+      # The log is printed before failing, also when the loop gives up, so a stall can be
+      # told apart from a failed download.
       - name: Wait for Playwright browsers
-        timeout-minutes: 3
+        timeout-minutes: 7
         run: |
           while [ ! -f "$RUNNER_TEMP/playwright-install.exit" ]; do sleep 1; done
           cat "$RUNNER_TEMP/playwright-install.log"
