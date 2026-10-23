@@ -381,4 +381,51 @@ describe('validateLocal', () => {
 
     await expect(validateLocal(dir)).rejects.toThrow()
   })
+
+  it('counts one check per file in every declared, page and template directory', async () => {
+    write('options/blogname.json', JSON.stringify({autoload: 'on', name: 'blogname', value: 'Acme'}))
+    write('cpt/book.json', '{}')
+    write('taxonomies/genre.json', '{}')
+    write('meta/book.json', '{}')
+    write('roles/client.json', JSON.stringify({name: 'Client'}))
+    write('patterns/hero.html', '<p>Hi</p>')
+    write('pages/about.html', '<p>About</p>')
+    write('theme/templates/single.html', '<p/>')
+    write('theme/parts/header.html', '<p/>')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([])
+    // loopress.json, then one per file above.
+    expect(result.checked).toBe(10)
+  })
+
+  it('counts and reports the problems of pages, templates and patterns', async () => {
+    write('pages/notes.txt', 'x')
+    write('theme/templates/notes.txt', 'x')
+    write('patterns/Hero.html', '<p>Hi</p>')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([
+      {file: join(dir, 'patterns', 'Hero.html'), message: 'the file name must be 1 to 100 lowercase letters, digits, "_" or "-"'},
+      expect.objectContaining({file: join(dir, 'pages', 'notes.txt')}),
+      expect.objectContaining({file: join(dir, 'theme', 'templates', 'notes.txt')}),
+    ])
+    expect(result.checked).toBe(4)
+  })
+
+  it.each([[null], [{version: 5}], [{active: 'yes', version: '1.0'}], [{active: true}], [[]]])('flags the plugin pin %j', async (pin) => {
+    write('loopress.json', JSON.stringify({plugins: {woo: pin}}))
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([{file: 'loopress.json', message: 'plugin "woo" must map to a version string or {version, active}'}])
+  })
+
+  it('accepts a pin without active', async () => {
+    write('loopress.json', JSON.stringify({plugins: {woo: {version: '1.0'}}}))
+
+    expect((await validateLocal(dir)).problems).toEqual([])
+  })
 })

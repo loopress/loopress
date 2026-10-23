@@ -120,5 +120,44 @@ describe('option pull', () => {
 
       expect(get).not.toHaveBeenCalled()
     })
+
+    it('refreshes what exists, drops what does not, warns about a broken file and logs every step', async () => {
+      writeFileSync(join(dir, 'blogname.json'), JSON.stringify({autoload: 'yes', name: 'blogname', readonly: true, value: 'Old'}))
+      writeFileSync(join(dir, 'ghost.json'), JSON.stringify({autoload: 'yes', name: 'ghost', value: 'x'}))
+      writeFileSync(join(dir, 'broken.json'), '{nope')
+      const {cmd, internals, logs} = makeCmd([dir])
+      internals.wpClient = {
+        get: vi.fn(async (path: string) => {
+          if (path.includes('ghost')) throw notFound()
+          return {autoload: 'no', name: 'blogname', value: 'New'}
+        }),
+      }
+
+      const result = await cmd.run()
+
+      expect(result).toEqual([{autoload: 'no', name: 'blogname', readonly: true, value: 'New'}])
+      expect(readFileSync(join(dir, 'blogname.json'), 'utf8')).toBe(
+        '{\n  "autoload": "no",\n  "name": "blogname",\n  "value": "New",\n  "readonly": true\n}\n',
+      )
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('broken.json'))
+      expect(logs.log).toHaveBeenCalledWith('Pulling tracked options from https://staging.acme.com')
+      expect(logs.log).toHaveBeenCalledWith(`Options path: ${dir}`)
+      expect(logs.log).toHaveBeenCalledWith('Pulled: blogname')
+      expect(logs.log).not.toHaveBeenCalledWith('Pulled: ghost')
+      expect(logs.log).toHaveBeenCalledWith('Pulled 1 option')
+    })
+
+    it('lists what it would refresh on a dry run', async () => {
+      writeFileSync(join(dir, 'blogname.json'), JSON.stringify({autoload: 'yes', name: 'blogname', value: 'Old'}))
+      writeFileSync(join(dir, 'home.json'), JSON.stringify({autoload: 'yes', name: 'home', value: 'x'}))
+      const {cmd, internals, logs} = makeCmd([dir])
+      internals.dryRun = true
+      internals.wpClient = {get: vi.fn()}
+
+      const result = await cmd.run()
+
+      expect(result.map((option) => option.name)).toEqual(['blogname', 'home'])
+      expect(logs.log).toHaveBeenCalledWith('[dry-run] Would refresh 2 options: blogname, home')
+    })
   })
 })

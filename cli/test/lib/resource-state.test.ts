@@ -661,3 +661,60 @@ describe('composer state', () => {
     await expect(composerLocalState(dir)).rejects.toThrow()
   })
 })
+
+describe('template and part providers', () => {
+  let dir: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'lps-resource-state-templates-'))
+  })
+
+  afterEach(() => {
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  const childTheme = {
+    customized: ['templates/single', 'parts/footer', 'templates/archive'],
+    parts: [{area: 'header', html: '<p/>', slug: 'header', title: 'Header'}],
+    templates: [{html: '<p/>', slug: 'single', title: 'Single'}],
+  }
+
+  it('marks the templates edited in the Site Editor as customized, only for their own kind', async () => {
+    const state = await provider('template').remote(fakeWp({'loopress/v1/child-theme': childTheme}), noWarn, dir)
+
+    expect(Object.fromEntries(state)).toEqual({
+      archive: {siteEditor: 'customized'},
+      single: {html: '<p/>', siteEditor: 'customized', title: 'Single'},
+    })
+  })
+
+  it('reads the parts the same way', async () => {
+    const state = await provider('part').remote(fakeWp({'loopress/v1/child-theme': childTheme}), noWarn, dir)
+
+    expect(Object.fromEntries(state)).toEqual({
+      footer: {siteEditor: 'customized'},
+      header: {area: 'header', html: '<p/>', title: 'Header'},
+    })
+  })
+
+  it('reads local templates and parts keyed by slug', async () => {
+    writeFileSync(join(dir, 'single.html'), '<!--\ntitle: Single\n-->\n<p/>')
+    writeFileSync(join(dir, 'header.html'), '<p/>')
+
+    expect(Object.fromEntries(await provider('template').local(dir, noWarn))).toEqual({
+      header: {html: '<p/>'},
+      single: {html: '<p/>', title: 'Single'},
+    })
+    expect(Object.fromEntries(await provider('part').local(dir, noWarn))).toEqual({
+      header: {area: 'header', html: '<p/>', title: 'Header'},
+      single: {area: 'uncategorized', html: '<p/>', title: 'Single'},
+    })
+  })
+
+  it('refuses a local folder with a stray file', async () => {
+    writeFileSync(join(dir, 'notes.txt'), 'x')
+
+    await expect(provider('template').local(dir, noWarn)).rejects.toThrow('notes.txt')
+    await expect(provider('part').local(dir, noWarn)).rejects.toThrow('notes.txt')
+  })
+})

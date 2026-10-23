@@ -1,3 +1,6 @@
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {describe, expect, it} from 'vitest'
 
 import {type WpClient} from '../../src/lib/wp-client.js'
@@ -6,6 +9,7 @@ import {
   getActiveThemeGlobalStyles,
   getUserGlobalStylesId,
   globalStylesEndpoint,
+  globalStylesFiles,
   isBlockTheme,
   themeStylesFileName,
   type WpThemeSupportInfo,
@@ -126,6 +130,24 @@ describe('theme-styles-format', () => {
       expect(canonicalGlobalStyles(file)).toEqual(canonicalGlobalStyles(stored))
     })
 
+    it('converts presets and references inside arrays, keeping scalars as they are', () => {
+      expect(
+        canonicalGlobalStyles({
+          settings: {list: [{palette: {custom: [{color: 'var:preset|color|base'}]}}, 3, null, true]},
+          styles: {blocks: [{color: 'var:preset|color|base'}, 'plain', 0, null, false]},
+        }),
+      ).toEqual({
+        settings: {list: [{palette: [{color: 'var(--wp--preset--color--base)'}]}, 3, null, true]},
+        styles: {blocks: [{color: 'var(--wp--preset--color--base)'}, 'plain', 0, null, false]},
+      })
+    })
+
+    it('unwraps only a preset key whose custom origin is a list', () => {
+      expect(
+        canonicalGlobalStyles({settings: {color: {gradients: {custom: 'x'}, palette: null, text: {custom: []}}, fontSizes: ['a']}}).settings,
+      ).toEqual({color: {gradients: {custom: 'x'}, palette: null, text: {custom: []}}, fontSizes: ['a']})
+    })
+
     it('keeps a preset object that holds more than the custom origin', () => {
       const palette = {custom: [], theme: []}
       expect(canonicalGlobalStyles({settings: {color: {palette}}}).settings).toEqual({color: {palette}})
@@ -171,6 +193,21 @@ describe('theme-styles-format', () => {
 
     it('defaults only a null or missing value, keeping any other falsy one', () => {
       expect(canonicalGlobalStyles({settings: null, styles: 0})).toEqual({settings: {}, styles: 0})
+    })
+  })
+
+  describe('globalStylesFiles', () => {
+    it('lists only the Global Styles files of a folder, none when it is missing', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'lps-global-styles-'))
+      try {
+        writeFileSync(join(dir, 'tt4-global-styles.json'), '{}')
+        writeFileSync(join(dir, 'notes.json'), '{}')
+
+        expect(await globalStylesFiles(dir)).toEqual(['tt4-global-styles.json'])
+        expect(await globalStylesFiles(join(dir, 'missing'))).toEqual([])
+      } finally {
+        rmSync(dir, {force: true, recursive: true})
+      }
     })
   })
 })

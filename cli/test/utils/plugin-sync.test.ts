@@ -44,4 +44,12 @@ describe('isDowngrade', () => {
   ])('%s to %s is %s', (from, to, expected) => {
     expect(isDowngrade(from, to)).toBe(expected)
   })
+
+  it('reads a collisions body that is not JSON as no collisions', () => {
+    expect(parseCollisions({cause: {response: {body: 'oops', statusCode: 422}}})).toBeNull()
+  })
+
+  it('treats an unorderable version as no downgrade', () => {
+    expect(isDowngrade('1.0', 'latest')).toBe(false)
+  })
 })

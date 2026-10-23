@@ -373,4 +373,90 @@ describe('plugin audit', () => {
 
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('2 vulnerability advisories,'))
   })
+
+  it.each([
+    ['2.0.0', {min_operator: 'ge', min_version: '2.0.0'}, true],
+    ['1.9.0', {min_operator: 'ge', min_version: '2.0.0'}, false],
+    ['2.0.0', {min_operator: 'gt', min_version: '2.0.0'}, false],
+    ['2.1.0', {min_operator: 'gt', min_version: '2.0.0'}, true],
+    ['3.0.0', {max_operator: 'le', max_version: '3.0.0'}, true],
+    ['3.1.0', {max_operator: 'le', max_version: '3.0.0'}, false],
+    ['3.0.0', {max_operator: 'lt', max_version: '3.0.0'}, false],
+    ['2.9.0', {max_operator: 'lt', max_version: '3.0.0'}, true],
+    ['3.0.0', {max_operator: 'eq', max_version: '3.0.0'}, true],
+    ['2.9.0', {max_operator: 'eq', max_version: '3.0.0'}, false],
+    ['9.0.0', {max_operator: 'ne', max_version: '3.0.0'}, true],
+    ['9.0.0', {max_operator: 'lt', max_version: ''}, true],
+    ['9.0.0', {max_operator: 5, max_version: '3.0.0'}, true],
+    ['2.5.0', {max_operator: 'lt', max_version: '3.0.0', min_operator: 'ge', min_version: '2.0.0'}, true],
+    ['3.5.0', {max_operator: 'lt', max_version: '3.0.0', min_operator: 'ge', min_version: '2.0.0'}, false],
+  ])('pinned to %s, an advisory with bounds %j affects it: %s', async (pinned, operator, affected) => {
+    mockGot({vuln: () => ({data: {vulnerability: [{name: 'Bug', operator}]}}), wporg: null})
+    const {cmd} = make({plugins: {x: pinned}})
+    vi.spyOn(cmd, 'jsonEnabled').mockReturnValue(true)
+
+    const result = await cmd.run()
+
+    expect(result.advisories.length > 0).toBe(affected)
+    process.exitCode = undefined
+  })
+
+  it('asks WordPress.org about the slug, and both services with a timeout', async () => {
+    mockGot({vuln: () => ({data: {vulnerability: []}}), wporg: {}})
+    const {cmd} = make({plugins: {'my plugin': '1.0.0'}})
+
+    await cmd.run()
+
+    expect(gotFn).toHaveBeenCalledWith('https://api.wordpress.org/plugins/info/1.2/', {
+      searchParams: {action: 'plugin_information', 'request[slug]': 'my plugin'},
+      timeout: {request: 10_000},
+    })
+    expect(gotFn).toHaveBeenCalledWith('https://www.wpvulnerability.net/plugin/my%20plugin/', {timeout: {request: 10_000}})
+  })
+
+  it('reads a vulnerability answer without data as no advisories', async () => {
+    mockGot({vuln: () => null, wporg: null})
+    const {cmd} = make({plugins: {x: '1.0.0'}})
+
+    expect((await cmd.run()).status).toBe('clean')
+  })
+
+  it('prints an advisory without details as its title alone, and every health note', async () => {
+    mockGot({
+      vuln: () => ({data: {vulnerability: [{name: 'Bug', source: [{}, {id: 'GHSA-1'}]}]}}),
+      wporg: {closed: true, last_updated: '2015-03-04T10:00:00.000Z', requires_php: '', version: '2.0.0'},
+    })
+    const {cmd, logs} = make({plugins: {x: '1.0.0'}})
+
+    await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+    expect(logs.log.mock.calls.map(([line]) => line)).toEqual([
+      '  ⚠ x: Bug',
+      '  · x: removed from the WordPress.org directory',
+      '  · x: pinned to 1.0.0, latest is 2.0.0',
+      '  · x: last updated 2015-03-04 (possibly abandoned)',
+      '\n1 vulnerability advisory, 3 health note(s). Vulnerability data: wpvulnerability.net.',
+    ])
+  })
+
+  it('ignores health fields of the wrong type', async () => {
+    mockGot({vuln: () => ({data: {vulnerability: []}}), wporg: {last_updated: 5, requires_php: 8, version: 2}})
+    const {cmd} = make({plugins: {x: '1.0.0'}})
+
+    expect(await cmd.run()).toEqual({advisories: [], health: [], status: 'clean'})
+  })
+
+  it('explains an unreachable vulnerability database', async () => {
+    gotFn.mockImplementation((url: string) => ({
+      async json() {
+        if (url.includes('wpvulnerability')) throw new Error('ETIMEDOUT')
+        return {}
+      },
+    }))
+    const {cmd} = make({plugins: {x: '1.0.0'}})
+
+    await expect(cmd.run()).rejects.toThrow(
+      'Could not reach the vulnerability database (wpvulnerability.net) for "x": ETIMEDOUT. Audit aborted so a service outage is not reported as a clean result.',
+    )
+  })
 })

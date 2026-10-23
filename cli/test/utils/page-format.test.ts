@@ -213,4 +213,8 @@ describe('readLocalPages exact problems', () => {
 
     await expect(readLocalPages(join(dir, 'file'))).rejects.toThrow(/ENOTDIR/)
   })
+
+  it('drops repeated dashes from a title', () => {
+    expect(titleFromSlug('legal--notice-')).toBe('Legal notice')
+  })
 })

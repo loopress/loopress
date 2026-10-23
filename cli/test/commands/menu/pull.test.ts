@@ -110,5 +110,36 @@ describe('menu pull', () => {
       expect(existsSync(join(dir, 'menus', 'menu-locations.json'))).toBe(false)
       expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('[dry-run]'))
     })
+
+    it('logs every step, returns the path and keeps an existing menu-locations.json out of the orphans', async () => {
+      mkdirSync(join(dir, 'menus'), {recursive: true})
+      writeFileSync(join(dir, 'menus', 'menu-locations.json'), '{}')
+      const {cmd, logs} = makeRunCmd(['--yes'])
+      const path = join(dir, 'menus')
+
+      expect(await cmd.run()).toEqual({path, status: 'success'})
+
+      expect(readFileSync(join(path, 'main.json'), 'utf8')).toBe('{\n  "items": [],\n  "name": "Main Menu",\n  "slug": "main"\n}\n')
+      expect(readFileSync(join(path, 'menu-locations.json'), 'utf8')).toBe('{\n  "primary": "main"\n}\n')
+      expect(logs.log.mock.calls.map(([line]) => line)).toEqual([
+        'Pulling nav menus from https://acme.com',
+        `Menus path: ${path}`,
+        `Pulled 1 menu(s) to ${path}`,
+        `Pulled locations to ${join(path, 'menu-locations.json')}`,
+      ])
+    })
+
+    it('says what it would pull on a dry run, without the server warnings', async () => {
+      const {cmd, get, logs} = makeRunCmd()
+      get.mockImplementation(async (path: string) => (path === 'loopress/v1/menus' ? [{...menu, warnings: ['broken link']}] : {}))
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = true
+      const path = join(dir, 'menus')
+
+      expect(await cmd.run()).toEqual({path, status: 'dry-run'})
+
+      expect(logs.log).toHaveBeenCalledWith(`[dry-run] Would pull 1 menu(s) to ${path}`)
+      expect(logs.log).toHaveBeenCalledWith(`[dry-run] Would pull locations to ${join(path, 'menu-locations.json')}`)
+      expect(logs.warn).not.toHaveBeenCalled()
+    })
   })
 })

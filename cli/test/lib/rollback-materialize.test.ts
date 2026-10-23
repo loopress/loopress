@@ -1,4 +1,4 @@
-import {mkdtempSync, rmSync} from 'node:fs'
+import {mkdtempSync, readdirSync, readFileSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
@@ -99,7 +99,6 @@ describe('rollback-materialize', () => {
   it('protects a known-dangerous option (siteurl) by default even though the snapshot has no readonly flag', async () => {
     await materializeSnapshot('option', {siteurl: {autoload: 'yes', value: 'https://example.com'}}, dir)
 
-    const {readFileSync} = await import('node:fs')
     const local = JSON.parse(readFileSync(join(dir, 'siteurl.json'), 'utf8')) as {readonly?: boolean}
 
     expect(local.readonly).toBe(true)
@@ -109,6 +108,35 @@ describe('rollback-materialize', () => {
     const state = {'twentytwentyfour': {settings: {color: {}}, styles: {}}}
 
     expect(await roundTrip('theme-styles', state)).toEqual(state)
+  })
+
+  it.each([
+    ['cpt', {book: {public: true}}],
+    ['taxonomy', {genre: {object_type: ['book']}}],
+    ['meta', {book: {isbn: {type: 'string'}}}],
+    ['role', {client: {capabilities: {read: true}, name: 'Client'}}],
+    ['pattern', {hero: {content: '<p>Hi</p>', title: 'Hero'}}],
+  ])('round-trips a %s', async (resource, state) => {
+    expect(await roundTrip(resource, state)).toEqual(state)
+  })
+
+  it('names a form without its own id or title after the snapshot id', async () => {
+    await materializeSnapshot('form', {42: {settings: {}}}, dir)
+
+    expect(readdirSync(dir)).toEqual(['42-untitled.json'])
+    expect(readFileSync(join(dir, '42-untitled.json'), 'utf8')).toBe('{\n  "settings": {}\n}\n')
+  })
+
+  it('names an ACF object without a key after the snapshot id', async () => {
+    await materializeSnapshot('acf', {'field-groups/group_x': {title: 'X'}}, dir)
+
+    expect(readdirSync(join(dir, 'field-groups'))).toEqual(['group_x.json'])
+  })
+
+  it('names a menu without a slug after the snapshot id', async () => {
+    await materializeSnapshot('menu', {'menu/main': {items: []}}, dir)
+
+    expect(readdirSync(dir)).toEqual(['main.json'])
   })
 
   it('rejects an unsupported resource', async () => {

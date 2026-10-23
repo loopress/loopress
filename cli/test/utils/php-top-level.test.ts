@@ -79,6 +79,54 @@ final class Card
     expect(firstTopLevelSideEffect(file(body))).toBe(found)
   })
 
+  // The lexer must skip strings, heredocs and comments whole, or a brace or keyword in them
+  // would shift the brace depth.
+  it.each([
+    ['a top-level call', '<?php\nfoo();', 'foo'],
+    ['a bare block right after the opening tag', '<?php\n{ exit; }', '{'],
+    ['a single-quoted string statement', "'x';", 'a string'],
+    ['a double-quoted string statement', '"x";', 'a string'],
+    ['a backtick command', '`ls`;', '`'],
+    ['a heredoc statement', '<<<EOT\n}\nEOT;\nclass A {}', 'a string'],
+    ['an expression in parentheses', '(function () {})();', '('],
+    ['a call after an escaped quote in a string', 'class A { const X = "a\\"{"; }\nfoo();', 'foo'],
+    ['a call after an escaped quote in a single-quoted string', "class A { const X = 'a\\'{'; }\nfoo();", 'foo'],
+    ['a call after a string holding braces', 'class A { const X = "{x{"; }\nfoo();', 'foo'],
+    ['a call after an empty heredoc', 'class A { const X = <<<EOT\nEOT;\n}\nfoo();', 'foo'],
+    ['a call before a later heredoc', 'class A { function f() { return 1 <<<2; } }\nfoo(); $x = <<<EOT\nx\nEOT;', 'foo'],
+    ['inline HTML between two tags', 'class A {}\n?>hi\n<?php\nclass B {}', 'inline HTML after ?>'],
+    ['a call after a heredoc holding a brace', 'class A { const X = <<<EOT\n{\nEOT;\n}\nfoo();', 'foo'],
+    ['a call after a nowdoc with an indented closing identifier', "class A { const X = <<<'EOT'\n  {\n  EOT;\n}\nfoo();", 'foo'],
+    ['a call after a quoted heredoc label with spaces', 'class A { const X = <<< "EOT"\n{\nEOT;\n}\nfoo();', 'foo'],
+    ['a call after a heredoc whose label prefixes a line', 'class A { const X = <<<EOT\nEOTX }\nEOT;\n}\nfoo();', 'foo'],
+    ['a call after a line comment', '// a comment {\nfoo();', 'foo'],
+    ['a call after a hash comment', '# a comment {\nfoo();', 'foo'],
+    ['a call after a block comment', '/* a } comment */ foo();', 'foo'],
+    ['a call hidden behind a fake block comment end', '/*/ foo(); */\nbar();', 'bar'],
+    ['a call after a comment opening an array', 'class A { const X = [# {\n]; }\nfoo();', 'foo'],
+    ['a call after an attributed function on the same line', '#[Attr] function f() {} bar();', 'bar'],
+    ['a call after a closing tag that opens again', 'class A {}\n?><?php\nfoo();', 'foo'],
+    ['a call after a closing tag ending a statement', 'const X = 1 ?>\n<?php\nfoo();', 'foo'],
+    ['a bare block in a bracketed namespace', 'namespace App {\n    { foo(); }\n}', '{'],
+    ['two newlines after a closing tag', 'class A {}\n?>\n\n', 'inline HTML after ?>'],
+    ['a stray closing brace', '} foo();', 'foo'],
+  ])('flags %s', (_, body, found) => {
+    const content = body.startsWith('<?php') ? body : file(body)
+    expect(firstTopLevelSideEffect(content)).toBe(found)
+  })
+
+  it.each([
+    ['a trailing line comment without a newline', 'class A {} // the end'],
+    ['an unterminated block comment', 'class A {} /* open'],
+    ['an unterminated string', "class A { const X = 'open"],
+    ['an unterminated heredoc', 'class A { const X = <<<EOT\n}\nfoo();'],
+    ['a closing tag right before reopening', 'class A {}\n?>\n<?php\nclass B {}'],
+    ['a closing tag with a CRLF', 'class A {}\n?>\r\n'],
+    ['a shift operator in a method', 'class A { function f() { return 1 <<<2; } }'],
+  ])('accepts %s', (_, body) => {
+    expect(firstTopLevelSideEffect(file(body))).toBeNull()
+  })
+
   it('flags inline HTML before the opening tag', () => {
     expect(firstTopLevelSideEffect('\n<?php\nclass A {}')).toBe('inline HTML before <?php')
   })
@@ -89,6 +137,10 @@ final class Card
     ['<?php\nclass A {}\ndeclare(strict_types=1);', false],
     ['<?php\n// declare(strict_types=1);\nclass A {}', false],
     ["<?php\nclass A { const D = 'declare(strict_types=1);'; }", false],
+    ['declare(strict_types=1);', false],
+    ['#####declare(strict_types=1);', false],
+    ['\n<?php\ndeclare(strict_types=1);', false],
+    ['<?php\ndeclare(strict_types=1)', false],
   ])('startsWithStrictTypes(%j) is %s', (content, expected) => {
     expect(startsWithStrictTypes(content)).toBe(expected)
   })
