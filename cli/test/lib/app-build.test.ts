@@ -40,6 +40,10 @@ describe('app-build', () => {
     it('falls back to npm at the repository root', () => {
       expect(detectPackageManager(dir)).toBe('npm')
     })
+
+    it('falls back to npm at the filesystem root', () => {
+      expect(detectPackageManager('/')).toBe('npm')
+    })
   })
 
   describe('buildApp', () => {
@@ -59,6 +63,11 @@ describe('app-build', () => {
       expect(await buildApp(dir)).toBeUndefined()
     })
 
+    it('does nothing without any script', async () => {
+      writeFileSync(join(dir, 'package.json'), '{}')
+      expect(await buildApp(dir)).toBeUndefined()
+    })
+
     it('runs the build script in the app directory', async () => {
       writePackage({build: 'node -e "require(\'fs\').writeFileSync(\'built\', \'\')"'})
 
@@ -70,6 +79,29 @@ describe('app-build', () => {
       writePackage({build: 'node -e "console.error(\'boom\'); process.exit(3)"'})
 
       await expect(buildApp(dir)).rejects.toThrow(/`npm run build` failed[\s\S]*boom[\s\S]*run `npm install`/)
+    }, SPAWN_TIMEOUT_MS)
+
+    it('keeps only the last 20 lines of stdout and stderr, without the install hint once installed', async () => {
+      mkdirSync(join(dir, 'node_modules'))
+      writePackage({
+        build: 'node -e "for (let i = 1; i <= 30; i++) console.log(\'line \' + i); console.error(\'err-line\'); process.exit(3)"',
+      })
+      const started: string[] = []
+
+      const error = await buildApp(dir, (command) => {
+        started.push(command)
+      }).catch((error_: unknown) => error_ as Error)
+
+      expect(started).toEqual(['npm run build'])
+      expect(error).toBeInstanceOf(Error)
+      const {message} = error as Error
+      expect(message.startsWith('`npm run build` failed (exit code 3):\n')).toBe(true)
+      expect(message).toContain('line 30')
+      expect(message).toContain('err-line')
+      expect(message).not.toContain('line 1\n')
+      expect(message).not.toContain('line 10\n')
+      expect(message.split('\n')).toHaveLength(21)
+      expect(message).not.toContain('node_modules is missing')
     }, SPAWN_TIMEOUT_MS)
   })
 })
