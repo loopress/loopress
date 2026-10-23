@@ -170,12 +170,6 @@ jobs:
           # already chowned wp-content once before this step. This is the last root-run command
           # before Playwright starts sending real HTTP traffic, served by Apache as www-data, so
           # fix ownership here, after it, rather than patching the (correct) plugin behavior.
-          # The first wp-admin page load of a fresh install runs WordPress's core, plugin and
-          # theme update checks synchronously (_maybe_update_* on admin_init), several calls
-          # to api.wordpress.org. On a slow network that made the first test of a shard miss
-          # the 15s post-login wait in loginToWpAdmin. Running them here fills the transients
-          # they cache into, so the browser login no longer pays for them.
-          docker exec "$CONTAINER" wp eval 'wp_version_check(); wp_update_plugins(); wp_update_themes();' --allow-root || true
           docker exec "$CONTAINER" chown -R www-data:www-data /var/www/html/wp-content
 
       - name: Extract app password
