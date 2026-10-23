@@ -296,9 +296,9 @@ describe('declared type commands', () => {
       writeFileSync(join(dir, 'book.json'), '{}')
       const post = vi.fn()
       const {cmd, seams} = makePush([dir], {dryRun: true, post})
-      seams.captureBeforePushState.mockImplementation(() => {
+      seams.captureBeforePushState = vi.fn(async () => {
         seams.previewChanges = [{id: 'book', status: 'created'}]
-        return Promise.resolve(new Map())
+        return new Map()
       })
 
       expect(await cmd.run()).toEqual({changes: [{id: 'book', status: 'created'}], path: dir, pushed: ['book'], status: 'dry-run'})
