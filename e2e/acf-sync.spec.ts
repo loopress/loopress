@@ -194,9 +194,12 @@ test('a hand-written field group reads as in sync right after its push', async (
 
   // The shared instance holds other specs' groups too: only this one's status matters.
   const result = await runCli(['diff', '--only', 'acf', '--json'])
-  const report = JSON.parse(result.stdout) as {resources: {acf: {changed: Array<{id: string}>}}}
+  const report = JSON.parse(result.stdout) as {resources: {acf: {changed: Array<{id: string; patch: string}>; error?: string}}}
+  const change = report.resources.acf.changed.find((item) => item.id === `field-groups/${key}`)
 
-  expect(report.resources.acf.changed.map((change) => change.id)).not.toContain(`field-groups/${key}`)
+  // An empty `changed` proves nothing if the comparison itself failed.
+  expect(report.resources.acf.error).toBeUndefined()
+  expect(change?.patch).toBeUndefined()
 })
 
 test.describe('ACF plugin inactive', () => {

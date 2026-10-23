@@ -110,11 +110,16 @@ describe('theme-styles-format', () => {
     it('reads a file and the form WordPress stores it in as the same', () => {
       const palette = [{color: '#FBF6EE', name: 'Cream', slug: 'base'}]
       const file = {
-        settings: {blocks: {'core/button': {color: {palette}}}, color: {palette}},
+        settings: {blocks: {'core/button': {color: {palette}}}, border: {radiusSizes: [{name: 'S', size: '2px', slug: 's'}]}, color: {palette}, custom: {accent: 'var:preset|color|base'}},
         styles: {color: {background: 'var:preset|color|base'}, elements: {link: {color: {text: 'var:preset|color|accent-1'}}}},
       }
       const stored = {
-        settings: {blocks: {'core/button': {color: {palette: {custom: palette}}}}, color: {palette: {custom: palette}}},
+        settings: {
+          blocks: {'core/button': {color: {palette: {custom: palette}}}},
+          border: {radiusSizes: {custom: [{name: 'S', size: '2px', slug: 's'}]}},
+          color: {palette: {custom: palette}},
+          custom: {accent: 'var(--wp--preset--color--base)'},
+        },
         styles: {color: {background: 'var(--wp--preset--color--base)'}, elements: {link: {color: {text: 'var(--wp--preset--color--accent-1)'}}}},
       }
 

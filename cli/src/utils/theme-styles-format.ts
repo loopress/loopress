@@ -114,10 +114,10 @@ export type GlobalStylesRecord = {
 // - a preset list (`palette: [...]`) is keyed by its origin, `palette: {custom: [...]}`, and
 // - a `var:preset|color|base` reference becomes `var(--wp--preset--color--base)`.
 export function canonicalGlobalStyles(record: {settings?: unknown; styles?: unknown}): Record<string, unknown> {
-  return {settings: unwrapPresets(record.settings ?? {}), styles: expandVarReferences(record.styles ?? {})}
+  return {settings: expandVarReferences(unwrapPresets(record.settings ?? {})), styles: expandVarReferences(record.styles ?? {})}
 }
 
-const PRESET_KEYS = new Set(['aspectRatios', 'duotone', 'fontFamilies', 'fontSizes', 'gradients', 'palette', 'presets', 'spacingSizes'])
+const PRESET_KEYS = new Set(['aspectRatios', 'duotone', 'fontFamilies', 'fontSizes', 'gradients', 'palette', 'presets', 'radiusSizes', 'spacingSizes'])
 
 function unwrapPresets(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return value

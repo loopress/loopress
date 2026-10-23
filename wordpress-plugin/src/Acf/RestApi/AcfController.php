@@ -143,7 +143,8 @@ class AcfController
         }
 
         $objects = $request->get_json_params()['objects'] ?? null;
-        if (!is_array($objects) || !array_is_list($objects) || array_filter($objects, 'is_array') !== $objects) {
+        // Not array_is_list(): Plugin Check reads it as WP 6.5+, Light supports 6.2.
+        if (!is_array($objects) || array_values($objects) !== $objects || array_filter($objects, 'is_array') !== $objects) {
             return new WP_REST_Response(['error' => 'Request body must be {"objects": [...]}, a list of ACF objects.'], 400);
         }
 

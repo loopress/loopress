@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Acf\Service;
 
 use Brain\Monkey;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\Service\AcfService;
@@ -357,12 +358,28 @@ class AcfServiceTest extends TestCase
 
     // ── normalize ─────────────────────────────────────────────────────────────
 
+    // ACF's internal post type instance: validate_post() fills a group default, `hook_name`
+    // names its save and load filters.
+    private function stubAcfRoundTrip(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(new class() {
+            public string $hook_name = 'field_group';
+
+            /** @param array<string, mixed> $post @return array<string, mixed> */
+            public function validate_post(array $post): array
+            {
+                return $post + ['active' => true];
+            }
+        });
+        Functions\when('acf_validate_field')->alias(fn(array $field): array => $field + ['wrapper' => ['width' => '']]);
+        Functions\when('wp_unslash')->returnArg(1);
+        Functions\when('acf_parse_types')->returnArg(1);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+    }
+
     public function test_normalize_fills_defaults_at_every_field_depth_without_saving(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
-        Functions\when('acf_validate_internal_post_type')->alias(fn(array $post): array => $post + ['active' => true]);
-        Functions\when('acf_validate_field')->alias(fn(array $field): array => $field + ['wrapper' => ['width' => '']]);
-        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+        $this->stubAcfRoundTrip();
         Functions\expect('acf_import_internal_post_type')->never();
 
         $group = [
@@ -382,12 +399,42 @@ class AcfServiceTest extends TestCase
         $this->assertSame(['width' => ''], $flex['layouts']['layout_a']['sub_fields'][0]['wrapper']);
     }
 
+    // A checkbox's update filter stores `default_value: ''` as `[]` (CI, 2026-10-23): the save
+    // filters run, and the load filters after them.
+    public function test_normalize_runs_the_save_then_load_filters(): void
+    {
+        $this->stubAcfRoundTrip();
+        Filters\expectApplied('acf/update_field')->once()->andReturnUsing(fn(array $field): array => ['default_value' => []] + $field);
+        Filters\expectApplied('acf/load_field')->once()->andReturnUsing(function (array $field): array {
+            $this->assertSame([], $field['default_value']);
+            $this->assertArrayNotHasKey('_valid', $field);
+
+            return $field + ['loaded' => true];
+        });
+        Filters\expectApplied('acf/pre_update_field_group')->once()->andReturnFirstArg();
+        Filters\expectApplied('acf/load_field_group')->once()->andReturnFirstArg();
+
+        $result = $this->service->normalize('acf-field-group', [['key' => 'group_x', 'fields' => [['key' => 'field_x', 'type' => 'checkbox', 'default_value' => '', '_valid' => 1]]]]);
+
+        $this->assertSame([], $result[0]['fields'][0]['default_value']);
+        $this->assertTrue($result[0]['fields'][0]['loaded']);
+    }
+
+    public function test_normalize_drops_empty_conditional_logic_rules_like_acf_update_field(): void
+    {
+        $this->stubAcfRoundTrip();
+        $rule  = ['field' => 'field_y', 'operator' => '==', 'value' => '1'];
+        $field = ['key' => 'field_x', 'conditional_logic' => [[], [[], $rule]]];
+
+        $result = $this->service->normalize('acf-field-group', [['key' => 'group_x', 'fields' => [$field]]]);
+
+        $this->assertSame([[$rule]], $result[0]['fields'][0]['conditional_logic']);
+    }
+
     // What upsert() would store is sanitized, so what normalize() compares must be too.
     public function test_normalize_sanitizes_like_upsert(): void
     {
-        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
-        Functions\when('acf_validate_internal_post_type')->returnArg(1);
-        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+        $this->stubAcfRoundTrip();
 
         $result = $this->service->normalize('acf-post-type', [['key' => 'post_type_x', 'title' => 'Books <script>evil()</script>']]);
 

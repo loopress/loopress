@@ -107,8 +107,8 @@ class AcfService
     }
 
     // The objects as list() would return them once pushed, without saving anything: the same
-    // sanitizing as upsert(), ACF's own defaults filled in, then the same export. A project file
-    // only holds what its author wrote (a hand- or agent-written field leaves out `wrapper`,
+    // sanitizing as upsert(), then ACF's own save and load paths, then the same export. A project
+    // file only holds what its author wrote (a hand- or agent-written field leaves out `wrapper`,
     // `aria-label`...), so the CLI compares this, not the raw file, against the site.
     /**
      * @param array<int, array<string, mixed>> $objects
@@ -117,24 +117,57 @@ class AcfService
     public function normalize(string $postType, array $objects): array
     {
         $this->requireRegisteredType($postType);
+        /** @var \ACF_Internal_Post_Type $instance not false, requireRegisteredType() refused that */
+        $instance = acf_get_internal_post_type_instance($postType);
 
-        return array_map(function (array $post) use ($postType): array {
-            $post = acf_validate_internal_post_type(SyncSanitizer::deepArray($post), $postType);
+        return array_map(function (array $post) use ($instance, $postType): array {
+            $post = SyncSanitizer::deepArray($post);
+            // ACF imports a group's fields one by one, apart from the group itself.
+            $fields = $post['fields'] ?? [];
+            $post   = $this->roundTrip(
+                $post,
+                fn(array $acfPost): array => $instance->validate_post($acfPost),
+                "acf/pre_update_{$instance->hook_name}",
+                "acf/load_{$instance->hook_name}",
+            );
             if ($postType === 'acf-field-group') {
-                $post['fields'] = $this->validateFields($post['fields'] ?? []);
+                $post['fields'] = $this->roundTripFields($fields);
             }
 
             return acf_prepare_internal_post_type_for_export($post, $postType);
         }, $objects);
     }
 
-    // acf_get_fields() validates every field it loads, sub fields included (repeater, group,
-    // flexible content layouts), so a local field gets the same treatment at every depth.
+    // What ACF's update_post()/acf_update_field() store, read back the way get_post()/
+    // acf_get_field() read it: validate, unslash, parse types, the save filter (a checkbox's
+    // `default_value: ''` becomes `[]` there), then validate again and the load filter.
+    /**
+     * @param array<string, mixed> $acfObject
+     * @param callable(array<string, mixed>): array<string, mixed> $validate
+     * @param non-empty-string $saveFilter
+     * @param non-empty-string $loadFilter
+     * @return array<string, mixed>
+     */
+    private function roundTrip(array $acfObject, callable $validate, string $saveFilter, string $loadFilter): array
+    {
+        /** @var array<string, mixed> $saved */
+        $saved = apply_filters($saveFilter, acf_parse_types(wp_unslash($validate($acfObject))));
+        unset($saved['_valid']);
+
+        /** @var array<string, mixed> */
+        return apply_filters($loadFilter, $validate($saved));
+    }
+
+    // Sub fields (repeater, group, flexible content layouts) round-trip on their own, like ACF
+    // imports them, so nothing is unslashed twice.
+    // ponytail: they keep their nesting while ACF stores them flat and rebuilds them on load; a
+    // field type whose filters reshape its sub fields may still read as drift, simulate the flat
+    // import if one does.
     /**
      * @param mixed $fields
      * @return array<int, mixed>
      */
-    private function validateFields(mixed $fields): array
+    private function roundTripFields(mixed $fields): array
     {
         if (!is_array($fields)) {
             return [];
@@ -145,15 +178,25 @@ class AcfService
                 return $field;
             }
 
-            $field = acf_validate_field($field);
-            if (isset($field['sub_fields'])) {
-                $field['sub_fields'] = $this->validateFields($field['sub_fields']);
+            // acf_update_field() drops empty conditional logic rules inline, not through a filter.
+            if (is_array($field['conditional_logic'] ?? null)) {
+                $field['conditional_logic'] = array_values(array_map(
+                    fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules)) : $rules,
+                    array_filter($field['conditional_logic']),
+                ));
             }
 
-            if (is_array($field['layouts'] ?? null)) {
-                foreach ($field['layouts'] as $name => $layout) {
+            $subFields = $field['sub_fields'] ?? null;
+            $layouts   = $field['layouts'] ?? null;
+            $field     = $this->roundTrip($field, 'acf_validate_field', 'acf/update_field', 'acf/load_field');
+            if ($subFields !== null) {
+                $field['sub_fields'] = $this->roundTripFields($subFields);
+            }
+
+            if (is_array($layouts)) {
+                foreach ($layouts as $name => $layout) {
                     if (is_array($layout) && isset($layout['sub_fields'])) {
-                        $field['layouts'][$name]['sub_fields'] = $this->validateFields($layout['sub_fields']);
+                        $field['layouts'][$name]['sub_fields'] = $this->roundTripFields($layout['sub_fields']);
                     }
                 }
             }
