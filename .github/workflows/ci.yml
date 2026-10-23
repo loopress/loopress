@@ -107,18 +107,25 @@ jobs:
       # Runs in the background so it overlaps the plugin build and WordPress startup below,
       # awaited by "Wait for Playwright browsers". setup-ci's own apt-get runs inside the
       # WordPress container, so it doesn't fight this one over the host's apt lock.
-      # An install usually takes under 90s, but now and then one stalls (apt or the browser
-      # download) and never finishes, which used to time out the wait step with no log at
-      # all. Each attempt is capped at 2 min and retried, so a stall costs one attempt
-      # instead of the whole shard.
+      # An install usually takes under 90s, but now and then apt's package download from the
+      # runner's mirror stalls and never finishes, which used to time out the wait step with
+      # no log at all. apt is told to give up on a stalled connection and retry it, and each
+      # attempt is capped at 2 min on top of that. `timeout` only stops npx, not the apt-get
+      # Playwright starts through sudo, which would keep the dpkg lock and fail every later
+      # attempt, so a timed-out attempt also stops apt-get and lets dpkg finish what it had.
       - name: Install Playwright browsers (background)
         run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
           (status=1
            for attempt in 1 2 3; do
              echo "::group::playwright install, attempt $attempt"
              timeout 120 npx playwright install --with-deps chromium && status=0
              echo "::endgroup::"
              [ "$status" = 0 ] && break
+             sudo pkill -x apt-get || true
+             sleep 2
+             sudo dpkg --configure -a || true
            done > "$RUNNER_TEMP/playwright-install.log" 2>&1
            echo $status > "$RUNNER_TEMP/playwright-install.exit") &
 
