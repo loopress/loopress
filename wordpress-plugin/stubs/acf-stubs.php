@@ -76,3 +76,23 @@ function acf_get_fields($selector)
 {
     return false;
 }
+
+/**
+ * False for an unregistered type only, which AcfService::normalize() refuses first.
+ *
+ * @param array<string, mixed> $internal_post_type
+ * @return array<string, mixed>
+ */
+function acf_validate_internal_post_type(array $internal_post_type, string $post_type_name): array
+{
+    return [];
+}
+
+/**
+ * @param array<string, mixed> $field
+ * @return array<string, mixed>
+ */
+function acf_validate_field(array $field = []): array
+{
+    return [];
+}

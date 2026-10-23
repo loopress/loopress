@@ -48,6 +48,16 @@ class AcfController
             ],
         ]);
 
+        // Read-only despite the POST: the objects travel in the body, a GET has none.
+        register_rest_route('loopress/v1', '/acf/normalize/(?P<type>field-groups|post-types|taxonomies|options-pages)', [
+            [
+                'methods'             => 'POST',
+                'callback'            => [$this, 'normalize_objects'],
+                'permission_callback' => $this->permissionCallback(),
+                'args'                => $this->typeArg(),
+            ],
+        ]);
+
         register_rest_route('loopress/v1', '/acf/(?P<type>field-groups|post-types|taxonomies|options-pages)/(?P<key>[A-Za-z0-9_-]+)', [
             [
                 'methods'             => 'GET',
@@ -123,6 +133,22 @@ class AcfController
                 200,
             ),
             self::STATUSES,
+        );
+    }
+
+    public function normalize_objects(WP_REST_Request $request): WP_REST_Response
+    {
+        if (!$this->acfService->isActive()) {
+            return new WP_REST_Response(['error' => 'ACF is not active'], 400);
+        }
+
+        $objects = $request->get_json_params()['objects'] ?? null;
+        if (!is_array($objects) || !array_is_list($objects) || array_filter($objects, 'is_array') !== $objects) {
+            return new WP_REST_Response(['error' => 'Request body must be {"objects": [...]}, a list of ACF objects.'], 400);
+        }
+
+        return $this->mapServiceExceptions(
+            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->normalize($this->postType($request), $objects), 200),
         );
     }
 

@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/acf/push.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {acfEndpoint} from '../../../src/utils/acf-format.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
@@ -215,7 +216,8 @@ describe('acf push', () => {
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
       const get = vi.fn().mockRejectedValue(notFoundError())
-      const post = vi.fn().mockResolvedValue({})
+      // Writes resolve to `{}`; ACF's normalize route, read-only, echoes the objects back.
+      const post = vi.fn(async (path: string, body: {objects?: unknown[]}) => (path.startsWith('loopress/v1/acf/normalize/') ? body.objects : {}))
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post}
       return {cmd, get, logs, post}
     }
@@ -269,7 +271,7 @@ describe('acf push', () => {
 
       await cmd.run()
 
-      expect(post).not.toHaveBeenCalled()
+      expect(post).not.toHaveBeenCalledWith(acfEndpoint('field-groups'), expect.anything())
       expect(logs.log).not.toHaveBeenCalledWith('All ACF objects pushed.')
     })
 

@@ -106,6 +106,62 @@ class AcfService
         return acf_delete_internal_post_type($key, $postType);
     }
 
+    // The objects as list() would return them once pushed, without saving anything: the same
+    // sanitizing as upsert(), ACF's own defaults filled in, then the same export. A project file
+    // only holds what its author wrote (a hand- or agent-written field leaves out `wrapper`,
+    // `aria-label`...), so the CLI compares this, not the raw file, against the site.
+    /**
+     * @param array<int, array<string, mixed>> $objects
+     * @return array<int, array<string, mixed>>
+     */
+    public function normalize(string $postType, array $objects): array
+    {
+        $this->requireRegisteredType($postType);
+
+        return array_map(function (array $post) use ($postType): array {
+            $post = acf_validate_internal_post_type(SyncSanitizer::deepArray($post), $postType);
+            if ($postType === 'acf-field-group') {
+                $post['fields'] = $this->validateFields($post['fields'] ?? []);
+            }
+
+            return acf_prepare_internal_post_type_for_export($post, $postType);
+        }, $objects);
+    }
+
+    // acf_get_fields() validates every field it loads, sub fields included (repeater, group,
+    // flexible content layouts), so a local field gets the same treatment at every depth.
+    /**
+     * @param mixed $fields
+     * @return array<int, mixed>
+     */
+    private function validateFields(mixed $fields): array
+    {
+        if (!is_array($fields)) {
+            return [];
+        }
+
+        return array_map(function (mixed $field): mixed {
+            if (!is_array($field)) {
+                return $field;
+            }
+
+            $field = acf_validate_field($field);
+            if (isset($field['sub_fields'])) {
+                $field['sub_fields'] = $this->validateFields($field['sub_fields']);
+            }
+
+            if (is_array($field['layouts'] ?? null)) {
+                foreach ($field['layouts'] as $name => $layout) {
+                    if (is_array($layout) && isset($layout['sub_fields'])) {
+                        $field['layouts'][$name]['sub_fields'] = $this->validateFields($layout['sub_fields']);
+                    }
+                }
+            }
+
+            return $field;
+        }, array_values($fields));
+    }
+
     /** @param array<string, mixed> $post @return array<string, mixed> */
     private function prepareForExport(array $post, string $postType): array
     {

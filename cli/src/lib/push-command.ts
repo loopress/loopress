@@ -74,7 +74,7 @@ export abstract class PushCommand extends LoopressCommand {
       const remote = await this.previewRemote(provider, dir)
       await this.guardOutsideEdits(provider, dir, remote, writes)
       try {
-        const local = await provider.local(dir, () => {})
+        const local = await provider.local(dir, () => {}, this.wp)
         this.previewStates = {local, remote}
         this.previewChanges = pushChanges(local, remote, {writes})
       } catch (error) {
@@ -269,7 +269,7 @@ export abstract class PushCommand extends LoopressCommand {
       const snapshot = await readSnapshot(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name)
       expected = recordToState(snapshot.afterState)
       pushedAt = snapshot.createdAt
-      local = await provider.local(dir, () => {})
+      local = await provider.local(dir, () => {}, this.wp)
     } catch {
       // No earlier push from this machine, or unreadable local files the push reports itself.
       return

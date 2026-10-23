@@ -282,6 +282,31 @@ describe('resource-state providers', () => {
       expect([...remoteState.keys()]).toEqual([])
     })
 
+    // A hand- or agent-written field leaves out the defaults the site stores for it.
+    it('compares local files as the site would store them, through its normalize route', async () => {
+      const stored = {fields: [{key: 'field_1', name: 'price', type: 'number', wrapper: {class: '', id: '', width: ''}}], key: 'group_1'}
+      const post = vi.fn(async () => [stored])
+      const wp = {...fakeWp({'loopress/v1/acf/field-groups': [stored]}), post} as unknown as WpClient
+      mkdirSync(join(dir, 'field-groups'))
+      const written = {fields: [{key: 'field_1', name: 'price', type: 'number'}], key: 'group_1'}
+      writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify(written))
+
+      const diff = compareStates(await acfProvider.remote(wp, noWarn, dir), await acfProvider.local(dir, noWarn, wp), labels)
+
+      expect(post).toHaveBeenCalledExactlyOnceWith('loopress/v1/acf/normalize/field-groups', {objects: [written]})
+      expect(isEmptyDiff(diff)).toBe(true)
+    })
+
+    it('compares local files as written when the plugin has no normalize route yet', async () => {
+      const wp = {...fakeWp({}), post: vi.fn(async () => { throw notFound() })} as unknown as WpClient
+      mkdirSync(join(dir, 'field-groups'))
+      writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', title: 'Hero'}))
+
+      const state = await acfProvider.local(dir, noWarn, wp)
+
+      expect(state.get('field-groups/group_1')).toEqual({key: 'group_1', title: 'Hero'})
+    })
+
     it('skips a local json file that is not a plain object (array, null, or scalar)', async () => {
       mkdirSync(join(dir, 'field-groups'))
       writeFileSync(join(dir, 'field-groups', 'arr.json'), '[1,2,3]')

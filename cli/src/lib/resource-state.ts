@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
-import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, acfNormalizeEndpoint, type AcfObjectType, getAcfKey} from '../utils/acf-format.js'
 import {
   CPT_SPEC,
   type DeclaredTypeSpec,
@@ -41,9 +41,12 @@ import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 // notion of "everything" (options: no bulk value listing, by design) can read the locally
 // tracked id set to know what to compare; every other provider's remote endpoint already
 // returns its full inventory and ignores this argument.
+//
+// `local` takes the site it is compared against when the files alone don't say what the site
+// would store (ACF fills in its defaults on save): that provider asks the site to normalize them.
 export type ResourceStateProvider = {
   dirKind: ResourceDirKind
-  local(dir: string, onWarn: (message: string) => void): Promise<ResourceState>
+  local(dir: string, onWarn: (message: string) => void, wp?: WpClient): Promise<ResourceState>
   remote(wp: WpClient, onWarn: (message: string) => void, dir: string): Promise<ResourceState>
   resource: string
   title: string
@@ -175,19 +178,32 @@ const formProvider: ResourceStateProvider = {
 // ---- ACF --------------------------------------------------------------------------------
 
 // ACF's export JSON is large, deeply nested, and versioned by ACF itself; `key` is the stable
-// identity and the whole object (minus the `modified` timestamp) round-trips untouched, so it
-// is all compared. Ids are namespaced by object type (`field-groups/group_x`) since keys are
-// only unique within a type.
+// identity and the whole object (minus the `modified` timestamp) is compared. Ids are
+// namespaced by object type (`field-groups/group_x`) since keys are only unique within a type.
+// The site stores every setting, defaults included, while a hand- or agent-written file holds
+// only what its author wrote: given the site, the local side is what the site would store
+// (ACF's own normalization, nothing saved), or every such file would read as drift forever.
+async function normalizeAcf(wp: WpClient, type: AcfObjectType, objects: Array<Record<string, unknown>>): Promise<Array<Record<string, unknown>>> {
+  try {
+    return await wp.post<Array<Record<string, unknown>>>(acfNormalizeEndpoint(type), {objects})
+  } catch (error) {
+    // A plugin older than the route: compared as written, as before it existed.
+    if (isNotFoundError(error)) return objects
+    throw error
+  }
+}
+
 const acfProvider: ResourceStateProvider = {
   dirKind: 'acf',
-  async local(dir, onWarn) {
+  async local(dir, onWarn, wp) {
     const state: ResourceState = new Map()
     for (const type of ACF_OBJECT_TYPES) {
-      const objects = await loadFiles<Record<string, unknown>>(join(dir, type), {
+      const files = await loadFiles<Record<string, unknown>>(join(dir, type), {
         extension: '.json',
         onSkip: onWarn,
         parse: readJson,
       })
+      const objects = wp && files.length > 0 ? await normalizeAcf(wp, type, files) : files
       for (const object of objects) {
         const key = getAcfKey(object)
         if (key !== null) state.set(`${type}/${key}`, omit(object, ACF_VOLATILE_KEYS))

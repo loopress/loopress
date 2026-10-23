@@ -355,6 +355,53 @@ class AcfServiceTest extends TestCase
         $this->assertSame('post_type_1', $result['key']);
     }
 
+    // ── normalize ─────────────────────────────────────────────────────────────
+
+    public function test_normalize_fills_defaults_at_every_field_depth_without_saving(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_validate_internal_post_type')->alias(fn(array $post): array => $post + ['active' => true]);
+        Functions\when('acf_validate_field')->alias(fn(array $field): array => $field + ['wrapper' => ['width' => '']]);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+        Functions\expect('acf_import_internal_post_type')->never();
+
+        $group = [
+            'key'    => 'group_x',
+            'fields' => [
+                ['key' => 'field_rows', 'type' => 'repeater', 'sub_fields' => [['key' => 'field_row']]],
+                ['key' => 'field_flex', 'type' => 'flexible_content', 'layouts' => ['layout_a' => ['sub_fields' => [['key' => 'field_a']]]]],
+            ],
+        ];
+
+        $result = $this->service->normalize('acf-field-group', [$group]);
+
+        $this->assertTrue($result[0]['active']);
+        [$rows, $flex] = $result[0]['fields'];
+        $this->assertSame(['width' => ''], $rows['wrapper']);
+        $this->assertSame(['width' => ''], $rows['sub_fields'][0]['wrapper']);
+        $this->assertSame(['width' => ''], $flex['layouts']['layout_a']['sub_fields'][0]['wrapper']);
+    }
+
+    // What upsert() would store is sanitized, so what normalize() compares must be too.
+    public function test_normalize_sanitizes_like_upsert(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(true);
+        Functions\when('acf_validate_internal_post_type')->returnArg(1);
+        Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
+
+        $result = $this->service->normalize('acf-post-type', [['key' => 'post_type_x', 'title' => 'Books <script>evil()</script>']]);
+
+        $this->assertSame('Books ', $result[0]['title']);
+    }
+
+    public function test_normalize_throws_when_the_target_type_is_not_registered(): void
+    {
+        Functions\when('acf_get_internal_post_type_instance')->justReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->service->normalize('acf-ui-options-page', [['key' => 'ui_options_page_x']]);
+    }
+
     // ── delete ────────────────────────────────────────────────────────────────
 
     public function test_delete_delegates_to_acf_delete_internal_post_type(): void
