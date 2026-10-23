@@ -26,7 +26,8 @@ describe('template push', () => {
 
   function makeCommand(put = vi.fn().mockResolvedValue(child)): PushInternals {
     const cmd = new Push([], fakeOclifConfig)
-    silenceLogs(cmd)
+    const {log} = silenceLogs(cmd)
+    ;(cmd as unknown as {logSpy: typeof log}).logSpy = log
     const internals = cmd as unknown as PushInternals
     internals.wpClient = {put}
     internals.siteConfig = makeEnv('local')
@@ -170,5 +171,81 @@ describe('template push', () => {
       {id: 'blocks/core/button.css', status: 'unknown'},
       {id: 'style.css', status: 'unknown'},
     ])
+  })
+
+  const lines = (cmd: PushInternals): string[] => (cmd as unknown as {logSpy: ReturnType<typeof vi.fn>}).logSpy.mock.calls.map(([line]) => line as string)
+
+  it('logs what it found and wrote, without warnings when nothing needs one', async () => {
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'templates', 'page.html'), '<p/>')
+    const cmd = makeCommand(vi.fn().mockResolvedValue({...child, unknownBlocks: undefined}))
+
+    const result = await cmd.run()
+
+    expect(lines(cmd)).toEqual([
+      'Pushing templates and parts to https://example.com',
+      `Templates path: ${join(dir, 'theme', 'templates')}, parts path: ${join(dir, 'theme', 'parts')}`,
+      'Found 2 templates, 0 parts, no global stylesheet and 0 block stylesheets',
+      'Child theme twentytwentyfive-loopress written.',
+    ])
+    expect(cmd.warn).not.toHaveBeenCalled()
+    expect(result).toMatchObject({unknownBlocks: []})
+  })
+
+  it('counts a global stylesheet and one of each', async () => {
+    mkdirSync(join(dir, 'theme', 'css'), {recursive: true})
+    mkdirSync(join(dir, 'theme', 'blocks', 'core'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'css', 'style.css'), '.a{color:red}')
+    writeFileSync(join(dir, 'theme', 'blocks', 'core', 'button.css'), '.b{color:red}')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'parts', 'header.html'), '<p/>')
+    const cmd = makeCommand()
+
+    await cmd.run()
+
+    expect(lines(cmd)).toContain('Found 1 template, 1 part, a global stylesheet and 1 block stylesheet')
+  })
+
+  it('words each warning in full', async () => {
+    const cmd = makeCommand(vi.fn().mockResolvedValue({...child, active: false, customized: ['templates/single', 'parts/header'], unknownBlocks: ['core/buton']}))
+
+    await cmd.run()
+
+    expect(cmd.warn.mock.calls.map(([line]) => line)).toEqual([
+      'twentytwentyfive-loopress is not the active theme, so nothing changed on the site yet. Activate it in Appearance > Themes.',
+      'Edited in the Site Editor, their database copy still wins over the pushed file: templates/single, parts/header. Clear their customizations in Appearance > Editor to use the pushed version.',
+      'No block registered on this site under these names, their CSS will never load: core/buton. Check the file name in theme/blocks/, or activate the plugin that provides the block.',
+    ])
+  })
+
+  it('refuses the push over a CSS problem', async () => {
+    mkdirSync(join(dir, 'theme', 'css'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'css', 'main.css'), '.a{}')
+    const put = vi.fn()
+
+    await expect(makeCommand(put).run()).rejects.toThrow('has CSS files but no style.css')
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('logs each previewed change with its folder on a dry run', async () => {
+    mkdirSync(join(dir, 'theme', 'css'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'css', 'style.css'), '.a{color:red}')
+    writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+    writeFileSync(join(dir, 'theme', 'parts', 'header.html'), '<p/>')
+    const cmd = makeCommand(vi.fn())
+    cmd.dryRun = true
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue(child)
+
+    await cmd.run()
+
+    expect(lines(cmd).slice(-3)).toEqual(['[dry-run] created: templates/single', '[dry-run] created: parts/header', '[dry-run] unknown: css/style.css'])
+  })
+
+  it('says the site would refuse the push when the child theme cannot be read on a dry run', async () => {
+    const cmd = makeCommand(vi.fn())
+    cmd.dryRun = true
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockRejectedValue(new Error('No active block theme'))
+
+    await expect(cmd.run()).rejects.toThrow('The site would refuse this push: No active block theme')
   })
 })
