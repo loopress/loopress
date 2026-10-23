@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {authManager} from '../../src/config/auth.manager.js'
 import {ApiClient} from '../../src/lib/api-client.js'
-import {API_FILES_RESOURCE} from '../../src/lib/php-files-command.js'
+import {API_FILES_RESOURCE, phpFileProblems} from '../../src/lib/php-files-command.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
 vi.mock('../../src/lib/api-client.js', () => ({ApiClient: vi.fn()}))
@@ -71,5 +71,23 @@ describe('API_FILES_RESOURCE.afterPush', () => {
     put.mockRejectedValueOnce(new Error('console down'))
 
     await expect(afterPush(site('env_1'))).resolves.toBeUndefined()
+  })
+})
+
+describe('phpFileProblems', () => {
+  it('accepts a declaration-only file', () => {
+    expect(phpFileProblems(API_FILES_RESOURCE, 'hello', '<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n')).toEqual([])
+  })
+
+  it('requires declare(strict_types=1) to be the first statement', () => {
+    expect(phpFileProblems(API_FILES_RESOURCE, 'hello', '<?php\nnamespace App;\ndeclare(strict_types=1);\nfinal class Hello {}\n')).toEqual([
+      'hello.php: "declare(strict_types=1);" must be the first statement, right after <?php (one in a comment doesn\'t count)',
+    ])
+  })
+
+  it('explains code outside the class', () => {
+    expect(phpFileProblems(API_FILES_RESOURCE, 'hello', "<?php\ndeclare(strict_types=1);\ndefined('ABSPATH') || exit;\nfinal class Hello {}\n")).toEqual([
+      "hello.php: code outside the class (defined) would run at load time, move it into the class. Don't add an ABSPATH guard: the plugin adds one on push.",
+    ])
   })
 })

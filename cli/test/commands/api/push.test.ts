@@ -288,6 +288,30 @@ describe('api push', () => {
       )
     })
 
+    it('logs each pushed file, a skipped syntax check, a public route warning and each pruned file', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      const logs = silenceLogs(cmd)
+      const internals = cmd as unknown as PushWithPushBatch
+      internals.siteConfig = makeEnv('production', 'https://acme.com')
+      internals.wpClient = {
+        post: vi.fn().mockResolvedValue({
+          files: [{filename: 'hello'}, {filename: 'open', public: true, syntax_check: 'skipped'}],
+          pruned: ['stale'],
+        }),
+      }
+
+      await internals.pushBatch([file], ['stale'], undefined)
+
+      expect(logs.log.mock.calls.map(([line]) => line)).toEqual([
+        'Pushed: hello',
+        'Pushed: open (syntax check skipped, unavailable on this host)',
+        'Pruned: stale',
+      ])
+      expect(logs.warn.mock.calls.map(([line]) => line)).toEqual([
+        'open: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions',
+      ])
+    })
+
     it("surfaces the server's public flag for each pushed file", async () => {
       const {cmd, post} = makePushBatch()
       post.mockResolvedValueOnce({files: [{filename: 'hello', public: true}], pruned: []})
