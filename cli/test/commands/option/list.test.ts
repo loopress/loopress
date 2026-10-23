@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import List from '../../../src/commands/option/list.js'
 import {withSpinner} from '../../../src/lib/spinner.js'
@@ -176,5 +176,43 @@ describe('option list', () => {
     const result = await cmd.run()
 
     expect(result).toEqual(names)
+  })
+
+  describe('table width', () => {
+    const option = {autoload: 'yes', confirmed: false, core: false, guess: null, name: 'blogname', pluginName: null}
+    let previous: string | undefined
+
+    beforeEach(() => {
+      previous = process.env.COLUMNS
+    })
+
+    afterEach(() => {
+      if (previous === undefined) delete process.env.COLUMNS
+      else process.env.COLUMNS = previous
+    })
+
+    async function tableWidth(argv: string[] = []): Promise<number> {
+      const {cmd, logs} = makeCmd(argv)
+      ;(cmd as unknown as ListWithWpClient).wpClient = {get: vi.fn().mockResolvedValueOnce([option])}
+      await cmd.run()
+      return Math.max(...tableRows(logs).map((line) => line.length))
+    }
+
+    it('fills a wide fallback width without a terminal, and leaves no COLUMNS behind', async () => {
+      delete process.env.COLUMNS
+
+      const width = await tableWidth()
+
+      expect(width).toBeGreaterThan(250)
+      expect(width).toBeLessThanOrEqual(300)
+      expect(process.env.COLUMNS).toBeUndefined()
+    })
+
+    it.each([[[]], [['--no-core']]])('widens past a COLUMNS set without a terminal (%j), then restores it', async (argv) => {
+      process.env.COLUMNS = '120'
+
+      expect(await tableWidth(argv)).toBeGreaterThan(250)
+      expect(process.env.COLUMNS).toBe('120')
+    })
   })
 })
