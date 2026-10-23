@@ -81,7 +81,9 @@ class UsagePingTest extends TestCase
 
         (new UsagePing())->send();
         (new UsagePing())->send();
-        $this->options[UsagePing::LAST_SENT_OPTION] -= 12 * HOUR_IN_SECONDS - 1;
+        // Measured from now, with a minute's margin: `-= 12h - 1s` from the first send failed
+        // whenever a second ticked between that send and the last one.
+        $this->options[UsagePing::LAST_SENT_OPTION] = time() - 12 * HOUR_IN_SECONDS + MINUTE_IN_SECONDS;
         (new UsagePing())->send();
         $this->addToAssertionCount(1);
     }

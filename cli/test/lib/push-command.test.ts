@@ -315,6 +315,21 @@ describe('PushCommand', () => {
       await expect(capture({local: [['1', {name: 'local'}]], remote: [['1', {name: 'remote'}]]})).resolves.toBeDefined()
     })
 
+    // ACF's local side goes through the site: a timeout there must not let the push through unchecked.
+    it('stops the push when the local side cannot be read after an earlier push', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+      const cmd = make(false, SITE)
+      cmd.setRootDir(rootDir)
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {}
+      const local = vi.fn(async () => {
+        throw new Error('timeout')
+      })
+
+      await expect(cmd.testCaptureBeforePushState(fakeProvider({local, remote: async () => new Map()}), rootDir)).rejects.toThrow(
+        /Could not check for changes made on .* outside Loopress: timeout\. Retry, or pass --overwrite\./,
+      )
+    })
+
     it('asks in a TTY, and aborts on no', async () => {
       interactive.value = true
       vi.mocked(confirm).mockResolvedValueOnce(false)

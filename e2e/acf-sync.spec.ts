@@ -171,6 +171,37 @@ test('acf diff reports no drift after a push + pull, then flags a local edit', a
   expect(drifted.stdout).toContain('Drift detected')
 })
 
+// No pull in between: a hand- or agent-written file holds none of the defaults ACF stores
+// (`wrapper`, `aria-label`, a checkbox's `custom_choice_button_text`...), and the site's copy
+// of it must still read as in sync.
+test('a hand-written field group reads as in sync right after its push', async ({projectDir, runCli}) => {
+  const dir = join(projectDir, 'acf', 'field-groups')
+  const key = `group_e2e_written_${Date.now()}`
+  mkdirSync(dir, {recursive: true})
+  writeFileSync(
+    join(dir, `${key}.json`),
+    JSON.stringify({
+      fields: [
+        {key: `field_${key}_price`, label: 'Price', name: 'price', required: true, type: 'number'},
+        {choices: {gluten: 'Gluten', milk: 'Milk'}, key: `field_${key}_allergens`, label: 'Allergens', name: 'allergens', type: 'checkbox'},
+      ],
+      key,
+      location: [[{operator: '==', param: 'post_type', value: 'post'}]],
+      title: `E2E written ${Date.now()}`,
+    }),
+  )
+  expect((await runCli(['acf', 'push'])).exitCode).toBe(0)
+
+  // The shared instance holds other specs' groups too: only this one's status matters.
+  const result = await runCli(['diff', '--only', 'acf', '--json'])
+  const report = JSON.parse(result.stdout) as {resources: {acf: {changed: Array<{id: string; patch: string}>; error?: string}}}
+  const change = report.resources.acf.changed.find((item) => item.id === `field-groups/${key}`)
+
+  // An empty `changed` proves nothing if the comparison itself failed.
+  expect(report.resources.acf.error).toBeUndefined()
+  expect(change?.patch).toBeUndefined()
+})
+
 test.describe('ACF plugin inactive', () => {
   test.beforeAll(async ({requestUtils}) => {
     await setPluginActive(requestUtils, 'advanced-custom-fields', false)

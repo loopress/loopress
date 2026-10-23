@@ -234,6 +234,52 @@ class AcfControllerTest extends TestCase
         $this->assertSame(['error' => '"post_type_1" changed on WordPress since it was last read.'], $response->data);
     }
 
+    // ── normalize_objects ────────────────────────────────────────────────────
+
+    public function test_normalize_returns_200_with_the_normalized_objects(): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->once())
+            ->method('normalize')
+            ->with('acf-field-group', [['key' => 'group_1']])
+            ->willReturn([['key' => 'group_1', 'active' => true]]);
+
+        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => [['key' => 'group_1']]]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame([['key' => 'group_1', 'active' => true]], $response->data);
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function invalidObjects(): array
+    {
+        return [
+            'missing'      => [null],
+            'not a list'   => [['group_1' => ['key' => 'group_1']]],
+            'not objects'  => [['group_1']],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidObjects')]
+    public function test_normalize_returns_400_unless_objects_is_a_list_of_objects(mixed $objects): void
+    {
+        $this->acfService->method('isActive')->willReturn(true);
+        $this->acfService->expects($this->never())->method('normalize');
+
+        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => $objects]));
+
+        $this->assertSame(400, $response->status);
+    }
+
+    public function test_normalize_returns_400_when_acf_is_not_active(): void
+    {
+        $this->acfService->method('isActive')->willReturn(false);
+
+        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => []]));
+
+        $this->assertSame(400, $response->status);
+    }
+
     // ── delete_object ────────────────────────────────────────────────────────
 
     public function test_delete_returns_204_on_success(): void

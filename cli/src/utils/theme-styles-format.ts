@@ -109,6 +109,35 @@ export type GlobalStylesRecord = {
 // The compared/stored value: `settings` and `styles` only. `id` and `_links` are WordPress
 // bookkeeping, not part of the tracked configuration (a fresh install resolves to a different
 // id for the same content), so they're dropped rather than becoming spurious drift.
+// WordPress also rewrites two things on save, so both sides take its stored form, or a file
+// pushed as is would read as drift right after its push:
+// - a preset list (`palette: [...]`) is keyed by its origin, `palette: {custom: [...]}`, and
+// - a `var:preset|color|base` reference becomes `var(--wp--preset--color--base)`.
 export function canonicalGlobalStyles(record: {settings?: unknown; styles?: unknown}): Record<string, unknown> {
-  return {settings: record.settings ?? {}, styles: record.styles ?? {}}
+  return {settings: expandVarReferences(unwrapPresets(record.settings ?? {})), styles: expandVarReferences(record.styles ?? {})}
+}
+
+const PRESET_KEYS = new Set(['aspectRatios', 'duotone', 'fontFamilies', 'fontSizes', 'gradients', 'palette', 'presets', 'radiusSizes', 'spacingSizes'])
+
+function unwrapPresets(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) return value
+  if (Array.isArray(value)) return value.map((item) => unwrapPresets(item))
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]: [string, unknown]) => {
+      const custom = PRESET_KEYS.has(key) && isOnlyCustom(item) ? item.custom : item
+      return [key, unwrapPresets(custom)]
+    }),
+  )
+}
+
+function isOnlyCustom(value: unknown): value is {custom: unknown[]} {
+  return typeof value === 'object' && value !== null && Object.keys(value).length === 1 && Array.isArray((value as {custom?: unknown}).custom)
+}
+
+// WP_Theme_JSON::convert_custom_properties()'s rule.
+function expandVarReferences(value: unknown): unknown {
+  if (typeof value === 'string') return value.startsWith('var:') ? `var(--wp--${value.slice(4).replaceAll('|', '--')})` : value
+  if (typeof value !== 'object' || value === null) return value
+  if (Array.isArray(value)) return value.map((item) => expandVarReferences(item))
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, expandVarReferences(item)]))
 }

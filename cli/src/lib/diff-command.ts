@@ -83,7 +83,7 @@ export abstract class DiffCommand extends LoopressCommand {
     return {
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
-      right: sides.againstWp ? async () => provider.remote(sides.againstWp!, sides.warn, dir) : async () => provider.local(dir, sides.warn),
+      right: sides.againstWp ? async () => provider.remote(sides.againstWp!, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
       title: provider.title,
     }
   }

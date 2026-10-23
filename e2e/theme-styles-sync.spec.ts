@@ -107,6 +107,24 @@ test.describe('theme style sync (block theme)', () => {
     expect(live.styles.color?.background).toBe(secondColor)
   })
 
+  // WordPress keys a preset list by origin (`palette: {custom: [...]}`) and expands
+  // `var:preset|color|base` on save: a file written the theme.json way must still read as in sync.
+  test('a hand-written file reads as in sync right after its push', async ({projectDir, runCli}) => {
+    mkdirSync(join(projectDir, 'theme'), {recursive: true})
+    writeFileSync(
+      join(projectDir, 'theme', `${BLOCK_THEME}-global-styles.json`),
+      JSON.stringify({
+        settings: {color: {palette: [{color: '#FBF6EE', name: 'Cream', slug: 'cream'}]}},
+        styles: {color: {background: 'var:preset|color|cream'}},
+      }),
+    )
+    expect((await runCli(['theme', 'style', 'push', '--overwrite'])).exitCode).toBe(0)
+
+    const diffResult = await runCli(['theme', 'style', 'diff'])
+    expect(diffResult.exitCode, diffResult.stdout + diffResult.stderr).toBe(0)
+    expect(diffResult.stdout).toContain('in sync')
+  })
+
   test('theme style diff reports no drift right after a pull', async ({runCli}) => {
     const pullResult = await runCli(['theme', 'style', 'pull'])
     expect(pullResult.exitCode).toBe(0)

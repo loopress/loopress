@@ -14,6 +14,12 @@ export function acfObjectEndpoint(type: AcfObjectType, key: string): string {
   return `${acfEndpoint(type)}/${key}`
 }
 
+// POST route returning local objects the way the site would store them, defaults filled in,
+// nothing saved (see resource-state.ts's acfProvider).
+export function acfNormalizeEndpoint(type: AcfObjectType): string {
+  return `loopress/v1/acf/normalize/${type}`
+}
+
 // Deliberately loose: ACF's own export JSON is large, deeply nested, and versioned by ACF
 // itself (new settings appear across ACF releases). We only need `key` for filenames/identity;
 // everything else round-trips through pull/push untouched, so there's no generated type for it

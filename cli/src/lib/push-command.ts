@@ -74,7 +74,7 @@ export abstract class PushCommand extends LoopressCommand {
       const remote = await this.previewRemote(provider, dir)
       await this.guardOutsideEdits(provider, dir, remote, writes)
       try {
-        const local = await provider.local(dir, () => {})
+        const local = await provider.local(dir, () => {}, this.wp)
         this.previewStates = {local, remote}
         this.previewChanges = pushChanges(local, remote, {writes})
       } catch (error) {
@@ -269,10 +269,17 @@ export abstract class PushCommand extends LoopressCommand {
       const snapshot = await readSnapshot(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name)
       expected = recordToState(snapshot.afterState)
       pushedAt = snapshot.createdAt
-      local = await provider.local(dir, () => {})
     } catch {
-      // No earlier push from this machine, or unreadable local files the push reports itself.
+      // No earlier push from this machine.
       return
+    }
+
+    // Unreadable files are skipped with a warning, so a failure here is the site's (ACF's
+    // normalize route): the check can't run, and a push must not go on unchecked.
+    try {
+      local = await provider.local(dir, () => {}, this.wp)
+    } catch (error) {
+      this.error(`Could not check for changes made on ${this.siteConfig.url} outside Loopress: ${(error as Error).message}. Retry, or pass --overwrite.`)
     }
 
     const overwritten = [...local.keys()].filter(

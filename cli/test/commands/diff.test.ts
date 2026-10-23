@@ -67,7 +67,9 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
   cmd.setup(makeEnv('staging', 'https://staging.acme.com'))
   const logs = silenceLogs(cmd)
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get}
+  // ACF's normalize route, as a no-op: the files already hold what the site stores.
+  const post = vi.fn(async (_path: string, body: {objects: unknown[]}) => body.objects)
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get, post}
   return {cmd, logs}
 }
 
