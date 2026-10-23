@@ -3,7 +3,18 @@ import {createServer, type IncomingMessage, type Server, type ServerResponse} fr
 import {type AddressInfo} from 'node:net'
 import {afterEach, describe, expect, it} from 'vitest'
 
-import {assertSecureSiteUrl, formatWpError, isApplicative404, isLocalEnvironment, isNotFoundError, isTimeoutError, WpClient} from '../../src/lib/wp-client.js'
+import {
+  assertSecureSiteUrl,
+  formatWpError,
+  isApplicative404,
+  isConflictCode,
+  isForbiddenError,
+  isInvalidPageNumber,
+  isLocalEnvironment,
+  isNotFoundError,
+  isTimeoutError,
+  WpClient,
+} from '../../src/lib/wp-client.js'
 
 describe('isLocalEnvironment', () => {
   it('is true only for the environment named "local"', () => {
@@ -529,5 +540,81 @@ describe('isTimeoutError', () => {
   it('is false, not a throw, when the thrown value itself is null or undefined', () => {
     expect(isTimeoutError(null)).toBe(false)
     expect(isTimeoutError(undefined)).toBe(false)
+  })
+
+  describe('error helpers on malformed errors', () => {
+    const withResponse = (response: Record<string, unknown>) => ({cause: {response}})
+
+    it('refuses a URL that does not parse, and names an unknown environment', () => {
+      expect(() => {
+        assertSecureSiteUrl('not a url', 'production')
+      }).toThrow(/^Invalid site URL: not a url$/)
+      expect(() => {
+        assertSecureSiteUrl('https://acme.com', undefined)
+      }).toThrow(
+        'Refusing to send credentials over plain HTTP for the "unknown" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "local" environment.',
+      )
+    })
+
+    it.each([null, undefined, {}, {cause: {}}])('reads %j as neither a 404 nor a 403', (error) => {
+      expect(isNotFoundError(error)).toBe(false)
+      expect(isForbiddenError(error)).toBe(false)
+    })
+
+    it('reads a 403 as forbidden', () => {
+      expect(isForbiddenError(withResponse({statusCode: 403}))).toBe(true)
+      expect(isForbiddenError(withResponse({statusCode: 401}))).toBe(false)
+    })
+
+    it.each([
+      [null],
+      [withResponse({body: '{"code":"x"}', statusCode: 400})],
+      [withResponse({statusCode: 409})],
+      [withResponse({body: 'oops', statusCode: 409})],
+      [withResponse({body: '{"code":"y"}', statusCode: 409})],
+    ])('does not read %j as conflict x', (error) => {
+      expect(isConflictCode(error, 'x')).toBe(false)
+    })
+
+    it('reads a 409 tagged with the code', () => {
+      expect(isConflictCode(withResponse({body: '{"code":"x"}', statusCode: 409}), 'x')).toBe(true)
+    })
+
+    it.each([[{}], [{cause: {}}], [withResponse({})], [withResponse({body: ''})], [withResponse({body: 'oops'})], [withResponse({body: '{"code":"x"}'})]])(
+      'does not read %j as past the last page',
+      (error) => {
+        expect(isInvalidPageNumber(error)).toBe(false)
+      },
+    )
+
+    it('reads a 404 without a body as no applicative 404', () => {
+      expect(isApplicative404(withResponse({statusCode: 404}), 'Not found')).toBe(false)
+    })
+  })
+
+  describe('formatWpError server messages', () => {
+    const url = 'https://acme.com/wp-json/loopress/v1/x'
+    const failure = (statusCode: number, body?: string) => ({response: {body, statusCode}})
+
+    it.each([
+      [failure(403), 'Authentication failed (403)'],
+      [failure(403, 'oops'), 'Authentication failed (403)'],
+      [failure(403, '{"error":"  "}'), 'Authentication failed (403)'],
+      [failure(403, '{"error":5}'), 'Authentication failed (403)'],
+      [failure(403, '{"error":"Option &quot;x&quot; is protected"}'), `Request refused (403) on ${url}: Option "x" is protected`],
+    ])('formats %j', (error, expected) => {
+      expect(formatWpError(error, url)).toContain(expected)
+    })
+
+    it.each([
+      [failure(500), `Request failed (500) on ${url}.`],
+      [failure(500, 'oops'), `Request failed (500) on ${url}.`],
+      [failure(500, '{"error":"  "}'), `Request failed (500) on ${url}.`],
+      [failure(500, '{"message":5}'), `Request failed (500) on ${url}.`],
+      [failure(500, '{"output":"  composer trace  "}'), `Request failed (500) on ${url}: composer trace`],
+      [failure(500, '{"error":"Sync failed.","output":"  "}'), `Request failed (500) on ${url}: Sync failed.`],
+    ])('formats %j exactly', (error, expected) => {
+      expect(formatWpError(error, url)).toBe(expected)
+    })
   })
 })
