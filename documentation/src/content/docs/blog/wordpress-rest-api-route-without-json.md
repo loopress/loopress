@@ -1,10 +1,10 @@
 ---
 title: When a WordPress REST Route Shouldn't Return JSON
 description: PDFs, spreadsheets, calendar feeds, Markdown, images. The WordPress REST API assumes JSON, but plenty of real endpoints shouldn't answer with it. Three response shapes for a custom route, and how to choose from who's calling.
-date: 2026-09-27
-draft: true
-cliVersion: 0.26.0
-wordpressPluginVersion: 2026.11.0
+date: 2026-10-24
+draft: false
+cliVersion: 0.32.2
+wordpressPluginVersion: 2026.17.1
 authors:
   - maxime
 tags:
@@ -41,7 +41,7 @@ return new WP_REST_Response([
 ]);
 ```
 
-The frontend sets it straight as `<img src>`, no second request, and the JSON envelope can carry other fields next to it (dimensions, an expiry). We use this for [ticket QR codes](https://github.com/loopress/demo/tree/main/qr-code-generation-wordpress-rest-api) and on-the-fly image resizing.
+The frontend sets it straight as `<img src>`, no second request, and the JSON envelope can carry other fields next to it (dimensions, an expiry). We use this for [ticket QR codes](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/) and on-the-fly image resizing.
 
 The limits are real, so keep it for small files. Base64 makes the payload a third bigger than the raw bytes. The browser can't cache the image on its own, only the whole JSON response. And a human can't open the URL and see the image, they see a wall of base64. Our QR code is a 519-byte PNG, 737 bytes as JSON: fine. A 2 MB photo as JSON is not.
 
@@ -74,6 +74,12 @@ Three things we checked on a real site, so you don't have to:
 - **Errors can still be JSON.** Return a `WP_Error` *before* the headers go out and WordPress answers it like any other REST error, `{"code":"not_found",...,"data":{"status":404}}`. Only the success path is raw. A caller that gets a 404 shouldn't have to parse a PDF to find out.
 - **WordPress's own REST headers are already there.** The response to our calendar feed still carried `Access-Control-Expose-Headers` and the API `Link` header, WordPress sends those before your method runs. What `exit` skips is everything after it: the JSON serialization, and the `rest_post_dispatch` filters other plugins might hook.
 - **Permissions work the same.** `permission()` and `#[Permission]` are checked before the verb method ever runs, raw output or not. Our Excel export is admin-only, the curl in its video authenticates with an Application Password like any other REST call.
+
+And three that come from how Loopress loads route files:
+
+- **A route-wide `headers()` method doesn't run on a raw response.** Loopress applies [`headers()`](/api/routes/#route-wide-headers-including-the-options-preflight) when WordPress serves the response, which is after your verb method returns. A method that calls `exit` never returns, so a CORS header declared there won't be on the download. Send it with `header()` inside the verb method itself, next to `Content-Type`.
+- **A throw is a JSON 500, not a fatal.** An uncaught exception in a verb method, raised before your headers go out, comes back as `{"error":"Internal error"}` with a 500 status, and the rest of the site keeps working. Same principle as the `WP_Error` above: a failure stays something the caller can read.
+- **A raw route doesn't belong in the discovery index.** `/wp-json/{namespace}` lists every route as a REST resource with its methods and args, which says nothing useful about an endpoint that answers with a PDF or a calendar feed. [`#[Hidden]`](/api/routes/#hiding-a-route-from-the-discovery-index) on the class keeps the route out of that index, and it keeps dispatching exactly as before.
 
 ## Choosing, in one line each
 
