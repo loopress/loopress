@@ -315,6 +315,14 @@ describe('validateLocal', () => {
     expect(result.problems).toEqual([])
   })
 
+  it('flags composer.json that is not a JSON object', async () => {
+    write('composer.json', 'null')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([{file: 'composer.json', message: 'expected a JSON object'}])
+  })
+
   it('flags composer.json whose require section is not an object', async () => {
     write('composer.json', JSON.stringify({require: ['a/b']}))
 

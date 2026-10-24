@@ -1,3 +1,5 @@
+import {z} from 'zod'
+
 export type InstalledPlugin = {
   active: boolean
   file: string
@@ -17,7 +19,9 @@ export type WpNativePlugin = {
 
 // A bare version string means "installed and active"; the object form records a plugin that
 // must stay installed but inactive.
-export type PluginPin = string | {active?: boolean; version: string}
+export const PLUGIN_PIN = z.union([z.string(), z.object({active: z.boolean().optional(), version: z.string()})])
+
+export type PluginPin = z.infer<typeof PLUGIN_PIN>
 
 export type PluginManifest = Record<string, PluginPin>
 
