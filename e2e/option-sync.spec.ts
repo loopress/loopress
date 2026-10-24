@@ -2,6 +2,7 @@
 import {randomInt} from 'node:crypto'
 import {existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
+import {stripVTControlCharacters} from 'node:util'
 
 import {expect, output, test} from './helpers/environment.js'
 import {restDelete, restGet, restPost, restPut} from './helpers/rest.js'
@@ -256,7 +257,10 @@ test('option list fits the table in a COLUMNS the user set', async ({runCli}) =>
   const list = await runCli(['option', 'list'], {COLUMNS: '120'})
 
   expect(list.exitCode, output(list)).toBe(0)
-  const lines = list.stdout.split('\n').filter((line) => line.includes('│'))
+  // Playwright's FORCE_COLOR reaches the CLI, so measure the text without its color codes.
+  const lines = stripVTControlCharacters(list.stdout)
+    .split('\n')
+    .filter((line) => line.includes('│'))
   expect(lines.length).toBeGreaterThan(0)
   expect(Math.max(...lines.map((line) => line.length))).toBeLessThanOrEqual(120)
 })
