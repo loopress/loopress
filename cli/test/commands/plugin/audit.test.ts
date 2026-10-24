@@ -414,11 +414,11 @@ describe('plugin audit', () => {
     expect(gotFn).toHaveBeenCalledWith('https://www.wpvulnerability.net/plugin/my%20plugin/', {timeout: {request: 10_000}})
   })
 
-  it('reads a vulnerability answer without data as no advisories', async () => {
-    mockGot({vuln: () => null, wporg: null})
+  it.each([null, {}, {data: {}}, {data: {vulnerability: 'none'}}])('aborts on a malformed vulnerability answer (%j)', async (answer) => {
+    mockGot({vuln: () => answer, wporg: null})
     const {cmd} = make({plugins: {x: '1.0.0'}})
 
-    expect((await cmd.run()).status).toBe('clean')
+    await expect(cmd.run()).rejects.toThrow('Unexpected answer from the vulnerability database (wpvulnerability.net) for "x"')
   })
 
   it('prints an advisory without details as its title alone, and every health note', async () => {

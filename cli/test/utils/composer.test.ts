@@ -250,12 +250,14 @@ describe('composer utils', () => {
       expect(readFileSync(path, 'utf8')).toBe('{\n  "require": {\n    "wpackagist-plugin/akismet": "5.3"\n  }\n}\n')
     })
 
-    it('treats a package of the other kind with the same slug as its provider', async () => {
+    it('does not treat a package of the other kind with the same slug as its provider', async () => {
       writeFileSync(path, JSON.stringify({require: {'wpackagist-theme/astra': '4.0'}}))
+      stubWordPressOrg(() => 200)
 
       const result = await pullIntoComposerJson(path, 'plugin', {astra: '1.0'}, {dryRun: false, log})
 
-      expect(result.skipped).toEqual([{reason: 'provided by wpackagist-theme/astra', slug: 'astra'}])
+      expect(result.skipped).toEqual([])
+      expect(result.added).toEqual(['astra'])
     })
 
     it('ignores a dependency name without a vendor', async () => {
