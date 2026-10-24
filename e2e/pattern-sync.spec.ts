@@ -1,4 +1,4 @@
-import {mkdirSync, writeFileSync} from 'node:fs'
+import {mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
@@ -69,4 +69,18 @@ test('pull writes the pattern back as the same HTML file, diff then shows nothin
 
   const diff = await runCli(['pattern', 'diff'])
   expect(diff.exitCode, output(diff)).toBe(0)
+})
+
+test('rollback restores the pattern content from before the last push', async ({projectDir, runCli}) => {
+  write(projectDir, 'patterns', `${slug}.html`, pattern('rollback one'))
+  expect((await runCli(['pattern', 'push'])).exitCode).toBe(0)
+  write(projectDir, 'patterns', `${slug}.html`, pattern('rollback two'))
+  expect((await runCli(['pattern', 'push'])).exitCode).toBe(0)
+
+  const rollback = await runCli(['pattern', 'rollback', '--yes'])
+  expect(rollback.exitCode, output(rollback)).toBe(0)
+  expect(rollback.stdout).toContain('Rolled back')
+
+  expect((await runCli(['pattern', 'pull', '--yes'])).exitCode).toBe(0)
+  expect(readFileSync(join(projectDir, 'patterns', `${slug}.html`), 'utf8')).toContain('rollback one')
 })
