@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.32.3
+
+### Patch Changes
+
+- cbe0bd9: Fix three CLI edge cases: `lps plugin audit` now aborts on a malformed vulnerability response instead of reporting it as clean, composer pull no longer treats a wpackagist theme as the provider of a plugin with the same slug (or the reverse), and `"show_in_rest": null` in a meta file is now rejected.
+- b038a67: `lps plugin audit` now reads WordPress.org's `last_updated` date form, so abandoned plugins are flagged again. `lps option list` keeps a `COLUMNS` value you set. The top-level code check now catches code placed right after an attribute (`#[Attr] foo();`).
+
 ## 0.32.2
 
 ### Patch Changes
