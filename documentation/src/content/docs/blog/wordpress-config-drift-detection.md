@@ -27,14 +27,14 @@ You can't prevent all of it, and you shouldn't try: editors need their admin scr
 lps diff --env production
 ```
 
-This reads every resource Loopress tracks from the site, snippets, forms, ACF objects, API routes, hooks, static pages, SEO settings, options, menus, theme styles, and Composer, and compares each one with your local files. Resources that match print `in sync`. The others list each item that differs, with a patch for modified ones:
+This reads every resource Loopress tracks from the site, snippets, forms, ACF objects, API routes, hooks, static pages, options, menus, theme styles, and Composer, and compares each one with your local files. Resources that match print `in sync`. The others list each item that differs, with a patch for modified ones:
 
 ```text
 Comparing production → local
 
 Snippets  in sync
-SEO
-  ~ settings
+Options
+  ~ wpseo_titles
     ...
 ACF
   + group_event_details
@@ -45,7 +45,7 @@ The run ends with a tally and a verdict: `Everything is in sync.` or `Drift dete
 Narrow it when you only care about part of the site:
 
 ```bash
-lps diff --only acf --only seo
+lps diff --only acf --only option
 lps diff --skip composer
 ```
 
@@ -105,7 +105,7 @@ The credentials come from a secret holding your `config.json`, the same setup as
 
 When it goes red, you have three honest options, and the diff tells you which one applies:
 
-1. **The site is right, the repo is stale.** Someone made a legitimate change in wp-admin. Pull it (`lps seo pull`, `lps acf pull`...), commit it, and it's reviewed after the fact instead of never.
+1. **The site is right, the repo is stale.** Someone made a legitimate change in wp-admin. Pull it (`lps option pull`, `lps acf pull`...), commit it, and it's reviewed after the fact instead of never.
 2. **The repo is right, the site is wrong.** Someone changed something they shouldn't have. Push the repo's version back.
 3. **Both are partly right.** Pull, resolve the difference in Git like any other conflict, push.
 
@@ -128,4 +128,4 @@ For machine consumption, every variant takes `--json` and returns `{drift, left,
 npm install -g @loopress/cli
 ```
 
-The [CLI overview](/cli/) lists every resource `lps diff` covers. Composer, API routes, hooks, forms, snippets, and static pages need [Loopress Full](/wordpress-plugin/); ACF, SEO, menus, and options work with Light too.
+The [CLI overview](/cli/) lists every resource `lps diff` covers. Composer, API routes, hooks, forms, snippets, and static pages need [Loopress Full](/wordpress-plugin/); ACF, menus, and options work with Light too.

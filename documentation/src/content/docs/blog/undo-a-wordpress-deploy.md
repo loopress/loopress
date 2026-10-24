@@ -68,7 +68,7 @@ In a terminal, you're asked whether to overwrite those later changes, and the de
 
 ## What it covers
 
-Rollback exists for every resource whose state Loopress can read back from the site: snippets, ACF objects, API routes, hooks, forms, SEO settings, menus, tracked options, and theme styles. Each has its own command (`lps acf rollback`, `lps hook rollback`, and so on), because each push takes its own snapshot. The aggregate `lps push` goes through the same per-resource pushes, so a full deploy leaves one snapshot per resource it touched.
+Rollback exists for every resource whose state Loopress can read back from the site: snippets, ACF objects, API routes, hooks, forms, menus, tracked options, and theme styles. Each has its own command (`lps acf rollback`, `lps hook rollback`, and so on), because each push takes its own snapshot. The aggregate `lps push` goes through the same per-resource pushes, so a full deploy leaves one snapshot per resource it touched.
 
 Plugins, Composer dependencies, static pages, and single-page apps have no rollback. For plugins and Composer, pin exact versions in Git and push the previous commit instead.
 

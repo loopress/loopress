@@ -34,7 +34,7 @@ It runs from the directory your agent starts in, using that project's `loopress.
 
 ## What the agent can do on its own
 
-Everything that reads. Pull snippets, hooks, API routes, ACF objects, SEO settings, forms, menus, and options into local files. List what's on a site. And three tools that turn an agent into a decent operator:
+Everything that reads. Pull snippets, hooks, API routes, ACF objects, forms, menus, and options into local files. List what's on a site. And three tools that turn an agent into a decent operator:
 
 - `project_diff`: what differs between the local files and an environment, or between two environments. "What's on staging that isn't on production?" becomes a question the agent can answer by itself.
 - `project_doctor`: connectivity, plugin, and credential diagnostics, so "the push failed" comes with a reason.
