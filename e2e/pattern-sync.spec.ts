@@ -82,5 +82,7 @@ test('rollback restores the pattern content from before the last push', async ({
   expect(rollback.stdout).toContain('Rolled back')
 
   expect((await runCli(['pattern', 'pull', '--yes'])).exitCode).toBe(0)
-  expect(readFileSync(join(projectDir, 'patterns', `${slug}.html`), 'utf8')).toContain('rollback one')
+  const pulled = readFileSync(join(projectDir, 'patterns', `${slug}.html`), 'utf8')
+  expect(pulled).toContain('rollback one')
+  expect(pulled).not.toContain('rollback two')
 })

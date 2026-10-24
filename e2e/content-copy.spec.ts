@@ -39,7 +39,7 @@ test('a source environment without credentials is refused', async ({homeDir, run
 })
 
 test('a source environment on plain HTTP is refused before any request', async ({homeDir, runCli}) => {
-  addEnvironment(homeDir, 'staging')
+  addEnvironment(homeDir, 'staging', {url: 'http://staging.example.com'})
 
   const copy = await runCli(['content', 'copy', 'staging', '--dry-run'])
 
