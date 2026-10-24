@@ -1,8 +1,8 @@
 ---
 title: Sometimes Building a Product Means Removing a Feature
-description: Loopress had an SEO module that synced Rank Math and Yoast data through Git. It worked, it was tested, it was on the homepage. We removed it, because it broke the one rule the product is built on.
-date: 2026-12-17
-draft: true
+description: Loopress had an SEO module that synced Rank Math and Yoast data through Git. It worked, it was tested, it was on the homepage. I removed it, because it broke the one rule the product is built on.
+date: 2026-10-24
+draft: false
 authors:
   - maxime
 tags:
@@ -31,13 +31,13 @@ Then I opened the `seo/` folder of the site Loopress was born on, my sister's Fr
 
 What a human had actually written: 4 descriptions, 1 title, 9 focus keywords. And all of it belonged to a post, which makes it content, edited by whoever edits that post.
 
-27 redirect files, each carrying a hit counter and two timestamps, so every pull produced a diff nobody had caused, and every push could overwrite live counters on production. Targets were absolute production URLs. Every 410 became a file called `N-redirect.json`.
+27 redirect files, each carrying a hit counter and two timestamps, so every pull produced a diff nobody had caused, and every push could overwrite live counters on production. Targets were absolute production URLs. Every 410 became a file named after its database row id, `N-redirect.json`.
 
 And one `settings.json`: the title templates and schema defaults. Real configuration, finally. It was one row in `wp_options`.
 
 ## The feature that already existed
 
-Loopress already tracks individual `wp_options` rows. The [Options](/options/) docs even used `wpseo_titles`, Yoast's settings row, as their example. So the only part of the SEO module that respected the rule was a duplicate of a command that already existed:
+Loopress already tracks individual `wp_options` rows. The [Options](/options/) docs even use `wpseo_titles`, Yoast's settings row, as their example. So the only part of the SEO module that respected the rule was a duplicate of a command that already existed:
 
 ```bash
 lps option add rank-math-options-titles   # Rank Math
@@ -52,7 +52,7 @@ It wasn't free, and pretending otherwise would be dishonest.
 
 - **A headline feature.** The WordPress.org listing, the homepage and the comparison pages all said "SEO". Now they don't.
 - **Redirect versioning.** Some people will want it. It's still content: redirects are created by editors in wp-admin, and they belong to the site, not the repository.
-- **Projects already using it.** `lps seo` is gone in the next release. Migrating is one command: track the option above, then delete `seo/`.
+- **Projects already using it.** `lps seo` is gone since 0.30.0. Migrating is one command: track the option above, then delete `seo/`.
 
 What it gave back: close to 5,000 lines of code, tests and docs deleted. A plugin that no longer reads or writes another plugin's database tables. One less thing to explain on the homepage. And a rule that is true again, with no "except SEO" footnote.
 

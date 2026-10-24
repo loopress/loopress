@@ -31,7 +31,7 @@ This is the classic *lost update*, and the classic fix is optimistic concurrency
 
 ### What a push does now
 
-For snippets, forms, ACF objects, API routes, hooks, SEO settings, menus, and tracked options, every item the Loopress plugin returns carries a `revision`: a content hash of the fields a write can change. A push:
+For snippets, forms, ACF objects, API routes, hooks, menus, and tracked options, every item the Loopress plugin returns carries a `revision`: a content hash of the fields a write can change. A push:
 
 1. reads the item's current `revision` right before writing it,
 2. sends its write along with that value as `expectedRevision`,
