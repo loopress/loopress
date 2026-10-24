@@ -43,6 +43,37 @@ test("rejects a hook file with invalid PHP syntax instead of silently accepting 
 	expect(listResult.stdout).not.toContain("broken");
 });
 
+// #335: an attribute only decorates what follows it, so a call placed right after one on the
+// same line is still top-level code that runs on every request, and the push must refuse it.
+test("rejects a hook file with a call right after an attribute", async ({
+	projectDir,
+	runCli,
+}) => {
+	const hooksDir = join(projectDir, "hooks");
+	mkdirSync(hooksDir, { recursive: true });
+	writeFileSync(
+		join(hooksDir, "attributed.php"),
+		[
+			"<?php",
+			"",
+			"declare(strict_types=1);",
+			"",
+			"#[SomeAttribute('x')] error_log('runs at load time');",
+			"",
+			"final class Attributed",
+			"{",
+			"}",
+			"",
+		].join("\n"),
+	);
+
+	const pushResult = await runCli(["hook", "push"]);
+	expect(pushResult.exitCode).not.toBe(0);
+	expect(unwrap(pushResult.stderr)).toContain(
+		"attributed.php: code outside the class (error_log) would run at load time",
+	);
+});
+
 // #236: `hook push` stages and atomically swaps the whole batch in one directory rename(), so a
 // sibling file rejected for one reason (bad syntax) now blocks the entire push, including an
 // otherwise-valid file, rather than the old per-file-PUT isolation where only the bad file was

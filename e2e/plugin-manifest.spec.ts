@@ -156,4 +156,18 @@ test.describe('lps plugin audit', () => {
     expect(audit.stdout).toMatch(/pinned to 5\.0\.0, latest is/)
     expect(audit.stdout).toMatch(/[1-9]\d* vulnerability advisor(y|ies)/)
   })
+
+  // #335: api.wordpress.org returns `last_updated` as "2015-03-04 10:00am GMT", a form
+  // Date.parse() can't read. Hello Dolly hasn't been updated in years, so the audit must say so.
+  test('flags a plugin not updated in years as possibly abandoned', async ({projectDir, request, runCli}) => {
+    const info = await request.get('https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=hello-dolly')
+    const {last_updated: lastUpdated} = (await info.json()) as {last_updated: string}
+    const ageInYears = (Date.now() - Date.parse(lastUpdated.slice(0, 10))) / (365 * 24 * 3600 * 1000)
+    test.skip(ageInYears <= 2.1, `hello-dolly was updated on ${lastUpdated}, too recently for this check`)
+
+    setPlugins(projectDir, {'hello-dolly': '1.7.2'})
+    const audit = await runCli(['plugin', 'audit'])
+
+    expect(audit.stdout, output(audit)).toContain(`· hello-dolly: last updated ${lastUpdated.slice(0, 10)} (possibly abandoned)`)
+  })
 })

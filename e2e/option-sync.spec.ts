@@ -251,6 +251,16 @@ test('option list shows names only, never values, and --no-core hides WordPress 
   expect(names).not.toContain('blogname')
 })
 
+// #335: without a terminal the table falls back to a wide layout, but a COLUMNS the user set wins.
+test('option list fits the table in a COLUMNS the user set', async ({runCli}) => {
+  const list = await runCli(['option', 'list'], {COLUMNS: '120'})
+
+  expect(list.exitCode, output(list)).toBe(0)
+  const lines = list.stdout.split('\n').filter((line) => line.includes('│'))
+  expect(lines.length).toBeGreaterThan(0)
+  expect(Math.max(...lines.map((line) => line.length))).toBeLessThanOrEqual(120)
+})
+
 test('option diff flags a WordPress-side change, and rollback undoes the last push', async ({projectDir, request, runCli, wp}) => {
   const name = uniqueName()
   created.push(name)
