@@ -208,10 +208,10 @@ describe('option list', () => {
       expect(process.env.COLUMNS).toBeUndefined()
     })
 
-    it.each([[[]], [['--no-core']]])('widens past a COLUMNS set without a terminal (%j), then restores it', async (argv) => {
+    it.each([[[]], [['--no-core']]])('keeps a COLUMNS set without a terminal (%j)', async (argv) => {
       process.env.COLUMNS = '120'
 
-      expect(await tableWidth(argv)).toBeGreaterThan(250)
+      expect(await tableWidth(argv)).toBeLessThanOrEqual(120)
       expect(process.env.COLUMNS).toBe('120')
     })
   })

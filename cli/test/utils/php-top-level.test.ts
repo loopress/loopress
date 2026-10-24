@@ -105,6 +105,8 @@ final class Card
     ['a call hidden behind a fake block comment end', '/*/ foo(); */\nbar();', 'bar'],
     ['a call after a comment opening an array', 'class A { const X = [# {\n]; }\nfoo();', 'foo'],
     ['a call after an attributed function on the same line', '#[Attr] function f() {} bar();', 'bar'],
+    ['a call after an attribute', '#[Attr] foo();', 'foo'],
+    ['a call after an attribute holding brackets', "#[Attr(['a' => [1]], ']')] foo();", 'foo'],
     ['a call after a closing tag that opens again', 'class A {}\n?><?php\nfoo();', 'foo'],
     ['a call after a closing tag ending a statement', 'const X = 1 ?>\n<?php\nfoo();', 'foo'],
     ['a bare block in a bracketed namespace', 'namespace App {\n    { foo(); }\n}', '{'],

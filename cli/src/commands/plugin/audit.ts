@@ -207,9 +207,19 @@ function describeHealth(slug: string, pinned: string, info: Record<string, unkno
 
   const lastUpdated = typeof info.last_updated === 'string' ? info.last_updated : null
   if (lastUpdated) {
-    const years = (Date.now() - Date.parse(lastUpdated)) / (365 * 24 * 3600 * 1000)
+    const years = (Date.now() - parseWordPressDate(lastUpdated)) / (365 * 24 * 3600 * 1000)
     if (years > 2) notes.push({message: `last updated ${lastUpdated.slice(0, 10)} (possibly abandoned)`, slug})
   }
 
   return notes
+}
+
+// WordPress.org's plugins API returns `last_updated` as "2015-03-04 10:00am GMT", which
+// Date.parse() reads as NaN. Rewrite that form to ISO, and leave anything else to Date.parse().
+function parseWordPressDate(value: string): number {
+  const match = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2})(am|pm) GMT$/i.exec(value)
+  if (!match) return Date.parse(value)
+  const [, day, hour, minute, half] = match
+  const hours = (Number(hour) % 12) + (half.toLowerCase() === 'pm' ? 12 : 0)
+  return Date.parse(`${day}T${String(hours).padStart(2, '0')}:${minute}:00Z`)
 }

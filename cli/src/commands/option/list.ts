@@ -90,7 +90,7 @@ const NON_TTY_FALLBACK_COLUMNS = 300
 // column. See confidenceColor() above for SOURCE?/PLUGIN's shared sûr/pas sûr color coding.
 function renderTable(rows: ListedOption[], {includeCore}: {includeCore: boolean}): string {
   const previousColumns = process.env.COLUMNS
-  if (!process.stdout.columns) process.env.COLUMNS = String(NON_TTY_FALLBACK_COLUMNS)
+  if (!previousColumns && !process.stdout.columns) process.env.COLUMNS = String(NON_TTY_FALLBACK_COLUMNS)
 
   // Mirrors tty-table's own getAvailableWidth(): its column-width percentages are computed against
   // this same number, so fillPercent() above needs it too to reserve the right amount for AUTOLOAD/CORE.
