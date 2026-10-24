@@ -12,13 +12,13 @@ type Token = {text: string; type: 'attribute' | 'html' | 'punct' | 'string' | 'w
 // `depth`: open class/function bodies (the code in them runs only when called). A bracketed
 // namespace's braces don't count, the statements in `namespace App { ... }` are top level too,
 // so `braces` remembers which kind each open brace is (true: a namespace's).
-type State = {atStart: boolean; braces: boolean[]; depth: number; namespaceHeader: boolean}
+type State = {atStart: boolean; attribute: number; braces: boolean[]; depth: number; namespaceHeader: boolean}
 
 // Returns a short description of the offending token, for the error message.
 export function firstTopLevelSideEffect(content: string): null | string {
   if (content.search(OPEN_TAG) !== 0) return 'inline HTML before <?php'
 
-  const state: State = {atStart: true, braces: [], depth: 0, namespaceHeader: false}
+  const state: State = {atStart: true, attribute: 0, braces: [], depth: 0, namespaceHeader: false}
   for (const token of lex(content.slice(5))) {
     const found = step(state, token)
     if (found !== null) return found
@@ -44,6 +44,7 @@ export function startsWithStrictTypes(content: string): boolean {
 // when it starts a top-level statement that isn't a declaration.
 function step(state: State, token: Token): null | string {
   if (token.type === 'html') return inlineHtml(state, token)
+  if (state.attribute > 0 || token.type === 'attribute') return skipAttribute(state, token)
 
   const statementStart = state.depth === 0 && state.atStart
   switch (token.text) {
@@ -75,6 +76,14 @@ function step(state: State, token: Token): null | string {
   }
 }
 
+// An attribute (`#[Attr(...)]`) only decorates what follows it, so the statement still starts
+// after its closing `]`: `#[Attr] foo();` must report `foo`.
+function skipAttribute(state: State, token: Token): null {
+  if (token.type === 'attribute' || token.text === '[') state.attribute += 1
+  else if (token.text === ']') state.attribute -= 1
+  return null
+}
+
 // A template inside a class or function body (`?> <p>...</p> <?php`) only runs when it is called.
 function inlineHtml(state: State, token: Token): null | string {
   if (state.depth > 0) return null
@@ -98,7 +107,7 @@ function openBrace(state: State, statementStart: boolean): null | string {
 }
 
 function isDeclaration(token: Token): boolean {
-  return token.type === 'attribute' || (token.type === 'word' && ALLOWED.has(token.text.toLowerCase()))
+  return token.type === 'word' && ALLOWED.has(token.text.toLowerCase())
 }
 
 function* lex(source: string): Generator<Token> {

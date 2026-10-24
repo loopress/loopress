@@ -46,7 +46,7 @@ function readWpCredentials(): WpCredentials {
 interface TestFixtures {
   homeDir: string
   projectDir: string
-  runCli(args: string[]): Promise<CliResult>
+  runCli(args: string[], env?: Record<string, string>): Promise<CliResult>
 }
 
 interface WorkerFixtures {
@@ -100,7 +100,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       }),
     )
 
-    await use(async (args: string[]) => {
+    await use(async (args: string[], env: Record<string, string> = {}) => {
       try {
         const {stderr, stdout} = await execFileAsync(process.execPath, [CLI_ENTRY, ...args], {
           cwd: projectDir,
@@ -108,7 +108,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
           // oclif's dir resolution checks them before falling back to HOME, so on a machine
           // that has either set, the CLI would silently miss the config.json seeded above and
           // read/write the developer's real global Loopress config instead.
-          env: {...process.env, HOME: homeDir, XDG_CONFIG_HOME: undefined, XDG_DATA_HOME: undefined},
+          env: {...process.env, ...env, HOME: homeDir, XDG_CONFIG_HOME: undefined, XDG_DATA_HOME: undefined},
           // Matches the per-test timeout in playwright.config.ts: a CLI call that outlives the
           // test can't be the thing under assertion anyway, so fail it here (clean "CLI exited
           // non-zero" + captured stderr) rather than leaving the child running past a bare

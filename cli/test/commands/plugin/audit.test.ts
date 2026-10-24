@@ -273,6 +273,17 @@ describe('plugin audit', () => {
     expect(result.health).toEqual(expect.arrayContaining([{message: 'requires PHP 8.1', slug: 'x'}]))
   })
 
+  it.each([
+    ['2015-03-04 10:00am GMT', true],
+    ['2015-03-04 12:30pm GMT', true],
+    [`${new Date().getUTCFullYear()}-01-01 12:00am GMT`, false],
+  ])('reads the WordPress.org date form %s', async (lastUpdated, abandoned) => {
+    mockGot({vuln: () => ({data: {vulnerability: []}}), wporg: {last_updated: lastUpdated, name: 'X', version: '1.0.0'}})
+    const result = await make({plugins: {x: '1.0.0'}}).cmd.run()
+
+    expect(result.health.some((h) => h.message === `last updated ${lastUpdated.slice(0, 10)} (possibly abandoned)`)).toBe(abandoned)
+  })
+
   it('flags a plugin possibly abandoned (last updated over 2 years ago), not one updated recently', async () => {
     const old = new Date(Date.now() - 3 * 365 * 24 * 3600 * 1000).toISOString()
     const recent = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
