@@ -98,7 +98,15 @@ export default class Audit extends LoopressCommand {
       )
     }
 
-    const list = Array.isArray(body?.data?.vulnerability) ? body.data.vulnerability : []
+    // A 200 with the wrong shape (degraded service) must not read as "no advisories" either.
+    const list = body?.data?.vulnerability
+    if (!Array.isArray(list)) {
+      throw new TypeError(
+        `Unexpected answer from the vulnerability database (wpvulnerability.net) for "${slug}". ` +
+          'Audit aborted so a malformed response is not reported as a clean result.',
+      )
+    }
+
     return list.map((raw) => normalizeAdvisory(raw as Record<string, unknown>))
   }
 

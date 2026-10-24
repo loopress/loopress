@@ -112,7 +112,7 @@ function checkMetaKey(key: string, meta: unknown): void {
   }
 
   if (Object.hasOwn(meta, 'single') && typeof meta.single !== 'boolean') throw new Error(`"${key}": "single" must be true or false`)
-  checkMetaRest(key, type, meta.show_in_rest ?? false)
+  checkMetaRest(key, type, Object.hasOwn(meta, 'show_in_rest') ? meta.show_in_rest : false)
   if (Object.hasOwn(meta, 'default') && !META_TYPES[type](meta.default)) throw new Error(`"${key}": "default" must be a ${type}`)
 }
 

@@ -128,6 +128,7 @@ describe('declared-type-format', () => {
       [{isbn: {type: 5}}, '"type" must be one of'],
       [{isbn: {show_in_rest: 'yes', type: 'string'}}, '"isbn": "show_in_rest" must be true, false or an object'],
       [{isbn: {show_in_rest: ['schema'], type: 'string'}}, '"show_in_rest" must be true, false or an object'],
+      [{isbn: {show_in_rest: null, type: 'string'}}, '"isbn": "show_in_rest" must be true, false or an object'],
       [{data: {show_in_rest: true, type: 'object'}}, '"data": a object exposed in REST needs "show_in_rest": { "schema"'],
       [{data: {show_in_rest: {}, type: 'object'}}, 'needs "show_in_rest": { "schema"'],
       [{data: {show_in_rest: {schema: true}, type: 'array'}}, 'needs "show_in_rest": { "schema"'],

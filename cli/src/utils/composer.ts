@@ -103,7 +103,7 @@ function planComposerPull(composerJson: ComposerJson, prefix: string, incoming: 
   const allPackages = {...require, ...composerJson['require-dev']}
   const providedBy = new Map(
     Object.keys(allPackages)
-      .filter((name) => !name.startsWith(prefix) && name.includes('/'))
+      .filter((name) => !name.startsWith('wpackagist-plugin/') && !name.startsWith('wpackagist-theme/') && name.includes('/'))
       .map((name) => [name.split('/', 2)[1], name]),
   )
 
