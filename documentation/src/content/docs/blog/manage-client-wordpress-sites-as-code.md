@@ -31,7 +31,6 @@ acme-corp/
   acf/
     field-groups/
   menus/
-  seo/
   options/
 ```
 
@@ -114,4 +113,4 @@ WP-CLI remains the right tool for server-side operations: search-replace after a
 npm install -g @loopress/cli
 ```
 
-[Getting Started](/getting-started/) walks through `lps project config` and `lps init`. ACF, SEO, menus, and options sync with Loopress Light; hooks, snippets, and plugin pinning need [Loopress Full](/wordpress-plugin/).
+[Getting Started](/getting-started/) walks through `lps project config` and `lps init`. ACF, menus, and options sync with Loopress Light; hooks, snippets, and plugin pinning need [Loopress Full](/wordpress-plugin/).

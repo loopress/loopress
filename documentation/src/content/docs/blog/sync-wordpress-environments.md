@@ -35,7 +35,7 @@ Before moving anything, ask what's actually different:
 lps diff --env staging --against production
 ```
 
-Both environments are read live and compared resource by resource: snippets, ACF objects, API routes, hooks, forms, SEO settings, options, menus, static pages, theme styles, Composer dependencies. You get the list of what exists on one side and not the other, and a patch for everything that changed. If there's something on production you *don't* recognize, now is the time to find out, not after overwriting it.
+Both environments are read live and compared resource by resource: snippets, ACF objects, API routes, hooks, forms, options, menus, static pages, theme styles, Composer dependencies. You get the list of what exists on one side and not the other, and a patch for everything that changed. If there's something on production you *don't* recognize, now is the time to find out, not after overwriting it.
 
 ## Then promote
 
@@ -48,11 +48,11 @@ lps promote staging production
 Two behaviours make it safe to use without thinking too hard:
 
 - **A failed pull stops everything.** If staging can't be read completely, production isn't touched. A half-pulled configuration is never pushed onward.
-- **Every push is snapshotted.** Each resource push saves what it replaced, so `lps acf rollback --env production` (or `menu`, `seo`, `snippet`...) undoes that resource if the promotion was a mistake.
+- **Every push is snapshotted.** Each resource push saves what it replaced, so `lps acf rollback --env production` (or `menu`, `option`, `snippet`...) undoes that resource if the promotion was a mistake.
 
 ## What it carries, and what it doesn't
 
-`promote` moves everything the aggregate `lps pull` and `lps push` handle: WordPress.org plugins (pinned in `loopress.json`), Composer dependencies, ACF, API routes, hooks, forms, SEO, menus, tracked options, snippets, and Global Styles once the project tracks them. A few things behave differently, and they're worth knowing before your first promotion:
+`promote` moves everything the aggregate `lps pull` and `lps push` handle: WordPress.org plugins (pinned in `loopress.json`), Composer dependencies, ACF, API routes, hooks, forms, menus, tracked options, snippets, and Global Styles once the project tracks them. A few things behave differently, and they're worth knowing before your first promotion:
 
 - **Your local files are overwritten with staging's state.** That's how the pull half works. Commit or stash your work first, then look at `git diff` after the promotion: it's a precise record of what just moved to production.
 - **Static pages come from your files, not from staging.** Pages have no `pull` (the file is the source of truth), so the push half sends whatever is in your `pages/` directory.
@@ -90,4 +90,4 @@ No dump, no search-replace on URLs, no content lost. And the next time someone a
 npm install -g @loopress/cli
 ```
 
-ACF, SEO, menus, options, and theme styles work with Loopress Light. Everything else `promote` carries needs [Loopress Full](/wordpress-plugin/).
+ACF, menus, options, and theme styles work with Loopress Light. Everything else `promote` carries needs [Loopress Full](/wordpress-plugin/).
