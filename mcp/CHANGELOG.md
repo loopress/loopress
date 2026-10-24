@@ -1,5 +1,13 @@
 # @loopress/mcp
 
+## 0.32.3
+
+### Patch Changes
+
+- Updated dependencies [cbe0bd9]
+- Updated dependencies [b038a67]
+  - @loopress/cli@0.32.3
+
 ## 0.32.2
 
 ### Patch Changes
