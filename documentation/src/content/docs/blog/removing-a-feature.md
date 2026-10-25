@@ -3,6 +3,9 @@ title: I Deleted 5,000 Lines of a Feature That Worked
 description: Loopress had an SEO module that synced Rank Math and Yoast data through Git. It worked, it was tested, it was on the homepage. I removed it, because it broke the one rule the product is built on.
 date: 2026-10-24
 draft: false
+cover:
+  alt: A starred feature card being dropped from an app window into a trash can, next to the words "Removing a Feature".
+  image: ../../images/removing-a-feature-cover.png
 authors:
   - maxime
 tags:
