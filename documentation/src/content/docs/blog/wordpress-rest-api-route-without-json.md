@@ -6,7 +6,7 @@ draft: false
 cliVersion: 0.32.2
 wordpressPluginVersion: 2026.17.1
 cover:
-  alt: Requests flowing into a WordPress REST API gear that sends out JSON, XML, CSV, PDF and HTML responses.
+  alt: Requests flowing into the WordPress REST API and coming out as JSON, XML, CSV and HTML files.
   image: ../../images/wordpress-rest-api-route-without-json-cover.jpeg
 authors:
   - maxime
