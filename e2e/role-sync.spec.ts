@@ -1,4 +1,4 @@
-import {mkdirSync, writeFileSync} from 'node:fs'
+import {mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
@@ -71,4 +71,34 @@ test('diff shows nothing right after a push', async ({projectDir, runCli}) => {
 
   const diff = await runCli(['role', 'diff'])
   expect(diff.exitCode, output(diff)).toBe(0)
+})
+
+test('pull writes a pushed role back to roles/<slug>.json', async ({projectDir, runCli}) => {
+  const slug = uniqueSlug('e2erole')
+  declared.push(slug)
+  writeRole(projectDir, slug, {capabilities: {edit_posts: true, read: true}, name: 'E2E Round trip'})
+  expect((await runCli(['role', 'push'])).exitCode).toBe(0)
+  rmSync(join(projectDir, 'roles'), {force: true, recursive: true})
+
+  const pull = await runCli(['role', 'pull', '--yes'])
+  expect(pull.exitCode, output(pull)).toBe(0)
+
+  const pulled = JSON.parse(readFileSync(join(projectDir, 'roles', `${slug}.json`), 'utf8')) as {capabilities: Record<string, boolean>; name: string}
+  expect(pulled).toMatchObject({capabilities: {edit_posts: true, read: true}, name: 'E2E Round trip'})
+})
+
+test('rollback restores the role from before the last push', async ({projectDir, runCli}) => {
+  const slug = uniqueSlug('e2erole')
+  declared.push(slug)
+  writeRole(projectDir, slug, {capabilities: {read: true}, name: 'E2E Role one'})
+  expect((await runCli(['role', 'push'])).exitCode).toBe(0)
+  writeRole(projectDir, slug, {capabilities: {read: true}, name: 'E2E Role two'})
+  expect((await runCli(['role', 'push'])).exitCode).toBe(0)
+
+  const rollback = await runCli(['role', 'rollback', '--yes'])
+  expect(rollback.exitCode, output(rollback)).toBe(0)
+  expect(rollback.stdout).toContain('Rolled back')
+
+  const list = await runCli(['role', 'list'])
+  expect(list.stdout).toContain(`${slug} (E2E Role one)`)
 })
