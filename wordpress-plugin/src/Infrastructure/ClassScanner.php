@@ -85,64 +85,84 @@ final class ClassScanner
         $atStart = true; // at the beginning of a statement (right after <?php, ';' or a closing '}')
 
         foreach ($tokens as $token) {
-            if (is_array($token)) {
-                [$id] = $token;
-
-                if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
-                    continue;
-                }
-
-                // An open/close PHP tag begins a fresh statement; the interpolation-brace tokens
-                // ("{$x}", "${x}") open a nested context that a plain '}' string token closes, so
-                // they count toward depth just like a literal '{'.
-                if ($id === T_OPEN_TAG || $id === T_CLOSE_TAG) {
-                    $atStart = true;
-                    continue;
-                }
-                if ((defined('T_CURLY_OPEN') && $id === T_CURLY_OPEN)
-                    || (defined('T_DOLLAR_OPEN_CURLY_BRACES') && $id === T_DOLLAR_OPEN_CURLY_BRACES)) {
-                    ++$depth;
-                    continue;
-                }
-
-                if ($depth === 0 && $atStart) {
-                    if (!in_array($id, $allowed, true)) {
-                        return token_name($id);
-                    }
-                    $atStart = false; // consumed this statement's leading keyword
-                }
-
-                continue;
-            }
-
-            // Single-character tokens: braces track nesting, ';' ends a top-level statement.
-            if ($token === '{') {
-                // A '{' at a top-level statement boundary is a bare block ("{ system(...); }"),
-                // whose body runs at load time; only a class/function body '{' is legitimate and
-                // that always follows its declaration keyword (so $atStart is already false).
-                if ($depth === 0 && $atStart) {
-                    return '{';
-                }
-                ++$depth;
-            } elseif ($token === '}') {
-                if ($depth > 0) {
-                    --$depth;
-                }
-                if ($depth === 0) {
-                    $atStart = true;
-                }
-            } elseif ($token === ';') {
-                if ($depth === 0) {
-                    $atStart = true;
-                }
-            } elseif ($depth === 0 && $atStart) {
-                // A statement that starts with punctuation at the top level (grouping '(',
-                // a backtick shell-exec, ...) is not a declaration: it executes.
-                return $token;
+            $offender = is_array($token)
+                ? self::scanSideEffectToken($token[0], $allowed, $depth, $atStart)
+                : self::scanSideEffectPunctuation($token, $depth, $atStart);
+            if ($offender !== null) {
+                return $offender;
             }
         }
 
         return null;
+    }
+
+    // One multi-character token of firstTopLevelSideEffect()'s scan: returns its name when it
+    // starts a top-level statement that isn't a declaration, null otherwise.
+    /** @param list<int> $allowed */
+    private static function scanSideEffectToken(int $id, array $allowed, int &$depth, bool &$atStart): ?string
+    {
+        if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+            return null;
+        }
+
+        // An open/close PHP tag begins a fresh statement; the interpolation-brace tokens
+        // ("{$x}", "${x}") open a nested context that a plain '}' string token closes, so
+        // they count toward depth just like a literal '{'.
+        if ($id === T_OPEN_TAG || $id === T_CLOSE_TAG) {
+            $atStart = true;
+            return null;
+        }
+        if (self::opensInterpolation($id)) {
+            ++$depth;
+            return null;
+        }
+
+        if ($depth !== 0 || !$atStart) {
+            return null;
+        }
+        if (!in_array($id, $allowed, true)) {
+            return token_name($id);
+        }
+        $atStart = false; // consumed this statement's leading keyword
+
+        return null;
+    }
+
+    private static function opensInterpolation(int $id): bool
+    {
+        return (defined('T_CURLY_OPEN') && $id === T_CURLY_OPEN)
+            || (defined('T_DOLLAR_OPEN_CURLY_BRACES') && $id === T_DOLLAR_OPEN_CURLY_BRACES);
+    }
+
+    // Single-character tokens: braces track nesting, ';' ends a top-level statement.
+    private static function scanSideEffectPunctuation(string $token, int &$depth, bool &$atStart): ?string
+    {
+        $atTopLevelStart = $depth === 0 && $atStart;
+
+        if ($token === '{') {
+            // A '{' at a top-level statement boundary is a bare block ("{ system(...); }"),
+            // whose body runs at load time; only a class/function body '{' is legitimate and
+            // that always follows its declaration keyword (so $atStart is already false).
+            if ($atTopLevelStart) {
+                return '{';
+            }
+            ++$depth;
+            return null;
+        }
+
+        if ($token === '}') {
+            $depth = max(0, $depth - 1);
+        }
+        if ($token === '}' || $token === ';') {
+            if ($depth === 0) {
+                $atStart = true;
+            }
+            return null;
+        }
+
+        // A statement that starts with punctuation at the top level (grouping '(',
+        // a backtick shell-exec, ...) is not a declaration: it executes.
+        return $atTopLevelStart ? $token : null;
     }
 
     /** @param array<int, array{0: int, 1: string, 2: int}|string> $tokens */

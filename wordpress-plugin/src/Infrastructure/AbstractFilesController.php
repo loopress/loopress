@@ -444,21 +444,9 @@ abstract class AbstractFilesController
             return new WP_REST_Response(['error' => $collision], 400);
         }
 
-        if ($expectedRevision !== null) {
-            $current         = $read($filename);
-            $currentRevision = $current === null ? null : $this->revisionOf(FileWriter::stripGuard($current));
-
-            if ($currentRevision !== $expectedRevision) {
-                // No current content (the file doesn't exist yet) means there was nothing to
-                // condition on: an expectedRevision sent for it anyway is a real mismatch, not
-                // a false positive, same "it no longer exists" framing as options' equivalent.
-                $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
-
-                return new WP_REST_Response([
-                    'error' => "\"{$filename}.php\" changed on WordPress since it was last read " .
-                        "(expected revision \"{$expectedRevision}\", but {$found}). Re-read the file and try again.",
-                ], 412);
-            }
+        $stale = $this->staleRevisionResponse($filename, $expectedRevision, $read);
+        if ($stale !== null) {
+            return $stale;
         }
 
         try {
@@ -475,6 +463,33 @@ abstract class AbstractFilesController
         }
 
         return $response;
+    }
+
+    // #234's expectedRevision precondition: a 412 when the file changed (or vanished) since the
+    // CLI last read it, null when there's nothing to condition on or it still matches.
+    /** @param callable(string): ?string $read */
+    private function staleRevisionResponse(string $filename, mixed $expectedRevision, callable $read): ?WP_REST_Response
+    {
+        if ($expectedRevision === null) {
+            return null;
+        }
+
+        $current         = $read($filename);
+        $currentRevision = $current === null ? null : $this->revisionOf(FileWriter::stripGuard($current));
+
+        if ($currentRevision !== $expectedRevision) {
+            // No current content (the file doesn't exist yet) means there was nothing to
+            // condition on: an expectedRevision sent for it anyway is a real mismatch, not
+            // a false positive, same "it no longer exists" framing as options' equivalent.
+            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+
+            return new WP_REST_Response([
+                'error' => "\"{$filename}.php\" changed on WordPress since it was last read " .
+                    "(expected revision \"{$expectedRevision}\", but {$found}). Re-read the file and try again.",
+            ], 412);
+        }
+
+        return null;
     }
 
     // Removes one deployed file. This is the only way to take a route or hook off the server

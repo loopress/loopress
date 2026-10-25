@@ -233,18 +233,11 @@ class AppsController
         // N-1 grace: a lazy chunk referenced by the build we are replacing must keep resolving
         // for visitors who already loaded its index.html. Keep exactly the previous
         // generation's files, drop anything older.
-        $previous  = $this->store->get($name);
-        $keepPaths = array_column($manifest['files'], 'path');
-        foreach ($this->previousPaths($previous) as $grandfathered) {
-            $keepPaths[] = $grandfathered;
-        }
-        $removed = [];
-        foreach (array_keys($onDisk) as $existing) {
-            if (!in_array($existing, $keepPaths, true)) {
-                $this->directory->removeAsset($name, $existing);
-                $removed[] = $existing;
-            }
-        }
+        $previous = $this->store->get($name);
+        $removed  = $this->removeStaleAssets($name, array_keys($onDisk), [
+            ...array_column($manifest['files'], 'path'),
+            ...$this->previousPaths($previous),
+        ]);
 
         try {
             $crossOriginApplied = $this->directory->writeCrossOriginPolicy($name, $manifest['crossOrigin']);
@@ -272,6 +265,24 @@ class AppsController
             'crossOrigin' => $crossOriginApplied ? $manifest['crossOrigin'] : null,
             'removed'   => $removed,
         ], 200);
+    }
+
+    /**
+     * @param string[] $onDisk
+     * @param string[] $keepPaths
+     * @return string[] the removed paths
+     */
+    private function removeStaleAssets(string $name, array $onDisk, array $keepPaths): array
+    {
+        $removed = [];
+        foreach ($onDisk as $existing) {
+            if (!in_array($existing, $keepPaths, true)) {
+                $this->directory->removeAsset($name, $existing);
+                $removed[] = $existing;
+            }
+        }
+
+        return $removed;
     }
 
     public function delete_app(WP_REST_Request $request): WP_REST_Response

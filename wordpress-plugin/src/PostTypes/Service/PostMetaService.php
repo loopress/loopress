@@ -121,39 +121,49 @@ class PostMetaService extends AbstractDeclaredTypeService
                 $this->refuse($slug, "\"{$key}\" must be a JSON object of register_post_meta() arguments.");
             }
 
-            foreach (['sanitize_callback', 'auth_callback'] as $code) {
-                if (array_key_exists($code, $meta)) {
-                    $this->refuse($slug, "\"{$key}\": \"{$code}\" runs PHP code, use a hook instead of a meta/ file for it.");
-                }
-            }
+            $this->assertMetaArgs($slug, $key, $meta);
+        }
+    }
 
-            $type = $meta['type'] ?? null;
-            if (!in_array($type, self::TYPES, true)) {
-                $this->refuse($slug, "\"{$key}\": \"type\" must be one of " . implode(', ', self::TYPES) . '.');
+    /** @param array<mixed> $meta */
+    private function assertMetaArgs(string $slug, string $key, array $meta): void
+    {
+        foreach (['sanitize_callback', 'auth_callback'] as $code) {
+            if (array_key_exists($code, $meta)) {
+                $this->refuse($slug, "\"{$key}\": \"{$code}\" runs PHP code, use a hook instead of a meta/ file for it.");
             }
+        }
 
-            if (array_key_exists('single', $meta) && !is_bool($meta['single'])) {
-                $this->refuse($slug, "\"{$key}\": \"single\" must be true or false.");
-            }
+        $type = $meta['type'] ?? null;
+        if (!in_array($type, self::TYPES, true)) {
+            $this->refuse($slug, "\"{$key}\": \"type\" must be one of " . implode(', ', self::TYPES) . '.');
+        }
 
-            $rest = $meta['show_in_rest'] ?? false;
-            if (!is_bool($rest) && !is_array($rest)) {
-                $this->refuse($slug, "\"{$key}\": \"show_in_rest\" must be true, false or an object.");
-            }
+        if (array_key_exists('single', $meta) && !is_bool($meta['single'])) {
+            $this->refuse($slug, "\"{$key}\": \"single\" must be true or false.");
+        }
 
-            // WordPress calls it with each value on every REST read (WP_REST_Meta_Fields).
-            if (is_array($rest) && array_key_exists('prepare_callback', $rest)) {
-                $this->refuse($slug, "\"{$key}\": \"show_in_rest.prepare_callback\" runs PHP code, use a hook instead of a meta/ file for it.");
-            }
+        $this->assertShowInRest($slug, $key, $type, $meta['show_in_rest'] ?? false);
 
-            // WordPress silently leaves an array or object key out of REST without a schema.
-            if ($rest !== false && ($type === 'array' || $type === 'object') && !is_array($rest['schema'] ?? null)) {
-                $this->refuse($slug, "\"{$key}\": a {$type} exposed in REST needs \"show_in_rest\": { \"schema\": {...} }.");
-            }
+        if (array_key_exists('default', $meta) && !$this->matchesType($meta['default'], $type)) {
+            $this->refuse($slug, "\"{$key}\": \"default\" must be a {$type}.");
+        }
+    }
 
-            if (array_key_exists('default', $meta) && !$this->matchesType($meta['default'], $type)) {
-                $this->refuse($slug, "\"{$key}\": \"default\" must be a {$type}.");
-            }
+    private function assertShowInRest(string $slug, string $key, string $type, mixed $rest): void
+    {
+        if (!is_bool($rest) && !is_array($rest)) {
+            $this->refuse($slug, "\"{$key}\": \"show_in_rest\" must be true, false or an object.");
+        }
+
+        // WordPress calls it with each value on every REST read (WP_REST_Meta_Fields).
+        if (is_array($rest) && array_key_exists('prepare_callback', $rest)) {
+            $this->refuse($slug, "\"{$key}\": \"show_in_rest.prepare_callback\" runs PHP code, use a hook instead of a meta/ file for it.");
+        }
+
+        // WordPress silently leaves an array or object key out of REST without a schema.
+        if ($rest !== false && ($type === 'array' || $type === 'object') && !is_array($rest['schema'] ?? null)) {
+            $this->refuse($slug, "\"{$key}\": a {$type} exposed in REST needs \"show_in_rest\": { \"schema\": {...} }.");
         }
     }
 

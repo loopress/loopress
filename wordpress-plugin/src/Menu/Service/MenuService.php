@@ -425,38 +425,51 @@ class MenuService
                 'menu-item-xfn'         => (string) ($item['xfn'] ?? ''),
             ];
 
-            if ($type === 'custom') {
-                $url = (string) ($item['url'] ?? '');
-                if ($url === '') {
-                    throw new \RuntimeException(esc_html('A "custom" menu item must include a non-empty "url".'));
-                }
-
-                foreach ($this->customUrlWarnings($url) as $warning) {
-                    $warnings[] = $warning;
-                }
-
-                $args['menu-item-object']    = '';
-                $args['menu-item-object-id'] = 0;
-                $args['menu-item-url']       = $url;
-            } else {
-                $object     = (string) ($item['object'] ?? '');
-                $objectSlug = (string) ($item['objectSlug'] ?? '');
-                if ($object === '' || $objectSlug === '') {
-                    throw new \RuntimeException(esc_html(
-                        "A \"{$type}\" menu item must include a non-empty \"object\" and \"objectSlug\".",
-                    ));
-                }
-
-                $args['menu-item-object']    = $object;
-                $args['menu-item-object-id'] = $this->resolveObjectId($type, $object, $objectSlug);
-                $args['menu-item-url']       = '';
-            }
+            $args += $this->resolveTarget($type, $item, $warnings);
 
             $children = is_array($item['children'] ?? null) ? $this->resolveItems($item['children'], $warnings) : [];
             $resolved[] = ['args' => $args, 'children' => $children];
         }
 
         return $resolved;
+    }
+
+    /**
+     * The `object`/`object-id`/`url` part of one item's args: a `custom` item keeps its URL,
+     * a post_type/taxonomy item is re-resolved by slug on this environment.
+     *
+     * @param array<mixed> $item
+     * @param array<int, string> $warnings
+     * @return array{menu-item-object: string, menu-item-object-id: int, menu-item-url: string}
+     */
+    private function resolveTarget(string $type, array $item, array &$warnings): array
+    {
+        if ($type === 'custom') {
+            $url = (string) ($item['url'] ?? '');
+            if ($url === '') {
+                throw new \RuntimeException(esc_html('A "custom" menu item must include a non-empty "url".'));
+            }
+
+            foreach ($this->customUrlWarnings($url) as $warning) {
+                $warnings[] = $warning;
+            }
+
+            return ['menu-item-object' => '', 'menu-item-object-id' => 0, 'menu-item-url' => $url];
+        }
+
+        $object     = (string) ($item['object'] ?? '');
+        $objectSlug = (string) ($item['objectSlug'] ?? '');
+        if ($object === '' || $objectSlug === '') {
+            throw new \RuntimeException(esc_html(
+                "A \"{$type}\" menu item must include a non-empty \"object\" and \"objectSlug\".",
+            ));
+        }
+
+        return [
+            'menu-item-object'    => $object,
+            'menu-item-object-id' => $this->resolveObjectId($type, $object, $objectSlug),
+            'menu-item-url'       => '',
+        ];
     }
 
     // The identity resolution this whole service exists for: never trust a raw

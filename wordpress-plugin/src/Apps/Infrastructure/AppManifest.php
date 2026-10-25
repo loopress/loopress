@@ -93,32 +93,42 @@ class AppManifest
         $files = [];
         $seen  = [];
         foreach ($raw as $entry) {
-            if (!is_array($entry)) {
-                throw new \InvalidArgumentException('each file must be an object');
-            }
-            $path = is_string($entry['path'] ?? null) ? $entry['path'] : '';
-            if (!AppsDirectory::isValidAssetPath($path)) {
-                throw new \InvalidArgumentException("unsafe or unsupported asset path: \"{$path}\"");
-            }
-            if (isset($seen[$path])) {
-                throw new \InvalidArgumentException("duplicate file path: \"{$path}\"");
-            }
-            $seen[$path] = true;
-
-            $sha256 = is_string($entry['sha256'] ?? null) ? strtolower($entry['sha256']) : '';
-            if (preg_match(self::SHA256_PATTERN, $sha256) !== 1) {
-                throw new \InvalidArgumentException("file \"{$path}\" has no valid sha256");
-            }
-
-            $size = $entry['size'] ?? null;
-            if (!is_int($size) || $size < 0) {
-                throw new \InvalidArgumentException("file \"{$path}\" has no valid size");
-            }
-
-            $files[] = ['path' => $path, 'sha256' => $sha256, 'size' => $size];
+            $file                = self::normalizeFile($entry, $seen);
+            $seen[$file['path']] = true;
+            $files[]             = $file;
         }
 
         return $files;
+    }
+
+    /**
+     * @param array<string, true> $seen paths already listed, for the duplicate check
+     * @return array{path: string, sha256: string, size: int}
+     */
+    private static function normalizeFile(mixed $entry, array $seen): array
+    {
+        if (!is_array($entry)) {
+            throw new \InvalidArgumentException('each file must be an object');
+        }
+        $path = is_string($entry['path'] ?? null) ? $entry['path'] : '';
+        if (!AppsDirectory::isValidAssetPath($path)) {
+            throw new \InvalidArgumentException("unsafe or unsupported asset path: \"{$path}\"");
+        }
+        if (isset($seen[$path])) {
+            throw new \InvalidArgumentException("duplicate file path: \"{$path}\"");
+        }
+
+        $sha256 = is_string($entry['sha256'] ?? null) ? strtolower($entry['sha256']) : '';
+        if (preg_match(self::SHA256_PATTERN, $sha256) !== 1) {
+            throw new \InvalidArgumentException("file \"{$path}\" has no valid sha256");
+        }
+
+        $size = $entry['size'] ?? null;
+        if (!is_int($size) || $size < 0) {
+            throw new \InvalidArgumentException("file \"{$path}\" has no valid size");
+        }
+
+        return ['path' => $path, 'sha256' => $sha256, 'size' => $size];
     }
 
     /**
