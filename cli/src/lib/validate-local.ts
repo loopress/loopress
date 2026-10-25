@@ -1,7 +1,9 @@
 import {readFile} from 'node:fs/promises'
 import {join, relative, sep} from 'node:path'
+import {z} from 'zod'
 
 import {configManager} from '../config/project-config.manager.js'
+import {PLUGIN_PIN} from '../types/plugin.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
@@ -133,6 +135,17 @@ async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: strin
   return checked
 }
 
+const JSON_OBJECT = z.record(z.string(), z.unknown())
+
+// Only the sections Composer sync writes to; the rest is Composer's own business.
+const COMPOSER_JSON = z.looseObject(
+  {
+    require: z.record(z.string(), z.unknown(), '"require" must be an object').optional(),
+    'require-dev': z.record(z.string(), z.unknown(), '"require-dev" must be an object').optional(),
+  },
+  'expected a JSON object',
+)
+
 async function checkComposerJson(cwd: string, problems: Problem[]): Promise<number> {
   let raw: string
   try {
@@ -150,11 +163,9 @@ async function checkComposerJson(cwd: string, problems: Problem[]): Promise<numb
     return 1
   }
 
-  for (const key of ['require', 'require-dev']) {
-    const section = (parsed as Record<string, unknown>)[key]
-    if (section !== undefined && (typeof section !== 'object' || section === null || Array.isArray(section))) {
-      problems.push({file: 'composer.json', message: `"${key}" must be an object`})
-    }
+  const result = COMPOSER_JSON.safeParse(parsed)
+  if (!result.success) {
+    for (const {message} of result.error.issues) problems.push({file: 'composer.json', message})
   }
 
   return 1
@@ -181,7 +192,7 @@ async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: stri
       continue
     }
 
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    if (!JSON_OBJECT.safeParse(parsed).success) {
       problems.push({file: filePath, message: 'expected a JSON object'})
       continue
     }
@@ -213,20 +224,17 @@ function checkLoopressJson(localConfig: Record<string, unknown>, problems: Probl
   const {plugins} = localConfig as {plugins?: unknown}
   if (plugins === undefined) return
 
-  if (typeof plugins !== 'object' || plugins === null || Array.isArray(plugins)) {
+  const manifest = JSON_OBJECT.safeParse(plugins)
+  if (!manifest.success) {
     problems.push({file: 'loopress.json', message: '"plugins" must be an object of slug -> version string or {version, active}'})
     return
   }
 
-  for (const [slug, version] of Object.entries(plugins)) {
+  for (const [slug, version] of Object.entries(manifest.data)) {
     // The object form is what `plugin pull` writes for a plugin installed but inactive (see PluginPin).
-    const isPin =
-      typeof version === 'string' ||
-      (typeof version === 'object' &&
-        version !== null &&
-        typeof (version as {version?: unknown}).version === 'string' &&
-        ['boolean', 'undefined'].includes(typeof (version as {active?: unknown}).active))
-    if (!isPin) problems.push({file: 'loopress.json', message: `plugin "${slug}" must map to a version string or {version, active}`})
+    if (!PLUGIN_PIN.safeParse(version).success) {
+      problems.push({file: 'loopress.json', message: `plugin "${slug}" must map to a version string or {version, active}`})
+    }
   }
 }
 

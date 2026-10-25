@@ -1,3 +1,5 @@
+import {z} from 'zod'
+
 export const OPTIONS_ENDPOINT = 'loopress/v1/options'
 
 // `refs` asks WordPress to return the declared post references as paths (see OptionRefs).
@@ -99,40 +101,26 @@ export function partitionByReadonly(tracked: LocalOption[]): {skipped: LocalOpti
   return {skipped, writable}
 }
 
+const REFS_ERROR = '"refs" must map a value path to a post type, e.g. {"purchase_page": "page"}'
+
+// Each check's message is the error thrown for it, the first failing one wins. Loose: unknown
+// keys (`readonly`, future ones) pass through untouched.
+const LOCAL_OPTION = z.looseObject(
+  {
+    name: z.string('missing a "name" string').min(1, 'missing a "name" string'),
+    autoload: z.string('missing an "autoload" string'),
+    // `value` itself is deliberately untyped (a WP option can hold any JSON-safe value, including
+    // null); only the key's presence is checked, so a hand-edited file that dropped it entirely is
+    // rejected here rather than silently pushing an `undefined` value to WordPress.
+    value: z.custom<unknown>((value) => value !== undefined, 'missing a "value" field'),
+    refs: z.record(z.string().min(1, REFS_ERROR), z.string(REFS_ERROR).min(1, REFS_ERROR), REFS_ERROR).optional(),
+  },
+  'not a JSON object',
+)
+
 export function parseLocalOption(raw: string): LocalOption {
-  const parsed = JSON.parse(raw) as unknown
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('not a JSON object')
-  }
+  const result = LOCAL_OPTION.safeParse(JSON.parse(raw))
+  if (!result.success) throw new TypeError(result.error.issues[0].message)
 
-  const {autoload, name, refs, value} = parsed as {autoload?: unknown; name?: unknown; refs?: unknown; value?: unknown}
-  if (typeof name !== 'string' || name === '') {
-    throw new Error('missing a "name" string')
-  }
-
-  if (typeof autoload !== 'string') {
-    throw new TypeError('missing an "autoload" string')
-  }
-
-  // `value` itself is deliberately untyped (a WP option can hold any JSON-safe value, including
-  // null); only the key's presence is checked, so a hand-edited file that dropped it entirely is
-  // rejected here rather than silently pushing an `undefined` value to WordPress.
-  if (value === undefined) {
-    throw new Error('missing a "value" field')
-  }
-
-  if (refs !== undefined && !isOptionRefs(refs)) {
-    throw new TypeError('"refs" must map a value path to a post type, e.g. {"purchase_page": "page"}')
-  }
-
-  return parsed as LocalOption
-}
-
-function isOptionRefs(refs: unknown): refs is OptionRefs {
-  return (
-    typeof refs === 'object' &&
-    refs !== null &&
-    !Array.isArray(refs) &&
-    Object.entries(refs).every(([path, postType]) => path !== '' && typeof postType === 'string' && postType !== '')
-  )
+  return result.data
 }

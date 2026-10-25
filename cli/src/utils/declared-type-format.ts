@@ -1,4 +1,5 @@
 import {basename} from 'node:path'
+import {z} from 'zod'
 
 import {parseHtmlHeader, titleFromSlug} from './page-format.js'
 import {type ResourceDirKind} from './resource-dirs.js'
@@ -73,16 +74,17 @@ export const TAXONOMY_SPEC: DeclaredTypeSpec = {
   termArgs: ['default_term'],
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
+const JSON_OBJECT = z.record(z.string(), z.unknown())
+const isObject = (value: unknown): value is Record<string, unknown> => JSON_OBJECT.safeParse(value).success
 
-// register_post_meta()'s `type` values, each with the check its `default` must pass.
-const META_TYPES: Record<string, (value: unknown) => boolean> = {
-  array: Array.isArray,
-  boolean: (value) => typeof value === 'boolean',
-  integer: Number.isSafeInteger,
-  number: (value) => typeof value === 'number',
-  object: isObject,
-  string: (value) => typeof value === 'string',
+// register_post_meta()'s `type` values, each with the schema its `default` must pass.
+const META_TYPES: Record<string, z.ZodType> = {
+  array: z.array(z.unknown()),
+  boolean: z.boolean(),
+  integer: z.int(),
+  number: z.number(),
+  object: JSON_OBJECT,
+  string: z.string(),
 }
 
 function checkMetaRest(key: string, type: string, rest: unknown): void {
@@ -113,7 +115,7 @@ function checkMetaKey(key: string, meta: unknown): void {
 
   if (Object.hasOwn(meta, 'single') && typeof meta.single !== 'boolean') throw new Error(`"${key}": "single" must be true or false`)
   checkMetaRest(key, type, Object.hasOwn(meta, 'show_in_rest') ? meta.show_in_rest : false)
-  if (Object.hasOwn(meta, 'default') && !META_TYPES[type](meta.default)) throw new Error(`"${key}": "default" must be a ${type}`)
+  if (Object.hasOwn(meta, 'default') && !META_TYPES[type].safeParse(meta.default).success) throw new Error(`"${key}": "default" must be a ${type}`)
 }
 
 // Same checks as the plugin's PostMetaService::assertArgs(): the file is `key => register_post_meta()
@@ -145,7 +147,7 @@ function checkRoleArgs(args: DeclaredArgs): void {
   if (typeof args.name !== 'string' || args.name.trim() === '') throw new Error('"name" must be a non-empty string')
 
   const capabilities = args.capabilities ?? {}
-  if (!isObject(capabilities) || Object.values(capabilities).some((granted) => typeof granted !== 'boolean')) {
+  if (!z.record(z.string(), z.boolean()).safeParse(capabilities).success) {
     throw new Error('"capabilities" must map each capability name to true or false')
   }
 }
@@ -278,12 +280,10 @@ export type RegisteredItem = {
 }
 
 export function parseDeclaredArgs(raw: string): DeclaredArgs {
-  const parsed = JSON.parse(raw) as unknown
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('not a JSON object of arguments')
-  }
+  const result = JSON_OBJECT.safeParse(JSON.parse(raw))
+  if (!result.success) throw new Error('not a JSON object of arguments')
 
-  return parsed as DeclaredArgs
+  return result.data
 }
 
 // `lps validate`'s check of one file: the file name is a valid slug, array arguments are arrays,

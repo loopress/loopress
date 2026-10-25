@@ -142,7 +142,7 @@ describe('option-format', () => {
       expect(() => parseLocalOption(JSON.stringify(data))).toThrow(/^missing a "name" string$/)
     })
 
-    it('reports a bad autoload as a TypeError', () => {
+    it('reports a bad shape as a TypeError', () => {
       expect(() => parseLocalOption(JSON.stringify({autoload: 1, name: 'x', value: 1}))).toThrow(TypeError)
     })
 
