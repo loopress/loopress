@@ -79,15 +79,18 @@ That's the whole trick, documented as [streaming a file instead of JSON](/api/ro
 That 2 MB photo, or a PDF already sitting in the media library, doesn't need to travel through PHP at all. The route decides *which* file the caller gets, checks they're allowed to have it, and points them at it:
 
 ```php
-public function get(WP_REST_Request $request): WP_REST_Response
+public function get(WP_REST_Request $request): WP_REST_Response|WP_Error
 {
     $url = wp_get_attachment_url((int) $request->get_param('attachment_id'));
+    if (!$url) {
+        return new WP_Error('not_found', 'No such file.', ['status' => 404]);
+    }
 
     return new WP_REST_Response(null, 302, ['Location' => $url]);
 }
 ```
 
-The web server sends the bytes, with its own caching and range requests, and the route stays a normal REST response: no `exit`, nothing skipped.
+The web server sends the bytes, with its own caching and range requests, and the route stays a normal REST response: no `exit`, nothing skipped. Keep the `WP_Error`: without it, an unknown id answers a 302 with an empty `Location`, which I only caught by calling the route on a real site.
 
 ## What to know before shipping one
 
