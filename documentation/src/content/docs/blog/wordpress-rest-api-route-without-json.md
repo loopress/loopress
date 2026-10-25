@@ -14,7 +14,7 @@ tags:
 excerpt: The WordPress REST API speaks JSON, so every route ends up returning JSON, even when the thing calling it is a calendar app, a spreadsheet download, or an AI crawler. Pick the response shape from the caller instead.
 ---
 
-It started with a student on my sister's tutoring site asking for the blog posts as PDFs, to read offline and annotate. A route that renders a post to PDF is a few lines with Dompdf. Then I started imagining the next ones: an Excel export of orders, a QR code for an event ticket, a calendar feed, a Markdown version of a post for an AI crawler. None of them wanted to answer in JSON.
+It started with a student on my sister's tutoring site asking for the blog posts as PDFs. A route that renders a post to PDF is a few lines with Dompdf. Then I started imagining the next ones: an Excel export of orders, a QR code for an event ticket, a calendar feed, a Markdown version of a post for an AI crawler. None of them wanted to answer in JSON.
 
 The WordPress REST API is built around JSON. Return an array from a callback, WordPress serializes it, sets `Content-Type: application/json`, done. It's such a good default that it becomes the only answer, and then you find yourself base64-encoding a PDF into a JSON field so a browser can... decode it back into a PDF.
 
