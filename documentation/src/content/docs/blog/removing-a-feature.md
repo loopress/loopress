@@ -25,7 +25,7 @@ By every metric I usually look at, it was a finished feature. I just never reall
 
 ## The module that made me look
 
-Later, I built the option module: `lps option add <name>` tracks a single `wp_options` row as a file in Git. Its docs needed a realistic example, and the first one that came to mind was `wpseo_titles`, Yoast's settings row.
+Later, with more time spent in the WordPress ecosystem, I started to see how much of WordPress core fits Loopress's rule as it is: options, menus, post types, taxonomies, all configuration, none of it needing a third-party plugin. Options came first. The option module, `lps option add <name>`, tracks a single `wp_options` row as a file in Git. Its docs needed a realistic example, and the first one that came to mind was `wpseo_titles`, Yoast's settings row.
 
 That's when it clicked. One of the SEO module's jobs had just become a one-liner of another command. So I went to check what the rest of it was doing.
 
