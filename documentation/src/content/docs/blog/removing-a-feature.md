@@ -70,7 +70,7 @@ With an AI agent, building a feature like this takes days, not weeks. That makes
 
 What finally got me to look was a newer feature overlapping it, and then opening the real files on a real site. Not the fixtures, not the tests: the folder a user would actually commit. If most of what's in there wasn't written by a person, it isn't configuration, and it doesn't belong in Git.
 
-Since then, the new modules have all come from WordPress core: post types, taxonomies, post meta, user roles, block patterns. I can't say what Loopress will need next. I do have a much sharper idea of what it is, and what it isn't.
+The modules built around the removal all come from WordPress core: post types, taxonomies, post meta, user roles, block patterns. I can't say what Loopress will need next. I do have a much sharper idea of what it is, and what it isn't.
 
 ---
 
