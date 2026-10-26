@@ -247,7 +247,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
      */
     private function dispatchOne(string $method, string $path, array $body = []): array
     {
-        return array_filter($this->dispatch($method, $path, $body), 'is_string', ARRAY_FILTER_USE_KEY);
+        return Narrow::map($this->dispatch($method, $path, $body));
     }
 
     /**
@@ -258,7 +258,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
     {
         $rows = array_filter($this->dispatch($method, $path, $body), 'is_array');
 
-        return array_values(array_map(static fn(array $row): array => array_filter($row, 'is_string', ARRAY_FILTER_USE_KEY), $rows));
+        return array_values(array_map(static fn(array $row): array => Narrow::map($row), $rows));
     }
 
     /**
@@ -272,6 +272,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
         // fails with "No route was found matching the URL and request method."
         $request = new WP_REST_Request($method, '/' . self::NAMESPACE . $path);
 
+        /** @psalm-suppress MixedArgument WP_REST_Request's template types a param as its own body shape */
         foreach ($body as $key => $value) {
             $request->set_param($key, $value);
         }

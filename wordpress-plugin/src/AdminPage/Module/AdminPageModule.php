@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\AdminPage\Module;
 
 use Loopress\Contract\Module;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pushes\PushLog;
 use WP_Admin_Bar;
 
@@ -115,7 +116,7 @@ final readonly class AdminPageModule implements Module
             // The URL to give `lps project config`, shown pre-filled before the first push.
             'siteUrl'       => home_url(),
         ]);
-        wp_localize_script('loopress-admin', 'loopressData', is_array($data) ? array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY) : []);
+        wp_localize_script('loopress-admin', 'loopressData', Narrow::map($data));
     }
 
     public function renderPage(): void

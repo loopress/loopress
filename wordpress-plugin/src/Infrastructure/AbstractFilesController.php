@@ -42,7 +42,7 @@ abstract class AbstractFilesController
     // tempnam() prefix in checkSyntax(): 'api', 'hooks', … , from the injected directory.
     private function label(): string
     {
-        return $this->directory()::SUBDIR;
+        return $this->directory()->subdir();
     }
 
     public function register_routes(): void
@@ -141,7 +141,7 @@ abstract class AbstractFilesController
         // every pass: a file present here failed to load at the *last* boot, not necessarily
         // still today, which is exactly why no separate "resolved" flag is needed, a clean
         // reload next boot just drops it.
-        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
+        $loadErrors = get_option($this->directory()->loadErrorsOption(), []);
         $loadErrors = is_array($loadErrors) ? $loadErrors : [];
 
         $maxBytes = $this->directory()->maxFileBytes();
@@ -551,7 +551,7 @@ abstract class AbstractFilesController
             return;
         }
 
-        $loadErrors = get_option($this->directory()::LOAD_ERRORS_OPTION, []);
+        $loadErrors = get_option($this->directory()->loadErrorsOption(), []);
         if (!is_array($loadErrors)) {
             return;
         }
@@ -565,7 +565,7 @@ abstract class AbstractFilesController
         }
 
         if ($changed) {
-            update_option($this->directory()::LOAD_ERRORS_OPTION, $loadErrors, false);
+            update_option($this->directory()->loadErrorsOption(), $loadErrors, false);
         }
     }
 
@@ -701,6 +701,7 @@ abstract class AbstractFilesController
 
         unlink($tmpFile); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 
+        /** @var list<string> $output exec() fills it with one string per output line */
         $joined = implode("\n", $output);
 
         if ($exitCode === 0 && str_contains($joined, 'No syntax errors detected')) {

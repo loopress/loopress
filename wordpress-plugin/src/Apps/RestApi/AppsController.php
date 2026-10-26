@@ -102,16 +102,18 @@ final class AppsController
 
     public function list_apps(): WP_REST_Response
     {
-        $records = $this->store->all();
-        $apps    = [];
+        $records      = $this->store->all();
+        $apps         = [];
+        $stringOrNull = static fn(mixed $value): ?string => is_string($value) ? $value : null;
         foreach ($this->directory->listAppNames() as $name) {
-            $record       = is_array($records[$name] ?? null) ? $records[$name] : [];
-            $files        = is_array($record['files'] ?? null) ? $record['files'] : [];
+            $record       = Narrow::map($records[$name] ?? null);
+            $files        = $record['files'] ?? null;
+            $files        = is_array($files) ? $files : [];
             $apps[] = [
                 'name'       => $name,
-                'buildId'    => is_string($record['buildId'] ?? null) ? $record['buildId'] : null,
-                'routing'    => is_string($record['routing'] ?? null) ? $record['routing'] : null,
-                'deployedAt' => is_string($record['deployedAt'] ?? null) ? $record['deployedAt'] : null,
+                'buildId'    => $stringOrNull($record['buildId'] ?? null),
+                'routing'    => $stringOrNull($record['routing'] ?? null),
+                'deployedAt' => $stringOrNull($record['deployedAt'] ?? null),
                 'fileCount'  => count($files),
                 'totalBytes' => array_sum(array_column($files, 'size')),
                 'committed'  => $record !== [],
@@ -312,8 +314,14 @@ final class AppsController
             return [];
         }
         $files = $record['files'] ?? null;
-        $files = is_array($files) ? $files : [];
+        $paths = [];
+        foreach (is_array($files) ? $files : [] as $file) {
+            $path = is_array($file) ? ($file['path'] ?? null) : null;
+            if (is_string($path)) {
+                $paths[] = $path;
+            }
+        }
 
-        return array_values(array_filter(array_column($files, 'path'), 'is_string'));
+        return $paths;
     }
 }

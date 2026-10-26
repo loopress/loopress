@@ -35,7 +35,7 @@ class PackagistClient
             $versions = $cached['versions'];
 
             return is_array($versions)
-                ? array_values(array_map(static fn(array $v): array => array_filter($v, 'is_string', ARRAY_FILTER_USE_KEY), array_filter($versions, 'is_array')))
+                ? array_values(array_map(static fn(array $v): array => Narrow::map($v), array_filter($versions, 'is_array')))
                 : null;
         }
 

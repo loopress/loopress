@@ -51,6 +51,18 @@ abstract class AbstractFilesDirectory
         $this->filesystem = $filesystem ?? new Filesystem();
     }
 
+    // The constants above, read through the instance: Psalm can't type `$directory::SUBDIR`.
+    // Final so a createMock() double still returns its class's real values.
+    final public function subdir(): string
+    {
+        return static::SUBDIR;
+    }
+
+    final public function loadErrorsOption(): string
+    {
+        return static::LOAD_ERRORS_OPTION;
+    }
+
     /**
      * Runs $work while holding this directory's exclusive lock, so writers never interleave.
      * Without it, two overlapping batches share the one staging directory: the second

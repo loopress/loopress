@@ -181,7 +181,7 @@ class AcfService
         if (!is_array($field)) {
             return $field;
         }
-        $field = array_filter($field, 'is_string', ARRAY_FILTER_USE_KEY);
+        $field = Narrow::map($field);
 
         // acf_update_field() drops empty conditional logic rules inline, not through a filter.
         $conditionalLogic = $field['conditional_logic'] ?? null;

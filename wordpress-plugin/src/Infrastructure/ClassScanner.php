@@ -76,7 +76,7 @@ final class ClassScanner
         $allowed = [T_DECLARE, T_NAMESPACE, T_USE, T_CONST, T_CLASS, T_ABSTRACT, T_FINAL, T_INTERFACE, T_TRAIT, T_FUNCTION];
         foreach (['T_READONLY', 'T_ENUM', 'T_ATTRIBUTE'] as $optional) {
             if (defined($optional)) {
-                $allowed[] = constant($optional);
+                $allowed[] = Narrow::int(constant($optional));
             }
         }
 

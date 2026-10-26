@@ -319,7 +319,8 @@ final class ContentService
      */
     private function pick(mixed $row, array $columns): array
     {
-        if (!is_array($row) || !isset($row[$columns[0]])) {
+        $row = is_array($row) ? $row : [];
+        if (!isset($row[$columns[0]])) {
             // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new InvalidContentRowException("Each row must be a JSON object with a \"{$columns[0]}\".");
             // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped

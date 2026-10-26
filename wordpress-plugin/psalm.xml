@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="2"
+    errorLevel="1"
     phpVersion="8.2"
     resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -145,6 +145,11 @@
                 <directory name="src/PostTypes" />
             </errorLevel>
         </ArgumentTypeCoercion>
+        <MixedArgumentTypeCoercion>
+            <errorLevel type="suppress">
+                <directory name="src/PostTypes" />
+            </errorLevel>
+        </MixedArgumentTypeCoercion>
         <UnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/Acf/RestApi" />
@@ -190,6 +195,11 @@
                 <file name="src/PostTypes/Service/RoleService.php" />
             </errorLevel>
         </PossiblyUnusedReturnValue>
+
+        <!-- Assigning a mixed value is how every boundary read starts ($x = $data['key'] ?? null,
+             then an is_string()/is_array() guard). Using one unnarrowed is still an error
+             (MixedArgument, MixedArrayAccess...), and PHPStan's checkExplicitMixed checks the same. -->
+        <MixedAssignment errorLevel="suppress" />
 
         <!-- #[\Override] is a PHP 8.3+ builtin attribute; this project's platform (composer.json,
              config.platform.php) targets 8.2, so it isn't used here despite phpVersion being set. -->

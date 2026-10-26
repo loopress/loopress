@@ -134,7 +134,7 @@ final class FormController
 
         unset($data['expectedRevision']);
         // A JSON object's members: a numeric key (decoded as an int) is never one of them.
-        $data = array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY);
+        $data = Narrow::map($data);
 
         if ($data === []) {
             return new WP_REST_Response(['error' => 'Request body must be a non-empty JSON object.'], 400);

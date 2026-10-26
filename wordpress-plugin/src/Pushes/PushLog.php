@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Pushes;
 
+use Loopress\Infrastructure\Narrow;
 use WP_REST_Request;
 
 /**
@@ -181,7 +182,7 @@ class PushLog
 
         return [
             'entries'      => array_values(array_filter(array_map($this->validEntry(...), is_array($entries) ? $entries : []))),
-            'fingerprints' => is_array($fingerprints) ? array_filter(array_filter($fingerprints, 'is_string'), 'is_string', ARRAY_FILTER_USE_KEY) : [],
+            'fingerprints' => Narrow::stringMap($fingerprints),
         ];
     }
 

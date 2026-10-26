@@ -244,7 +244,8 @@ class wpdb
      * @psalm-taint-sink sql $query
      * @psalm-taint-escape sql
      */
-    public function prepare($query, ...$args) {}
+    // Native return type: Psalm reads this method's docblock @return as mixed (only this one).
+    public function prepare($query, ...$args): ?string {}
 
     /**
      * Performs a database query, using current database connection.
