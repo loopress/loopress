@@ -204,8 +204,14 @@ abstract class AbstractDeclaredTypeService
     protected function stored(): array
     {
         $stored = get_option($this->option(), []);
+        $result = [];
+        foreach (is_array($stored) ? $stored : [] as $slug => $args) {
+            if (is_string($slug) && is_array($args)) {
+                $result[$slug] = array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY);
+            }
+        }
 
-        return is_array($stored) ? $stored : [];
+        return $result;
     }
 
     /** @param array<string, mixed> $args */

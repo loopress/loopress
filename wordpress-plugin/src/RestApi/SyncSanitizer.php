@@ -52,8 +52,9 @@ final class SyncSanitizer
     // Same as deep(), typed for the common case of a known-array payload (an option value, an
     // ACF import object) so callers and the static analysers keep the array type.
     /**
-     * @param array<array-key, mixed> $value
-     * @return array<array-key, mixed>
+     * @template TKey of array-key
+     * @param array<TKey, mixed> $value
+     * @return array<TKey, mixed>
      */
     public static function deepArray(array $value): array
     {

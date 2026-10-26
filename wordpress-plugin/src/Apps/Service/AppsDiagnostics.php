@@ -50,8 +50,9 @@ class AppsDiagnostics
     private function isMissingNosniff(): bool
     {
         $cached = get_transient(self::NOSNIFF_CACHE_KEY);
-        if (is_array($cached) && array_key_exists('missing', $cached)) {
-            return $cached['missing'];
+        $cachedMissing = is_array($cached) ? ($cached['missing'] ?? null) : null;
+        if (is_bool($cachedMissing)) {
+            return $cachedMissing;
         }
 
         $probeUrl = $this->probeUrl();

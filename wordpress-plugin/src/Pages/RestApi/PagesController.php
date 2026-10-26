@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Pages\RestApi;
 
 use Loopress\Infrastructure\AbstractFilesDirectory;
+use Loopress\Infrastructure\Filters;
 use Loopress\Pages\ManagedPage;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_Post;
@@ -74,6 +75,7 @@ final class PagesController
 
     public function put_page(WP_REST_Request $request): WP_REST_Response
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         // Every check below is a read followed later by a write: two concurrent pushes of the
@@ -90,7 +92,7 @@ final class PagesController
         try {
             return $this->upsert($request);
         } finally {
-            $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
         }
     }
 
@@ -104,7 +106,7 @@ final class PagesController
         $hideTitle = (bool) $request->get_param('hideTitle');
         $template  = (string) $request->get_param('template');
 
-        $maxFileBytes = (int) apply_filters('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
+        $maxFileBytes = Filters::int('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
         if (strlen($html) > $maxFileBytes) {
             return $this->error(413, sprintf(
                 'Page "%s" is %d bytes, over the %d byte limit. Split it, or raise the loopress_max_file_bytes filter.',
@@ -147,7 +149,7 @@ final class PagesController
             ));
         }
 
-        $maxTotalBytes = (int) apply_filters('loopress_max_files_total_bytes', AbstractFilesDirectory::MAX_TOTAL_BYTES, self::SIZE_FILTER_SUBJECT);
+        $maxTotalBytes = Filters::int('loopress_max_files_total_bytes', AbstractFilesDirectory::MAX_TOTAL_BYTES, self::SIZE_FILTER_SUBJECT);
         $totalBytes    = strlen($html) + $this->otherPagesBytes($existingId);
         if ($totalBytes > $maxTotalBytes) {
             return $this->error(413, sprintf(

@@ -19,7 +19,9 @@ abstract class AbstractFilesDirectory
     // and doubles as the 'api'/'hooks' label the loader and controller stamp on log lines,
     // route error strings and the tempnam() prefix. LOAD_ERRORS_OPTION is where the loader
     // records this boot's per-file failures for the controller to read back.
+    /** @var string */
     public const SUBDIR = '';
+    /** @var string */
     public const LOAD_ERRORS_OPTION = '';
 
     // Per-file ceiling. One single-class PHP route/hook file has no business being anywhere
@@ -97,12 +99,12 @@ abstract class AbstractFilesDirectory
     // Filterable, and passed the subdir so a filter can differ between api/ and hooks/.
     public function maxFileBytes(): int
     {
-        return (int) apply_filters('loopress_max_file_bytes', self::MAX_FILE_BYTES, static::SUBDIR);
+        return Filters::int('loopress_max_file_bytes', self::MAX_FILE_BYTES, static::SUBDIR);
     }
 
     public function maxTotalBytes(): int
     {
-        return (int) apply_filters('loopress_max_files_total_bytes', self::MAX_TOTAL_BYTES, static::SUBDIR);
+        return Filters::int('loopress_max_files_total_bytes', self::MAX_TOTAL_BYTES, static::SUBDIR);
     }
 
     // Size of a slug's file on disk in bytes, or null if it can't be determined (missing,
@@ -384,7 +386,7 @@ abstract class AbstractFilesDirectory
 
         $slugs = [];
         foreach ($files as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php') {
+            if (!$file instanceof \SplFileInfo || !$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
 

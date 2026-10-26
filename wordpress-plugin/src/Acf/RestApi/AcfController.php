@@ -123,6 +123,8 @@ final class AcfController
         // protection outright.
         $expectedRevision = $data['expectedRevision'] ?? null;
         unset($data['expectedRevision']);
+        // A JSON object's members: a numeric key (decoded as an int) is never one of them.
+        $data = array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY);
         if ($expectedRevision !== null && !is_string($expectedRevision)) {
             return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }

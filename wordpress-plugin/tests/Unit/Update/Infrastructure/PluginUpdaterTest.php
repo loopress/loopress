@@ -42,9 +42,9 @@ class PluginUpdaterTest extends TestCase
 
         $transient = $this->updater->injectUpdate(new stdClass());
 
-        $this->assertArrayNotHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $transient->response);
-        $this->assertArrayHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $transient->no_update);
-        $this->assertSame(LOOPRESS_VERSION, $transient->no_update[LOOPRESS_PLUGIN_SLUG . '/loopress.php']->new_version);
+        $this->assertArrayNotHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $this->listIn($transient, 'response'));
+        $this->assertArrayHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $this->listIn($transient, 'no_update'));
+        $this->assertSame(LOOPRESS_VERSION, $this->entryIn($transient, 'no_update', LOOPRESS_PLUGIN_SLUG . '/loopress.php')->new_version);
     }
 
     // WordPress carries the previous transient value forward for a plugin outside
@@ -60,8 +60,8 @@ class PluginUpdaterTest extends TestCase
 
         $result = $this->updater->injectUpdate($transient);
 
-        $this->assertArrayNotHasKey($basename, $result->response);
-        $this->assertArrayHasKey($basename, $result->no_update);
+        $this->assertArrayNotHasKey($basename, $this->listIn($result, 'response'));
+        $this->assertArrayHasKey($basename, $this->listIn($result, 'no_update'));
     }
 
     public function test_reports_no_update_when_the_checker_finds_nothing(): void
@@ -70,7 +70,7 @@ class PluginUpdaterTest extends TestCase
 
         $transient = $this->updater->injectUpdate(new stdClass());
 
-        $this->assertArrayHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $transient->no_update);
+        $this->assertArrayHasKey(LOOPRESS_PLUGIN_SLUG . '/loopress.php', $this->listIn($transient, 'no_update'));
     }
 
     public function test_advertises_an_update_with_the_github_zip_as_the_package(): void
@@ -81,11 +81,11 @@ class PluginUpdaterTest extends TestCase
         $transient = $this->updater->injectUpdate(new stdClass());
 
         $basename = LOOPRESS_PLUGIN_SLUG . '/loopress.php';
-        $this->assertArrayHasKey($basename, $transient->response);
-        $this->assertSame('2999.1.1', $transient->response[$basename]->new_version);
-        $this->assertSame('https://example.com/loopress-full.zip', $transient->response[$basename]->package);
-        $this->assertSame(LOOPRESS_PLUGIN_SLUG, $transient->response[$basename]->slug);
-        $this->assertSame($basename, $transient->response[$basename]->plugin);
+        $this->assertArrayHasKey($basename, $this->listIn($transient, 'response'));
+        $this->assertSame('2999.1.1', $this->entryIn($transient, 'response', $basename)->new_version);
+        $this->assertSame('https://example.com/loopress-full.zip', $this->entryIn($transient, 'response', $basename)->package);
+        $this->assertSame(LOOPRESS_PLUGIN_SLUG, $this->entryIn($transient, 'response', $basename)->slug);
+        $this->assertSame($basename, $this->entryIn($transient, 'response', $basename)->plugin);
     }
 
     public function test_skips_the_plugin_for_this_cycle_when_a_newer_tag_has_no_zip_asset_yet(): void
@@ -100,8 +100,8 @@ class PluginUpdaterTest extends TestCase
 
         $result = $this->updater->injectUpdate($transient);
 
-        $this->assertArrayNotHasKey($basename, $result->response);
-        $this->assertArrayNotHasKey($basename, $result->no_update);
+        $this->assertArrayNotHasKey($basename, $this->listIn($result, 'response'));
+        $this->assertArrayNotHasKey($basename, $this->listIn($result, 'no_update'));
     }
 
     public function test_clears_a_stale_no_update_entry_when_an_update_becomes_available(): void
@@ -114,8 +114,8 @@ class PluginUpdaterTest extends TestCase
 
         $result = $this->updater->injectUpdate($transient);
 
-        $this->assertArrayNotHasKey($basename, $result->no_update);
-        $this->assertArrayHasKey($basename, $result->response);
+        $this->assertArrayNotHasKey($basename, $this->listIn($result, 'no_update'));
+        $this->assertArrayHasKey($basename, $this->listIn($result, 'response'));
     }
 
     public function test_plugin_information_ignores_other_actions(): void
@@ -162,5 +162,23 @@ class PluginUpdaterTest extends TestCase
         $this->checker->expects($this->never())->method('forget');
 
         $this->updater->forgetOnForceCheck();
+    }
+
+    /** @return array<mixed> */
+    private function listIn(mixed $transient, string $field): array
+    {
+        $this->assertInstanceOf(stdClass::class, $transient);
+        $value = get_object_vars($transient)[$field] ?? null;
+        $this->assertIsArray($value);
+
+        return $value;
+    }
+
+    private function entryIn(mixed $transient, string $field, string $basename): stdClass
+    {
+        $entry = $this->listIn($transient, $field)[$basename] ?? null;
+        $this->assertInstanceOf(stdClass::class, $entry);
+
+        return $entry;
     }
 }

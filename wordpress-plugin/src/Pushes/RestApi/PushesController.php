@@ -52,6 +52,7 @@ final readonly class PushesController
 
     public function record(WP_REST_Request $request): WP_REST_Response
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         // record() reads the log option, then writes it back: two pushes finishing at the same
@@ -65,7 +66,7 @@ final readonly class PushesController
         try {
             return new WP_REST_Response($this->log->record((string) $request->get_param('resource')), 201);
         } finally {
-            $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
         }
     }
 }

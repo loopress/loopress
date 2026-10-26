@@ -44,6 +44,7 @@ final class ContentService
     /** @return array{posts: list<array<string, mixed>>, postmeta: list<array<string, mixed>>, termRelationships: list<array<string, mixed>>, next: ?int} */
     public function exportPosts(int $after, int $limit): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         $types = $this->postTypes();
@@ -84,6 +85,7 @@ final class ContentService
     /** @return array{terms: list<array<string, mixed>>, termTaxonomy: list<array<string, mixed>>, termmeta: list<array<string, mixed>>, next: ?int} */
     public function exportTerms(int $after, int $limit): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         $taxonomies = $this->taxonomies();
@@ -127,6 +129,7 @@ final class ContentService
     /** @return array{posts: int, terms: int} */
     public function reset(string $sourceHome, string $sourceUploadsUrl): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
         $this->assertLocal();
 
@@ -160,6 +163,7 @@ final class ContentService
      */
     public function importPosts(array $posts, array $postmeta, array $relationships): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
         $this->assertLocal();
 
@@ -206,6 +210,7 @@ final class ContentService
      */
     public function importTerms(array $terms, array $termTaxonomy, array $termmeta): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
         $this->assertLocal();
 
@@ -254,6 +259,7 @@ final class ContentService
     /** @param array<int> $ids */
     private function deletePosts(array $ids): void
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         foreach (array_chunk($ids, 500) as $chunk) {
@@ -270,6 +276,7 @@ final class ContentService
      */
     private function deleteTerms(array $termIds, array $termTaxonomyIds): void
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         foreach (array_chunk($termIds, 500) as $chunk) {
@@ -291,6 +298,7 @@ final class ContentService
     /** @param array<string, null|scalar> $row */
     private function write(string $table, array $row, bool $replace = false): void
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         $written = $replace ? $wpdb->replace($table, $row) : $wpdb->insert($table, $row);

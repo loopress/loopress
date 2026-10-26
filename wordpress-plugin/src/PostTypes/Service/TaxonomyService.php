@@ -131,7 +131,8 @@ final class TaxonomyService extends AbstractDeclaredTypeService
         }
 
         $slugs = [];
-        foreach (acf_get_acf_taxonomies() as $taxonomy) {
+        $taxonomies = acf_get_acf_taxonomies();
+        foreach (is_array($taxonomies) ? $taxonomies : [] as $taxonomy) {
             $slug = is_array($taxonomy) ? ($taxonomy['taxonomy'] ?? null) : null;
             if (is_string($slug)) {
                 $slugs[$slug] = true;

@@ -246,7 +246,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
      */
     private function dispatchOne(string $method, string $path, array $body = []): array
     {
-        return $this->dispatch($method, $path, $body);
+        return array_filter($this->dispatch($method, $path, $body), 'is_string', ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -255,7 +255,9 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
      */
     private function dispatchList(string $method, string $path, array $body = []): array
     {
-        return $this->dispatch($method, $path, $body);
+        $rows = array_filter($this->dispatch($method, $path, $body), 'is_array');
+
+        return array_values(array_map(static fn(array $row): array => array_filter($row, 'is_string', ARRAY_FILTER_USE_KEY), $rows));
     }
 
     /**

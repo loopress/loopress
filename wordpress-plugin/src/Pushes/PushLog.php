@@ -180,8 +180,30 @@ class PushLog
         $fingerprints = is_array($log) ? ($log['fingerprints'] ?? null) : null;
 
         return [
-            'entries'      => is_array($entries) ? array_values($entries) : [],
-            'fingerprints' => is_array($fingerprints) ? $fingerprints : [],
+            'entries'      => array_values(array_filter(array_map($this->validEntry(...), is_array($entries) ? $entries : []))),
+            'fingerprints' => is_array($fingerprints) ? array_filter(array_filter($fingerprints, 'is_string'), 'is_string', ARRAY_FILTER_USE_KEY) : [],
         ];
+    }
+
+    /** @return array{resource: string, label: string, at: string, user: string, appPassword: ?string}|null */
+    private function validEntry(mixed $entry): ?array
+    {
+        if (!is_array($entry)) {
+            return null;
+        }
+
+        $resource    = $entry['resource'] ?? null;
+        $label       = $entry['label'] ?? null;
+        $at          = $entry['at'] ?? null;
+        $user        = $entry['user'] ?? null;
+        $appPassword = $entry['appPassword'] ?? null;
+        if (!is_string($resource) || !is_string($label) || !is_string($at) || !is_string($user)) {
+            return null;
+        }
+        if ($appPassword !== null && !is_string($appPassword)) {
+            return null;
+        }
+
+        return ['resource' => $resource, 'label' => $label, 'at' => $at, 'user' => $user, 'appPassword' => $appPassword];
     }
 }

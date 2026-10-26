@@ -43,7 +43,7 @@ final class HookLoader extends AbstractFileLoader
     // every request: the same error for the same file is stored at most once per this window.
     private const RUNTIME_ERROR_WRITE_INTERVAL = 60;
 
-    /** @var array<string, array{type: string, method: string, message: string, at: int, revision: string}>|null */
+    /** @var array<mixed>|null slug => entry, each one checked by validRuntimeError() when read */
     private ?array $runtimeErrors = null;
 
     public function __construct(private readonly HooksDirectory $directory, private readonly LoopressEnvironment $environment) {}
@@ -293,7 +293,7 @@ final class HookLoader extends AbstractFileLoader
         return ['message' => $message, 'at' => $at, 'revision' => $revision];
     }
 
-    /** @return array<string, array{type: string, method: string, message: string, at: int, revision: string}> */
+    /** @return array<mixed> */
     private function storedRuntimeErrors(): array
     {
         $stored = get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);

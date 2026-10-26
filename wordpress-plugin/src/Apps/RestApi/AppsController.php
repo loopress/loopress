@@ -8,6 +8,7 @@ use Loopress\Apps\Infrastructure\AppManifest;
 use Loopress\Apps\Infrastructure\AppsDirectory;
 use Loopress\Apps\Infrastructure\AppStore;
 use Loopress\Apps\Service\AppsDiagnostics;
+use Loopress\Infrastructure\Filters;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -182,7 +183,7 @@ final class AppsController
             return new WP_REST_Response(['error' => 'content is not valid base64'], 400);
         }
 
-        $max = (int) apply_filters('loopress_app_max_asset_bytes', self::DEFAULT_MAX_ASSET_BYTES);
+        $max = Filters::int('loopress_app_max_asset_bytes', self::DEFAULT_MAX_ASSET_BYTES);
         if (strlen($decoded) > $max) {
             return new WP_REST_Response([
                 'error' => sprintf(

@@ -23,7 +23,7 @@ final class WPFormsProvider implements FormProvider
     {
         $forms = wpforms()->form->get('', ['orderby' => 'ID']);
 
-        return is_array($forms) ? array_map(fn(\WP_Post $form): array => $this->toCanonical($form), $forms) : [];
+        return is_array($forms) ? array_values(array_map(fn(\WP_Post $form): array => $this->toCanonical($form), $forms)) : [];
     }
 
     /** @return array<string, mixed>|null */

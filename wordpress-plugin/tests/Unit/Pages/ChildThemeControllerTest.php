@@ -203,15 +203,15 @@ class ChildThemeControllerTest extends TestCase
         $args = null;
         Functions\when('register_rest_route')->alias(
             static function (string $restNamespace, string $route, array $routeArgs) use (&$args): bool {
-                $args = $routeArgs[1]['args'];
+                $args = $routeArgs;
 
                 return true;
             },
         );
         $this->controller()->register_routes();
 
-        $block = $args['blocks']['items']['properties']['name']['pattern'];
-        $asset = $args['assets']['items']['properties']['path']['pattern'];
+        $block = $this->stringAt($args, 1, 'args', 'blocks', 'items', 'properties', 'name', 'pattern');
+        $asset = $this->stringAt($args, 1, 'args', 'assets', 'items', 'properties', 'path', 'pattern');
 
         foreach (['core/button', 'woocommerce/product-price', 'acme/hero-2'] as $name) {
             $this->assertSame(1, preg_match("#{$block}#", $name), $name);
@@ -272,13 +272,14 @@ class ChildThemeControllerTest extends TestCase
         $pattern = null;
         Functions\when('register_rest_route')->alias(
             static function (string $restNamespace, string $route, array $args) use (&$pattern): bool {
-                $pattern = $args[1]['args']['templates']['items']['properties']['slug']['pattern'];
+                $pattern = $args;
 
                 return true;
             },
         );
 
         $this->controller()->register_routes();
+        $pattern = $this->stringAt($pattern, 1, 'args', 'templates', 'items', 'properties', 'slug', 'pattern');
 
         foreach (['single', 'taxonomy-download_tag', 'single-my_type', 'archive-download'] as $slug) {
             $this->assertSame(1, preg_match("/{$pattern}/", $slug), $slug);
@@ -286,5 +287,17 @@ class ChildThemeControllerTest extends TestCase
         foreach (['Single', 'my page', '../single', 'single.html', ''] as $slug) {
             $this->assertSame(0, preg_match("/{$pattern}/", $slug), $slug);
         }
+    }
+
+    // Walks a nested route definition down $path, asserting every level on the way.
+    private function stringAt(mixed $value, int|string ...$path): string
+    {
+        foreach ($path as $key) {
+            $this->assertIsArray($value);
+            $value = $value[$key] ?? null;
+        }
+        $this->assertIsString($value);
+
+        return $value;
     }
 }
