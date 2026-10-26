@@ -43,7 +43,7 @@ class PostTypeServiceTest extends TestCase
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('post_type_exists')->alias(fn (string $slug): bool => isset($this->wpRegistered[$slug]));
         Functions\when('register_post_type')->alias(function (string $slug, array $args): object {
-            $this->wpRegistered[$slug] = $args;
+            $this->wpRegistered[$slug] = array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY);
             $this->wpObjects[$slug] = (object) [
                 'label' => $args['label'] ?? $slug, '_builtin' => false, 'public' => false, 'show_ui' => false, 'show_in_menu' => false,
             ];
@@ -159,7 +159,7 @@ class PostTypeServiceTest extends TestCase
                 throw new \TypeError('array_merge(): Argument #2 must be of type array');
             }
 
-            $this->wpRegistered[$slug] = $args;
+            $this->wpRegistered[$slug] = array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY);
             return (object) [];
         });
 

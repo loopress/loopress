@@ -16,9 +16,12 @@ use Loopress\Snippets\RestApi\SnippetController;
 use Loopress\Snippets\Service\SnippetService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class SnippetControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private SnippetService&MockObject $snippetService;
     private SnippetController $controller;
 
@@ -540,11 +543,11 @@ class SnippetControllerTest extends TestCase
 
         $this->assertSame(
             [['GET', 'get_snippets'], ['POST', 'create_snippet']],
-            array_map(fn(array $e): array => [$e['methods'], $e['callback'][1]], $collection['args']),
+            array_map(fn(array $e): array => [$e['methods'], self::at($e, 'callback', 1)], $collection['args']),
         );
         $this->assertSame(
             [['GET', 'get_snippet'], ['PUT', 'update_snippet'], ['DELETE', 'delete_snippet']],
-            array_map(fn(array $e): array => [$e['methods'], $e['callback'][1]], $item['args']),
+            array_map(fn(array $e): array => [$e['methods'], self::at($e, 'callback', 1)], $item['args']),
         );
 
         foreach ([$collection, $item] as $route) {

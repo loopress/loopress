@@ -97,13 +97,15 @@ class ComposerControllerTest extends TestCase
 
     // ── DISALLOW_FILE_MODS ───────────────────────────────────────────────────
 
-    /** @return array<string, callable(): (bool|\WP_Error)> route => permission_callback */
+    /** @return array<string, callable(): mixed> route => permission_callback */
     private function permissionCallbacks(): array
     {
         $callbacks = [];
         Functions\when('register_rest_route')->alias(
             static function (string $routeNamespace, string $route, array $args) use (&$callbacks): void {
-                $callbacks[$route] = $args['permission_callback'];
+                $callback = $args['permission_callback'] ?? null;
+                self::assertIsCallable($callback);
+                $callbacks[$route] = $callback;
             },
         );
         $this->controller->register_routes();

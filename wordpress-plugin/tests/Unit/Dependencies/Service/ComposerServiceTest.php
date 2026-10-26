@@ -14,9 +14,12 @@ use Loopress\Tests\Stubs\FakeHttpClient;
 use Nyholm\Psr7\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class ComposerServiceTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private LoopressEnvironment&MockObject $environment;
     private ComposerRunner&MockObject $runner;
     private PackagistClient&MockObject $packagist;
@@ -272,7 +275,7 @@ class ComposerServiceTest extends TestCase
 
         $this->environment->expects($this->once())
             ->method('writeComposerJson')
-            ->with($this->callback(fn(array $json): bool => $json['config']['platform']['php'] === PHP_VERSION));
+            ->with($this->callback(fn(array $json): bool => self::at($json, 'config', 'platform', 'php') === PHP_VERSION));
 
         $this->service->fixPlatform();
     }
@@ -403,10 +406,10 @@ class ComposerServiceTest extends TestCase
 
         // plugins section replaces every wpackagist-plugin/*; libraries untouched (no section).
         $this->assertNotNull($written);
-        $this->assertSame('9.4.2', $written['require']['wpackagist-plugin/woocommerce']);
-        $this->assertSame('*', $written['require']['wpackagist-plugin/wordpress-seo']);
-        $this->assertArrayNotHasKey('wpackagist-plugin/old', $written['require']);
-        $this->assertSame('^3.0', $written['require']['monolog/monolog']);
+        $this->assertSame('9.4.2', self::at($written, 'require', 'wpackagist-plugin/woocommerce'));
+        $this->assertSame('*', self::at($written, 'require', 'wpackagist-plugin/wordpress-seo'));
+        $this->assertArrayNotHasKey('wpackagist-plugin/old', self::arrayAt($written, 'require'));
+        $this->assertSame('^3.0', self::at($written, 'require', 'monolog/monolog'));
     }
 
     public function test_sync_always_runs_update_never_install_and_never_writes_the_client_lock(): void

@@ -11,9 +11,12 @@ use Loopress\Pages\ManagedPage;
 use Loopress\Pages\RestApi\PagesController;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class PagesControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private PagesController $controller;
 
     /** @var array<int, array{name: string, status: string, managed: bool, html: string, desired?: string, fullWidth?: bool, hideTitle?: bool, template?: string}> */
@@ -90,34 +93,33 @@ class PagesControllerTest extends TestCase
         Functions\when('get_posts')->alias(fn(array $args): array => $this->queryPages($args));
         Functions\when('wp_unique_post_slug')->alias(fn(string $slug): string => $this->takenSlugs[$slug] ?? $slug);
         Functions\when('wp_insert_post')->alias(function (array $postarr): int {
-            $this->writes[] = ['fn' => 'insert', 'postarr' => $postarr];
+            $this->writes[] = ['fn' => 'insert', 'postarr' => array_filter($postarr, 'is_string', ARRAY_FILTER_USE_KEY)];
             $id             = 100;
             $this->pages[$id] = [
-                'name'      => $postarr['post_name'],
-                'status'    => $postarr['post_status'],
+                'name'      => self::stringAt($postarr, 'post_name'),
+                'status'    => self::stringAt($postarr, 'post_status'),
                 'managed'   => true,
-                'html'      => $postarr['meta_input'][ManagedPage::HTML_META],
-                'fullWidth' => $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1',
-                'hideTitle' => $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1',
-                'template'  => $postarr['page_template'],
+                'html'      => self::stringAt($postarr, 'meta_input', ManagedPage::HTML_META),
+                'fullWidth' => self::stringAt($postarr, 'meta_input', ManagedPage::FULL_WIDTH_META) === '1',
+                'hideTitle' => self::stringAt($postarr, 'meta_input', ManagedPage::HIDE_TITLE_META) === '1',
+                'template'  => self::stringAt($postarr, 'page_template'),
             ];
             return $id;
         });
-        Functions\when('wp_update_post')->alias(
-            /** @param array{ID: int, post_status: string, meta_input: array<string, string>, page_template: string} $postarr */
-            function (array $postarr): int {
-                $this->writes[]              = ['fn' => 'update', 'postarr' => $postarr];
-                $this->pages[$postarr['ID']] = [
-                    'status'    => $postarr['post_status'],
-                    'html'      => $postarr['meta_input'][ManagedPage::HTML_META],
-                    'fullWidth' => $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1',
-                    'hideTitle' => $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1',
-                    'template'  => $postarr['page_template'],
-                ] + $this->pages[$postarr['ID']];
+        Functions\when('wp_update_post')->alias(function (array $postarr): int {
+            $id = self::at($postarr, 'ID');
+            $this->assertIsInt($id);
+            $this->writes[]   = ['fn' => 'update', 'postarr' => array_filter($postarr, 'is_string', ARRAY_FILTER_USE_KEY)];
+            $this->pages[$id] = [
+                'status'    => self::stringAt($postarr, 'post_status'),
+                'html'      => self::stringAt($postarr, 'meta_input', ManagedPage::HTML_META),
+                'fullWidth' => self::stringAt($postarr, 'meta_input', ManagedPage::FULL_WIDTH_META) === '1',
+                'hideTitle' => self::stringAt($postarr, 'meta_input', ManagedPage::HIDE_TITLE_META) === '1',
+                'template'  => self::stringAt($postarr, 'page_template'),
+            ] + $this->pages[$id];
 
-                return $postarr['ID'];
-            },
-        );
+            return $id;
+        });
     }
 
     protected function tearDown(): void
@@ -128,7 +130,7 @@ class PagesControllerTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $args
+     * @param array<mixed> $args
      * @return int[]
      */
     private function queryPages(array $args): array
@@ -145,7 +147,7 @@ class PagesControllerTest extends TestCase
             if (isset($args['meta_key']) && !$page['managed']) {
                 continue;
             }
-            if (isset($args['meta_query']) && (!$page['managed'] || ($page['desired'] ?? null) !== $args['meta_query'][0]['value'])) {
+            if (isset($args['meta_query']) && (!$page['managed'] || ($page['desired'] ?? null) !== self::at($args, 'meta_query', 0, 'value'))) {
                 continue;
             }
             $ids[] = $id;

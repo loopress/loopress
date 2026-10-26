@@ -12,6 +12,7 @@ use Loopress\Hooks\RestApi\HookLoader;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 // A global-namespace class (see TestHookLoaderCollisionFixtureClass.php), can't be PSR-4
 // autoloaded: required explicitly so it already exists by the time
@@ -20,6 +21,8 @@ require_once __DIR__ . '/TestHookLoaderCollisionFixtureClass.php';
 
 class HookLoaderTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private string $tmpDir;
     private HooksDirectory $directory;
     private LoopressEnvironment&MockObject $environment;
@@ -125,7 +128,7 @@ class HookLoaderTest extends TestCase
         Functions\expect('update_option')
             ->once()
             ->with(HooksDirectory::RUNTIME_ERRORS_OPTION, \Mockery::on(static function (array $errors) use ($content): bool {
-                $entry = $errors['throwing'];
+                $entry = self::arrayAt($errors, 'throwing');
                 return $entry['type'] === 'filter'
                     && $entry['method'] === 'tweak'
                     && $entry['message'] === 'boom on: original'

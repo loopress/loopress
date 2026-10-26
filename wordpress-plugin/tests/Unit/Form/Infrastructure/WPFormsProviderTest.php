@@ -10,9 +10,12 @@ use Loopress\Form\Infrastructure\WPFormsProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class WPFormsProviderTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private WPFormsProvider $provider;
 
     protected function setUp(): void
@@ -263,7 +266,7 @@ class WPFormsProviderTest extends TestCase
             'settings' => ['form_title' => 'F', 'notifications' => ['1' => ['email' => 'attacker@evil.example']]],
         ]);
 
-        $this->assertArrayNotHasKey('notifications', $captured['settings']);
+        $this->assertArrayNotHasKey('notifications', self::arrayAt($captured, 'settings'));
         $this->assertArrayNotHasKey('allowNotifications', $captured);
     }
 
@@ -399,8 +402,9 @@ class WPFormsProviderTest extends TestCase
             public function update(int|string $id = '', array $data = [], array $args = []): false|int
             {
                 $update = $this->behavior['update'] ?? false;
+                $result = is_callable($update) ? $update($id, $data) : $update;
 
-                return is_callable($update) ? $update($id, $data) : $update;
+                return is_int($result) ? $result : false;
             }
         };
     }

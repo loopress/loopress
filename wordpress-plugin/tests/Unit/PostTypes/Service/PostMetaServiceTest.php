@@ -38,7 +38,7 @@ class PostMetaServiceTest extends TestCase
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('registered_meta_key_exists')->alias(fn (string $type, string $key, string $postType): bool => isset($this->wpMeta[$postType][$key]));
         Functions\when('register_post_meta')->alias(function (string $postType, string $key, array $args): bool {
-            $this->wpMeta[$postType][$key] = $args;
+            $this->wpMeta[$postType][$key] = array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY);
             return true;
         });
         Functions\when('get_registered_meta_keys')->alias(fn (string $type, string $postType): array => $this->wpMeta[$postType] ?? []);

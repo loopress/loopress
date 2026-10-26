@@ -7,7 +7,7 @@ includes:
     - vendor/phpstan/phpstan-phpunit/rules.neon
 
 parameters:
-    level: 9
+    level: 10
     strictRules:
         # Off on purpose: array<string, ...> keys arrive as int at runtime for numeric keys, and WP
         # objects/options carry DB strings their stubs type as int, so with strict_types these
@@ -17,6 +17,9 @@ parameters:
     cognitive_complexity:
         function: 15
         class: 1000 # Sonar has no class-level rule, so this one is effectively off.
+    # Overrides what level 9+ turns on: a value typed `mixed` (get_option(), json_decode(),
+    # WP_REST_Request params, ...) is still allowed through unchecked. Level 10 on its own only adds
+    # checkImplicitMixed (values with no type at all). Turning this on is #351's next step.
     checkExplicitMixed: false
     checkUninitializedProperties: true
     checkTooWideReturnTypesInProtectedAndPublicMethods: true

@@ -11,11 +11,14 @@ use Loopress\PostTypes\Exception\InvalidDeclarationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use WP_Block_Patterns_Registry;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 // The shared behaviour (revisions, conflicts, a throwing entry) is covered once, in
 // PostTypeServiceTest; this covers what is specific to patterns.
 class PatternServiceTest extends TestCase
 {
+    use DigsIntoArrays;
+
     /** @var array<string, mixed> In-memory wp_options. */
     private array $options = [];
 
@@ -35,7 +38,8 @@ class PatternServiceTest extends TestCase
         Functions\when('wp_json_encode')->alias(static fn (mixed $data): string|false => json_encode($data));
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('register_block_pattern')->alias(static function (string $name, array $args): bool {
-            WP_Block_Patterns_Registry::get_instance()->patterns[$name] = ['name' => $name] + $args;
+            $registry           = WP_Block_Patterns_Registry::get_instance();
+            $registry->patterns = array_merge(self::arrayAt($registry->patterns), [$name => ['name' => $name] + $args]);
             return true;
         });
 
@@ -55,7 +59,7 @@ class PatternServiceTest extends TestCase
 
         $this->assertSame(
             ['name' => 'loopress/hero', 'title' => 'Hero', 'content' => '<p>Hi</p>', 'categories' => ['banner']],
-            WP_Block_Patterns_Registry::get_instance()->patterns['loopress/hero'],
+            self::at(WP_Block_Patterns_Registry::get_instance()->patterns, 'loopress/hero'),
         );
         $this->assertArrayNotHasKey(PatternService::FLUSH_OPTION, $this->options);
     }

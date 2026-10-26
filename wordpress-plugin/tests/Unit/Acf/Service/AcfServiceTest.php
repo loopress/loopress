@@ -12,9 +12,12 @@ use Loopress\Acf\Service\AcfService;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class AcfServiceTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private AcfService $service;
 
     protected function setUp(): void
@@ -276,8 +279,8 @@ class AcfServiceTest extends TestCase
 
         $this->assertSame('group_x', $capturedData['key']); // identifier untouched
         $this->assertSame('Group ', $capturedData['title']);
-        $this->assertSame('Enter <img src=x> your name', $capturedData['fields'][0]['instructions']);
-        $this->assertSame('Name', $capturedData['fields'][0]['label']);
+        $this->assertSame('Enter <img src=x> your name', self::at($capturedData, 'fields', 0, 'instructions'));
+        $this->assertSame('Name', self::at($capturedData, 'fields', 0, 'label'));
     }
 
     // ── upsert: conditional write (#234) ────────────────────────────────────

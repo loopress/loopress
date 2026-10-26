@@ -8,9 +8,12 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Infrastructure\SiteHealth;
 use PHPUnit\Framework\TestCase;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class SiteHealthTest extends TestCase
 {
+    use DigsIntoArrays;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -55,9 +58,11 @@ class SiteHealthTest extends TestCase
         SiteHealth::register('loopress_x', 'Loopress X', 'code', static fn (): array => throw new class('probe down') extends \RuntimeException {});
         $this->assertIsCallable($filter);
         $tests  = $filter(['direct' => []]);
-        $result = ($tests['direct']['loopress_x']['test'])();
+        $test   = self::at($tests, 'direct', 'loopress_x', 'test');
+        $this->assertIsCallable($test);
+        $result = $test();
 
-        $this->assertSame('recommended', $result['status']);
-        $this->assertStringContainsString('probe down', $result['description']);
+        $this->assertSame('recommended', self::at($result, 'status'));
+        $this->assertStringContainsString('probe down', self::stringAt($result, 'description'));
     }
 }
