@@ -6,7 +6,6 @@ namespace Loopress\Tests\Unit\RestApi;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Loopress\RestApi\RequiresManageOptionsCapability;
 use PHPUnit\Framework\TestCase;
 
 class RequiresManageOptionsCapabilityTest extends TestCase
@@ -41,15 +40,8 @@ class RequiresManageOptionsCapabilityTest extends TestCase
         $this->assertFalse(($subject->permissionCallbackForTest())());
     }
 
-    private function makeSubject(): object
+    private function makeSubject(): RequiresManageOptionsCapabilityTestSubject
     {
-        return new class() {
-            use RequiresManageOptionsCapability;
-
-            public function permissionCallbackForTest(): callable
-            {
-                return $this->permissionCallback();
-            }
-        };
+        return new RequiresManageOptionsCapabilityTestSubject();
     }
 }

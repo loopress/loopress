@@ -109,6 +109,8 @@ class AcfServiceTest extends TestCase
 
         $result = $this->service->get('acf-taxonomy', 'taxonomy_1');
 
+        $this->assertNotNull($result);
+
         $this->assertArrayHasKey('revision', $result);
         $this->assertIsString($result['revision']);
     }
@@ -119,7 +121,9 @@ class AcfServiceTest extends TestCase
         Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
 
         $first  = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($first);
         $second = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($second);
 
         $this->assertSame($first['revision'], $second['revision']);
     }
@@ -130,9 +134,11 @@ class AcfServiceTest extends TestCase
 
         Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category']);
         $before = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($before);
 
         Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Categories']);
         $after = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before['revision'], $after['revision']);
     }
@@ -147,9 +153,11 @@ class AcfServiceTest extends TestCase
 
         Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category', 'modified' => 1]);
         $before = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($before);
 
         Functions\when('acf_get_internal_post_type')->justReturn(['key' => 'taxonomy_1', 'title' => 'Category', 'modified' => 2]);
         $after = $this->service->get('acf-taxonomy', 'taxonomy_1');
+        $this->assertNotNull($after);
 
         $this->assertSame($before['revision'], $after['revision']);
     }
@@ -209,13 +217,15 @@ class AcfServiceTest extends TestCase
 
         $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_new', 'title' => 'New']);
 
+        $this->assertNotNull($capturedData);
+
         $this->assertArrayNotHasKey('ID', $capturedData);
         $this->assertSame('post_type_new', $result['key']);
     }
 
     public function test_upsert_updates_when_an_existing_post_is_found_by_key(): void
     {
-        $existing = new WP_Post();
+        $existing = new WP_Post(new \stdClass());
         $existing->ID = 42;
         $capturedData = null;
 
@@ -231,6 +241,8 @@ class AcfServiceTest extends TestCase
         Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
 
         $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_existing', 'title' => 'Updated']);
+
+        $this->assertNotNull($capturedData);
 
         $this->assertSame(42, $capturedData['ID']);
         $this->assertSame('post_type_existing', $result['key']);
@@ -260,6 +272,8 @@ class AcfServiceTest extends TestCase
             ],
         ]);
 
+        $this->assertNotNull($capturedData);
+
         $this->assertSame('group_x', $capturedData['key']); // identifier untouched
         $this->assertSame('Group ', $capturedData['title']);
         $this->assertSame('Enter <img src=x> your name', $capturedData['fields'][0]['instructions']);
@@ -276,7 +290,9 @@ class AcfServiceTest extends TestCase
         Functions\when('acf_prepare_internal_post_type_for_export')->returnArg(1);
         Functions\when('acf_import_internal_post_type')->justReturn(['key' => 'post_type_1']);
 
-        $currentRevision = $this->service->get('acf-post-type', 'post_type_1')['revision'];
+        $current = $this->service->get('acf-post-type', 'post_type_1');
+        $this->assertNotNull($current);
+        $currentRevision = $current['revision'];
 
         $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], $currentRevision);
 
@@ -365,7 +381,10 @@ class AcfServiceTest extends TestCase
         Functions\when('acf_get_internal_post_type_instance')->justReturn(new class() {
             public string $hook_name = 'field_group';
 
-            /** @param array<string, mixed> $post @return array<string, mixed> */
+            /**
+             * @param array<string, mixed> $post
+             * @return array<string, mixed>
+             */
             public function validate_post(array $post): array
             {
                 return $post + ['active' => true];

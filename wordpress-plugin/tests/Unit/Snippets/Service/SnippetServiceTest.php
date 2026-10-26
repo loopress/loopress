@@ -130,6 +130,7 @@ class SnippetServiceTest extends TestCase
 
         $service  = new SnippetService($active);
         $returned = $service->updateSnippet(2, $input);
+        $this->assertNotNull($returned);
 
         $this->assertSame(2, $returned->id);
         $this->assertSame('Updated', $returned->name);
@@ -145,6 +146,7 @@ class SnippetServiceTest extends TestCase
 
         $service  = new SnippetService($active);
         $returned = $service->getSnippet(2);
+        $this->assertNotNull($returned);
 
         $this->assertSame(2, $returned->id);
         $this->assertSame('Existing', $returned->name);
@@ -189,7 +191,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $first  = $service->getSnippet(1);
+        $this->assertNotNull($first);
         $second = $service->getSnippet(1);
+        $this->assertNotNull($second);
 
         $this->assertSame($first->revision, $second->revision);
     }
@@ -205,7 +209,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $before = $service->getSnippet(1);
+        $this->assertNotNull($before);
         $after  = $service->getSnippet(1);
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before->revision, $after->revision);
     }
@@ -224,7 +230,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $before = $service->getSnippet(1);
+        $this->assertNotNull($before);
         $after  = $service->getSnippet(1);
+        $this->assertNotNull($after);
 
         $this->assertSame($before->code, $after->code);
         $this->assertNotSame($before->active, $after->active);
@@ -242,7 +250,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $before = $service->getSnippet(1);
+        $this->assertNotNull($before);
         $after  = $service->getSnippet(1);
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before->revision, $after->revision);
     }
@@ -258,7 +268,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $before = $service->getSnippet(1);
+        $this->assertNotNull($before);
         $after  = $service->getSnippet(1);
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before->revision, $after->revision);
     }
@@ -276,7 +288,9 @@ class SnippetServiceTest extends TestCase
         $service = new SnippetService($active);
 
         $first  = $service->getSnippet(1);
+        $this->assertNotNull($first);
         $second = $service->getSnippet(2);
+        $this->assertNotNull($second);
 
         $this->assertSame($first->revision, $second->revision);
     }
@@ -288,9 +302,12 @@ class SnippetServiceTest extends TestCase
         $active->method('updateSnippet')->willReturn(new SnippetData(id: 1, name: 'New'));
 
         $service         = new SnippetService($active);
-        $currentRevision = $service->getSnippet(1)->revision;
+        $current = $service->getSnippet(1);
+        $this->assertNotNull($current);
+        $currentRevision = $current->revision;
 
         $result = $service->updateSnippet(1, new SnippetData(name: 'New'), $currentRevision);
+        $this->assertNotNull($result);
 
         $this->assertSame('New', $result->name);
     }
@@ -364,6 +381,7 @@ class SnippetServiceTest extends TestCase
 
         $service = new SnippetService($active);
         $result  = $service->updateSnippet(1, new SnippetData(name: 'New'));
+        $this->assertNotNull($result);
 
         $this->assertSame('New', $result->name);
     }

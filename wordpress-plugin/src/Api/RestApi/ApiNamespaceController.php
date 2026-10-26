@@ -9,7 +9,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class ApiNamespaceController
+final class ApiNamespaceController
 {
     use RequiresManageOptionsCapability;
 
@@ -28,7 +28,7 @@ class ApiNamespaceController
                 'args'                => [
                     'namespace' => [
                         'required'          => true,
-                        'validate_callback' => static fn($value): bool => ApiNamespace::isValid($value),
+                        'validate_callback' => static fn(mixed $value): bool => ApiNamespace::isValid($value),
                     ],
                 ],
             ],

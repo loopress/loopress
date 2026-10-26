@@ -70,6 +70,7 @@ class MenuServiceTest extends TestCase
         Functions\when('get_post')->justReturn($this->fakePost(42, 'about', 'About', 'page'));
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame('main', $menu['slug']);
         $this->assertSame('Main Menu', $menu['name']);
@@ -100,6 +101,7 @@ class MenuServiceTest extends TestCase
         Functions\when('get_page_uri')->justReturn('account/profile');
 
         $menu = $this->service->getMenu('account');
+        $this->assertNotNull($menu);
 
         $this->assertSame('account/profile', $menu['items'][0]['objectSlug']);
     }
@@ -119,6 +121,7 @@ class MenuServiceTest extends TestCase
         Functions\when('get_post')->justReturn(null);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame([], $menu['items']);
         $this->assertCount(1, $menu['warnings']);
@@ -132,6 +135,7 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => ['_menu_item_type' => 'post_type_archive', '_menu_item_menu_item_parent' => '0']]);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame([], $menu['items']);
         $this->assertStringContainsString('post_type_archive', $menu['warnings'][0]);
@@ -145,6 +149,7 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame('A description', $menu['items'][0]['description']);
     }
@@ -157,6 +162,7 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame('', $menu['items'][0]['description']);
     }
@@ -177,6 +183,7 @@ class MenuServiceTest extends TestCase
         ]);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertSame(['class-a', 'class-b'], $menu['items'][0]['classes']);
     }
@@ -195,6 +202,7 @@ class MenuServiceTest extends TestCase
         ]);
 
         $menu = $this->service->getMenu('main');
+        $this->assertNotNull($menu);
 
         $this->assertCount(1, $menu['items'], 'the child must surface at the top level, not be lost');
         $this->assertSame('/child', $menu['items'][0]['url']);
@@ -221,7 +229,9 @@ class MenuServiceTest extends TestCase
         $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/x', '_menu_item_menu_item_parent' => '0']]);
 
         $first  = $this->service->getMenu('main');
+        $this->assertNotNull($first);
         $second = $this->service->getMenu('main');
+        $this->assertNotNull($second);
 
         $this->assertSame($first['revision'], $second['revision']);
     }
@@ -233,9 +243,11 @@ class MenuServiceTest extends TestCase
 
         $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/a', '_menu_item_menu_item_parent' => '0']]);
         $before = $this->service->getMenu('main');
+        $this->assertNotNull($before);
 
         $this->stubItemMeta([1 => ['_menu_item_type' => 'custom', '_menu_item_url' => '/b', '_menu_item_menu_item_parent' => '0']]);
         $after = $this->service->getMenu('main');
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before['revision'], $after['revision']);
     }
@@ -248,9 +260,11 @@ class MenuServiceTest extends TestCase
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'Original Name'));
         Functions\when('wp_get_nav_menu_items')->justReturn([]);
         $before = $this->service->getMenu('main');
+        $this->assertNotNull($before);
 
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(5, 'main', 'New Name'));
         $after = $this->service->getMenu('main');
+        $this->assertNotNull($after);
 
         $this->assertSame($before['items'], $after['items']);
         $this->assertNotSame($before['name'], $after['name']);
@@ -516,7 +530,9 @@ class MenuServiceTest extends TestCase
     {
         Functions\when('wp_get_nav_menu_object')->justReturn($this->fakeTerm(10, 'main', 'Main'));
         Functions\when('wp_get_nav_menu_items')->justReturn([]);
-        $currentRevision = $this->service->getMenu('main')['revision'];
+        $current = $this->service->getMenu('main');
+        $this->assertNotNull($current);
+        $currentRevision = $current['revision'];
 
         $menu = $this->service->upsertMenu('main', 'Main', [], $currentRevision);
 
@@ -669,7 +685,7 @@ class MenuServiceTest extends TestCase
 
     private function fakeTerm(int $id, string $slug, string $name): WP_Term
     {
-        $term           = new WP_Term();
+        $term           = new WP_Term(new \stdClass());
         $term->term_id  = $id;
         $term->slug     = $slug;
         $term->name     = $name;
@@ -680,26 +696,24 @@ class MenuServiceTest extends TestCase
 
     private function fakePost(int $id, string $slug, string $title, string $postType = 'post'): WP_Post
     {
-        $post             = new WP_Post();
-        $post->ID         = $id;
-        $post->post_name  = $slug;
-        $post->post_title = $title;
-        $post->post_type  = $postType;
-        $post->post_status = 'publish';
-
-        return $post;
+        return new WP_Post((object) [
+            'ID'          => $id,
+            'post_name'   => $slug,
+            'post_title'  => $title,
+            'post_type'   => $postType,
+            'post_status' => 'publish',
+        ]);
     }
 
     private function fakeItemPost(int $id, string $title, string $content, int $menuOrder): WP_Post
     {
-        $post              = new WP_Post();
-        $post->ID          = $id;
-        $post->post_title  = $title;
-        $post->post_content = $content;
-        $post->menu_order  = $menuOrder;
-        $post->post_type   = 'nav_menu_item';
-
-        return $post;
+        return new WP_Post((object) [
+            'ID'           => $id,
+            'post_title'   => $title,
+            'post_content' => $content,
+            'menu_order'   => $menuOrder,
+            'post_type'    => 'nav_menu_item',
+        ]);
     }
 
     /** @param array<int, array<string, mixed>> $metaByPostId */
@@ -715,10 +729,7 @@ class MenuServiceTest extends TestCase
     // the slug up again after creating it. Returns a bucket the caller can inspect afterwards.
     private function installFreshMenuCreation(int $termId): \stdClass
     {
-        $capture               = new \stdClass();
-        $capture->created      = false;
-        $capture->insertedArgs = ['slug' => ''];
-        $capture->insertedName = '';
+        $capture = new \stdClass();
 
         Functions\when('wp_get_nav_menu_object')->alias(
             fn(): WP_Term|false => $capture->created ? $this->fakeTerm($termId, $capture->insertedArgs['slug'], $capture->insertedName) : false,
@@ -730,6 +741,12 @@ class MenuServiceTest extends TestCase
             $capture->insertedName = $name;
             return ['term_id' => $termId, 'term_taxonomy_id' => $termId];
         });
+
+        // Set after the stubs above, so the static analysis of their closures doesn't carry
+        // over `created = false` as if it could never change.
+        $capture->created      = false;
+        $capture->insertedArgs = ['slug' => ''];
+        $capture->insertedName = '';
 
         return $capture;
     }

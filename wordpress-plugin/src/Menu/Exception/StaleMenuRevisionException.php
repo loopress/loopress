@@ -10,4 +10,4 @@ namespace Loopress\Menu\Exception;
 // refused so it never silently overwrites that intervening change, the caller is expected to
 // re-read and retry. Maps to HTTP 412 Precondition Failed, the standard status for a failed
 // conditional write.
-class StaleMenuRevisionException extends \RuntimeException {}
+final class StaleMenuRevisionException extends \RuntimeException {}

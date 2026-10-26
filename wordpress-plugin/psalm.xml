@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="3"
+    errorLevel="2"
     phpVersion="8.2"
     resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -143,7 +143,7 @@
                 <directory name="src/PostTypes" />
             </errorLevel>
         </ArgumentTypeCoercion>
-        <PossiblyUnusedParam>
+        <UnusedParam>
             <errorLevel type="suppress">
                 <directory name="src/Acf/RestApi" />
                 <directory name="src/Dependencies/RestApi" />
@@ -163,7 +163,7 @@
                 <!-- PageFilters::blockEditing()'s $userId completes the map_meta_cap signature. -->
                 <directory name="src/Pages/Frontend" />
             </errorLevel>
-        </PossiblyUnusedParam>
+        </UnusedParam>
 
         <!-- WP_REST_Request::get_param() is typed as nullable by the WordPress stubs, but the
              route's own `args` schema marks these as required, so WordPress rejects the request
@@ -208,6 +208,57 @@
         <!-- require_once ABSPATH . 'wp-admin/includes/...' paths only resolve inside a real
              WordPress install, which isn't present in this analysis environment. -->
         <MissingFile errorLevel="suppress" />
+        <!-- Same reason: vendor/autoload.php and the user's api/ and hooks/ files are paths
+             built at runtime. -->
+        <UnresolvableInclude errorLevel="suppress" />
+
+        <!-- The WordPress stubs' types aren't always true at runtime: numeric array keys arrive
+             as int, DB strings are typed as int. Same reason phpstan.neon keeps strict-rules'
+             uselessCast off and rector.php skips RecastingRemovalRector. -->
+        <RedundantCastGivenDocblockType errorLevel="suppress" />
+
+        <!-- WP_REST_Request::get_json_params() is stubbed `@return array` but returns null for an
+             empty or malformed body: the is_array() guards are real. Same exception as the
+             is_array() one in phpstan.neon, which spells out the core code path. -->
+        <DocblockTypeContradiction>
+            <errorLevel type="suppress">
+                <file name="src/Content/RestApi/ContentController.php" />
+                <file name="src/Form/RestApi/FormController.php" />
+                <file name="src/Menu/RestApi/MenuController.php" />
+                <file name="src/Options/RestApi/OptionsController.php" />
+                <file name="src/PostTypes/RestApi/DeclaredTypesController.php" />
+            </errorLevel>
+        </DocblockTypeContradiction>
+        <RedundantConditionGivenDocblockType>
+            <errorLevel type="suppress">
+                <file name="src/Content/RestApi/ContentController.php" />
+            </errorLevel>
+        </RedundantConditionGivenDocblockType>
+
+        <!-- Doubled with createMock() in tests/, and PHPUnit can't mock a final class. Every
+             other class is final. -->
+        <ClassMustBeFinal>
+            <errorLevel type="suppress">
+                <file name="src/Acf/Service/AcfService.php" />
+                <file name="src/Api/Infrastructure/ApiDirectory.php" />
+                <file name="src/Apps/Infrastructure/AppStore.php" />
+                <file name="src/Apps/Infrastructure/AppsDirectory.php" />
+                <file name="src/Apps/Service/AppsDiagnostics.php" />
+                <file name="src/Dependencies/Infrastructure/ComposerRunner.php" />
+                <file name="src/Dependencies/Infrastructure/LoopressEnvironment.php" />
+                <file name="src/Dependencies/Infrastructure/PackagistClient.php" />
+                <file name="src/Dependencies/Service/ComposerService.php" />
+                <file name="src/Form/Service/FormService.php" />
+                <file name="src/Hooks/Infrastructure/HooksDirectory.php" />
+                <file name="src/Menu/Service/MenuService.php" />
+                <file name="src/Options/Service/OptionsService.php" />
+                <file name="src/PostTypes/Service/PostTypeService.php" />
+                <file name="src/Pushes/PushLog.php" />
+                <file name="src/Snippets/Service/SnippetService.php" />
+                <file name="src/Update/Infrastructure/GithubReleaseChecker.php" />
+                <file name="src/Update/Infrastructure/UsagePing.php" />
+            </errorLevel>
+        </ClassMustBeFinal>
 
         <!-- Invoked via a dynamic class-string ("\Loopress\{$feature}\Feature"::bootstrap())
              in loopress.php's Plus-feature loop, which Psalm can't trace back to this call site. -->

@@ -38,7 +38,7 @@ class GithubReleaseCheckerTest extends TestCase
     /** @param array<int, array<string, mixed>> $releases */
     private function stubReleasesResponse(array $releases): void
     {
-        $this->httpClient->willReturn(new Response(200, [], json_encode($releases)));
+        $this->httpClient->willReturn(new Response(200, [], json_encode($releases, JSON_THROW_ON_ERROR)));
     }
 
     public function test_sends_the_usage_ping_on_a_cache_miss(): void
@@ -105,6 +105,7 @@ class GithubReleaseCheckerTest extends TestCase
         ]);
 
         $this->assertSame('2026.8.1', $this->checker->getLatestVersion());
+        $this->assertNotNull($this->httpClient->lastRequest);
         $this->assertSame(
             'https://api.github.com/repos/loopress/loopress/releases?per_page=10',
             (string) $this->httpClient->lastRequest->getUri(),
@@ -156,7 +157,7 @@ class GithubReleaseCheckerTest extends TestCase
     public function test_forget_drops_the_cache_so_the_next_read_asks_github_again(): void
     {
         $cache = ['version' => '2026.8.1', 'zip_url' => null];
-        Functions\when('get_transient')->alias(static function () use (&$cache): array|false {
+        Functions\when('get_transient')->alias(static function () use (&$cache): mixed {
             return $cache;
         });
         Functions\expect('delete_transient')->once()->with('loopress_full_latest_release')

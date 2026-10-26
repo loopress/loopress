@@ -15,7 +15,7 @@ use WP_REST_Response;
  * option constant to RESETTABLE_OPTIONS below when it grows one, rather than giving each
  * feature its own reset endpoint.
  */
-class SettingsController
+final class SettingsController
 {
     use RequiresManageOptionsCapability;
 

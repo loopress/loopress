@@ -455,6 +455,7 @@ class ApiDirectoryTest extends TestCase
         $heldDuringWork = $directory->exclusively(function () use ($lockPath): bool {
             // A second handle is what a concurrent request would use: it must not get the lock.
             $other  = fopen($lockPath, 'c');
+            $this->assertNotFalse($other);
             $gotIt  = flock($other, LOCK_EX | LOCK_NB);
             fclose($other);
             return !$gotIt;
@@ -462,17 +463,19 @@ class ApiDirectoryTest extends TestCase
 
         $this->assertTrue($heldDuringWork);
 
+        $thrown = null;
         try {
             $directory->exclusively(static function (): never {
                 throw new \RuntimeException('staging failed');
             });
-            $this->fail('the work exception must propagate');
         } catch (\RuntimeException $e) {
-            $this->assertSame('staging failed', $e->getMessage());
+            $thrown = $e;
         }
+        $this->assertSame('staging failed', $thrown->getMessage(), 'the work exception must propagate');
 
         // Released even though the work threw.
         $after = fopen($lockPath, 'c');
+        $this->assertNotFalse($after);
         $this->assertTrue(flock($after, LOCK_EX | LOCK_NB));
         fclose($after);
     }

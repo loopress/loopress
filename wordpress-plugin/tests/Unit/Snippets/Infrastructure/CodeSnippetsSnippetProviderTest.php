@@ -107,6 +107,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         });
 
         $result = $this->provider->getSnippet(7);
+        $this->assertNotNull($result);
 
         $this->assertSame(7, $result->id);
         $this->assertSame(SnippetType::Css, $result->type);
@@ -191,6 +192,7 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         });
 
         $result = $this->provider->updateSnippet(3, new SnippetData(name: 'Updated'));
+        $this->assertNotNull($result);
 
         $this->assertSame('Updated', $result->name);
     }

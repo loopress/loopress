@@ -6,7 +6,7 @@ namespace Loopress\RestCache\Module;
 
 use Loopress\Contract\Module;
 
-class RestCacheModule implements Module
+final class RestCacheModule implements Module
 {
     public function boot(): void
     {

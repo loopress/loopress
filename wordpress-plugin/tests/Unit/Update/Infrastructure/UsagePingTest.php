@@ -19,7 +19,6 @@ class UsagePingTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
-        $this->options = [];
         Functions\when('get_option')->alias(fn(string $name, mixed $fallback = false): mixed => $this->options[$name] ?? $fallback);
         Functions\when('update_option')->alias(function (string $name, mixed $value): bool {
             $this->options[$name] = $value;

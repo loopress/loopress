@@ -4,4 +4,4 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Exception;
 
-class UnsupportedLocationException extends \RuntimeException {}
+final class UnsupportedLocationException extends \RuntimeException {}

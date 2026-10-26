@@ -21,7 +21,6 @@ class UsageStatsNoticeTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
-        $this->options = [];
         $_GET          = [];
         $this->notice  = new UsageStatsNotice();
         Functions\when('get_option')->alias(fn(string $name, mixed $fallback = false): mixed => $this->options[$name] ?? $fallback);

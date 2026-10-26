@@ -14,7 +14,7 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class ComposerController
+final class ComposerController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
@@ -353,7 +353,7 @@ class ComposerController
             'required'          => $required,
             'type'              => 'string',
             'description'       => 'Composer package name (vendor/package)',
-            'validate_callback' => fn($v): bool => (bool) preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $v),
+            'validate_callback' => fn(mixed $v): bool => is_string($v) && (bool) preg_match('/^[a-z0-9][a-z0-9\._-]*\/[a-z0-9][a-z0-9\._-]*$/i', $v),
             'sanitize_callback' => 'sanitize_text_field',
         ];
     }
@@ -368,7 +368,10 @@ class ComposerController
             'description'       => 'Composer version constraint',
             // Delegates to the same parser Composer itself uses to interpret `composer require`
             // constraints, instead of a hand-rolled regex trying to approximate its syntax.
-            'validate_callback' => function ($v): bool {
+            'validate_callback' => function (mixed $v): bool {
+                if (!is_string($v)) {
+                    return false;
+                }
                 try {
                     (new VersionParser())->parseConstraints($v);
                     return true;

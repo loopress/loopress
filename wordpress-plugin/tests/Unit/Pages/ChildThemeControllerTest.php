@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Pages;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Pages\RestApi\ChildThemeController;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
-use WP_REST_Request;
 
 class ChildThemeControllerTest extends TestCase
 {
@@ -67,7 +67,7 @@ class ChildThemeControllerTest extends TestCase
      */
     private function put(array $templates, array $parts = [], array $css = []): \WP_REST_Response
     {
-        return $this->controller()->put_child_theme(new WP_REST_Request(['templates' => $templates, 'parts' => $parts] + $css));
+        return $this->controller()->put_child_theme(RestRequest::with(['templates' => $templates, 'parts' => $parts] + $css));
     }
 
     private function child(string $file): string
@@ -155,7 +155,7 @@ class ChildThemeControllerTest extends TestCase
         };
 
         $response = (new ChildThemeController($this->root, $failingSwap))
-            ->put_child_theme(new WP_REST_Request(['templates' => [['slug' => 'single', 'html' => 'after']], 'parts' => []]));
+            ->put_child_theme(RestRequest::with(['templates' => [['slug' => 'single', 'html' => 'after']], 'parts' => []]));
 
         $this->assertSame(500, $response->status);
         $this->assertStringContainsString('disk full', $response->get_data()['error']);

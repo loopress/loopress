@@ -86,7 +86,7 @@ class HookLoaderTest extends TestCase
 
         ($binding['callback'])();
 
-        $this->assertTrue(true); // reaching this line means the throw was caught, not fatal
+        $this->addToAssertionCount(1); // reaching this line means the throw was caught, not fatal
     }
 
     // ── bindingsFor: filters ─────────────────────────────────────────────────
@@ -242,7 +242,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectation above in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectation above in tearDown
     }
 
     public function test_loadAndRegister_binds_a_filter(): void
@@ -258,7 +258,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectation above in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectation above in tearDown
     }
 
     public function test_loadAndRegister_schedules_a_cron_job(): void
@@ -276,7 +276,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectations above in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectations above in tearDown
     }
 
     public function test_loadAndRegister_does_not_reschedule_an_already_scheduled_cron_job(): void
@@ -298,7 +298,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies wp_schedule_event was never called in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies wp_schedule_event was never called in tearDown
     }
 
     public function test_loadAndRegister_fails_a_file_with_no_hook_methods(): void
@@ -316,7 +316,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectation above in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectation above in tearDown
     }
 
     public function test_loadAndRegister_skips_a_file_with_more_than_one_class(): void
@@ -335,7 +335,7 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectations above in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectations above in tearDown
     }
 
     public function test_loadAndRegister_skips_a_class_name_collision_without_registering_anything(): void
@@ -354,6 +354,6 @@ class HookLoaderTest extends TestCase
         $loader = new HookLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies add_action was never called in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies add_action was never called in tearDown
     }
 }

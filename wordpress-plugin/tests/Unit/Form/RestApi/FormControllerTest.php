@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Form\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\Form\Exception\FormNotificationException;
 use Loopress\Form\Exception\NoActiveFormPluginException;
@@ -35,10 +36,13 @@ class FormControllerTest extends TestCase
         parent::tearDown();
     }
 
-    /** @param array<string, mixed> $routeParams @param array<string, mixed>|null $jsonBody */
+    /**
+     * @param array<string, mixed> $routeParams
+     * @param array<string, mixed>|null $jsonBody
+     */
     private function request(array $routeParams = [], ?array $jsonBody = null): WP_REST_Request
     {
-        $request = new WP_REST_Request($routeParams);
+        $request = RestRequest::with($routeParams);
         if ($jsonBody !== null) {
             $request->set_json_params($jsonBody);
         }
@@ -133,7 +137,7 @@ class FormControllerTest extends TestCase
     {
         $this->formService->expects($this->never())->method('update');
 
-        $request = new WP_REST_Request(['id' => 2]);
+        $request = RestRequest::with(['id' => 2]);
         $request->set_json_params(null);
 
         $response = $this->controller->update_form($request);

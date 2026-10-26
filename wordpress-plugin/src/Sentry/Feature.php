@@ -13,7 +13,7 @@ use Loopress\Sentry\Module\SentryModule;
  * the Loopress Full edition (see scripts/build-flavor.cjs); the plugin entry file calls this
  * inside its build markers, so the Loopress Light artifact never references this namespace.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

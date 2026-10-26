@@ -10,7 +10,6 @@ use Loopress\Api\Attribute\Permission;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Infrastructure\AbstractFileLoader;
-use Loopress\Infrastructure\AbstractFilesDirectory;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 
@@ -26,7 +25,7 @@ use WP_REST_Request;
  * bookkeeping all live in AbstractFileLoader; this class only turns a resolved instance into
  * REST routes.
  */
-class RouteLoader extends AbstractFileLoader
+final class RouteLoader extends AbstractFileLoader
 {
     use RequiresManageOptionsCapability;
 
@@ -49,7 +48,7 @@ class RouteLoader extends AbstractFileLoader
 
     public function __construct(private ApiDirectory $directory, private LoopressEnvironment $environment) {}
 
-    protected function directory(): AbstractFilesDirectory
+    protected function directory(): ApiDirectory
     {
         return $this->directory;
     }

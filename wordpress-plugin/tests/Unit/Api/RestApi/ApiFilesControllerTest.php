@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Api\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
@@ -11,7 +12,6 @@ use Loopress\Api\RestApi\ApiFilesController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class ApiFilesControllerTest extends TestCase
 {
@@ -181,7 +181,7 @@ class ApiFilesControllerTest extends TestCase
         // unit tests: this covers the defense-in-depth re-check inside push_file() itself
         // (also what clears the path-injection finding a static analyzer raises otherwise,
         // since the validate_callback wiring elsewhere isn't visible to it).
-        $request = new WP_REST_Request(['filename' => '../../../wp-config', 'content' => '<?php']);
+        $request = RestRequest::with(['filename' => '../../../wp-config', 'content' => '<?php']);
 
         $this->directory->expects($this->never())->method('write');
 
@@ -199,7 +199,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->never())->method('write');
         $controller = new ApiFilesController($this->directory);
 
-        $request  = new WP_REST_Request(['filename' => 'big', 'content' => str_repeat('x', 200)]);
+        $request  = RestRequest::with(['filename' => 'big', 'content' => str_repeat('x', 200)]);
         $response = $controller->push_file($request);
 
         $this->assertSame(413, $response->status);
@@ -212,7 +212,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('write');
 
-        $request  = new WP_REST_Request(['filename' => 'huge', 'content' => str_repeat("//x\n", 5 * 256 * 1024)]);
+        $request  = RestRequest::with(['filename' => 'huge', 'content' => str_repeat("//x\n", 5 * 256 * 1024)]);
         $response = $this->controller->push_file($request);
 
         $this->assertSame(413, $response->status);
@@ -220,7 +220,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_writes_the_guarded_content(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
         ]);
@@ -240,7 +240,7 @@ class ApiFilesControllerTest extends TestCase
     public function test_push_file_returns_a_revision_in_the_success_response(): void
     {
         $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => $content]);
 
         $response = $this->controller->push_file($request);
 
@@ -255,7 +255,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->method('read')->with('hello')->willReturn($current);
         $this->directory->expects($this->once())->method('write');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename'         => 'hello',
             'content'          => $new,
             'expectedRevision' => hash('sha256', $current),
@@ -318,7 +318,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->method('read')->with('hello')->willReturn($currentContent);
         $this->directory->expects($this->never())->method('write');
 
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content, 'expectedRevision' => $expectedRevision]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => $content, 'expectedRevision' => $expectedRevision]);
 
         $response = $this->controller->push_file($request);
 
@@ -335,7 +335,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->method('read')->with('hello')->willReturn(null);
         $this->directory->expects($this->once())->method('write');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
         ]);
@@ -347,7 +347,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_reports_a_public_route_in_the_response(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'open',
             'content'  => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Api\\Attribute\\Permission;\n#[Permission(public: true)]\nfinal class Open { public function get(): array { return []; } }\n",
         ]);
@@ -360,7 +360,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
     {
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);
 
         $this->directory->expects($this->never())->method('write');
 
@@ -375,7 +375,7 @@ class ApiFilesControllerTest extends TestCase
     // with `api push` reporting success and `api list` showing the file as present.
     public function test_push_file_returns_400_when_content_has_invalid_php_syntax(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'broken',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Broken {\n    public function get() {\n        return ['ok' => true]\n    }\n}\n",
         ]);
@@ -390,7 +390,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_declares_no_class(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfunction not_a_class(): void {}\n",
         ]);
@@ -405,7 +405,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_declares_more_than_one_class(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\nfinal class World {}\n",
         ]);
@@ -420,7 +420,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_api_file(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'new-file',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n",
         ]);
@@ -449,7 +449,7 @@ class ApiFilesControllerTest extends TestCase
     #[DataProvider('sameRouteProvider')]
     public function test_push_file_returns_400_when_another_file_resolves_to_the_same_route(string $filename, string $existing): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => $filename,
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Orders {}\n",
         ]);
@@ -469,7 +469,7 @@ class ApiFilesControllerTest extends TestCase
         // PHP resolves class names case-insensitively (a real "Cannot redeclare class" fatal
         // would happen here too), so a collision that only differs by case must be caught the
         // same as an exact match.
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'new-file',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class shared {}\n",
         ]);
@@ -491,7 +491,7 @@ class ApiFilesControllerTest extends TestCase
         // WP_Post is one of the global WP REST stubs already loaded for every test (see
         // tests/Stubs/WpRestStubs.php), standing in for a WP core or third-party plugin class
         // that's already declared by the time this request runs.
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class WP_Post {}\n",
         ]);
@@ -511,7 +511,7 @@ class ApiFilesControllerTest extends TestCase
         // already loaded" apart from a genuine third-party collision. Re-pushing a file whose
         // class was already loaded under its own previous content must not false-positive.
         $content = "<?php\ndeclare(strict_types=1);\nfinal class WP_Post {}\n";
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => $content]);
 
         $this->directory->method('listSlugs')->willReturn(['hello']);
         $this->directory->method('read')->with('hello')->willReturn($content);
@@ -528,7 +528,7 @@ class ApiFilesControllerTest extends TestCase
         // alone: the file's previous content declared `WP_Post`, already loaded by RouteLoader
         // this same request; a strict, case-sensitive self-exclusion check would fail to
         // recognize `wp_post` as "the same class" and wrongly report a collision.
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class wp_post {}\n",
         ]);
@@ -546,7 +546,7 @@ class ApiFilesControllerTest extends TestCase
 
     public function test_push_file_returns_500_when_the_directory_write_fails(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
         ]);
@@ -564,7 +564,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->once())->method('delete')->with('hello')->willReturn(true);
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'hello']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['filename' => 'hello', 'deleted' => true], $response->data);
@@ -574,7 +574,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->method('delete')->with('gone')->willReturn(false);
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'gone']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'gone']));
 
         $this->assertSame(404, $response->status);
     }
@@ -591,9 +591,9 @@ class ApiFilesControllerTest extends TestCase
         $controller = new ApiFilesController($directory);
 
         $responses = [
-            $controller->push_file(new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"])),
-            $controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']])),
-            $controller->delete_file(new WP_REST_Request(['filename' => 'hello'])),
+            $controller->push_file(RestRequest::with(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"])),
+            $controller->push_batch(RestRequest::with(['files' => [], 'prune' => ['stale']])),
+            $controller->delete_file(RestRequest::with(['filename' => 'hello'])),
         ];
 
         foreach ($responses as $response) {
@@ -606,7 +606,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('delete');
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => '../../wp-config']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => '../../wp-config']));
 
         $this->assertSame(400, $response->status);
     }
@@ -620,7 +620,7 @@ class ApiFilesControllerTest extends TestCase
             ->with('loopress_api_load_errors', ['other' => 'boom'], false)
             ->andReturn(true);
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'hello']));
 
         $this->assertSame(200, $response->status);
     }
@@ -631,13 +631,14 @@ class ApiFilesControllerTest extends TestCase
         Functions\when('get_option')->justReturn(['other' => 'boom']);
         Functions\expect('update_option')->never();
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'hello']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'hello']));
 
         $this->assertSame(200, $response->status);
     }
 
     // ── push_batch (#236) ───────────────────────────────────────────────────
 
+    /** @return array{content: string, filename: string} */
     private function validFile(string $filename = 'hello', string $className = 'Hello'): array
     {
         return ['content' => "<?php\ndeclare(strict_types=1);\nfinal class {$className} {}\n", 'filename' => $filename];
@@ -647,7 +648,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request([]));
+        $response = $this->controller->push_batch(RestRequest::with([]));
 
         $this->assertSame(400, $response->status);
     }
@@ -656,7 +657,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => []]));
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [], 'prune' => []]));
 
         $this->assertSame(400, $response->status);
     }
@@ -671,7 +672,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('stageDelete')->with('stale');
         $this->directory->expects($this->once())->method('commitBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [], 'prune' => ['stale']]));
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [], 'prune' => ['stale']]));
 
         $this->assertSame(200, $response->status);
         $this->assertSame([], $response->data['files']);
@@ -682,7 +683,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request(['files' => 'not-an-array']));
+        $response = $this->controller->push_batch(RestRequest::with(['files' => 'not-an-array']));
 
         $this->assertSame(400, $response->status);
     }
@@ -691,7 +692,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request(['files' => [$this->validFile()], 'prune' => 'not-an-array']));
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [$this->validFile()], 'prune' => 'not-an-array']));
 
         $this->assertSame(400, $response->status);
     }
@@ -703,7 +704,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('beginBatch');
 
-        $response = $this->controller->push_batch(new WP_REST_Request([
+        $response = $this->controller->push_batch(RestRequest::with([
             'files' => [$this->validFile('hello', 'Hello')],
             'prune' => ['hello'],
         ]));
@@ -720,7 +721,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('commitBatch');
         $this->directory->expects($this->never())->method('abortBatch');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile('hello', 'Hello'), $this->validFile('world', 'World')]]);
+        $request  = RestRequest::with(['files' => [$this->validFile('hello', 'Hello'), $this->validFile('world', 'World')]]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
@@ -731,7 +732,7 @@ class ApiFilesControllerTest extends TestCase
     public function test_push_batch_returns_a_revision_for_each_staged_file(): void
     {
         $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
-        $request = new WP_REST_Request(['files' => [['content' => $content, 'filename' => 'hello']]]);
+        $request = RestRequest::with(['files' => [['content' => $content, 'filename' => 'hello']]]);
 
         $response = $this->controller->push_batch($request);
 
@@ -747,7 +748,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'files' => [
                 ['content' => "<?php\nfunction not_a_class(): void {}\n", 'filename' => 'first'],
                 $this->validFile('second', 'Second'),
@@ -769,7 +770,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'files' => [
                 ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'first'],
                 ['content' => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n", 'filename' => 'second'],
@@ -788,7 +789,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['../../wp-config']]);
+        $request  = RestRequest::with(['files' => [$this->validFile()], 'prune' => ['../../wp-config']]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);
@@ -808,7 +809,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('stageWrite')->with('orders/index', $this->anything());
         $this->directory->expects($this->once())->method('commitBatch');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile('orders/index', 'Orders')], 'prune' => ['orders']]);
+        $request  = RestRequest::with(['files' => [$this->validFile('orders/index', 'Orders')], 'prune' => ['orders']]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
@@ -820,7 +821,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('stageDelete')->with('stale');
         $this->directory->expects($this->once())->method('commitBatch');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $request  = RestRequest::with(['files' => [$this->validFile()], 'prune' => ['stale']]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
@@ -832,7 +833,7 @@ class ApiFilesControllerTest extends TestCase
         Functions\when('get_option')->justReturn(['other' => 'boom', 'stale' => 'expected exactly one class declaration, found none']);
         Functions\expect('update_option')->once()->with('loopress_api_load_errors', ['other' => 'boom'], false)->andReturn(true);
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile()], 'prune' => ['stale']]);
+        $request  = RestRequest::with(['files' => [$this->validFile()], 'prune' => ['stale']]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
@@ -843,7 +844,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->method('commitBatch')->willThrowException(new \RuntimeException('disk full'));
         $this->directory->expects($this->once())->method('abortBatch');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $request  = RestRequest::with(['files' => [$this->validFile()]]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(500, $response->status);
@@ -855,7 +856,7 @@ class ApiFilesControllerTest extends TestCase
         $this->directory->method('beginBatch')->willThrowException(new \RuntimeException('cannot prepare staging'));
         $this->directory->expects($this->never())->method('stageWrite');
 
-        $request  = new WP_REST_Request(['files' => [$this->validFile()]]);
+        $request  = RestRequest::with(['files' => [$this->validFile()]]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(500, $response->status);
@@ -865,7 +866,7 @@ class ApiFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->once())->method('abortBatch');
 
-        $request  = new WP_REST_Request(['files' => [['content' => '<?php']]]);
+        $request  = RestRequest::with(['files' => [['content' => '<?php']]]);
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);

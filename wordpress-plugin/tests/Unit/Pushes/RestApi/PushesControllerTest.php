@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Pushes\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\Pushes\PushLog;
 use Loopress\Pushes\RestApi\PushesController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class PushesControllerTest extends TestCase
 {
@@ -61,7 +61,7 @@ class PushesControllerTest extends TestCase
     {
         $this->log->expects($this->once())->method('record')->with('acf:push')->willReturn(['resource' => 'acf:push']);
 
-        $response = $this->controller->record(new WP_REST_Request(['resource' => 'acf:push']));
+        $response = $this->controller->record(RestRequest::with(['resource' => 'acf:push']));
 
         $this->assertSame(201, $response->status);
         $this->assertSame([
@@ -75,7 +75,7 @@ class PushesControllerTest extends TestCase
         $GLOBALS['wpdb']->lockResult = '0';
         $this->log->expects($this->never())->method('record');
 
-        $response = $this->controller->record(new WP_REST_Request(['resource' => 'acf:push']));
+        $response = $this->controller->record(RestRequest::with(['resource' => 'acf:push']));
 
         $this->assertSame(503, $response->status);
     }

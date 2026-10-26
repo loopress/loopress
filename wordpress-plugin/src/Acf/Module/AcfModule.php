@@ -8,9 +8,9 @@ use Loopress\Acf\RestApi\AcfController;
 use Loopress\Acf\Service\AcfService;
 use Loopress\Contract\Module;
 
-class AcfModule implements Module
+final readonly class AcfModule implements Module
 {
-    public function __construct(private readonly AcfService $service) {}
+    public function __construct(private AcfService $service) {}
 
     public function boot(): void
     {

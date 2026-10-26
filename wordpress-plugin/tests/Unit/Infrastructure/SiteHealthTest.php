@@ -53,6 +53,7 @@ class SiteHealthTest extends TestCase
         });
 
         SiteHealth::register('loopress_x', 'Loopress X', 'code', static fn (): array => throw new class('probe down') extends \RuntimeException {});
+        $this->assertIsCallable($filter);
         $tests  = $filter(['direct' => []]);
         $result = ($tests['direct']['loopress_x']['test'])();
 

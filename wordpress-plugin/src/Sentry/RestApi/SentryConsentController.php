@@ -9,7 +9,7 @@ use Loopress\Sentry\Consent;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class SentryConsentController
+final class SentryConsentController
 {
     use RequiresManageOptionsCapability;
 

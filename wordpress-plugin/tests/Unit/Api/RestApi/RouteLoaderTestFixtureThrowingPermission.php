@@ -8,6 +8,7 @@ use WP_REST_Request;
 
 final class RouteLoaderTestFixtureThrowingPermission
 {
+    /** @return array<string, mixed> */
     public function get(): array
     {
         return [];

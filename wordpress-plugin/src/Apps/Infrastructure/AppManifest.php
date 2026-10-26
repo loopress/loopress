@@ -19,7 +19,7 @@ namespace Loopress\Apps\Infrastructure;
  *     'files'         => [['path' => 'assets/index-x.js', 'sha256' => '<64hex>', 'size' => 1234], ...],
  *   ]
  */
-class AppManifest
+final class AppManifest
 {
     private const BUILD_ID_PATTERN      = '/^[a-f0-9]{8,64}$/';
     private const MOUNT_SELECTOR_PATTERN = '/^#[A-Za-z][\w-]*$/';

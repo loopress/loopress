@@ -11,7 +11,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class AcfController
+final class AcfController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
@@ -194,7 +194,7 @@ class AcfController
             'key' => [
                 'required'          => true,
                 'type'              => 'string',
-                'validate_callback' => fn($v): bool => is_string($v) && $v !== '',
+                'validate_callback' => fn(mixed $v): bool => is_string($v) && $v !== '',
             ],
         ];
     }

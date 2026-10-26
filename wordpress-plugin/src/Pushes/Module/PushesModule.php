@@ -8,11 +8,11 @@ use Loopress\Contract\Module;
 use Loopress\Pushes\PushLog;
 use Loopress\Pushes\RestApi\PushesController;
 
-class PushesModule implements Module
+final readonly class PushesModule implements Module
 {
     public function __construct(
-        private readonly PushesController $controller,
-        private readonly PushLog $log,
+        private PushesController $controller,
+        private PushLog $log,
     ) {}
 
     public function boot(): void

@@ -10,7 +10,7 @@ use Loopress\PostTypes\Exception\InvalidDeclarationException;
 // AbstractDeclaredTypeService. The slug is the post type the keys belong to (`post` and `page`
 // included), the arguments are `key => register_post_meta() arguments`. Only the keys are
 // declared, never their values (content, like posts).
-class PostMetaService extends AbstractDeclaredTypeService
+final class PostMetaService extends AbstractDeclaredTypeService
 {
     public const OPTION = 'loopress_post_meta';
 

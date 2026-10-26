@@ -23,7 +23,7 @@ use function DI\get;
  * the plugin entry file calls this inside its build markers, so the Loopress Light
  * artifact never references this namespace.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     private const AUTOLOAD_ERROR = 'loopress.dependencies.autoload_error';
     private const HTTP_CLIENT    = 'loopress.dependencies.http_client';

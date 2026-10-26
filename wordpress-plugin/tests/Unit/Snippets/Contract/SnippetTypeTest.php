@@ -14,13 +14,22 @@ class SnippetTypeTest extends TestCase
      * Pins the wire values: these strings are the REST contract, a provider maps its own
      * backend vocabulary to and from them, so a changed case value is a breaking change.
      */
-    public function test_case_values_match_the_rest_wire_format(): void
+    #[DataProvider('wireValues')]
+    public function test_case_values_match_the_rest_wire_format(SnippetType $type, string $wire): void
     {
-        $this->assertSame('php', SnippetType::Php->value);
-        $this->assertSame('js', SnippetType::Js->value);
-        $this->assertSame('css', SnippetType::Css->value);
-        $this->assertSame('html', SnippetType::Html->value);
-        $this->assertSame('text', SnippetType::Text->value);
+        $this->assertSame($wire, $type->value);
+    }
+
+    /** @return array<string, array{SnippetType, string}> */
+    public static function wireValues(): array
+    {
+        return [
+            'php'  => [SnippetType::Php, 'php'],
+            'js'   => [SnippetType::Js, 'js'],
+            'css'  => [SnippetType::Css, 'css'],
+            'html' => [SnippetType::Html, 'html'],
+            'text' => [SnippetType::Text, 'text'],
+        ];
     }
 
     public function test_from_rejects_an_unknown_value(): void

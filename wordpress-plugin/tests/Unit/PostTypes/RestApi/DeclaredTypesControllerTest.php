@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\PostTypes\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\PostTypes\Exception\InvalidDeclarationException;
 use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
@@ -46,7 +47,7 @@ class DeclaredTypesControllerTest extends TestCase
     {
         $this->service->method('get')->willReturn(null);
 
-        $this->assertSame(404, $this->controller->get_item(new WP_REST_Request(['slug' => 'book']))->status);
+        $this->assertSame(404, $this->controller->get_item(RestRequest::with(['slug' => 'book']))->status);
     }
 
     public function test_upsert_passes_slug_args_and_revision_to_the_service(): void
@@ -94,6 +95,6 @@ class DeclaredTypesControllerTest extends TestCase
     {
         $this->service->method('delete')->willReturn(false);
 
-        $this->assertSame(404, $this->controller->delete_item(new WP_REST_Request(['slug' => 'book']))->status);
+        $this->assertSame(404, $this->controller->delete_item(RestRequest::with(['slug' => 'book']))->status);
     }
 }

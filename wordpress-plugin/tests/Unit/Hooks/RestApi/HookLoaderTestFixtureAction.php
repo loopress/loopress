@@ -8,6 +8,7 @@ use Loopress\Hooks\Attribute\Action;
 
 final class HookLoaderTestFixtureAction
 {
+    /** @var list<mixed> */
     public array $calledWith = [];
 
     #[Action('init', priority: 20, acceptedArgs: 2)]

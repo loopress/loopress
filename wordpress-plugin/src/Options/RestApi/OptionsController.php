@@ -17,7 +17,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class OptionsController
+final class OptionsController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;

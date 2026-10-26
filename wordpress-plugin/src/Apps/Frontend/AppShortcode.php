@@ -12,13 +12,13 @@ use Loopress\Apps\Infrastructure\AppStore;
  * page builder that runs shortcodes through `do_shortcode`. A dedicated Gutenberg block is a
  * later addition, not a replacement.
  */
-class AppShortcode
+final readonly class AppShortcode
 {
     public const TAG = 'loopress_app';
 
     public function __construct(
-        private readonly AppStore $store,
-        private readonly AppAssetEnqueuer $enqueuer,
+        private AppStore $store,
+        private AppAssetEnqueuer $enqueuer,
     ) {}
 
     /**

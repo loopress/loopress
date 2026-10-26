@@ -10,7 +10,7 @@ namespace Loopress\Dependencies\Exception;
  * cleanly install over it; the caller must re-run with force to let Loopress remove and
  * reinstall it.
  */
-class UnmanagedPackageException extends \RuntimeException
+final class UnmanagedPackageException extends \RuntimeException
 {
     /** @param list<array{slug: string, type: string, path: string, installedVersion: string}> $collisions */
     public function __construct(public readonly array $collisions)

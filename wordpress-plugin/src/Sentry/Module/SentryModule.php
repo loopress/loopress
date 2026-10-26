@@ -25,7 +25,7 @@ use Sentry\Event;
  * before_send drop events afterward, otherwise the SDK would still be reaching out to Sentry
  * before any consent was given.
  */
-class SentryModule implements Module
+final class SentryModule implements Module
 {
     private const DSN = 'https://3e9a6e7e6b46c9989465833cf2605581@o4511586904309760.ingest.de.sentry.io/4511791253487696';
 

@@ -45,9 +45,10 @@ class WPFormsProviderTest extends TestCase
 
     public function test_list_decodes_each_form_and_injects_its_post_id(): void
     {
-        $post              = new WP_Post();
-        $post->ID          = 12;
-        $post->post_content = '{"settings":{"form_title":"Contact"}}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_content' => '{"settings":{"form_title":"Contact"}}',
+        ]);
 
         $this->stubWpForms($this->fakeFormHandler(['get' => [$post]]));
         Functions\when('wpforms_decode')->justReturn(['settings' => ['form_title' => 'Contact']]);
@@ -75,9 +76,10 @@ class WPFormsProviderTest extends TestCase
 
     public function test_get_returns_null_for_a_non_wpforms_post_type(): void
     {
-        $post            = new WP_Post();
-        $post->ID        = 5;
-        $post->post_type = 'post';
+        $post = new WP_Post((object) [
+            'ID'        => 5,
+            'post_type' => 'post',
+        ]);
         Functions\when('get_post')->justReturn($post);
 
         $this->assertNull($this->provider->get(5));
@@ -85,10 +87,11 @@ class WPFormsProviderTest extends TestCase
 
     public function test_get_returns_null_for_a_trashed_form_so_a_push_recreates_it(): void
     {
-        $post              = new WP_Post();
-        $post->ID          = 35;
-        $post->post_type   = 'wpforms';
-        $post->post_status = 'trash';
+        $post = new WP_Post((object) [
+            'ID'          => 35,
+            'post_type'   => 'wpforms',
+            'post_status' => 'trash',
+        ]);
         Functions\when('get_post')->justReturn($post);
 
         $this->assertNull($this->provider->get(35));
@@ -96,10 +99,11 @@ class WPFormsProviderTest extends TestCase
 
     public function test_get_returns_decoded_content_merged_with_the_post_id(): void
     {
-        $post               = new WP_Post();
-        $post->ID           = 12;
-        $post->post_type    = 'wpforms';
-        $post->post_content = '{"settings":{"form_title":"Contact"}}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_type'    => 'wpforms',
+            'post_content' => '{"settings":{"form_title":"Contact"}}',
+        ]);
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['settings' => ['form_title' => 'Contact']]);
@@ -122,10 +126,11 @@ class WPFormsProviderTest extends TestCase
     // WordPress through the follow-up update() call, so create() must issue both, in order.
     public function test_create_adds_then_updates_with_the_full_payload(): void
     {
-        $post                = new WP_Post();
-        $post->ID            = 7;
-        $post->post_type     = 'wpforms';
-        $post->post_content  = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 7,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
         $capturedUpdate      = null;
 
         $this->stubWpForms($this->fakeFormHandler([
@@ -167,10 +172,11 @@ class WPFormsProviderTest extends TestCase
 
     public function test_update_throws_when_wpforms_update_fails(): void
     {
-        $post                = new WP_Post();
-        $post->ID            = 12;
-        $post->post_type     = 'wpforms';
-        $post->post_content  = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['id' => 12]);
@@ -182,13 +188,17 @@ class WPFormsProviderTest extends TestCase
 
     // ── notification / confirmation guard (F12) ──────────────────────────────
 
-    /** @param array<string, mixed> $decoded */
+    /**
+     * @param array<string, mixed> $captured
+     * @param array<string, mixed> $decoded
+     */
     private function captureUpdate(array &$captured, array $decoded = ['id' => 12]): void
     {
-        $post               = new WP_Post();
-        $post->ID           = 12;
-        $post->post_type    = 'wpforms';
-        $post->post_content = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn($decoded);
         $this->stubWpForms($this->fakeFormHandler([
@@ -233,10 +243,11 @@ class WPFormsProviderTest extends TestCase
 
     public function test_create_drops_incoming_notifications_when_allowNotifications_is_absent(): void
     {
-        $post               = new WP_Post();
-        $post->ID           = 7;
-        $post->post_type    = 'wpforms';
-        $post->post_content = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 7,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
         $captured           = [];
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['id' => 7]);
@@ -324,10 +335,11 @@ class WPFormsProviderTest extends TestCase
     // reported the same way as "not found" or the controller would return a misleading 404.
     public function test_delete_throws_when_wpforms_delete_fails(): void
     {
-        $post                = new WP_Post();
-        $post->ID            = 12;
-        $post->post_type     = 'wpforms';
-        $post->post_content  = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['id' => 12]);
@@ -339,10 +351,11 @@ class WPFormsProviderTest extends TestCase
 
     public function test_delete_delegates_to_wpforms_form_delete(): void
     {
-        $post                = new WP_Post();
-        $post->ID            = 12;
-        $post->post_type     = 'wpforms';
-        $post->post_content  = '{}';
+        $post = new WP_Post((object) [
+            'ID'           => 12,
+            'post_type'    => 'wpforms',
+            'post_content' => '{}',
+        ]);
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wpforms_decode')->justReturn(['id' => 12]);
@@ -355,9 +368,13 @@ class WPFormsProviderTest extends TestCase
     private function fakeFormHandler(array $behavior): object
     {
         return new class($behavior) {
+            /** @param array<string, mixed> $behavior */
             public function __construct(private array $behavior) {}
 
-            /** @param array<string, mixed> $args @param array<string, mixed> $data */
+            /**
+             * @param array<string, mixed> $args
+             * @param array<string, mixed> $data
+             */
             public function add(string $title = '', array $args = [], array $data = []): false|int
             {
                 return $this->behavior['add'] ?? false;
@@ -375,7 +392,10 @@ class WPFormsProviderTest extends TestCase
                 return $this->behavior['get'] ?? false;
             }
 
-            /** @param array<string, mixed> $data @param array<string, mixed> $args */
+            /**
+             * @param array<string, mixed> $data
+             * @param array<string, mixed> $args
+             */
             public function update(int|string $id = '', array $data = [], array $args = []): false|int
             {
                 $update = $this->behavior['update'] ?? false;

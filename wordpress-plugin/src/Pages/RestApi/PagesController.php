@@ -16,7 +16,7 @@ use WP_REST_Response;
  * never a copy of the slug in a meta. Every refusal in put_page() happens before any write, so
  * a rejected push leaves the site exactly as it was.
  */
-class PagesController
+final class PagesController
 {
     use RequiresManageOptionsCapability;
 

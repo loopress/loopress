@@ -12,7 +12,7 @@ use Loopress\Apps\Infrastructure\AppStore;
  * new deploy busts every cache without any extra machinery. Modern bundlers emit ES modules,
  * so the entry <script> tags are rewritten to `type="module"`.
  */
-class AppAssetEnqueuer
+final class AppAssetEnqueuer
 {
     /**
      * Script handles this enqueuer marked as ES modules, for the script_loader_tag filter.

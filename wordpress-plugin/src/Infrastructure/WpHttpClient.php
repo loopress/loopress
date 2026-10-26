@@ -22,9 +22,9 @@ use Psr\Http\Message\ResponseInterface;
  * (Kept generic on purpose: this file ships in the Light edition too, and CI's Light artifact
  * check text-searches for certain Full-only vendor names, so avoid spelling them out here.)
  */
-class WpHttpClient implements ClientInterface
+final readonly class WpHttpClient implements ClientInterface
 {
-    public function __construct(private readonly int $timeoutSeconds = 5)
+    public function __construct(private int $timeoutSeconds = 5)
     {
     }
 

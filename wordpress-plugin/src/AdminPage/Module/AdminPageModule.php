@@ -8,9 +8,9 @@ use Loopress\Contract\Module;
 use Loopress\Pushes\PushLog;
 use WP_Admin_Bar;
 
-class AdminPageModule implements Module
+final readonly class AdminPageModule implements Module
 {
-    public function __construct(private readonly PushLog $pushLog) {}
+    public function __construct(private PushLog $pushLog) {}
 
     public function boot(): void
     {

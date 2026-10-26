@@ -12,7 +12,7 @@ use Loopress\Pages\RestApi\ChildThemeController;
 use Loopress\Pages\Service\PatternService;
 use Loopress\PostTypes\RestApi\DeclaredTypesController;
 
-class PagesModule implements Module
+final class PagesModule implements Module
 {
     public function boot(): void
     {

@@ -301,7 +301,7 @@ class ComposerServiceTest extends TestCase
         ]);
 
         $result = $this->service->audit();
-        $this->assertArrayHasKey('advisories', $result);
+        $this->assertSame(['pkg' => []], $result['advisories']);
     }
 
     public function test_audit_throws_on_fatal_exit_code(): void
@@ -402,6 +402,7 @@ class ComposerServiceTest extends TestCase
         $this->service->sync(['plugins' => ['woocommerce' => '9.4.2', 'wordpress-seo' => 'latest']], null, false);
 
         // plugins section replaces every wpackagist-plugin/*; libraries untouched (no section).
+        $this->assertNotNull($written);
         $this->assertSame('9.4.2', $written['require']['wpackagist-plugin/woocommerce']);
         $this->assertSame('*', $written['require']['wpackagist-plugin/wordpress-seo']);
         $this->assertArrayNotHasKey('wpackagist-plugin/old', $written['require']);

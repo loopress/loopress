@@ -17,7 +17,7 @@ class FakeOptionsWpdb
     public function prepare(string $query, mixed ...$args): string
     {
         foreach ($args as $arg) {
-            $query = preg_replace('/%s/', "'" . addslashes((string) $arg) . "'", $query, 1);
+            $query = preg_replace('/%s/', "'" . addslashes((string) $arg) . "'", $query, 1) ?? $query;
         }
 
         return $query;

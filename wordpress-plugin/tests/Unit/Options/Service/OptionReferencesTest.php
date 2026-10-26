@@ -116,11 +116,10 @@ class OptionReferencesTest extends TestCase
 
     private function post(int $id, string $slug, string $postType = 'page'): WP_Post
     {
-        $post            = new WP_Post();
-        $post->ID        = $id;
-        $post->post_name = $slug;
-        $post->post_type = $postType;
-
-        return $post;
+        return new WP_Post((object) [
+            'ID'        => $id,
+            'post_name' => $slug,
+            'post_type' => $postType,
+        ]);
     }
 }

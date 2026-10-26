@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Dependencies\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
@@ -96,7 +97,7 @@ class ComposerControllerTest extends TestCase
 
     // ── DISALLOW_FILE_MODS ───────────────────────────────────────────────────
 
-    /** @return array<string, callable> route => permission_callback */
+    /** @return array<string, callable(): (bool|\WP_Error)> route => permission_callback */
     private function permissionCallbacks(): array
     {
         $callbacks = [];
@@ -144,7 +145,7 @@ class ComposerControllerTest extends TestCase
     public function test_get_versions_returns_404_when_package_not_found(): void
     {
         $this->composerService->method('getVersions')->willReturn(null);
-        $request  = new WP_REST_Request(['package' => 'vendor/package']);
+        $request  = RestRequest::with(['package' => 'vendor/package']);
         $response = $this->controller->get_versions($request);
         $this->assertSame(404, $response->status);
     }
@@ -153,7 +154,7 @@ class ComposerControllerTest extends TestCase
     {
         $versions = [['version' => '1.0.0', 'php_compatible' => true, 'php_constraint' => '>=8.0']];
         $this->composerService->method('getVersions')->willReturn($versions);
-        $request  = new WP_REST_Request(['package' => 'vendor/package']);
+        $request  = RestRequest::with(['package' => 'vendor/package']);
         $response = $this->controller->get_versions($request);
         $this->assertSame(200, $response->status);
         $this->assertSame($versions, $response->data);
@@ -163,7 +164,7 @@ class ComposerControllerTest extends TestCase
     {
         $this->composerService->method('getVersions')
             ->willThrowException(new \RuntimeException('Network error'));
-        $request  = new WP_REST_Request(['package' => 'vendor/package']);
+        $request  = RestRequest::with(['package' => 'vendor/package']);
         $response = $this->controller->get_versions($request);
         $this->assertSame(500, $response->status);
     }
@@ -173,7 +174,7 @@ class ComposerControllerTest extends TestCase
     public function test_require_package_returns_200_on_success(): void
     {
         $this->composerService->method('requirePackage')->willReturn('Output text');
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
+        $request  = RestRequest::with(['package' => 'vendor/pkg', 'version' => '^1.0']);
         $response = $this->controller->require_package($request);
         $this->assertSame(200, $response->status);
         $this->assertArrayHasKey('message', $response->data);
@@ -184,7 +185,7 @@ class ComposerControllerTest extends TestCase
     {
         $this->composerService->method('requirePackage')
             ->willThrowException(new \RuntimeException('Install failed.'));
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
+        $request  = RestRequest::with(['package' => 'vendor/pkg', 'version' => '^1.0']);
         $response = $this->controller->require_package($request);
         $this->assertSame(500, $response->status);
     }
@@ -193,7 +194,7 @@ class ComposerControllerTest extends TestCase
     {
         $this->composerService->method('requirePackage')
             ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg', 'version' => '^1.0']);
+        $request  = RestRequest::with(['package' => 'vendor/pkg', 'version' => '^1.0']);
         $response = $this->controller->require_package($request);
         $this->assertSame(409, $response->status);
     }
@@ -202,35 +203,35 @@ class ComposerControllerTest extends TestCase
     {
         $this->composerService->method('sync')
             ->willThrowException(new ConcurrentOperationException('Another Composer operation is already running.'));
-        $request  = new WP_REST_Request(['intent' => ['plugins' => []]]);
+        $request  = RestRequest::with(['intent' => ['plugins' => []]]);
         $response = $this->controller->sync($request);
         $this->assertSame(409, $response->status);
     }
 
     public function test_sync_returns_400_when_intent_is_not_an_object(): void
     {
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => 'nope']));
+        $response = $this->controller->sync(RestRequest::with(['intent' => 'nope']));
         $this->assertSame(400, $response->status);
     }
 
     public function test_sync_returns_400_when_plugins_section_is_a_scalar(): void
     {
         $this->composerService->expects($this->never())->method('sync');
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => 'woocommerce']]));
+        $response = $this->controller->sync(RestRequest::with(['intent' => ['plugins' => 'woocommerce']]));
         $this->assertSame(400, $response->status);
     }
 
     public function test_sync_returns_400_when_themes_section_is_a_list(): void
     {
         $this->composerService->expects($this->never())->method('sync');
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['themes' => ['generatepress']]]));
+        $response = $this->controller->sync(RestRequest::with(['intent' => ['themes' => ['generatepress']]]));
         $this->assertSame(400, $response->status);
     }
 
     public function test_sync_returns_400_when_a_library_version_is_not_a_string(): void
     {
         $this->composerService->expects($this->never())->method('sync');
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['libraries' => ['monolog/monolog' => 3]]]));
+        $response = $this->controller->sync(RestRequest::with(['intent' => ['libraries' => ['monolog/monolog' => 3]]]));
         $this->assertSame(400, $response->status);
     }
 
@@ -239,7 +240,7 @@ class ComposerControllerTest extends TestCase
         $collisions = [['slug' => 'woocommerce', 'type' => 'plugin', 'path' => '/x', 'installedVersion' => '']];
         $this->composerService->method('sync')
             ->willThrowException(new \Loopress\Dependencies\Exception\UnmanagedPackageException($collisions));
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => ['woocommerce' => '9.4.2']]]));
+        $response = $this->controller->sync(RestRequest::with(['intent' => ['plugins' => ['woocommerce' => '9.4.2']]]));
         $this->assertSame(422, $response->status);
         $this->assertSame('unmanaged_plugins_present', $response->data['error']);
         $this->assertSame($collisions, $response->data['collisions']);
@@ -249,7 +250,7 @@ class ComposerControllerTest extends TestCase
     {
         $result = ['message' => 'ok', 'output' => '...', 'composerJson' => '{}', 'composerLock' => null, 'removed' => []];
         $this->composerService->method('sync')->willReturn($result);
-        $response = $this->controller->sync(new WP_REST_Request(['intent' => ['plugins' => []]]));
+        $response = $this->controller->sync(RestRequest::with(['intent' => ['plugins' => []]]));
         $this->assertSame(200, $response->status);
         $this->assertSame($result, $response->data);
     }
@@ -276,7 +277,7 @@ class ComposerControllerTest extends TestCase
     public function test_remove_package_returns_200_on_success(): void
     {
         $this->composerService->method('removePackage')->willReturn('Removed.');
-        $request  = new WP_REST_Request(['package' => 'vendor/pkg']);
+        $request  = RestRequest::with(['package' => 'vendor/pkg']);
         $response = $this->controller->remove_package($request);
         $this->assertSame(200, $response->status);
     }

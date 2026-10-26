@@ -171,6 +171,8 @@ abstract class AbstractFileLoader
             // $slug comes from scanning our own directory, not from a request. Psalm only links it to
             // REST input because filePath() is shared with delete_file(), which validates its filename.
             require_once $this->directory()->filePath($slug);
+            // Declared by the require above; if not, `new` throws an \Error the catch below handles.
+            /** @var class-string $className */
             $instance = new $className();
         } catch (\Throwable $e) {
             // Covers real parse errors too: since PHP 7, a compile error in a required file

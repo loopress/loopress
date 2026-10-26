@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Menu\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
@@ -11,7 +12,6 @@ use Loopress\Menu\RestApi\MenuController;
 use Loopress\Menu\Service\MenuService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class MenuControllerTest extends TestCase
 {
@@ -59,7 +59,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('upsertMenu')->willThrowException(new MenuTargetNotFoundException('No "page" post with slug "about"'));
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request(['slug' => 'main', 'name' => 'Main', 'items' => []]));
+        $response = $this->controller->upsert_menu(RestRequest::with(['slug' => 'main', 'name' => 'Main', 'items' => []]));
 
         $this->assertSame(422, $response->status);
     }
@@ -68,7 +68,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('getMenu')->willReturn(null);
 
-        $response = $this->controller->get_menu(new WP_REST_Request(['slug' => 'missing']));
+        $response = $this->controller->get_menu(RestRequest::with(['slug' => 'missing']));
 
         $this->assertSame(404, $response->status);
     }
@@ -78,7 +78,7 @@ class MenuControllerTest extends TestCase
         $this->menuService->method('getMenu')->with('main')
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
-        $response = $this->controller->get_menu(new WP_REST_Request(['slug' => 'main']));
+        $response = $this->controller->get_menu(RestRequest::with(['slug' => 'main']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []], $response->data);
@@ -88,7 +88,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->never())->method('upsertMenu');
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request(['items' => []]));
+        $response = $this->controller->upsert_menu(RestRequest::with(['items' => []]));
 
         $this->assertSame(400, $response->status);
     }
@@ -97,7 +97,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->never())->method('upsertMenu');
 
-        $request = new WP_REST_Request([]);
+        $request = RestRequest::with([]);
         $request->set_json_params(null);
 
         $response = $this->controller->upsert_menu($request);
@@ -109,7 +109,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('upsertMenu')->willThrowException(new \RuntimeException('boom'));
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request(['slug' => 'main', 'name' => 'Main', 'items' => []]));
+        $response = $this->controller->upsert_menu(RestRequest::with(['slug' => 'main', 'name' => 'Main', 'items' => []]));
 
         $this->assertSame(500, $response->status);
     }
@@ -121,7 +121,7 @@ class MenuControllerTest extends TestCase
             ->with('main', 'Main', [['type' => 'custom', 'url' => '/x']], null)
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request([
+        $response = $this->controller->upsert_menu(RestRequest::with([
             'items' => [['type' => 'custom', 'url' => '/x']],
             'name'  => 'Main',
             'slug'  => 'main',
@@ -138,7 +138,7 @@ class MenuControllerTest extends TestCase
             ->with('main', 'Main', [], null)
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
-        $this->controller->upsert_menu(new WP_REST_Request(['name' => 'Main', 'slug' => 'main']));
+        $this->controller->upsert_menu(RestRequest::with(['name' => 'Main', 'slug' => 'main']));
     }
 
     // A malformed (non-array) "items" must be rejected, not silently coerced to [], which would
@@ -147,7 +147,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->never())->method('upsertMenu');
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request(['items' => 'not-an-array', 'name' => 'Main', 'slug' => 'main']));
+        $response = $this->controller->upsert_menu(RestRequest::with(['items' => 'not-an-array', 'name' => 'Main', 'slug' => 'main']));
 
         $this->assertSame(400, $response->status);
     }
@@ -161,7 +161,7 @@ class MenuControllerTest extends TestCase
             ->with('main', 'Main', [], 'rev-1')
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-2', 'warnings' => []]);
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request([
+        $response = $this->controller->upsert_menu(RestRequest::with([
             'expectedRevision' => 'rev-1',
             'name'             => 'Main',
             'slug'             => 'main',
@@ -177,7 +177,7 @@ class MenuControllerTest extends TestCase
             ->with('main', 'Main', [], null)
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
-        $this->controller->upsert_menu(new WP_REST_Request(['name' => 'Main', 'slug' => 'main']));
+        $this->controller->upsert_menu(RestRequest::with(['name' => 'Main', 'slug' => 'main']));
         $this->addToAssertionCount(1);
     }
 
@@ -188,7 +188,7 @@ class MenuControllerTest extends TestCase
             ->with('main', 'Main', [], null)
             ->willReturn(['slug' => 'main', 'name' => 'Main', 'items' => [], 'revision' => 'rev-1', 'warnings' => []]);
 
-        $this->controller->upsert_menu(new WP_REST_Request(['expectedRevision' => null, 'name' => 'Main', 'slug' => 'main']));
+        $this->controller->upsert_menu(RestRequest::with(['expectedRevision' => null, 'name' => 'Main', 'slug' => 'main']));
         $this->addToAssertionCount(1);
     }
 
@@ -200,7 +200,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->never())->method('upsertMenu');
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request([
+        $response = $this->controller->upsert_menu(RestRequest::with([
             'expectedRevision' => 12_345,
             'name'             => 'Main',
             'slug'             => 'main',
@@ -215,7 +215,7 @@ class MenuControllerTest extends TestCase
             new StaleMenuRevisionException('"main" changed on WordPress since it was last read.'),
         );
 
-        $response = $this->controller->upsert_menu(new WP_REST_Request([
+        $response = $this->controller->upsert_menu(RestRequest::with([
             'expectedRevision' => 'stale-revision',
             'name'             => 'Main',
             'slug'             => 'main',
@@ -229,7 +229,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('deleteMenu')->willReturn(false);
 
-        $response = $this->controller->delete_menu(new WP_REST_Request(['slug' => 'missing']));
+        $response = $this->controller->delete_menu(RestRequest::with(['slug' => 'missing']));
 
         $this->assertSame(404, $response->status);
     }
@@ -238,7 +238,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('deleteMenu')->with('main')->willReturn(true);
 
-        $response = $this->controller->delete_menu(new WP_REST_Request(['slug' => 'main']));
+        $response = $this->controller->delete_menu(RestRequest::with(['slug' => 'main']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['deleted' => true, 'slug' => 'main'], $response->data);
@@ -262,7 +262,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->expects($this->never())->method('setLocations');
 
-        $request = new WP_REST_Request([]);
+        $request = RestRequest::with([]);
         $request->set_json_params(null);
 
         $response = $this->controller->update_locations($request);
@@ -274,7 +274,7 @@ class MenuControllerTest extends TestCase
     {
         $this->menuService->method('setLocations')->willThrowException(new \RuntimeException('boom'));
 
-        $response = $this->controller->update_locations(new WP_REST_Request(['primary' => 'main']));
+        $response = $this->controller->update_locations(RestRequest::with(['primary' => 'main']));
 
         $this->assertSame(500, $response->status);
     }
@@ -286,7 +286,7 @@ class MenuControllerTest extends TestCase
             ->with(['primary' => 'main'])
             ->willReturn(['primary' => 'main', 'footer' => null]);
 
-        $response = $this->controller->update_locations(new WP_REST_Request(['primary' => 'main']));
+        $response = $this->controller->update_locations(RestRequest::with(['primary' => 'main']));
 
         $this->assertSame(200, $response->status);
         $this->assertEquals((object) ['primary' => 'main', 'footer' => null], $response->data);

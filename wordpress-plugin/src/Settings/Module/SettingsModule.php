@@ -7,7 +7,7 @@ namespace Loopress\Settings\Module;
 use Loopress\Contract\Module;
 use Loopress\Settings\RestApi\SettingsController;
 
-class SettingsModule implements Module
+final class SettingsModule implements Module
 {
     public function boot(): void
     {

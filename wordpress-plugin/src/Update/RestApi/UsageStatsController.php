@@ -10,7 +10,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 
 /** Same shape as SentryConsentController, minus the "never decided" null state. */
-class UsageStatsController
+final class UsageStatsController
 {
     use RequiresManageOptionsCapability;
 

@@ -15,7 +15,7 @@ use Loopress\Settings\Module\SettingsModule;
  * (currently just Sentry\Consent). Full-only like every other Plus feature (see
  * scripts/build-flavor.cjs), because the Settings tab itself only exists in Loopress Full.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

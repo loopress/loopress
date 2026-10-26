@@ -15,4 +15,4 @@ namespace Loopress\Options\Exception;
 //     primitive should not be an escalation path (F11). Adjustable via
 //     `loopress_option_writable`.
 // Maps to HTTP 403.
-class ProtectedOptionException extends \RuntimeException {}
+final class ProtectedOptionException extends \RuntimeException {}

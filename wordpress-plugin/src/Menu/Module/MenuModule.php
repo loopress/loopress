@@ -8,9 +8,9 @@ use Loopress\Contract\Module;
 use Loopress\Menu\RestApi\MenuController;
 use Loopress\Menu\Service\MenuService;
 
-class MenuModule implements Module
+final readonly class MenuModule implements Module
 {
-    private readonly MenuService $service;
+    private MenuService $service;
 
     public function __construct()
     {

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Update\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Update\RestApi\UsageStatsController;
 use Loopress\Update\UsageStats;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class UsageStatsControllerTest extends TestCase
 {
@@ -47,7 +47,7 @@ class UsageStatsControllerTest extends TestCase
         Functions\expect('update_option')->once()->with(UsageStats::OPTION, 0)->andReturn(true);
         Functions\when('get_option')->justReturn(0);
 
-        $response = $this->controller->update_consent(new WP_REST_Request(['enabled' => false]));
+        $response = $this->controller->update_consent(RestRequest::with(['enabled' => false]));
 
         $this->assertSame(['enabled' => false], $response->get_data());
         $this->assertSame(200, $response->status);
@@ -58,7 +58,7 @@ class UsageStatsControllerTest extends TestCase
         Functions\when('update_option')->justReturn(false);
         Functions\when('get_option')->alias(static fn(string $name, mixed $fallback = false): mixed => $fallback);
 
-        $response = $this->controller->update_consent(new WP_REST_Request(['enabled' => false]));
+        $response = $this->controller->update_consent(RestRequest::with(['enabled' => false]));
 
         $this->assertSame(500, $response->status);
     }

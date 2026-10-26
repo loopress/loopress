@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Acf\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\RestApi\AcfController;
@@ -63,7 +64,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(false);
         $this->acfService->expects($this->never())->method('list');
 
-        $response = $this->controller->list_objects(new WP_REST_Request(['type' => 'field-groups']));
+        $response = $this->controller->list_objects(RestRequest::with(['type' => 'field-groups']));
 
         $this->assertSame(400, $response->status);
     }
@@ -73,7 +74,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('list')->with('acf-field-group')->willReturn([['key' => 'group_1']]);
 
-        $response = $this->controller->list_objects(new WP_REST_Request(['type' => 'field-groups']));
+        $response = $this->controller->list_objects(RestRequest::with(['type' => 'field-groups']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame([['key' => 'group_1']], $response->data);
@@ -84,7 +85,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('list')->willThrowException(new \RuntimeException('ACF PRO required.'));
 
-        $response = $this->controller->list_objects(new WP_REST_Request(['type' => 'options-pages']));
+        $response = $this->controller->list_objects(RestRequest::with(['type' => 'options-pages']));
 
         $this->assertSame(500, $response->status);
     }
@@ -96,7 +97,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('get')->willReturn(null);
 
-        $response = $this->controller->get_object(new WP_REST_Request(['type' => 'taxonomies', 'key' => 'taxonomy_missing']));
+        $response = $this->controller->get_object(RestRequest::with(['type' => 'taxonomies', 'key' => 'taxonomy_missing']));
 
         $this->assertSame(404, $response->status);
     }
@@ -106,7 +107,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('get')->with('acf-taxonomy', 'taxonomy_1')->willReturn(['key' => 'taxonomy_1']);
 
-        $response = $this->controller->get_object(new WP_REST_Request(['type' => 'taxonomies', 'key' => 'taxonomy_1']));
+        $response = $this->controller->get_object(RestRequest::with(['type' => 'taxonomies', 'key' => 'taxonomy_1']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['key' => 'taxonomy_1'], $response->data);
@@ -119,7 +120,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(false);
         $this->acfService->expects($this->never())->method('upsert');
 
-        $response = $this->controller->upsert_object(new WP_REST_Request(['type' => 'post-types']));
+        $response = $this->controller->upsert_object(RestRequest::with(['type' => 'post-types']));
 
         $this->assertSame(400, $response->status);
     }
@@ -129,7 +130,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('upsert')->willThrowException(new \RuntimeException('Missing key.'));
 
-        $request = new WP_REST_Request(['type' => 'post-types']);
+        $request = RestRequest::with(['type' => 'post-types']);
         $request->set_param('key', 'post_type_1');
         $response = $this->controller->upsert_object($request);
 
@@ -147,7 +148,7 @@ class AcfControllerTest extends TestCase
             ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
-        $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']);
+        $request = RestRequest::with(['type' => 'post-types', 'key' => 'post_type_1']);
         $response = $this->controller->upsert_object($request);
 
         $this->assertSame(200, $response->status);
@@ -164,7 +165,7 @@ class AcfControllerTest extends TestCase
             ->with('acf-post-type', $this->isArray(), 'rev-1')
             ->willReturn(['key' => 'post_type_1']);
 
-        $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1', 'expectedRevision' => 'rev-1']);
+        $request = RestRequest::with(['type' => 'post-types', 'key' => 'post_type_1', 'expectedRevision' => 'rev-1']);
         $response = $this->controller->upsert_object($request);
 
         $this->assertSame(200, $response->status);
@@ -178,7 +179,7 @@ class AcfControllerTest extends TestCase
             ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
-        $this->controller->upsert_object(new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']));
+        $this->controller->upsert_object(RestRequest::with(['type' => 'post-types', 'key' => 'post_type_1']));
         $this->addToAssertionCount(1);
     }
 
@@ -190,7 +191,7 @@ class AcfControllerTest extends TestCase
             ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
-        $this->controller->upsert_object(new WP_REST_Request([
+        $this->controller->upsert_object(RestRequest::with([
             'type'             => 'post-types',
             'key'              => 'post_type_1',
             'expectedRevision' => null,
@@ -207,7 +208,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->never())->method('upsert');
 
-        $response = $this->controller->upsert_object(new WP_REST_Request([
+        $response = $this->controller->upsert_object(RestRequest::with([
             'type'             => 'post-types',
             'key'              => 'post_type_1',
             'expectedRevision' => 12_345,
@@ -223,7 +224,7 @@ class AcfControllerTest extends TestCase
             new StaleAcfRevisionException('"post_type_1" changed on WordPress since it was last read.'),
         );
 
-        $response = $this->controller->upsert_object(new WP_REST_Request([
+        $response = $this->controller->upsert_object(RestRequest::with([
             'type'             => 'post-types',
             'key'              => 'post_type_1',
             'expectedRevision' => 'stale-revision',
@@ -243,7 +244,7 @@ class AcfControllerTest extends TestCase
             ->with('acf-field-group', [['key' => 'group_1']])
             ->willReturn([['key' => 'group_1', 'active' => true]]);
 
-        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => [['key' => 'group_1']]]));
+        $response = $this->controller->normalize_objects(RestRequest::with(['type' => 'field-groups', 'objects' => [['key' => 'group_1']]]));
 
         $this->assertSame(200, $response->status);
         $this->assertSame([['key' => 'group_1', 'active' => true]], $response->data);
@@ -265,7 +266,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->never())->method('normalize');
 
-        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => $objects]));
+        $response = $this->controller->normalize_objects(RestRequest::with(['type' => 'field-groups', 'objects' => $objects]));
 
         $this->assertSame(400, $response->status);
     }
@@ -274,7 +275,7 @@ class AcfControllerTest extends TestCase
     {
         $this->acfService->method('isActive')->willReturn(false);
 
-        $response = $this->controller->normalize_objects(new WP_REST_Request(['type' => 'field-groups', 'objects' => []]));
+        $response = $this->controller->normalize_objects(RestRequest::with(['type' => 'field-groups', 'objects' => []]));
 
         $this->assertSame(400, $response->status);
     }
@@ -286,7 +287,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('delete')->with('acf-taxonomy', 'taxonomy_1')->willReturn(true);
 
-        $response = $this->controller->delete_object(new WP_REST_Request(['type' => 'taxonomies', 'key' => 'taxonomy_1']));
+        $response = $this->controller->delete_object(RestRequest::with(['type' => 'taxonomies', 'key' => 'taxonomy_1']));
 
         $this->assertSame(204, $response->status);
     }
@@ -296,7 +297,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->method('delete')->willReturn(false);
 
-        $response = $this->controller->delete_object(new WP_REST_Request(['type' => 'taxonomies', 'key' => 'taxonomy_missing']));
+        $response = $this->controller->delete_object(RestRequest::with(['type' => 'taxonomies', 'key' => 'taxonomy_missing']));
 
         $this->assertSame(404, $response->status);
     }

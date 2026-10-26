@@ -13,7 +13,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class FormController
+final class FormController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
@@ -173,7 +173,7 @@ class FormController
             'id' => [
                 'required'          => true,
                 'sanitize_callback' => 'absint',
-                'validate_callback' => fn($v): bool => is_numeric($v) && $v > 0,
+                'validate_callback' => fn(mixed $v): bool => is_numeric($v) && $v > 0,
             ],
         ];
     }

@@ -11,4 +11,4 @@ namespace Loopress\Form\Exception;
 // silently overwrites that intervening change, the caller is expected to re-read and retry. Maps
 // to HTTP 412 Precondition Failed, the standard status for a failed conditional write. Mirrors
 // Options\Exception\StaleOptionRevisionException, #234's form equivalent.
-class StaleFormRevisionException extends \RuntimeException {}
+final class StaleFormRevisionException extends \RuntimeException {}

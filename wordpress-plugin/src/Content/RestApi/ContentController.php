@@ -14,7 +14,7 @@ use WP_REST_Response;
 
 // GET reads this site's content page by page (any site), POST replaces this site's content
 // (a "local" site only, enforced by ContentService).
-class ContentController
+final class ContentController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;

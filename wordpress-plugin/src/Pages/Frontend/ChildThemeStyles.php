@@ -12,7 +12,7 @@ use Loopress\Pages\RestApi\ChildThemeController;
  * wp_enqueue_block_style() per blocks/<namespace>/<block>.css, which WordPress only prints on
  * pages that render that block. Nothing happens unless the Loopress child is the active theme.
  */
-class ChildThemeStyles
+final class ChildThemeStyles
 {
     public const HANDLE = 'loopress-child-theme';
 

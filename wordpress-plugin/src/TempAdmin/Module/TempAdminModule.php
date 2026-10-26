@@ -11,9 +11,9 @@ use Loopress\TempAdmin\Infrastructure\TempAdminSweeper;
  * Hourly sweep of leftover temporary admins, plus a wp-admin notice naming any still present,
  * so a site owner sees it even when WP-Cron is slow to run (low traffic, DISABLE_WP_CRON).
  */
-class TempAdminModule implements Module
+final readonly class TempAdminModule implements Module
 {
-    public function __construct(private readonly TempAdminSweeper $sweeper)
+    public function __construct(private TempAdminSweeper $sweeper)
     {
     }
 

@@ -162,6 +162,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, typeTerms: ['text']);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame(SnippetType::Text, $result->type);
     }
@@ -171,6 +172,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, typeTerms: []);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame(SnippetType::Php, $result->type);
     }
@@ -180,6 +182,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, locationTerms: ['site_wide_header']);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame('header', $result->location);
     }
@@ -189,6 +192,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, typeTerms: ['css'], locationTerms: []);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame('header', $result->location);
     }
@@ -198,6 +202,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame(10, $result->priority);
     }
@@ -207,6 +212,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_priority' => '5']);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame(5, $result->priority);
     }
@@ -216,6 +222,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame('auto', $result->insertMethod);
     }
@@ -225,6 +232,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_auto_insert' => '0']);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame('shortcode', $result->insertMethod);
     }
@@ -234,6 +242,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6, metaOverrides: ['_wpcode_shortcode_attributes' => ['color', 'size']]);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame(['color', 'size'], $result->shortcodeAttributes);
     }
@@ -243,6 +252,7 @@ class WPCodeSnippetProviderTest extends TestCase
         $this->stubExistingSnippet(6);
 
         $result = $this->service->getSnippet(6);
+        $this->assertNotNull($result);
 
         $this->assertSame([], $result->shortcodeAttributes);
     }
@@ -341,7 +351,7 @@ class WPCodeSnippetProviderTest extends TestCase
     {
         $this->stubExistingSnippet(6);
 
-        $deletedPost = new WP_Post();
+        $deletedPost = new WP_Post(new \stdClass());
         $deletedPost->ID = 6;
         Functions\expect('wp_delete_post')->once()->with(6, true)->andReturn($deletedPost);
 
@@ -371,12 +381,13 @@ class WPCodeSnippetProviderTest extends TestCase
      */
     private function stubExistingSnippet(int $id, array $typeTerms = [], array $locationTerms = [], array $metaOverrides = []): void
     {
-        $post               = new WP_Post();
-        $post->ID           = $id;
-        $post->post_type    = 'wpcode';
-        $post->post_title   = 'Existing';
-        $post->post_content = 'code';
-        $post->post_status  = 'draft';
+        $post = new WP_Post((object) [
+            'ID'           => $id,
+            'post_type'    => 'wpcode',
+            'post_title'   => 'Existing',
+            'post_content' => 'code',
+            'post_status'  => 'draft',
+        ]);
 
         Functions\when('get_post')->justReturn($post);
         Functions\when('wp_update_post')->justReturn($id);

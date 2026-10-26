@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Apps\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Apps\Infrastructure\AppsDirectory;
@@ -12,7 +13,6 @@ use Loopress\Apps\RestApi\AppsController;
 use Loopress\Apps\Service\AppsDiagnostics;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class AppsControllerTest extends TestCase
 {
@@ -99,7 +99,7 @@ class AppsControllerTest extends TestCase
     {
         $this->store->method('get')->with('search')->willReturn(null);
 
-        $response = $this->controller->get_manifest(new WP_REST_Request(['name' => 'search']));
+        $response = $this->controller->get_manifest(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(404, $response->status);
     }
@@ -115,7 +115,7 @@ class AppsControllerTest extends TestCase
             'files'         => [['path' => 'assets/index-x.js', 'sha256' => self::HASH_JS, 'size' => 10]],
         ]);
 
-        $response = $this->controller->get_manifest(new WP_REST_Request(['name' => 'search']));
+        $response = $this->controller->get_manifest(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame('same-origin', $response->data['crossOrigin'], 'pull must get it back, or it drops it locally');
@@ -131,7 +131,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->method('readAsset')->with('search', 'assets/missing.js')->willReturn(null);
 
-        $response = $this->controller->get_asset(new WP_REST_Request(['name' => 'search', 'path' => 'assets/missing.js']));
+        $response = $this->controller->get_asset(RestRequest::with(['name' => 'search', 'path' => 'assets/missing.js']));
 
         $this->assertSame(404, $response->status);
     }
@@ -140,7 +140,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->method('readAsset')->with('search', 'assets/x.css')->willReturn('body{}');
 
-        $response = $this->controller->get_asset(new WP_REST_Request(['name' => 'search', 'path' => 'assets/x.css']));
+        $response = $this->controller->get_asset(RestRequest::with(['name' => 'search', 'path' => 'assets/x.css']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame('base64', $response->data['encoding']);
@@ -151,7 +151,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('readAsset');
 
-        $response = $this->controller->get_asset(new WP_REST_Request(['name' => '../etc', 'path' => 'assets/x.js']));
+        $response = $this->controller->get_asset(RestRequest::with(['name' => '../etc', 'path' => 'assets/x.js']));
 
         $this->assertSame(400, $response->status);
     }
@@ -162,7 +162,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('writeAsset');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'Bad_Name', 'path' => 'assets/x.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
@@ -173,7 +173,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('writeAsset');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => '../evil.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
@@ -185,7 +185,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('writeAsset');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => 'assets/x.js', 'content' => 'x', 'encoding' => 'gzip',
         ]));
 
@@ -196,7 +196,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('writeAsset');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => 'assets/x.js', 'content' => '!!! not base64 !!!', 'encoding' => 'base64',
         ]));
 
@@ -208,7 +208,7 @@ class AppsControllerTest extends TestCase
         Functions\when('apply_filters')->justReturn(4);
         $this->directory->expects($this->never())->method('writeAsset');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('ten-bytes!'), 'encoding' => 'base64',
         ]));
 
@@ -221,7 +221,7 @@ class AppsControllerTest extends TestCase
             ->method('writeAsset')
             ->with('search', 'assets/x.js', 'console.log(1)');
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('console.log(1)'), 'encoding' => 'base64',
         ]));
 
@@ -233,7 +233,7 @@ class AppsControllerTest extends TestCase
     {
         $this->directory->method('writeAsset')->willThrowException(new \RuntimeException('disk full'));
 
-        $response = $this->controller->put_asset(new WP_REST_Request([
+        $response = $this->controller->put_asset(RestRequest::with([
             'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
@@ -246,7 +246,7 @@ class AppsControllerTest extends TestCase
     {
         $this->store->expects($this->never())->method('put');
 
-        $response = $this->controller->commit(new WP_REST_Request(['name' => 'Bad_Name']));
+        $response = $this->controller->commit(RestRequest::with(['name' => 'Bad_Name']));
 
         $this->assertSame(400, $response->status);
     }
@@ -256,7 +256,7 @@ class AppsControllerTest extends TestCase
         $this->store->expects($this->never())->method('put');
 
         // A well-formed request object, but the body has none of the manifest fields.
-        $response = $this->controller->commit(new WP_REST_Request(['name' => 'search']));
+        $response = $this->controller->commit(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(400, $response->status);
         $this->assertStringContainsString('Invalid manifest', (string) $response->data['error']);
@@ -267,7 +267,7 @@ class AppsControllerTest extends TestCase
         $this->directory->method('listAssets')->with('search')->willReturn([]);
         $this->store->expects($this->never())->method('put');
 
-        $request = new WP_REST_Request($this->validManifestBody());
+        $request = RestRequest::with($this->validManifestBody());
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);
@@ -285,7 +285,7 @@ class AppsControllerTest extends TestCase
         ]);
         $this->store->expects($this->never())->method('put');
 
-        $request = new WP_REST_Request($this->validManifestBody());
+        $request = RestRequest::with($this->validManifestBody());
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);
@@ -310,7 +310,7 @@ class AppsControllerTest extends TestCase
                 return true;
             }));
 
-        $request = new WP_REST_Request($this->validManifestBody());
+        $request = RestRequest::with($this->validManifestBody());
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);
@@ -318,6 +318,7 @@ class AppsControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertSame('9f2a1c7b4e10', $response->data['buildId']);
         $this->assertSame(2, $response->data['fileCount']);
+        $this->assertNotNull($captured);
         $this->assertSame('9f2a1c7b4e10', $captured['buildId']);
         $this->assertIsString($captured['deployedAt']);
         $this->assertCount(2, $captured['files']);
@@ -350,7 +351,7 @@ class AppsControllerTest extends TestCase
             }
         );
 
-        $request = new WP_REST_Request($body);
+        $request = RestRequest::with($body);
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);
@@ -368,7 +369,7 @@ class AppsControllerTest extends TestCase
         $this->store->method('get')->with('search')->willReturn(null);
         $this->directory->expects($this->never())->method('deleteApp');
 
-        $response = $this->controller->delete_app(new WP_REST_Request(['name' => 'search']));
+        $response = $this->controller->delete_app(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(404, $response->status);
     }
@@ -381,7 +382,7 @@ class AppsControllerTest extends TestCase
         $this->directory->expects($this->once())->method('deleteApp')->with('search');
         $this->store->expects($this->once())->method('forget')->with('search');
 
-        $response = $this->controller->delete_app(new WP_REST_Request(['name' => 'search']));
+        $response = $this->controller->delete_app(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(200, $response->status);
         $this->assertTrue($response->data['deleted']);
@@ -395,7 +396,7 @@ class AppsControllerTest extends TestCase
         ]);
         $this->directory->expects($this->once())->method('writeCrossOriginPolicy')->with('search', 'same-origin')->willReturn(true);
 
-        $request = new WP_REST_Request(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
+        $request = RestRequest::with(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);
@@ -412,7 +413,7 @@ class AppsControllerTest extends TestCase
         ]);
         $this->directory->method('writeCrossOriginPolicy')->willReturn(false); // site-owned .htaccess
 
-        $request = new WP_REST_Request(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
+        $request = RestRequest::with(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
         $request->set_param('name', 'search');
 
         $response = $this->controller->commit($request);

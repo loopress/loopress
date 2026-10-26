@@ -9,6 +9,7 @@ use Loopress\Api\Attribute\Permission;
 #[Permission(callback: [RouteLoaderTestFixtureSharedPermissionCheck::class, 'checkApiKey'])]
 final class RouteLoaderTestFixturePermissionAttributeSharedCallback
 {
+    /** @return array<string, mixed> */
     public function get(): array
     {
         return [];

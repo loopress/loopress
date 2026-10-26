@@ -29,7 +29,7 @@ use function DI\get;
  * of code that runs on the site (a bundled SPA executes in every visitor's browser on the
  * site's own origin), regardless of the manage_options gate in front of it.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     private const HTTP_CLIENT = 'loopress.apps.http_client';
 

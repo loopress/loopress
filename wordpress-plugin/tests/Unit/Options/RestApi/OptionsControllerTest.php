@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Options\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Options\Exception\ProtectedOptionException;
@@ -56,7 +57,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->method('getOption')->willReturn(null);
 
-        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'missing']));
+        $response = $this->controller->get_option(RestRequest::with(['name' => 'missing']));
 
         $this->assertSame(404, $response->status);
     }
@@ -66,7 +67,7 @@ class OptionsControllerTest extends TestCase
         $this->optionsService->method('getOption')->with('blogname')
             ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
-        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'blogname']));
+        $response = $this->controller->get_option(RestRequest::with(['name' => 'blogname']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1'], $response->data);
@@ -79,7 +80,7 @@ class OptionsControllerTest extends TestCase
         $this->optionsService->method('getOption')
             ->willReturn(['name' => 'edd_settings', 'value' => ['purchase_page' => 7], 'autoload' => 'yes', 'revision' => 'rev-1']);
 
-        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'edd_settings', 'refs' => '{"purchase_page":"page"}']));
+        $response = $this->controller->get_option(RestRequest::with(['name' => 'edd_settings', 'refs' => '{"purchase_page":"page"}']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['purchase_page' => 'checkout'], $response->data['value']);
@@ -90,7 +91,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->expects($this->never())->method('getOption');
 
-        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'edd_settings', 'refs' => 'not json']));
+        $response = $this->controller->get_option(RestRequest::with(['name' => 'edd_settings', 'refs' => 'not json']));
 
         $this->assertSame(400, $response->status);
     }
@@ -101,7 +102,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->expects($this->never())->method('updateOption');
 
-        $response = $this->controller->update_option(new WP_REST_Request(['name' => 'blogname']));
+        $response = $this->controller->update_option(RestRequest::with(['name' => 'blogname']));
 
         $this->assertSame(400, $response->status);
     }
@@ -113,7 +114,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->expects($this->never())->method('updateOption');
 
-        $request = new WP_REST_Request(['name' => 'blogname']);
+        $request = RestRequest::with(['name' => 'blogname']);
         $request->set_json_params(null);
 
         $response = $this->controller->update_option($request);
@@ -128,7 +129,7 @@ class OptionsControllerTest extends TestCase
             ->with('blogname', 'Hello', 'yes', null)
             ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'     => 'blogname',
             'value'    => 'Hello',
             'autoload' => 'yes',
@@ -147,7 +148,7 @@ class OptionsControllerTest extends TestCase
             ->with('edd_settings', ['purchase_page' => 41], null, null)
             ->willReturn(['name' => 'edd_settings', 'value' => ['purchase_page' => 41], 'autoload' => 'yes', 'revision' => 'rev-2']);
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'  => 'edd_settings',
             'value' => ['purchase_page' => 'checkout'],
             'refs'  => ['purchase_page' => 'page'],
@@ -163,7 +164,7 @@ class OptionsControllerTest extends TestCase
         Functions\when('get_posts')->justReturn([]);
         $this->optionsService->expects($this->never())->method('updateOption');
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'  => 'edd_settings',
             'value' => ['purchase_page' => 'ghost'],
             'refs'  => ['purchase_page' => 'page'],
@@ -180,7 +181,7 @@ class OptionsControllerTest extends TestCase
             new ReservedOptionNameException('"active_plugins" is managed by another Loopress resource.'),
         );
 
-        $response = $this->controller->update_option(new WP_REST_Request(['name' => 'active_plugins', 'value' => []]));
+        $response = $this->controller->update_option(RestRequest::with(['name' => 'active_plugins', 'value' => []]));
 
         $this->assertSame(409, $response->status);
     }
@@ -194,7 +195,7 @@ class OptionsControllerTest extends TestCase
             ->with('blogname', 'Hello', 'yes', 'rev-1')
             ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-2']);
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'             => 'blogname',
             'value'            => 'Hello',
             'autoload'         => 'yes',
@@ -211,7 +212,7 @@ class OptionsControllerTest extends TestCase
             ->with('blogname', 'Hello', 'yes', null)
             ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
-        $this->controller->update_option(new WP_REST_Request(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes']));
+        $this->controller->update_option(RestRequest::with(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes']));
         $this->addToAssertionCount(1);
     }
 
@@ -222,7 +223,7 @@ class OptionsControllerTest extends TestCase
             ->with('blogname', 'Hello', 'yes', null)
             ->willReturn(['name' => 'blogname', 'value' => 'Hello', 'autoload' => 'yes', 'revision' => 'rev-1']);
 
-        $this->controller->update_option(new WP_REST_Request([
+        $this->controller->update_option(RestRequest::with([
             'name'             => 'blogname',
             'value'            => 'Hello',
             'autoload'         => 'yes',
@@ -239,7 +240,7 @@ class OptionsControllerTest extends TestCase
     {
         $this->optionsService->expects($this->never())->method('updateOption');
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'             => 'blogname',
             'value'            => 'Hello',
             'expectedRevision' => 12_345,
@@ -254,7 +255,7 @@ class OptionsControllerTest extends TestCase
             new StaleOptionRevisionException('"blogname" changed on WordPress since it was last read.'),
         );
 
-        $response = $this->controller->update_option(new WP_REST_Request([
+        $response = $this->controller->update_option(RestRequest::with([
             'name'             => 'blogname',
             'value'            => 'Hello',
             'expectedRevision' => 'stale-revision',
@@ -271,7 +272,7 @@ class OptionsControllerTest extends TestCase
         $this->optionsService->method('getOption')->willReturn(null);
         $this->optionsService->expects($this->never())->method('deleteOption');
 
-        $response = $this->controller->delete_option(new WP_REST_Request(['name' => 'missing']));
+        $response = $this->controller->delete_option(RestRequest::with(['name' => 'missing']));
 
         $this->assertSame(404, $response->status);
     }
@@ -281,7 +282,7 @@ class OptionsControllerTest extends TestCase
         $this->optionsService->method('getOption')->willReturn(['name' => 'my_option', 'value' => 1, 'autoload' => 'yes', 'revision' => 'rev-1']);
         $this->optionsService->expects($this->once())->method('deleteOption')->with('my_option');
 
-        $response = $this->controller->delete_option(new WP_REST_Request(['name' => 'my_option']));
+        $response = $this->controller->delete_option(RestRequest::with(['name' => 'my_option']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['name' => 'my_option', 'deleted' => true], $response->data);
@@ -294,7 +295,7 @@ class OptionsControllerTest extends TestCase
             new ReservedOptionNameException('"template" is managed by another Loopress resource.'),
         );
 
-        $response = $this->controller->delete_option(new WP_REST_Request(['name' => 'template']));
+        $response = $this->controller->delete_option(RestRequest::with(['name' => 'template']));
 
         $this->assertSame(409, $response->status);
     }
@@ -307,7 +308,7 @@ class OptionsControllerTest extends TestCase
             new ProtectedOptionException('"some_api_key" looks like a stored secret.'),
         );
 
-        $response = $this->controller->get_option(new WP_REST_Request(['name' => 'some_api_key']));
+        $response = $this->controller->get_option(RestRequest::with(['name' => 'some_api_key']));
 
         $this->assertSame(403, $response->status);
     }
@@ -318,18 +319,17 @@ class OptionsControllerTest extends TestCase
             new ProtectedOptionException('"default_role" is a protected option.'),
         );
 
-        $response = $this->controller->update_option(new WP_REST_Request(['name' => 'default_role', 'value' => 'administrator']));
+        $response = $this->controller->update_option(RestRequest::with(['name' => 'default_role', 'value' => 'administrator']));
 
         $this->assertSame(403, $response->status);
     }
 
     private function page(int $id, string $slug): WP_Post
     {
-        $post            = new WP_Post();
-        $post->ID        = $id;
-        $post->post_name = $slug;
-        $post->post_type = 'page';
-
-        return $post;
+        return new WP_Post((object) [
+            'ID'        => $id,
+            'post_name' => $slug,
+            'post_type' => 'page',
+        ]);
     }
 }
