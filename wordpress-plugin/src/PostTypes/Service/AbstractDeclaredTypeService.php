@@ -205,7 +205,6 @@ abstract class AbstractDeclaredTypeService
     {
         $stored = get_option($this->option(), []);
 
-        /** @var array<string, array<string, mixed>> */
         return is_array($stored) ? $stored : [];
     }
 

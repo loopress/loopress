@@ -81,7 +81,7 @@ class OptionsController
         $rawRefs = $request->get_param('refs');
         $refs    = $this->refs($rawRefs === null ? [] : json_decode((string) $rawRefs, true));
         if ($refs === null) {
-            return self::invalidRefsResponse();
+            return $this->invalidRefsResponse();
         }
 
         return $this->mapServiceExceptions(function () use ($request, $refs): WP_REST_Response {
@@ -121,7 +121,7 @@ class OptionsController
 
         $refs = $this->refs($body['refs'] ?? []);
         if ($refs === null) {
-            return self::invalidRefsResponse();
+            return $this->invalidRefsResponse();
         }
 
         return $this->mapServiceExceptions(function () use ($request, $body, $autoload, $expectedRevision, $refs): WP_REST_Response {
@@ -151,7 +151,7 @@ class OptionsController
         return $refs;
     }
 
-    private static function invalidRefsResponse(): WP_REST_Response
+    private function invalidRefsResponse(): WP_REST_Response
     {
         return new WP_REST_Response(['error' => 'If present, "refs" must map a value path to a post type, e.g. {"purchase_page": "page"}.'], 400);
     }

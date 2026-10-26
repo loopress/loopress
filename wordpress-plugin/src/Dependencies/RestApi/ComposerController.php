@@ -263,7 +263,7 @@ class ComposerController
         // scalar reaches ComposerService::applyWpackagistSection(?array $section) and fatals
         // instead of returning a clean 400.
         foreach (['libraries', 'plugins', 'themes'] as $section) {
-            if (isset($intent[$section]) && !self::isStringMap($intent[$section])) {
+            if (isset($intent[$section]) && !$this->isStringMap($intent[$section])) {
                 return new WP_REST_Response(
                     ['error' => "Invalid intent.{$section}: expected an object of slug => version."],
                     400,
@@ -301,7 +301,7 @@ class ComposerController
         return is_string($value) && strlen($value) <= self::MAX_LOCK_BYTES;
     }
 
-    private static function isStringMap(mixed $value): bool
+    private function isStringMap(mixed $value): bool
     {
         if (!is_array($value)) {
             return false;

@@ -153,12 +153,12 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         });
 
         $result = $this->provider->createSnippet(new SnippetData(
-            active: true,
+            name: 'New',
             code: 'echo 1;',
+            type: SnippetType::Php,
+            active: true,
             description: 'A description',
             location: 'frontend',
-            name: 'New',
-            type: SnippetType::Php,
         ));
 
         $this->assertSame(10, $result->id);
@@ -169,14 +169,14 @@ class CodeSnippetsSnippetProviderTest extends TestCase
     {
         $this->expectException(UnsupportedLocationException::class);
 
-        $this->provider->createSnippet(new SnippetData(location: 'body', name: 'x', type: SnippetType::Css));
+        $this->provider->createSnippet(new SnippetData(name: 'x', type: SnippetType::Css, location: 'body'));
     }
 
     public function test_create_snippet_throws_for_text_type(): void
     {
         $this->expectException(UnsupportedLocationException::class);
 
-        $this->provider->createSnippet(new SnippetData(location: 'everywhere', name: 'x', type: SnippetType::Text));
+        $this->provider->createSnippet(new SnippetData(name: 'x', type: SnippetType::Text, location: 'everywhere'));
     }
 
     // ── updateSnippet ─────────────────────────────────────────────────────────

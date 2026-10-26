@@ -21,13 +21,13 @@ class TempAdminSweeperTest extends TestCase
         $new = gmdate('Y-m-d H:i:s', time() - 60);
 
         Functions\when('get_users')->justReturn([
-            self::user(7, 'lps-temp-old', 'lps-temp-old@lps-temp.invalid', $old),
+            $this->user(7, 'lps-temp-old', 'lps-temp-old@lps-temp.invalid', $old),
             // Still in use by a running `lps project config`: inside the grace period.
-            self::user(8, 'lps-temp-new', 'lps-temp-new@lps-temp.invalid', $new),
+            $this->user(8, 'lps-temp-new', 'lps-temp-new@lps-temp.invalid', $new),
             // Same prefix, real mailbox: a human account, not ours.
-            self::user(9, 'lps-temp-jane', 'jane@acme.com', $old),
+            $this->user(9, 'lps-temp-jane', 'jane@acme.com', $old),
             // WordPress's search is a LIKE, the prefix must be at the start.
-            self::user(10, 'x-lps-temp-', 'x@lps-temp.invalid', $old),
+            $this->user(10, 'x-lps-temp-', 'x@lps-temp.invalid', $old),
         ]);
     }
 
@@ -75,7 +75,7 @@ class TempAdminSweeperTest extends TestCase
         $this->assertSame('', ob_get_clean());
     }
 
-    private static function user(int $id, string $login, string $email, string $registered): object
+    private function user(int $id, string $login, string $email, string $registered): object
     {
         return (object) ['ID' => (string) $id, 'user_login' => $login, 'user_email' => $email, 'user_registered' => $registered];
     }

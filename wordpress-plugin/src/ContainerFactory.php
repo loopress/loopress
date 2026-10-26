@@ -18,7 +18,7 @@ class ContainerFactory
     /** @param array<string, mixed> $definitions */
     public static function create(array $definitions): Container
     {
-        if (!(defined('WP_DEBUG') && WP_DEBUG)) {
+        if (!defined('WP_DEBUG') || !WP_DEBUG) {
             // Compilation writes to disk on first boot; some hosts won't let the webserver
             // user write there (e.g. plugin files installed as a different user), which
             // throws from deep inside PHP-DI. That's fine to lose the perf optimization

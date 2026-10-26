@@ -32,7 +32,6 @@ class AcfControllerTest extends TestCase
         parent::tearDown();
     }
 
-    /** @return mixed */
     private function invokePrivate(string $method, mixed ...$args): mixed
     {
         $ref = new \ReflectionMethod(AcfController::class, $method);

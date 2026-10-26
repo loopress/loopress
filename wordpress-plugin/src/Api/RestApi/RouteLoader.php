@@ -88,7 +88,7 @@ class RouteLoader extends AbstractFileLoader
     // A literal segment is escaped so it matches itself; a dynamic one becomes a named capture
     // group WP_REST_Server matches against the resolved request path, exactly like the regex
     // routes Loopress's own management endpoints already use (see ApiFilesController).
-    private static function segmentToRegex(string $segment): string
+    private function segmentToRegex(string $segment): string
     {
         if (preg_match(self::DYNAMIC_SEGMENT_PATTERN, $segment, $matches) === 1) {
             return '(?P<' . $matches[1] . '>[^/]+)';
@@ -100,9 +100,9 @@ class RouteLoader extends AbstractFileLoader
     }
 
     /** @return non-falsy-string always starts with '/', what register_rest_route() requires. */
-    private static function routeFor(string $slug): string
+    private function routeFor(string $slug): string
     {
-        return '/' . implode('/', array_map(self::segmentToRegex(...), explode('/', ApiDirectory::routeSlug($slug))));
+        return '/' . implode('/', array_map($this->segmentToRegex(...), explode('/', ApiDirectory::routeSlug($slug))));
     }
 
     /**
@@ -340,7 +340,7 @@ class RouteLoader extends AbstractFileLoader
             return;
         }
 
-        $route = self::routeFor($slug);
+        $route = $this->routeFor($slug);
         if (isset($this->registeredRoutes[$route])) {
             $this->fail($slug, "route already registered by api/{$this->registeredRoutes[$route]}.php");
             return;

@@ -88,7 +88,7 @@ final class OptionReferences
 
     private static function isSet(mixed $reference): bool
     {
-        return $reference !== null && $reference !== '' && $reference !== 0 && $reference !== '0';
+        return !in_array($reference, [null, '', 0, '0'], true);
     }
 
     /** @param callable(mixed): mixed $map */

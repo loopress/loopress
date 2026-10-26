@@ -35,9 +35,6 @@ final class SyncSanitizer
     /**
      * Applies stripActiveContent() to every string leaf, recursing into arrays. Array keys are
      * left untouched: they are identifiers, never rendered.
-     *
-     * @param mixed $value
-     * @return mixed
      */
     public static function deep(mixed $value): mixed
     {

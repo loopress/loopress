@@ -164,7 +164,6 @@ class AcfService
     // field type whose filters reshape its sub fields may still read as drift, simulate the flat
     // import if one does.
     /**
-     * @param mixed $fields
      * @return array<int, mixed>
      */
     private function roundTripFields(mixed $fields): array

@@ -249,8 +249,8 @@ class HookLoader extends AbstractFileLoader
                 return;
             }
 
-            $this->runtimeErrors ??= self::storedRuntimeErrors();
-            $previous = self::validRuntimeError($this->runtimeErrors[$slug] ?? null);
+            $this->runtimeErrors ??= $this->storedRuntimeErrors();
+            $previous = $this->validRuntimeError($this->runtimeErrors[$slug] ?? null);
             $entry    = [
                 'type'     => $type,
                 'method'   => $method,
@@ -278,7 +278,7 @@ class HookLoader extends AbstractFileLoader
     // The option is free for anyone to edit (wp option update): a malformed entry must count as
     // no previous record, or reading its fields would throw on every later error of that file.
     /** @return array{message: string, at: int, revision: string}|null */
-    private static function validRuntimeError(mixed $entry): ?array
+    private function validRuntimeError(mixed $entry): ?array
     {
         if (
             !is_array($entry)
@@ -293,7 +293,7 @@ class HookLoader extends AbstractFileLoader
     }
 
     /** @return array<string, array{type: string, method: string, message: string, at: int, revision: string}> */
-    private static function storedRuntimeErrors(): array
+    private function storedRuntimeErrors(): array
     {
         $stored = get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);
         return is_array($stored) ? $stored : [];

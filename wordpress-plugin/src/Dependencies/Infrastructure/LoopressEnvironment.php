@@ -62,7 +62,7 @@ class LoopressEnvironment
         // package, or a caller that already required it directly. Requiring it unconditionally
         // installed (and in-process `include`d, as a Composer plugin) composer/installers on
         // every single push, even a plain-library one with no plugins/themes involved.
-        if (self::requireNeedsInstallers($json['require'] ?? []) && ($json['require'][self::INSTALLERS] ?? null) === null) {
+        if ($this->requireNeedsInstallers($json['require'] ?? []) && ($json['require'][self::INSTALLERS] ?? null) === null) {
             $json['require'][self::INSTALLERS] = '^2.0';
         }
 
@@ -86,7 +86,7 @@ class LoopressEnvironment
     }
 
     /** @param array<string, mixed> $requireMap */
-    private static function requireNeedsInstallers(array $requireMap): bool
+    private function requireNeedsInstallers(array $requireMap): bool
     {
         foreach (array_keys($requireMap) as $name) {
             $name = (string) $name;
