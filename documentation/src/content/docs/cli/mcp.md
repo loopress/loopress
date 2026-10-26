@@ -121,9 +121,10 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
-| `theme_push` | Yes | Push everything theme related: versions, then templates and parts, then Global Styles |
+| `theme_push` | Yes | Push everything theme related: versions, then templates and parts, then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
 | `theme_version_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_pull` | No | Pull everything theme related: versions, then Global Styles |
+| `theme_activate` | Yes | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
 | `theme_status` | No | Compare the themes on WordPress against `loopress.json` and report version drift |
 | `theme_styles_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
 | `theme_styles_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |

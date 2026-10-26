@@ -18,6 +18,7 @@ class ThemeControllerTest extends TestCase
         'twentytwentyfive'         => 'twentytwentyfive',
         'twentytwentyfive-loopress' => 'twentytwentyfive',
         'astra'                    => 'astra',
+        'orphan-loopress'          => 'orphan',
     ];
 
     private string $active = 'twentytwentyfive';
@@ -71,6 +72,11 @@ class ThemeControllerTest extends TestCase
                 return $this->template !== null;
             }
 
+            public function errors(): \WP_Error|false
+            {
+                return $this->template === 'orphan' ? new \WP_Error('theme_no_parent', 'The parent theme is missing.') : false;
+            }
+
             public function get_template(): string
             {
                 return (string) $this->template;
@@ -112,6 +118,15 @@ class ThemeControllerTest extends TestCase
 
         $this->assertSame(404, $response->status);
         $this->assertSame(['error' => 'The theme "missing" is not installed.'], $response->get_data());
+        $this->assertSame('twentytwentyfive', $this->active);
+    }
+
+    public function test_refuses_a_broken_theme(): void
+    {
+        $response = $this->activate('orphan-loopress');
+
+        $this->assertSame(409, $response->status);
+        $this->assertSame(['error' => 'The theme "orphan-loopress" can\'t be activated: The parent theme is missing.'], $response->get_data());
         $this->assertSame('twentytwentyfive', $this->active);
     }
 

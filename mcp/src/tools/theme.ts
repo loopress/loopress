@@ -23,7 +23,7 @@ export function registerThemeTools(server: McpServer): void {
     {
       command: ['theme', 'push'],
       description:
-        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Never switches the active theme.' +
+        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Switches the active theme only to the Loopress child, when loopress.json sets "activateChildTheme": true.' +
         PREVIEW_SUFFIX +
         CHANGES_SUFFIX +
         ' Each step is under `results` with its own preview in `result`. The templates and parts step splits its `changes` as template_push describes.',
@@ -62,6 +62,22 @@ export function registerThemeTools(server: McpServer): void {
       toCallToolResult(unwrap(await runLps(buildArgs(command, {env})))),
     )
   }
+
+  server.registerTool(
+    'theme_activate',
+    {
+      description:
+        "Activate a theme on WordPress, the Loopress child theme (<parent>-loopress) by default. A child theme without settings of its own starts from a copy of its parent's theme mods and Global Styles." +
+        PREVIEW_SUFFIX,
+      inputSchema: {
+        confirmToken: confirmTokenFlag,
+        env: envFlag,
+        stylesheet: z.string().optional().describe('Theme to activate (default: the Loopress child theme)'),
+      },
+    },
+    async ({confirmToken, env, stylesheet}) =>
+      toCallToolResult(await runMutatingTool('theme_activate', buildArgs(['theme', 'activate'], {env, path: stylesheet}), confirmToken)),
+  )
 
   server.registerTool(
     'theme_status',

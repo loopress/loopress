@@ -42,6 +42,12 @@ final class ThemeController
             return new WP_REST_Response(['error' => sprintf('The theme "%s" is not installed.', $stylesheet)], 404);
         }
 
+        // A child whose parent is missing still exists(): switching to it would break the site.
+        $errors = $theme->errors();
+        if ($errors instanceof \WP_Error) {
+            return new WP_REST_Response(['error' => sprintf('The theme "%s" can\'t be activated: %s', $stylesheet, $errors->get_error_message())], 409);
+        }
+
         $parentTheme = $theme->get_template();
         if ($parentTheme !== $stylesheet) {
             $this->inheritParentState($parentTheme, $stylesheet);
