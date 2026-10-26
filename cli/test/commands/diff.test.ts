@@ -70,7 +70,7 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>, capabilities = make
   const logs = silenceLogs(cmd)
   // ACF's normalize route, as a no-op: the files already hold what the site stores.
   const post = vi.fn(async (_path: string, body: {objects: unknown[]}) => body.objects)
-  const answer = get
+  const answer = get as unknown as (path: string) => Promise<unknown>
   get = vi.fn(async (path: string) => (path === 'loopress/v1/capabilities' ? capabilities : answer(path)))
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get, post}
   return {cmd, logs}
