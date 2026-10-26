@@ -293,7 +293,7 @@ class WPCodeSnippetProviderTest extends TestCase
 
         $this->expectException(UnsupportedLocationException::class);
 
-        $this->service->createSnippet(new SnippetData(type: SnippetType::Css, location: 'everywhere', code: 'body{}'));
+        $this->service->createSnippet(new SnippetData(code: 'body{}', type: SnippetType::Css, location: 'everywhere'));
     }
 
     public function test_update_snippet_throws_before_any_write_when_location_is_invalid(): void

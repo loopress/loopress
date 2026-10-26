@@ -81,7 +81,6 @@ class AppManifest
     }
 
     /**
-     * @param mixed $raw
      * @return array<int, array{path: string, sha256: string, size: int}>
      */
     private static function normalizeFiles(mixed $raw): array
@@ -132,7 +131,6 @@ class AppManifest
     }
 
     /**
-     * @param mixed    $raw
      * @param string[] $filePaths
      * @return array{scripts: string[], styles: string[]}
      */
@@ -156,7 +154,6 @@ class AppManifest
     }
 
     /**
-     * @param mixed $raw
      * @return string[]
      */
     private static function stringList(mixed $raw): array

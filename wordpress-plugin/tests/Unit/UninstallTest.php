@@ -45,7 +45,7 @@ class UninstallTest extends TestCase
 
         include_once $dir . '/uninstall.php';
 
-        $this->assertSame([$contentDir . '/loopress/'], \Symfony\Component\Filesystem\Filesystem::$removed);
+        $this->assertSame([$contentDir . '/loopress/'], \Symfony\Component\Filesystem\Filesystem::$removed); // @phpstan-ignore staticProperty.notFound (the fake Filesystem loaded below, not Symfony's)
 
         $this->removeDirRecursive($dir);
     }

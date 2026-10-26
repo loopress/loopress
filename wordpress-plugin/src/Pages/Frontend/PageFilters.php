@@ -52,7 +52,7 @@ class PageFilters
             return $content;
         }
 
-        $depth = self::contentDepth();
+        $depth = $this->contentDepth();
         if (isset($this->renderingAt[$postId]) && $depth > $this->renderingAt[$postId]) {
             return $content;
         }
@@ -71,7 +71,7 @@ class PageFilters
 
     public function restoreAutop(mixed $content): mixed
     {
-        $depth             = self::contentDepth();
+        $depth             = $this->contentDepth();
         $this->renderingAt = array_filter($this->renderingAt, static fn(int $at): bool => $at < $depth);
 
         if ($this->removedAutopPriority !== null) {
@@ -83,7 +83,7 @@ class PageFilters
     }
 
     // How many the_content runs are in progress, the current one included (0 outside a filter).
-    private static function contentDepth(): int
+    private function contentDepth(): int
     {
         global $wp_current_filter;
 

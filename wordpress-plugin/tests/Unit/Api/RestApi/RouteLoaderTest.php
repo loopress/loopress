@@ -12,6 +12,7 @@ use Loopress\Api\RestApi\RouteLoader;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
 use WP_REST_Request;
 
 // A global-namespace class (see TestLoaderCollisionFixtureClass.php), can't be PSR-4
@@ -55,20 +56,7 @@ class RouteLoaderTest extends TestCase
 
     private function rrmdir(string $dir): void
     {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-
-            $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path);
-        }
-
-        rmdir($dir);
+        (new Filesystem())->remove($dir);
     }
 
     // ── endpointsFor / hasPublicMethod (pure logic, no I/O) ─────────────────

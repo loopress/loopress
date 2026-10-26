@@ -32,7 +32,6 @@ class AcfControllerTest extends TestCase
         parent::tearDown();
     }
 
-    /** @return mixed */
     private function invokePrivate(string $method, mixed ...$args): mixed
     {
         $ref = new \ReflectionMethod(AcfController::class, $method);
@@ -145,7 +144,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->once())
             ->method('upsert')
-            ->with('acf-post-type', $this->isType('array'), null)
+            ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
         $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']);
@@ -162,7 +161,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->once())
             ->method('upsert')
-            ->with('acf-post-type', $this->isType('array'), 'rev-1')
+            ->with('acf-post-type', $this->isArray(), 'rev-1')
             ->willReturn(['key' => 'post_type_1']);
 
         $request = new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1', 'expectedRevision' => 'rev-1']);
@@ -176,7 +175,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->once())
             ->method('upsert')
-            ->with('acf-post-type', $this->isType('array'), null)
+            ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
         $this->controller->upsert_object(new WP_REST_Request(['type' => 'post-types', 'key' => 'post_type_1']));
@@ -188,7 +187,7 @@ class AcfControllerTest extends TestCase
         $this->acfService->method('isActive')->willReturn(true);
         $this->acfService->expects($this->once())
             ->method('upsert')
-            ->with('acf-post-type', $this->isType('array'), null)
+            ->with('acf-post-type', $this->isArray(), null)
             ->willReturn(['key' => 'post_type_1']);
 
         $this->controller->upsert_object(new WP_REST_Request([

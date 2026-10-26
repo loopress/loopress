@@ -330,7 +330,6 @@ class ChildThemeController
     }
 
     /**
-     * @param mixed $inherited
      * @param array<int, array<string, mixed>> $own
      * @return array<int, array<string, mixed>>
      */

@@ -677,7 +677,7 @@ abstract class AbstractFilesController
             }
         }
 
-        if (!function_exists('exec') || self::execDisabled()) {
+        if (!function_exists('exec') || $this->execDisabled()) {
             return ['status' => 'unavailable', 'message' => null];
         }
 
@@ -734,7 +734,7 @@ abstract class AbstractFilesController
     // disable_functions is a comma-separated list of exact function names: a substring check
     // for 'exec' would also match 'shell_exec' being disabled while exec() itself is still
     // callable, wrongly reporting the check as unavailable.
-    private static function execDisabled(): bool
+    private function execDisabled(): bool
     {
         $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
         return in_array('exec', $disabled, true);

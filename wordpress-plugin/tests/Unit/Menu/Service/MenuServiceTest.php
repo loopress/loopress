@@ -717,7 +717,7 @@ class MenuServiceTest extends TestCase
     {
         $capture               = new \stdClass();
         $capture->created      = false;
-        $capture->insertedArgs = [];
+        $capture->insertedArgs = ['slug' => ''];
         $capture->insertedName = '';
 
         Functions\when('wp_get_nav_menu_object')->alias(

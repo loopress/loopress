@@ -74,14 +74,14 @@ final class InfectionPatchworkBridge
         stream_wrapper_register('file', self::class);
     }
 
-    private static function disable(): void
+    private function disable(): void
     {
         stream_wrapper_restore('file');
     }
 
     public function stream_open($path, $mode, $options, &$openedPath = null): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             if ($this->pointsAtIntercepted($path)) {
@@ -178,7 +178,7 @@ final class InfectionPatchworkBridge
 
     public function url_stat($path, $flags): array|false
     {
-        self::disable();
+        $this->disable();
 
         $flags = (int) $flags;
         $quiet = (bool) ($flags & STREAM_URL_STAT_QUIET);
@@ -189,7 +189,7 @@ final class InfectionPatchworkBridge
             }
 
             try {
-                $result = ($flags & STREAM_URL_STAT_LINK) ? @lstat($path) : @stat($path);
+                $result = ($flags & STREAM_URL_STAT_LINK) !== 0 ? @lstat($path) : @stat($path);
             } finally {
                 if ($quiet) {
                     restore_error_handler();
@@ -204,7 +204,7 @@ final class InfectionPatchworkBridge
 
     public function mkdir($path, $mode, $options): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             $recursive = (bool) ((int) $options & STREAM_MKDIR_RECURSIVE);
@@ -219,7 +219,7 @@ final class InfectionPatchworkBridge
 
     public function rmdir($path, $options): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             return $this->context === null ? rmdir($path) : rmdir($path, $this->context);
@@ -230,7 +230,7 @@ final class InfectionPatchworkBridge
 
     public function rename($pathFrom, $pathTo): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             return $this->context === null
@@ -243,7 +243,7 @@ final class InfectionPatchworkBridge
 
     public function unlink($path): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             return $this->context === null ? unlink($path) : unlink($path, $this->context);
@@ -254,7 +254,7 @@ final class InfectionPatchworkBridge
 
     public function stream_metadata($path, $option, $value)
     {
-        self::disable();
+        $this->disable();
 
         try {
             return match ((int) $option) {
@@ -271,7 +271,7 @@ final class InfectionPatchworkBridge
 
     public function dir_opendir($path, $options): bool
     {
-        self::disable();
+        $this->disable();
 
         try {
             $this->dir = $this->context === null ? opendir($path) : opendir($path, $this->context);

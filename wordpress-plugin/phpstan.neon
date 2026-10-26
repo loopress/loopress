@@ -3,6 +3,10 @@ includes:
     - vendor/tomasvotruba/cognitive-complexity/config/extension.neon
     - vendor/phpstan/phpstan-deprecation-rules/rules.neon
     - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+    # Pre-existing tests/ errors, frozen when tests/ joined the analysis: new tests must be clean.
+    - phpstan-baseline.neon
 
 parameters:
     level: 9
@@ -25,6 +29,7 @@ parameters:
     checkBenevolentUnionTypes: true
     paths:
         - src
+        - tests
     bootstrapFiles:
         - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
         - stubs/code-snippets-stubs.php
@@ -32,8 +37,16 @@ parameters:
         - stubs/wpforms-stubs.php
     excludePaths:
         - vendor
+        # Test-only WP class doubles and constants: analysed, they'd shadow the real WordPress
+        # stubs and constants src/ is checked against.
+        - tests/Stubs/WpRestStubs.php
+        - tests/bootstrap.php
 
     ignoreErrors:
+        # strict-rules wants self::assertSame(); $this->assertSame() is PHPUnit's documented style.
+        - identifier: staticMethod.dynamicCall
+          path: tests/*
+
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL|SLUG) not found#'
         - '#Constant LOOPRESS_VERSION not found#'

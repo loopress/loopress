@@ -45,7 +45,7 @@ class AppsControllerTest extends TestCase
     private const HASH_CSS = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
     // base64 is the asset transport encoding these endpoints speak, not obfuscation.
-    private static function b64(string $raw): string
+    private function b64(string $raw): string
     {
         return base64_encode($raw);
     }
@@ -144,7 +144,7 @@ class AppsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame('base64', $response->data['encoding']);
-        $this->assertSame(self::b64('body{}'), $response->data['content']);
+        $this->assertSame($this->b64('body{}'), $response->data['content']);
     }
 
     public function test_get_asset_rejects_a_traversal_attempt_in_the_app_name(): void
@@ -163,7 +163,7 @@ class AppsControllerTest extends TestCase
         $this->directory->expects($this->never())->method('writeAsset');
 
         $response = $this->controller->put_asset(new WP_REST_Request([
-            'name' => 'Bad_Name', 'path' => 'assets/x.js', 'content' => self::b64('x'), 'encoding' => 'base64',
+            'name' => 'Bad_Name', 'path' => 'assets/x.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
         $this->assertSame(400, $response->status);
@@ -174,7 +174,7 @@ class AppsControllerTest extends TestCase
         $this->directory->expects($this->never())->method('writeAsset');
 
         $response = $this->controller->put_asset(new WP_REST_Request([
-            'name' => 'search', 'path' => '../evil.js', 'content' => self::b64('x'), 'encoding' => 'base64',
+            'name' => 'search', 'path' => '../evil.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
         $this->assertSame(400, $response->status);
@@ -209,7 +209,7 @@ class AppsControllerTest extends TestCase
         $this->directory->expects($this->never())->method('writeAsset');
 
         $response = $this->controller->put_asset(new WP_REST_Request([
-            'name' => 'search', 'path' => 'assets/x.js', 'content' => self::b64('ten-bytes!'), 'encoding' => 'base64',
+            'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('ten-bytes!'), 'encoding' => 'base64',
         ]));
 
         $this->assertSame(413, $response->status);
@@ -222,7 +222,7 @@ class AppsControllerTest extends TestCase
             ->with('search', 'assets/x.js', 'console.log(1)');
 
         $response = $this->controller->put_asset(new WP_REST_Request([
-            'name' => 'search', 'path' => 'assets/x.js', 'content' => self::b64('console.log(1)'), 'encoding' => 'base64',
+            'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('console.log(1)'), 'encoding' => 'base64',
         ]));
 
         $this->assertSame(200, $response->status);
@@ -234,7 +234,7 @@ class AppsControllerTest extends TestCase
         $this->directory->method('writeAsset')->willThrowException(new \RuntimeException('disk full'));
 
         $response = $this->controller->put_asset(new WP_REST_Request([
-            'name' => 'search', 'path' => 'assets/x.js', 'content' => self::b64('x'), 'encoding' => 'base64',
+            'name' => 'search', 'path' => 'assets/x.js', 'content' => $this->b64('x'), 'encoding' => 'base64',
         ]));
 
         $this->assertSame(400, $response->status);

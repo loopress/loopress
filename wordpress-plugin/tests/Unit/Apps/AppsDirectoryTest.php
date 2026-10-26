@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Apps;
 
 use Loopress\Apps\Infrastructure\AppsDirectory;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
 
 class AppsDirectoryTest extends TestCase
 {
@@ -32,17 +33,7 @@ class AppsDirectoryTest extends TestCase
 
     private function rrmdir(string $dir): void
     {
-        if (!is_dir($dir)) {
-            return;
-        }
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-            $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path);
-        }
-        rmdir($dir);
+        (new Filesystem())->remove($dir);
     }
 
     // ── isValidAppName ──────────────────────────────────────────────────────

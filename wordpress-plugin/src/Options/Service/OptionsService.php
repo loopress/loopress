@@ -277,7 +277,7 @@ class OptionsService
             }
 
             foreach ($names as $name) {
-                if (self::containsQuotedName($content, $name)) {
+                if ($this->containsQuotedName($content, $name)) {
                     $found[$name] = $name;
                 }
             }
@@ -286,7 +286,7 @@ class OptionsService
         return array_values($found);
     }
 
-    private static function containsQuotedName(string $content, string $name): bool
+    private function containsQuotedName(string $content, string $name): bool
     {
         return str_contains($content, "'{$name}'") || str_contains($content, "\"{$name}\"");
     }

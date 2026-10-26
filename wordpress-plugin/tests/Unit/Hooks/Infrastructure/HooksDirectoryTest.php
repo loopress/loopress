@@ -6,6 +6,7 @@ namespace Loopress\Tests\Unit\Hooks\Infrastructure;
 
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
 
 class HooksDirectoryTest extends TestCase
 {
@@ -32,20 +33,7 @@ class HooksDirectoryTest extends TestCase
 
     private function rrmdir(string $dir): void
     {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-
-            $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-        }
-
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        (new Filesystem())->remove($dir);
     }
 
     private function hooksPath(): string
