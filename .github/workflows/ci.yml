@@ -104,30 +104,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter @loopress/cli... --filter @loopress/wordpress-plugin... --filter .
 
-      # Runs in the background so it overlaps the plugin build and WordPress startup below,
-      # awaited by "Wait for Playwright browsers". setup-ci's own apt-get runs inside the
-      # WordPress container, so it doesn't fight this one over the host's apt lock.
-      # An install usually takes under 90s, but now and then apt's package download from the
-      # runner's mirror stalls and never finishes, which used to time out the wait step with
-      # no log at all. apt is told to give up on a stalled connection and retry it, and each
-      # attempt is capped at 2 min on top of that. `timeout` only stops npx, not the apt-get
-      # Playwright starts through sudo, which would keep the dpkg lock and fail every later
-      # attempt, so a timed-out attempt also stops apt-get and lets dpkg finish what it had.
-      - name: Install Playwright browsers (background)
+      # Browser binary only, no `--with-deps`: that one runs apt-get against the runner's
+      # mirror, whose downloads now and then stall for good and failed the job in "Wait for
+      # Playwright browsers" (#356 and earlier). ubuntu-latest already ships Google Chrome and
+      # the system libraries Chromium needs, so apt has nothing left to add. The binary is
+      # cached per Playwright version, so most runs download nothing; a cold download is a
+      # few seconds, retried with a short cap since the CDN can stall too.
+      - name: Get Playwright version
+        id: playwright
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright browsers
+        timeout-minutes: 5
         run: |
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' \
-            | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
-          (status=1
-           for attempt in 1 2 3; do
-             echo "::group::playwright install, attempt $attempt"
-             timeout 300 npx playwright install --with-deps chromium && status=0
-             echo "::endgroup::"
-             [ "$status" = 0 ] && break
-             sudo pkill -x apt-get || true
-             sleep 2
-             sudo dpkg --configure -a || true
-           done > "$RUNNER_TEMP/playwright-install.log" 2>&1
-           echo $status > "$RUNNER_TEMP/playwright-install.exit") &
+          for attempt in 1 2 3; do
+            timeout 90 npx playwright install chromium && exit 0
+            echo "::warning::playwright install attempt $attempt failed or stalled, retrying"
+          done
+          exit 1
 
       # `loopress/setup-ci` installs the last *published* release of the plugin, since it's
       # also used to smoke-test real releases. That means these e2e tests would otherwise
@@ -177,16 +177,6 @@ jobs:
         run: |
           TOKEN=$(jq -r '.projects[.currentProject.id].environments.local.token' "${XDG_CONFIG_HOME:-$HOME/.config}/loopress/config.json")
           echo "app-password=${TOKEN#*:}" >> $GITHUB_OUTPUT
-
-      # Bounded by the retries above (3 x 2 min), so the step's own timeout is only a backstop.
-      # The log is printed before failing, also when the loop gives up, so a stall can be
-      # told apart from a failed download.
-      - name: Wait for Playwright browsers
-        timeout-minutes: 7
-        run: |
-          while [ ! -f "$RUNNER_TEMP/playwright-install.exit" ]; do sleep 1; done
-          cat "$RUNNER_TEMP/playwright-install.log"
-          exit "$(cat "$RUNNER_TEMP/playwright-install.exit")"
 
       - name: Run CLI e2e tests
         env:
