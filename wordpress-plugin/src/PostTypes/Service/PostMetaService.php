@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\PostTypes\Service;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\PostTypes\Exception\InvalidDeclarationException;
 
 // Post meta keys declared in `meta/<post-type>.json` (`lps meta push`), see
@@ -189,7 +190,7 @@ final class PostMetaService extends AbstractDeclaredTypeService
             try {
                 if (register_post_meta($slug, $key, $meta)) {
                     $registered              = get_registered_meta_keys('post', $slug)[$key] ?? [];
-                    $this->ours[$slug][$key] = array_filter($registered, 'is_string', ARRAY_FILTER_USE_KEY);
+                    $this->ours[$slug][$key] = Narrow::map($registered);
                 }
             } catch (\Throwable) {
                 continue;

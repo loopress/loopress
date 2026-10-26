@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\PostTypes\Service;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\PostTypes\Exception\InvalidDeclarationException;
 use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
 
@@ -207,7 +208,7 @@ abstract class AbstractDeclaredTypeService
         $result = [];
         foreach (is_array($stored) ? $stored : [] as $slug => $args) {
             if (is_string($slug) && is_array($args)) {
-                $result[$slug] = array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY);
+                $result[$slug] = Narrow::map($args);
             }
         }
 

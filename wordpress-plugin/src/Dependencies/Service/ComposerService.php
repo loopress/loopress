@@ -300,7 +300,7 @@ class ComposerService
         $previousLock = $this->environment->readComposerLock();
 
         $rendered = $this->renderComposerJson($previousJson, $intent);
-        $staged   = $this->handleCollisions(array_filter(Narrow::map($rendered['require'] ?? []), 'is_string'), $previousLock, $force);
+        $staged   = $this->handleCollisions(Narrow::stringMap($rendered['require'] ?? []), $previousLock, $force);
 
         $previousLockedNames = $this->lockedPackageNames($previousLock);
 
@@ -400,7 +400,7 @@ class ComposerService
      */
     private function renderComposerJson(array $current, array $intent): array
     {
-        $require = array_filter(Narrow::map($current['require'] ?? []), 'is_string');
+        $require = Narrow::stringMap($current['require'] ?? []);
 
         if (isset($intent['libraries'])) {
             foreach (array_keys($require) as $name) {

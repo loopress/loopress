@@ -125,7 +125,7 @@ final class AcfController
         $expectedRevision = $data['expectedRevision'] ?? null;
         unset($data['expectedRevision']);
         // A JSON object's members: a numeric key (decoded as an int) is never one of them.
-        $data = array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY);
+        $data = Narrow::map($data);
         if ($expectedRevision !== null && !is_string($expectedRevision)) {
             return new WP_REST_Response(['error' => 'If present, "expectedRevision" must be a string.'], 400);
         }
@@ -150,6 +150,7 @@ final class AcfController
         if (!is_array($objects) || array_values($objects) !== $objects || array_filter($objects, 'is_array') !== $objects) {
             return new WP_REST_Response(['error' => 'Request body must be {"objects": [...]}, a list of ACF objects.'], 400);
         }
+        /** @var list<array<mixed>> $objects proven just above, Psalm doesn't narrow that check */
 
         return $this->mapServiceExceptions(
             fn(): WP_REST_Response => new WP_REST_Response($this->acfService->normalize($this->postType($request), array_map(Narrow::map(...), $objects)), 200),

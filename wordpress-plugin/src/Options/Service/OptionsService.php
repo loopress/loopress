@@ -96,6 +96,7 @@ class OptionsService
         /** @var \wpdb $wpdb */
         global $wpdb;
 
+        /** @var list<array<mixed>>|null $rows ARRAY_A rows, which Psalm's stub doesn't type */
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT option_name, autoload FROM {$wpdb->options} " .
@@ -333,11 +334,11 @@ class OptionsService
 
         $entries = [];
         foreach ($active as $entry) {
-            if (!is_string($entry) || !str_contains($entry, '/')) {
+            $slug = is_string($entry) ? strstr($entry, '/', true) : false;
+            if (!is_string($entry) || $slug === false) {
                 continue; // a single-file plugin (e.g. hello.php) has no folder slug
             }
 
-            $slug = (string) strstr($entry, '/', true);
             if ($slug !== '') {
                 $entries[$slug] = $entry;
             }

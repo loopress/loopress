@@ -28,6 +28,30 @@ final class Narrow
      */
     public static function map(mixed $value): array
     {
-        return is_array($value) ? array_filter($value, 'is_string', ARRAY_FILTER_USE_KEY) : [];
+        $map = [];
+        foreach (is_array($value) ? $value : [] as $key => $item) {
+            if (is_string($key)) {
+                $map[$key] = $item;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Narrow::map() keeping only the string values, e.g. a package or fingerprint map.
+     *
+     * @return array<string, string>
+     */
+    public static function stringMap(mixed $value): array
+    {
+        $map = [];
+        foreach (self::map($value) as $key => $item) {
+            if (is_string($item)) {
+                $map[$key] = $item;
+            }
+        }
+
+        return $map;
     }
 }

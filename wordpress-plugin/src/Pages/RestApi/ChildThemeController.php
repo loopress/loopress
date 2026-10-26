@@ -341,7 +341,7 @@ final class ChildThemeController
         $kept     = [];
         foreach (is_array($inherited) ? $inherited : [] as $entry) {
             if (is_array($entry) && !in_array($entry['name'] ?? null, $ownNames, true)) {
-                $kept[] = array_filter($entry, 'is_string', ARRAY_FILTER_USE_KEY);
+                $kept[] = Narrow::map($entry);
             }
         }
 
@@ -442,7 +442,7 @@ final class ChildThemeController
 
             $extra = $meta[$slug] ?? null;
 
-            return ['slug' => $slug, 'html' => $html] + (is_array($extra) ? array_filter($extra, 'is_string', ARRAY_FILTER_USE_KEY) : []);
+            return ['slug' => $slug, 'html' => $html] + Narrow::map($extra);
         }, $files);
     }
 
@@ -474,7 +474,7 @@ final class ChildThemeController
         $raw  = is_file($path) ? file_get_contents($path) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         $data = $raw === false ? null : json_decode($raw, true);
 
-        return is_array($data) ? array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY) : [];
+        return Narrow::map($data);
     }
 
     private function json(mixed $data): string

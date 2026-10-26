@@ -38,7 +38,7 @@ abstract class AbstractFileLoader
     // from the directory this loader was handed.
     private function label(): string
     {
-        return $this->directory()::SUBDIR;
+        return $this->directory()->subdir();
     }
 
     // The CLI command that injects the ABSPATH guard, named in resolveInstance()'s "deployed
@@ -71,7 +71,7 @@ abstract class AbstractFileLoader
             $this->loadFile($slug);
         }
 
-        update_option($this->directory()::LOAD_ERRORS_OPTION, $this->errors, false);
+        update_option($this->directory()->loadErrorsOption(), $this->errors, false);
 
         $this->afterRegister();
     }
@@ -172,7 +172,10 @@ abstract class AbstractFileLoader
             // REST input because filePath() is shared with delete_file(), which validates its filename.
             require_once $this->directory()->filePath($slug);
             // Declared by the require above; if not, `new` throws an \Error the catch below handles.
-            /** @var class-string $className */
+            /**
+             * @var class-string $className
+             * @psalm-suppress MixedMethodCall the user's own class, unknown to the analysis
+             */
             $instance = new $className();
         } catch (\Throwable $e) {
             // Covers real parse errors too: since PHP 7, a compile error in a required file
