@@ -1,8 +1,13 @@
 includes:
     - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - vendor/tomasvotruba/cognitive-complexity/config/extension.neon
 
 parameters:
     level: 9
+    # Same threshold as sonarjs/cognitive-complexity in the CLI (eslint-plugin-sonarjs recommended).
+    cognitive_complexity:
+        function: 15
+        class: 1000 # Sonar has no class-level rule, so this one is effectively off.
     checkExplicitMixed: false
     paths:
         - src
