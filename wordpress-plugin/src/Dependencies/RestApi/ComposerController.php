@@ -324,6 +324,7 @@ class ComposerController
         return wp_is_file_mod_allowed('loopress_composer');
     }
 
+    /** @return callable(): (bool|WP_Error) */
     private function fileModsPermissionCallback(): callable
     {
         $canManage = $this->permissionCallback();

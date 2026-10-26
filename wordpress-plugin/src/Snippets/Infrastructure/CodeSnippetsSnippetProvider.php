@@ -239,19 +239,28 @@ class CodeSnippetsSnippetProvider implements SnippetProvider
         ));
     }
 
-    /** @param array<string, mixed> $body @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
     private function dispatchOne(string $method, string $path, array $body = []): array
     {
         return $this->dispatch($method, $path, $body);
     }
 
-    /** @param array<string, mixed> $body @return array<int, array<string, mixed>> */
+    /**
+     * @param array<string, mixed> $body
+     * @return array<int, array<string, mixed>>
+     */
     private function dispatchList(string $method, string $path, array $body = []): array
     {
         return $this->dispatch($method, $path, $body);
     }
 
-    /** @param array<string, mixed> $body @return array<mixed> */
+    /**
+     * @param array<string, mixed> $body
+     * @return array<mixed>
+     */
     private function dispatch(string $method, string $path, array $body = []): array
     {
         // Leading slash is required: WP_REST_Server::dispatch() matches routes with an

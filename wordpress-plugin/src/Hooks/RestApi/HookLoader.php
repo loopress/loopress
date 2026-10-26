@@ -73,9 +73,9 @@ class HookLoader extends AbstractFileLoader
      * registers each entry with WordPress.
      *
      * @return array{
-     *   actions: array<int, array{hook: string, priority: int, acceptedArgs: int, callback: callable}>,
-     *   filters: array<int, array{hook: string, priority: int, acceptedArgs: int, callback: callable}>,
-     *   crons: array<int, array{hook: string, recurrence: string, callback: callable}>,
+     *   actions: array<int, array{hook: string, priority: int, acceptedArgs: int, callback: callable(mixed...): void}>,
+     *   filters: array<int, array{hook: string, priority: int, acceptedArgs: int, callback: callable(mixed...): mixed}>,
+     *   crons: array<int, array{hook: string, recurrence: string, callback: callable(): void}>,
      * }
      */
     public function bindingsFor(object $instance, string $slug): array
@@ -175,15 +175,17 @@ class HookLoader extends AbstractFileLoader
     // A throw here runs on every request that fires $hook, for every visitor: never let it
     // propagate. Nothing to fail open with, an action has no return value WP does anything
     // with.
+    /** @return callable(mixed...): void */
     private function wrapActionCallback(object $instance, string $method, string $slug): callable
     {
         return function (...$args) use ($instance, $method, $slug): void {
-            if (!is_callable([$instance, $method])) {
+            $callback = [$instance, $method];
+            if (!is_callable($callback)) {
                 return;
             }
 
             try {
-                call_user_func_array([$instance, $method], $args);
+                call_user_func_array($callback, $args);
             } catch (\Throwable $e) {
                 $this->recordRuntimeError($slug, 'action', $method, $e);
             }
@@ -194,17 +196,19 @@ class HookLoader extends AbstractFileLoader
     // method that vanished between registration and dispatch), the original, unfiltered value
     // passes through unchanged rather than a broken filter silently turning into `null` for
     // every consumer of $hook, which for something like `the_content` would blank the page.
+    /** @return callable(mixed...): mixed */
     private function wrapFilterCallback(object $instance, string $method, string $slug, int $acceptedArgs): callable
     {
         return function (...$args) use ($instance, $method, $slug, $acceptedArgs) {
             $original = $args[0] ?? null;
 
-            if (!is_callable([$instance, $method])) {
+            $callback = [$instance, $method];
+            if (!is_callable($callback)) {
                 return $original;
             }
 
             try {
-                return call_user_func_array([$instance, $method], array_slice($args, 0, $acceptedArgs));
+                return call_user_func_array($callback, array_slice($args, 0, $acceptedArgs));
             } catch (\Throwable $e) {
                 $this->recordRuntimeError($slug, 'filter', $method, $e);
                 return $original;
@@ -214,15 +218,17 @@ class HookLoader extends AbstractFileLoader
 
     // A throw here runs during a real WP-Cron pseudo-request: never let one scheduled job's
     // bug take down whatever else WP-Cron is running in that pass.
+    /** @return callable(): void */
     private function wrapCronCallback(object $instance, string $method, string $slug): callable
     {
         return function () use ($instance, $method, $slug): void {
-            if (!is_callable([$instance, $method])) {
+            $callback = [$instance, $method];
+            if (!is_callable($callback)) {
                 return;
             }
 
             try {
-                call_user_func([$instance, $method]);
+                call_user_func($callback);
             } catch (\Throwable $e) {
                 $this->recordRuntimeError($slug, 'cron', $method, $e);
             }
@@ -296,6 +302,7 @@ class HookLoader extends AbstractFileLoader
     // Bound unconditionally: add_action() is cheap and idempotent from WP's own side.
     // wp_schedule_event() is the side that actually persists (the `cron` option), hence the
     // wp_next_scheduled() guard.
+    /** @param callable(): void $callback */
     private function registerCron(string $slug, string $hook, string $recurrence, callable $callback): void
     {
         add_action($hook, $callback);

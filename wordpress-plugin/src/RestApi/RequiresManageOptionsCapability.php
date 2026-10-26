@@ -10,6 +10,7 @@ namespace Loopress\RestApi;
 // this is the only place to edit.
 trait RequiresManageOptionsCapability
 {
+    /** @return callable(mixed...): bool */
     private function permissionCallback(): callable
     {
         return fn(): bool => current_user_can('manage_options');

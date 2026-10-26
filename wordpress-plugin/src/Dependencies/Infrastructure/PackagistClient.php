@@ -21,6 +21,8 @@ class PackagistClient
      * Returns sorted stable versions with PHP compatibility info, null if the package does not exist.
      * Each entry: ['version' => string, 'php_compatible' => bool, 'php_constraint' => string]
      * Throws \RuntimeException on network failure.
+     *
+     * @return array<int, array<string, mixed>>|null
      */
     public function getVersions(string $package): ?array
     {
@@ -60,7 +62,8 @@ class PackagistClient
 
         $stable = array_filter(
             $rawVersions,
-            fn($_, $v): bool => !str_starts_with($v, 'dev-') && !str_ends_with($v, '-dev'),
+            // A purely numeric version key ("2") comes back from json_decode() as an int.
+            fn($_, int|string $v): bool => !str_starts_with((string) $v, 'dev-') && !str_ends_with((string) $v, '-dev'),
             ARRAY_FILTER_USE_BOTH
         );
 
@@ -69,12 +72,13 @@ class PackagistClient
             $a['version_normalized'] ?? $a['version'],
         ));
 
-        return array_map(function (string $version, array $data): array {
+        // array_keys() hands a purely numeric version ("2") back as an int.
+        return array_map(function (int|string $version, array $data): array {
             $phpConstraint = $data['require']['php'] ?? null;
             $phpCompatible = $phpConstraint !== null ? $this->isPhpCompatible($phpConstraint) : null;
 
             return [
-                'version'        => $version,
+                'version'        => (string) $version,
                 'php_compatible' => $phpCompatible,
                 'php_constraint' => $phpConstraint,
             ];

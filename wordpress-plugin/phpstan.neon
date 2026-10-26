@@ -16,6 +16,13 @@ parameters:
         function: 15
         class: 1000 # Sonar has no class-level rule, so this one is effectively off.
     checkExplicitMixed: false
+    checkUninitializedProperties: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    reportAnyTypeWideningInVarTag: true
+    checkMissingCallableSignature: true
+    rememberPossiblyImpureFunctionValues: false
+    # Treats array keys as the int|string they really are: a numeric string key is an int at runtime.
+    checkBenevolentUnionTypes: true
     paths:
         - src
     bootstrapFiles:
@@ -27,16 +34,6 @@ parameters:
         - vendor
 
     ignoreErrors:
-        # Acf/, Dependencies/ (array<string, mixed> for field-group/composer
-        # payloads) and CodeSnippetsSnippetProvider's raw REST dispatch helpers
-        # aren't typed as precisely as Snippets/ (see SnippetData, US-15) yet; narrowing them
-        # the same way is future work, not part of this PHPStan-level story.
-        - message: '#has no value type specified in iterable type array#'
-          paths:
-              - src/Acf/*
-              - src/Dependencies/*
-              - src/Snippets/Infrastructure/CodeSnippetsSnippetProvider.php
-              - src/Form/*
         # Constants defined in the plugin root file (loopress.php), not in src/
         - '#Constant LOOPRESS_PLUGIN_(PATH|URL|SLUG) not found#'
         - '#Constant LOOPRESS_VERSION not found#'
