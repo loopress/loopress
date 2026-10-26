@@ -87,6 +87,8 @@ foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps'
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
 }
+// What `loopress/v1/capabilities` reports, read by the CLI to tell the editions apart.
+add_filter('loopress_capabilities', fn(array $capabilities): array => array_merge($capabilities, ['edition' => 'full']));
 /* LOOPRESS_FULL_END */
 
 // Booting on plugins_loaded rather than at file inclusion; priority 1 because snippet

@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto'
 
+import {activateTheme} from '../../../lib/capabilities.js'
 import {type ResourceState} from '../../../lib/diff-state.js'
 import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
@@ -27,7 +28,7 @@ type PushResult = {
 
 export default class Push extends PushCommand {
   static description =
-    'Push block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css, bundled with esbuild) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is never activated for you.'
+    'Push block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css, bundled with esbuild) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.'
 
   static enableJsonFlag = true
   static examples = ['$ lps theme template push', '$ lps theme template push --dry-run']
@@ -69,6 +70,8 @@ export default class Push extends PushCommand {
       logChanges((message) => { this.log(message); }, changes.templates, 'templates/')
       logChanges((message) => { this.log(message); }, changes.parts, 'parts/')
       logChanges((message) => { this.log(message); }, changes.css, 'css/')
+      const {child} = (await this.capabilities()).theme
+      if (this.localConfig.activateChildTheme && child && !child.active) this.log(`[dry-run] Would activate ${child.stylesheet}.`)
       return {...names, changes, status: 'dry-run'}
     }
 
@@ -76,8 +79,18 @@ export default class Push extends PushCommand {
     await this.recordSuccess()
     this.log(`Child theme ${child.stylesheet} written.`)
 
-    if (!child.active) {
-      this.warn(`${child.stylesheet} is not the active theme, so nothing changed on the site yet. Activate it in Appearance > Themes.`)
+    // Activated only when the project asks for it: a theme switch changes every per-theme setting.
+    let {active} = child
+    if (!active && this.localConfig.activateChildTheme) {
+      const activation = await activateTheme(this.wp, child.stylesheet)
+      active = true
+      this.log(`Activated ${child.stylesheet} (was ${activation.previous}), as loopress.json's activateChildTheme asks.`)
+    }
+
+    if (!active) {
+      this.warn(
+        `${child.stylesheet} is not the active theme, so nothing changed on the site yet. Run \`lps theme activate\`, or set "activateChildTheme": true in loopress.json.`,
+      )
     }
 
     if (child.customized.length > 0) {
@@ -98,7 +111,7 @@ export default class Push extends PushCommand {
 
     return {
       ...names,
-      active: child.active,
+      active,
       customized: child.customized,
       status: 'success',
       stylesheet: child.stylesheet,

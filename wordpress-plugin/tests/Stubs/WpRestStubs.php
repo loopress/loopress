@@ -263,3 +263,24 @@ if (!class_exists('WP_Admin_Bar')) {
         }
     }
 }
+
+// Reads and creates posts in Loopress\Tests\Stubs\UserGlobalStyles, for the theme activation tests.
+if (!class_exists('WP_Theme_JSON_Resolver')) {
+    class WP_Theme_JSON_Resolver
+    {
+        /** @return array<string, mixed> */
+        public static function get_user_data_from_wp_global_styles(object $theme, bool $create_post = false): array
+        {
+            $posts      = &\Loopress\Tests\Stubs\UserGlobalStyles::$posts;
+            $stylesheet = $theme->get_stylesheet();
+            if ($create_post && !isset($posts[$stylesheet])) {
+                \Loopress\Tests\Stubs\UserGlobalStyles::$created[] = $stylesheet;
+                $posts[$stylesheet] = ['ID' => 42, 'post_content' => '{"version":3,"isGlobalStylesUserThemeJSON":true}'];
+            }
+
+            return $posts[$stylesheet] ?? [];
+        }
+
+        public static function clean_cached_data(): void {}
+    }
+}

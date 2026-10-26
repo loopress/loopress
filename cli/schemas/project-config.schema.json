@@ -138,9 +138,14 @@
         }
       ]
     },
+    "activateChildTheme": {
+      "type": "boolean",
+      "description": "Keep the Loopress child theme (<parent>-loopress) active: `lps theme template push`, and so `lps push`, activates it when it isn't. Off by default, a theme switch changes the settings WordPress stores per theme.",
+      "default": false
+    },
     "themes": {
       "type": "object",
-      "description": "WordPress.org themes managed by Loopress, installed via Composer + WPackagist on the site. Keys are theme slugs; values are an exact version or \"latest\". Loopress manages installed theme versions only, it never switches the active theme. Ignored when a composer.json exists in rootDir.",
+      "description": "WordPress.org themes managed by Loopress, installed via Composer + WPackagist on the site. Keys are theme slugs; values are an exact version or \"latest\". Loopress manages installed theme versions only, it never switches the active theme (see activateChildTheme and `lps theme activate`). Ignored when a composer.json exists in rootDir.",
       "additionalProperties": {
         "type": "string",
         "examples": ["3.4.0", "latest"]

@@ -1,5 +1,6 @@
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
+import {type SiteCapabilities} from '../lib/capabilities.js'
 import {formatRuntimeError, HOOK_FILES_RESOURCE, type RuntimeError} from '../lib/php-files-command.js'
 import {findTempAdmins} from '../lib/temp-admin.js'
 import {isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
@@ -9,6 +10,7 @@ import {pluralize} from '../utils/pluralize.js'
 export type DoctorCheck = {message?: string; ok: boolean; title: string}
 
 export type DoctorResult = {
+  capabilities?: SiteCapabilities
   checks: DoctorCheck[]
   environment: string
   ok: boolean
@@ -36,7 +38,7 @@ export default class Doctor extends LoopressCommand {
     this.out(`URL:          ${url}`)
     this.out('')
 
-    let pluginVersion: string | undefined
+    let capabilities: SiteCapabilities | undefined
 
     const isReachable = await this.check('WordPress REST API reachable', async () => {
       const diagnostic = await diagnoseWpSite(url)
@@ -58,11 +60,10 @@ export default class Doctor extends LoopressCommand {
 
         // Skipped when the credentials were just rejected: it would only repeat that same 401.
         if (isAuthenticated) {
+          capabilities = await this.checkCapabilities()
           await this.checkLeftoverTempAdmins()
           await this.checkHookErrors()
         }
-
-        pluginVersion = await this.reportPluginVersion()
       } else {
         this.checks.push({
           message: `No credentials stored for ${url}. Run \`lps project config\` to add them.`,
@@ -85,7 +86,29 @@ export default class Doctor extends LoopressCommand {
 
     if (!ok) process.exitCode = 1
 
-    return {checks: this.checks, environment: name, ok, pluginVersion, project: projectName, url}
+    return {capabilities, checks: this.checks, environment: name, ok, pluginVersion: capabilities?.version, project: projectName, url}
+  }
+
+  // The CLI decides what to run from these, so an older plugin without them fails the doctor.
+  // The rest is informational.
+  private async checkCapabilities(): Promise<SiteCapabilities | undefined> {
+    let capabilities: SiteCapabilities | undefined
+    await this.check('Plugin recent enough for this CLI (loopress/v1/capabilities)', async () => {
+      capabilities = await this.capabilities()
+    })
+    if (!capabilities) return undefined
+
+    const {edition, environmentType, integrations, theme, version} = capabilities
+    const state = (active: boolean | undefined) => (active === undefined ? 'needs Loopress Full' : active ? 'active' : 'none')
+    this.out(`- Plugin: Loopress ${edition === 'full' ? 'Full' : 'Light'} ${version}, environment type "${environmentType}"`)
+    this.out(`- Integrations: ACF ${state(integrations.acf)}, forms ${state(integrations.form)}, snippets ${state(integrations.snippets)}`)
+    this.out(`- Theme: ${theme.active} (${theme.isBlock ? 'block theme' : 'classic theme'})`)
+    if (theme.child) {
+      const childState = theme.child.active ? 'active' : theme.child.exists ? 'not active, `lps theme activate`' : 'not pushed yet'
+      this.out(`- Loopress child theme: ${theme.child.stylesheet}, ${childState}`)
+    }
+
+    return capabilities
   }
 
   private async check(title: string, run: () => Promise<unknown>): Promise<boolean> {
@@ -154,22 +177,4 @@ export default class Doctor extends LoopressCommand {
     if (!this.jsonEnabled()) this.log(message)
   }
 
-  // Informational only: Loopress Light does not expose loopress/v1/update, and an old plugin
-  // predates it, neither should flip the doctor to a failure when everything else works.
-  private async reportPluginVersion(): Promise<string | undefined> {
-    try {
-      const status = await this.wp.get<{current_version?: string}>('loopress/v1/update')
-      const version = status.current_version ?? '(unknown)'
-      this.out(`✓ Plugin version: ${version}`)
-      return version
-    } catch (error) {
-      if (isNotFoundError(error)) {
-        this.out('- Plugin version: not exposed by this plugin edition.')
-        return undefined
-      }
-
-      this.out(`- Plugin version: could not be read. ${(error as Error).message}`)
-      return undefined
-    }
-  }
 }

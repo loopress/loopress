@@ -79,6 +79,12 @@
                 <!-- ContentController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Content/RestApi" />
+                <!-- CapabilitiesController's endpoints are invoked by register_rest_route() like
+                     the other RestApi/ directories above, and it is built by the PHP-DI container. -->
+                <directory name="src/Capabilities/RestApi" />
+                <!-- ThemeController's endpoints are invoked by register_rest_route() like the
+                     other RestApi/ directories above. -->
+                <directory name="src/Themes/RestApi" />
                 <!-- AbstractFilesController::list_files()/push_file() are the shared base of
                      ApiFilesController and HookFilesController above: invoked by
                      register_rest_route() (through each subclass's register_routes()), never a
@@ -97,6 +103,7 @@
                 <referencedMethod name="Loopress\PostTypes\Module\PostTypesModule::__construct" />
                 <referencedMethod name="Loopress\Pushes\Module\PushesModule::__construct" />
                 <referencedMethod name="Loopress\Content\Module\ContentModule::__construct" />
+                <referencedMethod name="Loopress\Capabilities\Module\CapabilitiesModule::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />

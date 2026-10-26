@@ -5,7 +5,6 @@ import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
-import {INTEGRATION_MISSING} from './plugin-detection.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
 
@@ -27,17 +26,17 @@ export type DiffJson = {
 
 export type DiffTarget = {
   left: () => Promise<ResourceState>
-  // The project doesn't use this resource: a site without its plugin (or a classic theme, for
-  // Global Styles) skips it instead of making the whole run inconclusive.
-  optional?: boolean
   resource: string
   right: () => Promise<ResourceState>
+  // The project doesn't use this resource and a site can't hold it (no plugin for it, or a
+  // classic theme for Global Styles): reported as skipped instead of making the run inconclusive.
+  skip?: boolean
   title: string
 }
 
 // `left` is always the primary environment. `right` is a second environment (`--against`) or
 // the local tracked files.
-type DiffSides = {
+export type DiffSides = {
   againstWp: undefined | WpClient
   leftLabel: string
   // The header's name for the right side: "local files", not "local", since the local
@@ -170,6 +169,9 @@ export abstract class DiffCommand extends LoopressCommand {
     target: DiffTarget,
     sides: DiffSides,
   ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; skipped?: boolean; stateDiff?: StateDiff; title: string}> {
+    const empty = {added: [], changed: [], removed: []}
+    if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
+
     try {
       const [leftState, rightState] = await Promise.all([target.left(), target.right()])
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
@@ -182,8 +184,6 @@ export abstract class DiffCommand extends LoopressCommand {
       }
     } catch (error) {
       const {message} = error as Error
-      const empty = {added: [], changed: [], removed: []}
-      if (target.optional && INTEGRATION_MISSING.test(message)) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
       return {drift: false, json: {...empty, error: message}, resource: target.resource, title: target.title}
     }
   }

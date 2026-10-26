@@ -22,7 +22,19 @@ export type WpThemeSupportInfo = {
   _links?: Record<string, Array<{href: string}>>
   status: 'active' | 'inactive'
   stylesheet: string
+  template?: string
   theme_supports?: Record<string, unknown>
+}
+
+// Appended to the parent's stylesheet by the plugin's ChildThemeController.
+export const CHILD_THEME_SUFFIX = '-loopress'
+
+// The stylesheet a project's Global Styles file is named after: the parent's when the Loopress
+// child is active, so the tracked file stays the same whether or not the child was activated
+// (the plugin copies the parent's Global Styles into the child when activating it).
+export function projectStylesheet(theme: Pick<WpThemeSupportInfo, 'stylesheet' | 'template'>): string {
+  const {stylesheet, template} = theme
+  return template && stylesheet === `${template}${CHILD_THEME_SUFFIX}` ? template : stylesheet
 }
 
 // WordPress core surfaces `wp_is_block_theme()` over the `wp/v2/themes` REST response as
@@ -73,15 +85,15 @@ export async function globalStylesSkipNote(wp: WpClient, dir: string, action: 'p
 
   const active = await getActiveTheme(wp)
   if (!isBlockTheme(active)) return `the active theme "${active.stylesheet}" is a classic theme, skipped`
-  if (action === 'push' && !files.includes(themeStylesFileName(active.stylesheet))) {
-    return `no file for the active theme "${active.stylesheet}", skipped`
+  if (action === 'push' && !files.includes(themeStylesFileName(projectStylesheet(active)))) {
+    return `no file for the active theme "${projectStylesheet(active)}", skipped`
   }
 
   return undefined
 }
 
-// Resolves the active theme's stylesheet slug and the id of its editable Global Styles post in
-// one call, failing clearly (rather than with a raw REST error later) when the active theme
+// Resolves the active theme's stylesheet slug, as the project names it (see projectStylesheet),
+// and the id of its editable Global Styles post in one call, failing clearly (rather than with a raw REST error later) when the active theme
 // isn't a block theme: classic themes have no Styles screen and no `wp_global_styles` post at all.
 export async function getActiveThemeGlobalStyles(wp: WpClient): Promise<{id: number; stylesheet: string}> {
   const active = await getActiveTheme(wp)
@@ -98,7 +110,7 @@ export async function getActiveThemeGlobalStyles(wp: WpClient): Promise<{id: num
     )
   }
 
-  return {id, stylesheet: active.stylesheet}
+  return {id, stylesheet: projectStylesheet(active)}
 }
 
 export type GlobalStylesRecord = {

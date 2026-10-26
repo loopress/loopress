@@ -1,7 +1,9 @@
 import {Flags} from '@oclif/core'
 
-import {DiffCommand, type DiffJson, type DiffTarget} from '../lib/diff-command.js'
+import {getCapabilities, missingIntegration} from '../lib/capabilities.js'
+import {DiffCommand, type DiffJson, type DiffSides, type DiffTarget} from '../lib/diff-command.js'
 import {RESOURCE_STATE_PROVIDERS, type ResourceStateProvider} from '../lib/resource-state.js'
+import {type WpClient} from '../lib/wp-client.js'
 import {projectUses, resolveResourceDir} from '../utils/resource-dirs.js'
 import {globalStylesFiles} from '../utils/theme-styles-format.js'
 
@@ -41,7 +43,10 @@ export default class Diff extends DiffCommand {
     const providers = RESOURCE_STATE_PROVIDERS.filter((provider) => selected.has(provider.resource))
     const targets: DiffTarget[] = [
       ...(await Promise.all(
-        providers.map(async (provider) => ({...this.providerTarget(provider, sides), optional: !(await this.projectUses(provider))})),
+        providers.map(async (provider) => ({
+          ...this.providerTarget(provider, sides),
+          skip: !(await this.projectUses(provider)) && (await this.siteLacks(provider, sides)),
+        })),
       )),
       ...(selected.has('composer') ? [this.composerTarget(sides)] : []),
     ]
@@ -57,6 +62,19 @@ export default class Diff extends DiffCommand {
     }
 
     return projectUses(provider.dirKind, this.localConfig)
+  }
+
+  // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too
+  // old) skip nothing: the comparison then reports the failure itself, as inconclusive.
+  private async siteLacks(provider: ResourceStateProvider, sides: DiffSides): Promise<boolean> {
+    const sites: Array<[WpClient, string]> = [[this.wp, sides.leftLabel]]
+    if (sides.againstWp) sites.push([sides.againstWp, sides.rightLabel])
+    try {
+      const all = await Promise.all(sites.map(async ([wp, name]) => getCapabilities(wp, name)))
+      return all.some((capabilities) => missingIntegration(provider.dirKind, capabilities) !== undefined)
+    } catch {
+      return false
+    }
   }
 
   // `--only` narrows the default set, `--skip` then removes from whatever that set is, same

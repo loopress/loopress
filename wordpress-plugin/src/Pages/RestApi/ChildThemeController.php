@@ -20,8 +20,9 @@ use WP_REST_Response;
  * a mirror of the repository, owned by Loopress: every push rewrites it whole. The database is
  * never written: it's the Site Editor's own layer, only read here to report drift.
  *
- * Never activates the child, a theme switch moves every per-theme setting (menu locations,
- * logo, widgets, global styles) and stays an explicit human action.
+ * Never activates the child itself: a theme switch moves every per-theme setting (menu locations,
+ * logo, widgets, global styles), so it is `lps theme activate` or a project that declares
+ * `activateChildTheme` that does, through Themes\RestApi\ThemeController.
  *
  * @psalm-type Template = array{slug: string, html: string, title?: string, postTypes?: string[]}
  * @psalm-type Part = array{slug: string, html: string, title?: string, area?: string}
@@ -173,6 +174,24 @@ final class ChildThemeController
         }
 
         return new WP_REST_Response($this->describe($parentTheme), 200);
+    }
+
+    /**
+     * The Loopress child for `loopress/v1/capabilities`, or null when the site can't have one (a
+     * classic theme, or another child theme active).
+     *
+     * @return array{stylesheet: string, exists: bool, active: bool}|null
+     */
+    public function summary(): ?array
+    {
+        $parentTheme = $this->parentStylesheet();
+        if ($parentTheme === null || $parentTheme === '') {
+            return null;
+        }
+
+        $child = $parentTheme . self::SUFFIX;
+
+        return ['stylesheet' => $child, 'exists' => is_dir("{$this->themeRoot}/{$child}"), 'active' => get_stylesheet() === $child];
     }
 
     /**
