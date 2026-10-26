@@ -43,8 +43,9 @@ export default class Activate extends LoopressCommand {
   }
 
   private childStylesheet(theme: SiteCapabilities['theme']): string {
-    if (theme.child === undefined) this.error('The Loopress child theme needs Loopress Full. Name the theme to activate instead.')
-    if (theme.child === null) {
+    if (theme.child === undefined) {
+      this.error('The Loopress child theme needs Loopress Full. Name the theme to activate instead.')
+    } else if (theme.child === null) {
       this.error(`The active theme "${theme.active}" can't have a Loopress child theme: it needs a block theme that isn't already a child theme.`)
     }
 

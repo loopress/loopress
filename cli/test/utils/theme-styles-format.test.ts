@@ -10,7 +10,9 @@ import {
   getUserGlobalStylesId,
   globalStylesEndpoint,
   globalStylesFiles,
+  globalStylesSkipNote,
   isBlockTheme,
+  projectStylesheet,
   themeStylesFileName,
   type WpThemeSupportInfo,
 } from '../../src/utils/theme-styles-format.js'
@@ -48,6 +50,29 @@ describe('theme-styles-format', () => {
     })
   })
 
+  describe('projectStylesheet', () => {
+    it('is the parent for the Loopress child', () => {
+      expect(projectStylesheet({stylesheet: 'twentytwentyfive-loopress', template: 'twentytwentyfive'})).toBe('twentytwentyfive')
+    })
+
+    it('is the stylesheet itself for any other theme, another child theme included', () => {
+      expect(projectStylesheet({stylesheet: 'twentytwentyfive', template: 'twentytwentyfive'})).toBe('twentytwentyfive')
+      expect(projectStylesheet({stylesheet: 'astra-child', template: 'astra'})).toBe('astra-child')
+      expect(projectStylesheet({stylesheet: 'bakery'})).toBe('bakery')
+    })
+  })
+
+  describe('globalStylesSkipNote with the Loopress child active', () => {
+    it('pushes the parent\'s file', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'lps-theme-styles-'))
+      writeFileSync(join(dir, 'twentytwentyfive-global-styles.json'), '{}')
+      const wp = fakeWp([{status: 'active', stylesheet: 'twentytwentyfive-loopress', template: 'twentytwentyfive', theme_supports: {'block-templates': true}}])
+
+      await expect(globalStylesSkipNote(wp, dir, 'push')).resolves.toBeUndefined()
+      rmSync(dir, {force: true, recursive: true})
+    })
+  })
+
   describe('getUserGlobalStylesId', () => {
     it('extracts the numeric id from the wp:user-global-styles link, on the "pretty" permalink shape', () => {
       expect(getUserGlobalStylesId({_links: userGlobalStylesLink(123)})).toBe(123)
@@ -77,6 +102,20 @@ describe('theme-styles-format', () => {
       ])
 
       await expect(getActiveThemeGlobalStyles(wp)).resolves.toEqual({id: 123, stylesheet: 'twentytwentyfour'})
+    })
+
+    it('names the active Loopress child after its parent, so the tracked file stays the same', async () => {
+      const wp = fakeWp([
+        {
+          _links: userGlobalStylesLink(7),
+          status: 'active',
+          stylesheet: 'twentytwentyfive-loopress',
+          template: 'twentytwentyfive',
+          theme_supports: {'block-templates': true},
+        },
+      ])
+
+      await expect(getActiveThemeGlobalStyles(wp)).resolves.toEqual({id: 7, stylesheet: 'twentytwentyfive'})
     })
 
     it('throws a clear error when the active theme is a classic theme', async () => {

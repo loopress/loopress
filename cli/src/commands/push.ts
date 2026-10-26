@@ -112,6 +112,10 @@ export default class Push extends LoopressCommand {
     return argv
   }
 
+  private composerJsonPath(): string {
+    return join(process.cwd(), this.rootDir, 'composer.json')
+  }
+
   // The wordpress.org plugins the project declares: composer.json's wpackagist plugins when it
   // exists, loopress.json's otherwise. Unreadable composer.json: none, the commands report it.
   private async declaredPlugins(hasComposerJson: boolean): Promise<string[]> {
@@ -122,10 +126,6 @@ export default class Push extends LoopressCommand {
     } catch {
       return []
     }
-  }
-
-  private composerJsonPath(): string {
-    return join(process.cwd(), this.rootDir, 'composer.json')
   }
 
   // The site unreachable or the theme list refused: let the step run and report it itself.
@@ -179,7 +179,8 @@ export default class Push extends LoopressCommand {
       if (!missing) continue
       const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
       const fix = integrationFix(missing, {fromComposer: hasComposerJson, plugins: declaredPlugins})
-      blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fix ? ` ${fix}.` : ''}`)
+      const fixSentence = fix ? ` ${fix}.` : ''
+      blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`)
     }
 
     if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}`)

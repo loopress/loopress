@@ -46,34 +46,23 @@ export async function getCapabilities(wp: WpClient, site: string): Promise<SiteC
 // provide it, `fix` a fixed remedy when no plugin does.
 export type MissingIntegration = {fix?: string; plugins?: string[]; reason: string}
 
+type IntegrationCheck = (capabilities: SiteCapabilities) => MissingIntegration | undefined
+
+// The kinds of resource a site may be unable to hold. Every other kind needs nothing from it.
+const INTEGRATION_CHECKS: Partial<Record<ResourceDirKind, IntegrationCheck>> = {
+  acf: ({integrations}) => (integrations.acf ? undefined : {plugins: ['advanced-custom-fields'], reason: 'ACF is not active'}),
+  form: ({integrations}) => (integrations.form ? undefined : {plugins: ['wpforms-lite'], reason: 'no supported form plugin is active'}),
+  snippets({integrations}) {
+    if (integrations.snippets === undefined) return {fix: 'Install Loopress Full', reason: 'snippets need Loopress Full'}
+    return integrations.snippets ? undefined : {plugins: ['code-snippets', 'insert-headers-and-footers'], reason: 'no supported snippet plugin is active'}
+  },
+  themeStyles: ({theme}) => (theme.isBlock ? undefined : {reason: `the active theme "${theme.active}" is a classic theme`}),
+}
+
 // Why the site can't hold this kind of resource, or undefined when it can (or the kind needs
 // nothing from the site).
 export function missingIntegration(kind: ResourceDirKind, capabilities: SiteCapabilities): MissingIntegration | undefined {
-  const {integrations, theme} = capabilities
-  switch (kind) {
-    case 'acf': {
-      return integrations.acf ? undefined : {plugins: ['advanced-custom-fields'], reason: 'ACF is not active'}
-    }
-
-    case 'form': {
-      return integrations.form ? undefined : {plugins: ['wpforms-lite'], reason: 'no supported form plugin is active'}
-    }
-
-    case 'snippets': {
-      if (integrations.snippets === undefined) return {fix: 'Install Loopress Full', reason: 'snippets need Loopress Full'}
-      return integrations.snippets
-        ? undefined
-        : {plugins: ['code-snippets', 'insert-headers-and-footers'], reason: 'no supported snippet plugin is active'}
-    }
-
-    case 'themeStyles': {
-      return theme.isBlock ? undefined : {reason: `the active theme "${theme.active}" is a classic theme`}
-    }
-
-    default: {
-      return undefined
-    }
-  }
+  return INTEGRATION_CHECKS[kind]?.(capabilities)
 }
 
 // How to fix a missing integration, given the plugins the project declares (composer.json, or

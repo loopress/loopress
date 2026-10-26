@@ -6,6 +6,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Diff from '../../src/commands/diff.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
+import {makeCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -63,12 +64,14 @@ function baselineGet(composerJson = '{}') {
   })
 }
 
-function make(argv: string[], get: ReturnType<typeof vi.fn>) {
+function make(argv: string[], get: ReturnType<typeof vi.fn>, capabilities = makeCapabilities()) {
   const cmd = new TestDiff(argv, fakeOclifConfig)
   cmd.setup(makeEnv('staging', 'https://staging.acme.com'))
   const logs = silenceLogs(cmd)
   // ACF's normalize route, as a no-op: the files already hold what the site stores.
   const post = vi.fn(async (_path: string, body: {objects: unknown[]}) => body.objects)
+  const answer = get
+  get = vi.fn(async (path: string) => (path === 'loopress/v1/capabilities' ? capabilities : answer(path)))
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get, post}
   return {cmd, logs}
 }
@@ -190,15 +193,33 @@ describe('diff', () => {
       if (path === 'wp/v2/themes') return [{status: 'active', stylesheet: 'storefront', theme_supports: {}}]
       return baselineGet()(path)
     })
-    const {cmd, logs} = make([], get)
+    const {cmd, logs} = make([], get, makeCapabilities({integrations: {form: false}, theme: {active: 'storefront', isBlock: false}}))
 
     const result = await cmd.run()
 
+    expect(get).not.toHaveBeenCalledWith('loopress/v1/forms')
     expect(result.resources.form).toBeUndefined()
     expect(result.resources['theme-styles']).toBeUndefined()
     expect(process.exitCode).not.toBe(2)
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/))
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/))
+  })
+
+  it('skips nothing when the capabilities cannot be read, so the run stays inconclusive (exit 2), not drift', async () => {
+    const get = vi.fn(async (path: string) => {
+      if (path === 'loopress/v1/forms') throw new Error('No supported form plugin is active')
+      return baselineGet()(path)
+    })
+    const {cmd} = make([], get)
+    ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn(async (path: string) => {
+      if (path === 'loopress/v1/capabilities') throw new Error('Request failed (500)')
+      return get(path)
+    })
+
+    const result = await cmd.run()
+
+    expect(result.resources.form.error).toBe('No supported form plugin is active')
+    expect(process.exitCode).toBe(2)
   })
 
   it('still reports a missing plugin as inconclusive when the project uses that resource', async () => {
@@ -207,7 +228,7 @@ describe('diff', () => {
       if (path === 'loopress/v1/forms') throw new Error('No supported form plugin is active')
       return baselineGet()(path)
     })
-    const {cmd} = make([], get)
+    const {cmd} = make([], get, makeCapabilities({integrations: {form: false}}))
 
     const result = await cmd.run()
 

@@ -70,8 +70,11 @@ export default class Push extends PushCommand {
       logChanges((message) => { this.log(message); }, changes.templates, 'templates/')
       logChanges((message) => { this.log(message); }, changes.parts, 'parts/')
       logChanges((message) => { this.log(message); }, changes.css, 'css/')
-      const {child} = (await this.capabilities()).theme
-      if (this.localConfig.activateChildTheme && child && !child.active) this.log(`[dry-run] Would activate ${child.stylesheet}.`)
+      if (this.localConfig.activateChildTheme) {
+        const {child} = (await this.capabilities()).theme
+        if (child && !child.active) this.log(`[dry-run] Would activate ${child.stylesheet}.`)
+      }
+
       return {...names, changes, status: 'dry-run'}
     }
 

@@ -64,6 +64,13 @@ export default class Diff extends DiffCommand {
     return projectUses(provider.dirKind, this.localConfig)
   }
 
+  // `--only` narrows the default set, `--skip` then removes from whatever that set is, same
+  // precedence a combined `--only=a,b --skip=b` reads as (mirrors dev-watch's resolveResourceTypes).
+  private selectResources(only: string[] | undefined, skip: string[] | undefined): Set<string> {
+    const base = only && only.length > 0 ? only : RESOURCES
+    return new Set(base.filter((resource) => !(skip ?? []).includes(resource)))
+  }
+
   // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too
   // old) skip nothing: the comparison then reports the failure itself, as inconclusive.
   private async siteLacks(provider: ResourceStateProvider, sides: DiffSides): Promise<boolean> {
@@ -75,12 +82,5 @@ export default class Diff extends DiffCommand {
     } catch {
       return false
     }
-  }
-
-  // `--only` narrows the default set, `--skip` then removes from whatever that set is, same
-  // precedence a combined `--only=a,b --skip=b` reads as (mirrors dev-watch's resolveResourceTypes).
-  private selectResources(only: string[] | undefined, skip: string[] | undefined): Set<string> {
-    const base = only && only.length > 0 ? only : RESOURCES
-    return new Set(base.filter((resource) => !(skip ?? []).includes(resource)))
   }
 }

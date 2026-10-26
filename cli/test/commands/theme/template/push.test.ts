@@ -5,18 +5,19 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../../src/commands/theme/template/push.js'
+import {stubCapabilities} from '../../../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
 import {makeEnv} from '../../../helpers/project-fixtures.js'
 
 type PushInternals = {
   dryRun: boolean
-  localConfig: {partDir?: string; rootDir?: string; templateDir?: string}
+  localConfig: {activateChildTheme?: boolean; partDir?: string; rootDir?: string; templateDir?: string}
   parse: () => Promise<unknown>
   recordSuccess: () => Promise<void>
   run(): Promise<unknown>
   siteConfig: unknown
   warn: ReturnType<typeof vi.fn>
-  wpClient: {put: ReturnType<typeof vi.fn>}
+  wpClient: {post?: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 const child = {active: true, customized: [], exists: true, parent: 'twentytwentyfive', parts: [], stylesheet: 'twentytwentyfive-loopress', templates: [], unknownBlocks: []}
@@ -100,6 +101,46 @@ describe('template push', () => {
 
     expect(cmd.warn).toHaveBeenCalledWith(expect.stringContaining('is not the active theme'))
     expect(cmd.warn).toHaveBeenCalledWith(expect.stringContaining('templates/single'))
+  })
+
+  describe('activateChildTheme', () => {
+    const inactive = {...child, active: false}
+
+    it('activates the child after writing it when loopress.json asks for it', async () => {
+      const cmd = makeCommand(vi.fn().mockResolvedValue(inactive))
+      const post = vi.fn().mockResolvedValue({active: 'twentytwentyfive-loopress', changed: true, previous: 'twentytwentyfive'})
+      cmd.wpClient.post = post
+      cmd.localConfig.activateChildTheme = true
+
+      const result = await cmd.run()
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/theme/activate', {stylesheet: 'twentytwentyfive-loopress'})
+      expect(result).toMatchObject({active: true})
+      expect(cmd.warn).not.toHaveBeenCalledWith(expect.stringContaining('is not the active theme'))
+    })
+
+    it('leaves the active theme alone without it', async () => {
+      const cmd = makeCommand(vi.fn().mockResolvedValue(inactive))
+      const post = vi.fn()
+      cmd.wpClient.post = post
+
+      const result = await cmd.run()
+
+      expect(post).not.toHaveBeenCalled()
+      expect(result).toMatchObject({active: false})
+    })
+
+    it('says on a dry run that it would activate the child', async () => {
+      const cmd = makeCommand()
+      ;(cmd.wpClient as unknown as {get: unknown}).get = vi.fn().mockResolvedValue(child)
+      cmd.dryRun = true
+      cmd.localConfig.activateChildTheme = true
+      stubCapabilities(cmd)
+
+      await cmd.run()
+
+      expect((cmd as unknown as {logSpy: ReturnType<typeof vi.fn>}).logSpy).toHaveBeenCalledWith('[dry-run] Would activate twentytwentyfive-loopress.')
+    })
   })
 
   it('refuses the whole push before any network call when a file is invalid', async () => {
@@ -212,7 +253,7 @@ describe('template push', () => {
     await cmd.run()
 
     expect(cmd.warn.mock.calls.map(([line]) => line)).toEqual([
-      'twentytwentyfive-loopress is not the active theme, so nothing changed on the site yet. Activate it in Appearance > Themes.',
+      'twentytwentyfive-loopress is not the active theme, so nothing changed on the site yet. Run `lps theme activate`, or set "activateChildTheme": true in loopress.json.',
       'Edited in the Site Editor, their database copy still wins over the pushed file: templates/single, parts/header. Clear their customizations in Appearance > Editor to use the pushed version.',
       'No block registered on this site under these names, their CSS will never load: core/buton. Check the file name in theme/blocks/, or activate the plugin that provides the block.',
     ])

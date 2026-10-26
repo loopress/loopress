@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Pull from '../../src/commands/pull.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
+import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -37,8 +38,9 @@ class TestPull extends Pull {
   }
 }
 
-function make(options: {dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
+function make(options: {capabilities?: ReturnType<typeof makeCapabilities>; dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
   const cmd = new TestPull([], fakeOclifConfig)
+  stubCapabilities(cmd, options.capabilities ?? makeCapabilities())
   cmd.setup({
     dryRun: options.dryRun,
     siteConfig: options.siteConfig ?? makeEnv('staging', 'https://staging.acme.com'),
@@ -182,39 +184,30 @@ describe('pull', () => {
     expect(logs.log).toHaveBeenCalledWith('✓ plugins pulled')
   })
 
-  it('skips, without failing, a resource whose plugin the site lacks when the project does not use it', async () => {
+  it('skips, without asking the site, a resource whose plugin it lacks when the project does not use it', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
-    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => {
-      if (id === 'acf:pull') {
-        process.exitCode = 1 // what oclif's Command.catch does before rethrowing
-        throw new Error('Request failed (400) on https://x/wp-json/loopress/v1/acf/field-groups: ACF is not active')
-      }
-
-      return {}
-    })
-    const {cmd, logs} = make()
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({capabilities: makeCapabilities({integrations: {acf: false}})})
 
     const result = await cmd.run()
 
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('acf:pull', expect.anything())
     expect(result.results).toContainEqual({label: 'ACF', status: 'skipped'})
-    expect(logs.log).toHaveBeenCalledWith('→ ACF: not configured, skipped')
-    expect(process.exitCode).toBeUndefined()
+    expect(logs.log).toHaveBeenCalledWith('\n→ ACF: not configured, skipped')
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })
 
-  it('still fails on a missing plugin when the project uses that resource', async () => {
+  it('fails, without asking the site, a resource whose plugin it lacks when the project uses it', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
-    vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (id: string) => {
-      if (id === 'snippet:pull') throw new Error('Request failed (409) on https://x/wp-json/loopress/v1/snippets: No supported snippet plugin is active')
-      return {}
-    })
-    const {cmd} = make()
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
 
-    await expect(cmd.run()).rejects.toThrow('1 resource failed to pull.')
+    await expect(cmd.run()).rejects.toThrow('1 resource failed to pull. snippets: no supported snippet plugin is active on staging')
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('snippet:pull', expect.anything())
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

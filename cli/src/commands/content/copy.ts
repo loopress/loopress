@@ -141,7 +141,9 @@ export default class Copy extends LoopressCommand {
 
     const installed = new Set((await this.wp.get<WpThemeSupportInfo[]>('wp/v2/themes')).map((theme) => theme.stylesheet))
     const isChild = there.active === `${there.template}${CHILD_THEME_SUFFIX}`
-    const now = installed.has(there.active) ? there.active : isChild && installed.has(there.template) ? there.template : undefined
+    let now: string | undefined
+    if (installed.has(there.active)) now = there.active
+    else if (isChild && installed.has(there.template)) now = there.template
     if (!now) {
       this.warn(`${there.active} is active on ${from} but not installed locally, the local site keeps ${here.active}.`)
       return undefined

@@ -50,7 +50,7 @@ export default class Doctor extends LoopressCommand {
         // The namespace index answers regardless of which Loopress features are active, so a
         // 404 here can only mean the plugin itself is missing or outdated (WpClient's 404
         // message already says exactly that).
-        await this.check('Loopress plugin installed (loopress/v1 endpoints)', async () => this.wp.get('loopress/v1'))
+        const isInstalled = await this.check('Loopress plugin installed (loopress/v1 endpoints)', async () => this.wp.get('loopress/v1'))
 
         // wp/v2/users/me is WordPress core and requires authentication, so it validates the
         // application password without depending on any Loopress feature.
@@ -60,7 +60,8 @@ export default class Doctor extends LoopressCommand {
 
         // Skipped when the credentials were just rejected: it would only repeat that same 401.
         if (isAuthenticated) {
-          capabilities = await this.checkCapabilities()
+          // Without the plugin it would only repeat that same 404.
+          if (isInstalled) capabilities = await this.checkCapabilities()
           await this.checkLeftoverTempAdmins()
           await this.checkHookErrors()
         }
@@ -89,28 +90,6 @@ export default class Doctor extends LoopressCommand {
     return {capabilities, checks: this.checks, environment: name, ok, pluginVersion: capabilities?.version, project: projectName, url}
   }
 
-  // The CLI decides what to run from these, so an older plugin without them fails the doctor.
-  // The rest is informational.
-  private async checkCapabilities(): Promise<SiteCapabilities | undefined> {
-    let capabilities: SiteCapabilities | undefined
-    await this.check('Plugin recent enough for this CLI (loopress/v1/capabilities)', async () => {
-      capabilities = await this.capabilities()
-    })
-    if (!capabilities) return undefined
-
-    const {edition, environmentType, integrations, theme, version} = capabilities
-    const state = (active: boolean | undefined) => (active === undefined ? 'needs Loopress Full' : active ? 'active' : 'none')
-    this.out(`- Plugin: Loopress ${edition === 'full' ? 'Full' : 'Light'} ${version}, environment type "${environmentType}"`)
-    this.out(`- Integrations: ACF ${state(integrations.acf)}, forms ${state(integrations.form)}, snippets ${state(integrations.snippets)}`)
-    this.out(`- Theme: ${theme.active} (${theme.isBlock ? 'block theme' : 'classic theme'})`)
-    if (theme.child) {
-      const childState = theme.child.active ? 'active' : theme.child.exists ? 'not active, `lps theme activate`' : 'not pushed yet'
-      this.out(`- Loopress child theme: ${theme.child.stylesheet}, ${childState}`)
-    }
-
-    return capabilities
-  }
-
   private async check(title: string, run: () => Promise<unknown>): Promise<boolean> {
     try {
       await run()
@@ -124,6 +103,34 @@ export default class Doctor extends LoopressCommand {
       this.out(`  ${message}`)
       return false
     }
+  }
+
+  // The CLI decides what to run from these, so an older plugin without them fails the doctor.
+  // The rest is informational.
+  private async checkCapabilities(): Promise<SiteCapabilities | undefined> {
+    let capabilities: SiteCapabilities | undefined
+    await this.check('Plugin recent enough for this CLI (loopress/v1/capabilities)', async () => {
+      capabilities = await this.capabilities()
+    })
+    if (!capabilities) return undefined
+
+    const {edition, environmentType, integrations, theme, version} = capabilities
+    const state = (active: boolean | undefined) => {
+      if (active === undefined) return 'needs Loopress Full'
+      return active ? 'active' : 'none'
+    }
+
+    this.out(`- Plugin: Loopress ${edition === 'full' ? 'Full' : 'Light'} ${version}, environment type "${environmentType}"`)
+    this.out(`- Integrations: ACF ${state(integrations.acf)}, forms ${state(integrations.form)}, snippets ${state(integrations.snippets)}`)
+    this.out(`- Theme: ${theme.active} (${theme.isBlock ? 'block theme' : 'classic theme'})`)
+    if (theme.child) {
+      let childState = 'not pushed yet'
+      if (theme.child.active) childState = 'active'
+      else if (theme.child.exists) childState = 'not active, `lps theme activate`'
+      this.out(`- Loopress child theme: ${theme.child.stylesheet}, ${childState}`)
+    }
+
+    return capabilities
   }
 
   // A hook that fails to load or throws while running doesn't break the site, it just quietly
