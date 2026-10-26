@@ -173,36 +173,37 @@ class AcfService
             return [];
         }
 
-        return array_map(function (mixed $field): mixed {
-            if (!is_array($field)) {
-                return $field;
-            }
+        return array_map($this->roundTripField(...), array_values($fields));
+    }
 
-            // acf_update_field() drops empty conditional logic rules inline, not through a filter.
-            if (is_array($field['conditional_logic'] ?? null)) {
-                $field['conditional_logic'] = array_values(array_map(
-                    fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules)) : $rules,
-                    array_filter($field['conditional_logic']),
-                ));
-            }
-
-            $subFields = $field['sub_fields'] ?? null;
-            $layouts   = $field['layouts'] ?? null;
-            $field     = $this->roundTrip($field, 'acf_validate_field', 'acf/update_field', 'acf/load_field');
-            if ($subFields !== null) {
-                $field['sub_fields'] = $this->roundTripFields($subFields);
-            }
-
-            if (is_array($layouts)) {
-                foreach ($layouts as $name => $layout) {
-                    if (is_array($layout) && isset($layout['sub_fields'])) {
-                        $field['layouts'][$name]['sub_fields'] = $this->roundTripFields($layout['sub_fields']);
-                    }
-                }
-            }
-
+    private function roundTripField(mixed $field): mixed
+    {
+        if (!is_array($field)) {
             return $field;
-        }, array_values($fields));
+        }
+
+        // acf_update_field() drops empty conditional logic rules inline, not through a filter.
+        if (is_array($field['conditional_logic'] ?? null)) {
+            $field['conditional_logic'] = array_values(array_map(
+                fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules)) : $rules,
+                array_filter($field['conditional_logic']),
+            ));
+        }
+
+        $subFields = $field['sub_fields'] ?? null;
+        $layouts   = $field['layouts'] ?? null;
+        $field     = $this->roundTrip($field, 'acf_validate_field', 'acf/update_field', 'acf/load_field');
+        if ($subFields !== null) {
+            $field['sub_fields'] = $this->roundTripFields($subFields);
+        }
+
+        foreach (is_array($layouts) ? $layouts : [] as $name => $layout) {
+            if (is_array($layout) && isset($layout['sub_fields'])) {
+                $field['layouts'][$name]['sub_fields'] = $this->roundTripFields($layout['sub_fields']);
+            }
+        }
+
+        return $field;
     }
 
     /** @param array<string, mixed> $post @return array<string, mixed> */

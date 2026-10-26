@@ -251,17 +251,8 @@ class OptionsService
                 continue;
             }
 
-            foreach ($this->phpFilesIn($pluginDir) as $file) {
-                $content = file_get_contents($file); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-                if ($content === false) {
-                    continue;
-                }
-
-                foreach ($unresolvedNames as $name) {
-                    if (self::containsQuotedName($content, $name)) {
-                        $hits[$name][] = $slug;
-                    }
-                }
+            foreach ($this->namesReferencedIn($pluginDir, $unresolvedNames) as $name) {
+                $hits[$name][] = $slug;
             }
         }
 
@@ -270,6 +261,29 @@ class OptionsService
         }
 
         return $hits;
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return array<int, string> the names some PHP file under $pluginDir references
+     */
+    private function namesReferencedIn(string $pluginDir, array $names): array
+    {
+        $found = [];
+        foreach ($this->phpFilesIn($pluginDir) as $file) {
+            $content = file_get_contents($file); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+            if ($content === false) {
+                continue;
+            }
+
+            foreach ($names as $name) {
+                if (self::containsQuotedName($content, $name)) {
+                    $found[$name] = $name;
+                }
+            }
+        }
+
+        return array_values($found);
     }
 
     private static function containsQuotedName(string $content, string $name): bool

@@ -25,27 +25,30 @@ final class OptionReferences
     public static function toPaths(mixed $value, array $refs): mixed
     {
         foreach ($refs as $path => $postType) {
-            $value = self::mapAt($value, $path, static function (mixed $id) use ($path, $postType): mixed {
-                if (!self::isSet($id)) {
-                    return $id;
-                }
-
-                // A whole positive number only: is_numeric() would let 7.5 through as page 7.
-                $post = (is_int($id) && $id > 0) || (is_string($id) && ctype_digit($id)) ? get_post((int) $id) : null;
-                if (!$post instanceof \WP_Post || $post->post_type !== $postType) {
-                    $shown = is_scalar($id) ? (string) $id : gettype($id);
-                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
-                    throw new UnresolvedOptionReferenceException(
-                        "\"{$path}\" holds \"{$postType}\" ID {$shown}, which does not exist on this environment.",
-                    );
-                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
-                }
-
-                return PostByPath::pathOf($post);
-            });
+            $value = self::mapAt($value, $path, static fn(mixed $id): mixed => self::referencePath($id, $path, $postType));
         }
 
         return $value;
+    }
+
+    private static function referencePath(mixed $id, string $path, string $postType): mixed
+    {
+        if (!self::isSet($id)) {
+            return $id;
+        }
+
+        // A whole positive number only: is_numeric() would let 7.5 through as page 7.
+        $post = (is_int($id) && $id > 0) || (is_string($id) && ctype_digit($id)) ? get_post((int) $id) : null;
+        if (!$post instanceof \WP_Post || $post->post_type !== $postType) {
+            $shown = is_scalar($id) ? (string) $id : gettype($id);
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
+            throw new UnresolvedOptionReferenceException(
+                "\"{$path}\" holds \"{$postType}\" ID {$shown}, which does not exist on this environment.",
+            );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+
+        return PostByPath::pathOf($post);
     }
 
     /** @param array<string, string> $refs */

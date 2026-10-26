@@ -212,16 +212,7 @@ abstract class AbstractDeclaredTypeService
     /** @param array<string, mixed> $args */
     private function assertValid(string $slug, array $args): void
     {
-        $max = $this->maxSlugLength();
-        if (preg_match('/^[a-z0-9_-]{1,' . $max . '}$/', $slug) !== 1) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
-            throw new InvalidDeclarationException("Invalid {$this->lowerNoun()} slug \"{$slug}\": 1 to {$max} lowercase letters, digits, \"_\" or \"-\".");
-        }
-
-        if (in_array($slug, $this->reservedSlugs(), true) || str_starts_with($slug, 'wp_')) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
-            throw new InvalidDeclarationException("{$this->noun()} slug \"{$slug}\" is reserved by WordPress.");
-        }
+        $this->assertValidSlug($slug);
 
         foreach ($this->arrayArgs() as $key => $alsoAllowed) {
             if (array_key_exists($key, $args) && !is_array($args[$key]) && !in_array($args[$key], $alsoAllowed, true)) {
@@ -244,6 +235,20 @@ abstract class AbstractDeclaredTypeService
         }
 
         $this->assertArgs($slug, $args);
+    }
+
+    private function assertValidSlug(string $slug): void
+    {
+        $max = $this->maxSlugLength();
+        if (preg_match('/^[a-z0-9_-]{1,' . $max . '}$/', $slug) !== 1) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
+            throw new InvalidDeclarationException("Invalid {$this->lowerNoun()} slug \"{$slug}\": 1 to {$max} lowercase letters, digits, \"_\" or \"-\".");
+        }
+
+        if (in_array($slug, $this->reservedSlugs(), true) || str_starts_with($slug, 'wp_')) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
+            throw new InvalidDeclarationException("{$this->noun()} slug \"{$slug}\" is reserved by WordPress.");
+        }
     }
 
     private function lowerNoun(): string
