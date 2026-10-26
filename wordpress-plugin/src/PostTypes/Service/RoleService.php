@@ -58,6 +58,7 @@ class RoleService extends AbstractDeclaredTypeService
 
         $result = [];
         foreach ($roles->role_names as $slug => $name) {
+            $slug   = (string) $slug; // a numeric role slug is an int array key
             $object = $roles->get_role($slug);
             $ours   = $object !== null && $this->isOurs($slug, $object);
             $result[] = [

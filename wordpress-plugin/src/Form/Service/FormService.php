@@ -37,7 +37,10 @@ class FormService extends AbstractSingleProviderService
         return $form === null ? null : $this->withRevision($form);
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     public function create(array $data): array
     {
         return $this->withRevision($this->activeFormProvider()->create($data));

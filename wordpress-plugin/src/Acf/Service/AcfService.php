@@ -206,7 +206,10 @@ class AcfService
         return $field;
     }
 
-    /** @param array<string, mixed> $post @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $post
+     * @return array<string, mixed>
+     */
     private function prepareForExport(array $post, string $postType): array
     {
         if ($postType === 'acf-field-group') {

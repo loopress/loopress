@@ -23,10 +23,16 @@ interface FormProvider extends ActivatableProvider
     /** @return array<string, mixed>|null */
     public function get(int $id): ?array;
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     public function create(array $data): array;
 
-    /** @param array<string, mixed> $data @return array<string, mixed>|null */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>|null
+     */
     public function update(int $id, array $data): ?array;
 
     public function delete(int $id): bool;

@@ -110,7 +110,7 @@ class RouteLoader extends AbstractFileLoader
      * verb the file publicly implements. Kept as pure logic (no WP calls) so it's testable
      * without stubbing register_rest_route().
      *
-     * @return array<int, array{methods: string, callback: callable, permission_callback: callable, show_in_index?: false, loopress_instance?: object}>
+     * @return array<int, array{methods: string, callback: callable(WP_REST_Request): mixed, permission_callback: callable(WP_REST_Request): bool, show_in_index?: false, loopress_instance?: object}>
      */
     public function endpointsFor(object $instance): array
     {
@@ -158,6 +158,7 @@ class RouteLoader extends AbstractFileLoader
     // the file's own permission() (passed by reference, never called here: WP invokes it
     // lazily at dispatch, as permission_callback(WP_REST_Request): bool, the same way any
     // native WP REST permission_callback works), the closed manage_options default.
+    /** @return callable(WP_REST_Request): bool */
     private function resolvePermission(object $instance, string $verbMethod): callable
     {
         $attribute = $this->permissionAttributeFor($instance, $verbMethod);
@@ -181,6 +182,7 @@ class RouteLoader extends AbstractFileLoader
         return $classAttributes === [] ? null : $classAttributes[0]->newInstance();
     }
 
+    /** @return callable(WP_REST_Request): bool */
     private function permissionFromAttribute(object $instance, Permission $attribute): callable
     {
         if ($attribute->public) {
@@ -214,15 +216,17 @@ class RouteLoader extends AbstractFileLoader
     // at dispatch, not at registration inside loadFile()'s try/catch, would 500/fatal this one
     // request instead of the route returning a clean error. get()/post()/etc. is exactly that
     // same category of dispatch-time user code, just not previously wrapped.
+    /** @return callable(WP_REST_Request): mixed */
     private function wrapVerbCallback(object $instance, string $method): callable
     {
         return function (WP_REST_Request $request) use ($instance, $method) {
-            if (!is_callable([$instance, $method])) {
+            $callback = [$instance, $method];
+            if (!is_callable($callback)) {
                 return new \WP_REST_Response(['error' => 'Internal error'], 500);
             }
 
             try {
-                return call_user_func([$instance, $method], $request);
+                return call_user_func($callback, $request);
             } catch (\Throwable $e) {
                 $this->log("{$method}() threw: " . $e->getMessage());
                 return new \WP_REST_Response(['error' => 'Internal error'], 500);
@@ -237,20 +241,20 @@ class RouteLoader extends AbstractFileLoader
     // boot. Same principle already applied to headers() in applyHeaders() below: fail closed
     // (deny) and log, rather than let WP see an uncaught exception from a permission_callback.
     //
-    // Takes the target and method name separately rather than a pre-built [$target, $method]
-    // array, so that array literal stays inline at the is_callable()/call_user_func() call
-    // sites below, same shape phpstan already accepts for the identical pattern in
-    // applyHeaders(): it can't verify a bare object (or class-string) has a given method
-    // otherwise.
+    // The [$target, $method] array goes through a variable so is_callable() narrows it for the
+    // call below: with rememberPossiblyImpureFunctionValues off, PHPStan no longer carries that
+    // narrowing over to a second, identical array literal.
+    /** @return callable(WP_REST_Request): bool */
     private function wrapCallableMethod(object|string $target, string $method): callable
     {
         return function (WP_REST_Request $request) use ($target, $method): bool {
-            if (!is_callable([$target, $method])) {
+            $callback = [$target, $method];
+            if (!is_callable($callback)) {
                 return false;
             }
 
             try {
-                $result = call_user_func([$target, $method], $request);
+                $result = call_user_func($callback, $request);
             } catch (\Throwable $e) {
                 $this->log("{$method}() threw: " . $e->getMessage());
                 return false;

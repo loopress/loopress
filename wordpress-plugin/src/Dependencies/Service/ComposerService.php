@@ -23,6 +23,7 @@ class ComposerService
         private readonly ClientInterface $httpClient,
     ) {}
 
+    /** @return array<int, array<string, mixed>>|null */
     public function getVersions(string $package): ?array
     {
         return $this->packagistClient->getVersions($package);
@@ -56,6 +57,7 @@ class ComposerService
         }
     }
 
+    /** @return list<array{name: string, constraint: mixed, version: mixed}> */
     public function getInstalled(): array
     {
         $this->ensureInitialized();
@@ -190,6 +192,7 @@ class ComposerService
         return $exposed;
     }
 
+    /** @return list<array{name: mixed, version: mixed, latest: mixed}> */
     public function getOutdated(): array
     {
         $result = $this->composerRunner->run(['outdated'], ['--direct' => true, '--format' => 'json']);
@@ -213,6 +216,7 @@ class ComposerService
         ], $outdated));
     }
 
+    /** @return array{advisories: mixed, abandoned: mixed} */
     public function audit(): array
     {
         $result = $this->composerRunner->run(['audit'], ['--format' => 'json']);

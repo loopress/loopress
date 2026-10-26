@@ -38,7 +38,10 @@ class WPFormsProvider implements FormProvider
             : null;
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     public function create(array $data): array
     {
         $data = $this->sanitizeFormData($data, null);
@@ -62,7 +65,10 @@ class WPFormsProvider implements FormProvider
         return $this->get($formId) ?? array_merge($data, ['id' => $formId]);
     }
 
-    /** @param array<string, mixed> $data @return array<string, mixed>|null */
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>|null
+     */
     public function update(int $id, array $data): ?array
     {
         $existing = $this->get($id);
