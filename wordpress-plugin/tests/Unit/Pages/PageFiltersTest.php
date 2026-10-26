@@ -120,9 +120,9 @@ class PageFiltersTest extends TestCase
 
     public function test_adds_the_managed_by_loopress_post_state(): void
     {
-        $managed     = new WP_Post();
+        $managed     = new WP_Post(new \stdClass());
         $managed->ID = 5;
-        $regular     = new WP_Post();
+        $regular     = new WP_Post(new \stdClass());
         $regular->ID = 6;
 
         $this->assertSame(['loopress' => 'Managed by Loopress'], $this->filters->addPostState([], $managed));

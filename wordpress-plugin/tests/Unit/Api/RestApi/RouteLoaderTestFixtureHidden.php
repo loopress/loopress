@@ -9,6 +9,7 @@ use Loopress\Api\Attribute\Hidden;
 #[Hidden]
 final class RouteLoaderTestFixtureHidden
 {
+    /** @return array<string, mixed> */
     public function get(): array
     {
         return ['ok' => true];

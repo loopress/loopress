@@ -79,6 +79,12 @@ final class InfectionPatchworkBridge
         stream_wrapper_restore('file');
     }
 
+    /**
+     * @param string $path
+     * @param string $mode
+     * @param int $options
+     * @param string|null $openedPath
+     */
     public function stream_open($path, $mode, $options, &$openedPath = null): bool
     {
         $this->disable();
@@ -101,7 +107,10 @@ final class InfectionPatchworkBridge
         return $this->fp !== false;
     }
 
-    private function pointsAtIntercepted($path)
+    /**
+     * @param string $path
+     */
+    private function pointsAtIntercepted($path): bool
     {
         if ($path === self::$intercept) {
             return true;
@@ -112,11 +121,17 @@ final class InfectionPatchworkBridge
         return $resolved !== false && $resolved === self::$intercept;
     }
 
+    /**
+     * @param int<1, max> $count
+     */
     public function stream_read($count): string
     {
         return is_resource($this->fp) ? (string) fread($this->fp, (int) $count) : '';
     }
 
+    /**
+     * @param string $data
+     */
     public function stream_write($data): int
     {
         return is_resource($this->fp) ? (int) fwrite($this->fp, (string) $data) : 0;
@@ -127,6 +142,10 @@ final class InfectionPatchworkBridge
         return !is_resource($this->fp) || feof($this->fp);
     }
 
+    /**
+     * @param int $offset
+     * @param int $whence
+     */
     public function stream_seek($offset, $whence = SEEK_SET): bool
     {
         return is_resource($this->fp) && fseek($this->fp, (int) $offset, (int) $whence) === 0;
@@ -142,11 +161,17 @@ final class InfectionPatchworkBridge
         return is_resource($this->fp) && fflush($this->fp);
     }
 
+    /**
+     * @param int<0, max> $newSize
+     */
     public function stream_truncate($newSize): bool
     {
         return is_resource($this->fp) && ftruncate($this->fp, (int) $newSize);
     }
 
+    /**
+     * @param int<0, 7> $operation
+     */
     public function stream_lock($operation): bool
     {
         $operation = (int) $operation;
@@ -154,16 +179,28 @@ final class InfectionPatchworkBridge
         return $operation === 0 || !is_resource($this->fp) || flock($this->fp, $operation);
     }
 
+    /**
+     * @return array<int|string, int>|false
+     */
     public function stream_stat(): array|false
     {
         return is_resource($this->fp) ? fstat($this->fp) : false;
     }
 
+    /**
+     * @param int $option
+     * @param int $arg1
+     * @param int $arg2
+     */
     public function stream_set_option($option, $arg1, $arg2): bool
     {
         return false;
     }
 
+    /**
+     * @param int $castAs
+     * @return resource|false
+     */
     public function stream_cast($castAs)
     {
         return $this->fp;
@@ -176,6 +213,11 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $path
+     * @param int $flags
+     * @return array<int|string, int>|false
+     */
     public function url_stat($path, $flags): array|false
     {
         $this->disable();
@@ -202,6 +244,11 @@ final class InfectionPatchworkBridge
         return $result;
     }
 
+    /**
+     * @param string $path
+     * @param int $mode
+     * @param int $options
+     */
     public function mkdir($path, $mode, $options): bool
     {
         $this->disable();
@@ -217,6 +264,10 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $path
+     * @param int $options
+     */
     public function rmdir($path, $options): bool
     {
         $this->disable();
@@ -228,6 +279,10 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $pathFrom
+     * @param string $pathTo
+     */
     public function rename($pathFrom, $pathTo): bool
     {
         $this->disable();
@@ -241,6 +296,9 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $path
+     */
     public function unlink($path): bool
     {
         $this->disable();
@@ -252,6 +310,12 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $path
+     * @param int $option
+     * @param mixed $value
+     * @return bool
+     */
     public function stream_metadata($path, $option, $value)
     {
         $this->disable();
@@ -269,6 +333,10 @@ final class InfectionPatchworkBridge
         }
     }
 
+    /**
+     * @param string $path
+     * @param int $options
+     */
     public function dir_opendir($path, $options): bool
     {
         $this->disable();

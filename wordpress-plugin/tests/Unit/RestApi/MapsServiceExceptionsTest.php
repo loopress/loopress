@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\RestApi;
 
-use Loopress\RestApi\MapsServiceExceptions;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Response;
 
@@ -118,16 +117,8 @@ class MapsServiceExceptionsTest extends TestCase
         $this->assertSame(['error' => 'mapped'], $response->data);
     }
 
-    private function subject(): object
+    private function subject(): MapsServiceExceptionsTestSubject
     {
-        return new class() {
-            use MapsServiceExceptions;
-
-            /** @param array<class-string<\Throwable>, int> $statuses */
-            public function run(callable $handler, array $statuses = []): WP_REST_Response
-            {
-                return $this->mapServiceExceptions($handler, $statuses);
-            }
-        };
+        return new MapsServiceExceptionsTestSubject();
     }
 }

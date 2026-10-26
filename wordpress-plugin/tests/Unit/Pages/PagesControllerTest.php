@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Pages;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Pages\ManagedPage;
 use Loopress\Pages\RestApi\PagesController;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
-use WP_REST_Request;
 
 class PagesControllerTest extends TestCase
 {
@@ -78,13 +78,13 @@ class PagesControllerTest extends TestCase
             if ($page === null) {
                 return null;
             }
-            $post              = new WP_Post();
-            $post->ID          = $id;
-            $post->post_name   = $page['name'];
-            $post->post_status = $page['status'];
-            $post->post_title  = 'Title';
-            $post->post_type   = 'page';
-            return $post;
+            return new WP_Post((object) [
+                'ID'          => $id,
+                'post_name'   => $page['name'],
+                'post_status' => $page['status'],
+                'post_title'  => 'Title',
+                'post_type'   => 'page',
+            ]);
         });
         Functions\when('get_page_template_slug')->alias(fn(WP_Post $post): string => $this->pages[$post->ID]['template'] ?? '');
         Functions\when('get_posts')->alias(fn(array $args): array => $this->queryPages($args));
@@ -103,15 +103,21 @@ class PagesControllerTest extends TestCase
             ];
             return $id;
         });
-        Functions\when('wp_update_post')->alias(function (array $postarr): int {
-            $this->writes[]                            = ['fn' => 'update', 'postarr' => $postarr];
-            $this->pages[$postarr['ID']]['status']    = $postarr['post_status'];
-            $this->pages[$postarr['ID']]['html']      = $postarr['meta_input'][ManagedPage::HTML_META];
-            $this->pages[$postarr['ID']]['fullWidth'] = $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1';
-            $this->pages[$postarr['ID']]['hideTitle'] = $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1';
-            $this->pages[$postarr['ID']]['template']  = $postarr['page_template'];
-            return $postarr['ID'];
-        });
+        Functions\when('wp_update_post')->alias(
+            /** @param array{ID: int, post_status: string, meta_input: array<string, string>, page_template: string} $postarr */
+            function (array $postarr): int {
+                $this->writes[]              = ['fn' => 'update', 'postarr' => $postarr];
+                $this->pages[$postarr['ID']] = [
+                    'status'    => $postarr['post_status'],
+                    'html'      => $postarr['meta_input'][ManagedPage::HTML_META],
+                    'fullWidth' => $postarr['meta_input'][ManagedPage::FULL_WIDTH_META] === '1',
+                    'hideTitle' => $postarr['meta_input'][ManagedPage::HIDE_TITLE_META] === '1',
+                    'template'  => $postarr['page_template'],
+                ] + $this->pages[$postarr['ID']];
+
+                return $postarr['ID'];
+            },
+        );
     }
 
     protected function tearDown(): void
@@ -156,7 +162,7 @@ class PagesControllerTest extends TestCase
         string $template = '',
         bool $adopt = false,
     ): \WP_REST_Response {
-        return $this->controller->put_page(new WP_REST_Request([
+        return $this->controller->put_page(RestRequest::with([
             'slug'      => $slug,
             'title'     => 'About',
             'status'    => $status,

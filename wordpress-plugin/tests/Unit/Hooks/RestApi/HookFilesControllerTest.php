@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Hooks\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Hooks\RestApi\HookFilesController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class HookFilesControllerTest extends TestCase
 {
@@ -196,7 +196,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_for_a_filename_the_register_routes_validate_callback_would_reject(): void
     {
-        $request = new WP_REST_Request(['filename' => '../../../wp-config', 'content' => '<?php']);
+        $request = RestRequest::with(['filename' => '../../../wp-config', 'content' => '<?php']);
 
         $this->directory->expects($this->never())->method('write');
 
@@ -207,7 +207,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_writes_the_guarded_content(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
         ]);
@@ -234,7 +234,7 @@ class HookFilesControllerTest extends TestCase
         $this->directory->method('read')->with('hello')->willReturn($current);
         $this->directory->expects($this->never())->method('write');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename'         => 'hello',
             'content'          => "<?php\ndeclare(strict_types=1);\nuse Loopress\\Hooks\\Attribute\\Action;\nfinal class Hello {\n    #[Action('init')]\n    public function run(): void {}\n}\n",
             'expectedRevision' => 'not-the-current-revision',
@@ -248,7 +248,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
     {
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => "<?php\nfinal class Hello {}\n"]);
 
         $this->directory->expects($this->never())->method('write');
 
@@ -259,7 +259,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_has_invalid_php_syntax(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'broken',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Broken {\n    public function onInit() {\n        return 1\n    }\n}\n",
         ]);
@@ -274,7 +274,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_declares_no_class(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfunction not_a_class(): void {}\n",
         ]);
@@ -289,7 +289,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_content_declares_more_than_one_class(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\nfinal class World {}\n",
         ]);
@@ -304,7 +304,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_hooks_file(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'new-file',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Shared {}\n",
         ]);
@@ -326,7 +326,7 @@ class HookFilesControllerTest extends TestCase
         // WP_Post is one of the global WP REST stubs already loaded for every test (see
         // tests/Stubs/WpRestStubs.php), standing in for a WP core or third-party plugin class
         // that's already declared by the time this request runs.
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class WP_Post {}\n",
         ]);
@@ -342,7 +342,7 @@ class HookFilesControllerTest extends TestCase
     public function test_push_file_does_not_flag_a_collision_when_repushing_the_same_file_unchanged(): void
     {
         $content = "<?php\ndeclare(strict_types=1);\nfinal class WP_Post {}\n";
-        $request = new WP_REST_Request(['filename' => 'hello', 'content' => $content]);
+        $request = RestRequest::with(['filename' => 'hello', 'content' => $content]);
 
         $this->directory->method('listSlugs')->willReturn(['hello']);
         $this->directory->method('read')->with('hello')->willReturn($content);
@@ -355,7 +355,7 @@ class HookFilesControllerTest extends TestCase
 
     public function test_push_file_returns_500_when_the_directory_write_fails(): void
     {
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'filename' => 'hello',
             'content'  => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n",
         ]);
@@ -373,7 +373,7 @@ class HookFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->once())->method('delete')->with('content-filters')->willReturn(true);
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content-filters']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'content-filters']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['filename' => 'content-filters', 'deleted' => true], $response->data);
@@ -383,7 +383,7 @@ class HookFilesControllerTest extends TestCase
     {
         $this->directory->method('delete')->willReturn(false);
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content-filters']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'content-filters']));
 
         $this->assertSame(404, $response->status);
     }
@@ -394,7 +394,7 @@ class HookFilesControllerTest extends TestCase
     {
         $this->directory->expects($this->never())->method('delete');
 
-        $response = $this->controller->delete_file(new WP_REST_Request(['filename' => 'content/index']));
+        $response = $this->controller->delete_file(RestRequest::with(['filename' => 'content/index']));
 
         $this->assertSame(400, $response->status);
     }
@@ -415,7 +415,7 @@ class HookFilesControllerTest extends TestCase
             ->with('content-filters', $this->stringContains("if (!defined('ABSPATH'))"));
         $this->directory->expects($this->once())->method('commitBatch');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content-filters']],
         ]);
         $response = $this->controller->push_batch($request);
@@ -428,7 +428,7 @@ class HookFilesControllerTest extends TestCase
         $this->directory->expects($this->never())->method('stageWrite');
         $this->directory->expects($this->once())->method('abortBatch');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content/index']],
         ]);
         $response = $this->controller->push_batch($request);
@@ -442,7 +442,7 @@ class HookFilesControllerTest extends TestCase
         $this->directory->expects($this->once())->method('abortBatch');
         $this->directory->expects($this->never())->method('commitBatch');
 
-        $request = new WP_REST_Request([
+        $request = RestRequest::with([
             'files' => [['content' => "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n", 'filename' => 'content-filters']],
             'prune' => ['content/index'],
         ]);

@@ -34,7 +34,7 @@ class PackagistClientTest extends TestCase
     /** @param array<string, array<string, mixed>> $versions */
     private function stubPackageResponse(array $versions): void
     {
-        $body = json_encode(['package' => ['versions' => $versions]]);
+        $body = json_encode(['package' => ['versions' => $versions]], JSON_THROW_ON_ERROR);
         $this->httpClient->willReturn(new Response(200, [], $body));
     }
 
@@ -82,6 +82,7 @@ class PackagistClientTest extends TestCase
         ]);
 
         $result = $this->client->getVersions('guzzlehttp/guzzle');
+        $this->assertNotNull($result);
 
         $this->assertCount(2, $result);
         $this->assertSame('2.0.0', $result[0]['version']);
@@ -97,6 +98,7 @@ class PackagistClientTest extends TestCase
         ]);
 
         $result = $this->client->getVersions('guzzlehttp/guzzle');
+        $this->assertNotNull($result);
 
         $this->assertTrue($result[0]['php_compatible']);
         $this->assertSame('>=1.0', $result[0]['php_constraint']);
@@ -111,6 +113,7 @@ class PackagistClientTest extends TestCase
         ]);
 
         $result = $this->client->getVersions('guzzlehttp/guzzle');
+        $this->assertNotNull($result);
 
         $this->assertNull($result[0]['php_constraint']);
         $this->assertNull($result[0]['php_compatible']);
@@ -145,6 +148,8 @@ class PackagistClientTest extends TestCase
         $this->stubPackageResponse([]);
 
         $this->client->getVersions('guzzlehttp/guzzle');
+
+        $this->assertNotNull($this->httpClient->lastRequest);
 
         $this->assertSame(
             'https://packagist.org/packages/guzzlehttp/guzzle.json',

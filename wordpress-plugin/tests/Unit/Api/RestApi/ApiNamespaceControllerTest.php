@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Api\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\ApiNamespace;
 use Loopress\Api\RestApi\ApiNamespaceController;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class ApiNamespaceControllerTest extends TestCase
 {
@@ -42,7 +42,7 @@ class ApiNamespaceControllerTest extends TestCase
     {
         Functions\expect('update_option')->once()->with(ApiNamespace::OPTION, 'my-headless-api/v1')->andReturn(true);
 
-        $request  = new WP_REST_Request(['namespace' => 'my-headless-api/v1']);
+        $request  = RestRequest::with(['namespace' => 'my-headless-api/v1']);
         $response = $this->controller->update_namespace($request);
 
         $this->assertSame(['namespace' => 'my-headless-api/v1'], $response->get_data());

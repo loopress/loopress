@@ -5,8 +5,6 @@ includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpstan/phpstan-phpunit/extension.neon
     - vendor/phpstan/phpstan-phpunit/rules.neon
-    # Pre-existing tests/ errors, frozen when tests/ joined the analysis: new tests must be clean.
-    - phpstan-baseline.neon
 
 parameters:
     level: 9
@@ -35,6 +33,12 @@ parameters:
         - stubs/code-snippets-stubs.php
         - stubs/acf-stubs.php
         - stubs/wpforms-stubs.php
+        - stubs/phpstan-constants.php
+    dynamicConstantNames:
+        - LOOPRESS_PLUGIN_URL
+        - LOOPRESS_PLUGIN_PATH
+        - LOOPRESS_PLUGIN_SLUG
+        - LOOPRESS_VERSION
     excludePaths:
         - vendor
         # Test-only WP class doubles and constants: analysed, they'd shadow the real WordPress
@@ -47,9 +51,23 @@ parameters:
         - identifier: staticMethod.dynamicCall
           path: tests/*
 
-        # Constants defined in the plugin root file (loopress.php), not in src/
-        - '#Constant LOOPRESS_PLUGIN_(PATH|URL|SLUG) not found#'
-        - '#Constant LOOPRESS_VERSION not found#'
+        # Test-control hooks that only the WpRestStubs.php doubles have, not WordPress: a test
+        # sets a malformed JSON body, declares registered blocks, seeds or resets the pattern
+        # registry, or reads the admin bar nodes a module added.
+        - message: '#^Call to an undefined method WP_REST_Request(<.+>)?::set_json_params\(\)\.$#'
+          path: tests/*
+        - message: '#^Access to an undefined static property WP_Block_Type_Registry::\$registered\.$#'
+          path: tests/*
+        - message: '#^Call to an undefined static method WP_Block_Patterns_Registry::reset\(\)\.$#'
+          path: tests/*
+        - message: '#^Access to an undefined property WP_Block_Patterns_Registry::\$patterns\.$#'
+          path: tests/*
+        - message: '#^Access to an undefined property WP_Admin_Bar::\$nodes\.$#'
+          path: tests/*
+
+        # Route fixtures are read through reflection (verb methods, attributes), never called.
+        - identifier: method.unused
+          path: tests/Unit/*/RestApi/*Fixture*.php
 
         # checkSyntax() calls token_get_all() for the ParseError it throws, not its tokens.
         - identifier: function.resultUnused

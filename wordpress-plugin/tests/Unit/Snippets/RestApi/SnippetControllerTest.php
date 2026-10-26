@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Snippets\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Snippets\Contract\SnippetData;
@@ -15,7 +16,6 @@ use Loopress\Snippets\RestApi\SnippetController;
 use Loopress\Snippets\Service\SnippetService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class SnippetControllerTest extends TestCase
 {
@@ -100,7 +100,7 @@ class SnippetControllerTest extends TestCase
     {
         $this->snippetService->method('isActive')->willReturn(false);
 
-        $response = $this->controller->get_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->get_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -110,7 +110,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('getSnippet')->willReturn(null);
 
-        $response = $this->controller->get_snippet(new WP_REST_Request(['id' => '999']));
+        $response = $this->controller->get_snippet(RestRequest::with(['id' => '999']));
 
         $this->assertSame(404, $response->status);
     }
@@ -120,7 +120,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('getSnippet')->with(1)->willReturn(new SnippetData(id: 1));
 
-        $response = $this->controller->get_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->get_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['id' => 1], $response->data);
@@ -133,7 +133,7 @@ class SnippetControllerTest extends TestCase
             new NoActiveSnippetPluginException('Multiple snippet plugins are active at once.'),
         );
 
-        $response = $this->controller->get_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->get_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -145,7 +145,7 @@ class SnippetControllerTest extends TestCase
             new SnippetProviderRequestException('Code Snippets request failed.'),
         );
 
-        $response = $this->controller->get_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->get_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(502, $response->status);
     }
@@ -157,7 +157,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(false);
         $this->snippetService->expects($this->never())->method('createSnippet');
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => '<?php']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => '<?php']));
 
         $this->assertSame(409, $response->status);
     }
@@ -167,7 +167,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('createSnippet')->willReturn(new SnippetData(id: 1, name: 'Test'));
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => '<?php']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => '<?php']));
 
         $this->assertSame(201, $response->status);
         $this->assertSame(['id' => 1, 'name' => 'Test'], $response->data);
@@ -186,7 +186,7 @@ class SnippetControllerTest extends TestCase
             },
         );
 
-        $this->controller->create_snippet(new WP_REST_Request([
+        $this->controller->create_snippet(RestRequest::with([
             'name'                => 'Analytics',
             'code'                => '<script></script>',
             'type'                => 'js',
@@ -230,7 +230,7 @@ class SnippetControllerTest extends TestCase
 
         // Only description and priority are sent; every other field is absent and must not
         // be forwarded as a null "clear this" instruction.
-        $this->controller->update_snippet(new WP_REST_Request([
+        $this->controller->update_snippet(RestRequest::with([
             'id'          => '5',
             'description' => 'Updated note',
             'priority'    => 7,
@@ -250,7 +250,7 @@ class SnippetControllerTest extends TestCase
             new UnsupportedLocationException('WPCode does not support the "admin" location for css snippets.'),
         );
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => 'x']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => 'x']));
 
         $this->assertSame(400, $response->status);
     }
@@ -262,7 +262,7 @@ class SnippetControllerTest extends TestCase
             new NoActiveSnippetPluginException('Multiple snippet plugins are active at once.'),
         );
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => 'x']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => 'x']));
 
         $this->assertSame(409, $response->status);
     }
@@ -274,7 +274,7 @@ class SnippetControllerTest extends TestCase
             new SnippetProviderRequestException('Failed to create snippet.'),
         );
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => 'x']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => 'x']));
 
         $this->assertSame(502, $response->status);
     }
@@ -284,7 +284,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('createSnippet')->willThrowException(new \RuntimeException('Unexpected.'));
 
-        $response = $this->controller->create_snippet(new WP_REST_Request(['name' => 'Test', 'code' => 'x']));
+        $response = $this->controller->create_snippet(RestRequest::with(['name' => 'Test', 'code' => 'x']));
 
         $this->assertSame(500, $response->status);
     }
@@ -296,7 +296,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(false);
         $this->snippetService->expects($this->never())->method('updateSnippet');
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -306,7 +306,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('updateSnippet')->willReturn(null);
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '999', 'name' => 'New']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '999', 'name' => 'New']));
 
         $this->assertSame(404, $response->status);
     }
@@ -316,7 +316,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('updateSnippet')->willReturn(new SnippetData(id: 1, name: 'New'));
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1', 'name' => 'New']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1', 'name' => 'New']));
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['id' => 1, 'name' => 'New'], $response->data);
@@ -329,7 +329,7 @@ class SnippetControllerTest extends TestCase
             new UnsupportedLocationException('WPCode does not support the "admin" location for css snippets.'),
         );
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1', 'location' => 'admin']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1', 'location' => 'admin']));
 
         $this->assertSame(400, $response->status);
     }
@@ -341,7 +341,7 @@ class SnippetControllerTest extends TestCase
             new NoActiveSnippetPluginException('Multiple snippet plugins are active at once.'),
         );
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -353,7 +353,7 @@ class SnippetControllerTest extends TestCase
             new SnippetProviderRequestException('Failed to update snippet.'),
         );
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(502, $response->status);
     }
@@ -363,7 +363,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('updateSnippet')->willThrowException(new \RuntimeException('Unexpected.'));
 
-        $response = $this->controller->update_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->update_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(500, $response->status);
     }
@@ -378,7 +378,7 @@ class SnippetControllerTest extends TestCase
             ->with(1, $this->anything(), 'rev-1')
             ->willReturn(new SnippetData(id: 1, name: 'New'));
 
-        $response = $this->controller->update_snippet(new WP_REST_Request([
+        $response = $this->controller->update_snippet(RestRequest::with([
             'id'               => '1',
             'name'             => 'New',
             'expectedRevision' => 'rev-1',
@@ -395,7 +395,7 @@ class SnippetControllerTest extends TestCase
             ->with(1, $this->anything(), null)
             ->willReturn(new SnippetData(id: 1, name: 'New'));
 
-        $this->controller->update_snippet(new WP_REST_Request(['id' => '1', 'name' => 'New']));
+        $this->controller->update_snippet(RestRequest::with(['id' => '1', 'name' => 'New']));
         $this->addToAssertionCount(1);
     }
 
@@ -407,7 +407,7 @@ class SnippetControllerTest extends TestCase
             ->with(1, $this->anything(), null)
             ->willReturn(new SnippetData(id: 1, name: 'New'));
 
-        $this->controller->update_snippet(new WP_REST_Request([
+        $this->controller->update_snippet(RestRequest::with([
             'id'               => '1',
             'name'             => 'New',
             'expectedRevision' => null,
@@ -424,7 +424,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->expects($this->never())->method('updateSnippet');
 
-        $response = $this->controller->update_snippet(new WP_REST_Request([
+        $response = $this->controller->update_snippet(RestRequest::with([
             'id'               => '1',
             'name'             => 'New',
             'expectedRevision' => 12_345,
@@ -440,7 +440,7 @@ class SnippetControllerTest extends TestCase
             new StaleSnippetRevisionException('Snippet 1 changed on WordPress since it was last read.'),
         );
 
-        $response = $this->controller->update_snippet(new WP_REST_Request([
+        $response = $this->controller->update_snippet(RestRequest::with([
             'id'               => '1',
             'name'             => 'New',
             'expectedRevision' => 'stale-revision',
@@ -457,7 +457,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(false);
         $this->snippetService->expects($this->never())->method('deleteSnippet');
 
-        $response = $this->controller->delete_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->delete_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -467,7 +467,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('deleteSnippet')->willReturn(false);
 
-        $response = $this->controller->delete_snippet(new WP_REST_Request(['id' => '999']));
+        $response = $this->controller->delete_snippet(RestRequest::with(['id' => '999']));
 
         $this->assertSame(404, $response->status);
     }
@@ -477,7 +477,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('deleteSnippet')->willReturn(true);
 
-        $response = $this->controller->delete_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->delete_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(204, $response->status);
     }
@@ -489,7 +489,7 @@ class SnippetControllerTest extends TestCase
             new NoActiveSnippetPluginException('Multiple snippet plugins are active at once.'),
         );
 
-        $response = $this->controller->delete_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->delete_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(409, $response->status);
     }
@@ -499,7 +499,7 @@ class SnippetControllerTest extends TestCase
         $this->snippetService->method('isActive')->willReturn(true);
         $this->snippetService->method('deleteSnippet')->willThrowException(new \RuntimeException('Unexpected.'));
 
-        $response = $this->controller->delete_snippet(new WP_REST_Request(['id' => '1']));
+        $response = $this->controller->delete_snippet(RestRequest::with(['id' => '1']));
 
         $this->assertSame(500, $response->status);
     }

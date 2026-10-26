@@ -175,6 +175,7 @@ class OptionsServiceTest extends TestCase
         $this->wpdb->rows = ['wpseo_titles' => 'no'];
 
         $result = $this->service->getOption('wpseo_titles');
+        $this->assertNotNull($result);
 
         $this->assertSame(['titleSeparator' => '-'], $result['value']);
         $this->assertSame('no', $result['autoload']);
@@ -215,7 +216,9 @@ class OptionsServiceTest extends TestCase
         Functions\when('get_option')->justReturn('Acme Blog');
         $this->wpdb->rows = ['blogname' => 'yes'];
 
-        $this->assertSame('Acme Blog', $this->service->getOption('blogname')['value']);
+        $option = $this->service->getOption('blogname');
+        $this->assertNotNull($option);
+        $this->assertSame('Acme Blog', $option['value']);
     }
 
     public function test_get_option_read_denylist_is_filterable(): void
@@ -227,7 +230,9 @@ class OptionsServiceTest extends TestCase
                 $hook === 'loopress_option_readable' && $name === 'tracked_api_key' ? true : $value,
         );
 
-        $this->assertSame('let-me-in', $this->service->getOption('tracked_api_key')['value']);
+        $option = $this->service->getOption('tracked_api_key');
+        $this->assertNotNull($option);
+        $this->assertSame('let-me-in', $option['value']);
     }
 
     // ── updateOption ─────────────────────────────────────────────────────────
@@ -359,7 +364,9 @@ class OptionsServiceTest extends TestCase
         $this->wpdb->rows = ['my_option' => 'yes'];
 
         $first  = $this->service->getOption('my_option');
+        $this->assertNotNull($first);
         $second = $this->service->getOption('my_option');
+        $this->assertNotNull($second);
 
         $this->assertSame($first['revision'], $second['revision']);
     }
@@ -370,9 +377,11 @@ class OptionsServiceTest extends TestCase
 
         Functions\when('get_option')->justReturn(['a' => 1]);
         $before = $this->service->getOption('my_option');
+        $this->assertNotNull($before);
 
         Functions\when('get_option')->justReturn(['a' => 2]);
         $after = $this->service->getOption('my_option');
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before['revision'], $after['revision']);
     }
@@ -387,9 +396,11 @@ class OptionsServiceTest extends TestCase
 
         $this->wpdb->rows = ['my_option' => 'yes'];
         $before = $this->service->getOption('my_option');
+        $this->assertNotNull($before);
 
         $this->wpdb->rows = ['my_option' => 'no'];
         $after = $this->service->getOption('my_option');
+        $this->assertNotNull($after);
 
         $this->assertSame($before['value'], $after['value']);
         $this->assertNotSame($before['autoload'], $after['autoload']);
@@ -401,7 +412,9 @@ class OptionsServiceTest extends TestCase
         Functions\when('update_option')->justReturn(true);
         Functions\when('get_option')->justReturn('current value');
         $this->wpdb->rows = ['my_option' => 'yes'];
-        $currentRevision = $this->service->getOption('my_option')['revision'];
+        $current = $this->service->getOption('my_option');
+        $this->assertNotNull($current);
+        $currentRevision = $current['revision'];
 
         $result = $this->service->updateOption('my_option', 'new value', null, $currentRevision);
 

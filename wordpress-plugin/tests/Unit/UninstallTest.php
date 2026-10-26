@@ -82,6 +82,8 @@ class UninstallTest extends TestCase
             return;
         }
 
+        /** @var \SplFileInfo $item */
+
         foreach (new FilesystemIterator($dir) as $item) {
             $item->isDir() ? $this->removeDirRecursive($item->getPathname()) : unlink($item->getPathname());
         }

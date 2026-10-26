@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Sentry\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Sentry\Consent;
 use Loopress\Sentry\RestApi\SentryConsentController;
 use PHPUnit\Framework\TestCase;
-use WP_REST_Request;
 
 class SentryConsentControllerTest extends TestCase
 {
@@ -52,7 +52,7 @@ class SentryConsentControllerTest extends TestCase
     {
         Functions\expect('update_option')->once()->with(Consent::OPTION, true)->andReturn(true);
 
-        $request = new WP_REST_Request(['enabled' => true]);
+        $request = RestRequest::with(['enabled' => true]);
         $response = $this->controller->update_consent($request);
 
         $this->assertSame(['enabled' => true], $response->get_data());

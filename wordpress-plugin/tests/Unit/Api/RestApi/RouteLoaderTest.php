@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Api\RestApi;
 
+use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\ApiNamespace;
@@ -100,7 +101,7 @@ class RouteLoaderTest extends TestCase
         // permission_callback is now a wrapper closure around the file's permission()
         // reference (see wrapPermission()), not permission()'s own return value: invoke it
         // with a request, same shape WP itself calls it with at dispatch.
-        $this->assertTrue(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
+        $this->assertTrue(($endpoints[0]['permission_callback'])(RestRequest::with([], '/test')));
     }
 
     public function test_endpointsFor_denies_the_pre_direct_callback_permission_convention_instead_of_granting_it(): void
@@ -112,7 +113,7 @@ class RouteLoaderTest extends TestCase
         $instance  = new RouteLoaderTestFixtureOldStylePermission();
         $endpoints = $loader->endpointsFor($instance);
 
-        $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
+        $this->assertFalse(($endpoints[0]['permission_callback'])(RestRequest::with([], '/test')));
     }
 
     public function test_endpointsFor_wraps_a_throwing_permission_to_fail_closed(): void
@@ -125,7 +126,7 @@ class RouteLoaderTest extends TestCase
         $instance  = new RouteLoaderTestFixtureThrowingPermission();
         $endpoints = $loader->endpointsFor($instance);
 
-        $this->assertFalse(($endpoints[0]['permission_callback'])(new WP_REST_Request([], '/test')));
+        $this->assertFalse(($endpoints[0]['permission_callback'])(RestRequest::with([], '/test')));
     }
 
     public function test_endpointsFor_wraps_a_throwing_verb_callback_instead_of_fataling(): void
@@ -136,7 +137,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureThrowingGet());
 
-        $response = ($endpoints[0]['callback'])(new WP_REST_Request([], '/test'));
+        $response = ($endpoints[0]['callback'])(RestRequest::with([], '/test'));
 
         $this->assertInstanceOf(\WP_REST_Response::class, $response);
         $this->assertSame(500, $response->status);
@@ -147,7 +148,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributePerVerb());
 
-        $request = new WP_REST_Request([], '/test');
+        $request = RestRequest::with([], '/test');
 
         // get() is public via its own attribute.
         $this->assertTrue(($endpoints[0]['permission_callback'])($request));
@@ -163,7 +164,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeClassLevel());
 
-        $request = new WP_REST_Request([], '/test');
+        $request = RestRequest::with([], '/test');
 
         $this->assertTrue(($endpoints[0]['permission_callback'])($request)); // the get() endpoint
         $this->assertTrue(($endpoints[1]['permission_callback'])($request)); // the post() endpoint
@@ -174,7 +175,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeMethodOverridesClass());
 
-        $request = new WP_REST_Request([], '/test');
+        $request = RestRequest::with([], '/test');
 
         // get() has its own #[Permission(public: true)]: overrides the class-level
         // capability check, current_user_can() must never be called for this verb (no stub
@@ -193,10 +194,10 @@ class RouteLoaderTest extends TestCase
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixturePermissionAttributeSharedCallback());
         $callback  = $endpoints[0]['permission_callback'];
 
-        $authorized = new WP_REST_Request(['api_key' => 'secret'], '/test');
+        $authorized = RestRequest::with(['api_key' => 'secret'], '/test');
         $this->assertTrue($callback($authorized));
 
-        $unauthorized = new WP_REST_Request([], '/test');
+        $unauthorized = RestRequest::with([], '/test');
         $this->assertFalse($callback($unauthorized));
     }
 
@@ -205,7 +206,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureHidden());
 
-        $this->assertFalse($endpoints[0]['show_in_index']);
+        $this->assertFalse($endpoints[0]['show_in_index'] ?? true);
     }
 
     public function test_endpointsFor_leaves_show_in_index_unset_without_hidden(): void
@@ -250,7 +251,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means it didn't fatal
+        $this->addToAssertionCount(1); // reaching this line means it didn't fatal
     }
 
     public function test_loadAndRegister_skips_the_second_of_two_files_declaring_the_same_class(): void
@@ -272,7 +273,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means the second file was skipped, not fatal
+        $this->addToAssertionCount(1); // reaching this line means the second file was skipped, not fatal
     }
 
     public function test_loadAndRegister_skips_a_file_declaring_no_class(): void
@@ -288,7 +289,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true);
+        $this->addToAssertionCount(1);
     }
 
     public function test_loadAndRegister_skips_a_file_declaring_more_than_one_class(): void
@@ -307,7 +308,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true);
+        $this->addToAssertionCount(1);
     }
 
     public function test_loadAndRegister_registers_a_route_for_a_class_named_nothing_like_its_filename(): void
@@ -329,7 +330,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_registers_a_namespaced_class(): void
@@ -351,7 +352,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_ignores_a_class_constant_reference_when_counting_declarations(): void
@@ -376,7 +377,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_skips_a_file_with_a_php_parse_error(): void
@@ -392,7 +393,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means the ParseError was caught, not fatal
+        $this->addToAssertionCount(1); // reaching this line means the ParseError was caught, not fatal
     }
 
     public function test_loadAndRegister_registers_a_route_for_a_valid_file(): void
@@ -418,7 +419,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_registers_a_regex_route_for_a_file_with_a_dynamic_segment(): void
@@ -444,7 +445,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_registers_a_route_with_multiple_dynamic_segments(): void
@@ -470,7 +471,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_registers_a_nested_index_file_as_its_directory_route(): void
@@ -490,7 +491,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     // Deployed outside `lps api push` (Git, rsync), so the push-time check never ran: WP would
@@ -516,7 +517,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies both expectations in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies both expectations in tearDown
     }
 
     public function test_loadAndRegister_registers_a_route_even_though_its_permission_would_throw(): void
@@ -547,7 +548,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_recreates_the_anti_listing_index_file_if_missing(): void
@@ -593,7 +594,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the register_rest_route expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the register_rest_route expectation in tearDown
     }
 
     public function test_loadAndRegister_skips_a_file_with_no_public_verb_method(): void
@@ -609,7 +610,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true);
+        $this->addToAssertionCount(1);
     }
 
     // ── loadAndRegister: size limits (LP-SEC-02) ───────────────────────────
@@ -643,7 +644,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectations in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectations in tearDown
     }
 
     public function test_loadAndRegister_stops_loading_once_the_directory_exceeds_its_total_byte_budget(): void
@@ -676,7 +677,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the expectations in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the expectations in tearDown
     }
 
     // ── loadAndRegister: boot-time load-error reporting (US-5) ──────────────
@@ -700,7 +701,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the update_option expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the update_option expectation in tearDown
     }
 
     public function test_loadAndRegister_writes_an_empty_option_when_every_file_loads_cleanly(): void
@@ -714,7 +715,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // Mockery verifies the update_option expectation in tearDown
+        $this->addToAssertionCount(1); // Mockery verifies the update_option expectation in tearDown
     }
 
     // ── loadAndRegister: user vendor autoload ────────────────────────────────
@@ -732,7 +733,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $this->environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means no attempt was made to require anything
+        $this->addToAssertionCount(1); // reaching this line means no attempt was made to require anything
     }
 
     public function test_loadAndRegister_requires_the_users_own_vendor_autoload_when_present(): void
@@ -771,7 +772,7 @@ class RouteLoaderTest extends TestCase
         $loader = new RouteLoader($this->directory, $environment);
         $loader->loadAndRegister();
 
-        $this->assertTrue(true); // reaching this line means the ParseError was caught, not fatal
+        $this->addToAssertionCount(1); // reaching this line means the ParseError was caught, not fatal
     }
 
     // ── applyHeaders ─────────────────────────────────────────────────────────
@@ -779,7 +780,7 @@ class RouteLoaderTest extends TestCase
     public function test_applyHeaders_ignores_requests_to_unrelated_routes(): void
     {
         $loader  = new RouteLoader($this->directory, $this->environment);
-        $request = new WP_REST_Request([], '/wp/v2/posts');
+        $request = RestRequest::with([], '/wp/v2/posts');
 
         $served = $loader->applyHeaders(true, null, $request);
 
@@ -797,7 +798,7 @@ class RouteLoaderTest extends TestCase
         $loader    = new RouteLoader($this->directory, $this->environment);
         $endpoints = $loader->endpointsFor(new RouteLoaderTestFixtureThrowingHeaders());
 
-        $request = new WP_REST_Request([], '/test');
+        $request = RestRequest::with([], '/test');
         $request->set_attributes($endpoints[0]);
 
         $served = $loader->applyHeaders(true, null, $request);

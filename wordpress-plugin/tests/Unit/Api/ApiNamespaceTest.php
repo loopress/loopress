@@ -7,6 +7,7 @@ namespace Loopress\Tests\Unit\Api;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\ApiNamespace;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ApiNamespaceTest extends TestCase
@@ -46,22 +47,36 @@ class ApiNamespaceTest extends TestCase
         $this->assertSame(ApiNamespace::DEFAULT, ApiNamespace::current());
     }
 
-    public function test_is_valid_accepts_a_well_formed_namespace(): void
+    #[DataProvider('validNamespaces')]
+    public function test_is_valid_accepts_a_well_formed_namespace(string $value): void
     {
-        $this->assertTrue(ApiNamespace::isValid('my-headless-api/v1'));
-        $this->assertTrue(ApiNamespace::isValid('my-headless-api/v12'));
+        $this->assertTrue(ApiNamespace::isValid($value));
     }
 
-    public function test_is_valid_rejects_the_reserved_management_namespace(): void
+    /** @return array<string, array{string}> */
+    public static function validNamespaces(): array
     {
-        $this->assertFalse(ApiNamespace::isValid('loopress/v1'));
+        return [
+            'single-digit version' => ['my-headless-api/v1'],
+            'multi-digit version'  => ['my-headless-api/v12'],
+        ];
     }
 
-    public function test_is_valid_rejects_malformed_input(): void
+    #[DataProvider('invalidNamespaces')]
+    public function test_is_valid_rejects_the_reserved_namespace_and_malformed_input(mixed $value): void
     {
-        $this->assertFalse(ApiNamespace::isValid(''));
-        $this->assertFalse(ApiNamespace::isValid('has spaces/v1'));
-        $this->assertFalse(ApiNamespace::isValid('no-version'));
-        $this->assertFalse(ApiNamespace::isValid(123));
+        $this->assertFalse(ApiNamespace::isValid($value));
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function invalidNamespaces(): array
+    {
+        return [
+            'reserved management namespace' => ['loopress/v1'],
+            'empty'                          => [''],
+            'spaces'                         => ['has spaces/v1'],
+            'no version'                     => ['no-version'],
+            'not a string'                   => [123],
+        ];
     }
 }

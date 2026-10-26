@@ -45,6 +45,7 @@ class LoopressEnvironmentTest extends TestCase
     // migration_ensureInitialized_just_performed below) to fabricate a composer.json exactly
     // as a real site's would look if its file predates lib/'s introduction entirely: written
     // by code that never knew about this key, not by anything currently in this class.
+    /** @param array<string, mixed> $json */
     private function writeLegacyComposerJson(LoopressEnvironment $env, array $json): void
     {
         file_put_contents($env->getLoopressDir() . 'composer.json', json_encode($json, JSON_PRETTY_PRINT));
@@ -360,7 +361,6 @@ class LoopressEnvironmentTest extends TestCase
         file_put_contents($dir . '/plugin.php', '<?php // acme');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
-
         $this->assertNotNull($staged);
         $this->assertFalse($env->managedDirExists('wpackagist-plugin/acme'));
         $this->assertFileExists($staged . '/plugin.php');
@@ -380,6 +380,8 @@ class LoopressEnvironmentTest extends TestCase
         file_put_contents($dir . '/plugin.php', '<?php // acme');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+
+        $this->assertNotNull($staged);
         $env->restoreStagedDir('wpackagist-plugin/acme', $staged);
 
         $this->assertTrue($env->managedDirExists('wpackagist-plugin/acme'));
@@ -401,6 +403,8 @@ class LoopressEnvironmentTest extends TestCase
         file_put_contents($dir . '/plugin.php', '<?php // original');
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+
+        $this->assertNotNull($staged);
         mkdir($dir, 0755, true);
         file_put_contents($dir . '/partial.php', '<?php // half-installed');
 
@@ -419,6 +423,8 @@ class LoopressEnvironmentTest extends TestCase
         mkdir($dir, 0755, true);
 
         $staged = $env->stageManagedDir('wpackagist-plugin/acme');
+
+        $this->assertNotNull($staged);
         $env->discardStagedDir($staged);
 
         $this->assertDirectoryDoesNotExist($staged);

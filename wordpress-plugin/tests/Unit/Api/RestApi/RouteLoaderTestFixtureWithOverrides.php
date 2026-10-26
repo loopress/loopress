@@ -8,6 +8,7 @@ use WP_REST_Request;
 
 final class RouteLoaderTestFixtureWithOverrides
 {
+    /** @return array<string, mixed> */
     public function get(): array
     {
         return [];
@@ -18,6 +19,7 @@ final class RouteLoaderTestFixtureWithOverrides
         return true;
     }
 
+    /** @return array<string, mixed> */
     public function headers(): array
     {
         return ['Access-Control-Allow-Origin' => 'https://example.com'];

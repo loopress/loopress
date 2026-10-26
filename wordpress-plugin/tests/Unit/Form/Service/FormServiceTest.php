@@ -127,6 +127,7 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $updated = $service->update(2, $input);
+        $this->assertNotNull($updated);
 
         $this->assertSame(2, $updated['id']);
         $this->assertSame(['form_title' => 'Updated'], $updated['settings']);
@@ -143,6 +144,7 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $form = $service->get(2);
+        $this->assertNotNull($form);
 
         $this->assertSame(2, $form['id']);
         $this->assertSame(['form_title' => 'Contact'], $form['settings']);
@@ -187,7 +189,9 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $first  = $service->get(2);
+        $this->assertNotNull($first);
         $second = $service->get(2);
+        $this->assertNotNull($second);
 
         $this->assertSame($first['revision'], $second['revision']);
     }
@@ -203,7 +207,9 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $before = $service->get(2);
+        $this->assertNotNull($before);
         $after  = $service->get(2);
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before['revision'], $after['revision']);
     }
@@ -221,7 +227,9 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $first  = $service->get(2);
+        $this->assertNotNull($first);
         $second = $service->get(999);
+        $this->assertNotNull($second);
 
         $this->assertSame($first['revision'], $second['revision']);
     }
@@ -241,7 +249,9 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $before = $service->get(2);
+        $this->assertNotNull($before);
         $after  = $service->get(2);
+        $this->assertNotNull($after);
 
         $this->assertSame($before['revision'], $after['revision']);
     }
@@ -261,7 +271,9 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $before = $service->get(2);
+        $this->assertNotNull($before);
         $after  = $service->get(2);
+        $this->assertNotNull($after);
 
         $this->assertNotSame($before['revision'], $after['revision']);
     }
@@ -277,8 +289,13 @@ class FormServiceTest extends TestCase
 
         $service = new FormService($active);
 
-        $currentRevision = $service->get(2)['revision'];
+        $current = $service->get(2);
+
+        $this->assertNotNull($current);
+
+        $currentRevision = $current['revision'];
         $result           = $service->update(2, ['settings' => ['form_title' => 'Updated']], $currentRevision);
+        $this->assertNotNull($result);
 
         $this->assertSame(['form_title' => 'Updated'], $result['settings']);
     }
@@ -354,6 +371,7 @@ class FormServiceTest extends TestCase
         $service = new FormService($active);
 
         $result = $service->update(2, ['settings' => ['form_title' => 'Updated']]);
+        $this->assertNotNull($result);
 
         $this->assertSame(['form_title' => 'Updated'], $result['settings']);
     }

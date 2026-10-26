@@ -9,24 +9,11 @@ if (!class_exists('WP_REST_Request')) {
     class WP_REST_Request
     {
         private array $params = [];
-        private string $method = '';
         private array $attributes = [];
         private mixed $jsonParams = null;
         private bool $jsonParamsOverridden = false;
 
-        /**
-         * Accepts either the real WordPress signature (string $method, string $route) or, for
-         * tests that just want to stub params directly, an array of params as the first argument.
-         */
-        public function __construct(array|string $methodOrParams = [], private readonly string $route = '')
-        {
-            if (is_array($methodOrParams)) {
-                $this->params = $methodOrParams;
-                return;
-            }
-
-            $this->method = $methodOrParams;
-        }
+        public function __construct(private readonly string $method = '', private readonly string $route = '') {}
 
         public function get_param(string $key): mixed
         {
@@ -121,6 +108,14 @@ if (!class_exists('WP_Post')) {
         public string $post_status = 'draft';
         public string $post_title = '';
         public string $post_type = 'post';
+
+        // Same as WordPress: copies the given object's properties.
+        public function __construct(object $post)
+        {
+            foreach (get_object_vars($post) as $key => $value) {
+                $this->$key = $value;
+            }
+        }
     }
 }
 
@@ -132,6 +127,14 @@ if (!class_exists('WP_Term')) {
         public string $slug = '';
         public string $taxonomy = '';
         public int $term_id = 0;
+
+        // Same as WordPress: copies the given object's properties.
+        public function __construct(object $term)
+        {
+            foreach (get_object_vars($term) as $key => $value) {
+                $this->$key = $value;
+            }
+        }
     }
 }
 
