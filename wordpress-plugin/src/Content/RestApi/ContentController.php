@@ -7,6 +7,7 @@ namespace Loopress\Content\RestApi;
 use Loopress\Content\Exception\InvalidContentRowException;
 use Loopress\Content\Exception\NotLocalEnvironmentException;
 use Loopress\Content\Service\ContentService;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -100,8 +101,8 @@ final class ContentController
     /** @param callable(int, int): array<string, mixed> $export */
     private function page(WP_REST_Request $request, callable $export): WP_REST_Response
     {
-        $after = max(0, (int) $request->get_param('after'));
-        $limit = min(self::MAX_LIMIT, max(1, (int) ($request->get_param('limit') ?? 100)));
+        $after = max(0, Narrow::int($request->get_param('after')));
+        $limit = min(self::MAX_LIMIT, max(1, Narrow::int($request->get_param('limit') ?? 100)));
 
         return $this->mapServiceExceptions(fn(): WP_REST_Response => new WP_REST_Response($export($after, $limit), 200));
     }

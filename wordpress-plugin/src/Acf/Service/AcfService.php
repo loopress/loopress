@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Acf\Service;
 
 use Loopress\Acf\Exception\StaleAcfRevisionException;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\SyncSanitizer;
 
 // ACF has exactly one backend (itself, or nothing), unlike snippets where two interchangeable
@@ -90,7 +91,7 @@ class AcfService
         // below only fires if that re-read can't find it (unexpected, but not this method's
         // concern to diagnose), and still needs its own revision computed the same way get()
         // would, so a caller can't tell the two paths apart from the shape of the response.
-        $result = $this->get($postType, (string) ($imported['key'] ?? $key));
+        $result = $this->get($postType, Narrow::string($imported['key'] ?? $key));
         if ($result !== null) {
             return $result;
         }
@@ -198,9 +199,31 @@ class AcfService
             $field['sub_fields'] = $this->roundTripFields($subFields);
         }
 
-        foreach (is_array($layouts) ? $layouts : [] as $name => $layout) {
+        if (is_array($layouts)) {
+            return $this->roundTripLayouts($field, $layouts);
+        }
+
+        return $field;
+    }
+
+    /**
+     * Each flexible content layout's sub_fields go through the same round trip as a field's.
+     *
+     * @param array<string, mixed> $field the field after its own round trip
+     * @param array<mixed> $layouts the layouts as they were before it
+     * @return array<string, mixed>
+     */
+    private function roundTripLayouts(array $field, array $layouts): array
+    {
+        $roundTripped = $field['layouts'] ?? null;
+        $roundTripped = is_array($roundTripped) ? $roundTripped : [];
+        foreach ($layouts as $name => $layout) {
             if (is_array($layout) && isset($layout['sub_fields'])) {
-                $field['layouts'][$name]['sub_fields'] = $this->roundTripFields($layout['sub_fields']);
+                $entry               = $roundTripped[$name] ?? null;
+                $entry               = is_array($entry) ? $entry : [];
+                $entry['sub_fields'] = $this->roundTripFields($layout['sub_fields']);
+                $roundTripped[$name] = $entry;
+                $field['layouts']    = $roundTripped;
             }
         }
 
@@ -249,7 +272,7 @@ class AcfService
         $currentRevision = $current['revision'] ?? null;
 
         if ($currentRevision !== $expectedRevision) {
-            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            $found = $currentRevision === null ? 'it no longer exists' : 'its revision is now "' . Narrow::string($currentRevision) . '"';
             // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new StaleAcfRevisionException(
                 "\"{$key}\" changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\PostTypes\Service;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\PostTypes\Exception\InvalidDeclarationException;
 use WP_Role;
 use WP_Roles;
@@ -149,7 +150,7 @@ final class RoleService extends AbstractDeclaredTypeService
     {
         /** @var array<string, bool> $capabilities checked by assertArgs() */
         $capabilities = $args['capabilities'] ?? [];
-        $name         = (string) ($args['name'] ?? '');
+        $name         = Narrow::string($args['name'] ?? '');
         $roles        = $this->roles;
         if ($roles === null) {
             return null;

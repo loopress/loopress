@@ -83,17 +83,17 @@ class AppsControllerTest extends TestCase
         ]);
 
         $response = $this->controller->list_apps();
-        $byName   = array_column($response->data, null, 'name');
+        $byName   = array_column(self::arrayAt($response->data), null, 'name');
 
         $this->assertSame(200, $response->status);
-        $this->assertTrue($byName['search']['committed']);
-        $this->assertSame(2, $byName['search']['fileCount']);
-        $this->assertSame(30, $byName['search']['totalBytes']);
-        $this->assertSame('abc123def456', $byName['search']['buildId']);
+        $this->assertTrue(self::at($byName, 'search', 'committed'));
+        $this->assertSame(2, self::at($byName, 'search', 'fileCount'));
+        $this->assertSame(30, self::at($byName, 'search', 'totalBytes'));
+        $this->assertSame('abc123def456', self::at($byName, 'search', 'buildId'));
 
-        $this->assertFalse($byName['portal']['committed']);
-        $this->assertSame(0, $byName['portal']['fileCount']);
-        $this->assertNull($byName['portal']['buildId']);
+        $this->assertFalse(self::at($byName, 'portal', 'committed'));
+        $this->assertSame(0, self::at($byName, 'portal', 'fileCount'));
+        $this->assertNull(self::at($byName, 'portal', 'buildId'));
     }
 
     // ── get_manifest ────────────────────────────────────────────────────────
@@ -121,11 +121,11 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->get_manifest(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('same-origin', $response->data['crossOrigin'], 'pull must get it back, or it drops it locally');
-        $this->assertSame('search', $response->data['name']);
-        $this->assertSame('abc123def456', $response->data['buildId']);
-        $this->assertSame('#loopress-app-search', $response->data['mountSelector']);
-        $this->assertCount(1, $response->data['files']);
+        $this->assertSame('same-origin', self::at($response->data, 'crossOrigin'), 'pull must get it back, or it drops it locally');
+        $this->assertSame('search', self::at($response->data, 'name'));
+        $this->assertSame('abc123def456', self::at($response->data, 'buildId'));
+        $this->assertSame('#loopress-app-search', self::at($response->data, 'mountSelector'));
+        $this->assertCount(1, self::arrayAt($response->data, 'files'));
     }
 
     // ── get_asset ───────────────────────────────────────────────────────────
@@ -146,8 +146,8 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->get_asset(RestRequest::with(['name' => 'search', 'path' => 'assets/x.css']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('base64', $response->data['encoding']);
-        $this->assertSame($this->b64('body{}'), $response->data['content']);
+        $this->assertSame('base64', self::at($response->data, 'encoding'));
+        $this->assertSame($this->b64('body{}'), self::at($response->data, 'content'));
     }
 
     public function test_get_asset_rejects_a_traversal_attempt_in_the_app_name(): void
@@ -181,7 +181,7 @@ class AppsControllerTest extends TestCase
         ]));
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('Unsafe', (string) $response->data['error']);
+        $this->assertStringContainsString('Unsafe', self::stringAt($response->data, 'error'));
     }
 
     public function test_put_asset_rejects_a_non_base64_encoding(): void
@@ -229,7 +229,7 @@ class AppsControllerTest extends TestCase
         ]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(14, $response->data['size']);
+        $this->assertSame(14, self::at($response->data, 'size'));
     }
 
     public function test_put_asset_returns_400_when_the_directory_refuses_the_write(): void
@@ -262,7 +262,7 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('Invalid manifest', (string) $response->data['error']);
+        $this->assertStringContainsString('Invalid manifest', self::stringAt($response->data, 'error'));
     }
 
     public function test_commit_returns_409_when_a_declared_asset_was_never_uploaded(): void
@@ -276,8 +276,8 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit($request);
 
         $this->assertSame(409, $response->status);
-        $this->assertSame('incomplete_upload', $response->data['code']);
-        $this->assertStringContainsString('not uploaded', (string) $response->data['error']);
+        $this->assertSame('incomplete_upload', self::at($response->data, 'code'));
+        $this->assertStringContainsString('not uploaded', self::stringAt($response->data, 'error'));
     }
 
     public function test_commit_returns_409_when_an_uploaded_asset_hash_does_not_match(): void
@@ -294,7 +294,7 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit($request);
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('re-upload', (string) $response->data['error']);
+        $this->assertStringContainsString('re-upload', self::stringAt($response->data, 'error'));
     }
 
     public function test_commit_flips_the_store_record_once_every_asset_is_present(): void
@@ -319,8 +319,8 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('9f2a1c7b4e10', $response->data['buildId']);
-        $this->assertSame(2, $response->data['fileCount']);
+        $this->assertSame('9f2a1c7b4e10', self::at($response->data, 'buildId'));
+        $this->assertSame(2, self::at($response->data, 'fileCount'));
         $this->assertNotNull($captured);
         $this->assertSame('9f2a1c7b4e10', $captured['buildId']);
         $this->assertIsString($captured['deployedAt']);
@@ -361,7 +361,7 @@ class AppsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame(['assets/ancient.js'], $removed);
-        $this->assertContains('assets/ancient.js', $response->data['removed']);
+        $this->assertContains('assets/ancient.js', self::arrayAt($response->data, 'removed'));
     }
 
     // ── delete_app ──────────────────────────────────────────────────────────
@@ -388,7 +388,7 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->delete_app(RestRequest::with(['name' => 'search']));
 
         $this->assertSame(200, $response->status);
-        $this->assertTrue($response->data['deleted']);
+        $this->assertTrue(self::at($response->data, 'deleted'));
     }
 
     public function test_commit_applies_and_echoes_the_crossOrigin_policy(): void
@@ -405,7 +405,7 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('same-origin', $response->data['crossOrigin']);
+        $this->assertSame('same-origin', self::at($response->data, 'crossOrigin'));
     }
 
     public function test_commit_does_not_echo_a_crossOrigin_policy_it_could_not_apply(): void
@@ -422,6 +422,6 @@ class AppsControllerTest extends TestCase
         $response = $this->controller->commit($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertNull($response->data['crossOrigin']);
+        $this->assertNull(self::at($response->data, 'crossOrigin'));
     }
 }

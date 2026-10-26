@@ -8,6 +8,7 @@ use Composer\Semver\VersionParser;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Service\ComposerService;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_Error;
@@ -136,7 +137,7 @@ final class ComposerController
     public function get_versions(WP_REST_Request $request): WP_REST_Response
     {
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $versions = $this->composerService->getVersions($request->get_param('package'));
+            $versions = $this->composerService->getVersions(Narrow::string($request->get_param('package')));
 
             if ($versions === null) {
                 return new WP_REST_Response(['error' => 'Package not found'], 404);
@@ -153,8 +154,8 @@ final class ComposerController
 
     public function require_package(WP_REST_Request $request): WP_REST_Response
     {
-        $package = $request->get_param('package');
-        $version = $request->get_param('version');
+        $package = Narrow::string($request->get_param('package'));
+        $version = Narrow::string($request->get_param('version'));
 
         try {
             $output = $this->composerService->requirePackage($package, $version);
@@ -168,7 +169,7 @@ final class ComposerController
 
     public function remove_package(WP_REST_Request $request): WP_REST_Response
     {
-        $package = $request->get_param('package');
+        $package = Narrow::string($request->get_param('package'));
 
         try {
             $output = $this->composerService->removePackage($package);
@@ -253,6 +254,8 @@ final class ComposerController
     {
         $intent = $request->get_param('intent');
         $lock   = $request->get_param('lock');
+        // validateLockArg() already refused anything but a string or null.
+        $lock   = is_string($lock) ? $lock : null;
         $force  = (bool) $request->get_param('force');
 
         if (!is_array($intent)) {
@@ -262,17 +265,22 @@ final class ComposerController
         // Each section, when present, must be a slug => version-string map. Without this a
         // scalar reaches ComposerService::applyWpackagistSection(?array $section) and fatals
         // instead of returning a clean 400.
+        $sections = [];
         foreach (['libraries', 'plugins', 'themes'] as $section) {
-            if (isset($intent[$section]) && !$this->isStringMap($intent[$section])) {
+            if (!isset($intent[$section])) {
+                continue;
+            }
+            if (!$this->isStringMap($intent[$section])) {
                 return new WP_REST_Response(
                     ['error' => "Invalid intent.{$section}: expected an object of slug => version."],
                     400,
                 );
             }
+            $sections[$section] = $intent[$section];
         }
 
         try {
-            $result = $this->composerService->sync($intent, $lock, $force);
+            $result = $this->composerService->sync($sections, $lock, $force);
             return new WP_REST_Response($result, 200);
         } catch (UnmanagedPackageException $e) {
             return new WP_REST_Response(
@@ -301,6 +309,7 @@ final class ComposerController
         return is_string($value) && strlen($value) <= self::MAX_LOCK_BYTES;
     }
 
+    /** @phpstan-assert-if-true array<string, string> $value */
     private function isStringMap(mixed $value): bool
     {
         if (!is_array($value)) {

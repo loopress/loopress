@@ -10,11 +10,14 @@ use Loopress\Form\Contract\FormProvider;
 use Loopress\Form\Exception\NoActiveFormPluginException;
 use Loopress\Form\Exception\StaleFormRevisionException;
 use Loopress\Form\Service\FormService;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class FormServiceTest extends TestCase
 {
+    use DigsIntoArrays;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -293,7 +296,7 @@ class FormServiceTest extends TestCase
 
         $this->assertNotNull($current);
 
-        $currentRevision = $current['revision'];
+        $currentRevision = self::stringAt($current, 'revision');
         $result           = $service->update(2, ['settings' => ['form_title' => 'Updated']], $currentRevision);
         $this->assertNotNull($result);
 

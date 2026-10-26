@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Update\Infrastructure;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Update\UsageStats;
 
 /**
@@ -32,7 +33,7 @@ class UsagePing
         // ponytail: two concurrent cache misses can both pass this read, harmless since the api
         // keeps one row per install and day; make it an atomic claim if that ever changes.
         $now = time();
-        if ($now - (int) get_option(self::LAST_SENT_OPTION, 0) < self::MIN_INTERVAL) {
+        if ($now - Narrow::int(get_option(self::LAST_SENT_OPTION, 0)) < self::MIN_INTERVAL) {
             return;
         }
         update_option(self::LAST_SENT_OPTION, $now, false);

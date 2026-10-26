@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Pushes\RestApi;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pushes\PushLog;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -64,7 +65,7 @@ final readonly class PushesController
         }
 
         try {
-            return new WP_REST_Response($this->log->record((string) $request->get_param('resource')), 201);
+            return new WP_REST_Response($this->log->record(Narrow::string($request->get_param('resource'))), 201);
         } finally {
             $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
         }

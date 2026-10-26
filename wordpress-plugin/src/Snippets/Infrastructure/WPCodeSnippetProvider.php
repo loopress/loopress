@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Infrastructure;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
 use Loopress\Snippets\Contract\SnippetType;
@@ -170,8 +171,8 @@ final class WPCodeSnippetProvider implements SnippetProvider
             tags: is_wp_error($terms) ? [] : $terms,
             location: self::LOCATION_TO_CANONICAL[$locationTerm] ?? $type->defaultLocation(),
             insertMethod: '0' === $autoInsert ? 'shortcode' : 'auto',
-            priority: '' === $priority ? 10 : (int) $priority,
-            shortcodeAttributes: is_array($shortcodeAttributes) ? $shortcodeAttributes : [],
+            priority: '' === $priority ? 10 : Narrow::int($priority),
+            shortcodeAttributes: is_array($shortcodeAttributes) ? array_filter($shortcodeAttributes, 'is_string') : [],
         );
     }
 

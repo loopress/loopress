@@ -224,7 +224,7 @@ class WPFormsProviderTest extends TestCase
             'settings' => ['notifications' => ['1' => ['email' => 'attacker@evil.example', 'message' => '{all_fields}']]],
         ]);
 
-        $this->assertSame(['1' => ['email' => 'real-admin@site.test']], $captured['settings']['notifications']);
+        $this->assertSame(['1' => ['email' => 'real-admin@site.test']], self::at($captured, 'settings', 'notifications'));
     }
 
     public function test_update_strips_active_content_from_fields_and_keeps_benign_html(): void
@@ -239,9 +239,9 @@ class WPFormsProviderTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('<p>Hi</p>', $captured['fields']['1']['code']);
-        $this->assertSame('Name', $captured['fields']['2']['label']);
-        $this->assertSame('<img src=x>', $captured['fields']['2']['description']);
+        $this->assertSame('<p>Hi</p>', self::at($captured, 'fields', '1', 'code'));
+        $this->assertSame('Name', self::at($captured, 'fields', '2', 'label'));
+        $this->assertSame('<img src=x>', self::at($captured, 'fields', '2', 'description'));
     }
 
     public function test_create_drops_incoming_notifications_when_allowNotifications_is_absent(): void
@@ -320,8 +320,8 @@ class WPFormsProviderTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('Hi  {all_fields}', $captured['settings']['notifications']['1']['message']);
-        $this->assertSame('noreply@mysite.test', $captured['settings']['notifications']['1']['sender_address']);
+        $this->assertSame('Hi  {all_fields}', self::at($captured, 'settings', 'notifications', '1', 'message'));
+        $this->assertSame('noreply@mysite.test', self::at($captured, 'settings', 'notifications', '1', 'sender_address'));
     }
 
     // ── delete ────────────────────────────────────────────────────────────────
@@ -380,13 +380,15 @@ class WPFormsProviderTest extends TestCase
              */
             public function add(string $title = '', array $args = [], array $data = []): false|int
             {
-                return $this->behavior['add'] ?? false;
+                $id = $this->behavior['add'] ?? false;
+
+                return is_int($id) ? $id : false;
             }
 
             /** @param array<int> $ids */
             public function delete(array $ids = []): bool
             {
-                return $this->behavior['delete'] ?? false;
+                return ($this->behavior['delete'] ?? false) === true;
             }
 
             /** @param array<string, mixed> $args */

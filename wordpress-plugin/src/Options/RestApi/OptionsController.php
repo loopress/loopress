@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Options\RestApi;
 
 use Loopress\Infrastructure\AmbiguousPostSlugException;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Options\Exception\ProtectedOptionException;
 use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\StaleOptionRevisionException;
@@ -79,13 +80,13 @@ final class OptionsController
     {
         // `refs` (see OptionReferences) arrives JSON-encoded in the query string on a GET.
         $rawRefs = $request->get_param('refs');
-        $refs    = $this->refs($rawRefs === null ? [] : json_decode((string) $rawRefs, true));
+        $refs    = $this->refs($rawRefs === null ? [] : json_decode(Narrow::string($rawRefs), true));
         if ($refs === null) {
             return $this->invalidRefsResponse();
         }
 
         return $this->mapServiceExceptions(function () use ($request, $refs): WP_REST_Response {
-            $option = $this->optionsService->getOption((string) $request->get_param('name'));
+            $option = $this->optionsService->getOption(Narrow::string($request->get_param('name')));
             if ($option === null) {
                 return new WP_REST_Response(['error' => 'Option not found'], 404);
             }
@@ -125,7 +126,7 @@ final class OptionsController
         }
 
         return $this->mapServiceExceptions(function () use ($request, $body, $autoload, $expectedRevision, $refs): WP_REST_Response {
-            $name   = (string) $request->get_param('name');
+            $name   = Narrow::string($request->get_param('name'));
             $option = $this->optionsService->updateOption($name, OptionReferences::toIds($body['value'], $refs), $autoload, $expectedRevision);
             $option['value'] = OptionReferences::toPaths($option['value'], $refs);
 
@@ -158,7 +159,7 @@ final class OptionsController
 
     public function delete_option(WP_REST_Request $request): WP_REST_Response
     {
-        $name = (string) $request->get_param('name');
+        $name = Narrow::string($request->get_param('name'));
 
         return $this->mapServiceExceptions(function () use ($name): WP_REST_Response {
             if ($this->optionsService->getOption($name) === null) {

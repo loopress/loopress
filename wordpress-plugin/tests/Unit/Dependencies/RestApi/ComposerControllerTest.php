@@ -10,12 +10,15 @@ use Brain\Monkey\Functions;
 use Loopress\Dependencies\Exception\ConcurrentOperationException;
 use Loopress\Dependencies\RestApi\ComposerController;
 use Loopress\Dependencies\Service\ComposerService;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
 class ComposerControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private ComposerService&MockObject $composerService;
     private ComposerController $controller;
 
@@ -45,12 +48,13 @@ class ComposerControllerTest extends TestCase
     public function test_package_arg_is_required(): void
     {
         $arg = $this->invokePrivate('packageArg', true);
-        $this->assertTrue($arg['required']);
+        $this->assertTrue(self::at($arg, 'required'));
     }
 
     public function test_package_arg_rejects_invalid_names(): void
     {
-        $validate = $this->invokePrivate('packageArg', true)['validate_callback'];
+        $validate = self::at($this->invokePrivate('packageArg', true), 'validate_callback');
+        $this->assertIsCallable($validate);
         $this->assertFalse($validate(''));
         $this->assertFalse($validate('../../../etc/passwd'));
         $this->assertFalse($validate('no-slash'));
@@ -60,7 +64,8 @@ class ComposerControllerTest extends TestCase
 
     public function test_version_arg_rejects_invalid_constraints(): void
     {
-        $validate = $this->invokePrivate('versionArg', false)['validate_callback'];
+        $validate = self::at($this->invokePrivate('versionArg', false), 'validate_callback');
+        $this->assertIsCallable($validate);
         $this->assertFalse($validate('; rm -rf /'));
         $this->assertFalse($validate('$(evil)'));
         $this->assertTrue($validate('^1.0'));
@@ -70,7 +75,8 @@ class ComposerControllerTest extends TestCase
 
     public function test_version_arg_accepts_common_composer_constraints(): void
     {
-        $validate = $this->invokePrivate('versionArg', false)['validate_callback'];
+        $validate = self::at($this->invokePrivate('versionArg', false), 'validate_callback');
+        $this->assertIsCallable($validate);
         $this->assertTrue($validate('>=8.0'));
         $this->assertTrue($validate('~1.2'));
         $this->assertTrue($validate('^1.0 || ^2.0'));
@@ -179,8 +185,8 @@ class ComposerControllerTest extends TestCase
         $request  = RestRequest::with(['package' => 'vendor/pkg', 'version' => '^1.0']);
         $response = $this->controller->require_package($request);
         $this->assertSame(200, $response->status);
-        $this->assertArrayHasKey('message', $response->data);
-        $this->assertArrayHasKey('output', $response->data);
+        $this->assertArrayHasKey('message', self::arrayAt($response->data));
+        $this->assertArrayHasKey('output', self::arrayAt($response->data));
     }
 
     public function test_require_package_returns_500_on_failure(): void
@@ -244,8 +250,8 @@ class ComposerControllerTest extends TestCase
             ->willThrowException(new \Loopress\Dependencies\Exception\UnmanagedPackageException($collisions));
         $response = $this->controller->sync(RestRequest::with(['intent' => ['plugins' => ['woocommerce' => '9.4.2']]]));
         $this->assertSame(422, $response->status);
-        $this->assertSame('unmanaged_plugins_present', $response->data['error']);
-        $this->assertSame($collisions, $response->data['collisions']);
+        $this->assertSame('unmanaged_plugins_present', self::at($response->data, 'error'));
+        $this->assertSame($collisions, self::at($response->data, 'collisions'));
     }
 
     public function test_sync_returns_200_with_service_result(): void
@@ -271,7 +277,7 @@ class ComposerControllerTest extends TestCase
         $this->composerService->method('getJson')->willReturn('{"name":"demo/site"}');
         $response = $this->controller->get_json(new WP_REST_Request());
         $this->assertSame(200, $response->status);
-        $this->assertSame('{"name":"demo/site"}', $response->data['composerJson']);
+        $this->assertSame('{"name":"demo/site"}', self::at($response->data, 'composerJson'));
     }
 
     // ── remove_package ────────────────────────────────────────────────────────
@@ -356,6 +362,6 @@ class ComposerControllerTest extends TestCase
         $this->composerService->method('fixPlatform');
         $response = $this->controller->fix_platform(new WP_REST_Request());
         $this->assertSame(200, $response->status);
-        $this->assertArrayHasKey('php_version', $response->data);
+        $this->assertArrayHasKey('php_version', self::arrayAt($response->data));
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Api\RestApi;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -512,7 +513,7 @@ class RouteLoaderTest extends TestCase
                 ApiDirectory::LOAD_ERRORS_OPTION,
                 \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
                     && count($errors) === 1
-                    && str_contains((string) reset($errors), 'route already registered')),
+                    && str_contains(Narrow::string(reset($errors)), 'route already registered')),
                 false,
             )
             ->andReturn(true);
@@ -672,7 +673,7 @@ class RouteLoaderTest extends TestCase
                 \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
                     && count($errors) === 1
                     && in_array(array_key_first($errors), ['test-loader-budget-a', 'test-loader-budget-b'], true)
-                    && str_contains((string) reset($errors), 'total budget')),
+                    && str_contains(Narrow::string(reset($errors)), 'total budget')),
                 false,
             )
             ->andReturn(true);

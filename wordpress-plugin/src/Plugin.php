@@ -16,7 +16,6 @@ use Loopress\Options\Module\OptionsModule;
 use Loopress\PostTypes\Module\PostTypesModule;
 use Loopress\Pushes\Module\PushesModule;
 use Loopress\RestCache\Module\RestCacheModule;
-use Psr\Container\ContainerInterface;
 
 use function DI\factory;
 
@@ -28,9 +27,7 @@ final class Plugin
         $definitions = apply_filters('loopress_feature_definitions', [
             // FormService takes a variadic list of providers, which autowiring can't guess:
             // one per supported form plugin, WPForms only today.
-            FormService::class => factory(static fn(ContainerInterface $c): FormService => new FormService(
-                $c->get(WPFormsProvider::class),
-            )),
+            FormService::class => factory(static fn(WPFormsProvider $wpForms): FormService => new FormService($wpForms)),
         ]);
         $container   = ContainerFactory::create($definitions);
 

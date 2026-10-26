@@ -11,7 +11,6 @@ use Loopress\Dependencies\Infrastructure\PackagistClient;
 use Loopress\Dependencies\Module\ComposerModule;
 use Loopress\Dependencies\Service\ComposerService;
 use Loopress\Infrastructure\WpHttpClient;
-use Psr\Container\ContainerInterface;
 
 use function DI\autowire;
 use function DI\factory;
@@ -33,9 +32,7 @@ final class Feature implements FeatureProvider
     {
         return [
             self::AUTOLOAD_ERROR => factory(
-                static fn(ContainerInterface $container): ?string => self::requireVendorAutoload(
-                    $container->get(LoopressEnvironment::class),
-                ),
+                static fn(LoopressEnvironment $env): ?string => self::requireVendorAutoload($env),
             ),
             ComposerModule::class => autowire()->constructorParameter('autoloadError', get(self::AUTOLOAD_ERROR)),
 

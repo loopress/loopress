@@ -9,7 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 class AppManifestTest extends TestCase
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{buildId: string, routing: string, mountSelector: string, entry: array{scripts: list<string>, styles: list<string>}, files: list<array{path: string, sha256: string, size: int}>}
+     */
     private function validManifest(): array
     {
         $js  = str_repeat('a', 64);

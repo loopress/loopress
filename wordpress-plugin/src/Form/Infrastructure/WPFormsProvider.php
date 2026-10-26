@@ -6,6 +6,7 @@ namespace Loopress\Form\Infrastructure;
 
 use Loopress\Form\Contract\FormProvider;
 use Loopress\Form\Exception\FormNotificationException;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\SyncSanitizer;
 
 // Function/class signatures for wpforms()/WPForms_Form_Handler are stubbed for static analysis
@@ -115,7 +116,7 @@ final class WPFormsProvider implements FormProvider
     /** @param array<string, mixed> $data */
     private function extractTitle(array $data): string
     {
-        $title = $data['settings']['form_title'] ?? null;
+        $title = Narrow::map($data['settings'] ?? null)['form_title'] ?? null;
 
         return is_string($title) && trim($title) !== '' ? $title : 'Untitled Form';
     }
@@ -149,26 +150,33 @@ final class WPFormsProvider implements FormProvider
             $existingSettings = $existing['settings'];
         }
 
+        $settings = $data['settings'] ?? null;
+        if (!is_array($settings)) {
+            return $data;
+        }
+
         foreach (['notifications', 'confirmations'] as $section) {
-            if (!isset($data['settings'][$section]) || !is_array($data['settings'][$section])) {
+            $value = $settings[$section] ?? null;
+            if (!is_array($value)) {
                 continue;
             }
 
             if (!$allow) {
                 $kept = $existingSettings[$section] ?? null;
                 if (is_array($kept)) {
-                    $data['settings'][$section] = $kept;
+                    $settings[$section] = $kept;
                 } else {
-                    unset($data['settings'][$section]);
+                    unset($settings[$section]);
                 }
 
                 continue;
             }
 
-            $data['settings'][$section] = $section === 'notifications'
-                ? $this->validateNotifications($data['settings'][$section])
-                : $this->sanitizeConfirmations($data['settings'][$section]);
+            $settings[$section] = $section === 'notifications'
+                ? $this->validateNotifications($value)
+                : $this->sanitizeConfirmations($value);
         }
+        $data['settings'] = $settings;
 
         return $data;
     }
@@ -260,7 +268,7 @@ final class WPFormsProvider implements FormProvider
         }
 
         $sender   = trim($sender);
-        $siteHost = strtolower((string) wp_parse_url((string) get_option('siteurl'), PHP_URL_HOST));
+        $siteHost = strtolower(Narrow::string(wp_parse_url(Narrow::string(get_option('siteurl')), PHP_URL_HOST)));
         $atPos    = strrpos($sender, '@');
         $host     = $atPos === false ? '' : strtolower(substr($sender, $atPos + 1));
 

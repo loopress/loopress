@@ -6,6 +6,7 @@ namespace Loopress\Acf\RestApi;
 
 use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\Service\AcfService;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -92,7 +93,7 @@ final class AcfController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $object = $this->acfService->get($this->postType($request), (string) $request->get_param('key'));
+            $object = $this->acfService->get($this->postType($request), Narrow::string($request->get_param('key')));
 
             if ($object === null) {
                 return new WP_REST_Response(['error' => 'ACF object not found'], 404);
@@ -151,7 +152,7 @@ final class AcfController
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->normalize($this->postType($request), $objects), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->acfService->normalize($this->postType($request), array_map(Narrow::map(...), $objects)), 200),
         );
     }
 
@@ -162,7 +163,7 @@ final class AcfController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $deleted = $this->acfService->delete($this->postType($request), (string) $request->get_param('key'));
+            $deleted = $this->acfService->delete($this->postType($request), Narrow::string($request->get_param('key')));
 
             if (!$deleted) {
                 return new WP_REST_Response(['error' => 'ACF object not found'], 404);
@@ -174,7 +175,7 @@ final class AcfController
 
     private function postType(WP_REST_Request $request): string
     {
-        return self::TYPE_SLUGS[(string) $request->get_param('type')];
+        return self::TYPE_SLUGS[Narrow::string($request->get_param('type'))];
     }
 
     /** @return array<string, mixed> */

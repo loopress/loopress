@@ -12,6 +12,7 @@ use Loopress\Options\Exception\ReservedOptionNameException;
 use Loopress\Options\Exception\StaleOptionRevisionException;
 use Loopress\Options\RestApi\OptionsController;
 use Loopress\Options\Service\OptionsService;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
@@ -19,6 +20,8 @@ use WP_REST_Request;
 
 class OptionsControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private OptionsController $controller;
     private OptionsService&MockObject $optionsService;
 
@@ -83,8 +86,8 @@ class OptionsControllerTest extends TestCase
         $response = $this->controller->get_option(RestRequest::with(['name' => 'edd_settings', 'refs' => '{"purchase_page":"page"}']));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['purchase_page' => 'checkout'], $response->data['value']);
-        $this->assertSame('rev-1', $response->data['revision']);
+        $this->assertSame(['purchase_page' => 'checkout'], self::at($response->data, 'value'));
+        $this->assertSame('rev-1', self::at($response->data, 'revision'));
     }
 
     public function test_get_option_returns_400_for_malformed_refs(): void
@@ -155,7 +158,7 @@ class OptionsControllerTest extends TestCase
         ]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['purchase_page' => 'checkout'], $response->data['value']);
+        $this->assertSame(['purchase_page' => 'checkout'], self::at($response->data, 'value'));
     }
 
     public function test_update_option_returns_422_when_a_reference_does_not_resolve(): void

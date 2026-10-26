@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Contract;
 
+use Loopress\Infrastructure\Narrow;
+
+
 /**
  * Immutable snapshot of a snippet's fields, shared by every SnippetProvider. Every property
  * is nullable so the same shape covers both a full snippet (as returned by getSnippet(),
@@ -45,18 +48,21 @@ final readonly class SnippetData
      */
     public static function fromArray(array $data): self
     {
+        $string  = static fn(string $key): ?string => isset($data[$key]) ? Narrow::string($data[$key]) : null;
+        $strings = static fn(string $key): ?array => is_array($data[$key] ?? null) ? array_filter($data[$key], 'is_string') : null;
+
         return new self(
-            id: isset($data['id']) ? (int) $data['id'] : null,
-            name: $data['name'] ?? null,
-            code: $data['code'] ?? null,
-            type: isset($data['type']) ? SnippetType::from($data['type']) : null,
-            active: $data['active'] ?? null,
-            description: $data['description'] ?? null,
-            tags: $data['tags'] ?? null,
-            location: $data['location'] ?? null,
-            insertMethod: $data['insertMethod'] ?? null,
-            priority: isset($data['priority']) ? (int) $data['priority'] : null,
-            shortcodeAttributes: $data['shortcodeAttributes'] ?? null,
+            id: isset($data['id']) ? Narrow::int($data['id']) : null,
+            name: $string('name'),
+            code: $string('code'),
+            type: isset($data['type']) ? SnippetType::from(Narrow::string($data['type'])) : null,
+            active: isset($data['active']) ? (bool) $data['active'] : null,
+            description: $string('description'),
+            tags: $strings('tags'),
+            location: $string('location'),
+            insertMethod: $string('insertMethod'),
+            priority: isset($data['priority']) ? Narrow::int($data['priority']) : null,
+            shortcodeAttributes: $strings('shortcodeAttributes'),
         );
     }
 

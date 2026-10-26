@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\Infrastructure;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Snippets\Contract\SnippetData;
 use Loopress\Snippets\Contract\SnippetProvider;
 use Loopress\Snippets\Contract\SnippetType;
@@ -139,21 +140,21 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
     /** @param array<string, mixed> $data */
     private function fromRemote(array $data): SnippetData
     {
-        $scope = (string) ($data['scope'] ?? 'global');
+        $scope = Narrow::string($data['scope'] ?? 'global');
         $type  = $this->typeFromScope($scope);
         $tags  = $data['tags'] ?? null;
 
         return new SnippetData(
-            id: (int) ($data['id'] ?? 0),
-            name: (string) ($data['name'] ?? ''),
-            code: (string) ($data['code'] ?? ''),
+            id: Narrow::int($data['id'] ?? 0),
+            name: Narrow::string($data['name'] ?? ''),
+            code: Narrow::string($data['code'] ?? ''),
             type: $type,
             active: (bool) ($data['active'] ?? false),
-            description: (string) ($data['desc'] ?? ''),
-            tags: is_array($tags) ? $tags : [],
+            description: Narrow::string($data['desc'] ?? ''),
+            tags: is_array($tags) ? array_filter($tags, 'is_string') : [],
             location: self::SCOPE_TO_LOCATION[$scope] ?? $type->defaultLocation(),
             insertMethod: 'auto',
-            priority: isset($data['priority']) ? (int) $data['priority'] : 10,
+            priority: isset($data['priority']) ? Narrow::int($data['priority']) : 10,
             shortcodeAttributes: [],
         );
     }
@@ -282,6 +283,8 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
             throw new SnippetProviderRequestException($error instanceof \WP_Error ? esc_html($error->get_error_message()) : 'Code Snippets request failed.');
         }
 
-        return $response->get_data();
+        $data = $response->get_data();
+
+        return is_array($data) ? $data : [];
     }
 }

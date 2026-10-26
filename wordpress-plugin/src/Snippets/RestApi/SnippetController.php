@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Snippets\RestApi;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Snippets\Contract\SnippetData;
@@ -125,7 +126,7 @@ final class SnippetController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $snippet = $this->snippetService->getSnippet((int) $request->get_param('id'));
+            $snippet = $this->snippetService->getSnippet(Narrow::int($request->get_param('id')));
 
             return $snippet === null
                 ? new WP_REST_Response(['error' => 'Snippet not found'], 404)
@@ -188,7 +189,7 @@ final class SnippetController
 
         return $this->mapServiceExceptions(function () use ($request, $data, $expectedRevision): WP_REST_Response {
             $snippet = $this->snippetService->updateSnippet(
-                (int) $request->get_param('id'),
+                Narrow::int($request->get_param('id')),
                 SnippetData::fromArray($data),
                 $expectedRevision,
             );
@@ -206,7 +207,7 @@ final class SnippetController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $deleted = $this->snippetService->deleteSnippet((int) $request->get_param('id'));
+            $deleted = $this->snippetService->deleteSnippet(Narrow::int($request->get_param('id')));
 
             return $deleted
                 ? new WP_REST_Response(null, 204)

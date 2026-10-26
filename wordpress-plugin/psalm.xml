@@ -167,18 +167,6 @@
             </errorLevel>
         </UnusedParam>
 
-        <!-- WP_REST_Request::get_param() is typed as nullable by the WordPress stubs, but the
-             route's own `args` schema marks these as required, so WordPress rejects the request
-             before the callback runs if they're missing. -->
-        <PossiblyNullArgument>
-            <errorLevel type="suppress">
-                <directory name="src/Acf/RestApi" />
-                <directory name="src/Dependencies/RestApi" />
-                <directory name="src/Snippets/RestApi" />
-                <directory name="src/Form/RestApi" />
-            </errorLevel>
-        </PossiblyNullArgument>
-
         <!-- Registered as a `rest_post_dispatch`/`rest_pre_serve_request` filter; the return
              value is consumed by WordPress's filter chain, not by any caller Psalm can see. -->
         <PossiblyUnusedReturnValue>

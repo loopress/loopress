@@ -543,17 +543,17 @@ class SnippetControllerTest extends TestCase
 
         $this->assertSame(
             [['GET', 'get_snippets'], ['POST', 'create_snippet']],
-            array_map(fn(array $e): array => [$e['methods'], self::at($e, 'callback', 1)], $collection['args']),
+            array_map(fn(mixed $e): array => [self::at($e, 'methods'), self::at($e, 'callback', 1)], self::arrayAt($collection, 'args')),
         );
         $this->assertSame(
             [['GET', 'get_snippet'], ['PUT', 'update_snippet'], ['DELETE', 'delete_snippet']],
-            array_map(fn(array $e): array => [$e['methods'], self::at($e, 'callback', 1)], $item['args']),
+            array_map(fn(mixed $e): array => [self::at($e, 'methods'), self::at($e, 'callback', 1)], self::arrayAt($item, 'args')),
         );
 
         foreach ([$collection, $item] as $route) {
             foreach ($route['args'] as $endpoint) {
-                $this->assertSame($this->controller, $endpoint['callback'][0]);
-                $this->assertIsCallable($endpoint['permission_callback']);
+                $this->assertSame($this->controller, self::at($endpoint, 'callback', 0));
+                $this->assertIsCallable(self::at($endpoint, 'permission_callback'));
             }
         }
     }
@@ -576,21 +576,23 @@ class SnippetControllerTest extends TestCase
             'insertMethod'        => ['required' => false, 'type' => 'string', 'default' => 'auto', 'enum' => ['auto', 'shortcode']],
             'priority'            => ['required' => false, 'type' => 'integer', 'default' => 10],
             'shortcodeAttributes' => ['required' => false, 'type' => 'array', 'default' => [], 'items' => ['type' => 'string']],
-        ], $collection['args'][1]['args']);
+        ], self::at($collection, 'args', 1, 'args'));
     }
 
     public function test_register_routes_constrains_the_item_id_to_digits_and_a_positive_value(): void
     {
         [, $item] = $this->capturedRoutes();
 
-        foreach ([$item['args'][0]['args'], $item['args'][1]['args'], $item['args'][2]['args']] as $args) {
-            $idArg = $args['id'];
-            $this->assertTrue($idArg['required']);
-            $this->assertSame('absint', $idArg['sanitize_callback']);
-            $this->assertTrue($idArg['validate_callback']('7'));
-            $this->assertFalse($idArg['validate_callback']('0'));
-            $this->assertFalse($idArg['validate_callback']('-3'));
-            $this->assertFalse($idArg['validate_callback']('abc'));
+        foreach ([self::at($item, 'args', 0, 'args'), self::at($item, 'args', 1, 'args'), self::at($item, 'args', 2, 'args')] as $args) {
+            $idArg = self::at($args, 'id');
+            $this->assertTrue(self::at($idArg, 'required'));
+            $this->assertSame('absint', self::at($idArg, 'sanitize_callback'));
+            $validate = self::at($idArg, 'validate_callback');
+            $this->assertIsCallable($validate);
+            $this->assertTrue($validate('7'));
+            $this->assertFalse($validate('0'));
+            $this->assertFalse($validate('-3'));
+            $this->assertFalse($validate('abc'));
         }
     }
 
@@ -599,7 +601,7 @@ class SnippetControllerTest extends TestCase
     public function test_register_routes_declares_the_full_update_body_schema(): void
     {
         [, $item] = $this->capturedRoutes();
-        $update = $item['args'][1]['args'];
+        $update = self::arrayAt($item, 'args', 1, 'args');
 
         $this->assertArrayHasKey('id', $update);
         unset($update['id']);
@@ -627,7 +629,9 @@ class SnippetControllerTest extends TestCase
         $callbacks = [];
         foreach ([$collection, $item] as $route) {
             foreach ($route['args'] as $endpoint) {
-                $callbacks[] = $endpoint['permission_callback'];
+                $callback = self::at($endpoint, 'permission_callback');
+                $this->assertIsCallable($callback);
+                $callbacks[] = $callback;
             }
         }
         $this->assertCount(5, $callbacks);

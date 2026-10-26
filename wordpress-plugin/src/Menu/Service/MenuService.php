@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Menu\Service;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Infrastructure\PostByPath;
 use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
@@ -197,7 +198,7 @@ class MenuService
         $rawParentOf = [];
         $exported    = [];
         foreach ($items as $item) {
-            $rawParentOf[$item->ID] = (int) get_post_meta($item->ID, '_menu_item_menu_item_parent', true);
+            $rawParentOf[$item->ID] = Narrow::int(get_post_meta($item->ID, '_menu_item_menu_item_parent', true));
             $exported[$item->ID]    = $this->exportItem($item, $warnings);
         }
 
@@ -265,7 +266,7 @@ class MenuService
 
         $nodes = [];
         foreach ($byParent[$parentId] as $node) {
-            $node['children'] = $this->buildTree($node['_id'] ?? 0, $byParent);
+            $node['children'] = $this->buildTree(Narrow::int($node['_id'] ?? 0), $byParent);
             unset($node['_id']);
             $nodes[] = $node;
         }
@@ -279,7 +280,7 @@ class MenuService
      */
     private function exportItem(\WP_Post $item, array &$warnings): ?array
     {
-        $type = (string) get_post_meta($item->ID, '_menu_item_type', true);
+        $type = Narrow::string(get_post_meta($item->ID, '_menu_item_type', true));
 
         $node = [
             '_id'         => $item->ID,
@@ -293,15 +294,15 @@ class MenuService
             'description' => $item->post_content === ' ' ? '' : (string) $item->post_content,
             'object'      => null,
             'objectSlug'  => null,
-            'target'      => (string) get_post_meta($item->ID, '_menu_item_target', true),
+            'target'      => Narrow::string(get_post_meta($item->ID, '_menu_item_target', true)),
             'title'       => (string) $item->post_title,
             'type'        => $type,
             'url'         => null,
-            'xfn'         => (string) get_post_meta($item->ID, '_menu_item_xfn', true),
+            'xfn'         => Narrow::string(get_post_meta($item->ID, '_menu_item_xfn', true)),
         ];
 
         if ($type === 'custom') {
-            $node['url'] = (string) get_post_meta($item->ID, '_menu_item_url', true);
+            $node['url'] = Narrow::string(get_post_meta($item->ID, '_menu_item_url', true));
             return $node;
         }
 
@@ -314,8 +315,8 @@ class MenuService
             return null;
         }
 
-        $object   = (string) get_post_meta($item->ID, '_menu_item_object', true);
-        $objectId = (int) get_post_meta($item->ID, '_menu_item_object_id', true);
+        $object   = Narrow::string(get_post_meta($item->ID, '_menu_item_object', true));
+        $objectId = Narrow::int(get_post_meta($item->ID, '_menu_item_object_id', true));
 
         $slug = $type === 'post_type' ? $this->postSlug($objectId, $object) : $this->termSlug($objectId, $object);
         if ($slug === null) {
@@ -351,7 +352,7 @@ class MenuService
         // wp_update_nav_menu_item() stores this meta as one array element per class (it explodes
         // the incoming space-separated string itself before saving), confirmed against
         // wp-includes/nav-menu.php's own update_post_meta() call, not a single joined string.
-        $classes = is_array($raw) ? array_map('strval', $raw) : [];
+        $classes = is_array($raw) ? array_map(Narrow::string(...), $raw) : [];
 
         return array_values(array_filter($classes, fn(string $className): bool => $className !== ''));
     }
@@ -409,7 +410,7 @@ class MenuService
                 throw new \RuntimeException(esc_html('Every menu item must be an object.'));
             }
 
-            $type = (string) ($item['type'] ?? '');
+            $type = Narrow::string($item['type'] ?? '');
             if (!in_array($type, self::SUPPORTED_ITEM_TYPES, true)) {
                 throw new \RuntimeException(esc_html(
                     "Menu item type \"{$type}\" is not supported. Use one of: " . implode(', ', self::SUPPORTED_ITEM_TYPES) . '.',
@@ -417,20 +418,20 @@ class MenuService
             }
 
             $args = [
-                'menu-item-classes'     => implode(' ', array_map('strval', (array) ($item['classes'] ?? []))),
-                'menu-item-description' => (string) ($item['description'] ?? ''),
+                'menu-item-classes'     => implode(' ', array_map(Narrow::string(...), (array) ($item['classes'] ?? []))),
+                'menu-item-description' => Narrow::string($item['description'] ?? ''),
                 'menu-item-position'    => $position + 1,
                 'menu-item-status'      => 'publish',
-                'menu-item-target'      => (string) ($item['target'] ?? ''),
-                'menu-item-title'       => (string) ($item['title'] ?? ''),
+                'menu-item-target'      => Narrow::string($item['target'] ?? ''),
+                'menu-item-title'       => Narrow::string($item['title'] ?? ''),
                 'menu-item-type'        => $type,
-                'menu-item-xfn'         => (string) ($item['xfn'] ?? ''),
+                'menu-item-xfn'         => Narrow::string($item['xfn'] ?? ''),
             ];
 
             $args += $this->resolveTarget($type, $item, $warnings);
 
             $children = $item['children'] ?? null;
-            $children = is_array($children) ? $this->resolveItems($children, $warnings) : [];
+            $children = is_array($children) ? $this->resolveItems(array_values($children), $warnings) : [];
             $resolved[] = ['args' => $args, 'children' => $children];
         }
 
@@ -448,7 +449,7 @@ class MenuService
     private function resolveTarget(string $type, array $item, array &$warnings): array
     {
         if ($type === 'custom') {
-            $url = (string) ($item['url'] ?? '');
+            $url = Narrow::string($item['url'] ?? '');
             if ($url === '') {
                 throw new \RuntimeException(esc_html('A "custom" menu item must include a non-empty "url".'));
             }
@@ -460,8 +461,8 @@ class MenuService
             return ['menu-item-object' => '', 'menu-item-object-id' => 0, 'menu-item-url' => $url];
         }
 
-        $object     = (string) ($item['object'] ?? '');
-        $objectSlug = (string) ($item['objectSlug'] ?? '');
+        $object     = Narrow::string($item['object'] ?? '');
+        $objectSlug = Narrow::string($item['objectSlug'] ?? '');
         if ($object === '' || $objectSlug === '') {
             throw new \RuntimeException(esc_html(
                 "A \"{$type}\" menu item must include a non-empty \"object\" and \"objectSlug\".",
@@ -580,7 +581,11 @@ class MenuService
             }
 
             $createdIds[] = (int) $itemId;
-            $this->createItems($menuId, (int) $itemId, $item['children'], $createdIds);
+            // resolveItems() builds the children with this same shape, which a PHPDoc type can't
+            // spell out recursively.
+            /** @var array<int, array{args: array<string, mixed>, children: array<int, mixed>}> $children */
+            $children = $item['children'];
+            $this->createItems($menuId, (int) $itemId, $children, $createdIds);
         }
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\RestCache\Module;
 
 use Loopress\Contract\Module;
+use Loopress\Infrastructure\Narrow;
 
 final class RestCacheModule implements Module
 {
@@ -27,7 +28,7 @@ final class RestCacheModule implements Module
 
     public function litespeedNoCache(): void
     {
-        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash(Narrow::string($_SERVER['REQUEST_URI']))) : '';
         if (str_contains($uri, '/wp-json/loopress/')) {
             do_action('litespeed_control_set_nocache', 'loopress REST API');
         }

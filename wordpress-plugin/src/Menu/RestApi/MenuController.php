@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Menu\RestApi;
 
 use Loopress\Infrastructure\AmbiguousPostSlugException;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Menu\Exception\MenuTargetNotFoundException;
 use Loopress\Menu\Exception\StaleMenuRevisionException;
 use Loopress\Menu\Service\MenuService;
@@ -82,7 +83,7 @@ final class MenuController
     public function get_menu(WP_REST_Request $request): WP_REST_Response
     {
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $menu = $this->menuService->getMenu((string) $request->get_param('slug'));
+            $menu = $this->menuService->getMenu(Narrow::string($request->get_param('slug')));
 
             return $menu === null
                 ? new WP_REST_Response(['error' => 'Menu not found'], 404)
@@ -99,8 +100,8 @@ final class MenuController
             return new WP_REST_Response(['error' => 'Request body must include a non-empty "slug" and "name".'], 400);
         }
 
-        $slug  = (string) ($body['slug'] ?? '');
-        $name  = (string) ($body['name'] ?? '');
+        $slug  = Narrow::string($body['slug'] ?? '');
+        $name  = Narrow::string($body['name'] ?? '');
         $items = $body['items'] ?? [];
 
         if ($slug === '' || $name === '') {
@@ -121,14 +122,14 @@ final class MenuController
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->upsertMenu($slug, $name, $items, $expectedRevision), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->menuService->upsertMenu($slug, $name, array_values($items), $expectedRevision), 200),
             self::STATUSES,
         );
     }
 
     public function delete_menu(WP_REST_Request $request): WP_REST_Response
     {
-        $slug = (string) $request->get_param('slug');
+        $slug = Narrow::string($request->get_param('slug'));
 
         return $this->mapServiceExceptions(function () use ($slug): WP_REST_Response {
             $deleted = $this->menuService->deleteMenu($slug);
@@ -156,7 +157,7 @@ final class MenuController
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->asJsonObject($this->menuService->setLocations($body)), 200),
+            fn(): WP_REST_Response => new WP_REST_Response($this->asJsonObject($this->menuService->setLocations(Narrow::map($body))), 200),
         );
     }
 

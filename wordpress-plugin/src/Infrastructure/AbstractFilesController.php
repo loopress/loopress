@@ -185,8 +185,8 @@ abstract class AbstractFilesController
 
     public function push_file(WP_REST_Request $request): WP_REST_Response
     {
-        $filename = (string) $request->get_param('filename');
-        $content  = (string) $request->get_param('content');
+        $filename = Narrow::string($request->get_param('filename'));
+        $content  = Narrow::string($request->get_param('content'));
 
         // register_routes()'s validate_callback already rejects the request before WP ever
         // calls this method, but that enforcement is invisible to static analysis: nothing in
@@ -266,7 +266,7 @@ abstract class AbstractFilesController
             }
         }
 
-        $overlap = array_values(array_intersect($pushedFilenames, $prune));
+        $overlap = array_values(array_intersect($pushedFilenames, array_filter($prune, 'is_string')));
         if ($overlap !== []) {
             return new WP_REST_Response([
                 'error' => 'Cannot push and prune the same filename in one batch: ' . implode(', ', $overlap),
@@ -486,7 +486,7 @@ abstract class AbstractFilesController
 
             return new WP_REST_Response([
                 'error' => "\"{$filename}.php\" changed on WordPress since it was last read " .
-                    "(expected revision \"{$expectedRevision}\", but {$found}). Re-read the file and try again.",
+                    '(expected revision "' . Narrow::string($expectedRevision) . "\", but {$found}). Re-read the file and try again.",
             ], 412);
         }
 
@@ -499,7 +499,7 @@ abstract class AbstractFilesController
     // a leaked token could only be cleared over SSH/SFTP (F3).
     public function delete_file(WP_REST_Request $request): WP_REST_Response
     {
-        $filename = (string) $request->get_param('filename');
+        $filename = Narrow::string($request->get_param('filename'));
 
         // Defense in depth, same as push_file(): re-check the raw value here, not only via the
         // register_routes() validate_callback, so the path that reaches the filesystem a line

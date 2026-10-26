@@ -322,10 +322,12 @@ final class InfectionPatchworkBridge
 
         try {
             return match ((int) $option) {
-                STREAM_META_TOUCH => $value === [] ? touch($path) : touch($path, ...array_values((array) $value)),
-                STREAM_META_OWNER, STREAM_META_OWNER_NAME => chown($path, $value),
-                STREAM_META_GROUP, STREAM_META_GROUP_NAME => chgrp($path, $value),
-                STREAM_META_ACCESS => chmod($path, $value),
+                // PHP passes ints (a name for *_NAME), the is_int()/is_string() checks only narrow
+                // the documented `mixed`.
+                STREAM_META_TOUCH => $value === [] ? touch($path) : touch($path, ...array_filter(array_values((array) $value), 'is_int')),
+                STREAM_META_OWNER, STREAM_META_OWNER_NAME => (is_int($value) || is_string($value)) && chown($path, $value),
+                STREAM_META_GROUP, STREAM_META_GROUP_NAME => (is_int($value) || is_string($value)) && chgrp($path, $value),
+                STREAM_META_ACCESS => is_int($value) && chmod($path, $value),
                 default => false,
             };
         } finally {
