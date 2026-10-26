@@ -25,7 +25,7 @@ define('LOOPRESS_VERSION', '0.0.0');
 
 /**
  * @param array<string, mixed>|null $args
- * @psalm-return ($args is array{fields: 'ids', ...} ? list<int> : list<WP_Post>)
+ * @psalm-return ($args is array{fields: 'ids', ...} ? list<int> : ($args is array{fields: 'id=>parent', ...} ? list<object{ID: int, post_parent: int}> : list<WP_Post>))
  */
 function get_posts($args = null) {}
 
