@@ -39,7 +39,7 @@ final class Narrow
     }
 
     /**
-     * Narrow::map() keeping only the string values (a composer.json `require`, a fingerprint map).
+     * Narrow::map() keeping only the string values, e.g. a package or fingerprint map.
      *
      * @return array<string, string>
      */
