@@ -46,7 +46,7 @@ class PostMetaService extends AbstractDeclaredTypeService
                     'key'        => $key,
                     'type'       => (string) ($args['type'] ?? 'string'),
                     'single'     => (bool) ($args['single'] ?? false),
-                    'showInRest' => !empty($args['show_in_rest']),
+                    'showInRest' => (bool) ($args['show_in_rest'] ?? false),
                     'source'     => $ours ? 'loopress' : 'other',
                     // Information only: the same key as an ACF or SCF field never changes what Loopress does.
                     'acf'        => $acf && acf_get_field($key) !== false,

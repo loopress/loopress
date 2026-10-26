@@ -300,7 +300,7 @@ class HookLoader extends AbstractFileLoader
     {
         add_action($hook, $callback);
 
-        if (wp_next_scheduled($hook)) {
+        if (wp_next_scheduled($hook) !== false) {
             return;
         }
 

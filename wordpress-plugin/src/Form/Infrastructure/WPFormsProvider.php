@@ -50,7 +50,7 @@ class WPFormsProvider implements FormProvider
         // actually store the pushed content, the same two-step dance WPForms' own add()
         // performs internally for its "outside builder" case.
         $formId = wpforms()->form->add($this->extractTitle($data), [], []);
-        if (!$formId) {
+        if ($formId === false || $formId === 0) {
             throw new \RuntimeException('Failed to create the WPForms form.');
         }
 
@@ -237,7 +237,7 @@ class WPFormsProvider implements FormProvider
                 continue;
             }
 
-            if (!is_email($part)) {
+            if (is_email($part) === false) {
                 throw new FormNotificationException(esc_html(
                     "Notification recipient \"{$part}\" is not a valid email address."
                 ));
@@ -258,7 +258,7 @@ class WPFormsProvider implements FormProvider
         $atPos    = strrpos($sender, '@');
         $host     = $atPos === false ? '' : strtolower(substr($sender, $atPos + 1));
 
-        if (!is_email($sender) || $host === '' || $siteHost === '' || $host !== $siteHost) {
+        if (is_email($sender) === false || $host === '' || $siteHost === '' || $host !== $siteHost) {
             throw new FormNotificationException(esc_html(
                 "Notification sender_address \"{$sender}\" must be an address on this site's own domain ({$siteHost})."
             ));

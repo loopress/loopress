@@ -26,7 +26,7 @@ class PostTypeService extends AbstractDeclaredTypeService
         $result = [];
         foreach (get_post_types([], 'objects') as $slug => $object) {
             $ours    = $this->isOurs($slug, $object);
-            $visible = $object->public || ($object->show_ui && $object->show_in_menu && !$object->_builtin);
+            $visible = $object->public || ($object->show_ui && (bool) $object->show_in_menu && !$object->_builtin);
             if (!$ours && !$visible && !isset($stored[$slug])) {
                 continue;
             }

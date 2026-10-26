@@ -48,7 +48,9 @@
         "rector/rector": "^2.5",
         "infection/infection": "^0.32.6",
         "deptrac/deptrac": "^4.7",
-        "tomasvotruba/cognitive-complexity": "^1.3"
+        "tomasvotruba/cognitive-complexity": "^1.3",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0"
     },
     "scripts": {
         "test": "phpunit",

@@ -57,7 +57,7 @@ class Feature implements FeatureProvider
     private static function requireVendorAutoload(LoopressEnvironment $env): ?string
     {
         $autoload = $env->getAutoloadPath();
-        if (!$autoload) {
+        if ($autoload === null || $autoload === '') {
             return null;
         }
 

@@ -23,7 +23,7 @@ class TempAdminModule implements Module
         // ponytail: never unscheduled on deactivation, the event then fires with no callback,
         // which WordPress ignores. Add a deactivation hook if that ever shows up somewhere.
         add_action('init', static function (): void {
-            if (!wp_next_scheduled(TempAdminSweeper::CRON_HOOK)) {
+            if (wp_next_scheduled(TempAdminSweeper::CRON_HOOK) === false) {
                 wp_schedule_event(time(), 'hourly', TempAdminSweeper::CRON_HOOK);
             }
         });

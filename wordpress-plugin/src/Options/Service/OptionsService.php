@@ -144,7 +144,7 @@ class OptionsService
         $guessedSlugs = array_values(array_unique(array_filter(array_map(
             static fn(array $option): ?string => $option['guess'],
             $options,
-        ))));
+        ), static fn(?string $slug): bool => $slug !== null && $slug !== '')));
 
         $names = $this->pluginDisplayNames($guessedSlugs);
 

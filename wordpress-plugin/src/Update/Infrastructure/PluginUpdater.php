@@ -44,7 +44,7 @@ class PluginUpdater
     public function forgetOnForceCheck(): void
     {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a flag that only drops a cache, core reads it unverified too.
-        if (!empty($_GET['force-check'])) {
+        if ((bool) ($_GET['force-check'] ?? false)) {
             $this->checker->forget();
         }
     }

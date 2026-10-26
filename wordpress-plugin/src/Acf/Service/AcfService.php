@@ -185,8 +185,8 @@ class AcfService
         // acf_update_field() drops empty conditional logic rules inline, not through a filter.
         if (is_array($field['conditional_logic'] ?? null)) {
             $field['conditional_logic'] = array_values(array_map(
-                fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules)) : $rules,
-                array_filter($field['conditional_logic']),
+                fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules, static fn(mixed $value): bool => (bool) $value)) : $rules,
+                array_filter($field['conditional_logic'], static fn(mixed $value): bool => (bool) $value),
             ));
         }
 
@@ -266,7 +266,7 @@ class AcfService
     // classic ACF Free.
     private function requireRegisteredType(string $postType): void
     {
-        if (!acf_get_internal_post_type_instance($postType)) {
+        if (acf_get_internal_post_type_instance($postType) === false) {
             throw new \RuntimeException(esc_html(
                 "The \"{$postType}\" ACF object type is not registered on this site. If this is an options page, make sure it was added with acf_add_options_page()."
             ));
