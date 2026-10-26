@@ -101,6 +101,18 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame([['slug' => 'header', 'html' => 'head', 'title' => 'Header', 'area' => 'header']], self::at($data, 'parts'));
     }
 
+    public function test_summary_reports_the_child_for_capabilities(): void
+    {
+        $this->assertSame(['stylesheet' => 'twentytwentyfive-loopress', 'exists' => false, 'active' => false], $this->controller()->summary());
+
+        $this->put([]);
+        $this->stylesheet = 'twentytwentyfive-loopress';
+        $this->assertSame(['stylesheet' => 'twentytwentyfive-loopress', 'exists' => true, 'active' => true], $this->controller()->summary());
+
+        $this->blockTheme = false;
+        $this->assertNull($this->controller()->summary());
+    }
+
     public function test_theme_json_keeps_the_parent_entries_and_ours_win_on_the_same_name(): void
     {
         $this->put(

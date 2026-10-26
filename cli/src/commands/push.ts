@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../lib/base.js'
+import {integrationFix, missingIntegration} from '../lib/capabilities.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {PushCommand} from '../lib/push-command.js'
@@ -111,22 +112,20 @@ export default class Push extends LoopressCommand {
     return argv
   }
 
-  // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
-  // safety), so `composer:push` would only run Composer on the server a second time.
-  private async composerDeclaresPlugins(): Promise<boolean> {
-    const path = this.composerJsonPath()
-    if (!existsSync(path)) return false
-    try {
-      const composerJson = JSON.parse(await readFile(path, 'utf8')) as ComposerJson
-      return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig.name))).length > 0
-    } catch {
-      // Unreadable: let both commands run and report the parse error themselves.
-      return false
-    }
-  }
-
   private composerJsonPath(): string {
     return join(process.cwd(), this.rootDir, 'composer.json')
+  }
+
+  // The wordpress.org plugins the project declares: composer.json's wpackagist plugins when it
+  // exists, loopress.json's otherwise. Unreadable composer.json: none, the commands report it.
+  private async declaredPlugins(hasComposerJson: boolean): Promise<string[]> {
+    if (!hasComposerJson) return Object.keys(this.localConfig.plugins ?? {})
+    try {
+      const composerJson = JSON.parse(await readFile(this.composerJsonPath(), 'utf8')) as ComposerJson
+      return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig.name)))
+    } catch {
+      return []
+    }
   }
 
   // The site unreachable or the theme list refused: let the step run and report it itself.
@@ -155,18 +154,36 @@ export default class Push extends LoopressCommand {
     const skips = new Map<string, {note: string; status: 'pushed' | 'skipped'}>()
     const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
     const hasComposerJson = existsSync(this.composerJsonPath())
-    const composerPushedByPlugins = await this.composerDeclaresPlugins()
+    const declaredPlugins = await this.declaredPlugins(hasComposerJson)
+    // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
+    // safety), so `composer:push` would only run Composer on the server a second time.
+    const composerPushedByPlugins = hasComposerJson && declaredPlugins.length > 0
 
     if (composerPushedByPlugins) skips.set('composer:push', {note: 'already pushed whole by plugins', status: 'pushed'})
     else if (!hasComposerJson) skips.set('composer:push', notConfigured)
 
     // With a composer.json, plugins come from it only; otherwise from loopress.json.
-    const pluginsConfigured = hasComposerJson ? composerPushedByPlugins : Object.keys(this.localConfig.plugins ?? {}).length > 0
-    if (!pluginsConfigured) skips.set('plugin:push', notConfigured)
+    if (declaredPlugins.length === 0) skips.set('plugin:push', notConfigured)
 
+    // A resource the project uses on a site that can't hold it would only fail at its turn, after
+    // everything before it was pushed: refuse the whole run upfront, saying how to fix it.
+    const capabilities = await this.capabilities()
+    const blockers: string[] = []
     for (const [commandId, kind] of Object.entries(PLUGIN_BACKED)) {
-      if (!projectUses(kind, this.localConfig)) skips.set(commandId, notConfigured)
+      if (!projectUses(kind, this.localConfig)) {
+        skips.set(commandId, notConfigured)
+        continue
+      }
+
+      const missing = missingIntegration(kind, capabilities)
+      if (!missing) continue
+      const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
+      const fix = integrationFix(missing, {fromComposer: hasComposerJson, plugins: declaredPlugins})
+      const fixSentence = fix ? ` ${fix}.` : ''
+      blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`)
     }
+
+    if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}`)
 
     const stylesNote = await this.globalStylesSkipNote()
     if (stylesNote) skips.set('theme:style:push', {note: stylesNote, status: 'skipped'})

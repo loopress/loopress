@@ -4,6 +4,7 @@ import Copy from '../../../src/commands/content/copy.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {WpClient} from '../../../src/lib/wp-client.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
+import {makeCapabilities} from '../../helpers/capabilities.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
@@ -20,15 +21,40 @@ const PAGES: Record<string, unknown> = {
   'loopress/v1/content/terms?after=0&limit=100': {next: null, termTaxonomy: [], termmeta: [], terms: [{term_id: 1}]},
 }
 
-function make(argv: string[], target = 'local') {
+const plugin = (slug: string, status: 'active' | 'inactive') => ({name: slug, plugin: `${slug}/${slug}`, plugin_uri: '', status, version: '1.0'})
+
+// What both sites answer besides the content pages: by default the same theme and plugins, so
+// there is nothing to align.
+type Site = {capabilities: ReturnType<typeof makeCapabilities>; plugins: unknown[]; themes: unknown[]}
+const site = (overrides: Partial<Site> = {}): Site => ({
+  capabilities: makeCapabilities(),
+  plugins: [plugin('akismet', 'active')],
+  themes: [{status: 'active', stylesheet: 'twentytwentyfive'}],
+  ...overrides,
+})
+
+function siteGet(answers: Site, pages: Record<string, unknown> = {}) {
+  return vi.fn(async (path: string) => {
+    if (path === 'loopress/v1/capabilities') return answers.capabilities
+    if (path === 'wp/v2/plugins') return answers.plugins
+    if (path === 'wp/v2/themes') return answers.themes
+    return pages[path]
+  })
+}
+
+function make(argv: string[], target = 'local', sites: {local?: Site; source?: Site} = {}) {
   const cmd = new Copy(argv, fakeOclifConfig)
   const internals = cmd as unknown as {dryRun: boolean; siteConfig: EnvironmentConfig; sourceWp: (from: string) => unknown; wpClient: unknown; yes: boolean}
   internals.siteConfig = makeEnv(target, 'https://acme.local')
   internals.yes = true
   internals.dryRun = argv.includes('--dry-run')
-  const source = {get: vi.fn(async (path: string) => PAGES[path])}
+  const source = {get: siteGet(sites.source ?? site(), PAGES)}
   internals.sourceWp = vi.fn(() => source)
-  const local = {post: vi.fn(async (_path: string, _body?: unknown) => ({}))}
+  const local = {
+    get: siteGet(sites.local ?? site()),
+    post: vi.fn(async (_path: string, _body?: unknown) => ({changed: true})),
+    put: vi.fn(async (_path: string, _body?: unknown) => ({})),
+  }
   internals.wpClient = local
   silenceLogs(cmd)
   return {cmd, internals, local}
@@ -68,6 +94,99 @@ describe('content copy', () => {
     expect(local.post).not.toHaveBeenCalled()
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     expect(result).toEqual({from: 'production', posts: 101, status: 'dry-run', terms: 1})
+  })
+
+  describe('aligning the local site with <from>', () => {
+    const activations = (local: ReturnType<typeof make>['local']) =>
+      local.post.mock.calls.filter(([path]) => path === 'loopress/v1/theme/activate').map(([, body]) => body)
+
+    it('activates, before the push, the plugins active there and installed but inactive here', async () => {
+      const {cmd, local} = make(['production'], 'local', {
+        local: site({plugins: [plugin('akismet', 'active'), plugin('code-snippets', 'inactive'), plugin('hello', 'inactive')]}),
+        source: site({plugins: [plugin('akismet', 'active'), plugin('code-snippets', 'active'), plugin('hello', 'inactive')]}),
+      })
+      vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async () => {
+        expect(local.put).toHaveBeenCalled()
+        return {}
+      })
+
+      await cmd.run()
+
+      expect(local.put.mock.calls).toEqual([['wp/v2/plugins/code-snippets/code-snippets', {status: 'active'}]])
+    })
+
+    it('warns about plugins active there but not installed here, and never installs them', async () => {
+      const {cmd, local} = make(['production'], 'local', {
+        source: site({plugins: [plugin('akismet', 'active'), plugin('wpforms-lite', 'active')]}),
+      })
+      const warn = vi.spyOn(cmd, 'warn')
+
+      await cmd.run()
+
+      expect(warn).toHaveBeenCalledWith('Active on production but not installed locally: wpforms-lite. Declare them in composer.json.')
+      expect(local.put).not.toHaveBeenCalled()
+    })
+
+    it('activates the theme active there when it is installed here', async () => {
+      const {cmd, local} = make(['production'], 'local', {
+        local: site({
+          capabilities: makeCapabilities({theme: {active: 'astra', isBlock: false, template: 'astra'}}),
+          themes: [{status: 'active', stylesheet: 'astra'}, {status: 'inactive', stylesheet: 'twentytwentyfive'}],
+        }),
+      })
+
+      await cmd.run()
+
+      expect(activations(local)).toEqual([{stylesheet: 'twentytwentyfive'}])
+    })
+
+    it('activates the parent of a Loopress child not written here yet, then the child once the push wrote it', async () => {
+      const {cmd, local} = make(['production'], 'local', {
+        local: site({
+          capabilities: makeCapabilities({theme: {active: 'astra', isBlock: false, template: 'astra'}}),
+          themes: [{status: 'active', stylesheet: 'astra'}, {status: 'inactive', stylesheet: 'twentytwentyfive'}],
+        }),
+        source: site({capabilities: makeCapabilities({theme: {active: 'twentytwentyfive-loopress'}})}),
+      })
+      vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async () => {
+        expect(activations(local)).toEqual([{stylesheet: 'twentytwentyfive'}])
+        return {}
+      })
+
+      await cmd.run()
+
+      expect(activations(local)).toEqual([{stylesheet: 'twentytwentyfive'}, {stylesheet: 'twentytwentyfive-loopress'}])
+    })
+
+    it('keeps the local theme, with a warning, when the one active there is not installed here', async () => {
+      const {cmd, local} = make(['production'], 'local', {
+        source: site({capabilities: makeCapabilities({theme: {active: 'kadence', isBlock: false, template: 'kadence'}})}),
+      })
+      const warn = vi.spyOn(cmd, 'warn')
+
+      await cmd.run()
+
+      expect(warn).toHaveBeenCalledWith('kadence is active on production but not installed locally, the local site keeps twentytwentyfive.')
+      expect(activations(local)).toEqual([])
+    })
+
+    it('on --dry-run, says what it would activate and changes nothing', async () => {
+      const {cmd, local} = make(['production', '--dry-run'], 'local', {
+        local: site({
+          capabilities: makeCapabilities({theme: {active: 'astra', isBlock: false, template: 'astra'}}),
+          plugins: [plugin('akismet', 'inactive')],
+          themes: [{status: 'active', stylesheet: 'astra'}, {status: 'inactive', stylesheet: 'twentytwentyfive'}],
+        }),
+      })
+      const log = vi.spyOn(cmd, 'log')
+
+      await cmd.run()
+
+      expect(log).toHaveBeenCalledWith('[dry-run] Would activate akismet, active on production.')
+      expect(log).toHaveBeenCalledWith('[dry-run] Would activate twentytwentyfive instead of astra, like on production.')
+      expect(local.put).not.toHaveBeenCalled()
+      expect(local.post).not.toHaveBeenCalled()
+    })
   })
 
   it('refuses to copy the local site onto itself', async () => {

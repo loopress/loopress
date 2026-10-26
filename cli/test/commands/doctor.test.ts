@@ -4,6 +4,7 @@ import Doctor from '../../src/commands/doctor.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {diagnoseWpSite} from '../../src/lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
+import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv, makeListedProject} from '../helpers/project-fixtures.js'
 
@@ -25,6 +26,7 @@ function make(siteConfig: EnvironmentConfig = makeEnv('production', 'https://acm
   // `get` stubs below don't have to return an array for it; tests about leftovers override it.
   const users = vi.fn().mockResolvedValue([])
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: users}
+  stubCapabilities(cmd)
   return {cmd, get, logs, users}
 }
 
@@ -47,7 +49,7 @@ describe('doctor', () => {
     expect(logs.log).toHaveBeenCalledWith('URL:          https://acme.com')
   })
 
-  it('passes all checks and reports the plugin version', async () => {
+  it('passes all checks and reports what the site can do', async () => {
     const {cmd, get, logs} = make()
     get.mockResolvedValue({'current_version': '2026.7.1'})
 
@@ -56,9 +58,13 @@ describe('doctor', () => {
     expect(logs.log).toHaveBeenCalledWith('✓ WordPress REST API reachable')
     expect(logs.log).toHaveBeenCalledWith('✓ Loopress plugin installed (loopress/v1 endpoints)')
     expect(logs.log).toHaveBeenCalledWith('✓ Credentials accepted (authenticated request)')
-    expect(logs.log).toHaveBeenCalledWith('✓ Plugin version: 2026.7.1')
+    expect(logs.log).toHaveBeenCalledWith('✓ Plugin recent enough for this CLI (loopress/v1/capabilities)')
+    expect(logs.log).toHaveBeenCalledWith('- Plugin: Loopress Full 2026.10.0, environment type "local"')
+    expect(logs.log).toHaveBeenCalledWith('- Integrations: ACF active, forms active, snippets active')
+    expect(logs.log).toHaveBeenCalledWith('- Theme: twentytwentyfive (block theme)')
+    expect(logs.log).toHaveBeenCalledWith('- Loopress child theme: twentytwentyfive-loopress, not pushed yet')
     expect(logs.log).toHaveBeenCalledWith('All checks passed.')
-    expect(result).toMatchObject({ok: true, pluginVersion: '2026.7.1'})
+    expect(result).toMatchObject({capabilities: makeCapabilities(), ok: true, pluginVersion: '2026.10.0'})
     expect(process.exitCode).toBeUndefined()
   })
 
@@ -104,6 +110,8 @@ describe('doctor', () => {
     expect(logs.log).toHaveBeenCalledWith('✗ Loopress plugin installed (loopress/v1 endpoints)')
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Is the required plugin installed'))
     expect(logs.log).toHaveBeenCalledWith('✓ Credentials accepted (authenticated request)')
+    // It would only repeat the same 404.
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Plugin recent enough'))
   })
 
   it('reports rejected credentials with the corrective action', async () => {
@@ -125,22 +133,38 @@ describe('doctor', () => {
     expect(users).not.toHaveBeenCalled()
   })
 
-  it('treats a 404 on the version endpoint as informational, not a failure', async () => {
+  it('fails a plugin too old to report its capabilities', async () => {
     const {cmd, get, logs} = make()
-    get.mockImplementation(async (path: string) => {
-      if (path === 'loopress/v1/update') {
-        throw new Error('Endpoint not found (404).', {cause: {response: {statusCode: 404}}})
-      }
-
-      return {}
-    })
+    get.mockResolvedValue({})
+    ;(cmd as unknown as {capabilities: () => Promise<unknown>}).capabilities = async () => {
+      throw new Error('The Loopress plugin on production is too old for this CLI. Update it, then try again.')
+    }
 
     const result = await cmd.run()
 
-    expect(result.ok).toBe(true)
-    expect(process.exitCode).toBeUndefined()
-    expect(logs.log).toHaveBeenCalledWith('- Plugin version: not exposed by this plugin edition.')
-    expect(logs.log).toHaveBeenCalledWith('All checks passed.')
+    expect(result.ok).toBe(false)
+    expect(logs.log).toHaveBeenCalledWith('✗ Plugin recent enough for this CLI (loopress/v1/capabilities)')
+    expect(logs.log).toHaveBeenCalledWith('  The Loopress plugin on production is too old for this CLI. Update it, then try again.')
+  })
+
+  it('reports a Light site, its missing integrations and a classic theme', async () => {
+    const {cmd, get, logs} = make()
+    get.mockResolvedValue({})
+    stubCapabilities(
+      cmd,
+      makeCapabilities({
+        edition: 'light',
+        integrations: {acf: false, form: false, snippets: undefined},
+        theme: {active: 'astra', child: undefined, isBlock: false, template: 'astra'},
+      }),
+    )
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('- Plugin: Loopress Light 2026.10.0, environment type "local"')
+    expect(logs.log).toHaveBeenCalledWith('- Integrations: ACF none, forms none, snippets needs Loopress Full')
+    expect(logs.log).toHaveBeenCalledWith('- Theme: astra (classic theme)')
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Loopress child theme'))
   })
 
   it('passes the leftover check when no temp admin remains', async () => {

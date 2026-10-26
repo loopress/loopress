@@ -23,15 +23,15 @@ class TestReport extends DiffCommand {
 
 const state = (entries: Record<string, unknown>): ResourceState => new Map(Object.entries(entries))
 
-function target(title: string, left: Error | Record<string, unknown>, right: Record<string, unknown> = {}, optional = false): DiffTarget {
+function target(title: string, left: Error | Record<string, unknown>, right: Record<string, unknown> = {}, skip = false): DiffTarget {
   return {
     async left() {
       if (left instanceof Error) throw left
       return state(left)
     },
-    optional,
     resource: title.toLowerCase(),
     right: async () => state(right),
+    skip,
     title,
   }
 }
@@ -115,7 +115,7 @@ describe('DiffCommand.report', () => {
     expect(lines.some((line) => line.startsWith('error ('))).toBe(false)
   })
 
-  it('keeps a missing plugin as a failure when the resource is not optional', async () => {
+  it('keeps a missing plugin as a failure when the target is not skipped', async () => {
     const {result} = await report([target('ACF', new Error('Advanced Custom Fields is not active'))])
 
     expect(result.resources.acf.error).toBe('Advanced Custom Fields is not active')

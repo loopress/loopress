@@ -1,6 +1,6 @@
 import {LoopressCommand} from '../lib/base.js'
+import {missingIntegration} from '../lib/capabilities.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
-import {INTEGRATION_MISSING} from '../lib/plugin-detection.js'
 import {pluralize} from '../utils/pluralize.js'
 import {projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
@@ -56,11 +56,30 @@ export default class Pull extends LoopressCommand {
     const results: PullTargetResult[] = []
     this.warnRemovedSeoModule()
 
+    const capabilities = await this.capabilities()
     for (const target of PULL_TARGETS) {
       const skipNote = target.commandId === 'theme:style:pull' ? await this.globalStylesSkipNote() : undefined
       if (skipNote) {
         this.log(`\n→ ${target.label}: ${skipNote}`)
         results.push({label: target.label, status: 'skipped'})
+        continue
+      }
+
+      // A site without ACF (or a form or snippet plugin) is the common case, not a failure, as
+      // long as the project doesn't use that resource: a vanilla site must pull, and a promote
+      // must not stop on it. A project that does use it still fails, without asking the site.
+      const missing = target.needsPlugin ? missingIntegration(target.needsPlugin, capabilities) : undefined
+      if (missing && target.needsPlugin && !projectUses(target.needsPlugin, this.localConfig)) {
+        this.log(`\n→ ${target.label}: not configured, skipped`)
+        results.push({label: target.label, status: 'skipped'})
+        continue
+      }
+
+      if (missing) {
+        this.failedCount++
+        const error = `${missing.reason} on ${this.siteConfig.name}`
+        this.log(`\n✗ ${target.label} failed: ${error}`)
+        results.push({error, label: target.label, status: 'failed'})
         continue
       }
 
@@ -71,18 +90,6 @@ export default class Pull extends LoopressCommand {
         results.push({label: target.label, status: 'pulled'})
       } catch (error) {
         const {message} = error as Error
-        // A site without ACF (or a form or snippet plugin) is the common case, not a failure,
-        // as long as the project doesn't use that resource: a vanilla site must pull, and a
-        // promote must not stop on it. A project that does use it still fails.
-        if (target.needsPlugin && INTEGRATION_MISSING.test(message) && !projectUses(target.needsPlugin, this.localConfig)) {
-          // oclif's catch already set exitCode to 1 for the sub-command; a real failure still
-          // exits non-zero through the this.error() below.
-          process.exitCode = undefined
-          this.log(`→ ${target.label}: not configured, skipped`)
-          results.push({label: target.label, status: 'skipped'})
-          continue
-        }
-
         this.failedCount++
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})

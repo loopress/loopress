@@ -10,6 +10,7 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {getCapabilities, type SiteCapabilities} from './capabilities.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {withoutSpinner} from './spinner.js'
@@ -66,6 +67,11 @@ export abstract class LoopressCommand extends Command {
     }
 
     return this.wpClient
+  }
+
+  // What the targeted site can do, read once per process (see lib/capabilities.ts).
+  protected async capabilities(): Promise<SiteCapabilities> {
+    return getCapabilities(this.wp, this.siteConfig.name)
   }
 
   async init(): Promise<void> {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Pages\Module;
 
 use Loopress\Contract\Module;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pages\Frontend\ChildThemeStyles;
 use Loopress\Pages\Frontend\PageFilters;
 use Loopress\Pages\RestApi\PagesController;
@@ -30,6 +31,12 @@ final class PagesModule implements Module
 
         add_action('rest_api_init', fn() => (new PagesController())->register_routes());
         add_action('rest_api_init', fn() => (new ChildThemeController())->register_routes());
+        // Read by the shared Capabilities module through this filter, never referenced from there.
+        add_filter('loopress_capabilities', static function (array $capabilities): array {
+            $capabilities['theme'] = Narrow::map($capabilities['theme'] ?? null) + ['child' => (new ChildThemeController())->summary()];
+
+            return $capabilities;
+        });
         (new PageFilters())->register();
         (new ChildThemeStyles())->register();
     }

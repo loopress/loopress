@@ -7,6 +7,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Push from '../../src/commands/push.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../src/utils/loopress-config.js'
+import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -68,6 +69,7 @@ class TestPush extends Push {
 
 function make(
   options: {
+    capabilities?: ReturnType<typeof makeCapabilities>
     dryRun?: boolean
     localConfig?: LoopressLocalConfig
     overwrite?: boolean
@@ -77,6 +79,7 @@ function make(
 ) {
   const cmd = new TestPush([], fakeOclifConfig)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn(async () => themes.value)}
+  stubCapabilities(cmd, options.capabilities ?? makeCapabilities())
   cmd.setup({
     dryRun: options.dryRun,
     localConfig: options.localConfig,
@@ -218,6 +221,37 @@ describe('push', () => {
       expect(ran).not.toContain(commandId)
       expect(logs.log).toHaveBeenCalledWith(`\n→ ${label}: not configured, skipped`)
     }
+  })
+
+  describe('a resource the project uses on a site that cannot hold it', () => {
+    it('refuses before pushing anything, saying which plugin to declare', async () => {
+      const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+      await expect(cmd.run()).rejects.toThrow(
+        /Nothing was pushed[\s\S]*snippets: no supported snippet plugin is active on staging\. Declare code-snippets \(or insert-headers-and-footers\) \("code-snippets" in loopress\.json plugins\), then activate it/,
+      )
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+    })
+
+    it('says to activate a plugin composer.json already declares', async () => {
+      writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/code-snippets': '3.6.0'}}))
+      const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+      await expect(cmd.run()).rejects.toThrow(/The project declares code-snippets, activate it: `lps plugin push --activate`/)
+    })
+
+    it('names every blocked resource at once, dry run included', async () => {
+      const {cmd} = make({capabilities: makeCapabilities({integrations: {acf: false, form: false}}), dryRun: true})
+
+      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active[\s\S]*forms: no supported form plugin is active/)
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+    })
+
+    it('points a Loopress Light site at Full for snippets', async () => {
+      const {cmd} = make({capabilities: makeCapabilities({edition: 'light', integrations: {snippets: undefined}})})
+
+      await expect(cmd.run()).rejects.toThrow(/snippets: snippets need Loopress Full on staging\. Install Loopress Full\./)
+    })
   })
 
   describe('Global Styles', () => {

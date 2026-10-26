@@ -131,7 +131,7 @@ test.describe('lps validate', () => {
 // A resource whose plugin isn't usable on this site fails on its own (the CI site has no form
 // plugin), never stopping or hiding the others.
 const PULL_FAILURES_ALLOWED: Record<string, string> = {
-  forms: 'No supported form plugin is active',
+  forms: 'no supported form plugin is active',
 }
 
 function pullFailures(text: string): Record<string, string> {
@@ -169,9 +169,10 @@ test.describe('lps pull', () => {
       const failed = Object.keys(pullFailures(text))
       expect(pull.exitCode === 0).toBe(failed.length === 0)
       if (failed.length > 0) expect(text).toContain(`${failed.length} resource`)
-      // Every resource ran, in order, whatever failed before it.
+      // Every resource ran or was skipped upfront (forms without a form plugin), in order, whatever
+      // failed before it.
       const order = ['composer', 'plugins', 'post types', 'taxonomies', 'post meta', 'ACF', 'API routes', 'hooks', 'forms', 'menus', 'options', 'snippets']
-      const positions = order.map((label) => text.indexOf(`→ Pulling ${label}...`))
+      const positions = order.map((label) => Math.max(text.indexOf(`→ Pulling ${label}...`), text.indexOf(`→ ${label}: not configured, skipped`)))
       expect(positions.every((position) => position >= 0), text).toBe(true)
       expect([...positions].sort((a, b) => a - b)).toEqual(positions)
 
