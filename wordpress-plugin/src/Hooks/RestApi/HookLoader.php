@@ -10,7 +10,6 @@ use Loopress\Hooks\Attribute\Cron;
 use Loopress\Hooks\Attribute\Filter;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Infrastructure\AbstractFileLoader;
-use Loopress\Infrastructure\AbstractFilesDirectory;
 use Loopress\Infrastructure\FileWriter;
 
 /**
@@ -38,7 +37,7 @@ use Loopress\Infrastructure\FileWriter;
  * additionally fails open, returning the original unfiltered value, rather than risk turning
  * one broken filter into a blank page for every visitor.
  */
-class HookLoader extends AbstractFileLoader
+final class HookLoader extends AbstractFileLoader
 {
     // A callback that throws on every request of a busy site must not write to the database on
     // every request: the same error for the same file is stored at most once per this window.
@@ -49,7 +48,7 @@ class HookLoader extends AbstractFileLoader
 
     public function __construct(private readonly HooksDirectory $directory, private readonly LoopressEnvironment $environment) {}
 
-    protected function directory(): AbstractFilesDirectory
+    protected function directory(): HooksDirectory
     {
         return $this->directory;
     }

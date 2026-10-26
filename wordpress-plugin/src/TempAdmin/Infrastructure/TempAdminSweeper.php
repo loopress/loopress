@@ -9,7 +9,7 @@ namespace Loopress\TempAdmin\Infrastructure;
  * and the `.invalid` email (both set by cli/src/lib/temp-admin.ts) keeps a real user who
  * happens to be named `lps-temp-...` out of it.
  */
-class TempAdminSweeper
+final class TempAdminSweeper
 {
     public const CRON_HOOK = 'loopress_sweep_temp_admins';
 

@@ -14,7 +14,7 @@ use WP_Block_Patterns_Registry;
 // the current version: managed pages can't be opened in the editor (PageFilters), which is what
 // would otherwise expand the reference into a copy. Full-only like pages: the content is HTML that
 // can carry a <script>.
-class PatternService extends AbstractDeclaredTypeService
+final class PatternService extends AbstractDeclaredTypeService
 {
     public const OPTION = 'loopress_patterns';
 

@@ -13,12 +13,12 @@ use Loopress\PostTypes\Service\TaxonomyService;
 
 // Post types (`lps cpt`), taxonomies (`lps taxonomy`), post meta keys (`lps meta`) and roles
 // (`lps role`) declared as JSON files.
-class PostTypesModule implements Module
+final readonly class PostTypesModule implements Module
 {
-    private readonly PostTypeService $postTypes;
-    private readonly TaxonomyService $taxonomies;
-    private readonly PostMetaService $postMeta;
-    private readonly RoleService $roles;
+    private PostTypeService $postTypes;
+    private TaxonomyService $taxonomies;
+    private PostMetaService $postMeta;
+    private RoleService $roles;
 
     public function __construct()
     {

@@ -9,14 +9,14 @@ use Loopress\Dependencies\RestApi\ComposerController;
 use Loopress\Dependencies\Service\ComposerService;
 use Loopress\Infrastructure\SiteHealth;
 
-class ComposerModule implements Module
+final readonly class ComposerModule implements Module
 {
     // plugin, theme version and library pushes all land in this one file, through /composer/sync.
     private const COMPOSER_JSON_ROUTES = ['/composer/json'];
 
     public function __construct(
-        private readonly ComposerService $service,
-        private readonly ?string $autoloadError,
+        private ComposerService $service,
+        private ?string $autoloadError,
     ) {}
 
     public function boot(): void

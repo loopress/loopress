@@ -8,9 +8,9 @@ use Loopress\Contract\Module;
 use Loopress\Form\RestApi\FormController;
 use Loopress\Form\Service\FormService;
 
-class FormModule implements Module
+final readonly class FormModule implements Module
 {
-    public function __construct(private readonly FormService $service) {}
+    public function __construct(private FormService $service) {}
 
     public function boot(): void
     {

@@ -15,7 +15,7 @@ use Loopress\Pages\Module\PagesModule;
  * carry <script>, close enough to the "remote deployment of arbitrary content" wordpress.org
  * rejected Snippets and Api over to keep it out of Loopress Light.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

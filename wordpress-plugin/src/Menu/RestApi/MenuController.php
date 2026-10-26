@@ -13,7 +13,7 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class MenuController
+final class MenuController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;

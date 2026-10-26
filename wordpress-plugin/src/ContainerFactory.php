@@ -13,7 +13,7 @@ use DI\ContainerBuilder;
  * outside WP_DEBUG, where a developer actively changing wiring would otherwise need to
  * clear a stale compiled container by hand.
  */
-class ContainerFactory
+final class ContainerFactory
 {
     /** @param array<string, mixed> $definitions */
     public static function create(array $definitions): Container

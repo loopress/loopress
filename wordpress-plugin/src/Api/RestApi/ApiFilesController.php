@@ -7,18 +7,17 @@ namespace Loopress\Api\RestApi;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\Infrastructure\PermissionScanner;
 use Loopress\Infrastructure\AbstractFilesController;
-use Loopress\Infrastructure\AbstractFilesDirectory;
 
 /**
  * Management endpoint used by `lps api push`/`pull`/`list`, distinct from the custom routes a
  * pushed file itself exposes (see RouteLoader, registered under loopress-api/v1 instead of
  * loopress/v1 to avoid a namespace collision). See AbstractFilesController for the behaviour.
  */
-class ApiFilesController extends AbstractFilesController
+final class ApiFilesController extends AbstractFilesController
 {
     public function __construct(private readonly ApiDirectory $directory) {}
 
-    protected function directory(): AbstractFilesDirectory
+    protected function directory(): ApiDirectory
     {
         return $this->directory;
     }

@@ -8,4 +8,4 @@ namespace Loopress\Options\Exception;
 // template, stylesheet: see the `plugin`/`theme` resources). Letting `option` write these too
 // would give the same underlying data two independent sources of truth that can disagree, so
 // this is refused outright rather than merged or overwritten.
-class ReservedOptionNameException extends \RuntimeException {}
+final class ReservedOptionNameException extends \RuntimeException {}

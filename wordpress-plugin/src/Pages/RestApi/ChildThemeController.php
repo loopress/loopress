@@ -30,7 +30,7 @@ use WP_REST_Response;
  * @phpstan-type BlockStyle array{name: string, css: string}
  * @phpstan-type Asset array{path: string, content: string}
  */
-class ChildThemeController
+final class ChildThemeController
 {
     use RequiresManageOptionsCapability;
 

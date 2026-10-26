@@ -20,7 +20,7 @@ use Psr\Container\ContainerInterface;
 
 use function DI\factory;
 
-class Plugin
+final class Plugin
 {
     public function __construct()
     {

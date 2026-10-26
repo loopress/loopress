@@ -10,7 +10,7 @@ use Loopress\Snippets\Contract\SnippetType;
 use Loopress\Snippets\Exception\SnippetProviderRequestException;
 use Loopress\Snippets\Exception\UnsupportedLocationException;
 
-class WPCodeSnippetProvider implements SnippetProvider
+final class WPCodeSnippetProvider implements SnippetProvider
 {
     private const POST_TYPE         = 'wpcode';
     private const META_NOTE         = '_wpcode_note';

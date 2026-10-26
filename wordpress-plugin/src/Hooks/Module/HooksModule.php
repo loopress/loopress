@@ -8,11 +8,11 @@ use Loopress\Contract\Module;
 use Loopress\Hooks\RestApi\HookFilesController;
 use Loopress\Hooks\RestApi\HookLoader;
 
-class HooksModule implements Module
+final readonly class HooksModule implements Module
 {
     public function __construct(
-        private readonly HookFilesController $controller,
-        private readonly HookLoader $hookLoader,
+        private HookFilesController $controller,
+        private HookLoader $hookLoader,
     ) {}
 
     public function boot(): void

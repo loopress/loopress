@@ -22,7 +22,7 @@ use function DI\factory;
  * capability (remote deployment of arbitrary PHP/JS/CSS into Code Snippets or WPCode), so
  * Light must never carry it, even inactive.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

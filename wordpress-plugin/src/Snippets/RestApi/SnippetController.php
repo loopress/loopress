@@ -15,7 +15,7 @@ use Loopress\Snippets\Service\SnippetService;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class SnippetController
+final class SnippetController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;
@@ -226,7 +226,7 @@ class SnippetController
             'id' => [
                 'required'          => true,
                 'sanitize_callback' => 'absint',
-                'validate_callback' => fn($v): bool => is_numeric($v) && $v > 0,
+                'validate_callback' => fn(mixed $v): bool => is_numeric($v) && $v > 0,
             ],
         ];
     }

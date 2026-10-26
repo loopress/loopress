@@ -12,14 +12,14 @@ use Loopress\Apps\Service\AppsDiagnostics;
 use Loopress\Contract\Module;
 use Loopress\Infrastructure\SiteHealth;
 
-class AppsModule implements Module
+final readonly class AppsModule implements Module
 {
     public function __construct(
-        private readonly AppsController $controller,
-        private readonly AppShortcode $shortcode,
-        private readonly AppAssetEnqueuer $enqueuer,
-        private readonly AppsDirectory $directory,
-        private readonly AppsDiagnostics $diagnostics,
+        private AppsController $controller,
+        private AppShortcode $shortcode,
+        private AppAssetEnqueuer $enqueuer,
+        private AppsDirectory $directory,
+        private AppsDiagnostics $diagnostics,
     ) {}
 
     public function boot(): void

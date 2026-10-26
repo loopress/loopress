@@ -17,11 +17,11 @@ use Loopress\Update\UsageStatsNotice;
  * into WordPress's native Plugins-page update UI, where the actual download and install
  * happens.
  */
-class UpdateCheckModule implements Module
+final readonly class UpdateCheckModule implements Module
 {
     public function __construct(
-        private readonly GithubReleaseChecker $checker,
-        private readonly PluginUpdater $updater,
+        private GithubReleaseChecker $checker,
+        private PluginUpdater $updater,
     ) {
     }
 

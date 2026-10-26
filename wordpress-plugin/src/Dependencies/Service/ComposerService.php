@@ -206,7 +206,7 @@ class ComposerService
 
         $outdated = array_filter(
             $installed,
-            fn($package): bool => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
+            fn(mixed $package): bool => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
         );
 
         return array_values(array_map(fn($package): array => [

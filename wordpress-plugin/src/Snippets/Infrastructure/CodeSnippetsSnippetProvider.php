@@ -17,7 +17,7 @@ use WP_REST_Request;
  * than reimplementing its storage. Code Snippets, unlike WPCode, already exposes a REST API,
  * so this provider forwards to it instead of talking to WordPress core storage directly.
  */
-class CodeSnippetsSnippetProvider implements SnippetProvider
+final class CodeSnippetsSnippetProvider implements SnippetProvider
 {
     private const NAMESPACE = 'code-snippets/v1';
     private const ROUTE     = '/snippets';

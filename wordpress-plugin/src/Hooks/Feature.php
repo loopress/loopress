@@ -19,7 +19,7 @@ use function DI\autowire;
  * arbitrary executable code, and binding into WP core's own action/filter hooks is, if
  * anything, a more direct case of that than a REST route ever was.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

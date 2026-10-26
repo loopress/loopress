@@ -15,7 +15,7 @@ use Loopress\TempAdmin\Module\TempAdminModule;
  * Full-only like every other Plus feature (see scripts/build-flavor.cjs): only Full is ever
  * installed that way, and Light has no business deleting users.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

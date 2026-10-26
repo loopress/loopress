@@ -12,7 +12,7 @@ use WP_REST_Response;
 /**
  * POST: the CLI reports a finished `lps <resource> push`. GET: the admin's Overview tab.
  */
-class PushesController
+final readonly class PushesController
 {
     use RequiresManageOptionsCapability;
 
@@ -20,7 +20,7 @@ class PushesController
     // means something is stuck, better a clear 503 than a request hanging (see PagesController).
     private const LOCK_TIMEOUT_SECONDS = 10;
 
-    public function __construct(private readonly PushLog $log) {}
+    public function __construct(private PushLog $log) {}
 
     public function register_routes(): void
     {

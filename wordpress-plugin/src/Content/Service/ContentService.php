@@ -15,7 +15,7 @@ use Loopress\Content\Exception\NotLocalEnvironmentException;
 // site, the import only on a "local" one. Users, comments and orders are never exported, every
 // imported post is attributed to the importing user. Whatever Loopress versions (menus, ACF,
 // snippets, templates...) is not content: the CLI re-pushes the repo right after the import.
-class ContentService
+final class ContentService
 {
     public const SOURCE_OPTION = 'loopress_content_source';
 

@@ -7,7 +7,6 @@ namespace Loopress\Hooks\RestApi;
 use Loopress\Hooks\Infrastructure\HookAttributeScanner;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Infrastructure\AbstractFilesController;
-use Loopress\Infrastructure\AbstractFilesDirectory;
 
 /**
  * Management endpoint used by `lps hook push`/`pull`/`list`. Behaviour lives in
@@ -15,13 +14,13 @@ use Loopress\Infrastructure\AbstractFilesDirectory;
  * reusing api-files because a hooks/ file is pushed/pulled independently of api/, even though
  * both end up as one require()d PHP file with a class.
  */
-class HookFilesController extends AbstractFilesController
+final class HookFilesController extends AbstractFilesController
 {
     private mixed $runtimeErrors = null;
 
     public function __construct(private readonly HooksDirectory $directory) {}
 
-    protected function directory(): AbstractFilesDirectory
+    protected function directory(): HooksDirectory
     {
         return $this->directory;
     }

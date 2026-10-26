@@ -14,7 +14,7 @@ use WP_REST_Response;
 
 // The same five routes for each declared type, under its own base: `post-types`, `taxonomies`
 // and `post-meta`, plus `registered-post-types` / `registered-taxonomies` / `registered-post-meta`.
-class DeclaredTypesController
+final class DeclaredTypesController
 {
     use MapsServiceExceptions;
     use RequiresManageOptionsCapability;

@@ -11,7 +11,7 @@ use Loopress\RestApi\SyncSanitizer;
 // Function/class signatures for wpforms()/WPForms_Form_Handler are stubbed for static analysis
 // in wpforms-stubs.php, verified directly against WPForms Lite's own source (see that file's
 // header comment). Forms are identified by their numeric WP post ID (no ACF-style stable key).
-class WPFormsProvider implements FormProvider
+final class WPFormsProvider implements FormProvider
 {
     public function isActive(): bool
     {

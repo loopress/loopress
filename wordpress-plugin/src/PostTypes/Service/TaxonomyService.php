@@ -8,7 +8,7 @@ namespace Loopress\PostTypes\Service;
 // AbstractDeclaredTypeService. A file is the register_taxonomy() arguments plus one key that isn't
 // one, `object_type`: the function's second parameter, the post types the taxonomy attaches to.
 // Only the taxonomy itself is synced, never its terms (content, like posts).
-class TaxonomyService extends AbstractDeclaredTypeService
+final class TaxonomyService extends AbstractDeclaredTypeService
 {
     public const OPTION = 'loopress_taxonomies';
 

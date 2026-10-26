@@ -9,4 +9,4 @@ namespace Loopress\Form\Exception;
 // notifications is opt-in (`"allowNotifications": true` in the request body) precisely because
 // a leaked token could otherwise repoint every submission to an attacker's inbox and turn the
 // site into an authenticated spam relay (F12). Maps to HTTP 422.
-class FormNotificationException extends \RuntimeException {}
+final class FormNotificationException extends \RuntimeException {}

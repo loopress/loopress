@@ -21,7 +21,7 @@ use WP_REST_Response;
  * uploaded but never committed are inert (nothing reads them) and get cleaned up by the next
  * commit.
  */
-class AppsController
+final class AppsController
 {
     use RequiresManageOptionsCapability;
 

@@ -19,12 +19,12 @@ use stdClass;
  * what tells wp_update_plugins() to skip its own wordpress.org lookup for this plugin and
  * leave the transient's entry for a third party (this class) to fill in instead.
  */
-class PluginUpdater
+final readonly class PluginUpdater
 {
     private const PLUGIN_URI = 'https://github.com/loopress/loopress';
     private const HOMEPAGE = 'https://loopress.dev';
 
-    public function __construct(private readonly GithubReleaseChecker $checker)
+    public function __construct(private GithubReleaseChecker $checker)
     {
     }
 

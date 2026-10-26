@@ -19,7 +19,7 @@ use function DI\autowire;
  * as Snippets: wordpress.org rejects any mechanism that facilitates remote deployment of
  * arbitrary executable code, regardless of the manage_options gate in front of it.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     /** @return array<string, mixed> */
     public static function definitions(): array

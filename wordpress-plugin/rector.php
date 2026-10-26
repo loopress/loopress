@@ -14,6 +14,7 @@ use Rector\DeadCode\Rector\MethodCall\RemoveNullArgOnNullDefaultParamRector;
 use Rector\Php53\Rector\Ternary\TernaryToElvisRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php81\Rector\Array_\ArrayToFirstClassCallableRector;
+use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 
@@ -57,6 +58,9 @@ return RectorConfig::configure()
         // Same reason phpstan.neon keeps strict-rules' uselessCast off.
         RecastingRemovalRector::class,
         RemoveConcatAutocastRector::class,
+        // Psalm types an `(object)` array cast as `object`, so a `\stdClass` return type fails
+        // MoreSpecificReturnType there.
+        NarrowObjectReturnTypeRector::class => [__DIR__ . '/src/Menu/RestApi/MenuController.php'],
         // Fixtures are read through reflection (attributes, verb methods): an "unused" or
         // empty method there is the whole point of the fixture.
         __DIR__ . '/tests/Unit/*/RestApi/*Fixture*.php',

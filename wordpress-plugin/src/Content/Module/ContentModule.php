@@ -9,9 +9,9 @@ use Loopress\Content\RestApi\ContentController;
 use Loopress\Content\Service\ContentService;
 use Loopress\Content\Service\RemoteUploads;
 
-class ContentModule implements Module
+final readonly class ContentModule implements Module
 {
-    public function __construct(private readonly ContentService $service, private readonly RemoteUploads $uploads) {}
+    public function __construct(private ContentService $service, private RemoteUploads $uploads) {}
 
     public function boot(): void
     {

@@ -8,9 +8,9 @@ use Loopress\Contract\Module;
 use Loopress\Options\RestApi\OptionsController;
 use Loopress\Options\Service\OptionsService;
 
-class OptionsModule implements Module
+final readonly class OptionsModule implements Module
 {
-    private readonly OptionsService $service;
+    private OptionsService $service;
 
     public function __construct()
     {

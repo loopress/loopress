@@ -8,9 +8,9 @@ use Loopress\Contract\Module;
 use Loopress\Snippets\RestApi\SnippetController;
 use Loopress\Snippets\Service\SnippetService;
 
-class SnippetModule implements Module
+final readonly class SnippetModule implements Module
 {
-    public function __construct(private readonly SnippetService $service) {}
+    public function __construct(private SnippetService $service) {}
 
     public function boot(): void
     {

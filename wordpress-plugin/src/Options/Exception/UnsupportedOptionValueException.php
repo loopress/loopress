@@ -8,4 +8,4 @@ namespace Loopress\Options\Exception;
 // legacy plugin that stored a stdClass or custom class instance). Left unchecked, WP_REST_
 // Response would json_encode() it into silent garbage (often just `{}`) instead of failing
 // loudly, and a CLI `pull` would write that garbage to disk as if it were the real value.
-class UnsupportedOptionValueException extends \RuntimeException {}
+final class UnsupportedOptionValueException extends \RuntimeException {}

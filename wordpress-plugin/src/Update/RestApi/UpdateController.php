@@ -9,7 +9,7 @@ use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use WP_REST_Request;
 use WP_REST_Response;
 
-class UpdateController
+final class UpdateController
 {
     use RequiresManageOptionsCapability;
 

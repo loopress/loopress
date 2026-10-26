@@ -13,7 +13,7 @@ use WP_Roles;
 // on every request (wp_roles_init), never with add_role(), which would write them into the
 // `<prefix>user_roles` option: the file stays the only source of truth, and `lps role rm` really
 // removes the role. Users keep the role in their profile, with no capability, until it's pushed again.
-class RoleService extends AbstractDeclaredTypeService
+final class RoleService extends AbstractDeclaredTypeService
 {
     public const OPTION = 'loopress_roles';
 

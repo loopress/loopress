@@ -12,7 +12,7 @@ namespace Loopress\Infrastructure;
  * Full-only feature directories same as DirectoryGuard/ClassScanner: nothing here is specific
  * to either.
  */
-class FileWriter
+final class FileWriter
 {
     private const DECLARE_PATTERN = '/declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/';
     private const GUARD = "\nif (!defined('ABSPATH')) {\n    exit;\n}\n";

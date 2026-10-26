@@ -9,12 +9,12 @@ use Loopress\Api\RestApi\ApiNamespaceController;
 use Loopress\Api\RestApi\RouteLoader;
 use Loopress\Contract\Module;
 
-class ApiModule implements Module
+final readonly class ApiModule implements Module
 {
     public function __construct(
-        private readonly ApiFilesController $controller,
-        private readonly ApiNamespaceController $namespaceController,
-        private readonly RouteLoader $routeLoader,
+        private ApiFilesController $controller,
+        private ApiNamespaceController $namespaceController,
+        private RouteLoader $routeLoader,
     ) {}
 
     public function boot(): void

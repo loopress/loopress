@@ -12,4 +12,4 @@ namespace Loopress\Acf\Exception;
 // Maps to HTTP 412 Precondition Failed, the standard status for a failed conditional write, the
 // same mapping StaleOptionRevisionException uses for the same pattern on the `option` resource
 // (#234).
-class StaleAcfRevisionException extends \RuntimeException {}
+final class StaleAcfRevisionException extends \RuntimeException {}

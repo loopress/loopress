@@ -21,7 +21,7 @@ use function DI\get;
  * namespace. Loopress Light must never carry an update-checking mechanism of its own, even
  * inactive: wordpress.org guidelines reserve that role for their own SVN-based update flow.
  */
-class Feature implements FeatureProvider
+final class Feature implements FeatureProvider
 {
     private const HTTP_CLIENT = 'loopress.update.http_client';
 

@@ -11,7 +11,7 @@ use WP_Post;
  * Everything that makes a managed page behave as "the file is the source" once it's on the
  * site: rendering from the meta instead of post_content, and closing the wp-admin editor.
  */
-class PageFilters
+final class PageFilters
 {
     // wpautop's priority when renderContent() unhooked it for the page being rendered, so
     // restoreAutop() can put it back for whatever the_content renders next (a widget, another
