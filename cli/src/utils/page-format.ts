@@ -88,7 +88,7 @@ export function parsePageFile(slug: string, raw: string): Page {
     slug,
     status: status as PageStatus,
     template: meta.template ?? '',
-    title: meta.title || titleFromSlug(slug),
+    title: (meta.title ?? '') || titleFromSlug(slug),
   }
 }
 
@@ -98,7 +98,7 @@ export function parseHtmlHeader(raw: string, keys: readonly string[]): {body: st
   const meta: Record<string, string> = {}
   if (!header) return {body: raw, meta}
 
-  for (const line of header[1].split(/\r?\n/)) {
+  for (const line of (header[1] ?? '').split(/\r?\n/)) {
     if (line.trim() === '') continue
     const colon = line.indexOf(':')
     if (colon === -1) throw new Error(`header line "${line.trim()}" is not a "key: value" pair`)

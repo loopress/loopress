@@ -3,9 +3,9 @@ import {pluralize} from '../../utils/pluralize.js'
 import {type NormalizedSnippet, normalizeSnippet, SNIPPETS_ENDPOINT} from '../../utils/snippet-format.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List snippets currently on WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps snippet list']
+  static override description = 'List snippets currently on WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps snippet list']
 
   async run(): Promise<NormalizedSnippet[]> {
     const remoteList = await this.wp.get<Array<Record<string, unknown>>>(SNIPPETS_ENDPOINT)

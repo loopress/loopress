@@ -19,7 +19,7 @@ export type WpNativePlugin = {
 
 // A bare version string means "installed and active"; the object form records a plugin that
 // must stay installed but inactive.
-export const PLUGIN_PIN = z.union([z.string(), z.object({active: z.boolean().optional(), version: z.string()})])
+export const PLUGIN_PIN = z.union([z.string(), z.object({active: z.boolean().exactOptional(), version: z.string()})])
 
 export type PluginPin = z.infer<typeof PLUGIN_PIN>
 
@@ -27,7 +27,8 @@ export type PluginManifest = Record<string, PluginPin>
 
 export const pinVersion = (pin: PluginPin): string => (typeof pin === 'string' ? pin : pin.version)
 
-export const pinActive = (pin: PluginPin): boolean => typeof pin === 'string' || pin.active !== false
+// No pin at all (a slug loopress.json doesn't list) keeps the default: active.
+export const pinActive = (pin: PluginPin | undefined): boolean => typeof pin === 'string' || pin?.active !== false
 
 // The version-only view the Composer sync endpoint expects.
 export const pinVersions = (manifest: PluginManifest): Record<string, string> =>

@@ -8,8 +8,8 @@ import {isInteractive} from '../lib/interactive.js'
 import {ensureLfGitattributes, type LoopressLocalConfig, writeLocalConfig} from '../utils/loopress-config.js'
 
 export default class Init extends Command {
-  static description = 'Initialize a loopress.json config file in the current directory'
-  static examples = ['$ lps init']
+  static override description = 'Initialize a loopress.json config file in the current directory'
+  static override examples = ['$ lps init']
 
   async run(): Promise<void> {
     await this.parse(Init)
@@ -88,8 +88,9 @@ export default class Init extends Command {
         return this.promptManualProjectId()
       }
 
-      if (projects.length === 1) {
-        return {projectId: projects[0].id, projectLabel: projects[0].name}
+      const [only] = projects
+      if (only && projects.length === 1) {
+        return {projectId: only.id, projectLabel: only.name}
       }
     }
 
@@ -102,6 +103,6 @@ export default class Init extends Command {
       return this.promptManualProjectId()
     }
 
-    return {projectId: choice, projectLabel: projects.find((p) => p.id === choice)!.name}
+    return {projectId: choice, projectLabel: projects.find((p) => p.id === choice)?.name ?? choice}
   }
 }

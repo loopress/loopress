@@ -87,7 +87,7 @@ describe('api push', () => {
       const files = await loadFiles(dir)
 
       expect(files).toHaveLength(1)
-      expect(files[0].filename).toBe('hello')
+      expect(files[0]?.filename).toBe('hello')
     })
 
     it('returns an empty array when the directory does not exist yet', async () => {

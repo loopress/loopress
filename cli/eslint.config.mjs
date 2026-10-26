@@ -26,9 +26,14 @@ export default defineConfig([
         },
       },
     },
+    rules: {
+      // Type-aware, so scoped to the TypeScript files the project service covers.
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+    },
   },
   {
     rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
       'no-await-in-loop': 'off',
       'perfectionist/sort-objects': 'off',
       // Every oclif Command subclass declares `static description`/`static flags`/`static args`

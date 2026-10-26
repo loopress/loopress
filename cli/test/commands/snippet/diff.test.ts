@@ -70,7 +70,7 @@ describe('snippet diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.snippet.added).toEqual(['9'])
+    expect(result.resources.snippet?.added).toEqual(['9'])
     expect(result.drift).toBe(true)
     expect(process.exitCode).toBe(1)
   })
@@ -82,7 +82,7 @@ describe('snippet diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.snippet.added).toEqual(['5'])
+    expect(result.resources.snippet?.added).toEqual(['5'])
   })
 
   it('rejects --against pointing at the environment already being compared', async () => {
@@ -112,7 +112,7 @@ describe('snippet diff', () => {
     expect(result.right).toBe('production')
     // Both sides empty and no error: proves the against-side actually called provider.remote()
     // (not skipped), rather than comparing against nothing.
-    expect(result.resources.snippet.error).toBeUndefined()
-    expect(result.resources.snippet.added).toEqual([])
+    expect(result.resources.snippet?.error).toBeUndefined()
+    expect(result.resources.snippet?.added).toEqual([])
   })
 })

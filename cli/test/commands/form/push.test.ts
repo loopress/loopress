@@ -78,7 +78,7 @@ describe('form push', () => {
       const forms = await (cmd as unknown as PushWithLoadFiles).loadFiles(dir)
 
       expect(forms).toHaveLength(1)
-      expect(forms[0].data).toEqual({id: 2})
+      expect(forms[0]?.data).toEqual({id: 2})
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('1-broken.json'))
     })
 
@@ -92,7 +92,7 @@ describe('form push', () => {
       const forms = await (cmd as unknown as PushWithLoadFiles).loadFiles(dir)
 
       expect(forms).toHaveLength(1)
-      expect(forms[0].data).toEqual({id: 2})
+      expect(forms[0]?.data).toEqual({id: 2})
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('not a JSON object'))
     })
 

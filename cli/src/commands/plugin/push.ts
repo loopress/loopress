@@ -57,12 +57,12 @@ type Source = {
 }
 
 export default class Push extends PushCommand {
-  static description =
+  static override description =
     'Install WordPress.org plugins on WordPress to match loopress.json (active state included) or composer.json, via Composer + WPackagist'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps plugin push', '$ lps plugin push --dry-run', '$ lps plugin push --force --prune']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps plugin push', '$ lps plugin push --dry-run', '$ lps plugin push --force --prune']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
     activate: Flags.boolean({

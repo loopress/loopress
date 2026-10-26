@@ -15,12 +15,12 @@ type RegisteredMetaKey = {
 }
 
 export default class MetaList extends LoopressCommand {
-  static description =
+  static override description =
     'List the meta keys registered for each post type on WordPress (with register_post_meta()), and whether Loopress declares them. ' +
     'Only Loopress ones are pulled and pushed.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps meta list']
+  static override enableJsonFlag = true
+  static override examples = ['$ lps meta list']
 
   async run(): Promise<RegisteredMetaKey[]> {
     const keys = await this.wp.get<RegisteredMetaKey[]>(META_SPEC.registeredEndpoint)

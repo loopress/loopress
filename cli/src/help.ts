@@ -17,7 +17,7 @@ const BANNER = `
 `
 
 export default class CustomHelp extends Help {
-  async showRootHelp(): Promise<void> {
+  override async showRootHelp(): Promise<void> {
     this.log(BANNER)
     await super.showRootHelp()
   }

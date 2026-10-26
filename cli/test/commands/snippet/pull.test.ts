@@ -232,7 +232,7 @@ describe('pull helpers', () => {
 
       await cmd.run()
 
-      const [[calledDir, orphans, reason]] = removeOrphanedFiles.mock.calls
+      const [calledDir, orphans = [], reason] = removeOrphanedFiles.mock.calls[0] ?? []
       expect(calledDir).toBe(runDir)
       const sortedOrphans = [...orphans]
       sortedOrphans.sort((a, b) => a.localeCompare(b))

@@ -124,17 +124,17 @@ function renderTable(rows: ListedOption[], {includeCore}: {includeCore: boolean}
 }
 
 export default class List extends LoopressCommand {
-  static description =
+  static override description =
     'List WordPress option names currently on the site (names and autoload only, never values). ' +
     'CORE flags a WordPress-native default (certain); SOURCE? is a best-effort guessed plugin slug, found by name or by ' +
     'scanning active plugins\' own PHP source (uncertain unless confirmed, occasionally wrong or blank, never trust it over CORE); ' +
     'PLUGIN is that slug\'s own declared display name, a label only, no confidence of its own. ' +
     'Use this to find the name of the option you want, then `lps option add <name>` to track it.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps option list', '$ lps option list --no-core']
+  static override enableJsonFlag = true
+  static override examples = ['$ lps option list', '$ lps option list --no-core']
 
-  static flags = {
+  static override flags = {
     'no-core': Flags.boolean({
       description: 'Exclude WordPress-native default options and the CORE column from the output, including --json',
     }),

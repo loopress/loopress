@@ -18,7 +18,7 @@ function mockGot(byUrl: {vuln?: (slug: string) => unknown; wporg?: unknown}) {
   gotFn.mockImplementation((url: string) => ({
     async json() {
       if (url.startsWith('https://www.wpvulnerability.net/plugin/')) {
-        const slug = decodeURIComponent(url.split('/').at(-2)!)
+        const slug = decodeURIComponent(url.split('/').at(-2) ?? '')
         if (byUrl.vuln) return byUrl.vuln(slug)
         throw new Error('unexpected vuln request')
       }

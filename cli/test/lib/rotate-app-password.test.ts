@@ -58,8 +58,9 @@ describe('rotateAppPassword', () => {
       }
     })
 
+    const listening = server
     await new Promise<void>((resolve) => {
-      server!.listen(0, '127.0.0.1', resolve)
+      listening.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
     const url = `http://127.0.0.1:${port}`
@@ -85,8 +86,8 @@ describe('rotateAppPassword', () => {
 
     // the introspect used to find what to delete authenticated with the OLD credential,
     // the verify + delete steps both used the NEW one, never the old one for the delete
-    expect(requests[0].auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
-    expect(requests[3].auth).toBe(`Basic ${Buffer.from(NEW_TOKEN).toString('base64')}`)
+    expect(requests[0]?.auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
+    expect(requests[3]?.auth).toBe(`Basic ${Buffer.from(NEW_TOKEN).toString('base64')}`)
   })
 
   it('never revokes the old credential when the new one fails to verify, and cleans up the orphan instead', async () => {
@@ -97,9 +98,9 @@ describe('rotateAppPassword', () => {
 
     const deletes = requests.filter((r) => r.method === 'DELETE')
     expect(deletes).toHaveLength(1)
-    expect(deletes[0].url).toBe(`/wp-json/wp/v2/users/me/application-passwords/${NEW_UUID}`)
+    expect(deletes[0]?.url).toBe(`/wp-json/wp/v2/users/me/application-passwords/${NEW_UUID}`)
     // cleaned up with the still-valid OLD credentials, since the new ones just failed to verify
-    expect(deletes[0].auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
+    expect(deletes[0]?.auth).toBe(`Basic ${Buffer.from(OLD_TOKEN).toString('base64')}`)
   })
 
   it('throws a clear error, without ever calling the new credential, when creation omits a password', async () => {

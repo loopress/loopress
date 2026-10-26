@@ -62,10 +62,11 @@ export abstract class DiffCommand extends LoopressCommand {
     // than being prefixed with the cwd, so Composer is read from the same place as the
     // file-backed resources.
     const localRoot = resolve(process.cwd(), this.rootDir)
+    const {againstWp} = sides
     return {
       left: async () => composerRemoteState(this.wp),
       resource: 'composer',
-      right: sides.againstWp ? async () => composerRemoteState(sides.againstWp!) : async () => composerLocalState(localRoot),
+      right: againstWp ? async () => composerRemoteState(againstWp) : async () => composerLocalState(localRoot),
       title: 'Composer',
     }
   }
@@ -78,11 +79,12 @@ export abstract class DiffCommand extends LoopressCommand {
     }
 
     const dir = resolveResourceDir(provider.dirKind, this.localConfig, dirOverride)
+    const {againstWp} = sides
 
     return {
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
-      right: sides.againstWp ? async () => provider.remote(sides.againstWp!, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
+      right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
       title: provider.title,
     }
   }
@@ -161,7 +163,7 @@ export abstract class DiffCommand extends LoopressCommand {
 
   // Every `lps diff` variant resolves to this structured report (narrowing oclif's
   // `run(): Promise<any>`), so tests and callers get a typed result off `.run()`.
-  abstract run(): Promise<DiffJson>
+  abstract override run(): Promise<DiffJson>
 
   // Fetches and compares one target. No output (so targets can run concurrently); `report`
   // renders `stateDiff` afterwards in a fixed order.
@@ -237,19 +239,19 @@ export function resourceDiffCommand(
 ): typeof DiffCommand {
   const command = options.command ?? resource
   class ResourceDiff extends DiffCommand {
-    static args = {
+    static override args = {
       path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
     }
 
-    static description = options.description
-    static enableJsonFlag = true
-    static examples = [
+    static override description = options.description
+    static override enableJsonFlag = true
+    static override examples = [
       `$ lps ${command} diff`,
       `$ lps ${command} diff --env staging`,
       `$ lps ${command} diff --env staging --against production`,
     ]
 
-    static flags = {...DiffCommand.againstFlag}
+    static override flags = {...DiffCommand.againstFlag}
 
     async run(): Promise<DiffJson> {
       const {args, flags} = await this.parse(ResourceDiff)

@@ -11,14 +11,14 @@ import {toSlug} from '../../utils/to-slug.js'
 type FormPullResult = {orphans: string[]; path: string; skipped: number; status: 'dry-run' | 'success'}
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
 
-  static description = 'Pull forms from WordPress into local files'
-  static enableJsonFlag = true
-  static examples = ['$ lps form pull']
-  static flags = {
+  static override description = 'Pull forms from WordPress into local files'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps form pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
@@ -32,12 +32,15 @@ export default class Pull extends LoopressCommand {
     this.log(`Forms path: ${path}`)
 
     const remoteList = await this.wp.get<Array<Record<string, unknown>>>(FORM_ENDPOINT)
-    const withId = remoteList.filter((form) => getFormId(form) !== null)
+    const withId = remoteList.flatMap((form) => {
+      const id = getFormId(form)
+      return id === null ? [] : [{form, id}]
+    })
     const skipped = remoteList.length - withId.length
 
     // Only matches files following the `<id>-<slug>.json` convention pull/push themselves
     // produce, same principle as `snippet pull`.
-    const orphans = await findOrphanedFiles(path, new Set(withId.map((form) => String(getFormId(form)))), {
+    const orphans = await findOrphanedFiles(path, new Set(withId.map(({id}) => String(id))), {
       extensions: ['.json'],
       key: numericPrefixKey,
     })
@@ -46,9 +49,8 @@ export default class Pull extends LoopressCommand {
       dryRunMessage: `Would pull ${pluralize(withId.length, 'form')} to ${path}`,
       orphanReason: `in ${path} no longer present on WordPress`,
       pulledMessage: `Pulled ${pluralize(withId.length, 'form')} to ${path}`,
-      title: (form) => getFormTitle(form),
-      async write(form, writeDir) {
-        const id = getFormId(form)!
+      title: ({form}) => getFormTitle(form),
+      async write({form, id}, writeDir) {
         const title = getFormTitle(form)
         // `revision` is server bookkeeping (see RemoteForm in form-format.ts), never part of
         // the tracked configuration: never persisted locally.

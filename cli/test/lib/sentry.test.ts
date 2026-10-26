@@ -130,8 +130,8 @@ describe('sentry', () => {
       const scrubbed = scrubEvent(event as never) as typeof event
 
       expect(scrubbed.message).toBe('crash on <site>/wp-json/wp/v2/plugins')
-      expect(scrubbed.exception.values[0].value).toBe('Request to <site>/wp-json/loopress/v1/options/foo failed')
-      expect(scrubbed.exception.values[1].value).toBe('HTTPError: Response code 500')
+      expect(scrubbed.exception.values[0]?.value).toBe('Request to <site>/wp-json/loopress/v1/options/foo failed')
+      expect(scrubbed.exception.values[1]?.value).toBe('HTTPError: Response code 500')
       expect(scrubbed.request).toBeUndefined()
     })
 

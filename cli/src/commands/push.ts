@@ -52,12 +52,12 @@ const PUSH_TARGETS: PushTarget[] = [
 ]
 
 export default class Push extends LoopressCommand {
-  static description =
+  static override description =
     'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     overwrite: PushCommand.baseFlags.overwrite,

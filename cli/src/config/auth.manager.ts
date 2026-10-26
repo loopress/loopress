@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export type ConsoleAuth = {
-  email?: string
+  email?: string | undefined
   savedAt: string
   token: string
 }

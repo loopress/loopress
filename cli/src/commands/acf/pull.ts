@@ -9,15 +9,15 @@ import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../.
 type AcfPullResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
 
 export default class Pull extends LoopressCommand {
-  static aliases = ['scf:pull']
-  static args = {
+  static override aliases = ['scf:pull']
+  static override args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
-  static description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress into local files'
-  static enableJsonFlag = true
-  static examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
-  static flags = {
+  static override description = 'Pull ACF field groups, post types, taxonomies, and options pages from WordPress into local files'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps acf pull', '$ lps acf pull --type field-groups']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
@@ -42,13 +42,16 @@ export default class Pull extends LoopressCommand {
   private async pullType(type: AcfObjectType, basePath: string): Promise<void> {
     const dir = join(basePath, type)
     const remoteList = await this.wp.get<Array<Record<string, unknown>>>(acfEndpoint(type))
-    const withKey = remoteList.filter((object) => getAcfKey(object) !== null)
+    const withKey = remoteList.flatMap((object) => {
+      const key = getAcfKey(object)
+      return key === null ? [] : [{key, object}]
+    })
     const skipped = remoteList.length - withKey.length
 
     // Every file in a type's subdirectory is unambiguously `<key>.json`: `key` is the stable
     // identity ACF itself already uses (see its own Local JSON mechanism), no numeric-id/slug
     // filename convention like snippets.
-    const orphans = await findOrphanedFiles(dir, new Set(withKey.map((object) => getAcfKey(object)!)), {
+    const orphans = await findOrphanedFiles(dir, new Set(withKey.map(({key}) => key)), {
       extensions: ['.json'],
       key: basenameKey,
     })
@@ -57,8 +60,8 @@ export default class Pull extends LoopressCommand {
       dryRunMessage: `Would pull ${withKey.length} ${type} to ${dir}`,
       orphanReason: `in ${dir} no longer present on WordPress`,
       pulledMessage: `Pulled ${withKey.length} ${type} to ${dir}`,
-      title: (object) => getAcfKey(object)!,
-      write: async (object, writeDir) => writeFile(join(writeDir, `${getAcfKey(object)!}.json`), JSON.stringify(object, null, 2) + '\n'),
+      title: ({key}) => key,
+      write: async ({key, object}, writeDir) => writeFile(join(writeDir, `${key}.json`), JSON.stringify(object, null, 2) + '\n'),
     })
 
     if (this.dryRun) return

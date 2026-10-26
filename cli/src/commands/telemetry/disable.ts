@@ -3,8 +3,8 @@ import {Command} from '@oclif/core'
 import {configManager} from '../../config/project-config.manager.js'
 
 export default class TelemetryDisable extends Command {
-  static description = 'Disable error reporting to Sentry'
-  static examples = ['$ lps telemetry disable']
+  static override description = 'Disable error reporting to Sentry'
+  static override examples = ['$ lps telemetry disable']
 
   async run(): Promise<void> {
     if (configManager.isTelemetryDisabled()) {

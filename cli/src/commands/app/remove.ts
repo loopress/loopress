@@ -12,16 +12,16 @@ type RemoveResult = {
 }
 
 export default class Remove extends LoopressCommand {
-  static args = {
+  static override args = {
     name: Args.string({description: 'App to remove from WordPress', required: true}),
   }
 
-  static description =
+  static override description =
     'Remove a single-page app from WordPress: deletes its bundle from wp-content/loopress/apps/ and unregisters the shortcode. Local files are left untouched.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps app remove search']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps app remove search']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

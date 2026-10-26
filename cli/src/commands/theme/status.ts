@@ -14,10 +14,10 @@ type StatusResult = {
 }
 
 export default class Status extends LoopressCommand {
-  static description = 'Compare the themes on WordPress against loopress.json and report version drift'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme status']
-  static flags = {}
+  static override description = 'Compare the themes on WordPress against loopress.json and report version drift'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme status']
+  static override flags = {}
 
   async run(): Promise<StatusResult> {
     const {url} = this.siteConfig

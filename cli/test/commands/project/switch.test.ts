@@ -55,7 +55,7 @@ describe('project switch', () => {
     await cmd.run()
 
     expect(select).toHaveBeenCalledTimes(1)
-    const {choices, default: defaultValue} = vi.mocked(select).mock.calls[0][0] as unknown as {
+    const {choices, default: defaultValue} = vi.mocked(select).mock.calls[0]?.[0] as unknown as {
       choices: Array<{name: string; value: string}>
       default: unknown
     }

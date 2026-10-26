@@ -34,7 +34,7 @@ type AcfField = Record<string, unknown> & {key?: unknown; name?: unknown}
 function topLevelFields(group: unknown): Map<string, AcfField> {
   const fields = (group as undefined | {fields?: unknown})?.fields
   const byKey = new Map<string, AcfField>()
-  for (const field of Array.isArray(fields) ? (fields as AcfField[]) : []) {
+  for (const field of Array.isArray(fields) ? (fields as Array<AcfField | null>) : []) {
     if (typeof field?.key === 'string') byKey.set(field.key, field)
   }
 

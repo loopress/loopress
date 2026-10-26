@@ -21,7 +21,7 @@ export type RollbackResult = {
   // expected to leave behind, i.e. something else touched it since. Surfaced in the structured
   // (--json/MCP) result too, not just the human-readable log, so a caller reviewing a preview
   // (the MCP confirmToken handshake's first call) can actually see it before confirming.
-  drift?: {added: string[]; changed: string[]; removed: string[]}
+  drift?: undefined | {added: string[]; changed: string[]; removed: string[]}
   id?: string
   restored?: {added: string[]; changed: string[]; removed: string[]}
   snapshots?: SnapshotSummary[]
@@ -57,20 +57,20 @@ export function resourceRollbackCommand(
 ): typeof LoopressCommand {
   const command = options.command ?? resource
   class ResourceRollback extends LoopressCommand {
-    static args = {
+    static override args = {
       path: Args.string({description: `Path to ${options.pathNoun} (overrides project config)`}),
     }
 
-    static description = options.description
-    static enableJsonFlag = true
-    static examples = [
+    static override description = options.description
+    static override enableJsonFlag = true
+    static override examples = [
       `$ lps ${command} rollback`,
       `$ lps ${command} rollback --list`,
       `$ lps ${command} rollback --to 1732000000000`,
       `$ lps ${command} rollback --dry-run`,
     ]
 
-    static flags = {
+    static override flags = {
       ...LoopressCommand.dryRunFlag,
       ...LoopressCommand.yesFlag,
       list: Flags.boolean({description: 'List available snapshots instead of rolling back'}),

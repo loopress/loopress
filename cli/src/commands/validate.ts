@@ -3,9 +3,9 @@ import {Command} from '@oclif/core'
 import {validateLocal, type ValidateResult} from '../lib/validate-local.js'
 
 export default class Validate extends Command {
-  static description = 'Check local tracked files are well formed and push-ready, without contacting WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps validate']
+  static override description = 'Check local tracked files are well formed and push-ready, without contacting WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps validate']
 
   async run(): Promise<ValidateResult> {
     await this.parse(Validate)

@@ -6,8 +6,8 @@ import {renderResultPage, waitForLocalCallback} from '../lib/local-callback-serv
 const CONSOLE_URL = 'https://console.loopress.dev'
 
 export default class Login extends Command {
-  static description = 'Log in to the Loopress console'
-  static examples = ['$ lps login']
+  static override description = 'Log in to the Loopress console'
+  static override examples = ['$ lps login']
 
   async run(): Promise<void> {
     const {email, token} = await this.waitForCallback()
@@ -18,8 +18,8 @@ export default class Login extends Command {
     this.log(`\nLogged in${emailSuffix}. You're all set!`)
   }
 
-  private async waitForCallback(): Promise<{email?: string; token: string}> {
-    return waitForLocalCallback<{email?: string; token: string}>({
+  private async waitForCallback(): Promise<{email?: string | undefined; token: string}> {
+    return waitForLocalCallback<{email?: string | undefined; token: string}>({
       allowedOrigins: [CONSOLE_URL],
       buildUrl(callbackBaseUrl, state) {
         const callbackUrl = encodeURIComponent(`${callbackBaseUrl}/callback?state=${state}`)

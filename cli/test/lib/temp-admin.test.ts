@@ -15,8 +15,9 @@ describe('createTempAdmin / deleteTempAdmin', () => {
 
   async function serve(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<WpClient> {
     server = createServer(handler)
+    const listening = server
     await new Promise<void>((resolve) => {
-      server!.listen(0, '127.0.0.1', resolve)
+      listening.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
     return new WpClient(`http://127.0.0.1:${port}`, 'user:pass', 'local')

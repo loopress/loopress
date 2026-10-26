@@ -11,14 +11,14 @@ type AddResult = {
 }
 
 export default class Add extends LoopressCommand {
-  static args = {
+  static override args = {
     slug: Args.string({description: 'Theme slug on WordPress.org', required: true}),
   }
 
-  static description = 'Add a WordPress.org theme to loopress.json'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme add generatepress', '$ lps theme add generatepress --version 3.4.0']
-  static flags = {
+  static override description = 'Add a WordPress.org theme to loopress.json'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme add generatepress', '$ lps theme add generatepress --version 3.4.0']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     version: Flags.string({description: 'Exact version to pin (default: "latest")'}),
   }

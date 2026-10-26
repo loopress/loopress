@@ -26,7 +26,7 @@ export type ValidateResult = {
 // and api routes (`.php`, not JSON) are checked separately, options too (a stricter shape).
 const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'menuDir', 'themeStylesDir'] as const
 
-const DEFAULT_DIR: Record<string, string> = {
+const DEFAULT_DIR = {
   acfDir: 'acf',
   apiDir: 'api',
   cptDir: 'cpt',
@@ -55,7 +55,7 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
 
   const localConfig = await readConfig(cwd, problems)
   const rootDir = typeof localConfig.rootDir === 'string' ? localConfig.rootDir : '.'
-  const resolve = (key: string): string => {
+  const resolve = (key: keyof typeof DEFAULT_DIR): string => {
     const override = localConfig[key]
     return join(cwd, rootDir, typeof override === 'string' ? override : DEFAULT_DIR[key])
   }

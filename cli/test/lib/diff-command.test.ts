@@ -7,7 +7,7 @@ import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
 class TestReport extends DiffCommand {
-  static enableJsonFlag = true
+  static override enableJsonFlag = true
   targets: DiffTarget[] = []
 
   async run(): Promise<DiffJson> {
@@ -118,7 +118,7 @@ describe('DiffCommand.report', () => {
   it('keeps a missing plugin as a failure when the target is not skipped', async () => {
     const {result} = await report([target('ACF', new Error('Advanced Custom Fields is not active'))])
 
-    expect(result.resources.acf.error).toBe('Advanced Custom Fields is not active')
+    expect(result.resources.acf?.error).toBe('Advanced Custom Fields is not active')
     expect(process.exitCode).toBe(2)
   })
 

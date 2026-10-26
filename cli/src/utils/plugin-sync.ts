@@ -41,7 +41,8 @@ export type SyncResponse = {
   message: string
   output: string
   // Packages `composer update` uninstalled because they left the intent, e.g. "wpackagist-plugin/redirection".
-  removed: string[]
+  // Older servers omit it.
+  removed?: string[]
 }
 
 export type Collision = {

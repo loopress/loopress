@@ -19,7 +19,7 @@ import {withoutSpinner, withSpinner} from './spinner.js'
 // push that mirrors the project (the child theme): every other push leaves site-only items alone.
 export type PushChange = {id: string; status: 'changed' | 'created' | 'removed' | 'unchanged'}
 
-export function pushChanges(local: ResourceState, remote: ResourceState, options: {mirror?: boolean; writes?: (id: string) => boolean} = {}): PushChange[] {
+export function pushChanges(local: ResourceState, remote: ResourceState, options: {mirror?: boolean; writes?: ((id: string) => boolean) | undefined} = {}): PushChange[] {
   const changes: PushChange[] = [...local.keys()]
     .filter((id) => options.writes?.(id) ?? true)
     .map((id) => {
@@ -40,7 +40,7 @@ export function logChanges(log: (message: string) => void, changes: Array<{id: s
 export abstract class PushCommand extends LoopressCommand {
   // Passed by an aggregate command (`lps theme push`) that already confirmed production once,
   // so its steps skip that prompt while still asking their own confirmations (uninstalls).
-  static baseFlags = {
+  static override baseFlags = {
     ...LoopressCommand.baseFlags,
     overwrite: Flags.boolean({
       description: 'Push even over changes made on the site outside Loopress since your last push. Pages: also take over a same-slug page Loopress did not create',
@@ -105,7 +105,8 @@ export abstract class PushCommand extends LoopressCommand {
     return remote
   }
 
-  async catch(err: Error): Promise<void> {
+  override async catch(err: Error): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- catch() also runs when init() failed before assigning siteConfig
     if (!this.dryRun && !this.refusedByGuard && this.siteConfig) {
       await this.recordDeployment('failure')
     }
@@ -125,7 +126,7 @@ export abstract class PushCommand extends LoopressCommand {
     })
   }
 
-  async init(): Promise<void> {
+  override async init(): Promise<void> {
     await super.init()
     await this.guardProductionPush()
   }

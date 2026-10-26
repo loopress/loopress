@@ -65,9 +65,9 @@ export class ProjectConfigManager {
   // remembered choice is exactly the hidden state that sends a push to the wrong site.
   getDefaultEnvironment(projectId: string): EnvironmentConfig | null {
     const environments = this.getProject(projectId)?.environments ?? {}
-    const names = Object.keys(environments)
-    if (Object.hasOwn(environments, LOCAL_ENVIRONMENT_NAME)) return environments[LOCAL_ENVIRONMENT_NAME]
-    return names.length === 1 ? environments[names[0]] : null
+    if (Object.hasOwn(environments, LOCAL_ENVIRONMENT_NAME)) return environments[LOCAL_ENVIRONMENT_NAME] ?? null
+    const [only, ...others] = Object.values(environments)
+    return others.length === 0 ? (only ?? null) : null
   }
 
   getEnvironment(projectId: string, envName: string): EnvironmentConfig | null {

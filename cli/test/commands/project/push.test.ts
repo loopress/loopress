@@ -7,7 +7,7 @@ import {configManager} from '../../../src/config/project-config.manager.js'
 import {ApiClient} from '../../../src/lib/api-client.js'
 import {listrInstances, outputsOf, resetListrInstances, titlesOf} from '../../helpers/listr.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
-import {makeListedEnv, makeListedProject} from '../../helpers/project-fixtures.js'
+import {makeListedEnv, makeListedProject, withoutToken} from '../../helpers/project-fixtures.js'
 
 const {get, post, put} = vi.hoisted(() => ({get: vi.fn(), post: vi.fn(), put: vi.fn()}))
 
@@ -202,7 +202,7 @@ describe('project push', () => {
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1', token: undefined},
+      withoutToken({...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1'}),
     ])
 
     const cmd = make()
@@ -444,7 +444,7 @@ describe('project push', () => {
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1', token: undefined},
+      withoutToken({...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1'}),
     ])
 
     const cmd = make()

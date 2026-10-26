@@ -12,15 +12,15 @@ import {globalStylesFiles} from '../utils/theme-styles-format.js'
 const RESOURCES = [...RESOURCE_STATE_PROVIDERS.map((provider) => provider.resource), 'composer'] as const
 
 export default class Diff extends DiffCommand {
-  static description = [
+  static override description = [
     'Show what differs between your local tracked files and a WordPress environment, or between two environments.',
     'Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, menus, custom post types, taxonomies, post meta, roles, block patterns, options, theme styles, and Composer. Plugins and themes have their own `lps plugin status` / `lps theme status`.',
     'Exit code: 0 in sync, 1 on drift, 2 when a resource could not be compared, so it doubles as a CI drift gate.',
   ].join(' ')
 
-  static enableJsonFlag = true
+  static override enableJsonFlag = true
 
-  static examples = [
+  static override examples = [
     '$ lps diff',
     '$ lps diff --env staging',
     '$ lps diff --env staging --against production',
@@ -28,7 +28,7 @@ export default class Diff extends DiffCommand {
     '$ lps diff --skip composer',
   ]
 
-  static flags = {
+  static override flags = {
     ...DiffCommand.againstFlag,
     only: Flags.string({description: 'Only compare these resources', multiple: true, options: [...RESOURCES]}),
     skip: Flags.string({description: 'Compare every resource except these', multiple: true, options: [...RESOURCES]}),

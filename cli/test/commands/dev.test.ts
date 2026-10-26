@@ -209,7 +209,7 @@ describe('dev', () => {
       ignoreInitial: true,
       ignored: expect.any(Function),
     })
-    const options = watchMock.mock.calls[0][1] as {ignored: (path: string) => boolean}
+    const options = watchMock.mock.calls[0]?.[1] as {ignored: (path: string) => boolean}
     expect(options.ignored(join('node_modules', 'foo.js'))).toBe(true)
     expect(options.ignored(join('snippets', 'foo.php'))).toBe(false)
 
@@ -290,7 +290,7 @@ describe('dev', () => {
     await vi.waitFor(() => {
       expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching for changes'))
     })
-    const options = watchMock.mock.calls[0][1] as {ignored: (path: string) => boolean}
+    const options = watchMock.mock.calls[0]?.[1] as {ignored: (path: string) => boolean}
 
     expect(options.ignored(path)).toBe(ignored)
 

@@ -23,7 +23,7 @@ export type NormalizedSnippet = {
   // (see `snippet push`'s conditional-write precondition, #234). Present only on a single-
   // snippet GET/POST/PUT response, never on the `loopress/v1/snippets` list, and never persisted
   // locally: a local snippet file describes the desired state, not remote bookkeeping.
-  revision?: string
+  revision?: string | undefined
   shortcodeAttributes: string[]
   tags: string[]
   type: SnippetType

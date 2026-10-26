@@ -3,9 +3,9 @@ import {PAGES_ENDPOINT, type RemotePage} from '../../utils/page-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List the static pages managed by Loopress on WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps page list']
+  static override description = 'List the static pages managed by Loopress on WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps page list']
 
   async run(): Promise<Array<Omit<RemotePage, 'html'>>> {
     const pages = await this.wp.get<RemotePage[]>(PAGES_ENDPOINT)

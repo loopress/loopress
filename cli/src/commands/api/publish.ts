@@ -19,14 +19,14 @@ type ApiRouteFile = {
 // project's own site) and a `publish` (to the cloud, deployable to other projects) are two
 // separate, coexisting paths.
 export default class Publish extends Command {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to api directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.'
 
-  static examples = ['$ lps api publish', '$ lps api publish ./api']
+  static override examples = ['$ lps api publish', '$ lps api publish ./api']
 
   async run(): Promise<void> {
     const {args} = await this.parse(Publish)

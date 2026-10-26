@@ -13,10 +13,10 @@ const PULL_TARGETS = [
 ]
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull everything theme related from WordPress: theme versions into loopress.json, then Global Styles into a local file'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme pull', '$ lps theme pull --env staging', '$ lps theme pull --dry-run']
-  static flags = {
+  static override description = 'Pull everything theme related from WordPress: theme versions into loopress.json, then Global Styles into a local file'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme pull', '$ lps theme pull --env staging', '$ lps theme pull --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
   }
 

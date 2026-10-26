@@ -70,20 +70,20 @@ describe('plugins', () => {
   describe('parseInstalledPlugins', () => {
     it('derives the slug from the folder segment of the native plugin id', () => {
       const [plugin] = parseInstalledPlugins([makeNative('woocommerce/woocommerce')])
-      expect(plugin.slug).toBe('woocommerce')
-      expect(plugin.file).toBe('woocommerce/woocommerce')
+      expect(plugin?.slug).toBe('woocommerce')
+      expect(plugin?.file).toBe('woocommerce/woocommerce')
     })
 
     it('derives the slug from a single-file plugin id with no folder', () => {
       const [plugin] = parseInstalledPlugins([makeNative('hello')])
-      expect(plugin.slug).toBe('hello')
+      expect(plugin?.slug).toBe('hello')
     })
 
     it('prefers the WordPress.org slug from plugin_uri when a single-file id disagrees with it', () => {
       const [plugin] = parseInstalledPlugins([
         makeNative('hello', {plugin_uri: 'https://wordpress.org/plugins/hello-dolly/'}),
       ])
-      expect(plugin.slug).toBe('hello-dolly')
+      expect(plugin?.slug).toBe('hello-dolly')
     })
 
     it('treats "inactive" status as not active and everything else as active', () => {
@@ -92,9 +92,9 @@ describe('plugins', () => {
         makeNative('acf/acf', {status: 'inactive'}),
         makeNative('multisite/multisite', {status: 'network-active'}),
       ])
-      expect(active.active).toBe(true)
-      expect(inactive.active).toBe(false)
-      expect(networkActive.active).toBe(true)
+      expect(active?.active).toBe(true)
+      expect(inactive?.active).toBe(false)
+      expect(networkActive?.active).toBe(true)
     })
 
     it('filters out the Loopress plugin itself, under any slug it has ever shipped under', () => {
@@ -209,11 +209,11 @@ describe('plugins', () => {
       ['https://wordpress.org/plugins/hello-dolly/ ', 'hello'],
       ['https://wordpress.org/plugins//', 'hello'],
     ])('reads the slug of a single-file plugin with Plugin URI %s as %s', (uri, slug) => {
-      expect(parseInstalledPlugins([makeNative('hello', {plugin_uri: uri})])[0].slug).toBe(slug)
+      expect(parseInstalledPlugins([makeNative('hello', {plugin_uri: uri})])[0]?.slug).toBe(slug)
     })
 
     it('ignores the Plugin URI of a plugin that has a folder', () => {
-      expect(parseInstalledPlugins([makeNative('hello/hello', {plugin_uri: 'https://wordpress.org/plugins/other/'})])[0].slug).toBe('hello')
+      expect(parseInstalledPlugins([makeNative('hello/hello', {plugin_uri: 'https://wordpress.org/plugins/other/'})])[0]?.slug).toBe('hello')
     })
 
     it('keeps the name and version of each installed plugin', () => {

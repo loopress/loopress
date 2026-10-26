@@ -16,16 +16,16 @@ type PushResult = {
 }
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     slug: Args.string({description: 'Push only this page (its file name without .html). Pushes every page when omitted.'}),
   }
 
-  static description =
+  static override description =
     'Push local static HTML pages (pages/<slug>.html) to WordPress, or only one when a slug is given. The `status` header (draft or publish, draft by default) is applied on every push.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps page push', '$ lps page push legal-notice', '$ lps page push --dry-run', '$ lps page push about --overwrite']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps page push', '$ lps page push legal-notice', '$ lps page push --dry-run', '$ lps page push about --overwrite']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }

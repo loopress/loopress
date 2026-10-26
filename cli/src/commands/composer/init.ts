@@ -20,9 +20,9 @@ const INSTALLER_PATHS = {
 }
 
 export default class ComposerInit extends LoopressCommand {
-  static description = 'Create a composer.json wired to WPackagist for installing WordPress.org plugins and themes'
-  static examples = ['$ lps composer init', '$ lps composer init --dry-run']
-  static flags = {
+  static override description = 'Create a composer.json wired to WPackagist for installing WordPress.org plugins and themes'
+  static override examples = ['$ lps composer init', '$ lps composer init --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
   }
 

@@ -81,7 +81,7 @@ describe('content copy', () => {
       'loopress/v1/content/posts',
     ])
     expect(local.post).toHaveBeenNthCalledWith(1, 'loopress/v1/content/reset', {home: 'https://acme.com', uploadsUrl: 'https://acme.com/wp-content/uploads'})
-    expect(local.post.mock.calls[3][1]).toEqual({postmeta: [], posts: [{ID: 101}], termRelationships: []})
+    expect(local.post.mock.calls[3]?.[1]).toEqual({postmeta: [], posts: [{ID: 101}], termRelationships: []})
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('push', ['--env', 'local', '--yes'])
     expect(result).toEqual({from: 'production', posts: 101, status: 'copied', terms: 1})
   })

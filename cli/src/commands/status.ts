@@ -22,10 +22,10 @@ type StatusResult = StatusInfo & {
 }
 
 export default class Status extends Command {
-  static description = 'Show which WordPress project and environment commands will target'
-  static enableJsonFlag = true
-  static examples = ['$ lps status', '$ lps status --env staging']
-  static flags = {
+  static override description = 'Show which WordPress project and environment commands will target'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps status', '$ lps status --env staging']
+  static override flags = {
     env: Flags.string({description: 'Show what would be targeted with this environment, as other commands do with --env'}),
   }
 

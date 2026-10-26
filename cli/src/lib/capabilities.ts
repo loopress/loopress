@@ -7,12 +7,12 @@ export type SiteCapabilities = {
   edition: 'full' | 'light'
   environmentType: string
   // `snippets` is absent on Loopress Light, which has no snippet sync at all.
-  integrations: {acf: boolean; form: boolean; snippets?: boolean}
+  integrations: {acf: boolean; form: boolean; snippets?: boolean | undefined}
   theme: {
     active: string
     // The Loopress child of the block theme in use. Absent on Light, null when the site can't
     // have one (a classic theme, or another child theme active).
-    child?: null | {active: boolean; exists: boolean; stylesheet: string}
+    child?: null | undefined | {active: boolean; exists: boolean; stylesheet: string}
     isBlock: boolean
     template: string
   }
@@ -79,6 +79,7 @@ export function integrationFix(missing: MissingIntegration, declared: {fromCompo
   if (plugin) return `The project declares ${plugin}, activate it: ${activate(plugin)}`
 
   const [first, ...alternatives] = missing.plugins
+  if (first === undefined) return undefined
   const or = alternatives.length > 0 ? ` (or ${alternatives.join(', ')})` : ''
   const where = declared.fromComposer ? `wpackagist-plugin/${first} in composer.json` : `"${first}" in loopress.json plugins`
   return `Declare ${first}${or} (${where}), then activate it: ${activate(first)}`

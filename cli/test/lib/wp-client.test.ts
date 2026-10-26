@@ -55,8 +55,9 @@ describe('WpClient', () => {
 
   async function serve(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<{client: WpClient; siteUrl: string}> {
     server = createServer(handler)
+    const listening = server
     await new Promise<void>((resolve) => {
-      server!.listen(0, '127.0.0.1', resolve)
+      listening.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
     const siteUrl = `http://127.0.0.1:${port}`

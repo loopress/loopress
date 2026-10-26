@@ -53,9 +53,9 @@ describe('bundleThemeCss', () => {
 
     expect(problems).toEqual([])
     expect(css.assets).toEqual([{content: 'AAEC', path: expect.stringMatching(/^assets\/inter-\w+\.woff2$/)}])
-    const asset = css.assets[0].path
+    const asset = css.assets[0]?.path
     expect(css.style).toContain(`url("./${asset}")`)
-    expect(css.blocks[0].css).toContain(`url("../../${asset}")`)
+    expect(css.blocks[0]?.css).toContain(`url("../../${asset}")`)
   })
 
   it('leaves absolute URLs alone', async () => {
@@ -95,7 +95,7 @@ describe('bundleThemeCss', () => {
     expect(css.style).toBe('')
     expect(css.assets).toEqual([])
     expect(css.blocks.map((block) => block.name)).toEqual(['acme/card', 'core/quote'])
-    expect(css.blocks[1].css).toContain('.q{color:red}')
+    expect(css.blocks[1]?.css).toContain('.q{color:red}')
   })
 
   it('explains where a block file belongs', async () => {
@@ -115,7 +115,7 @@ describe('bundleThemeCss', () => {
         join(blocksDir, 'core/button/inner.css'),
       ].toSorted((a, b) => a.localeCompare(b)),
     )
-    expect(problems[0].message).toBe(`must be <namespace>/<block>.css, named after a block (e.g. ${join(blocksDir, 'core', 'button.css')})`)
+    expect(problems[0]?.message).toBe(`must be <namespace>/<block>.css, named after a block (e.g. ${join(blocksDir, 'core', 'button.css')})`)
   })
 
   it('explains that CSS files need the style.css entry', async () => {

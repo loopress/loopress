@@ -317,7 +317,7 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
   const state: ResourceState = new Map(files.map(({slug, ...rest}) => [slug, rest]))
   for (const entry of child.customized) {
     const [dir, slug] = entry.split('/', 2)
-    if (dir === kind) state.set(slug, {...(state.get(slug) as Record<string, unknown> | undefined), siteEditor: 'customized'})
+    if (dir === kind && slug !== undefined) state.set(slug, {...(state.get(slug) as Record<string, unknown> | undefined), siteEditor: 'customized'})
   }
 
   return state

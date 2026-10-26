@@ -41,8 +41,9 @@ async function readBlockEntries(blocksDir: string, problems: PageProblem[]): Pro
   const entries: Array<{file: string; name: string}> = []
   for (const file of await listFiles(blocksDir)) {
     const segments = relative(blocksDir, file).split(sep)
-    const [namespace, block] = [segments[0], segments[1]?.replace(/\.css$/, '')]
-    if (segments.length !== 2 || extname(file) !== '.css' || !BLOCK_SEGMENT.test(namespace) || !BLOCK_SEGMENT.test(block)) {
+    const [namespace, fileName] = segments
+    const block = fileName?.replace(/\.css$/, '')
+    if (namespace === undefined || block === undefined || segments.length !== 2 || extname(file) !== '.css' || !BLOCK_SEGMENT.test(namespace) || !BLOCK_SEGMENT.test(block)) {
       problems.push({file, message: `must be <namespace>/<block>.css, named after a block (e.g. ${join(blocksDir, 'core', 'button.css')})`})
       continue
     }

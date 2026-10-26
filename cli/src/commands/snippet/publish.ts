@@ -13,14 +13,14 @@ import {toSlug} from '../../utils/to-slug.js'
 // publishing its snippets for sharing doesn't need one, a pure "library" project 
 // may have zero environments configured at all.
 export default class Publish extends Command {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.'
 
-  static examples = ['$ lps snippet publish', '$ lps snippet publish ./snippets']
+  static override examples = ['$ lps snippet publish', '$ lps snippet publish ./snippets']
 
   async run(): Promise<void> {
     const {args} = await this.parse(Publish)

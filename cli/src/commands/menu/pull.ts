@@ -13,14 +13,14 @@ const LOCATIONS_FILE_BASENAME = 'menu-locations'
 type MenuPullResult = {path: string; status: 'dry-run' | 'success'}
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to menus directory (overrides project config)'}),
   }
 
-  static description = 'Pull nav menus and the active theme menu locations from WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps menu pull']
-  static flags = {
+  static override description = 'Pull nav menus and the active theme menu locations from WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps menu pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

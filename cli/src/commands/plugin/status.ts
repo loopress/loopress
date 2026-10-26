@@ -18,10 +18,10 @@ type StatusResult = {
 }
 
 export default class Status extends LoopressCommand {
-  static description = 'Compare the plugins on WordPress against loopress.json and report drift (missing, wrong version, inactive, untracked)'
-  static enableJsonFlag = true
-  static examples = ['$ lps plugin status']
-  static flags = {}
+  static override description = 'Compare the plugins on WordPress against loopress.json and report drift (missing, wrong version, inactive, untracked)'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps plugin status']
+  static override flags = {}
 
   async run(): Promise<StatusResult> {
     const {url} = this.siteConfig
@@ -86,7 +86,8 @@ export default class Status extends LoopressCommand {
       drift,
       inactive,
       missing,
-      status: drift ? 'drift' : 'in-sync',
+      // Drift exits with code 1 above, so only the untracked-active report gets here.
+      status: 'in-sync',
       unexpectedlyActive,
       untrackedActive,
       wrongVersion,

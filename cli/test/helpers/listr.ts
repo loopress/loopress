@@ -10,7 +10,7 @@ export type FakeListrTask = {
 }
 
 export type FakeListrInstance = {
-  options: FakeListrOptions
+  options: FakeListrOptions | undefined
   outputs: string[]
   tasks: FakeListrTask[]
 }
@@ -26,11 +26,11 @@ export function resetListrInstances(): void {
 }
 
 export function titlesOf(instanceIndex: number): string[] {
-  return listrInstances[instanceIndex].tasks.map((t) => t.title)
+  return listrInstances[instanceIndex]?.tasks.map((t) => t.title) ?? []
 }
 
 export function outputsOf(instanceIndex: number): string[] {
-  return listrInstances[instanceIndex].outputs
+  return listrInstances[instanceIndex]?.outputs ?? []
 }
 
 // The real Listr renderer swallows task output/titles, making them unobservable to assertions.
@@ -49,7 +49,7 @@ export function createListrMock() {
     Listr: vi.fn().mockImplementation(function (
       this: FakeListrInstance & {run: (ctx?: Record<string, unknown>) => Promise<unknown>},
       tasks: FakeListrTask[],
-      options: FakeListrOptions,
+      options?: FakeListrOptions,
     ) {
       this.options = options
       this.tasks = tasks

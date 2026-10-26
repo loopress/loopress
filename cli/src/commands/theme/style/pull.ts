@@ -14,16 +14,16 @@ import {
 type ThemeStylePullResult = {file: string; status: 'dry-run' | 'success'}
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to theme styles directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     "Pull the active block theme's Global Styles customizations (Site Editor > Styles) from WordPress into a local file"
 
-  static enableJsonFlag = true
-  static examples = ['$ lps theme style pull']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme style pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
   }
 

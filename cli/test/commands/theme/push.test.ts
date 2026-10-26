@@ -13,7 +13,7 @@ class TestPush extends Push {
     this.dryRun = dryRun
     this.yes = yes
     this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
-    this.localConfig = {themes}
+    this.localConfig = themes ? {themes} : {}
   }
 }
 

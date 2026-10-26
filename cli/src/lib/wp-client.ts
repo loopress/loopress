@@ -122,13 +122,13 @@ type RequestOptions = {
 }
 
 export function isNotFoundError(error: unknown): boolean {
-  const cause = (error as {cause?: {response?: {statusCode?: number}}})?.cause
+  const cause = (error as undefined | {cause?: {response?: {statusCode?: number}}})?.cause
   return cause?.response?.statusCode === 404
 }
 
 // Authenticated but missing the capability the endpoint needs (e.g. `list_users`).
 export function isForbiddenError(error: unknown): boolean {
-  const cause = (error as {cause?: {response?: {statusCode?: number}}})?.cause
+  const cause = (error as undefined | {cause?: {response?: {statusCode?: number}}})?.cause
   return cause?.response?.statusCode === 403
 }
 
@@ -152,7 +152,7 @@ export function isApplicative404(error: unknown, marker: string): boolean {
 // A 409 a Loopress controller tags with a `code`, for a refusal the CLI can act on (e.g.
 // `loopress_page_not_managed`, which `lps page push` offers to take over).
 export function isConflictCode(error: unknown, code: string): boolean {
-  const response = (error as {cause?: {response?: {body?: string; statusCode?: number}}})?.cause?.response
+  const response = (error as undefined | {cause?: {response?: {body?: string; statusCode?: number}}})?.cause?.response
   if (response?.statusCode !== 409 || !response.body) return false
 
   try {
@@ -163,7 +163,7 @@ export function isConflictCode(error: unknown, code: string): boolean {
 }
 
 export function isTimeoutError(error: unknown): boolean {
-  const cause = (error as {cause?: {name?: string}})?.cause
+  const cause = (error as undefined | {cause?: {name?: string}})?.cause
   return cause?.name === 'TimeoutError'
 }
 

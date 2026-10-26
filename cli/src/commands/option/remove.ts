@@ -16,17 +16,17 @@ type RemoveResult = {
 }
 
 export default class Remove extends LoopressCommand {
-  static args = {
+  static override args = {
     name: Args.string({description: 'Option name to stop tracking', required: true}),
   }
 
-  static description =
+  static override description =
     'Stop tracking an option locally and delete it from WordPress. Local untracking always happens (git-reversible); ' +
     'pass --local-only to skip the WordPress delete and only stop tracking.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps option remove wpseo_titles', '$ lps option remove wpseo_titles --local-only']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps option remove wpseo_titles', '$ lps option remove wpseo_titles --local-only']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     'local-only': Flags.boolean({description: 'Untrack locally without deleting the option on WordPress'}),

@@ -35,11 +35,11 @@ function remote(apps: Array<{committed: boolean; name: string}>, files: Record<s
     if (path === 'loopress/v1/apps') return apps
     const manifestMatch = /^loopress\/v1\/apps\/([^/]+)\/manifest$/.exec(path)
     if (manifestMatch) {
-      const name = manifestMatch[1]
+      const [, name = ''] = manifestMatch
       return {
         buildId: 'abc123',
         entry: {scripts: ['assets/app.js'], styles: []},
-        files: Object.keys(files[name]).map((p) => ({path: p, sha256: 'x', size: 1})),
+        files: Object.keys(files[name] ?? {}).map((p) => ({path: p, sha256: 'x', size: 1})),
         mountSelector: `#loopress-app-${name}`,
         name,
         routing: 'hash',
@@ -48,8 +48,8 @@ function remote(apps: Array<{committed: boolean; name: string}>, files: Record<s
 
     const assetMatch = /^loopress\/v1\/apps\/([^/]+)\/asset\?path=(.+)$/.exec(path)
     if (assetMatch) {
-      const [, name, encoded] = assetMatch
-      return {content: b64(files[name][decodeURIComponent(encoded)])}
+      const [, name = '', encoded = ''] = assetMatch
+      return {content: b64(files[name]?.[decodeURIComponent(encoded)] ?? '')}
     }
 
     throw new Error(`unexpected GET ${path}`)

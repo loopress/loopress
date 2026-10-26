@@ -25,14 +25,14 @@ type PullResult = MergeResult & {
 }
 
 export default class Pull extends LoopressCommand {
-  static description =
+  static override description =
     'Pull installed plugins from WordPress into loopress.json (or composer.json), pinned to their live versions. ' +
     'Plugins already tracked are refreshed; new ones are offered as a list to tick, so plugins that only belong ' +
     'on this environment (cache, security, backups) stay out of the project.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps plugin pull', '$ lps plugin pull --env production --plugin query-monitor']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps plugin pull', '$ lps plugin pull --env production --plugin query-monitor']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     plugin: Flags.string({

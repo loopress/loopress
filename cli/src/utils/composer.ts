@@ -108,12 +108,13 @@ function planComposerPull(composerJson: ComposerJson, prefix: string, incoming: 
   )
 
   const result: ComposerPullResult = {added: [], merged: {}, skipped: [], updated: []}
-  const candidates: string[] = []
+  const candidates: Array<[slug: string, version: string]> = []
   for (const [slug, version] of Object.entries(incoming)) {
     const name = prefix + slug
     const provider = providedBy.get(slug)
-    if (Object.hasOwn(allPackages, name)) {
-      const outcome = classifyDeclared(allPackages[name], version, Object.hasOwn(require, name))
+    const declared = Object.hasOwn(allPackages, name) ? allPackages[name] : undefined
+    if (declared !== undefined) {
+      const outcome = classifyDeclared(declared, version, Object.hasOwn(require, name))
       if ('skip' in outcome) {
         result.skipped.push({reason: outcome.skip, slug})
         continue
@@ -124,7 +125,7 @@ function planComposerPull(composerJson: ComposerJson, prefix: string, incoming: 
     } else if (provider) {
       result.skipped.push({reason: `provided by ${provider}`, slug})
     } else {
-      candidates.push(slug)
+      candidates.push([slug, version])
     }
   }
 
@@ -149,11 +150,11 @@ export async function pullIntoComposerJson(
   const prefix = `wpackagist-${kind}/`
   const {candidates, result} = planComposerPull(composerJson, prefix, incoming)
 
-  const found = await Promise.all(candidates.map(async (slug) => isOnWordPressOrg(kind, slug)))
-  for (const [i, slug] of candidates.entries()) {
-    if (found[i]) {
+  const checked = await Promise.all(candidates.map(async ([slug, version]) => ({onWordPressOrg: await isOnWordPressOrg(kind, slug), slug, version})))
+  for (const {onWordPressOrg, slug, version} of checked) {
+    if (onWordPressOrg) {
       result.added.push(slug)
-      result.merged[slug] = incoming[slug]
+      result.merged[slug] = version
     } else {
       result.skipped.push({reason: NOT_ON_WORDPRESS_ORG, slug})
     }
@@ -178,20 +179,22 @@ export async function pullIntoComposerJson(
 // Split a composer.json `require` map into the three intent namespaces the sync endpoint
 // understands. `composer/installers` is owned by the server scaffold, never sent.
 export function toIntent(require: Record<string, string>): SyncIntent {
-  const intent: SyncIntent = {libraries: {}, plugins: {}, themes: {}}
+  const plugins: Record<string, string> = {}
+  const themes: Record<string, string> = {}
+  const libraries: Record<string, string> = {}
 
   for (const [name, constraint] of Object.entries(require)) {
     if (name === 'composer/installers') continue
     if (name.startsWith('wpackagist-plugin/')) {
-      intent.plugins![name.slice('wpackagist-plugin/'.length)] = constraint
+      plugins[name.slice('wpackagist-plugin/'.length)] = constraint
     } else if (name.startsWith('wpackagist-theme/')) {
-      intent.themes![name.slice('wpackagist-theme/'.length)] = constraint
+      themes[name.slice('wpackagist-theme/'.length)] = constraint
     } else {
-      intent.libraries![name] = constraint
+      libraries[name] = constraint
     }
   }
 
-  return intent
+  return {libraries, plugins, themes}
 }
 
 // What a push installs: `require`, plus `require-dev` on the local environment only (Query

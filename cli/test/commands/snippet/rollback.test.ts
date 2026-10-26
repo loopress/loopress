@@ -3,7 +3,7 @@ import {existsSync, mkdtempSync, readdirSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {stripVTControlCharacters} from 'node:util'
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Rollback from '../../../src/commands/snippet/rollback.js'
 import {type LoopressCommand} from '../../../src/lib/base.js'
@@ -37,7 +37,7 @@ async function wait(ms: number): Promise<void> {
 const ConcreteRollback = Rollback as unknown as CommandClass<Omit<LoopressCommand, 'run'> & {run(): Promise<RollbackResult>}>
 
 class TestRollback extends ConcreteRollback {
-  setup(siteConfig: EnvironmentConfig, options: {dryRun?: boolean; yes?: boolean} = {}) {
+  setup(siteConfig: EnvironmentConfig, options: {dryRun?: boolean | undefined; yes?: boolean | undefined} = {}) {
     Object.assign(this, {dryRun: options.dryRun ?? false, localConfig: {rootDir}, siteConfig, yes: options.yes ?? false})
   }
 }
@@ -141,7 +141,8 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7, {name: 'New name'})])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      const dir = argv![0]
+      const dir = argv?.[0]
+      assert(dir)
       materializedFiles = readdirSync(dir)
       return {}
     })
@@ -151,7 +152,7 @@ describe('snippet rollback', () => {
 
     expect(result.status).toBe('success')
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
-    const [commandId, argv] = vi.mocked(fakeOclifConfig.runCommand).mock.calls[0]
+    const [commandId, argv] = vi.mocked(fakeOclifConfig.runCommand).mock.calls[0] ?? []
     expect(commandId).toBe('snippet:push')
     // --overwrite: the drift check above already answered the push's outside-edit question.
     expect(argv).toEqual([expect.any(String), '--env', 'staging', '--yes', '--overwrite'])
@@ -180,7 +181,9 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7, {name: 'New name'}), remoteRow(9, {name: 'Unrelated', type: 'js'})])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      materializedFiles = readdirSync(argv![0])
+      const dir = argv?.[0]
+      assert(dir)
+      materializedFiles = readdirSync(dir)
       return {}
     })
     const {cmd} = make([], get)
@@ -203,7 +206,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7)])
     let capturedDir = ''
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      capturedDir = argv![0]
+      capturedDir = argv?.[0] ?? ''
       expect(existsSync(capturedDir)).toBe(true)
       return {}
     })
@@ -319,7 +322,8 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7)])
     let materializedFiles: string[] = []
     vi.mocked(fakeOclifConfig.runCommand).mockImplementation(async (_id, argv) => {
-      const dir = argv![0]
+      const dir = argv?.[0]
+      assert(dir)
       materializedFiles = readdirSync(dir)
       return {}
     })
@@ -412,7 +416,7 @@ describe('snippet rollback', () => {
 
       expect(lines(logs)).toEqual([
         'Snapshots for "snippet" on "staging" (most recent first):',
-        `  ${id}  ${result.snapshots![0].createdAt}`,
+        `  ${id}  ${result.snapshots?.[0]?.createdAt}`,
       ])
     })
 
@@ -462,8 +466,8 @@ describe('snippet rollback', () => {
       expect(output.at(-1)).toMatch(/^Rolled back Snippets to the snapshot from \S+\.$/)
       // A patch line is indented under its "~ id" header, blank lines are left empty.
       const patch = output[output.indexOf('  ~ 7') + 1]
-      expect(patch.split('\n').every((line) => line === '' || line.startsWith(' '.repeat(4)))).toBe(true)
-      expect(patch).toBe(patch.trimEnd())
+      expect(patch?.split('\n').every((line) => line === '' || line.startsWith(' '.repeat(4)))).toBe(true)
+      expect(patch).toBe(patch?.trimEnd())
     })
 
     it('prints no diff under --json', async () => {

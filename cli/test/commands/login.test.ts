@@ -1,5 +1,5 @@
 import got from 'got'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Login from '../../src/commands/login.js'
 import {authManager} from '../../src/config/auth.manager.js'
@@ -12,8 +12,10 @@ async function relayCallbackUrl(): Promise<string> {
   await vi.waitFor(() => {
     expect(openBrowser).toHaveBeenCalled()
   })
-  const consoleUrl = new URL(vi.mocked(openBrowser).mock.calls[0][0])
-  return decodeURIComponent(consoleUrl.searchParams.get('callbackUrl')!)
+  const [opened] = vi.mocked(openBrowser).mock.calls[0] ?? []
+  assert(opened)
+  const consoleUrl = new URL(opened)
+  return decodeURIComponent(consoleUrl.searchParams.get('callbackUrl') ?? '')
 }
 
 describe('login', () => {
@@ -29,11 +31,13 @@ describe('login', () => {
     await vi.waitFor(() => {
       expect(openBrowser).toHaveBeenCalled()
     })
-    const consoleUrl = new URL(vi.mocked(openBrowser).mock.calls[0][0])
+    const [opened] = vi.mocked(openBrowser).mock.calls[0] ?? []
+    assert(opened)
+    const consoleUrl = new URL(opened)
     expect(consoleUrl.origin).toBe('https://console.loopress.dev')
     expect(consoleUrl.pathname).toBe('/cli-auth')
 
-    const callbackUrl = new URL(decodeURIComponent(consoleUrl.searchParams.get('callbackUrl')!))
+    const callbackUrl = new URL(decodeURIComponent(consoleUrl.searchParams.get('callbackUrl') ?? ''))
     expect(callbackUrl.pathname).toBe('/callback')
     expect(callbackUrl.searchParams.get('state')).toMatch(/^[a-f0-9]{64}$/)
 
