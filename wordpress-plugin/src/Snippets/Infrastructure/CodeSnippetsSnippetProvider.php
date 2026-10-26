@@ -151,7 +151,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
             type: $type,
             active: (bool) ($data['active'] ?? false),
             description: Narrow::string($data['desc'] ?? ''),
-            tags: is_array($tags) ? array_filter($tags, 'is_string') : [],
+            tags: is_array($tags) ? array_values(array_filter($tags, 'is_string')) : [],
             location: self::SCOPE_TO_LOCATION[$scope] ?? $type->defaultLocation(),
             insertMethod: 'auto',
             priority: isset($data['priority']) ? Narrow::int($data['priority']) : 10,
@@ -283,8 +283,13 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
             throw new SnippetProviderRequestException($error instanceof \WP_Error ? esc_html($error->get_error_message()) : 'Code Snippets request failed.');
         }
 
+        // A success without an array body is still a failed request: an empty record in its place
+        // would read as a snippet with ID 0.
         $data = $response->get_data();
+        if (!is_array($data)) {
+            throw new SnippetProviderRequestException('Code Snippets returned an unexpected response.');
+        }
 
-        return is_array($data) ? $data : [];
+        return $data;
     }
 }

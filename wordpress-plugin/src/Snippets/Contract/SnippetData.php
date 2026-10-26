@@ -49,7 +49,14 @@ final readonly class SnippetData
     public static function fromArray(array $data): self
     {
         $string  = static fn(string $key): ?string => isset($data[$key]) ? Narrow::string($data[$key]) : null;
-        $strings = static fn(string $key): ?array => is_array($data[$key] ?? null) ? array_filter($data[$key], 'is_string') : null;
+        $strings = static function (string $key) use ($data): ?array {
+            $value = $data[$key] ?? null;
+
+            return is_array($value) ? array_filter($value, 'is_string') : null;
+        };
+        // tags is a list: reindexed so a dropped entry can't turn it into a JSON object.
+        // shortcodeAttributes is a name => value map and keeps its keys.
+        $tags = $strings('tags');
 
         return new self(
             id: isset($data['id']) ? Narrow::int($data['id']) : null,
@@ -58,7 +65,7 @@ final readonly class SnippetData
             type: isset($data['type']) ? SnippetType::from(Narrow::string($data['type'])) : null,
             active: isset($data['active']) ? (bool) $data['active'] : null,
             description: $string('description'),
-            tags: $strings('tags'),
+            tags: $tags === null ? null : array_values($tags),
             location: $string('location'),
             insertMethod: $string('insertMethod'),
             priority: isset($data['priority']) ? Narrow::int($data['priority']) : null,

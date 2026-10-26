@@ -168,6 +168,11 @@ class SnippetDataTest extends TestCase
         $this->assertNull(SnippetData::fromArray(['id' => 1, 'revision' => 'client-supplied'])->revision);
     }
 
+    public function test_from_array_keeps_tags_a_list_when_it_drops_a_non_string(): void
+    {
+        $this->assertSame(['valid'], SnippetData::fromArray(['tags' => [1, 'valid']])->tags);
+    }
+
     // ── round trip ───────────────────────────────────────────────────────────
 
     public function test_from_array_then_to_array_round_trips(): void
