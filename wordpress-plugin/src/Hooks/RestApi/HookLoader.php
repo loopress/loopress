@@ -279,16 +279,18 @@ final class HookLoader extends AbstractFileLoader
     /** @return array{message: string, at: int, revision: string}|null */
     private function validRuntimeError(mixed $entry): ?array
     {
-        if (
-            !is_array($entry)
-            || !is_string($entry['message'] ?? null)
-            || !is_string($entry['revision'] ?? null)
-            || !is_int($entry['at'] ?? null)
-        ) {
+        if (!is_array($entry)) {
             return null;
         }
 
-        return ['message' => $entry['message'], 'at' => $entry['at'], 'revision' => $entry['revision']];
+        $message  = $entry['message'] ?? null;
+        $revision = $entry['revision'] ?? null;
+        $at       = $entry['at'] ?? null;
+        if (!is_string($message) || !is_string($revision) || !is_int($at)) {
+            return null;
+        }
+
+        return ['message' => $message, 'at' => $at, 'revision' => $revision];
     }
 
     /** @return array<string, array{type: string, method: string, message: string, at: int, revision: string}> */

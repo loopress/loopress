@@ -54,7 +54,7 @@ final class ContentService
             ...[...$types, $limit],
         ), ARRAY_A);
 
-        $ids = array_map(static fn(array $post): int => (int) $post['ID'], $posts);
+        $ids = array_map(static fn(array $post): int => (int) ($post['ID'] ?? 0), $posts);
         if ($ids === []) {
             return ['posts' => [], 'postmeta' => [], 'termRelationships' => [], 'next' => null];
         }
@@ -99,7 +99,7 @@ final class ContentService
             ...[...$taxonomies, $limit],
         ), ARRAY_A);
 
-        $ids = array_map(static fn(array $term): int => (int) $term['term_id'], $terms);
+        $ids = array_map(static fn(array $term): int => (int) ($term['term_id'] ?? 0), $terms);
         if ($ids === []) {
             return ['terms' => [], 'termTaxonomy' => [], 'termmeta' => [], 'next' => null];
         }
@@ -164,7 +164,7 @@ final class ContentService
         $this->assertLocal();
 
         $rows = array_map(fn(mixed $post): array => $this->pick($post, self::POST_COLUMNS), $posts);
-        $ids  = array_map(static fn(array $row): int => (int) $row['ID'], $rows);
+        $ids  = array_map(static fn(array $row): int => (int) ($row['ID'] ?? 0), $rows);
         $this->deletePosts($ids);
 
         $rewriter = $this->rewriter();
@@ -180,7 +180,7 @@ final class ContentService
         $known = array_flip($ids);
         foreach ($postmeta as $meta) {
             $row = $this->pick($meta, ['post_id', ...self::META_COLUMNS]);
-            if (isset($known[(int) $row['post_id']])) {
+            if (isset($known[(int) ($row['post_id'] ?? 0)])) {
                 $this->rewriteColumn($rewriter, $row, 'meta_value');
                 $this->write($wpdb->postmeta, $row);
             }
@@ -188,7 +188,7 @@ final class ContentService
 
         foreach ($relationships as $relationship) {
             $row = $this->pick($relationship, self::RELATIONSHIP_COLUMNS);
-            if (isset($known[(int) $row['object_id']])) {
+            if (isset($known[(int) ($row['object_id'] ?? 0)])) {
                 $this->write($wpdb->term_relationships, $row, true);
             }
         }
@@ -211,8 +211,8 @@ final class ContentService
 
         $termRows     = array_map(fn(mixed $term): array => $this->pick($term, self::TERM_COLUMNS), $terms);
         $taxonomyRows = array_map(fn(mixed $row): array => $this->pick($row, self::TAXONOMY_COLUMNS), $termTaxonomy);
-        $ids          = array_map(static fn(array $row): int => (int) $row['term_id'], $termRows);
-        $this->deleteTerms($ids, array_map(static fn(array $row): int => (int) $row['term_taxonomy_id'], $taxonomyRows));
+        $ids          = array_map(static fn(array $row): int => (int) ($row['term_id'] ?? 0), $termRows);
+        $this->deleteTerms($ids, array_map(static fn(array $row): int => (int) ($row['term_taxonomy_id'] ?? 0), $taxonomyRows));
 
         $known = array_flip($ids);
         foreach ($termRows as $row) {
@@ -220,7 +220,7 @@ final class ContentService
         }
 
         foreach ($taxonomyRows as $row) {
-            if (isset($known[(int) $row['term_id']])) {
+            if (isset($known[(int) ($row['term_id'] ?? 0)])) {
                 $this->write($wpdb->term_taxonomy, $row);
             }
         }
@@ -228,7 +228,7 @@ final class ContentService
         $rewriter = $this->rewriter();
         foreach ($termmeta as $meta) {
             $row = $this->pick($meta, ['term_id', ...self::META_COLUMNS]);
-            if (isset($known[(int) $row['term_id']])) {
+            if (isset($known[(int) ($row['term_id'] ?? 0)])) {
                 $this->rewriteColumn($rewriter, $row, 'meta_value');
                 $this->write($wpdb->termmeta, $row);
             }

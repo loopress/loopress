@@ -42,7 +42,8 @@ final readonly class AppShortcode
 
         $this->enqueuer->enqueue($name);
 
-        $mountId = ltrim(is_string($record['mountSelector'] ?? null) ? $record['mountSelector'] : "#loopress-app-{$name}", '#');
+        $mountSelector = $record['mountSelector'] ?? null;
+        $mountId       = ltrim(is_string($mountSelector) ? $mountSelector : "#loopress-app-{$name}", '#');
 
         return sprintf('<div id="%s" data-loopress-app="%s"></div>', esc_attr($mountId), esc_attr($name));
     }

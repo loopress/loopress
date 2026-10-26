@@ -125,7 +125,7 @@ class FormService extends AbstractSingleProviderService
     private function assertRevisionMatches(int $id, string $expectedRevision): void
     {
         $current         = $this->get($id);
-        $currentRevision = $current === null ? null : $current['revision'];
+        $currentRevision = $current['revision'] ?? null;
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";

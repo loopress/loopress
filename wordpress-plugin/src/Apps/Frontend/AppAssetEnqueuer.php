@@ -30,8 +30,10 @@ final class AppAssetEnqueuer
             return;
         }
 
-        $buildId = is_string($record['buildId'] ?? null) ? $record['buildId'] : null;
-        $entry   = is_array($record['entry'] ?? null) ? $record['entry'] : ['scripts' => [], 'styles' => []];
+        $buildId = $record['buildId'] ?? null;
+        $buildId = is_string($buildId) ? $buildId : null;
+        $entry   = $record['entry'] ?? null;
+        $entry   = is_array($entry) ? $entry : ['scripts' => [], 'styles' => []];
         $base    = content_url('loopress/apps/' . $name . '/');
 
         foreach ((array) ($entry['styles'] ?? []) as $i => $rel) {

@@ -41,19 +41,22 @@ final class AppManifest
      */
     public static function normalize(array $raw): array
     {
-        $buildId = is_string($raw['buildId'] ?? null) ? $raw['buildId'] : '';
+        $buildId = $raw['buildId'] ?? null;
+        $buildId = is_string($buildId) ? $buildId : '';
         if (preg_match(self::BUILD_ID_PATTERN, $buildId) !== 1) {
             throw new \InvalidArgumentException('buildId must be a lowercase hex string');
         }
 
-        $routing = is_string($raw['routing'] ?? null) ? $raw['routing'] : 'hash';
+        $routing = $raw['routing'] ?? null;
+        $routing = is_string($routing) ? $routing : 'hash';
         if (!in_array($routing, self::SUPPORTED_ROUTING, true)) {
             throw new \InvalidArgumentException(
                 "routing \"{$routing}\" is not supported; only \"hash\" routing works without a server rewrite"
             );
         }
 
-        $mountSelector = is_string($raw['mountSelector'] ?? null) ? $raw['mountSelector'] : '';
+        $mountSelector = $raw['mountSelector'] ?? null;
+        $mountSelector = is_string($mountSelector) ? $mountSelector : '';
         if (preg_match(self::MOUNT_SELECTOR_PATTERN, $mountSelector) !== 1) {
             throw new \InvalidArgumentException('mountSelector must be a CSS id selector like "#loopress-app-search"');
         }
@@ -109,7 +112,8 @@ final class AppManifest
         if (!is_array($entry)) {
             throw new \InvalidArgumentException('each file must be an object');
         }
-        $path = is_string($entry['path'] ?? null) ? $entry['path'] : '';
+        $path = $entry['path'] ?? null;
+        $path = is_string($path) ? $path : '';
         if (!AppsDirectory::isValidAssetPath($path)) {
             throw new \InvalidArgumentException("unsafe or unsupported asset path: \"{$path}\"");
         }
@@ -117,7 +121,8 @@ final class AppManifest
             throw new \InvalidArgumentException("duplicate file path: \"{$path}\"");
         }
 
-        $sha256 = is_string($entry['sha256'] ?? null) ? strtolower($entry['sha256']) : '';
+        $sha256 = $entry['sha256'] ?? null;
+        $sha256 = is_string($sha256) ? strtolower($sha256) : '';
         if (preg_match(self::SHA256_PATTERN, $sha256) !== 1) {
             throw new \InvalidArgumentException("file \"{$path}\" has no valid sha256");
         }

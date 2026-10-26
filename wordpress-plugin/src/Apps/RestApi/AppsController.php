@@ -233,8 +233,9 @@ final class AppsController
         // N-1 grace: a lazy chunk referenced by the build we are replacing must keep resolving
         // for visitors who already loaded its index.html. Keep exactly the previous
         // generation's files, drop anything older.
-        $previous = $this->store->get($name);
-        $removed  = $this->removeStaleAssets($name, array_keys($onDisk), [
+        $previous      = $this->store->get($name);
+        $previousFiles = $previous['files'] ?? null;
+        $removed       = $this->removeStaleAssets($name, array_keys($onDisk), [
             ...array_column($manifest['files'], 'path'),
             ...$this->previousPaths($previous),
         ]);
@@ -252,7 +253,7 @@ final class AppsController
             'crossOrigin'      => $manifest['crossOrigin'],
             'entry'            => $manifest['entry'],
             'files'            => $manifest['files'],
-            'previousManifest' => is_array($previous) && is_array($previous['files'] ?? null) ? $previous['files'] : [],
+            'previousManifest' => is_array($previousFiles) ? $previousFiles : [],
             'deployedAt'       => gmdate('c'),
         ]);
 
@@ -308,7 +309,8 @@ final class AppsController
         if ($record === null) {
             return [];
         }
-        $files = is_array($record['files'] ?? null) ? $record['files'] : [];
+        $files = $record['files'] ?? null;
+        $files = is_array($files) ? $files : [];
 
         return array_values(array_filter(array_column($files, 'path'), 'is_string'));
     }

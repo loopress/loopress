@@ -107,7 +107,7 @@ final readonly class AdminPageModule implements Module
             'apiUrl'        => get_rest_url(null, 'loopress/v1'),
             'nonce'         => wp_create_nonce('wp_rest'),
             'phpVersion'    => PHP_VERSION,
-            'pluginVersion' => $pluginData['Version'],
+            'pluginVersion' => $pluginData['Version'] ?? '',
             'autoloadError' => null,
             'environment'   => wp_get_environment_type(),
             'restUrl'       => get_rest_url(),

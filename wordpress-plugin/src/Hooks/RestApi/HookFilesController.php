@@ -88,16 +88,16 @@ final class HookFilesController extends AbstractFilesController
     private function runtimeErrorFor(array $entry): ?array
     {
         $this->runtimeErrors ??= get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);
-        $stored = is_array($this->runtimeErrors) ? ($this->runtimeErrors[$entry['filename']] ?? null) : null;
+        $stored = is_array($this->runtimeErrors) ? ($this->runtimeErrors[$entry['filename'] ?? ''] ?? null) : null;
         if (!is_array($stored) || ($stored['revision'] ?? null) !== ($entry['revision'] ?? null)) {
             return null;
         }
 
         return [
-            'type'    => (string) $stored['type'],
-            'method'  => (string) $stored['method'],
-            'message' => (string) $stored['message'],
-            'at'      => gmdate('c', (int) $stored['at']),
+            'type'    => (string) ($stored['type'] ?? ''),
+            'method'  => (string) ($stored['method'] ?? ''),
+            'message' => (string) ($stored['message'] ?? ''),
+            'at'      => gmdate('c', (int) ($stored['at'] ?? 0)),
         ];
     }
 
