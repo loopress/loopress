@@ -11,6 +11,7 @@ use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Hooks\RestApi\HookLoader;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
 
 // A global-namespace class (see TestHookLoaderCollisionFixtureClass.php), can't be PSR-4
 // autoloaded: required explicitly so it already exists by the time
@@ -49,20 +50,7 @@ class HookLoaderTest extends TestCase
 
     private function rrmdir(string $dir): void
     {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        foreach (scandir($dir) as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-
-            $path = $dir . '/' . $item;
-            is_dir($path) ? $this->rrmdir($path) : unlink($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-        }
-
-        rmdir($dir); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+        (new Filesystem())->remove($dir);
     }
 
     // ── bindingsFor: actions ─────────────────────────────────────────────────

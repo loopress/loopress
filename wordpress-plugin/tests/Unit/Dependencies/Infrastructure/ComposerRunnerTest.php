@@ -104,7 +104,7 @@ class ComposerRunnerTest extends TestCase
         spl_autoload_register(function (string $className) use (&$brokenAutoloaderRan): void {
             if ($className === 'Composer\\Installers\\FixtureInstaller') {
                 $brokenAutoloaderRan = true;
-                include_once '/nonexistent/stale-classmap-path.php';
+                include_once '/nonexistent/stale-classmap-path.php'; // @phpstan-ignore includeOnce.fileNotFound (the missing file is the point)
             }
         });
 

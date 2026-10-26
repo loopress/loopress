@@ -189,7 +189,7 @@ final class InfectionPatchworkBridge
             }
 
             try {
-                $result = ($flags & STREAM_URL_STAT_LINK) ? @lstat($path) : @stat($path);
+                $result = ($flags & STREAM_URL_STAT_LINK) !== 0 ? @lstat($path) : @stat($path);
             } finally {
                 if ($quiet) {
                     restore_error_handler();
