@@ -295,7 +295,7 @@ class AcfServiceTest extends TestCase
 
         $current = $this->service->get('acf-post-type', 'post_type_1');
         $this->assertNotNull($current);
-        $currentRevision = $current['revision'];
+        $currentRevision = self::stringAt($current, 'revision');
 
         $result = $this->service->upsert('acf-post-type', ['key' => 'post_type_1', 'title' => 'New'], $currentRevision);
 
@@ -415,10 +415,10 @@ class AcfServiceTest extends TestCase
         $result = $this->service->normalize('acf-field-group', [$group]);
 
         $this->assertTrue($result[0]['active']);
-        [$rows, $flex] = $result[0]['fields'];
-        $this->assertSame(['width' => ''], $rows['wrapper']);
-        $this->assertSame(['width' => ''], $rows['sub_fields'][0]['wrapper']);
-        $this->assertSame(['width' => ''], $flex['layouts']['layout_a']['sub_fields'][0]['wrapper']);
+        [$rows, $flex] = self::arrayAt($result, 0, 'fields');
+        $this->assertSame(['width' => ''], self::at($rows, 'wrapper'));
+        $this->assertSame(['width' => ''], self::at($rows, 'sub_fields', 0, 'wrapper'));
+        $this->assertSame(['width' => ''], self::at($flex, 'layouts', 'layout_a', 'sub_fields', 0, 'wrapper'));
     }
 
     // A checkbox's update filter stores `default_value: ''` as `[]` (CI, 2026-10-23): the save
@@ -438,8 +438,8 @@ class AcfServiceTest extends TestCase
 
         $result = $this->service->normalize('acf-field-group', [['key' => 'group_x', 'fields' => [['key' => 'field_x', 'type' => 'checkbox', 'default_value' => '', '_valid' => 1]]]]);
 
-        $this->assertSame([], $result[0]['fields'][0]['default_value']);
-        $this->assertTrue($result[0]['fields'][0]['loaded']);
+        $this->assertSame([], self::at($result, 0, 'fields', 0, 'default_value'));
+        $this->assertTrue(self::at($result, 0, 'fields', 0, 'loaded'));
     }
 
     public function test_normalize_drops_empty_conditional_logic_rules_like_acf_update_field(): void
@@ -450,7 +450,7 @@ class AcfServiceTest extends TestCase
 
         $result = $this->service->normalize('acf-field-group', [['key' => 'group_x', 'fields' => [$field]]]);
 
-        $this->assertSame([[$rule]], $result[0]['fields'][0]['conditional_logic']);
+        $this->assertSame([[$rule]], self::at($result, 0, 'fields', 0, 'conditional_logic'));
     }
 
     // What upsert() would store is sanitized, so what normalize() compares must be too.

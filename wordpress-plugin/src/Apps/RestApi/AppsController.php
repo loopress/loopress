@@ -9,6 +9,7 @@ use Loopress\Apps\Infrastructure\AppsDirectory;
 use Loopress\Apps\Infrastructure\AppStore;
 use Loopress\Apps\Service\AppsDiagnostics;
 use Loopress\Infrastructure\Filters;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -122,7 +123,7 @@ final class AppsController
 
     public function get_manifest(WP_REST_Request $request): WP_REST_Response
     {
-        $name   = (string) $request->get_param('name');
+        $name   = Narrow::string($request->get_param('name'));
         $record = $this->store->get($name);
         if ($record === null) {
             return new WP_REST_Response(['error' => "No committed build for app \"{$name}\""], 404);
@@ -141,8 +142,8 @@ final class AppsController
 
     public function get_asset(WP_REST_Request $request): WP_REST_Response
     {
-        $name = (string) $request->get_param('name');
-        $path = (string) $request->get_param('path');
+        $name = Narrow::string($request->get_param('name'));
+        $path = Narrow::string($request->get_param('path'));
 
         if (!AppsDirectory::isValidAppName($name) || !AppsDirectory::isValidAssetPath($path)) {
             return new WP_REST_Response(['error' => "Unsafe or unsupported asset path: {$name}/{$path}"], 400);
@@ -163,8 +164,8 @@ final class AppsController
 
     public function put_asset(WP_REST_Request $request): WP_REST_Response
     {
-        $name = (string) $request->get_param('name');
-        $path = (string) $request->get_param('path');
+        $name = Narrow::string($request->get_param('name'));
+        $path = Narrow::string($request->get_param('path'));
 
         if (!AppsDirectory::isValidAppName($name)) {
             return new WP_REST_Response(['error' => 'Invalid app name'], 400);
@@ -173,12 +174,12 @@ final class AppsController
             return new WP_REST_Response(['error' => "Unsafe or unsupported asset path: {$path}"], 400);
         }
 
-        if (strtolower((string) $request->get_param('encoding')) !== 'base64') {
+        if (strtolower(Narrow::string($request->get_param('encoding'))) !== 'base64') {
             return new WP_REST_Response(['error' => 'Only base64 encoding is supported'], 400);
         }
 
         // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- transport decoding for a binary asset sent over JSON, not obfuscation.
-        $decoded = base64_decode((string) $request->get_param('content'), true);
+        $decoded = base64_decode(Narrow::string($request->get_param('content')), true);
         if ($decoded === false) {
             return new WP_REST_Response(['error' => 'content is not valid base64'], 400);
         }
@@ -206,7 +207,7 @@ final class AppsController
 
     public function commit(WP_REST_Request $request): WP_REST_Response
     {
-        $name = (string) $request->get_param('name');
+        $name = Narrow::string($request->get_param('name'));
         if (!AppsDirectory::isValidAppName($name)) {
             return new WP_REST_Response(['error' => 'Invalid app name'], 400);
         }
@@ -289,7 +290,7 @@ final class AppsController
 
     public function delete_app(WP_REST_Request $request): WP_REST_Response
     {
-        $name = (string) $request->get_param('name');
+        $name = Narrow::string($request->get_param('name'));
 
         if (!$this->directory->hasApp($name) && $this->store->get($name) === null) {
             return new WP_REST_Response(['error' => "Unknown app \"{$name}\""], 404);

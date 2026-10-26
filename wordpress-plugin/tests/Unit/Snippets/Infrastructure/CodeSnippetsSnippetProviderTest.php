@@ -166,6 +166,15 @@ class CodeSnippetsSnippetProviderTest extends TestCase
         $this->assertSame('frontend', $result->location);
     }
 
+    public function test_create_snippet_throws_when_a_successful_response_has_no_array_body(): void
+    {
+        Functions\when('rest_do_request')->justReturn(new WP_REST_Response(null, 201));
+
+        $this->expectException(SnippetProviderRequestException::class);
+
+        $this->provider->createSnippet(new SnippetData(name: 'New', code: 'echo 1;', type: SnippetType::Php, location: 'frontend'));
+    }
+
     public function test_create_snippet_throws_for_unsupported_type_location_combination(): void
     {
         $this->expectException(UnsupportedLocationException::class);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Pushes\RestApi;
 
+use Loopress\Tests\Stubs\FakeLockWpdb;
 use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Loopress\Pushes\PushLog;
@@ -15,6 +16,7 @@ class PushesControllerTest extends TestCase
 {
     private PushLog&MockObject $log;
     private PushesController $controller;
+    private FakeLockWpdb $wpdb;
 
     protected function setUp(): void
     {
@@ -24,30 +26,8 @@ class PushesControllerTest extends TestCase
         $this->controller = new PushesController($this->log);
 
         // record()'s named lock: granted unless a test says otherwise, every query recorded.
-        $wpdb = new class() {
-            public string $prefix = 'wp_';
-            public string $lockResult = '1';
-            /** @var string[] */
-            public array $queries = [];
-
-            public function prepare(string $query, mixed ...$args): string
-            {
-                return vsprintf(str_replace(['%s', '%d'], ["'%s'", '%d'], $query), $args);
-            }
-
-            public function get_var(string $query): string
-            {
-                $this->queries[] = $query;
-                return $this->lockResult;
-            }
-
-            public function query(string $query): int
-            {
-                $this->queries[] = $query;
-                return 1;
-            }
-        };
-        $GLOBALS['wpdb'] = $wpdb;
+        $this->wpdb      = new FakeLockWpdb();
+        $GLOBALS['wpdb'] = $this->wpdb;
     }
 
     protected function tearDown(): void
@@ -67,12 +47,12 @@ class PushesControllerTest extends TestCase
         $this->assertSame([
             "SELECT GET_LOCK('wp_loopress_push_log_record', 10)",
             "SELECT RELEASE_LOCK('wp_loopress_push_log_record')",
-        ], $GLOBALS['wpdb']->queries);
+        ], $this->wpdb->queries);
     }
 
     public function test_answers_503_without_recording_when_another_push_holds_the_lock(): void
     {
-        $GLOBALS['wpdb']->lockResult = '0';
+        $this->wpdb->lockResult = '0';
         $this->log->expects($this->never())->method('record');
 
         $response = $this->controller->record(RestRequest::with(['resource' => 'acf:push']));

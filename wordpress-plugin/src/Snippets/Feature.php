@@ -10,7 +10,6 @@ use Loopress\Snippets\Infrastructure\CodeSnippetsSnippetProvider;
 use Loopress\Snippets\Infrastructure\WPCodeSnippetProvider;
 use Loopress\Snippets\Module\SnippetModule;
 use Loopress\Snippets\Service\SnippetService;
-use Psr\Container\ContainerInterface;
 
 use function DI\factory;
 
@@ -30,10 +29,9 @@ final class Feature implements FeatureProvider
         return [
             // SnippetService takes a variadic list of providers: autowiring can't guess how
             // many to pass, so the two supported providers are wired explicitly here.
-            SnippetService::class => factory(static fn(ContainerInterface $c): SnippetService => new SnippetService(
-                $c->get(WPCodeSnippetProvider::class),
-                $c->get(CodeSnippetsSnippetProvider::class),
-            )),
+            SnippetService::class => factory(
+                static fn(WPCodeSnippetProvider $wpCode, CodeSnippetsSnippetProvider $codeSnippets): SnippetService => new SnippetService($wpCode, $codeSnippets),
+            ),
         ];
     }
 

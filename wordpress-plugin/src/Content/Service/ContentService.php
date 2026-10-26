@@ -6,6 +6,7 @@ namespace Loopress\Content\Service;
 
 use Loopress\Content\Exception\InvalidContentRowException;
 use Loopress\Content\Exception\NotLocalEnvironmentException;
+use Loopress\Infrastructure\Narrow;
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- every IN list is either %s placeholders passed to prepare(), or integers from (int)/intval.
 
@@ -55,7 +56,7 @@ final class ContentService
             ...[...$types, $limit],
         ), ARRAY_A);
 
-        $ids = array_map(static fn(array $post): int => (int) ($post['ID'] ?? 0), $posts);
+        $ids = array_map(static fn(array $post): int => Narrow::int($post['ID'] ?? 0), $posts);
         if ($ids === []) {
             return ['posts' => [], 'postmeta' => [], 'termRelationships' => [], 'next' => null];
         }
@@ -101,7 +102,7 @@ final class ContentService
             ...[...$taxonomies, $limit],
         ), ARRAY_A);
 
-        $ids = array_map(static fn(array $term): int => (int) ($term['term_id'] ?? 0), $terms);
+        $ids = array_map(static fn(array $term): int => Narrow::int($term['term_id'] ?? 0), $terms);
         if ($ids === []) {
             return ['terms' => [], 'termTaxonomy' => [], 'termmeta' => [], 'next' => null];
         }
@@ -354,8 +355,8 @@ final class ContentService
     private function rewriter(): UrlRewriter
     {
         $source = get_option(self::SOURCE_OPTION);
-        $home   = is_array($source) ? (string) ($source['home'] ?? '') : '';
-        $uploads = is_array($source) ? (string) ($source['uploadsUrl'] ?? '') : '';
+        $home   = is_array($source) ? Narrow::string($source['home'] ?? '') : '';
+        $uploads = is_array($source) ? Narrow::string($source['uploadsUrl'] ?? '') : '';
 
         return new UrlRewriter($home, home_url(), $uploads);
     }

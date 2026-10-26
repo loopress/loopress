@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Apps\Frontend;
 
 use Loopress\Apps\Infrastructure\AppStore;
+use Loopress\Infrastructure\Narrow;
 
 /**
  * Turns a committed app record into `wp_enqueue_script`/`wp_enqueue_style` calls. The entry
@@ -37,13 +38,13 @@ final class AppAssetEnqueuer
         $base    = content_url('loopress/apps/' . $name . '/');
 
         foreach ((array) ($entry['styles'] ?? []) as $i => $rel) {
-            wp_enqueue_style($this->handle($name, 'style', $i), $base . ltrim((string) $rel, '/'), [], $buildId);
+            wp_enqueue_style($this->handle($name, 'style', $i), $base . ltrim(Narrow::string($rel), '/'), [], $buildId);
         }
 
         $firstHandle = null;
         foreach ((array) ($entry['scripts'] ?? []) as $i => $rel) {
             $handle = $this->handle($name, 'script', $i);
-            wp_enqueue_script($handle, $base . ltrim((string) $rel, '/'), [], $buildId, true);
+            wp_enqueue_script($handle, $base . ltrim(Narrow::string($rel), '/'), [], $buildId, true);
             $this->moduleHandles[$handle] = true;
             $firstHandle ??= $handle;
         }

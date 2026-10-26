@@ -17,10 +17,6 @@ parameters:
     cognitive_complexity:
         function: 15
         class: 1000 # Sonar has no class-level rule, so this one is effectively off.
-    # Overrides what level 9+ turns on: a value typed `mixed` (get_option(), json_decode(),
-    # WP_REST_Request params, ...) is still allowed through unchecked. Level 10 on its own only adds
-    # checkImplicitMixed (values with no type at all). Turning this on is #351's next step.
-    checkExplicitMixed: false
     checkUninitializedProperties: true
     checkTooWideReturnTypesInProtectedAndPublicMethods: true
     reportAnyTypeWideningInVarTag: true
@@ -79,6 +75,13 @@ parameters:
           paths:
               - src/Content/Service/ContentService.php
               - src/Options/Service/OptionsService.php
+
+        # register_post_type()/register_taxonomy()/register_post_meta() get a cpt/, taxonomies/ or
+        # meta file's arguments as-is: their shape is the user's file, checked by WordPress itself,
+        # not narrowed key by key to the stub's array shape. Same exception as psalm.xml's
+        # ArgumentTypeCoercion on src/PostTypes.
+        - message: '#^Parameter \#\d+ \$args of function register_(post_type|taxonomy|post_meta) expects array\{#'
+          path: src/PostTypes/Service/*
 
         # checkSyntax() calls token_get_all() for the ParseError it throws, not its tokens.
         - identifier: function.resultUnused

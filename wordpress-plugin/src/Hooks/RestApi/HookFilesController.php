@@ -7,6 +7,7 @@ namespace Loopress\Hooks\RestApi;
 use Loopress\Hooks\Infrastructure\HookAttributeScanner;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Infrastructure\AbstractFilesController;
+use Loopress\Infrastructure\Narrow;
 
 /**
  * Management endpoint used by `lps hook push`/`pull`/`list`. Behaviour lives in
@@ -88,16 +89,16 @@ final class HookFilesController extends AbstractFilesController
     private function runtimeErrorFor(array $entry): ?array
     {
         $this->runtimeErrors ??= get_option(HooksDirectory::RUNTIME_ERRORS_OPTION, []);
-        $stored = is_array($this->runtimeErrors) ? ($this->runtimeErrors[$entry['filename'] ?? ''] ?? null) : null;
+        $stored = is_array($this->runtimeErrors) ? ($this->runtimeErrors[Narrow::string($entry['filename'] ?? '')] ?? null) : null;
         if (!is_array($stored) || ($stored['revision'] ?? null) !== ($entry['revision'] ?? null)) {
             return null;
         }
 
         return [
-            'type'    => (string) ($stored['type'] ?? ''),
-            'method'  => (string) ($stored['method'] ?? ''),
-            'message' => (string) ($stored['message'] ?? ''),
-            'at'      => gmdate('c', (int) ($stored['at'] ?? 0)),
+            'type'    => Narrow::string($stored['type'] ?? ''),
+            'method'  => Narrow::string($stored['method'] ?? ''),
+            'message' => Narrow::string($stored['message'] ?? ''),
+            'at'      => gmdate('c', Narrow::int($stored['at'] ?? 0)),
         ];
     }
 

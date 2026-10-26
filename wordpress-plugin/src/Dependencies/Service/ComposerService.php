@@ -8,6 +8,7 @@ use Loopress\Dependencies\Exception\UnmanagedPackageException;
 use Loopress\Dependencies\Infrastructure\ComposerRunner;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use Loopress\Dependencies\Infrastructure\PackagistClient;
+use Loopress\Infrastructure\Narrow;
 use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -137,7 +138,7 @@ class ComposerService
 
         $phpVersion  = PHP_VERSION;
         $json        = $this->environment->readComposerJson();
-        $platformPhp = $json['config']['platform']['php'] ?? null;
+        $platformPhp = LoopressEnvironment::jsonGet($json, 'config', 'platform', 'php');
         $issues      = [];
 
         if ($platformPhp === null) {
@@ -148,7 +149,7 @@ class ComposerService
         } elseif ($platformPhp !== $phpVersion) {
             $issues[] = [
                 'code'    => 'platform_php_mismatch',
-                'message' => "config.platform.php is {$platformPhp} but the server is running PHP {$phpVersion}. Packages may be installed for the wrong PHP version.",
+                'message' => 'config.platform.php is ' . Narrow::string($platformPhp) . " but the server is running PHP {$phpVersion}. Packages may be installed for the wrong PHP version.",
             ];
         }
 
@@ -203,10 +204,10 @@ class ComposerService
         }
 
         $data      = $this->parseJsonOutput($result['output'], 'outdated');
-        $installed = $data['installed'] ?? [];
+        $installed = $data['installed'] ?? null;
 
         $outdated = [];
-        foreach ($installed as $package) {
+        foreach (is_array($installed) ? $installed : [] as $package) {
             if (is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)) {
                 $outdated[] = [
                     'name'    => $package['name'] ?? null,
@@ -254,14 +255,13 @@ class ComposerService
             throw new \RuntimeException("Failed to parse composer {$context} output: " . esc_html(json_last_error_msg()));
         }
 
-        return $data ?? [];
+        return Narrow::map($data);
     }
 
     public function fixPlatform(): void
     {
         $json = $this->environment->readComposerJson();
-        $json['config']['platform']['php'] = PHP_VERSION;
-        $this->environment->writeComposerJson($json);
+        $this->environment->writeComposerJson(LoopressEnvironment::jsonSet($json, PHP_VERSION, 'config', 'platform', 'php'));
     }
 
     public function getJson(): ?string
@@ -300,7 +300,7 @@ class ComposerService
         $previousLock = $this->environment->readComposerLock();
 
         $rendered = $this->renderComposerJson($previousJson, $intent);
-        $staged   = $this->handleCollisions($rendered['require'] ?? [], $previousLock, $force);
+        $staged   = $this->handleCollisions(array_filter(Narrow::map($rendered['require'] ?? []), 'is_string'), $previousLock, $force);
 
         $previousLockedNames = $this->lockedPackageNames($previousLock);
 
@@ -400,7 +400,7 @@ class ComposerService
      */
     private function renderComposerJson(array $current, array $intent): array
     {
-        $require = $current['require'] ?? [];
+        $require = array_filter(Narrow::map($current['require'] ?? []), 'is_string');
 
         if (isset($intent['libraries'])) {
             foreach (array_keys($require) as $name) {
@@ -523,9 +523,9 @@ class ComposerService
         }
 
         $versions = [];
-        foreach (array_merge($data['packages'] ?? [], $data['packages-dev'] ?? []) as $package) {
+        foreach ([...(array) ($data['packages'] ?? []), ...(array) ($data['packages-dev'] ?? [])] as $package) {
             if (is_array($package) && isset($package['name'])) {
-                $versions[(string) $package['name']] = isset($package['version']) ? (string) $package['version'] : null;
+                $versions[Narrow::string($package['name'])] = isset($package['version']) ? Narrow::string($package['version']) : null;
             }
         }
 

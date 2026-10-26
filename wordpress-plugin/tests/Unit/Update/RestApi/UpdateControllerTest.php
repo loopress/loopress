@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Tests\Unit\Update\RestApi;
 
 use Brain\Monkey;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use Loopress\Update\Infrastructure\GithubReleaseChecker;
 use Loopress\Update\RestApi\UpdateController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -13,6 +14,8 @@ use WP_REST_Request;
 
 class UpdateControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private GithubReleaseChecker&MockObject $checker;
     private UpdateController $controller;
 
@@ -38,10 +41,10 @@ class UpdateControllerTest extends TestCase
         $response = $this->controller->get_status(new WP_REST_Request());
         $data     = $response->get_data();
 
-        $this->assertFalse($data['update_available']);
-        $this->assertNull($data['release_url']);
-        $this->assertSame(LOOPRESS_VERSION, $data['current_version']);
-        $this->assertSame(LOOPRESS_VERSION, $data['latest_version']);
+        $this->assertFalse(self::at($data, 'update_available'));
+        $this->assertNull(self::at($data, 'release_url'));
+        $this->assertSame(LOOPRESS_VERSION, self::at($data, 'current_version'));
+        $this->assertSame(LOOPRESS_VERSION, self::at($data, 'latest_version'));
     }
 
     public function test_reports_no_update_available_when_checker_returns_null(): void
@@ -51,9 +54,9 @@ class UpdateControllerTest extends TestCase
         $response = $this->controller->get_status(new WP_REST_Request());
         $data     = $response->get_data();
 
-        $this->assertFalse($data['update_available']);
-        $this->assertNull($data['latest_version']);
-        $this->assertNull($data['release_url']);
+        $this->assertFalse(self::at($data, 'update_available'));
+        $this->assertNull(self::at($data, 'latest_version'));
+        $this->assertNull(self::at($data, 'release_url'));
     }
 
     public function test_reports_update_available_with_a_github_release_url_when_a_newer_version_exists(): void
@@ -63,11 +66,11 @@ class UpdateControllerTest extends TestCase
         $response = $this->controller->get_status(new WP_REST_Request());
         $data     = $response->get_data();
 
-        $this->assertTrue($data['update_available']);
-        $this->assertSame('2999.1.1', $data['latest_version']);
+        $this->assertTrue(self::at($data, 'update_available'));
+        $this->assertSame('2999.1.1', self::at($data, 'latest_version'));
         $this->assertSame(
             'https://github.com/loopress/loopress/releases/tag/wordpress-plugin%402999.1.1',
-            $data['release_url']
+            self::at($data, 'release_url')
         );
     }
 
@@ -89,7 +92,7 @@ class UpdateControllerTest extends TestCase
 
         $data = $this->controller->check_now(new WP_REST_Request())->get_data();
 
-        $this->assertTrue($data['update_available']);
-        $this->assertSame('2999.1.1', $data['latest_version']);
+        $this->assertTrue(self::at($data, 'update_available'));
+        $this->assertSame('2999.1.1', self::at($data, 'latest_version'));
     }
 }

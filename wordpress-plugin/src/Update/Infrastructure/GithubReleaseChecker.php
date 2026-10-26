@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Update\Infrastructure;
 
+use Loopress\Infrastructure\Narrow;
 use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -76,7 +77,11 @@ class GithubReleaseChecker
 
         $cached = get_transient(self::CACHE_KEY);
         if ($cached !== false) {
-            $release = $cached === '' ? null : $cached;
+            // Shape checked, not trusted: a transient is whatever was stored under this key.
+            $cached  = is_array($cached) ? $cached : [];
+            $version = $cached['version'] ?? null;
+            $zipUrl  = $cached['zip_url'] ?? null;
+            $release = is_string($version) ? ['version' => $version, 'zip_url' => is_string($zipUrl) ? $zipUrl : null] : null;
         } else {
             $release = $this->fetchLatestRelease();
             // Piggybacks on this 12h cache miss so the usage ping (Analytics.md) needs no
@@ -115,7 +120,7 @@ class GithubReleaseChecker
             if (is_string($tag) && str_starts_with($tag, self::TAG_PREFIX)) {
                 return [
                     'version' => substr($tag, strlen(self::TAG_PREFIX)),
-                    'zip_url' => $this->findZipAssetUrl($release),
+                    'zip_url' => $this->findZipAssetUrl(Narrow::map($release)),
                 ];
             }
         }

@@ -140,6 +140,7 @@ class PluginUpdaterTest extends TestCase
 
         $info = $this->updater->pluginInformation(false, 'plugin_information', $args);
 
+        $this->assertInstanceOf(\stdClass::class, $info);
         $this->assertSame(LOOPRESS_PLUGIN_SLUG, $info->slug);
         $this->assertSame('2999.1.1', $info->version);
         $this->assertSame('https://example.com/loopress-full.zip', $info->download_link);

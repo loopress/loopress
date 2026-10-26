@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit\Pages;
 
+use Loopress\Infrastructure\Narrow;
+use Loopress\Tests\Stubs\FakeLockWpdb;
 use Loopress\Tests\Stubs\RestRequest;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -28,6 +30,7 @@ class PagesControllerTest extends TestCase
 
     /** @var array<int, array{fn: string, postarr: array<string, mixed>}> */
     private array $writes = [];
+    private FakeLockWpdb $wpdb;
 
     protected function setUp(): void
     {
@@ -36,30 +39,8 @@ class PagesControllerTest extends TestCase
         $this->controller = new PagesController();
 
         // put_page()'s named lock: granted unless a test says otherwise, every query recorded.
-        $wpdb = new class() {
-            public string $prefix = 'wp_';
-            public string $lockResult = '1';
-            /** @var string[] */
-            public array $queries = [];
-
-            public function prepare(string $query, mixed ...$args): string
-            {
-                return vsprintf(str_replace(['%s', '%d'], ["'%s'", '%d'], $query), $args);
-            }
-
-            public function get_var(string $query): string
-            {
-                $this->queries[] = $query;
-                return $this->lockResult;
-            }
-
-            public function query(string $query): int
-            {
-                $this->queries[] = $query;
-                return 1;
-            }
-        };
-        $GLOBALS['wpdb'] = $wpdb;
+        $this->wpdb      = new FakeLockWpdb();
+        $GLOBALS['wpdb'] = $this->wpdb;
 
         Functions\when('wp_slash')->returnArg();
         Functions\when('is_wp_error')->justReturn(false);
@@ -190,7 +171,7 @@ class PagesControllerTest extends TestCase
             ['_loopress_page' => '1', '_loopress_page_html' => '<h1>Hi</h1>', '_loopress_page_full_width' => '0', '_loopress_page_hide_title' => '0'],
             $postarr['meta_input']
         );
-        $this->assertSame('<h1>Hi</h1>', $response->get_data()['html']);
+        $this->assertSame('<h1>Hi</h1>', self::at($response->get_data(), 'html'));
     }
 
     public function test_stores_full_width_and_hide_title_as_meta(): void
@@ -198,10 +179,10 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about', '<h1>Hi</h1>', 'draft', true, true);
 
         $postarr = $this->writes[0]['postarr'];
-        $this->assertSame('1', $postarr['meta_input']['_loopress_page_full_width']);
-        $this->assertSame('1', $postarr['meta_input']['_loopress_page_hide_title']);
-        $this->assertTrue($response->get_data()['fullWidth']);
-        $this->assertTrue($response->get_data()['hideTitle']);
+        $this->assertSame('1', self::at($postarr, 'meta_input', '_loopress_page_full_width'));
+        $this->assertSame('1', self::at($postarr, 'meta_input', '_loopress_page_hide_title'));
+        $this->assertTrue(self::at($response->get_data(), 'fullWidth'));
+        $this->assertTrue(self::at($response->get_data(), 'hideTitle'));
     }
 
     public function test_stores_the_page_template(): void
@@ -209,7 +190,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about', '<h1>Hi</h1>', 'draft', false, false, 'page-no-title');
 
         $this->assertSame('page-no-title', $this->writes[0]['postarr']['page_template']);
-        $this->assertSame('page-no-title', $response->get_data()['template']);
+        $this->assertSame('page-no-title', self::at($response->get_data(), 'template'));
     }
 
     public function test_updates_an_existing_managed_page_in_place(): void
@@ -223,7 +204,7 @@ class PagesControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertSame('update', $this->writes[0]['fn']);
         $this->assertSame(7, $this->writes[0]['postarr']['ID']);
-        $this->assertSame('draft', $response->get_data()['status']);
+        $this->assertSame('draft', self::at($response->get_data(), 'status'));
     }
 
     public function test_refuses_a_page_not_managed_by_loopress_without_writing(): void
@@ -233,8 +214,8 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about');
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('not managed by Loopress', $response->get_data()['error']);
-        $this->assertSame('loopress_page_not_managed', $response->get_data()['code']);
+        $this->assertStringContainsString('not managed by Loopress', self::stringAt($response->get_data(), 'error'));
+        $this->assertSame('loopress_page_not_managed', self::at($response->get_data(), 'code'));
         $this->assertSame([], $this->writes);
     }
 
@@ -252,7 +233,7 @@ class PagesControllerTest extends TestCase
         $this->assertSame('update', $this->writes[0]['fn']);
         $postarr = $this->writes[0]['postarr'];
         $this->assertSame(7, $postarr['ID']);
-        $this->assertSame('1', $postarr['meta_input']['_loopress_page']);
+        $this->assertSame('1', self::at($postarr, 'meta_input', '_loopress_page'));
         $this->assertSame('', $postarr['post_content']);
     }
 
@@ -263,7 +244,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about');
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('Restore it', $response->get_data()['error']);
+        $this->assertStringContainsString('Restore it', self::stringAt($response->get_data(), 'error'));
         $this->assertSame([], $this->writes);
     }
 
@@ -274,7 +255,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about');
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('already taken', $response->get_data()['error']);
+        $this->assertStringContainsString('already taken', self::stringAt($response->get_data(), 'error'));
         $this->assertSame([], $this->writes);
     }
 
@@ -283,7 +264,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about', str_repeat('a', 512 * 1024 + 1));
 
         $this->assertSame(413, $response->status);
-        $this->assertStringContainsString('loopress_max_file_bytes', $response->get_data()['error']);
+        $this->assertStringContainsString('loopress_max_file_bytes', self::stringAt($response->get_data(), 'error'));
         $this->assertSame([], $this->writes);
     }
 
@@ -296,7 +277,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('about', 'x');
 
         $this->assertSame(413, $response->status);
-        $this->assertStringContainsString('loopress_max_files_total_bytes', $response->get_data()['error']);
+        $this->assertStringContainsString('loopress_max_files_total_bytes', self::stringAt($response->get_data(), 'error'));
     }
 
     public function test_holds_a_named_lock_around_the_push_and_releases_it(): void
@@ -306,12 +287,12 @@ class PagesControllerTest extends TestCase
         $this->assertSame([
             "SELECT GET_LOCK('wp_loopress_pages_put', 10)",
             "SELECT RELEASE_LOCK('wp_loopress_pages_put')",
-        ], $GLOBALS['wpdb']->queries);
+        ], $this->wpdb->queries);
     }
 
     public function test_answers_503_without_writing_when_another_push_holds_the_lock(): void
     {
-        $GLOBALS['wpdb']->lockResult = '0';
+        $this->wpdb->lockResult = '0';
 
         $response = $this->put('about');
 
@@ -340,7 +321,7 @@ class PagesControllerTest extends TestCase
 
         $this->assertSame(201, $response->status);
         $this->assertSame(['show_on_front' => 'page', 'page_on_front' => 100], $options);
-        $this->assertSame('set', $response->get_data()['frontPage']);
+        $this->assertSame('set', self::at($response->get_data(), 'frontPage'));
     }
 
     public function test_the_push_response_links_to_the_site_root_once_home_is_the_front_page(): void
@@ -349,14 +330,14 @@ class PagesControllerTest extends TestCase
         $this->withReadingOptions($options);
         // get_permalink() mirrors WordPress: the front page's permalink is the site root.
         Functions\when('get_permalink')->alias(static function (WP_Post $post) use (&$options): string {
-            return $options['show_on_front'] === 'page' && (int) $options['page_on_front'] === $post->ID
+            return $options['show_on_front'] === 'page' && Narrow::int($options['page_on_front']) === $post->ID
                 ? 'https://example.test/'
                 : "https://example.test/{$post->post_name}/";
         });
 
         $response = $this->put('home', '<h1>Home</h1>', 'publish');
 
-        $this->assertSame('https://example.test/', $response->get_data()['link']);
+        $this->assertSame('https://example.test/', self::at($response->get_data(), 'link'));
     }
 
     public function test_repushing_the_published_front_page_leaves_the_reading_settings_alone(): void
@@ -368,7 +349,7 @@ class PagesControllerTest extends TestCase
 
         $response = $this->put('home', 'new', 'publish');
 
-        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+        $this->assertArrayNotHasKey('frontPage', self::arrayAt($response->get_data()));
     }
 
     public function test_a_draft_home_never_becomes_the_front_page(): void
@@ -379,7 +360,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('home', '<h1>Home</h1>', 'draft');
 
         $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
-        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+        $this->assertArrayNotHasKey('frontPage', self::arrayAt($response->get_data()));
     }
 
     public function test_switching_the_front_page_back_to_draft_reverts_to_the_latest_posts(): void
@@ -391,7 +372,7 @@ class PagesControllerTest extends TestCase
         $response = $this->put('home', 'new', 'draft');
 
         $this->assertSame(['show_on_front' => 'posts', 'page_on_front' => 0], $options);
-        $this->assertSame('unset', $response->get_data()['frontPage']);
+        $this->assertSame('unset', self::at($response->get_data(), 'frontPage'));
     }
 
     public function test_publishing_any_other_slug_never_touches_the_front_page(): void
@@ -400,7 +381,7 @@ class PagesControllerTest extends TestCase
 
         $response = $this->put('about', '<h1>Hi</h1>', 'publish');
 
-        $this->assertArrayNotHasKey('frontPage', $response->get_data());
+        $this->assertArrayNotHasKey('frontPage', self::arrayAt($response->get_data()));
     }
 
     public function test_lists_only_managed_pages(): void

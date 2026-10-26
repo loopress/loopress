@@ -7,6 +7,7 @@ namespace Loopress\Tests\Unit\Dependencies\Infrastructure;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
+use Loopress\Infrastructure\Narrow;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use Loopress\Tests\Unit\DigsIntoArrays;
@@ -113,7 +114,7 @@ class LoopressEnvironmentTest extends TestCase
         $json = $env->readComposerJson();
         $this->assertArrayHasKey('name', $json);
         $this->assertArrayHasKey('config', $json);
-        $this->assertArrayHasKey('platform', $json['config']);
+        $this->assertArrayHasKey('platform', self::arrayAt($json, 'config'));
         $this->assertArrayHasKey('php', self::arrayAt($json, 'config', 'platform'));
     }
 
@@ -123,7 +124,7 @@ class LoopressEnvironmentTest extends TestCase
         $env->ensureInitialized();
 
         $json = $env->readComposerJson();
-        $this->assertSame(PHP_VERSION, $json['config']['platform']['php']);
+        $this->assertSame(PHP_VERSION, self::at($json, 'config', 'platform', 'php'));
     }
 
     public function test_ensureInitialized_sets_the_lib_autoload_entry_on_a_new_site(): void
@@ -132,7 +133,7 @@ class LoopressEnvironmentTest extends TestCase
         $env->ensureInitialized();
 
         $json = $env->readComposerJson();
-        $this->assertSame('lib/', $json['autoload']['psr-4']['LoopressLib\\']);
+        $this->assertSame('lib/', self::at($json, 'autoload', 'psr-4', 'LoopressLib\\'));
     }
 
     public function test_ensureInitialized_does_not_flag_a_dump_for_a_new_site(): void
@@ -182,7 +183,7 @@ class LoopressEnvironmentTest extends TestCase
         $env2->ensureInitialized();
 
         $migrated = $env2->readComposerJson();
-        $this->assertSame('lib/', $migrated['autoload']['psr-4']['LoopressLib\\']);
+        $this->assertSame('lib/', self::at($migrated, 'autoload', 'psr-4', 'LoopressLib\\'));
     }
 
     public function test_needsLibAutoloadDump_is_true_right_after_migrating_an_existing_composer_json(): void
@@ -237,8 +238,8 @@ class LoopressEnvironmentTest extends TestCase
         $env->writeComposerJson($clientJson);
 
         $written = $env->readComposerJson();
-        $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
-        $this->assertSame('^1.0', $written['require']['vendor/pkg']); // caller's own content still lands
+        $this->assertSame('lib/', self::at($written, 'autoload', 'psr-4', 'LoopressLib\\'));
+        $this->assertSame('^1.0', self::at($written, 'require', 'vendor/pkg')); // caller's own content still lands
     }
 
     public function test_writeComposerJson_overrides_a_client_supplied_LoopressLib_mapping(): void
@@ -251,7 +252,7 @@ class LoopressEnvironmentTest extends TestCase
         $env->writeComposerJson($clientJson);
 
         $written = $env->readComposerJson();
-        $this->assertSame('lib/', $written['autoload']['psr-4']['LoopressLib\\']);
+        $this->assertSame('lib/', self::at($written, 'autoload', 'psr-4', 'LoopressLib\\'));
     }
 
     public function test_writeComposerJson_writes_an_empty_require_as_an_object_composer_accepts(): void
@@ -272,15 +273,15 @@ class LoopressEnvironmentTest extends TestCase
         $json = $env->readComposerJson();
 
         $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $json['repositories']);
-        $this->assertArrayHasKey('../plugins/{$name}/', $json['extra']['installer-paths']);
-        $this->assertArrayHasKey('../themes/{$name}/', $json['extra']['installer-paths']);
-        $this->assertTrue($json['config']['allow-plugins']['composer/installers']);
+        $this->assertArrayHasKey('../plugins/{$name}/', self::arrayAt($json, 'extra', 'installer-paths'));
+        $this->assertArrayHasKey('../themes/{$name}/', self::arrayAt($json, 'extra', 'installer-paths'));
+        $this->assertTrue(self::at($json, 'config', 'allow-plugins', 'composer/installers'));
 
         // composer/installers itself is only required once something actually needs it (a
         // wpackagist-* package): requiring it unconditionally installed it, and in-process
         // `include`d it as a Composer plugin, on *every* site, even one with no plugins/themes
         // ever pushed. See LoopressEnvironment::applyScaffold().
-        $this->assertArrayNotHasKey('composer/installers', $json['require'] ?? []);
+        $this->assertArrayNotHasKey('composer/installers', Narrow::map($json['require'] ?? null));
     }
 
     public function test_ensureInitialized_migrates_a_composer_json_missing_the_wpackagist_scaffold(): void
@@ -288,7 +289,9 @@ class LoopressEnvironmentTest extends TestCase
         $env = new LoopressEnvironment();
         $env->ensureInitialized();
         $json = $env->readComposerJson();
-        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
+        $config = self::arrayAt($json, 'config');
+        unset($json['repositories'], $json['extra'], $config['allow-plugins']);
+        $json['config'] = $config;
         $this->writeLegacyComposerJson($env, $json);
 
         $env2 = new LoopressEnvironment();
@@ -296,8 +299,8 @@ class LoopressEnvironmentTest extends TestCase
         $migrated = $env2->readComposerJson();
 
         $this->assertSame([['type' => 'composer', 'url' => 'https://wpackagist.org']], $migrated['repositories']);
-        $this->assertTrue($migrated['config']['allow-plugins']['composer/installers']);
-        $this->assertArrayNotHasKey('composer/installers', $migrated['require'] ?? []);
+        $this->assertTrue(self::at($migrated, 'config', 'allow-plugins', 'composer/installers'));
+        $this->assertArrayNotHasKey('composer/installers', Narrow::map($migrated['require'] ?? null));
     }
 
     public function test_ensureInitialized_migration_keeps_installers_required_when_a_wpackagist_package_is_already_present(): void
@@ -305,15 +308,17 @@ class LoopressEnvironmentTest extends TestCase
         $env = new LoopressEnvironment();
         $env->ensureInitialized();
         $json = $env->readComposerJson();
-        unset($json['repositories'], $json['extra'], $json['config']['allow-plugins']);
-        $json['require']['wpackagist-plugin/woocommerce'] = '9.4.2';
+        $config = self::arrayAt($json, 'config');
+        unset($json['repositories'], $json['extra'], $config['allow-plugins']);
+        $json['config'] = $config;
+        $json = LoopressEnvironment::jsonSet($json, '9.4.2', 'require', 'wpackagist-plugin/woocommerce');
         $this->writeLegacyComposerJson($env, $json);
 
         $env2 = new LoopressEnvironment();
         $env2->ensureInitialized();
         $migrated = $env2->readComposerJson();
 
-        $this->assertSame('^2.0', $migrated['require']['composer/installers']);
+        $this->assertSame('^2.0', self::at($migrated, 'require', 'composer/installers'));
     }
 
     public function test_applyScaffold_is_idempotent(): void
@@ -328,7 +333,7 @@ class LoopressEnvironmentTest extends TestCase
         $env = new LoopressEnvironment();
         $result = $env->applyScaffold(['require' => ['monolog/monolog' => '^3.0']]);
 
-        $this->assertArrayNotHasKey('composer/installers', $result['require']);
+        $this->assertArrayNotHasKey('composer/installers', self::arrayAt($result, 'require'));
     }
 
     public function test_applyScaffold_requires_installers_when_a_wpackagist_package_is_present(): void
@@ -336,7 +341,7 @@ class LoopressEnvironmentTest extends TestCase
         $env = new LoopressEnvironment();
         $result = $env->applyScaffold(['require' => ['wpackagist-plugin/woocommerce' => '9.4.2']]);
 
-        $this->assertSame('^2.0', $result['require']['composer/installers']);
+        $this->assertSame('^2.0', self::at($result, 'require', 'composer/installers'));
     }
 
     public function test_applyScaffold_keeps_an_existing_wpackagist_repository(): void
@@ -345,7 +350,7 @@ class LoopressEnvironmentTest extends TestCase
         $result = $env->applyScaffold([
             'repositories' => [['type' => 'composer', 'url' => 'https://wpackagist.org']],
         ]);
-        $this->assertCount(1, $result['repositories']);
+        $this->assertCount(1, self::arrayAt($result, 'repositories'));
     }
 
     public function test_managedPackageDir_maps_wpackagist_names_to_wp_content_dirs(): void
@@ -440,7 +445,7 @@ class LoopressEnvironmentTest extends TestCase
 
         // Manually set a wrong version
         $json = $env->readComposerJson();
-        $json['config']['platform']['php'] = '8.0.0';
+        $json = LoopressEnvironment::jsonSet($json, '8.0.0', 'config', 'platform', 'php');
         $env->writeComposerJson($json);
 
         // ensureInitialized is memoized per instance (one run per request), so use a
@@ -448,7 +453,7 @@ class LoopressEnvironmentTest extends TestCase
         $env2 = new LoopressEnvironment();
         $env2->ensureInitialized();
         $updated = $env2->readComposerJson();
-        $this->assertSame(PHP_VERSION, $updated['config']['platform']['php']);
+        $this->assertSame(PHP_VERSION, self::at($updated, 'config', 'platform', 'php'));
     }
 
     public function test_ensureInitialized_runs_at_most_once_per_instance(): void
@@ -459,11 +464,11 @@ class LoopressEnvironmentTest extends TestCase
         // Corrupt the platform version, then re-call on the same instance:
         // memoization means no re-check happens within the same request.
         $json = $env->readComposerJson();
-        $json['config']['platform']['php'] = '8.0.0';
+        $json = LoopressEnvironment::jsonSet($json, '8.0.0', 'config', 'platform', 'php');
         $env->writeComposerJson($json);
 
         $env->ensureInitialized();
-        $this->assertSame('8.0.0', $env->readComposerJson()['config']['platform']['php']);
+        $this->assertSame('8.0.0', self::at($env->readComposerJson(), 'config', 'platform', 'php'));
     }
 
     // ── deleteComposerLock ───────────────────────────────────────────────────
@@ -506,7 +511,7 @@ class LoopressEnvironmentTest extends TestCase
 
         $read = $env->readComposerJson();
         $this->assertSame('test/package', $read['name']);
-        $this->assertSame('^1.0', $read['require']['vendor/pkg']);
+        $this->assertSame('^1.0', self::at($read, 'require', 'vendor/pkg'));
     }
 
     // ── readComposerJsonRaw ───────────────────────────────────────────────────
@@ -525,7 +530,7 @@ class LoopressEnvironmentTest extends TestCase
 
         $raw = $env->readComposerJsonRaw();
         $this->assertIsString($raw);
-        $this->assertSame('test/package', json_decode($raw, true)['name']);
+        $this->assertSame('test/package', self::at(json_decode($raw, true), 'name'));
     }
 
     // ── getAutoloadPath ───────────────────────────────────────────────────────

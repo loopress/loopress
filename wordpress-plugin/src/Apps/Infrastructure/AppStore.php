@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Apps\Infrastructure;
 
+use Loopress\Infrastructure\Narrow;
+
 /**
  * The `loopress_apps` option: the source of truth for what the front end should mount, kept
  * separate from the files on disk so a half-finished `lps app push` (assets uploaded, commit
@@ -37,7 +39,7 @@ class AppStore
     {
         $all = $this->all();
 
-        return isset($all[$name]) && is_array($all[$name]) ? $all[$name] : null;
+        return isset($all[$name]) && is_array($all[$name]) ? Narrow::map($all[$name]) : null;
     }
 
     /** @param array<string, mixed> $record */

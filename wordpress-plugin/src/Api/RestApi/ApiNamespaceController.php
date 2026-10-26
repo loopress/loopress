@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Api\RestApi;
 
 use Loopress\Api\ApiNamespace;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -42,7 +43,7 @@ final class ApiNamespaceController
 
     public function update_namespace(WP_REST_Request $request): WP_REST_Response
     {
-        $namespace = (string) $request->get_param('namespace');
+        $namespace = Narrow::string($request->get_param('namespace'));
         update_option(ApiNamespace::OPTION, $namespace);
 
         return new WP_REST_Response(['namespace' => $namespace], 200);

@@ -78,12 +78,12 @@ class MenuServiceTest extends TestCase
         $this->assertSame('main', $menu['slug']);
         $this->assertSame('Main Menu', $menu['name']);
         $this->assertSame([], $menu['warnings']);
-        $this->assertCount(1, $menu['items']);
-        $this->assertSame('custom', $menu['items'][0]['type']);
-        $this->assertSame('/custom', $menu['items'][0]['url']);
-        $this->assertCount(1, $menu['items'][0]['children']);
-        $this->assertSame('page', $menu['items'][0]['children'][0]['object']);
-        $this->assertSame('about', $menu['items'][0]['children'][0]['objectSlug']);
+        $this->assertCount(1, self::arrayAt($menu, 'items'));
+        $this->assertSame('custom', self::at($menu, 'items', 0, 'type'));
+        $this->assertSame('/custom', self::at($menu, 'items', 0, 'url'));
+        $this->assertCount(1, self::arrayAt($menu, 'items', 0, 'children'));
+        $this->assertSame('page', self::at($menu, 'items', 0, 'children', 0, 'object'));
+        $this->assertSame('about', self::at($menu, 'items', 0, 'children', 0, 'objectSlug'));
     }
 
     // Written as the full path, so a push can resolve the child page (get_page_by_path() alone
@@ -106,7 +106,7 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->getMenu('account');
         $this->assertNotNull($menu);
 
-        $this->assertSame('account/profile', $menu['items'][0]['objectSlug']);
+        $this->assertSame('account/profile', self::at($menu, 'items', 0, 'objectSlug'));
     }
 
     public function test_get_menu_skips_a_dangling_post_type_item_and_warns(): void
@@ -127,8 +127,8 @@ class MenuServiceTest extends TestCase
         $this->assertNotNull($menu);
 
         $this->assertSame([], $menu['items']);
-        $this->assertCount(1, $menu['warnings']);
-        $this->assertStringContainsString('999', $menu['warnings'][0]);
+        $this->assertCount(1, self::arrayAt($menu, 'warnings'));
+        $this->assertStringContainsString('999', self::stringAt($menu, 'warnings', 0));
     }
 
     public function test_get_menu_skips_an_unsupported_item_type_and_warns(): void
@@ -141,7 +141,7 @@ class MenuServiceTest extends TestCase
         $this->assertNotNull($menu);
 
         $this->assertSame([], $menu['items']);
-        $this->assertStringContainsString('post_type_archive', $menu['warnings'][0]);
+        $this->assertStringContainsString('post_type_archive', self::stringAt($menu, 'warnings', 0));
     }
 
     // wp_update_nav_menu_item() writes menu-item-description to post_content, not post_excerpt.
@@ -154,7 +154,7 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->getMenu('main');
         $this->assertNotNull($menu);
 
-        $this->assertSame('A description', $menu['items'][0]['description']);
+        $this->assertSame('A description', self::at($menu, 'items', 0, 'description'));
     }
 
     // Core saves an empty description on a post or term item as a single space.
@@ -167,7 +167,7 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->getMenu('main');
         $this->assertNotNull($menu);
 
-        $this->assertSame('', $menu['items'][0]['description']);
+        $this->assertSame('', self::at($menu, 'items', 0, 'description'));
     }
 
     // wp_update_nav_menu_item() stores _menu_item_classes as one array element per class, not a
@@ -188,7 +188,7 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->getMenu('main');
         $this->assertNotNull($menu);
 
-        $this->assertSame(['class-a', 'class-b'], $menu['items'][0]['classes']);
+        $this->assertSame(['class-a', 'class-b'], self::at($menu, 'items', 0, 'classes'));
     }
 
     // A supported item whose direct parent has an unsupported type must not become unreachable
@@ -207,8 +207,8 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->getMenu('main');
         $this->assertNotNull($menu);
 
-        $this->assertCount(1, $menu['items'], 'the child must surface at the top level, not be lost');
-        $this->assertSame('/child', $menu['items'][0]['url']);
+        $this->assertCount(1, self::arrayAt($menu, 'items'), 'the child must surface at the top level, not be lost');
+        $this->assertSame('/child', self::at($menu, 'items', 0, 'url'));
     }
 
     public function test_list_menus_exports_every_menu(): void
@@ -512,7 +512,7 @@ class MenuServiceTest extends TestCase
         $menu = $this->service->upsertMenu('main', 'Main', [['type' => 'custom', 'url' => 'https://other-site.example/x']]);
 
         $this->assertNotEmpty($menu['warnings']);
-        $this->assertStringContainsString('other-site.example', $menu['warnings'][0]);
+        $this->assertStringContainsString('other-site.example', self::stringAt($menu, 'warnings', 0));
     }
 
     public function test_upsert_menu_does_not_warn_for_a_same_site_absolute_custom_url(): void
@@ -535,7 +535,7 @@ class MenuServiceTest extends TestCase
         Functions\when('wp_get_nav_menu_items')->justReturn([]);
         $current = $this->service->getMenu('main');
         $this->assertNotNull($current);
-        $currentRevision = $current['revision'];
+        $currentRevision = self::stringAt($current, 'revision');
 
         $menu = $this->service->upsertMenu('main', 'Main', [], $currentRevision);
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Stubs;
 
+use Loopress\Infrastructure\Narrow;
+
 // Minimal in-memory stand-in for $wpdb, used only by OptionsServiceTest for the raw SQL
 // OptionsService issues to read autoload and enumerate option names (get_option()/update_
 // option()/delete_option() cover everything else and are stubbed via Brain\Monkey instead).
@@ -17,7 +19,7 @@ class FakeOptionsWpdb
     public function prepare(string $query, mixed ...$args): string
     {
         foreach ($args as $arg) {
-            $query = preg_replace('/%s/', "'" . addslashes((string) $arg) . "'", $query, 1) ?? $query;
+            $query = preg_replace('/%s/', "'" . addslashes(Narrow::string($arg)) . "'", $query, 1) ?? $query;
         }
 
         return $query;

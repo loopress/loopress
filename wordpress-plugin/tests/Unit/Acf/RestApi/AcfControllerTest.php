@@ -9,12 +9,15 @@ use Brain\Monkey;
 use Loopress\Acf\Exception\StaleAcfRevisionException;
 use Loopress\Acf\RestApi\AcfController;
 use Loopress\Acf\Service\AcfService;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WP_REST_Request;
 
 class AcfControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private AcfService&MockObject $acfService;
     private AcfController $controller;
 
@@ -46,13 +49,14 @@ class AcfControllerTest extends TestCase
         $arg = $this->invokePrivate('typeArg');
         $this->assertEqualsCanonicalizing(
             ['field-groups', 'post-types', 'taxonomies', 'options-pages'],
-            $arg['type']['enum'],
+            self::at($arg, 'type', 'enum'),
         );
     }
 
     public function test_key_arg_validate_callback_rejects_an_empty_string(): void
     {
-        $validate = $this->invokePrivate('keyArg')['key']['validate_callback'];
+        $validate = self::at($this->invokePrivate('keyArg'), 'key', 'validate_callback');
+        $this->assertIsCallable($validate);
         $this->assertFalse($validate(''));
         $this->assertTrue($validate('group_123'));
     }

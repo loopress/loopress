@@ -22,7 +22,8 @@ final class RemoteUploads
     {
         foreach ($sources as $width => $source) {
             if (is_array($source) && isset($source['url']) && is_string($source['url'])) {
-                $sources[$width]['url'] = $this->remote($source['url']);
+                $source['url']   = $this->remote($source['url']);
+                $sources[$width] = $source;
             }
         }
 

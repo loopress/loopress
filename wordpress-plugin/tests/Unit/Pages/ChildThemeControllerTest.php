@@ -91,14 +91,14 @@ class ChildThemeControllerTest extends TestCase
         $this->assertSame('head', $this->child('parts/header.html'));
 
         $data = $response->get_data();
-        $this->assertSame('twentytwentyfive-loopress', $data['stylesheet']);
-        $this->assertTrue($data['exists']);
-        $this->assertFalse($data['active']);
+        $this->assertSame('twentytwentyfive-loopress', self::at($data, 'stylesheet'));
+        $this->assertTrue(self::at($data, 'exists'));
+        $this->assertFalse(self::at($data, 'active'));
         $this->assertSame([
             ['slug' => 'bare-landing', 'html' => 'bare', 'title' => 'Bare landing', 'postTypes' => ['page']],
             ['slug' => 'single', 'html' => '<!-- wp:post-content /-->'],
-        ], $data['templates']);
-        $this->assertSame([['slug' => 'header', 'html' => 'head', 'title' => 'Header', 'area' => 'header']], $data['parts']);
+        ], self::at($data, 'templates'));
+        $this->assertSame([['slug' => 'header', 'html' => 'head', 'title' => 'Header', 'area' => 'header']], self::at($data, 'parts'));
     }
 
     public function test_theme_json_keeps_the_parent_entries_and_ours_win_on_the_same_name(): void
@@ -109,12 +109,12 @@ class ChildThemeControllerTest extends TestCase
         );
 
         $json = json_decode($this->child('theme.json'), true);
-        $this->assertSame(3, $json['version']);
-        $this->assertSame([['name' => 'page-no-title', 'title' => 'Page No Title'], ['name' => 'bare-landing', 'title' => 'Bare landing']], $json['customTemplates']);
+        $this->assertSame(3, self::at($json, 'version'));
+        $this->assertSame([['name' => 'page-no-title', 'title' => 'Page No Title'], ['name' => 'bare-landing', 'title' => 'Bare landing']], self::at($json, 'customTemplates'));
         $this->assertSame([
             ['name' => 'footer-newsletter', 'area' => 'footer'],
             ['name' => 'header', 'title' => 'Site header', 'area' => 'header'],
-        ], $json['templateParts']);
+        ], self::at($json, 'templateParts'));
     }
 
     public function test_a_push_mirrors_the_repository_and_removes_files_gone_from_it(): void
@@ -139,9 +139,9 @@ class ChildThemeControllerTest extends TestCase
 
         $data = $this->controller()->get_child_theme()->get_data();
 
-        $this->assertSame('twentytwentyfive', $data['parent']);
-        $this->assertTrue($data['active']);
-        $this->assertSame(['parts/header', 'templates/single'], $data['customized']);
+        $this->assertSame('twentytwentyfive', self::at($data, 'parent'));
+        $this->assertTrue(self::at($data, 'active'));
+        $this->assertSame(['parts/header', 'templates/single'], self::at($data, 'customized'));
     }
 
     public function test_puts_the_previous_child_back_when_the_swap_fails(): void
@@ -161,7 +161,7 @@ class ChildThemeControllerTest extends TestCase
             ->put_child_theme(RestRequest::with(['templates' => [['slug' => 'single', 'html' => 'after']], 'parts' => []]));
 
         $this->assertSame(500, $response->status);
-        $this->assertStringContainsString('disk full', $response->get_data()['error']);
+        $this->assertStringContainsString('disk full', self::stringAt($response->get_data(), 'error'));
         $this->assertSame('before', $this->child('templates/single.html'));
     }
 
@@ -177,20 +177,20 @@ class ChildThemeControllerTest extends TestCase
         $this->assertMatchesRegularExpression("/^\\/\\*\nTheme Name: Twenty Twenty-Five Loopress\n[\\s\\S]*\\*\\/\n\\.c-card\\{padding:1rem\\}$/", $this->child('style.css'));
         $this->assertSame('.a{}', $this->child('blocks/core/button.css'));
         $this->assertSame("\0\1\2", $this->child('assets/inter-AB12.woff2'));
-        $this->assertSame(['core/buton'], $response->get_data()['unknownBlocks']);
+        $this->assertSame(['core/buton'], self::at($response->get_data(), 'unknownBlocks'));
         // Hashed as sent, without the header, for the CLI's dry run to compare.
         $this->assertEquals((object) [
             'style.css'              => hash('sha256', '.c-card{padding:1rem}'),
             'blocks/core/button.css' => hash('sha256', '.a{}'),
             'blocks/core/buton.css'  => hash('sha256', '.b{}'),
-        ], $response->get_data()['css']);
+        ], self::at($response->get_data(), 'css'));
 
         // A push without CSS, from an older CLI or a project without theme/css, removes it.
         $this->put([['slug' => 'single', 'html' => 'a']]);
 
         $this->assertFileDoesNotExist("{$this->root}/twentytwentyfive-loopress/blocks/core/button.css");
         $this->assertStringEndsWith("*/\n", $this->child('style.css'));
-        $this->assertEquals((object) [], $this->controller()->get_child_theme()->get_data()['css']);
+        $this->assertEquals((object) [], self::at($this->controller()->get_child_theme()->get_data(), 'css'));
     }
 
     public function test_refuses_an_asset_that_is_not_base64_without_writing(): void
@@ -237,7 +237,7 @@ class ChildThemeControllerTest extends TestCase
         $response = $this->put([['slug' => 'single', 'html' => 'a']]);
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('not a block theme', $response->get_data()['error']);
+        $this->assertStringContainsString('not a block theme', self::stringAt($response->get_data(), 'error'));
         $this->assertDirectoryDoesNotExist("{$this->root}/twentytwentyfive-loopress");
     }
 
@@ -248,7 +248,7 @@ class ChildThemeControllerTest extends TestCase
         $response = $this->put([['slug' => 'single', 'html' => 'a']]);
 
         $this->assertSame(409, $response->status);
-        $this->assertStringContainsString('no grandchild themes', $response->get_data()['error']);
+        $this->assertStringContainsString('no grandchild themes', self::stringAt($response->get_data(), 'error'));
     }
 
     public function test_refuses_markup_over_the_size_limit_without_writing(): void
@@ -265,9 +265,9 @@ class ChildThemeControllerTest extends TestCase
     {
         $data = $this->controller()->get_child_theme()->get_data();
 
-        $this->assertFalse($data['exists']);
-        $this->assertSame([], $data['templates']);
-        $this->assertSame([], $data['parts']);
+        $this->assertFalse(self::at($data, 'exists'));
+        $this->assertSame([], self::at($data, 'templates'));
+        $this->assertSame([], self::at($data, 'parts'));
     }
 
     public function test_slug_pattern_accepts_post_type_and_taxonomy_slugs(): void

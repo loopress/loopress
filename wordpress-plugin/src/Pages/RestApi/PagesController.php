@@ -6,6 +6,7 @@ namespace Loopress\Pages\RestApi;
 
 use Loopress\Infrastructure\AbstractFilesDirectory;
 use Loopress\Infrastructure\Filters;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pages\ManagedPage;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_Post;
@@ -98,13 +99,13 @@ final class PagesController
 
     private function upsert(WP_REST_Request $request): WP_REST_Response
     {
-        $slug      = (string) $request->get_param('slug');
-        $title     = (string) $request->get_param('title');
-        $status    = (string) $request->get_param('status');
-        $html      = (string) $request->get_param('html');
+        $slug      = Narrow::string($request->get_param('slug'));
+        $title     = Narrow::string($request->get_param('title'));
+        $status    = Narrow::string($request->get_param('status'));
+        $html      = Narrow::string($request->get_param('html'));
         $fullWidth = (bool) $request->get_param('fullWidth');
         $hideTitle = (bool) $request->get_param('hideTitle');
-        $template  = (string) $request->get_param('template');
+        $template  = Narrow::string($request->get_param('template'));
 
         $maxFileBytes = Filters::int('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
         if (strlen($html) > $maxFileBytes) {
@@ -213,7 +214,7 @@ final class PagesController
     // applies when a front page is trashed (_reset_front_page_settings_for_post()).
     private function syncFrontPage(int $id, string $status): ?string
     {
-        $isFrontPage = get_option('show_on_front') === 'page' && (int) get_option('page_on_front') === $id;
+        $isFrontPage = get_option('show_on_front') === 'page' && Narrow::int(get_option('page_on_front')) === $id;
 
         if ($status === 'publish' && !$isFrontPage) {
             update_option('show_on_front', 'page');
@@ -279,7 +280,7 @@ final class PagesController
         $total = 0;
         foreach ($this->managedPageIds() as $id) {
             if ($id !== $excludeId) {
-                $total += strlen((string) get_post_meta($id, ManagedPage::HTML_META, true));
+                $total += strlen(Narrow::string(get_post_meta($id, ManagedPage::HTML_META, true)));
             }
         }
 
@@ -299,7 +300,7 @@ final class PagesController
             'title'     => $post->post_title,
             'status'    => $post->post_status,
             'link'      => (string) get_permalink($post),
-            'html'      => (string) get_post_meta($id, ManagedPage::HTML_META, true),
+            'html'      => Narrow::string(get_post_meta($id, ManagedPage::HTML_META, true)),
             'fullWidth' => get_post_meta($id, ManagedPage::FULL_WIDTH_META, true) === '1',
             'hideTitle' => get_post_meta($id, ManagedPage::HIDE_TITLE_META, true) === '1',
             'template'  => (string) get_page_template_slug($post),

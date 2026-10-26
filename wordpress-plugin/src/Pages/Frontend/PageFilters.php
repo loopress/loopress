@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Pages\Frontend;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pages\ManagedPage;
 use WP_Post;
 
@@ -66,7 +67,7 @@ final class PageFilters
             $this->removedAutopPriority = $priority;
         }
 
-        return (string) get_post_meta($postId, ManagedPage::HTML_META, true);
+        return Narrow::string(get_post_meta($postId, ManagedPage::HTML_META, true));
     }
 
     public function restoreAutop(mixed $content): mixed
@@ -101,7 +102,7 @@ final class PageFilters
      */
     public function blockEditing(array $caps, string $cap, int $userId, array $args): array
     {
-        if (($cap === 'edit_post' || $cap === 'edit_page') && ManagedPage::isManaged((int) ($args[0] ?? 0))) {
+        if (($cap === 'edit_post' || $cap === 'edit_page') && ManagedPage::isManaged(Narrow::int($args[0] ?? 0))) {
             // WordPress's own draft preview (front end, ?preview=true) gates on this same
             // capability but never writes anything, so it's exempt. Every real write path
             // (post.php, Quick/bulk edit, the block editor's REST PATCH) runs with is_preview()

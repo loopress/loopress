@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Update;
 
+use Loopress\Infrastructure\Narrow;
+
 /**
  * Discloses the opt-out usage ping in wp-admin right after activation, instead of leaving it
  * to the Settings tab only. Shown until an admin picks either answer; both answers are stored,
@@ -31,7 +33,7 @@ final class UsageStatsNotice
         check_admin_referer(self::NONCE);
 
         // Stored as 0/1, same reason as UsageStatsController::update_consent().
-        update_option(UsageStats::OPTION, sanitize_key(wp_unslash($_GET[self::ARG])) === '1' ? 1 : 0);
+        update_option(UsageStats::OPTION, sanitize_key(wp_unslash(Narrow::string($_GET[self::ARG]))) === '1' ? 1 : 0);
     }
 
     public function render(): void

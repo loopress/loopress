@@ -8,6 +8,7 @@ use Loopress\Form\Exception\FormNotificationException;
 use Loopress\Form\Exception\NoActiveFormPluginException;
 use Loopress\Form\Exception\StaleFormRevisionException;
 use Loopress\Form\Service\FormService;
+use Loopress\Infrastructure\Narrow;
 use Loopress\RestApi\MapsServiceExceptions;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
@@ -82,7 +83,7 @@ final class FormController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $form = $this->formService->get((int) $request->get_param('id'));
+            $form = $this->formService->get(Narrow::int($request->get_param('id')));
 
             return $form === null
                 ? new WP_REST_Response(['error' => 'Form not found'], 404)
@@ -102,7 +103,7 @@ final class FormController
         }
 
         return $this->mapServiceExceptions(
-            fn(): WP_REST_Response => new WP_REST_Response($this->formService->create($data), 201),
+            fn(): WP_REST_Response => new WP_REST_Response($this->formService->create(Narrow::map($data)), 201),
             self::STATUSES,
         );
     }
@@ -140,7 +141,7 @@ final class FormController
         }
 
         return $this->mapServiceExceptions(function () use ($request, $data, $expectedRevision): WP_REST_Response {
-            $form = $this->formService->update((int) $request->get_param('id'), $data, $expectedRevision);
+            $form = $this->formService->update(Narrow::int($request->get_param('id')), $data, $expectedRevision);
 
             return $form === null
                 ? new WP_REST_Response(['error' => 'Form not found'], 404)
@@ -155,7 +156,7 @@ final class FormController
         }
 
         return $this->mapServiceExceptions(function () use ($request): WP_REST_Response {
-            $deleted = $this->formService->delete((int) $request->get_param('id'));
+            $deleted = $this->formService->delete(Narrow::int($request->get_param('id')));
 
             return $deleted
                 ? new WP_REST_Response(null, 204)

@@ -7,6 +7,7 @@ namespace Loopress\Form\Service;
 use Loopress\Form\Contract\FormProvider;
 use Loopress\Form\Exception\NoActiveFormPluginException;
 use Loopress\Form\Exception\StaleFormRevisionException;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Service\AbstractSingleProviderService;
 
 class FormService extends AbstractSingleProviderService
@@ -128,7 +129,7 @@ class FormService extends AbstractSingleProviderService
         $currentRevision = $current['revision'] ?? null;
 
         if ($currentRevision !== $expectedRevision) {
-            $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
+            $found = $currentRevision === null ? 'it no longer exists' : 'its revision is now "' . Narrow::string($currentRevision) . '"';
             // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML: esc_html() would print &quot; (see phpcs.xml.dist).
             throw new StaleFormRevisionException(
                 "Form #{$id} changed on WordPress since it was last read (expected revision \"{$expectedRevision}\", but {$found}). " .

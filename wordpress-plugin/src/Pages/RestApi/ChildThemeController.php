@@ -6,6 +6,7 @@ namespace Loopress\Pages\RestApi;
 
 use Loopress\Infrastructure\AbstractFilesDirectory;
 use Loopress\Infrastructure\Filters;
+use Loopress\Infrastructure\Narrow;
 use Loopress\Pages\Frontend\ChildThemeStyles;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Symfony\Component\Filesystem\Filesystem;
@@ -135,7 +136,7 @@ final class ChildThemeController
         $templates = (array) $request->get_param('templates');
         /** @var array<int, Part> $parts */
         $parts = (array) $request->get_param('parts');
-        $style = (string) $request->get_param('style');
+        $style = Narrow::string($request->get_param('style'));
         /** @var array<int, BlockStyle> $blocks */
         $blocks = (array) ($request->get_param('blocks') ?? []);
         /** @var array<int, Asset> $assets */
@@ -375,8 +376,8 @@ final class ChildThemeController
             'stylesheet' => $child,
             'exists'     => is_dir($dir),
             'active'     => $active,
-            'templates'  => $this->readFiles("{$dir}/templates", (array) ($manifest['templates'] ?? [])),
-            'parts'      => $this->readFiles("{$dir}/parts", (array) ($manifest['parts'] ?? [])),
+            'templates'  => $this->readFiles("{$dir}/templates", Narrow::map($manifest['templates'] ?? null)),
+            'parts'      => $this->readFiles("{$dir}/parts", Narrow::map($manifest['parts'] ?? null)),
             'customized' => $active ? $this->customized() : [],
             'unknownBlocks' => $this->unknownBlocks($dir),
             'css'        => (object) $this->cssHashes($dir),

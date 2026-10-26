@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\PostTypes\RestApi;
 
+use Loopress\Infrastructure\Narrow;
 use Loopress\PostTypes\Exception\InvalidDeclarationException;
 use Loopress\PostTypes\Exception\StaleDeclarationRevisionException;
 use Loopress\PostTypes\Service\AbstractDeclaredTypeService;
@@ -82,7 +83,7 @@ final class DeclaredTypesController
 
     public function get_item(WP_REST_Request $request): WP_REST_Response
     {
-        $item = $this->service->get((string) $request->get_param('slug'));
+        $item = $this->service->get(Narrow::string($request->get_param('slug')));
 
         return $item === null
             ? new WP_REST_Response(['error' => "{$this->noun} not found"], 404)
@@ -121,7 +122,7 @@ final class DeclaredTypesController
 
     public function delete_item(WP_REST_Request $request): WP_REST_Response
     {
-        $slug = (string) $request->get_param('slug');
+        $slug = Narrow::string($request->get_param('slug'));
 
         return $this->service->delete($slug)
             ? new WP_REST_Response(['deleted' => true, 'slug' => $slug], 200)

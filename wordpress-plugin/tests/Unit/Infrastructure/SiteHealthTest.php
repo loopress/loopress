@@ -45,7 +45,7 @@ class SiteHealthTest extends TestCase
 
         $this->assertSame('recommended', $result['status']);
         $this->assertSame('<p>First problem</p><p>Second problem</p>', $result['description']);
-        $this->assertStringContainsString('admin.php?page=loopress#dependencies', $result['actions']);
+        $this->assertStringContainsString('admin.php?page=loopress#dependencies', self::stringAt($result, 'actions'));
     }
 
     public function test_registered_test_turns_a_throwing_probe_into_an_issue(): void

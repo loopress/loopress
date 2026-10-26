@@ -9,11 +9,14 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Hooks\Infrastructure\HooksDirectory;
 use Loopress\Hooks\RestApi\HookFilesController;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class HookFilesControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private HooksDirectory&MockObject $directory;
     private HookFilesController $controller;
 
@@ -96,10 +99,10 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->list_files();
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('hello', $response->data[0]['filename']);
-        $this->assertStringNotContainsString('ABSPATH', $response->data[0]['content']);
+        $this->assertSame('hello', self::at($response->data, 0, 'filename'));
+        $this->assertStringNotContainsString('ABSPATH', self::stringAt($response->data, 0, 'content'));
         // Hooks have no permission concept: the public flag is API-only, never added here.
-        $this->assertArrayNotHasKey('public', $response->data[0]);
+        $this->assertArrayNotHasKey('public', self::arrayAt($response->data, 0));
     }
 
     public function test_list_files_skips_a_slug_whose_file_disappeared(): void
@@ -120,7 +123,7 @@ class HookFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertSame('expected exactly one class declaration, found none', $response->data[0]['error']);
+        $this->assertSame('expected exactly one class declaration, found none', self::at($response->data, 0, 'error'));
     }
 
     public function test_list_files_reports_the_last_runtime_error_of_the_file_version_that_threw_it(): void
@@ -134,7 +137,7 @@ class HookFilesControllerTest extends TestCase
 
         $this->assertSame(
             ['type' => 'filter', 'method' => 'tweak', 'message' => 'boom', 'at' => '1970-01-01T00:00:00+00:00'],
-            $response->data[0]['runtimeError'],
+            self::at($response->data, 0, 'runtimeError'),
         );
     }
 
@@ -146,7 +149,7 @@ class HookFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertArrayNotHasKey('runtimeError', $response->data[0]);
+        $this->assertArrayNotHasKey('runtimeError', self::arrayAt($response->data, 0));
     }
 
     /** @param array<string, mixed> $errors */
@@ -165,7 +168,7 @@ class HookFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertArrayNotHasKey('error', $response->data[0]);
+        $this->assertArrayNotHasKey('error', self::arrayAt($response->data, 0));
     }
 
     public function test_list_files_annotates_each_entry_with_its_hook_bindings(): void
@@ -176,7 +179,7 @@ class HookFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertSame([['type' => 'action', 'hook' => 'init', 'recurrence' => null]], $response->data[0]['hooks']);
+        $this->assertSame([['type' => 'action', 'hook' => 'init', 'recurrence' => null]], self::at($response->data, 0, 'hooks'));
     }
 
     public function test_list_files_reports_when_a_named_cron_runs_next(): void
@@ -186,10 +189,10 @@ class HookFilesControllerTest extends TestCase
         $this->directory->method('read')->with('nightly')->willReturn($content);
         Functions\when('wp_next_scheduled')->alias(static fn (string $hook): int|false => $hook === 'nightly_job' ? 1767225600 : false);
 
-        $hooks = $this->controller->list_files()->data[0]['hooks'];
+        $hooks = self::at($this->controller->list_files()->data, 0, 'hooks');
 
-        $this->assertSame('2026-01-01T00:00:00+00:00', $hooks[0]['nextRun']);
-        $this->assertNull($hooks[1]['nextRun']);
+        $this->assertSame('2026-01-01T00:00:00+00:00', self::at($hooks, 0, 'nextRun'));
+        $this->assertNull(self::at($hooks, 1, 'nextRun'));
     }
 
     // ── push_file ────────────────────────────────────────────────────────────
@@ -243,7 +246,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(412, $response->status);
-        $this->assertStringContainsString('changed on WordPress since it was last read', (string) $response->data['error']);
+        $this->assertStringContainsString('changed on WordPress since it was last read', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
@@ -269,7 +272,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('syntax', strtolower((string) $response->data['error']));
+        $this->assertStringContainsString('syntax', strtolower(self::stringAt($response->data, 'error')));
     }
 
     public function test_push_file_returns_400_when_content_declares_no_class(): void
@@ -284,7 +287,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('exactly one class', (string) $response->data['error']);
+        $this->assertStringContainsString('exactly one class', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_content_declares_more_than_one_class(): void
@@ -299,7 +302,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('Hello, World', (string) $response->data['error']);
+        $this->assertStringContainsString('Hello, World', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_hooks_file(): void
@@ -318,7 +321,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
+        $this->assertStringContainsString('other-file.php', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_an_already_loaded_class(): void
@@ -336,7 +339,7 @@ class HookFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('WordPress core or another plugin', (string) $response->data['error']);
+        $this->assertStringContainsString('WordPress core or another plugin', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_does_not_flag_a_collision_when_repushing_the_same_file_unchanged(): void

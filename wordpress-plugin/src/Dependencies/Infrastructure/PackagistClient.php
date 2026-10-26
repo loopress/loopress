@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Dependencies\Infrastructure;
 
 use Composer\Semver\Semver;
+use Loopress\Infrastructure\Narrow;
 use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -59,21 +60,23 @@ class PackagistClient
             throw new \RuntimeException('Invalid response from Packagist: ' . esc_html(json_last_error_msg()));
         }
 
-        $rawVersions = $body['package']['versions'] ?? null;
+        $rawVersions = Narrow::map(Narrow::map($body)['package'] ?? null)['versions'] ?? null;
         if (!is_array($rawVersions) || $rawVersions === []) {
             return null;
         }
 
-        $stable = array_filter(
-            $rawVersions,
+        $stable = [];
+        foreach ($rawVersions as $v => $data) {
             // A purely numeric version key ("2") comes back from json_decode() as an int.
-            fn($_, int|string $v): bool => !str_starts_with((string) $v, 'dev-') && !str_ends_with((string) $v, '-dev'),
-            ARRAY_FILTER_USE_BOTH
-        );
+            $v = (string) $v;
+            if (is_array($data) && !str_starts_with($v, 'dev-') && !str_ends_with($v, '-dev')) {
+                $stable[$v] = $data;
+            }
+        }
 
-        uasort($stable, fn($a, $b): int => version_compare(
-            $b['version_normalized'] ?? $b['version'],
-            $a['version_normalized'] ?? $a['version'],
+        uasort($stable, fn(array $a, array $b): int => version_compare(
+            Narrow::string($b['version_normalized'] ?? $b['version'] ?? null),
+            Narrow::string($a['version_normalized'] ?? $a['version'] ?? null),
         ));
 
         // array_keys() hands a purely numeric version ("2") back as an int.

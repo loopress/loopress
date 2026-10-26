@@ -9,12 +9,15 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Loopress\Api\Infrastructure\ApiDirectory;
 use Loopress\Api\RestApi\ApiFilesController;
+use Loopress\Tests\Unit\DigsIntoArrays;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class ApiFilesControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private ApiDirectory&MockObject $directory;
     private ApiFilesController $controller;
 
@@ -95,8 +98,8 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->list_files();
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('hello', $response->data[0]['filename']);
-        $this->assertStringNotContainsString('ABSPATH', $response->data[0]['content']);
+        $this->assertSame('hello', self::at($response->data, 0, 'filename'));
+        $this->assertStringNotContainsString('ABSPATH', self::stringAt($response->data, 0, 'content'));
     }
 
     public function test_list_files_skips_a_slug_whose_file_disappeared(): void
@@ -117,7 +120,7 @@ class ApiFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertSame('expected exactly one class declaration, found none', $response->data[0]['error']);
+        $this->assertSame('expected exactly one class declaration, found none', self::at($response->data, 0, 'error'));
     }
 
     public function test_list_files_omits_the_error_field_for_a_file_absent_from_the_load_errors_option(): void
@@ -128,7 +131,7 @@ class ApiFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertArrayNotHasKey('error', $response->data[0]);
+        $this->assertArrayNotHasKey('error', self::arrayAt($response->data, 0));
     }
 
     public function test_list_files_flags_a_public_route(): void
@@ -141,9 +144,9 @@ class ApiFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $byName = array_column($response->data, null, 'filename');
-        $this->assertTrue($byName['open']['public']);
-        $this->assertFalse($byName['closed']['public']);
+        $byName = array_column(self::arrayAt($response->data), null, 'filename');
+        $this->assertTrue(self::at($byName, 'open', 'public'));
+        $this->assertFalse(self::at($byName, 'closed', 'public'));
     }
 
     // A content hash of the file's own unguarded bytes (#234), the precondition `api push`
@@ -157,7 +160,7 @@ class ApiFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $this->assertSame(hash('sha256', $content), $response->data[0]['revision']);
+        $this->assertSame(hash('sha256', $content), self::at($response->data, 0, 'revision'));
     }
 
     public function test_list_files_gives_two_files_with_identical_content_the_same_revision(): void
@@ -168,7 +171,7 @@ class ApiFilesControllerTest extends TestCase
 
         $response = $this->controller->list_files();
 
-        $byName = array_column($response->data, 'revision', 'filename');
+        $byName = array_column(self::arrayAt($response->data), 'revision', 'filename');
         $this->assertSame($byName['hello'], $byName['hello-again']);
     }
 
@@ -203,7 +206,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $controller->push_file($request);
 
         $this->assertSame(413, $response->status);
-        $this->assertStringContainsString('over the 100 byte limit', $response->data['error']);
+        $this->assertStringContainsString('over the 100 byte limit', self::stringAt($response->data, 'error'));
     }
 
     // A 5 MB blob of "//x\n" is valid PHP and would previously reach token_get_all() / `php -l`,
@@ -232,7 +235,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertFalse($response->data['public']);
+        $this->assertFalse(self::at($response->data, 'public'));
     }
 
     // ── expectedRevision (#234) ─────────────────────────────────────────────
@@ -245,7 +248,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(hash('sha256', $content), $response->data['revision']);
+        $this->assertSame(hash('sha256', $content), self::at($response->data, 'revision'));
     }
 
     public function test_push_file_writes_when_expectedRevision_matches_the_files_current_content(): void
@@ -323,7 +326,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame($expectedStatus, $response->status);
-        $this->assertStringContainsString($expectedError, (string) $response->data['error']);
+        $this->assertStringContainsString($expectedError, self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_writes_without_a_precondition_when_expectedRevision_is_absent(): void
@@ -355,7 +358,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertTrue($response->data['public']);
+        $this->assertTrue(self::at($response->data, 'public'));
     }
 
     public function test_push_file_returns_400_when_content_has_no_declare_strict_types(): void
@@ -385,7 +388,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('syntax', strtolower((string) $response->data['error']));
+        $this->assertStringContainsString('syntax', strtolower(self::stringAt($response->data, 'error')));
     }
 
     public function test_push_file_returns_400_when_content_declares_no_class(): void
@@ -400,7 +403,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('exactly one class', (string) $response->data['error']);
+        $this->assertStringContainsString('exactly one class', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_content_declares_more_than_one_class(): void
@@ -415,7 +418,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('Hello, World', (string) $response->data['error']);
+        $this->assertStringContainsString('Hello, World', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_api_file(): void
@@ -434,7 +437,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
+        $this->assertStringContainsString('other-file.php', self::stringAt($response->data, 'error'));
     }
 
     /** @return array<string, array{string, string}> */
@@ -460,8 +463,8 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString("api/{$existing}.php", (string) $response->data['error']);
-        $this->assertStringContainsString('same route', (string) $response->data['error']);
+        $this->assertStringContainsString("api/{$existing}.php", self::stringAt($response->data, 'error'));
+        $this->assertStringContainsString('same route', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_another_api_file_differing_only_by_case(): void
@@ -483,7 +486,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('other-file.php', (string) $response->data['error']);
+        $this->assertStringContainsString('other-file.php', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_returns_400_when_the_class_collides_with_an_already_loaded_class(): void
@@ -501,7 +504,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_file($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('WordPress core or another plugin', (string) $response->data['error']);
+        $this->assertStringContainsString('WordPress core or another plugin', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_file_does_not_flag_a_collision_when_repushing_the_same_file_unchanged(): void
@@ -675,8 +678,8 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch(RestRequest::with(['files' => [], 'prune' => ['stale']]));
 
         $this->assertSame(200, $response->status);
-        $this->assertSame([], $response->data['files']);
-        $this->assertSame(['stale'], $response->data['pruned']);
+        $this->assertSame([], self::at($response->data, 'files'));
+        $this->assertSame(['stale'], self::at($response->data, 'pruned'));
     }
 
     public function test_push_batch_returns_400_when_files_is_present_but_not_an_array(): void
@@ -710,7 +713,7 @@ class ApiFilesControllerTest extends TestCase
         ]));
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('hello', (string) $response->data['error']);
+        $this->assertStringContainsString('hello', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_batch_stages_every_file_and_commits_once(): void
@@ -725,8 +728,8 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertCount(2, $response->data['files']);
-        $this->assertSame([], $response->data['pruned']);
+        $this->assertCount(2, self::arrayAt($response->data, 'files'));
+        $this->assertSame([], self::at($response->data, 'pruned'));
     }
 
     public function test_push_batch_returns_a_revision_for_each_staged_file(): void
@@ -737,7 +740,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(hash('sha256', $content), $response->data['files'][0]['revision']);
+        $this->assertSame(hash('sha256', $content), self::at($response->data, 'files', 0, 'revision'));
     }
 
     public function test_push_batch_aborts_and_stops_staging_further_files_when_one_fails_validation(): void
@@ -779,7 +782,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(400, $response->status);
-        $this->assertStringContainsString('first.php', (string) $response->data['error']);
+        $this->assertStringContainsString('first.php', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_batch_returns_400_and_aborts_for_an_invalid_prune_filename(): void
@@ -825,7 +828,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(200, $response->status);
-        $this->assertSame(['stale'], $response->data['pruned']);
+        $this->assertSame(['stale'], self::at($response->data, 'pruned'));
     }
 
     public function test_push_batch_clears_stale_load_errors_for_pruned_filenames(): void
@@ -848,7 +851,7 @@ class ApiFilesControllerTest extends TestCase
         $response = $this->controller->push_batch($request);
 
         $this->assertSame(500, $response->status);
-        $this->assertStringContainsString('disk full', (string) $response->data['error']);
+        $this->assertStringContainsString('disk full', self::stringAt($response->data, 'error'));
     }
 
     public function test_push_batch_returns_500_when_beginBatch_fails(): void

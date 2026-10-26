@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Dependencies\Infrastructure;
 
 use Loopress\Infrastructure\DirectoryGuard;
+use Loopress\Infrastructure\Narrow;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -44,9 +45,9 @@ class LoopressEnvironment
      */
     public function applyScaffold(array $json): array
     {
-        $repositories = $json['repositories'] ?? [];
+        $repositories = (array) ($json['repositories'] ?? []);
         $hasWpackagist = false;
-        foreach ((array) $repositories as $repo) {
+        foreach ($repositories as $repo) {
             if (is_array($repo) && ($repo['url'] ?? null) === self::WPACKAGIST_URL) {
                 $hasWpackagist = true;
                 break;
@@ -62,25 +63,58 @@ class LoopressEnvironment
         // package, or a caller that already required it directly. Requiring it unconditionally
         // installed (and in-process `include`d, as a Composer plugin) composer/installers on
         // every single push, even a plain-library one with no plugins/themes involved.
-        if ($this->requireNeedsInstallers($json['require'] ?? []) && ($json['require'][self::INSTALLERS] ?? null) === null) {
-            $json['require'][self::INSTALLERS] = '^2.0';
+        $require = Narrow::map($json['require'] ?? []);
+        if ($this->requireNeedsInstallers($require) && ($require[self::INSTALLERS] ?? null) === null) {
+            $json = self::jsonSet($json, '^2.0', 'require', self::INSTALLERS);
         }
 
         // Merge, don't replace: a client-supplied composer.json (via `lps composer push`) may
         // carry installer-paths for other package types, and those must survive. Our own two
         // entries win on their keys.
-        $installerPaths = $json['extra']['installer-paths'] ?? [];
+        $installerPaths = self::jsonGet($json, 'extra', 'installer-paths') ?? [];
         $mergedPaths    = array_merge((array) $installerPaths, self::INSTALLER_PATHS);
         if ($installerPaths !== $mergedPaths) {
-            $json['extra']['installer-paths'] = $mergedPaths;
+            $json = self::jsonSet($json, $mergedPaths, 'extra', 'installer-paths');
         }
 
         // composer/installers is itself a Composer plugin; Composer 2.2+ refuses to run any
         // plugin that isn't explicitly trusted when running non-interactively, which every
         // server-side sync does.
-        if (($json['config']['allow-plugins'][self::INSTALLERS] ?? null) !== true) {
-            $json['config']['allow-plugins'][self::INSTALLERS] = true;
+        if (self::jsonGet($json, 'config', 'allow-plugins', self::INSTALLERS) !== true) {
+            return self::jsonSet($json, true, 'config', 'allow-plugins', self::INSTALLERS);
         }
+
+        return $json;
+    }
+
+    /**
+     * Reads a nested composer.json key (`config.platform.php`), null when any level is missing
+     * or isn't an object.
+     *
+     * @param array<string, mixed> $json
+     */
+    public static function jsonGet(array $json, string ...$path): mixed
+    {
+        $value = $json;
+        foreach ($path as $key) {
+            if (!is_array($value) || !isset($value[$key])) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+
+        return $value;
+    }
+
+    /**
+     * Sets a nested composer.json key, creating (or replacing a non-object) level on the way.
+     *
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    public static function jsonSet(array $json, mixed $value, string $key, string ...$path): array
+    {
+        $json[$key] = $path === [] ? $value : self::jsonSet(Narrow::map($json[$key] ?? []), $value, ...$path);
 
         return $json;
     }
@@ -229,8 +263,8 @@ class LoopressEnvironment
 
         // Ensure config.platform.php matches the running PHP; prevents installing
         // packages whose requirements exceed the actual server version.
-        if (($json['config']['platform']['php'] ?? null) !== PHP_VERSION) {
-            $json['config']['platform']['php'] = PHP_VERSION;
+        if (self::jsonGet($json, 'config', 'platform', 'php') !== PHP_VERSION) {
+            $json         = self::jsonSet($json, PHP_VERSION, 'config', 'platform', 'php');
             $needsRewrite = true;
         }
 
@@ -253,8 +287,8 @@ class LoopressEnvironment
         // create a constructor cycle, ComposerRunner already depends on LoopressEnvironment),
         // so the actual dump-autoload is left to a caller that has one, see
         // needsLibAutoloadDump() and ComposerService::ensureInitialized().
-        if (($json['autoload']['psr-4']['LoopressLib\\'] ?? null) !== 'lib/') {
-            $json['autoload']['psr-4']['LoopressLib\\'] = 'lib/';
+        if (self::jsonGet($json, 'autoload', 'psr-4', 'LoopressLib\\') !== 'lib/') {
+            $json                       = self::jsonSet($json, 'lib/', 'autoload', 'psr-4', 'LoopressLib\\');
             $needsRewrite               = true;
             $this->libAutoloadNeedsDump = true;
         }
@@ -352,7 +386,7 @@ class LoopressEnvironment
             throw new \RuntimeException('composer.json contains invalid JSON: ' . esc_html(json_last_error_msg()));
         }
 
-        return $data ?? [];
+        return Narrow::map($data);
     }
 
     /** @param array<string, mixed> $json */
@@ -368,7 +402,7 @@ class LoopressEnvironment
         // Unconditional, not ??=: ComposerService::sync() passes this a client-supplied
         // composer.json verbatim (`lps composer push`), and ??= only guards against the key
         // being absent, not against the client setting it to something other than 'lib/'.
-        $json['autoload']['psr-4']['LoopressLib\\'] = 'lib/';
+        $json = self::jsonSet($json, 'lib/', 'autoload', 'psr-4', 'LoopressLib\\');
 
         // An empty PHP array encodes as `[]`, which Composer's schema refuses for these maps
         // ("require : Array value found, but an object is required"): a sync with no package
