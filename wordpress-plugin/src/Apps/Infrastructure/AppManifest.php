@@ -35,7 +35,7 @@ final class AppManifest
     public const SUPPORTED_CROSS_ORIGIN = ['same-origin', 'same-site'];
 
     /**
-     * @param array<string, mixed> $raw
+     * @param array<mixed> $raw a decoded request body, validated field by field below
      * @return array{buildId: string, routing: string, mountSelector: string, crossOrigin: string|null, entry: array{scripts: string[], styles: string[]}, files: array<int, array{path: string, sha256: string, size: int}>}
      * @throws \InvalidArgumentException on any malformed field
      */

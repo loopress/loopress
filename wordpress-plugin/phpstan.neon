@@ -69,6 +69,14 @@ parameters:
         - identifier: method.unused
           path: tests/Unit/*/RestApi/*Fixture*.php
 
+        # The stub types wpdb::prepare()'s query as literal-string, but a table name is always
+        # interpolated from $wpdb (`{$wpdb->posts}`), and an IN list is a generated run of %s
+        # placeholders. Every value still goes through prepare()'s placeholders.
+        - message: '#^Parameter \#1 \$query of method wpdb::prepare\(\) expects literal-string, .+ given\.$#'
+          paths:
+              - src/Content/Service/ContentService.php
+              - src/Options/Service/OptionsService.php
+
         # checkSyntax() calls token_get_all() for the ParseError it throws, not its tokens.
         - identifier: function.resultUnused
           path: src/Infrastructure/AbstractFilesController.php

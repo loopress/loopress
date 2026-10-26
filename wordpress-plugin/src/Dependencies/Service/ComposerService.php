@@ -174,8 +174,9 @@ class ComposerService
     private function isVendorPubliclyAccessible(): bool
     {
         $cached = get_transient(self::VENDOR_EXPOSURE_CACHE_KEY);
-        if (is_array($cached) && array_key_exists('exposed', $cached)) {
-            return $cached['exposed'];
+        $cachedExposed = is_array($cached) ? ($cached['exposed'] ?? null) : null;
+        if (is_bool($cachedExposed)) {
+            return $cachedExposed;
         }
 
         $exposed = false;
@@ -204,16 +205,18 @@ class ComposerService
         $data      = $this->parseJsonOutput($result['output'], 'outdated');
         $installed = $data['installed'] ?? [];
 
-        $outdated = array_filter(
-            $installed,
-            fn(mixed $package): bool => is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)
-        );
+        $outdated = [];
+        foreach ($installed as $package) {
+            if (is_array($package) && ($package['version'] ?? null) !== ($package['latest'] ?? null)) {
+                $outdated[] = [
+                    'name'    => $package['name'] ?? null,
+                    'version' => $package['version'] ?? null,
+                    'latest'  => $package['latest'] ?? null,
+                ];
+            }
+        }
 
-        return array_values(array_map(fn($package): array => [
-            'name'    => $package['name'],
-            'version' => $package['version'],
-            'latest'  => $package['latest'],
-        ], $outdated));
+        return $outdated;
     }
 
     /** @return array{advisories: mixed, abandoned: mixed} */

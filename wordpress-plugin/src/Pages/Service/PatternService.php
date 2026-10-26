@@ -34,8 +34,9 @@ final class PatternService extends AbstractDeclaredTypeService
         $stored = $this->stored();
         $result = [];
         foreach (WP_Block_Patterns_Registry::get_instance()->get_all_registered() as $pattern) {
-            $name = (string) ($pattern['name'] ?? '');
-            if ($name === '' || str_starts_with($name, 'core/')) {
+            $name  = $pattern['name'] ?? null;
+            $title = $pattern['title'] ?? null;
+            if (!is_string($name) || $name === '' || str_starts_with($name, 'core/')) {
                 continue;
             }
 
@@ -43,7 +44,7 @@ final class PatternService extends AbstractDeclaredTypeService
             $ours = isset($this->ours[$slug]) && $slug !== $name;
             $result[] = [
                 'slug'     => $ours ? $slug : $name,
-                'label'    => (string) ($pattern['title'] ?? $name),
+                'label'    => is_string($title) ? $title : $name,
                 'source'   => $ours ? 'loopress' : 'other',
                 'count'    => 0,
                 'managed'  => $ours,

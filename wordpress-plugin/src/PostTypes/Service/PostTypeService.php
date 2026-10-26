@@ -39,12 +39,12 @@ class PostTypeService extends AbstractDeclaredTypeService
                 default => 'other',
             };
 
-            $counts   = wp_count_posts($slug);
-            $result[] = [
+            $published = wp_count_posts($slug)->publish ?? 0;
+            $result[]  = [
                 'slug'     => $slug,
                 'label'    => (string) $object->label,
                 'source'   => $source,
-                'count'    => (int) ($counts->publish ?? 0),
+                'count'    => is_numeric($published) ? (int) $published : 0,
                 'managed'  => isset($stored[$slug]),
                 'conflict' => isset($stored[$slug]) && !$ours,
             ];
@@ -118,7 +118,8 @@ class PostTypeService extends AbstractDeclaredTypeService
         }
 
         $slugs = [];
-        foreach (acf_get_acf_post_types() as $postType) {
+        $postTypes = acf_get_acf_post_types();
+        foreach (is_array($postTypes) ? $postTypes : [] as $postType) {
             $slug = is_array($postType) ? ($postType['post_type'] ?? null) : null;
             if (is_string($slug)) {
                 $slugs[$slug] = true;

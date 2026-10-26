@@ -146,7 +146,7 @@ class AppsDirectory
             new \RecursiveDirectoryIterator($appPath, \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($files as $file) {
-            if (!$file->isFile()) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile()) {
                 continue;
             }
             $hash = hash_file('sha256', $file->getPathname());
@@ -184,7 +184,7 @@ class AppsDirectory
             new \RecursiveDirectoryIterator($appPath, \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($files as $file) {
-            if ($file->isFile()) {
+            if ($file instanceof \SplFileInfo && $file->isFile()) {
                 return str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($appPath)));
             }
         }

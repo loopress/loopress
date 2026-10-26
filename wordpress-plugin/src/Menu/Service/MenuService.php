@@ -31,7 +31,7 @@ class MenuService
     /** @return array<int, array<string, mixed>> */
     public function listMenus(): array
     {
-        return array_map(fn(\WP_Term $menu): array => $this->exportMenu($menu), wp_get_nav_menus());
+        return array_values(array_map(fn(\WP_Term $menu): array => $this->exportMenu($menu), wp_get_nav_menus()));
     }
 
     /** @return array<string, mixed>|null */
@@ -126,7 +126,7 @@ class MenuService
         $result = [];
         foreach (array_keys($registered) as $location) {
             $menuId = (int) ($assigned[$location] ?? 0);
-            $result[$location] = $menuId !== 0 ? $this->slugForMenuId($menuId) : null;
+            $result[(string) $location] = $menuId !== 0 ? $this->slugForMenuId($menuId) : null;
         }
 
         return $result;
@@ -188,7 +188,7 @@ class MenuService
     {
         $warnings = [];
         $rawItems = wp_get_nav_menu_items($menu->term_id);
-        $items    = $rawItems === false ? [] : $rawItems;
+        $items    = $rawItems === false ? [] : array_filter($rawItems, static fn(mixed $item): bool => $item instanceof \WP_Post);
 
         // Every item's raw parent id, and its exported node (or null if skipped), computed for
         // the whole menu up front: a skipped item's raw parent is still needed below to reparent
@@ -538,7 +538,7 @@ class MenuService
     private function replaceItems(int $menuId, array $resolved): void
     {
         $rawExisting = wp_get_nav_menu_items($menuId);
-        $existing    = $rawExisting === false ? [] : $rawExisting;
+        $existing    = $rawExisting === false ? [] : array_filter($rawExisting, static fn(mixed $item): bool => $item instanceof \WP_Post);
 
         $createdIds = [];
         try {

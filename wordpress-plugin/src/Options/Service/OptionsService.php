@@ -93,6 +93,7 @@ class OptionsService
     /** @return array<int, array{name: string, autoload: string, core: bool, guess: string|null, confirmed: bool, pluginName: string|null}> */
     public function listOptionNames(): array
     {
+        /** @var \wpdb $wpdb */
         global $wpdb;
 
         $rows = $wpdb->get_results(
@@ -111,13 +112,15 @@ class OptionsService
         $pluginPrefixes = $this->activePluginPrefixes();
 
         $options = array_map(function (array $row) use ($pluginPrefixes): array {
-            $name = (string) ($row['option_name'] ?? '');
+            $name     = $row['option_name'] ?? null;
+            $name     = is_string($name) ? $name : '';
+            $autoload = $row['autoload'] ?? null;
             $core = in_array($name, self::CORE_DEFAULT_OPTION_NAMES, true)
                 || in_array($name, self::OTHER_KNOWN_CORE_OPTION_NAMES, true);
 
             return [
                 'name'       => $name,
-                'autoload'   => (string) ($row['autoload'] ?? ''),
+                'autoload'   => is_string($autoload) ? $autoload : '',
                 'core'       => $core,
                 // Never guessed for a name already confirmed core: pointless, and a plugin slug
                 // could coincidentally prefix-match one, muddying an otherwise certain answer.
@@ -414,6 +417,8 @@ class OptionsService
         }
 
         $this->assertJsonSafe($name, $value);
+
+        /** @var \wpdb $wpdb */
 
         global $wpdb;
         $rawAutoload = $wpdb->get_var($wpdb->prepare("SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $name));

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Loopress\Pages\RestApi;
 
 use Loopress\Infrastructure\AbstractFilesDirectory;
+use Loopress\Infrastructure\Filters;
 use Loopress\Pages\Frontend\ChildThemeStyles;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Symfony\Component\Filesystem\Filesystem;
@@ -197,8 +198,8 @@ final class ChildThemeController
      */
     private function sizeError(array $files): ?string
     {
-        $maxFile  = (int) apply_filters('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
-        $maxTotal = (int) apply_filters('loopress_max_files_total_bytes', AbstractFilesDirectory::MAX_TOTAL_BYTES, self::SIZE_FILTER_SUBJECT);
+        $maxFile  = Filters::int('loopress_max_file_bytes', AbstractFilesDirectory::MAX_FILE_BYTES, self::SIZE_FILTER_SUBJECT);
+        $maxTotal = Filters::int('loopress_max_files_total_bytes', AbstractFilesDirectory::MAX_TOTAL_BYTES, self::SIZE_FILTER_SUBJECT);
         $total    = 0;
 
         foreach ($files as $path => $content) {
@@ -336,12 +337,14 @@ final class ChildThemeController
     private function mergeByName(mixed $inherited, array $own): array
     {
         $ownNames = array_column($own, 'name');
-        $kept     = array_filter(
-            is_array($inherited) ? $inherited : [],
-            fn($entry): bool => is_array($entry) && !in_array($entry['name'] ?? null, $ownNames, true)
-        );
+        $kept     = [];
+        foreach (is_array($inherited) ? $inherited : [] as $entry) {
+            if (is_array($entry) && !in_array($entry['name'] ?? null, $ownNames, true)) {
+                $kept[] = array_filter($entry, 'is_string', ARRAY_FILTER_USE_KEY);
+            }
+        }
 
-        return array_values(array_merge($kept, $own));
+        return [...$kept, ...$own];
     }
 
     /**
@@ -436,7 +439,9 @@ final class ChildThemeController
             // Local file of the child theme Loopress itself wrote, not a remote URL.
             $html = (string) file_get_contents($path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
-            return ['slug' => $slug, 'html' => $html] + (array) ($meta[$slug] ?? []);
+            $extra = $meta[$slug] ?? null;
+
+            return ['slug' => $slug, 'html' => $html] + (is_array($extra) ? array_filter($extra, 'is_string', ARRAY_FILTER_USE_KEY) : []);
         }, $files);
     }
 
@@ -468,7 +473,7 @@ final class ChildThemeController
         $raw  = is_file($path) ? file_get_contents($path) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         $data = $raw === false ? null : json_decode($raw, true);
 
-        return is_array($data) ? $data : [];
+        return is_array($data) ? array_filter($data, 'is_string', ARRAY_FILTER_USE_KEY) : [];
     }
 
     private function json(mixed $data): string

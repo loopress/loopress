@@ -41,10 +41,11 @@ final class PostMetaService extends AbstractDeclaredTypeService
                 $ours    = ($this->ours[$postType][$key] ?? null) === $args;
                 $managed = isset($stored[$postType][$key]);
 
+                $type     = $args['type'] ?? null;
                 $result[] = [
                     'postType'   => $postType,
                     'key'        => $key,
-                    'type'       => (string) ($args['type'] ?? 'string'),
+                    'type'       => is_string($type) ? $type : 'string',
                     'single'     => (bool) ($args['single'] ?? false),
                     'showInRest' => (bool) ($args['show_in_rest'] ?? false),
                     'source'     => $ours ? 'loopress' : 'other',
@@ -187,7 +188,8 @@ final class PostMetaService extends AbstractDeclaredTypeService
 
             try {
                 if (register_post_meta($slug, $key, $meta)) {
-                    $this->ours[$slug][$key] = get_registered_meta_keys('post', $slug)[$key] ?? [];
+                    $registered              = get_registered_meta_keys('post', $slug)[$key] ?? [];
+                    $this->ours[$slug][$key] = array_filter($registered, 'is_string', ARRAY_FILTER_USE_KEY);
                 }
             } catch (\Throwable) {
                 continue;

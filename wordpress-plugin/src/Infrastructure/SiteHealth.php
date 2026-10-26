@@ -17,7 +17,9 @@ final class SiteHealth
     public static function register(string $id, string $label, string $tab, callable $issues): void
     {
         add_filter('site_status_tests', static function (array $tests) use ($id, $label, $tab, $issues): array {
-            $tests['direct'][$id] = [
+            $direct      = $tests['direct'] ?? null;
+            $direct      = is_array($direct) ? $direct : [];
+            $direct[$id] = [
                 'label' => $label,
                 'test'  => static function () use ($id, $label, $tab, $issues): array {
                     try {
@@ -30,6 +32,7 @@ final class SiteHealth
                     return self::result($id, $label, $tab, $found);
                 },
             ];
+            $tests['direct'] = $direct;
 
             return $tests;
         });

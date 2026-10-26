@@ -29,7 +29,7 @@ class AppStore
     {
         $value = get_option(self::OPTION, []);
 
-        return is_array($value) ? $value : [];
+        return is_array($value) ? array_filter($value, 'is_string', ARRAY_FILTER_USE_KEY) : [];
     }
 
     /** @return array<string, mixed>|null */

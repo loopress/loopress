@@ -31,7 +31,11 @@ class PackagistClient
         $cacheKey = 'loopress_pkg_versions_' . hash('sha256', $package);
         $cached   = get_transient($cacheKey);
         if (is_array($cached) && array_key_exists('versions', $cached)) {
-            return $cached['versions'];
+            $versions = $cached['versions'];
+
+            return is_array($versions)
+                ? array_values(array_map(static fn(array $v): array => array_filter($v, 'is_string', ARRAY_FILTER_USE_KEY), array_filter($versions, 'is_array')))
+                : null;
         }
 
         $versions = $this->fetchVersions($package);
@@ -74,7 +78,9 @@ class PackagistClient
 
         // array_keys() hands a purely numeric version ("2") back as an int.
         return array_map(function (int|string $version, array $data): array {
-            $phpConstraint = $data['require']['php'] ?? null;
+            $require       = $data['require'] ?? null;
+            $phpConstraint = is_array($require) ? ($require['php'] ?? null) : null;
+            $phpConstraint = is_string($phpConstraint) ? $phpConstraint : null;
             $phpCompatible = $phpConstraint !== null ? $this->isPhpCompatible($phpConstraint) : null;
 
             return [
