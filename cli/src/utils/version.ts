@@ -11,7 +11,7 @@ import {compareVersions as cmp, validate} from 'compare-versions'
 // shape here would let it slip past `isExactVersion` at `add` time, then have
 // `compareVersions`/`isDowngrade` silently treat it as unorderable, bypassing the --force
 // gate on a real downgrade.
-const EXACT_VERSION = /^\d+(\.\d+){0,3}$|^\d+(\.\d+){2,3}-[0-9A-Za-z.]+$/
+const EXACT_VERSION = /^\d+(?:\.\d+){0,3}$|^\d+(?:\.\d+){2,3}-[\d.a-z]+$/i
 
 export function isExactVersion(value: string): boolean {
   return EXACT_VERSION.test(value)

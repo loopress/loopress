@@ -303,6 +303,9 @@ importers:
       eslint-config-prettier:
         specifier: ^10
         version: 10.1.8(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
+      eslint-plugin-regexp:
+        specifier: ^3.3.1
+        version: 3.3.1(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
       eslint-plugin-sonarjs:
         specifier: ^4.2.2
         version: 4.2.2(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
@@ -7456,8 +7459,8 @@ packages:
     peerDependencies:
       eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7
 
-  eslint-plugin-regexp@3.2.0:
-    resolution: {integrity: sha512-4yq47CnLxyfHFKJEo5kvNaiJ0aDtBxSJWk4M2LiamplUXdWxdlzDYqImb/ZVCp+2BqkQjBAmw4Xc07Q8SXVDZg==}
+  eslint-plugin-regexp@3.3.1:
+    resolution: {integrity: sha512-58bGUci/AaWAo1ETj6Lsnmy6QXwnSyVONRA805828nnqp7vrTwdaQMc02vtowmYB3A5OB3SLr3r5HgmfxX4dLg==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
     peerDependencies:
       eslint: '>=9.38.0'
@@ -20504,7 +20507,7 @@ snapshots:
       eslint-plugin-jsdoc: 63.3.3(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
       eslint-plugin-n: 18.5.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))(typescript@6.0.3)
       eslint-plugin-prettier: 5.5.7(eslint-config-prettier@10.1.8(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1)))(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))(prettier@3.9.10)
-      eslint-plugin-regexp: 3.2.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
+      eslint-plugin-regexp: 3.3.1(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
       eslint-plugin-unicorn: 72.0.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
       globals: 17.13.0
       typescript-eslint: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
@@ -21026,7 +21029,7 @@ snapshots:
       string.prototype.matchall: 4.1.0
       string.prototype.repeat: 1.0.0
 
-  eslint-plugin-regexp@3.2.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1)):
+  eslint-plugin-regexp@3.3.1(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1)):
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))
       '@eslint-community/regexpp': 4.12.2

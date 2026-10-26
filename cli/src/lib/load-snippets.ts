@@ -53,7 +53,7 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
     const meta = JSON.parse(metaContent) as LoopressSnippetMetadata
     id = meta.id
     // `||`, not `??`: an empty-string name in the sidecar JSON counts as absent too.
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- see above
     name = meta.name || undefined
     // Kept even when empty: a description cleared on purpose, not one to replace with "Imported from <path>".
     description = meta.description

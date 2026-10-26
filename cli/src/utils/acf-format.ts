@@ -41,13 +41,16 @@ function topLevelFields(group: unknown): Map<string, AcfField> {
   return byKey
 }
 
+function label(field: AcfField): string {
+  return typeof field.name === 'string' && field.name !== '' ? field.name : String(field.key)
+}
+
 // A changed field group's top-level fields, matched by `key` and named by `name` (a repeater's
 // sub-field change shows as its parent changing). Only for the dry-run preview: the push itself
 // always sends the whole group.
 export function acfFieldChanges(before: unknown, after: unknown): {added: string[]; changed: string[]; removed: string[]} {
   const old = topLevelFields(before)
   const next = topLevelFields(after)
-  const label = (field: AcfField): string => (typeof field.name === 'string' && field.name !== '' ? field.name : String(field.key))
   const changes = {added: [] as string[], changed: [] as string[], removed: [] as string[]}
   for (const [key, field] of next) {
     if (!old.has(key)) changes.added.push(label(field))

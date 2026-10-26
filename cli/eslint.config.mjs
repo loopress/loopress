@@ -1,6 +1,7 @@
 import vitest from '@vitest/eslint-plugin'
 import oclif from 'eslint-config-oclif'
 import prettier from 'eslint-config-prettier'
+import regexp from 'eslint-plugin-regexp'
 import sonarjs from 'eslint-plugin-sonarjs'
 import {defineConfig, globalIgnores, includeIgnoreFile} from 'eslint/config'
 import {fileURLToPath} from 'node:url'
@@ -14,6 +15,7 @@ export default defineConfig([
   // drop this filter once eslint-config-oclif ships eslint-plugin-mocha v11
   ...oclif.filter((config) => config.name !== 'mocha/recommended'),
   sonarjs.configs.recommended,
+  regexp.configs.recommended,
   prettier,
   {
     files: ['**/*.ts'],
@@ -81,6 +83,33 @@ export default defineConfig([
     },
   },
   {
+    // Stricter than the oclif/xo baseline: rules off by default that this codebase already
+    // satisfies, or nearly does, enabled so it stays that way.
+    files: ['**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-confusing-non-null-assertion': 'error',
+      '@typescript-eslint/no-deprecated': 'error',
+      '@typescript-eslint/no-implied-eval': 'error',
+      '@typescript-eslint/no-misused-spread': 'error',
+      '@typescript-eslint/no-redundant-type-constituents': 'error',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+      // Every eslint-disable states why, inline ones included.
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/require-description': ['error', {ignore: ['eslint-enable']}],
+      'n/no-process-exit': 'error',
+      'n/prefer-node-protocol': 'error',
+      'sonarjs/no-collapsible-if': 'error',
+      'sonarjs/no-commented-code': 'error',
+      'sonarjs/no-inconsistent-returns': 'error',
+      'sonarjs/no-nested-switch': 'error',
+      'sonarjs/no-return-type-any': 'error',
+      'unicorn/consistent-function-scoping': 'error',
+      'unicorn/custom-error-definition': 'error',
+      'unicorn/no-useless-undefined': 'error',
+      'unicorn/require-array-sort-compare': 'error',
+    },
+  },
+  {
     files: ['test/**/*.ts'],
     ...vitest.configs.recommended,
     rules: {
@@ -94,6 +123,13 @@ export default defineConfig([
       // Default max of 3 flags the standard `expect(JSON.parse(readFileSync(join(...))))`
       // one-liner used throughout these tests to read back a written file.
       'unicorn/max-nested-calls': 'off',
+      // Mock factories and request handlers read best inline, next to the test that uses them.
+      'unicorn/consistent-function-scoping': 'off',
+      // Fakes are built by spreading other fakes, and throwaway error classes mark a test's own throws.
+      '@typescript-eslint/no-misused-spread': 'off',
+      'unicorn/custom-error-definition': 'off',
+      // `() => undefined` is the only no-op stub form object-shorthand and strict-void-return both accept.
+      'unicorn/no-useless-undefined': 'off',
     },
   },
 ])

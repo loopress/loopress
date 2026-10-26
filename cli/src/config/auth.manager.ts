@@ -10,7 +10,11 @@ export type ConsoleAuth = {
 }
 
 export class AuthManager {
-  constructor(private dataDir?: string) {}
+  private dataDir: string | undefined
+
+  constructor(dataDir?: string) {
+    this.dataDir = dataDir
+  }
 
   clearAuth(): void {
     const filePath = this.getAuthFilePath()

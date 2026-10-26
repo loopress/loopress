@@ -230,6 +230,12 @@ const acfProvider: ResourceStateProvider = {
 
 // ---- PHP file directories (API routes, hooks) -----------------------------------------
 
+function filesToState(files: Array<{content: string; filename: string}>): ResourceState {
+  const state: ResourceState = new Map()
+  for (const file of files) state.set(file.filename, file.content)
+  return state
+}
+
 // api/ and hooks/ are both just a recursive directory of PHP files whose text is compared
 // verbatim (line diff on change), no server-side normalization to undo. Only the directory
 // kind, the endpoint and the labels differ.
@@ -239,16 +245,10 @@ function phpFilesProvider(spec: {
   resource: string
   title: string
 }): ResourceStateProvider {
-  const toState = (files: Array<{content: string; filename: string}>): ResourceState => {
-    const state: ResourceState = new Map()
-    for (const file of files) state.set(file.filename, file.content)
-    return state
-  }
-
   return {
     dirKind: spec.dirKind,
     async local(dir, onWarn) {
-      return toState(
+      return filesToState(
         await loadFiles<{content: string; filename: string}>(dir, {
           extension: '.php',
           onSkip: onWarn,
@@ -261,7 +261,7 @@ function phpFilesProvider(spec: {
       )
     },
     async remote(wp) {
-      return toState(await wp.get<Array<{content: string; filename: string}>>(spec.endpoint))
+      return filesToState(await wp.get<Array<{content: string; filename: string}>>(spec.endpoint))
     },
     resource: spec.resource,
     title: spec.title,
