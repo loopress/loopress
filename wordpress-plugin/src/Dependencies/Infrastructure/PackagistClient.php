@@ -53,11 +53,10 @@ class PackagistClient
             throw new \RuntimeException('Invalid response from Packagist: ' . esc_html(json_last_error_msg()));
         }
 
-        if (empty($body['package']['versions'])) {
+        $rawVersions = $body['package']['versions'] ?? null;
+        if (!is_array($rawVersions) || $rawVersions === []) {
             return null;
         }
-
-        $rawVersions = $body['package']['versions'];
 
         $stable = array_filter(
             $rawVersions,

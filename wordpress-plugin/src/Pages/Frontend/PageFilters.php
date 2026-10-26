@@ -106,7 +106,7 @@ class PageFilters
             // capability but never writes anything, so it's exempt. Every real write path
             // (post.php, Quick/bulk edit, the block editor's REST PATCH) runs with is_preview()
             // false and stays blocked.
-            if (is_preview() || get_query_var('preview')) {
+            if (is_preview() || (bool) get_query_var('preview')) {
                 return $caps;
             }
 

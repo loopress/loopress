@@ -78,7 +78,7 @@ class ComposerRunner
         $inputDef = ['command' => $command];
 
         // require/remove pass package names; update passes none.
-        if (!empty($args)) {
+        if ($args !== []) {
             $inputDef['packages'] = $args;
         }
 

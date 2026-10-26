@@ -90,7 +90,7 @@ class WPCodeSnippetProvider implements SnippetProvider
             'post_type'    => self::POST_TYPE,
             'post_title'   => sanitize_text_field($data->name ?? ''),
             'post_content' => wp_unslash($data->code ?? ''),
-            'post_status'  => !empty($data->active) ? 'publish' : 'draft',
+            'post_status'  => $data->active === true ? 'publish' : 'draft',
         ], true);
 
         if (is_wp_error($id)) {
@@ -166,7 +166,7 @@ class WPCodeSnippetProvider implements SnippetProvider
             code: $post->post_content,
             type: $type,
             active: $post->post_status === 'publish',
-            description: $note ? $note : '',
+            description: is_string($note) ? $note : '',
             tags: is_wp_error($terms) ? [] : $terms,
             location: self::LOCATION_TO_CANONICAL[$locationTerm] ?? $type->defaultLocation(),
             insertMethod: '0' === $autoInsert ? 'shortcode' : 'auto',
@@ -180,7 +180,7 @@ class WPCodeSnippetProvider implements SnippetProvider
     {
         $terms = wp_get_post_terms($id, $taxonomy, ['fields' => 'slugs']);
 
-        return is_wp_error($terms) || empty($terms) ? '' : (string) $terms[0];
+        return is_wp_error($terms) || $terms === [] ? '' : (string) $terms[0];
     }
 
     private function saveMeta(int $id, SnippetData $data): void

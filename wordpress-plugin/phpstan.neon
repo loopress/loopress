@@ -1,9 +1,16 @@
 includes:
     - vendor/szepeviktor/phpstan-wordpress/extension.neon
     - vendor/tomasvotruba/cognitive-complexity/config/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
 
 parameters:
     level: 9
+    strictRules:
+        # Off on purpose: array<string, ...> keys arrive as int at runtime for numeric keys, and WP
+        # objects/options carry DB strings their stubs type as int, so with strict_types these
+        # "useless" casts are what keeps a TypeError out.
+        uselessCast: false
     # Same threshold as sonarjs/cognitive-complexity in the CLI (eslint-plugin-sonarjs recommended).
     cognitive_complexity:
         function: 15

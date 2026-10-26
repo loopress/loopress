@@ -124,8 +124,8 @@ class MenuService
 
         $result = [];
         foreach (array_keys($registered) as $location) {
-            $menuId = $assigned[$location] ?? null;
-            $result[$location] = $menuId ? $this->slugForMenuId((int) $menuId) : null;
+            $menuId = (int) ($assigned[$location] ?? 0);
+            $result[$location] = $menuId !== 0 ? $this->slugForMenuId($menuId) : null;
         }
 
         return $result;

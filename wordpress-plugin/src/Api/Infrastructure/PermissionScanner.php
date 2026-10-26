@@ -66,7 +66,7 @@ final class PermissionScanner
             $group,
             $matches,
         );
-        if (!$found) {
+        if ($found === false || $found === 0) {
             return false;
         }
 
