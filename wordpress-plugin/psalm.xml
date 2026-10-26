@@ -8,6 +8,8 @@
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
     findUnusedBaselineEntry="true"
     findUnusedCode="true"
+    ensureArrayStringOffsetsExist="true"
+    ensureArrayIntOffsetsExist="true"
 >
     <projectFiles>
         <directory name="src" />
@@ -259,6 +261,25 @@
                 <file name="src/Update/Infrastructure/UsagePing.php" />
             </errorLevel>
         </ClassMustBeFinal>
+
+        <!-- preg_match()/preg_match_all() capture groups: Psalm doesn't type them, so every
+             group read after a successful match looks possibly undefined. PHPStan does type
+             them, and would flag a `?? ''` guard as an offset that always exists. -->
+        <PossiblyUndefinedIntArrayOffset>
+            <errorLevel type="suppress">
+                <file name="src/Api/Infrastructure/PermissionScanner.php" />
+                <file name="src/Api/RestApi/RouteLoader.php" />
+                <file name="src/Hooks/Infrastructure/HookAttributeScanner.php" />
+                <file name="src/Infrastructure/FileWriter.php" />
+            </errorLevel>
+        </PossiblyUndefinedIntArrayOffset>
+        <!-- shortcode_atts() always returns every default key, which PHPStan's WordPress
+             extension knows (and would flag a `?? ''` guard), but Psalm's stub doesn't. -->
+        <PossiblyUndefinedStringArrayOffset>
+            <errorLevel type="suppress">
+                <file name="src/Apps/Frontend/AppShortcode.php" />
+            </errorLevel>
+        </PossiblyUndefinedStringArrayOffset>
 
         <!-- Invoked via a dynamic class-string ("\Loopress\{$feature}\Feature"::bootstrap())
              in loopress.php's Plus-feature loop, which Psalm can't trace back to this call site. -->

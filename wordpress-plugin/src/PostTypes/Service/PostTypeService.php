@@ -119,8 +119,9 @@ class PostTypeService extends AbstractDeclaredTypeService
 
         $slugs = [];
         foreach (acf_get_acf_post_types() as $postType) {
-            if (is_array($postType) && is_string($postType['post_type'] ?? null)) {
-                $slugs[$postType['post_type']] = true;
+            $slug = is_array($postType) ? ($postType['post_type'] ?? null) : null;
+            if (is_string($slug)) {
+                $slugs[$slug] = true;
             }
         }
 

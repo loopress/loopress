@@ -182,10 +182,11 @@ class AcfService
         }
 
         // acf_update_field() drops empty conditional logic rules inline, not through a filter.
-        if (is_array($field['conditional_logic'] ?? null)) {
+        $conditionalLogic = $field['conditional_logic'] ?? null;
+        if (is_array($conditionalLogic)) {
             $field['conditional_logic'] = array_values(array_map(
                 fn(mixed $rules): mixed => is_array($rules) ? array_values(array_filter($rules, static fn(mixed $value): bool => (bool) $value)) : $rules,
-                array_filter($field['conditional_logic'], static fn(mixed $value): bool => (bool) $value),
+                array_filter($conditionalLogic, static fn(mixed $value): bool => (bool) $value),
             ));
         }
 
@@ -244,7 +245,7 @@ class AcfService
     private function assertRevisionMatches(string $postType, string $key, string $expectedRevision): void
     {
         $current         = $this->get($postType, $key);
-        $currentRevision = $current === null ? null : $current['revision'];
+        $currentRevision = $current['revision'] ?? null;
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";

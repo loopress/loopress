@@ -96,7 +96,8 @@ class MenuService
         }
 
         if ($warnings !== []) {
-            $existingWarnings = is_array($export['warnings']) ? $export['warnings'] : [];
+            $existingWarnings = $export['warnings'] ?? null;
+            $existingWarnings = is_array($existingWarnings) ? $existingWarnings : [];
             $export['warnings'] = [...$warnings, ...$existingWarnings];
         }
 
@@ -264,7 +265,7 @@ class MenuService
 
         $nodes = [];
         foreach ($byParent[$parentId] as $node) {
-            $node['children'] = $this->buildTree($node['_id'], $byParent);
+            $node['children'] = $this->buildTree($node['_id'] ?? 0, $byParent);
             unset($node['_id']);
             $nodes[] = $node;
         }
@@ -368,7 +369,8 @@ class MenuService
         // revisionOf() always sets it: is_string() below is a real (if always-true at runtime)
         // narrowing, not dead code, the same defensive shape OptionsService avoids by typing its
         // own getOption() return more precisely.
-        $currentRevision = $current !== null && is_string($current['revision']) ? $current['revision'] : null;
+        $currentRevision = $current['revision'] ?? null;
+        $currentRevision = is_string($currentRevision) ? $currentRevision : null;
 
         if ($currentRevision !== $expectedRevision) {
             $found = $currentRevision === null ? 'it no longer exists' : "its revision is now \"{$currentRevision}\"";
@@ -427,7 +429,8 @@ class MenuService
 
             $args += $this->resolveTarget($type, $item, $warnings);
 
-            $children = is_array($item['children'] ?? null) ? $this->resolveItems($item['children'], $warnings) : [];
+            $children = $item['children'] ?? null;
+            $children = is_array($children) ? $this->resolveItems($children, $warnings) : [];
             $resolved[] = ['args' => $args, 'children' => $children];
         }
 

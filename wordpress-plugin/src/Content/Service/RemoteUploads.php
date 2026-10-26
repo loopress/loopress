@@ -31,8 +31,9 @@ final class RemoteUploads
 
     private function remote(string $url): string
     {
-        $source = get_option(ContentService::SOURCE_OPTION);
-        if (!is_array($source) || !is_string($source['uploadsUrl'] ?? null) || $source['uploadsUrl'] === '') {
+        $source     = get_option(ContentService::SOURCE_OPTION);
+        $uploadsUrl = is_array($source) ? ($source['uploadsUrl'] ?? null) : null;
+        if (!is_string($uploadsUrl) || $uploadsUrl === '') {
             return $url;
         }
 
@@ -43,6 +44,6 @@ final class RemoteUploads
 
         $relative = substr($url, strlen($uploads['baseurl']));
 
-        return file_exists($uploads['basedir'] . $relative) ? $url : rtrim($source['uploadsUrl'], '/') . $relative;
+        return file_exists($uploads['basedir'] . $relative) ? $url : rtrim($uploadsUrl, '/') . $relative;
     }
 }

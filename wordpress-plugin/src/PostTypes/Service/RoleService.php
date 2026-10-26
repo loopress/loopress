@@ -122,7 +122,8 @@ final class RoleService extends AbstractDeclaredTypeService
     /** @param array<string, mixed> $args */
     protected function assertArgs(string $slug, array $args): void
     {
-        if (!is_string($args['name'] ?? null) || trim($args['name']) === '') {
+        $name = $args['name'] ?? null;
+        if (!is_string($name) || trim($name) === '') {
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON for the CLI, never HTML (see phpcs.xml.dist).
             throw new InvalidDeclarationException("Role \"{$slug}\": \"name\" must be a non-empty string.");
         }
@@ -148,7 +149,7 @@ final class RoleService extends AbstractDeclaredTypeService
     {
         /** @var array<string, bool> $capabilities checked by assertArgs() */
         $capabilities = $args['capabilities'] ?? [];
-        $name         = (string) $args['name'];
+        $name         = (string) ($args['name'] ?? '');
         $roles        = $this->roles;
         if ($roles === null) {
             return null;

@@ -380,7 +380,7 @@ class ComposerService
             }
         }
 
-        usort($drift, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+        array_multisort(array_column($drift, 'name'), SORT_STRING, $drift);
 
         return $drift;
     }

@@ -128,7 +128,7 @@ class PushLog
         return ['entries' => $log['entries'], 'resources' => array_values($resources)];
     }
 
-    /** @return array<string, mixed>|null The latest push of $command (of any resource when null), null when never pushed. */
+    /** @return array{resource: string, label: string, at: string, user: string, appPassword: ?string}|null The latest push of $command (of any resource when null), null when never pushed. */
     public function lastPush(?string $command = null): ?array
     {
         foreach ($this->read()['entries'] as $entry) {
@@ -175,11 +175,13 @@ class PushLog
     /** @return array{entries: list<array{resource: string, label: string, at: string, user: string, appPassword: ?string}>, fingerprints: array<string, string>} */
     private function read(): array
     {
-        $log = get_option(self::OPTION, []);
+        $log          = get_option(self::OPTION, []);
+        $entries      = is_array($log) ? ($log['entries'] ?? null) : null;
+        $fingerprints = is_array($log) ? ($log['fingerprints'] ?? null) : null;
 
         return [
-            'entries'      => is_array($log) && is_array($log['entries'] ?? null) ? array_values($log['entries']) : [],
-            'fingerprints' => is_array($log) && is_array($log['fingerprints'] ?? null) ? $log['fingerprints'] : [],
+            'entries'      => is_array($entries) ? array_values($entries) : [],
+            'fingerprints' => is_array($fingerprints) ? $fingerprints : [],
         ];
     }
 }

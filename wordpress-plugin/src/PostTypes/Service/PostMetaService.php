@@ -180,8 +180,9 @@ final class PostMetaService extends AbstractDeclaredTypeService
                 continue;
             }
 
-            if (($meta['type'] ?? null) === 'integer' && is_float($meta['default'] ?? null)) {
-                $meta['default'] = (int) $meta['default'];
+            $default = $meta['default'] ?? null;
+            if (($meta['type'] ?? null) === 'integer' && is_float($default)) {
+                $meta['default'] = (int) $default;
             }
 
             try {

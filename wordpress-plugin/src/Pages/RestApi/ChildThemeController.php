@@ -240,7 +240,7 @@ final class ChildThemeController
 
         try {
             $this->filesystem->remove([$staging, $old]);
-            $files['style.css'] = $this->styleCss($parentTheme) . $files['style.css'];
+            $files['style.css'] = $this->styleCss($parentTheme) . ($files['style.css'] ?? '');
             $this->filesystem->dumpFile("{$staging}/theme.json", $this->json($this->themeJson($parentTheme, $templates, $parts)));
             $this->filesystem->dumpFile("{$staging}/" . self::MANIFEST, $this->json($this->manifest($templates, $parts)));
             foreach ($files as $path => $content) {

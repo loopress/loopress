@@ -260,8 +260,9 @@ abstract class AbstractFilesController
         // rather than resolve the ambiguity one way silently.
         $pushedFilenames = [];
         foreach ($files as $file) {
-            if (is_array($file) && is_string($file['filename'] ?? null)) {
-                $pushedFilenames[] = $file['filename'];
+            $filename = is_array($file) ? ($file['filename'] ?? null) : null;
+            if (is_string($filename)) {
+                $pushedFilenames[] = $filename;
             }
         }
 
@@ -337,12 +338,12 @@ abstract class AbstractFilesController
     /** @return array<string, mixed>|WP_REST_Response */
     private function stageBatchFile(mixed $file): array|WP_REST_Response
     {
-        if (!is_array($file) || !is_string($file['filename'] ?? null) || !is_string($file['content'] ?? null)) {
+        $file     = is_array($file) ? $file : [];
+        $filename = $file['filename'] ?? null;
+        $content  = $file['content'] ?? null;
+        if (!is_string($filename) || !is_string($content)) {
             return new WP_REST_Response(['error' => 'Each file needs a string "filename" and "content".'], 400);
         }
-
-        $filename = $file['filename'];
-        $content  = $file['content'];
 
         if (!static::isValidFilename($filename)) {
             return new WP_REST_Response(['error' => "Invalid filename: {$filename}"], 400);

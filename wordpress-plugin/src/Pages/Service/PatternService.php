@@ -98,8 +98,9 @@ final class PatternService extends AbstractDeclaredTypeService
     /** @param array<string, mixed> $args */
     protected function assertArgs(string $slug, array $args): void
     {
+        $title   = $args['title'] ?? null;
         $problem = match (true) {
-            !is_string($args['title'] ?? null) || trim($args['title']) === '' => '"title" must be a non-empty string',
+            !is_string($title) || trim($title) === '' => '"title" must be a non-empty string',
             !is_string($args['content'] ?? null) => '"content" must be a string',
             isset($args['description']) && !is_string($args['description']) => '"description" must be a string',
             isset($args['viewportWidth']) && !is_int($args['viewportWidth']) => '"viewportWidth" must be an integer',

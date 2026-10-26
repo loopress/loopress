@@ -141,6 +141,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
     {
         $scope = (string) ($data['scope'] ?? 'global');
         $type  = $this->typeFromScope($scope);
+        $tags  = $data['tags'] ?? null;
 
         return new SnippetData(
             id: (int) ($data['id'] ?? 0),
@@ -149,7 +150,7 @@ final class CodeSnippetsSnippetProvider implements SnippetProvider
             type: $type,
             active: (bool) ($data['active'] ?? false),
             description: (string) ($data['desc'] ?? ''),
-            tags: is_array($data['tags'] ?? null) ? $data['tags'] : [],
+            tags: is_array($tags) ? $tags : [],
             location: self::SCOPE_TO_LOCATION[$scope] ?? $type->defaultLocation(),
             insertMethod: 'auto',
             priority: isset($data['priority']) ? (int) $data['priority'] : 10,

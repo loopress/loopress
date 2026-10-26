@@ -17,7 +17,7 @@ namespace Loopress\Infrastructure;
  */
 final class ClassScanner
 {
-    /** @return string[] fully-qualified class names, in declaration order; empty if none. */
+    /** @return list<string> fully-qualified class names, in declaration order; empty if none. */
     public static function declaredClasses(string $content): array
     {
         $tokens    = @token_get_all($content); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- malformed input is expected (an unverified push/boot file), not a bug here

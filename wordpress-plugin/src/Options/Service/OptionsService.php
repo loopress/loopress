@@ -111,13 +111,13 @@ class OptionsService
         $pluginPrefixes = $this->activePluginPrefixes();
 
         $options = array_map(function (array $row) use ($pluginPrefixes): array {
-            $name = (string) $row['option_name'];
+            $name = (string) ($row['option_name'] ?? '');
             $core = in_array($name, self::CORE_DEFAULT_OPTION_NAMES, true)
                 || in_array($name, self::OTHER_KNOWN_CORE_OPTION_NAMES, true);
 
             return [
                 'name'       => $name,
-                'autoload'   => (string) $row['autoload'],
+                'autoload'   => (string) ($row['autoload'] ?? ''),
                 'core'       => $core,
                 // Never guessed for a name already confirmed core: pointless, and a plugin slug
                 // could coincidentally prefix-match one, muddying an otherwise certain answer.
@@ -183,7 +183,7 @@ class OptionsService
             // own Version header, not a full parse or execution of the plugin's code. The header
             // label really is "Plugin Name:" (WP core's own get_plugin_data() searches for the
             // same 'Plugin Name' string, "Name" alone never matches).
-            $name = (string) get_file_data($path, ['Name' => 'Plugin Name'])['Name'];
+            $name = get_file_data($path, ['Name' => 'Plugin Name'])['Name'] ?? '';
             if ($name !== '') {
                 $names[$slug] = $name;
             }
@@ -235,7 +235,7 @@ class OptionsService
      * one arbitrarily.
      *
      * @param array<int, string> $unresolvedNames
-     * @return array<string, array<int, string>> option name => plugin slugs whose source
+     * @return array<string, list<string>> option name => plugin slugs whose source
      *         references it
      */
     private function scanActivePluginSourceForOptions(array $unresolvedNames): array

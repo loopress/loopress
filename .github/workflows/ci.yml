@@ -120,7 +120,7 @@ jobs:
           (status=1
            for attempt in 1 2 3; do
              echo "::group::playwright install, attempt $attempt"
-             timeout 120 npx playwright install --with-deps chromium && status=0
+             timeout 300 npx playwright install --with-deps chromium && status=0
              echo "::endgroup::"
              [ "$status" = 0 ] && break
              sudo pkill -x apt-get || true
