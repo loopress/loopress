@@ -15,6 +15,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use WP_REST_Request;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 // A global-namespace class (see TestLoaderCollisionFixtureClass.php), can't be PSR-4
 // autoloaded: required explicitly so it already exists by the time
@@ -23,6 +24,8 @@ require_once __DIR__ . '/TestLoaderCollisionFixtureClass.php';
 
 class RouteLoaderTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private string $tmpDir;
     private ApiDirectory $directory;
     private LoopressEnvironment&MockObject $environment;
@@ -636,7 +639,7 @@ class RouteLoaderTest extends TestCase
                 \Mockery::on(static fn (mixed $errors): bool => is_array($errors)
                     && array_key_exists('test-loader-size-toobig', $errors)
                     && !array_key_exists('test-loader-size-ok', $errors)
-                    && str_contains((string) $errors['test-loader-size-toobig'], 'over the 200 byte limit')),
+                    && str_contains(self::stringAt($errors, 'test-loader-size-toobig'), 'over the 200 byte limit')),
                 false,
             )
             ->andReturn(true);

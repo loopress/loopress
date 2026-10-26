@@ -9,9 +9,12 @@ use Brain\Monkey\Functions;
 use Loopress\Dependencies\Infrastructure\LoopressEnvironment;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class LoopressEnvironmentTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private string $tmpDir;
 
     protected function setUp(): void
@@ -111,7 +114,7 @@ class LoopressEnvironmentTest extends TestCase
         $this->assertArrayHasKey('name', $json);
         $this->assertArrayHasKey('config', $json);
         $this->assertArrayHasKey('platform', $json['config']);
-        $this->assertArrayHasKey('php', $json['config']['platform']);
+        $this->assertArrayHasKey('php', self::arrayAt($json, 'config', 'platform'));
     }
 
     public function test_ensureInitialized_sets_current_php_version(): void

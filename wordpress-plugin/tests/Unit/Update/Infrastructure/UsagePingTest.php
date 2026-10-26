@@ -9,9 +9,12 @@ use Brain\Monkey\Functions;
 use Loopress\Update\Infrastructure\UsagePing;
 use Loopress\Update\UsageStats;
 use PHPUnit\Framework\TestCase;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class UsagePingTest extends TestCase
 {
+    use DigsIntoArrays;
+
     /** @var array<string, mixed> */
     private array $options = [];
 
@@ -67,7 +70,7 @@ class UsagePingTest extends TestCase
             'https://api.loopress.dev/ping',
             \Mockery::on(static fn(array $args): bool => $args['blocking'] === false
                 && $args['user-agent'] === 'Loopress/' . LOOPRESS_VERSION
-                && json_decode($args['body'], true)['locale'] === 'fr_FR'),
+                && self::at(json_decode(self::stringAt($args, 'body'), true), 'locale') === 'fr_FR'),
         );
 
         (new UsagePing())->send();

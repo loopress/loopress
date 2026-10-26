@@ -10,9 +10,12 @@ use Loopress\AdminPage\Module\AdminPageModule;
 use Loopress\Pushes\PushLog;
 use PHPUnit\Framework\TestCase;
 use WP_Admin_Bar;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class AdminPageModuleTest extends TestCase
 {
+    use DigsIntoArrays;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,10 +42,10 @@ class AdminPageModuleTest extends TestCase
 
         (new AdminPageModule($log))->addAdminBarNode($bar);
 
-        self::assertSame('https://site.test/wp-admin/admin.php?page=loopress', $bar->nodes['loopress']['href']);
-        self::assertSame('Version: ' . LOOPRESS_VERSION, $bar->nodes['loopress-version']['title']);
-        self::assertSame('Environment: staging', $bar->nodes['loopress-environment']['title']);
-        self::assertSame('Last push: ACF, 5 mins ago', $bar->nodes['loopress-last-push']['title']);
+        self::assertSame('https://site.test/wp-admin/admin.php?page=loopress', self::at($bar->nodes, 'loopress', 'href'));
+        self::assertSame('Version: ' . LOOPRESS_VERSION, self::at($bar->nodes, 'loopress-version', 'title'));
+        self::assertSame('Environment: staging', self::at($bar->nodes, 'loopress-environment', 'title'));
+        self::assertSame('Last push: ACF, 5 mins ago', self::at($bar->nodes, 'loopress-last-push', 'title'));
     }
 
     public function test_admin_bar_is_hidden_from_non_admins(): void

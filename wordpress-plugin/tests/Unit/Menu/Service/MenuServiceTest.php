@@ -11,9 +11,12 @@ use Loopress\Menu\Service\MenuService;
 use PHPUnit\Framework\TestCase;
 use WP_Post;
 use WP_Term;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class MenuServiceTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private MenuService $service;
 
     protected function setUp(): void
@@ -313,7 +316,7 @@ class MenuServiceTest extends TestCase
 
         $this->service->upsertMenu('main', 'Main Menu', []);
 
-        $this->assertSame('main', $capture->insertedArgs['slug']);
+        $this->assertSame('main', self::at($capture->insertedArgs, 'slug'));
         $this->assertSame('Main Menu', $capture->insertedName);
     }
 
@@ -732,7 +735,15 @@ class MenuServiceTest extends TestCase
         $capture = new \stdClass();
 
         Functions\when('wp_get_nav_menu_object')->alias(
-            fn(): WP_Term|false => $capture->created ? $this->fakeTerm($termId, $capture->insertedArgs['slug'], $capture->insertedName) : false,
+            function () use ($capture, $termId): WP_Term|false {
+                if (!$capture->created) {
+                    return false;
+                }
+                $name = $capture->insertedName;
+                $this->assertIsString($name);
+
+                return $this->fakeTerm($termId, self::stringAt($capture->insertedArgs, 'slug'), $name);
+            },
         );
 
         Functions\when('wp_insert_term')->alias(function (string $name, string $taxonomy, array $args) use ($capture, $termId): array {

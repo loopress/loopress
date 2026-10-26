@@ -10,9 +10,12 @@ use Brain\Monkey\Functions;
 use Loopress\Pages\RestApi\ChildThemeController;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class ChildThemeControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private string $root;
     private string $stylesheet = 'twentytwentyfive';
     private string $template   = 'twentytwentyfive';
@@ -210,8 +213,8 @@ class ChildThemeControllerTest extends TestCase
         );
         $this->controller()->register_routes();
 
-        $block = $this->stringAt($args, 1, 'args', 'blocks', 'items', 'properties', 'name', 'pattern');
-        $asset = $this->stringAt($args, 1, 'args', 'assets', 'items', 'properties', 'path', 'pattern');
+        $block = self::stringAt($args, 1, 'args', 'blocks', 'items', 'properties', 'name', 'pattern');
+        $asset = self::stringAt($args, 1, 'args', 'assets', 'items', 'properties', 'path', 'pattern');
 
         foreach (['core/button', 'woocommerce/product-price', 'acme/hero-2'] as $name) {
             $this->assertSame(1, preg_match("#{$block}#", $name), $name);
@@ -279,7 +282,7 @@ class ChildThemeControllerTest extends TestCase
         );
 
         $this->controller()->register_routes();
-        $pattern = $this->stringAt($pattern, 1, 'args', 'templates', 'items', 'properties', 'slug', 'pattern');
+        $pattern = self::stringAt($pattern, 1, 'args', 'templates', 'items', 'properties', 'slug', 'pattern');
 
         foreach (['single', 'taxonomy-download_tag', 'single-my_type', 'archive-download'] as $slug) {
             $this->assertSame(1, preg_match("/{$pattern}/", $slug), $slug);
@@ -287,17 +290,5 @@ class ChildThemeControllerTest extends TestCase
         foreach (['Single', 'my page', '../single', 'single.html', ''] as $slug) {
             $this->assertSame(0, preg_match("/{$pattern}/", $slug), $slug);
         }
-    }
-
-    // Walks a nested route definition down $path, asserting every level on the way.
-    private function stringAt(mixed $value, int|string ...$path): string
-    {
-        foreach ($path as $key) {
-            $this->assertIsArray($value);
-            $value = $value[$key] ?? null;
-        }
-        $this->assertIsString($value);
-
-        return $value;
     }
 }

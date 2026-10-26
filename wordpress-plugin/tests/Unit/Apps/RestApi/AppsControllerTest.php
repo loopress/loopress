@@ -13,9 +13,12 @@ use Loopress\Apps\RestApi\AppsController;
 use Loopress\Apps\Service\AppsDiagnostics;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Loopress\Tests\Unit\DigsIntoArrays;
 
 class AppsControllerTest extends TestCase
 {
+    use DigsIntoArrays;
+
     private AppsDirectory&MockObject $directory;
     private AppStore&MockObject $store;
     private AppsDiagnostics&MockObject $diagnostics;
@@ -321,7 +324,7 @@ class AppsControllerTest extends TestCase
         $this->assertNotNull($captured);
         $this->assertSame('9f2a1c7b4e10', $captured['buildId']);
         $this->assertIsString($captured['deployedAt']);
-        $this->assertCount(2, $captured['files']);
+        $this->assertCount(2, self::arrayAt($captured, 'files'));
     }
 
     public function test_commit_keeps_the_previous_generation_files_and_drops_older_ones(): void

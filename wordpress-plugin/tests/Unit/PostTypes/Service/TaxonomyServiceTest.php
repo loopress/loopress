@@ -40,7 +40,7 @@ class TaxonomyServiceTest extends TestCase
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('taxonomy_exists')->alias(fn (string $slug): bool => isset($this->wpRegistered[$slug]));
         Functions\when('register_taxonomy')->alias(function (string $slug, mixed $objectType, array $args): object {
-            $this->wpRegistered[$slug] = ['objectType' => $objectType, 'args' => $args];
+            $this->wpRegistered[$slug] = ['objectType' => $objectType, 'args' => array_filter($args, 'is_string', ARRAY_FILTER_USE_KEY)];
             $this->wpObjects[$slug]    = (object) [
                 'label' => $args['label'] ?? $slug, '_builtin' => false, 'public' => true, 'show_ui' => true, 'object_type' => $objectType,
             ];

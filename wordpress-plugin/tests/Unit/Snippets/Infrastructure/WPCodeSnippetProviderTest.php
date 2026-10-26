@@ -392,7 +392,7 @@ class WPCodeSnippetProviderTest extends TestCase
         Functions\when('get_post')->justReturn($post);
         Functions\when('wp_update_post')->justReturn($id);
         Functions\when('get_post_meta')->alias(
-            fn($postId, $key) => $metaOverrides[$key] ?? '',
+            fn(int $postId, string $key): mixed => $metaOverrides[$key] ?? '',
         );
         Functions\when('wp_get_post_terms')->alias(
             fn($postId, $taxonomy): array => match ($taxonomy) {
