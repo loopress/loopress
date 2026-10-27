@@ -86,6 +86,20 @@ describe('content copy', () => {
     expect(result).toEqual({from: 'production', posts: 101, status: 'copied', terms: 1})
   })
 
+  it('reads what the alignment needs before the reset: a failing read leaves the local site untouched', async () => {
+    const {cmd, internals, local} = make(['production'])
+    const source = internals.sourceWp('production') as {get: ReturnType<typeof siteGet>}
+    const answer = source.get.getMockImplementation()
+    source.get.mockImplementation(async (path: string) => {
+      if (path === 'wp/v2/plugins') throw new Error('Forbidden (403)')
+      return answer?.(path)
+    })
+
+    await expect(cmd.run()).rejects.toThrow('Forbidden (403)')
+    expect(local.post).not.toHaveBeenCalled()
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+  })
+
   it('on --dry-run, reads every page but writes nothing and pushes nothing', async () => {
     const {cmd, local} = make(['production', '--dry-run'])
 

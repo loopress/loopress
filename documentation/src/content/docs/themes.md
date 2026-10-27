@@ -14,7 +14,7 @@ The `theme` command group works exactly like [`plugin`](/plugins/): it tracks Wo
 }
 ```
 
-**Loopress manages installed theme versions only. It never switches the active theme** (that can break a live site hard).
+**The lockfile manages installed theme versions only. It never switches the active theme** (that can break a live site hard). Switching is an explicit [`lps theme activate`](#lps-theme-activate).
 
 ## Commands
 
@@ -46,6 +46,19 @@ Push everything theme related, in order: versions, then [templates and parts](/p
 ### `lps theme status`
 
 Report version drift between the themes on WordPress and `loopress.json`. Exits non-zero on drift, so it can gate a CI job.
+
+---
+
+### `lps theme activate`
+
+Activate a theme, the Loopress child theme (`<parent>-loopress`, see [templates and parts](/pages/#templates-and-parts)) when you name none. Supports `--dry-run`, and asks for confirmation when the target is named `production`. Works on Loopress Light too, for a theme you name.
+
+```bash
+lps theme activate
+lps theme activate twentytwentyfive --env staging
+```
+
+WordPress stores theme mods and Global Styles per theme, so a child that has none of its own yet starts from a copy of its parent's: the site looks the same after the switch. The child must exist first (`lps theme template push`), and the parent must be a block theme that isn't itself a child theme. Set `"activateChildTheme": true` in [`loopress.json`](/loopress-json/#plugins-and-themes) to have every template push keep the child active.
 
 ---
 

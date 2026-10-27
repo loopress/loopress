@@ -15,7 +15,7 @@ export function registerBulkTools(server: McpServer): void {
     'push_all',
     {
       description:
-        'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets. Global Styles, ACF, forms and snippets are skipped when the project does not use them (no Global Styles file, no directory) or the site cannot take them (classic theme).' +
+        'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets. Global Styles, ACF, forms and snippets are skipped when the project does not use them (no Global Styles file, no directory), and Global Styles also on a classic theme. When the project uses ACF, forms or snippets the site cannot hold (no active plugin for them), the run refuses before pushing anything.' +
         PREVIEW_SUFFIX +
         CHANGES_SUFFIX +
         ' Each step is under `results` with its own preview in `result`.',

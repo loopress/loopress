@@ -72,7 +72,12 @@ export function registerThemeTools(server: McpServer): void {
       inputSchema: {
         confirmToken: confirmTokenFlag,
         env: envFlag,
-        stylesheet: z.string().optional().describe('Theme to activate (default: the Loopress child theme)'),
+        stylesheet: z
+          .string()
+          // A leading hyphen would be read as a flag, and the default child activated instead.
+          .regex(/^\w[\w.-]*$/, 'must be a theme directory name, not starting with a hyphen')
+          .optional()
+          .describe('Theme to activate (default: the Loopress child theme)'),
       },
     },
     async ({confirmToken, env, stylesheet}) =>
