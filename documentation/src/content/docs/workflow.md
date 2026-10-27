@@ -77,7 +77,7 @@ lps push --dry-run
 
 When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
 
-Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged. Plugins and Composer are skipped, not failed, when the project doesn't manage them (no `plugins` in `loopress.json`, no `composer.json`). So are ACF, forms and snippets when the project has no directory for them (`acf/`, `forms/`, `snippets/`), on a real push and on `--dry-run` alike: a site without a form plugin no longer fails the preview.
+Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged. Plugins and Composer are skipped, not failed, when the project doesn't manage them (no `plugins` in `loopress.json`, no `composer.json`). So are ACF, forms and snippets when the project has no directory for them (`acf/`, `forms/`, `snippets/`), on a real push and on `--dry-run` alike: a site without a form plugin no longer fails the preview. When the project does use one of them and the site can't hold it (ACF inactive, no form or snippet plugin, snippets on Loopress Light), the push refuses before pushing anything, and says which plugin to declare or activate.
 
 `--overwrite` is passed on to every resource, see [changes made outside Loopress](/concepts/#changes-made-outside-loopress).
 
@@ -127,8 +127,9 @@ lps content copy production
 lps content copy staging --dry-run
 ```
 
-It is not a `pull`: nothing is written to your project files. It replaces the posts of every public post type (posts, pages, products, ...) and the terms of every public taxonomy on the `local` environment, always the target, with the source's, IDs unchanged, then runs `lps push` to the local site so your tracked configuration (menus, ACF, snippets, templates...) wins over the source's. The local content is **deleted** first, so it asks for confirmation (`--yes` to skip it).
+It is not a `pull`: nothing is written to your project files. It replaces the posts of every public post type (posts, pages, products, ...) and the terms of every public taxonomy on the `local` environment, always the target, with the source's, IDs unchanged, activates locally the theme and plugins active on the source, then runs `lps push` to the local site so your tracked configuration (menus, ACF, snippets, templates...) wins over the source's. The local content is **deleted** first, so it asks for confirmation (`--yes` to skip it).
 
+- Theme and plugins are only activated, never installed. One active on the source but missing locally is reported, declare it in `composer.json`. When the source runs the Loopress child theme, its parent is activated first and the child once the push has written it.
 - Media are not downloaded: an image missing locally is served from the source site's uploads URL. Files you upload locally keep their local URL.
 - A local row whose ID is also used by an incoming post or term is replaced, whatever its type. Tracked configuration (ACF, menus, snippets, templates...) comes back with the push that follows. Anything else that only exists locally, a test order for example, is lost.
 - If the copy stops halfway (network, timeout), run it again: it starts over from a clean local content.

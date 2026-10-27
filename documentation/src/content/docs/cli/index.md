@@ -59,7 +59,7 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | `lps role` | `pull` `push` `list` `rm` `diff` `rollback` | [Roles](/roles/) |
 | `lps option` | `add` `pull` `push` `list` `diff` `rollback` `remove` | [Options](/options/) |
 | `lps plugin` | `add` `pull` `push` `status` `audit` | [Plugins](/plugins/) |
-| `lps theme` | `add` `pull` `push` `status`, `version pull/push` | [Themes](/themes/) |
+| `lps theme` | `add` `pull` `push` `status` `activate`, `version pull/push` | [Themes](/themes/) |
 | `lps theme style` | `pull` `push` `diff` `rollback` | [Theme Styles](/theme-styles/) |
 | `lps theme template` | `push` `list` `diff` | [Templates and parts](/pages/#templates-and-parts) |
 | `lps composer` | `init` `pull` `push` | [Composer](/composer/cli/) |

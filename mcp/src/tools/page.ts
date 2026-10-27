@@ -33,7 +33,7 @@ const RESOURCES: HtmlResource[] = [
     descriptions: {
       diff: 'Show what differs between the local theme/templates/ and theme/parts/ directories and the Loopress child theme on WordPress, including templates and parts edited in the Site Editor.',
       list: 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor.',
-      push: 'Push local block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css) as the files of the child theme <parent>-loopress, mirroring them. The child is never activated. ' +
+      push: 'Push local block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css) as the files of the child theme <parent>-loopress, mirroring them. The child is activated only when loopress.json sets "activateChildTheme": true, see theme_activate. ' +
         "Its preview's `changes` is split into `templates`, `parts` and `css` (style.css bundles theme/css/, then one entry per theme/blocks/ file): `removed` is a file the child drops because the project no longer has it, `unknown` a CSS file the site's Loopress plugin is too old to report.",
     },
     kind: 'template',
