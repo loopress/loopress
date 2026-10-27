@@ -75,7 +75,7 @@ On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder
 - **Static assets only.** `.php` and other server-executable files are rejected on push: the bundle is served straight off `wp-content/`.
 - **Per-file size limit.** A single file over 8 MB is rejected (raise it with the `loopress_app_max_asset_bytes` filter). A typical search-page bundle is 1 to 3 MB total and well under this.
 - **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed. There is no rollback or version history.
-- **One deploy at a time per app.** Concurrent `lps app push` (or a push racing a `lps app remove`) for the *same* app are not serialized: the asset cleanup and the state write are separate steps. Deploys of different apps are independent. Run one push per app at a time, which is the normal case for a CI pipeline.
+- **One deploy at a time per app.** Concurrent `lps app push` (or a push racing a `lps app rm`) for the *same* app are not serialized: the asset cleanup and the state write are separate steps. Deploys of different apps are independent. Run one push per app at a time, which is the normal case for a CI pipeline.
 - **Not part of `lps push`.** Apps have their own build step, so the aggregate `lps push` / `lps pull` / `lps promote` commands leave them alone. Deploy with `lps app push`.
 
 ## Talking to WordPress from the app
@@ -98,4 +98,4 @@ The shortcode exposes a small config object on the page, named `loopressApp_<nam
 
 ## Pages
 
-- [CLI](/apps/cli/): the `lps app pull/push/list/remove` commands
+- [CLI](/apps/cli/): the `lps app pull/push/list/rm` commands

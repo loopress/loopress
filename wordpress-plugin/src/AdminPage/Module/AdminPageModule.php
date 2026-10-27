@@ -103,7 +103,7 @@ final readonly class AdminPageModule implements Module
         $pluginData = get_file_data(LOOPRESS_PLUGIN_PATH . 'loopress.php', ['Version' => 'Version']);
 
         // Extended through this filter by optional feature modules, which report their
-        // own health data (the Plus edition's autoload status today) without this shared
+        // own health data (the Full edition's autoload status today) without this shared
         // code ever referencing them directly.
         $data = apply_filters('loopress_admin_data', [
             'apiUrl'        => get_rest_url(null, 'loopress/v1'),

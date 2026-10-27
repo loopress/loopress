@@ -17,9 +17,10 @@
 // - plugins: the WordPress Plugins screen, the two editions as two rows.
 // - terminal: the real `lps project config` output when it offers Full (messages copied from
 //   cli/src/commands/project/config.ts and cli/src/lib/bootstrap-full-install.ts).
-// - meter: a 13-segment gauge, Light's bracket over the first 7, Full's under all 13.
-// Module split checked against the Full-only list in wordpress-plugin/loopress.php; each tile shows
-// its real `lps` command group. Block templates left out until their edition is confirmed.
+// - meter: one segment per module, Light's bracket over its own, Full's under all of them.
+// Module split checked against the Light core modules in wordpress-plugin/src/Plugin.php and the
+// Full-only list in wordpress-plugin/loopress.php; each tile shows its real `lps` command group.
+// Keep in sync with both by hand. Snippets are left out on purpose: they are being deprecated.
 const { variant = "brackets" } = Astro.props as {
   variant?:
     | "brackets" | "nested" | "hex-nested" | "hex-thick" | "table" | "equation" | "tree" | "layers"
@@ -32,17 +33,24 @@ const config = [
   ["Menus", "menu"],
   ["Post types", "cpt"],
   ["Taxonomies", "taxonomy"],
+  ["Post meta", "meta"],
+  ["Roles", "role"],
   ["Options", "option"],
-  ["Theme", "theme"],
+  ["Global Styles", "theme style"],
 ];
 const code = [
   ["Hooks", "hook"],
   ["API routes", "api"],
   ["Apps", "app"],
   ["Pages", "page"],
+  ["Templates", "theme template"],
+  ["Patterns", "pattern"],
   ["Plugins", "plugin"],
   ["Composer", "composer"],
 ];
+
+// For the aria-labels, which list every module.
+const names = (mods: string[][]) => mods.map(([name]) => name).join(", ");
 
 // Flat-top hexagon, same orientation as the logo. y grows downward.
 const hex = (r: number) =>
@@ -58,7 +66,7 @@ const around = (r: number) =>
     return { name: name.split(",")[0], cmd, x, y, anchor: x > 20 ? "start" : x < -20 ? "end" : "middle" };
   });
 
-// Honeycomb: 7 flat-top columns x 2 rows, odd columns shifted down half a cell. Config fills the
+// Honeycomb: flat-top columns x 2 rows, odd columns shifted down half a cell. Config fills the
 // first cells column by column, code the rest.
 const cellR = 46;
 const cells = [...config.map((m) => [...m, "light"]), ...code.map((m) => [...m, "full"])].map(([name, , kind], i) => {
@@ -78,14 +86,14 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
 
 <div class={`ed ed-${variant}`}>
   {variant === "hex-nested" ? (
-    <svg viewBox="-240 -265 480 470" class="hexsvg" role="img" aria-label="Loopress Full is a hexagon containing the Loopress Light hexagon. Light holds configuration: ACF, forms, menus, post types, taxonomies, options, theme. The ring around it, Full only, holds your code: hooks, API routes, apps, pages, plugins, Composer.">
+    <svg viewBox="-240 -265 480 470" class="hexsvg" role="img" aria-label={`Loopress Full is a hexagon containing the Loopress Light hexagon. Light holds configuration: ${names(config)}. The ring around it, Full only, holds your code: ${names(code)}.`}>
       <text x="0" y="-232" text-anchor="middle" class="h-title h-full">Loopress Full</text>
       <text x="0" y="-213" text-anchor="middle" class="h-sub">loopress.dev · installed by lps project config</text>
       <polygon points={hex(215)} class="ring-full" />
       <polygon points={hex(112)} class="ring-light" />
-      <text x="0" y="-60" text-anchor="middle" class="h-title h-light">Loopress Light</text>
-      <text x="0" y="-45" text-anchor="middle" class="h-sub">WordPress.org</text>
-      {config.map(([name], i) => <text x="0" y={-20 + i * 17} text-anchor="middle" class="h-mod">{name}</text>)}
+      <text x="0" y="-75" text-anchor="middle" class="h-title h-light">Loopress Light</text>
+      <text x="0" y="-60" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-38 + i * 14} text-anchor="middle" class="h-mod">{name}</text>)}
       {around(150).map((m) => (
         <>
           <text x={m.x} y={m.y} text-anchor="middle" class="h-mod">{m.name}</text>
@@ -94,14 +102,14 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
       ))}
     </svg>
   ) : variant === "hex-thick" ? (
-    <svg viewBox="-330 -265 660 520" class="hexsvg" role="img" aria-label="Two hexagons drawn like the Loopress logo. The inner one, Loopress Light, holds configuration: ACF, forms, menus, post types, taxonomies, options, theme. The outer one, Loopress Full, adds your code around it: hooks, API routes, apps, pages, plugins, Composer.">
+    <svg viewBox="-330 -265 660 520" class="hexsvg" role="img" aria-label={`Two hexagons drawn like the Loopress logo. The inner one, Loopress Light, holds configuration: ${names(config)}. The outer one, Loopress Full, adds your code around it: ${names(code)}.`}>
       <polygon points={hex(200)} class="thick thick-full" />
       <polygon points={hex(105)} class="thick thick-light" />
       <text x="0" y="-135" text-anchor="middle" class="h-title h-full">Full</text>
       <text x="0" y="-119" text-anchor="middle" class="h-sub">loopress.dev</text>
-      <text x="0" y="-52" text-anchor="middle" class="h-title h-light">Light</text>
-      <text x="0" y="-38" text-anchor="middle" class="h-sub">WordPress.org</text>
-      {config.map(([name], i) => <text x="0" y={-15 + i * 16} text-anchor="middle" class="h-mod">{name}</text>)}
+      <text x="0" y="-70" text-anchor="middle" class="h-title h-light">Light</text>
+      <text x="0" y="-56" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-36 + i * 14} text-anchor="middle" class="h-mod">{name}</text>)}
       {around(232).map((m) => (
         <>
           <text x={m.x} y={m.y} text-anchor={m.anchor} class="h-mod h-big">{m.name}</text>
@@ -151,10 +159,10 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
 <span class="t-f">loopress-full/</span>              <span class="cm"># loopress.dev, via lps project config</span>
 ├── <span class="t-l">loopress-light/</span>         <span class="cm"># WordPress.org</span>
 │   ├── acf/  forms/  menus/
-│   ├── cpt/  taxonomies/
+│   ├── cpt/  taxonomies/  meta/  roles/
 │   └── options/  theme/
 └── <span class="t-f">+ your code</span>
-    ├── hooks/  api/  apps/  pages/
+    ├── hooks/  api/  apps/  pages/  patterns/  theme/templates/
     └── composer.json          <span class="cm"># plugin lockfile</span></pre>
   ) : variant === "layers" ? (
     <div class="ly">
@@ -179,7 +187,7 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
     </div>
   ) : variant === "honeycomb" ? (
     <div class="hc">
-      <svg viewBox="0 0 520 240" class="hc-svg" role="img" aria-label="Thirteen hexagon cells, one per module. Seven cyan cells are Loopress Light, configuration: ACF, forms, menus, post types, taxonomies, options, theme. Six violet cells are the code Loopress Full adds: hooks, API routes, apps, pages, plugins, Composer.">
+      <svg viewBox={`0 0 ${Math.ceil((config.length + code.length) / 2) * cellR * 1.5 + 40} 240`} class="hc-svg" role="img" aria-label={`${config.length + code.length} hexagon cells, one per module. ${config.length} cyan cells are Loopress Light, configuration: ${names(config)}. ${code.length} violet cells are the code Loopress Full adds: ${names(code)}.`}>
         {cells.map((c) => (
           <g>
             <polygon points={c.pts} class={c.kind === "light" ? "hc-l" : "hc-f"} />
@@ -233,7 +241,7 @@ Removing the temporary admin account...
       <p class="aside-ed">answer no and you stay on Light, everything it syncs keeps working.</p>
     </div>
   ) : variant === "meter" ? (
-    <div class="mt">
+    <div class="mt" style={`grid-template-columns: repeat(${config.length + code.length}, minmax(3.6rem, 1fr))`}>
       <div class="mt-br mt-light" style={`grid-column: 1 / span ${config.length}`}><span>Light</span> WordPress.org</div>
       {config.map(([name]) => <div class="seg s-l">{name}</div>)}
       {code.map(([name]) => <div class="seg s-f">{name.split(",")[0]}</div>)}

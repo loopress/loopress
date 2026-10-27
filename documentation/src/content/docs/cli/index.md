@@ -24,7 +24,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 | [`lps project config`](/concepts/#configuring-an-environment) | Add or update a WordPress project environment |
 | [`lps project list`](/concepts/#projects-and-environments) | List configured WordPress projects |
 | [`lps project switch`](/concepts/#targeting-an-environment) | Switch the active project |
-| [`lps project remove`](/concepts/#projects-and-environments) | Remove one or more WordPress projects or environments |
+| [`lps project rm`](/concepts/#projects-and-environments) | Remove one or more WordPress projects or environments |
 | [`lps project rotate`](/concepts/#projects-and-environments) | Rotate the WordPress Application Password of an environment |
 
 ## Every resource at once
@@ -45,9 +45,9 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | Command group | Subcommands | Feature |
 |---------------|-------------|---------|
 | `lps snippet` | `pull` `push` `list` `diff` `rollback` `publish` | [Snippets](/snippets/) |
-| `lps hook` | `pull` `push` `list` `diff` `rollback` `remove` | [Hooks](/hooks/) |
-| `lps api` | `pull` `push` `list` `diff` `rollback` `remove` `publish` | [Custom API Routes](/api/cli/) |
-| `lps app` | `pull` `push` `list` `remove` | [Single-Page Apps](/apps/cli/) |
+| `lps hook` | `pull` `push` `list` `diff` `rollback` `rm` | [Hooks](/hooks/) |
+| `lps api` | `pull` `push` `list` `diff` `rollback` `rm` `publish` | [Custom API Routes](/api/cli/) |
+| `lps app` | `pull` `push` `list` `rm` | [Single-Page Apps](/apps/cli/) |
 | `lps page` | `push` `list` `diff` | [Static Pages](/pages/) |
 | `lps pattern` | `pull` `push` `list` `rm` `diff` `rollback` | [Block Patterns](/block-patterns/) |
 | `lps acf` | `pull` `push` `list` `diff` `rollback` | [ACF](/acf/) |
@@ -57,14 +57,14 @@ Each feature syncs one kind of WordPress data as files. Most share the same subc
 | `lps taxonomy` | `pull` `push` `list` `rm` `diff` `rollback` | [Taxonomies](/taxonomies/) |
 | `lps meta` | `pull` `push` `list` `rm` `diff` `rollback` | [Post Meta](/post-meta/) |
 | `lps role` | `pull` `push` `list` `rm` `diff` `rollback` | [Roles](/roles/) |
-| `lps option` | `add` `pull` `push` `list` `diff` `rollback` `remove` | [Options](/options/) |
+| `lps option` | `add` `pull` `push` `list` `diff` `rollback` `rm` | [Options](/options/) |
 | `lps plugin` | `add` `pull` `push` `status` `audit` | [Plugins](/plugins/) |
 | `lps theme` | `add` `pull` `push` `status` `activate`, `version pull/push` | [Themes](/themes/) |
 | `lps theme style` | `pull` `push` `diff` `rollback` | [Theme Styles](/theme-styles/) |
 | `lps theme template` | `push` `list` `diff` | [Templates and parts](/pages/#templates-and-parts) |
 | `lps composer` | `init` `pull` `push` | [Composer](/composer/cli/) |
 
-`lps api remove` and `lps hook remove` are aliases of `lps api rm` and `lps hook rm`, which keep working.
+Every `rm` also answers to `remove` (`lps app remove`, `lps option remove`...), for existing scripts.
 
 ## Loopress account
 

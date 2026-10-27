@@ -290,7 +290,7 @@ jobs:
         run: composer run test
 
   plugin-deptrac:
-    name: Plugin:Light/Plus boundary (Deptrac)
+    name: Plugin:Light/Full boundary (Deptrac)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -309,9 +309,9 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       # Source-level guard, complementing (not replacing) plugin-light-artifact-guard below:
-      # this catches a Light class importing Plus-only code (Dependencies/Update/Snippets) at
+      # this catches a Light class importing Full-only code (Dependencies/Update/Snippets) at
       # PR-review time on source, rather than only downstream on the built Light zip.
-      - name: Run Deptrac (Light / Plus dependency boundary)
+      - name: Run Deptrac (Light / Full dependency boundary)
         run: composer run deptrac
 
   plugin-frontend:

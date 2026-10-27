@@ -8,7 +8,7 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync ACF field groups, WPForms forms, menus, and options with the Loopress CLI: pull them as JSON, keep them in Git, push them back.
+Sync ACF, WPForms forms, menus, post types, taxonomies, roles and options with the Loopress CLI, as JSON files kept in Git.
 
 == Description ==
 
@@ -28,7 +28,7 @@ Features:
 * Move configuration between environments (local, staging, production)
 * REST API restricted to administrators, authenticated with WordPress application passwords
 
-Need code snippet sync (Code Snippets, WPCode) or Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
+Need hooks, custom API routes, single-page apps, static pages, block templates, code snippets or Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
 
 == Installation ==
 
@@ -41,7 +41,7 @@ Need code snippet sync (Code Snippets, WPCode) or Composer dependency management
 
 = What is the difference between Loopress Light and Loopress Full? =
 
-Loopress Light (this plugin) syncs ACF, WPForms forms, menus, custom post types, taxonomies, post meta keys, user roles, and tracked options. Loopress Full adds code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
+Loopress Light (this plugin) syncs ACF, WPForms forms, menus, custom post types, taxonomies, post meta keys, user roles, and tracked options. Loopress Full adds the code side: hooks, custom API routes, single-page apps, static pages, block templates and patterns, code snippet sync (Code Snippets, WPCode), Composer dependency management, a security audit, and platform diagnostics. Loopress Full costs nothing, it is not a paid upgrade: it is downloaded directly from loopress.dev instead of wordpress.org. Directory guidelines do not allow a plugin that installs executable code from external registries such as Packagist, and separately do not allow a plugin whose REST API can deploy arbitrary PHP/JS/CSS into another plugin such as Code Snippets or WPCode; both capabilities live in Loopress Full instead, not because of pricing. Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on. See [the documentation](https://docs.loopress.dev/wordpress-plugin/) for the full feature comparison and download link.
 
 = Which ACF versions are supported? =
 
@@ -65,25 +65,4 @@ The plugin is the site-side companion of the Loopress CLI (`lps`, installable fr
 
 == Changelog ==
 
-= 2026.7.6 =
-* The plugin now builds two editions from the same codebase. Loopress Light (this plugin) keeps snippet synchronization; Composer dependency management moved to the separate Loopress Full plugin, distributed from loopress.dev.
-
-= 2026.7.5 =
-* Fixed all issues reported by the WordPress Plugin Check tool: escaped dynamic exception messages, added the missing direct access guard, and bumped "Tested up to" to 7.0.
-
-= 2026.7.4 =
-* Fixed `lps snippet pull` failing to delete a locally removed snippet, and excluded trashed snippets from sync.
-
-= 2026.7.3 =
-* Plugin management now relies entirely on WordPress core's REST API instead of a custom endpoint.
-
-= 2026.7.2 =
-* Added a diagnostics tab to the admin UI.
-* Unified the snippet REST route.
-* Switched the integrity hash from md5 to sha256.
-
-= 2026.7.1 =
-* Improved compatibility of the WPCode sidecar file with the WPCode API.
-
-= 2026.7.0 =
-* Initial release: basic UI for Composer dependency installation, and REST endpoints for the Loopress CLI.
+Every release is listed in [CHANGELOG.md](https://github.com/loopress/loopress/blob/main/wordpress-plugin/CHANGELOG.md).

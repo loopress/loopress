@@ -1,7 +1,7 @@
 ---
 title: Forms
 description: Push, pull and list WordPress forms from the command line.
-edition: full
+edition: light
 ---
 
 The `form` command group lets you version-control forms as plain JSON files in Git.

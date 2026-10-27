@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Remove from '../../../src/commands/option/remove.js'
+import Remove from '../../../src/commands/option/rm.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
