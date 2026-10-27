@@ -64,6 +64,10 @@
                      exclusively through the PHP-DI container, same untraceable-by-Psalm shape as
                      RouteLoader's below. -->
                 <directory name="src/Hooks/RestApi" />
+                <!-- BlockFilesController's endpoints are invoked by register_rest_route(), and
+                     BlockLoader's public methods by add_action()/add_filter(), same shape. -->
+                <directory name="src/Blocks/RestApi" />
+                <directory name="src/Blocks/Frontend" />
                 <!-- OptionsController's endpoints are invoked by register_rest_route() like the
                      other RestApi/ directories above. -->
                 <directory name="src/Options/RestApi" />
@@ -119,6 +123,8 @@
                      PHP-DI container instantiates them through this inherited base one. -->
                 <referencedMethod name="Loopress\Infrastructure\AbstractFilesDirectory::__construct" />
                 <referencedMethod name="Loopress\Apps\Module\AppsModule::__construct" />
+                <referencedMethod name="Loopress\Blocks\Module\BlocksModule::__construct" />
+                <referencedMethod name="Loopress\Blocks\Infrastructure\BlocksDirectory::__construct" />
                 <referencedMethod name="Loopress\TempAdmin\Module\TempAdminModule::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppShortcode::__construct" />
                 <referencedMethod name="Loopress\Apps\Frontend\AppAssetEnqueuer::__construct" />
@@ -174,10 +180,19 @@
                 <!-- AppShortcode::render()'s $content and $tag complete the do_shortcode callback
                      signature; this shortcode reads neither. -->
                 <directory name="src/Apps/Frontend" />
+                <!-- BlockLoader::filterAssetUrl()'s $path completes the plugins_url filter signature. -->
+                <directory name="src/Blocks/Frontend" />
                 <!-- PageFilters::blockEditing()'s $userId completes the map_meta_cap signature. -->
                 <directory name="src/Pages/Frontend" />
             </errorLevel>
         </UnusedParam>
+
+        <!-- BlockLoader::render()'s template closure: its params are read by the included render.php. -->
+        <UnusedClosureParam>
+            <errorLevel type="suppress">
+                <file name="src/Blocks/Frontend/BlockLoader.php" />
+            </errorLevel>
+        </UnusedClosureParam>
 
         <!-- Registered as a `rest_post_dispatch`/`rest_pre_serve_request` filter; the return
              value is consumed by WordPress's filter chain, not by any caller Psalm can see. -->
@@ -190,6 +205,8 @@
                      hook chain Psalm can't trace to a caller. -->
                 <file name="src/Apps/Frontend/AppShortcode.php" />
                 <file name="src/Apps/Frontend/AppAssetEnqueuer.php" />
+                <!-- block_type_metadata / plugins_url filter callbacks. -->
+                <file name="src/Blocks/Frontend/BlockLoader.php" />
                 <!-- injectUpdate() is a pre_set_site_transient_update_plugins filter callback and
                      pluginInformation() a plugins_api one; same untraceable-by-Psalm hook-chain
                      shape as the other filter callbacks above. -->
@@ -297,6 +314,7 @@
                 <file name="src/Settings/Feature.php" />
                 <file name="src/Api/Feature.php" />
                 <file name="src/Hooks/Feature.php" />
+                <file name="src/Blocks/Feature.php" />
                 <file name="src/Apps/Feature.php" />
                 <file name="src/Pages/Feature.php" />
                 <file name="src/TempAdmin/Feature.php" />

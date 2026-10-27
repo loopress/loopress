@@ -72,7 +72,7 @@ use Loopress\Plugin;
 
 /* LOOPRESS_FULL_START */
 // Stripped from the Loopress Light wordpress.org build by scripts/build-flavor.cjs, together
-// with src/Dependencies/, src/Update/, src/Snippets/, src/Api/ and uninstall.php: the Light
+// with src/Dependencies/, src/Update/, src/Snippets/, src/Api/, src/Blocks/ and uninstall.php: the Light
 // artifact must not contain any reference to these Full features, even inactive ones.
 // Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
 // capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
@@ -81,7 +81,7 @@ use Loopress\Plugin;
 // if anything more directly: it binds arbitrary developer PHP straight into WP core's own
 // action/filter hooks, unconditionally, for every visitor. Pages ships raw HTML (which can
 // carry <script>) straight into the site's pages, close enough to count as the same thing.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressFullFeature) {
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Blocks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressFullFeature) {
     /** @var class-string<\Loopress\Contract\FeatureProvider> $loopressFullFeatureClass */
     $loopressFullFeatureClass = "\\Loopress\\{$loopressFullFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressFullFeatureClass::definitions()));
@@ -91,7 +91,7 @@ foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps'
 // gains the features above the CLI has commands for (Sentry, Update, Settings, TempAdmin have none).
 add_filter('loopress_capabilities', fn(array $capabilities): array => array_merge($capabilities, [
     'edition' => 'full',
-    'modules' => array_merge((array) ($capabilities['modules'] ?? []), ['api', 'apps', 'dependencies', 'hooks', 'pages', 'snippets']),
+    'modules' => array_merge((array) ($capabilities['modules'] ?? []), ['api', 'apps', 'blocks', 'dependencies', 'hooks', 'pages', 'snippets']),
 ]));
 /* LOOPRESS_FULL_END */
 

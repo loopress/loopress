@@ -30,6 +30,7 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'acf:pull', label: 'ACF', needsPlugin: 'acf', supportsYes: true},
   {commandId: 'api:pull', label: 'API routes', needsPlugin: 'api', supportsYes: true},
   {commandId: 'hook:pull', label: 'hooks', needsPlugin: 'hooks', supportsYes: true},
+  {commandId: 'block:pull', label: 'dynamic blocks', needsPlugin: 'block', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', needsPlugin: 'form', supportsYes: true},
   {commandId: 'pattern:pull', label: 'patterns', needsPlugin: 'pattern', supportsYes: true},
   // Templates and parts have no pull. Global Styles are pulled only once the project tracks them,
@@ -49,7 +50,7 @@ function missingFor(target: PullTarget, capabilities: SiteCapabilities): Missing
 
 export default class Pull extends LoopressCommand {
   static override description =
-    'Pull every tracked resource from WordPress into local files in one run: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets'
+    'Pull every tracked resource from WordPress into local files in one run: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, dynamic blocks, forms, patterns, Global Styles, menus, options, and snippets'
 
   static override enableJsonFlag = true
   static override examples = ['$ lps pull', '$ lps pull --env staging', '$ lps pull --dry-run']

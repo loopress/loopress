@@ -50,6 +50,7 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `themeStylesDir` | `theme` | The active block theme's Global Styles | [`lps theme style`](/theme-styles/) |
 | `apiDir` | `api` | Custom API route files | [`lps api`](/api/cli/) |
 | `hooksDir` | `hooks` | Hook files (actions, filters, cron) | [`lps hook`](/hooks/) |
+| `blockDir` | `blocks` | Dynamic blocks, one `<slug>/` folder holding `block.json` and `render.php`, registered as `loopress/<slug>` | [`lps block`](/dynamic-blocks/) |
 | `pageDir` | `pages` | Static HTML pages | [`lps page`](/pages/) |
 | `patternDir` | `patterns` | Block patterns, one `<slug>.html` file of block markup, registered as `loopress/<slug>` | [`lps pattern`](/block-patterns/) |
 | `templateDir` | `theme/templates` | Block templates, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |

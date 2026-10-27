@@ -4,6 +4,7 @@ import {z} from 'zod'
 
 import {configManager} from '../config/project-config.manager.js'
 import {PLUGIN_PIN} from '../types/plugin.js'
+import {readLocalBlocks} from '../utils/block-format.js'
 import {COMPOSER_JSON} from '../utils/composer.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
@@ -31,6 +32,7 @@ const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'menuDir', 'themeStylesDir'] as
 const DEFAULT_DIR = {
   acfDir: 'acf',
   apiDir: 'api',
+  blockDir: RESOURCE_DIR_DEFAULTS.block,
   cptDir: 'cpt',
   formDir: 'forms',
   hooksDir: 'hooks',
@@ -83,6 +85,10 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty', API_FILES_RESOURCE)
   checked += await checkPhpDir(resolve('hooksDir'), problems, 'Hook file is empty', HOOK_FILES_RESOURCE)
+
+  const blocks = await readLocalBlocks(resolve('blockDir'))
+  checked += blocks.blocks.length
+  problems.push(...blocks.problems)
 
   const pages = await readLocalPages(resolve('pageDir'))
   checked += pages.pages.length + pages.problems.length

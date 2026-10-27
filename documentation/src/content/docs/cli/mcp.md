@@ -61,6 +61,11 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `hook_list` | No | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | Remove one hook file (action, filter, cron) from WordPress |
 | `hook_rollback` | Yes | Restore hook files to the snapshot saved automatically before an earlier `hook_push` (`list` shows what's available) |
+| `block_push` | Yes | Push local dynamic blocks (`blocks/<slug>/` folders) to WordPress |
+| `block_pull` | No | Pull dynamic blocks from WordPress |
+| `block_list` | No | List the dynamic blocks Loopress registers, with their load and render errors |
+| `block_rm` | Yes | Remove one dynamic block from WordPress |
+| `block_rollback` | Yes | Restore dynamic blocks to the snapshot saved automatically before an earlier `block_push` (`list` shows what's available) |
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |

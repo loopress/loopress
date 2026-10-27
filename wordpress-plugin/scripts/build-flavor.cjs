@@ -128,7 +128,7 @@ if (require.main === module) {
     // Full's own description, the source header describes Light.
     entry = entry.replace(
       /^ \* Description:.*$/m,
-      ' * Update URI: https://loopress.dev\n * Description: Everything in Loopress Light, plus hooks, custom API routes, single-page apps, static pages, block templates and patterns, and Composer dependencies, deployed from Git with the Loopress CLI.',
+      ' * Update URI: https://loopress.dev\n * Description: Everything in Loopress Light, plus hooks, dynamic blocks, custom API routes, single-page apps, static pages, block templates and patterns, and Composer dependencies, deployed from Git with the Loopress CLI.',
     )
   }
 

@@ -118,6 +118,7 @@ export default defineConfig({
 										},
 										{ label: "Static Pages", slug: "pages" },
 										{ label: "Block Patterns", slug: "block-patterns" },
+										{ label: "Dynamic Blocks", slug: "dynamic-blocks" },
 									],
 								},
 								{

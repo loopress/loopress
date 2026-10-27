@@ -3,6 +3,7 @@ import {dirname, join} from 'node:path'
 import {z} from 'zod'
 
 import {getAcfKey} from '../utils/acf-format.js'
+import {writeBlock} from '../utils/block-format.js'
 import {CPT_SPEC, type DeclaredTypeSpec, fileExtension, formatDeclaredFile, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {getFormId, getFormTitle} from '../utils/form-format.js'
 import {getMenuSlug} from '../utils/menu-format.js'
@@ -75,6 +76,12 @@ async function phpFile(id: string, value: unknown, dir: string): Promise<void> {
   await writeFile(filePath, String(value))
 }
 
+// block: id is the slug, value the folder's files (file name => text).
+async function block(id: string, value: unknown, dir: string): Promise<void> {
+  const files = snapshotRecord(id, value)
+  await writeBlock(dir, {files: Object.fromEntries(Object.entries(files).map(([name, content]) => [name, String(content)])), slug: id})
+}
+
 // ids are 'menu-locations' or `menu/<slug>` (see resource-state.ts's menuProvider).
 async function menu(id: string, value: unknown, dir: string): Promise<void> {
   if (id === 'menu-locations') {
@@ -114,6 +121,7 @@ function declaredType(spec: DeclaredTypeSpec): Materializer {
 const MATERIALIZERS: Record<string, Materializer> = {
   acf,
   api: phpFile,
+  block,
   cpt: declaredType(CPT_SPEC),
   form,
   hook: phpFile,
