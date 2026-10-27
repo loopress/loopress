@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@loopress/cli)](https://www.npmjs.com/package/@loopress/cli)
 [![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue)](./LICENSE)
-![WordPress 6.0+](https://img.shields.io/badge/WordPress-6.0%2B-21759b)
+![WordPress 6.2+](https://img.shields.io/badge/WordPress-6.2%2B-21759b)
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-777bb4)
 
 **Build, review and ship WordPress, in one loop.**
@@ -59,12 +59,12 @@ WordPress.org does not allow a plugin to deploy, so it ships from loopress.dev. 
 | | Light | Full |
 | --- | :---: | :---: |
 | ACF field groups, post types, taxonomies | ✓ | ✓ |
-| Menus, options, block theme styles | ✓ | ✓ |
+| Forms, menus, options, block theme styles | ✓ | ✓ |
 | Custom post types, taxonomies, post meta keys and roles (JSON files, like CPT UI in Git) | ✓ | ✓ |
 | Hooks, filters, cron (PHP classes) | | ✓ |
 | REST API routes | | ✓ |
 | Apps (React, Vue, Svelte bundles) | | ✓ |
-| Pages, block patterns, snippets, forms | | ✓ |
+| Pages, block templates and patterns, snippets | | ✓ |
 | Plugin and theme lockfile, Composer | | ✓ |
 | Get it | [WordPress.org](https://wordpress.org/plugins/loopress-light/) | [loopress.dev](https://docs.loopress.dev/wordpress-plugin/) |
 

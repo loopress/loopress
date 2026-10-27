@@ -26,7 +26,7 @@ function deriveFullOnlyFeatures(root) {
       return [...foreachArray[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
     }
   }
-  throw new Error('Could not find the Plus feature list in loopress.php')
+  throw new Error('Could not find the Full feature list in loopress.php')
 }
 
 // Every path used below is built from `root` plus a literal string segment taken from
@@ -39,7 +39,7 @@ const FLAVORS = {
     textDomain: 'loopress-light',
     readmeSource: 'flavors/light/readme.txt',
     frontendEntry: 'frontend/light/index.tsx',
-    stripPlusBlock: true,
+    stripFullBlock: true,
     // Full-only src/ subdirectories, absent from this edition's zip, not merely inactive.
     fullOnlySrcDirs: deriveFullOnlyFeatures(root),
     includeUninstall: false,
@@ -54,7 +54,7 @@ const FLAVORS = {
     textDomain: 'loopress-full',
     readmeSource: 'readme.txt',
     frontendEntry: 'frontend/full/index.tsx',
-    stripPlusBlock: false,
+    stripFullBlock: false,
     fullOnlySrcDirs: [],
     includeUninstall: true,
     fullOnlyComposerPackages: [],
@@ -112,22 +112,23 @@ if (require.main === module) {
     filter: (src) => !excludedSrcDirs.some((dir) => src === dir || src.startsWith(dir + path.sep)),
   })
 
-  // 2. Entry file: strip or keep the marked Plus block, patch the header for the full edition.
+  // 2. Entry file: strip or keep the marked Full block, patch the header for the full edition.
   const START = '/* LOOPRESS_FULL_START */'
   const END = '/* LOOPRESS_FULL_END */'
   let entry = fs.readFileSync(path.join(root, 'loopress.php'), 'utf8')
   const blockPattern = new RegExp(`[ \\t]*${escapeRegExp(START)}[\\s\\S]*?${escapeRegExp(END)}\\n?`, 'g')
 
-  if (flavor.stripPlusBlock) {
+  if (flavor.stripFullBlock) {
     entry = entry.replace(blockPattern, '')
   } else {
     // Keep the code between the markers, drop only the marker comment lines themselves.
     entry = entry.replace(new RegExp(`[ \\t]*${escapeRegExp(START)}\\n`, 'g'), '')
     entry = entry.replace(new RegExp(`[ \\t]*${escapeRegExp(END)}\\n`, 'g'), '')
     entry = entry.replace('Plugin Name: Loopress Light', 'Plugin Name: Loopress Full')
+    // Full's own description, the source header describes Light.
     entry = entry.replace(
-      ' * Description:',
-      ' * Update URI: https://loopress.dev\n * Description:',
+      /^ \* Description:.*$/m,
+      ' * Update URI: https://loopress.dev\n * Description: Everything in Loopress Light, plus hooks, custom API routes, single-page apps, static pages, block templates and patterns, and Composer dependencies, deployed from Git with the Loopress CLI.',
     )
   }
 

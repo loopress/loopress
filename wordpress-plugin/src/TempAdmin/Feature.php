@@ -12,7 +12,7 @@ use Loopress\TempAdmin\Module\TempAdminModule;
  * Cleans up the temporary administrator `lps project config` creates to install Loopress
  * Full (cli/src/lib/temp-admin.ts). The CLI deletes it itself, but a killed process or a
  * network drop during that delete leaves a live administrator nobody holds the password for.
- * Full-only like every other Plus feature (see scripts/build-flavor.cjs): only Full is ever
+ * Full-only like every other Full feature (see scripts/build-flavor.cjs): only Full is ever
  * installed that way, and Light has no business deleting users.
  */
 final class Feature implements FeatureProvider

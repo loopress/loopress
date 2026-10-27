@@ -26,7 +26,7 @@ abstract class AbstractFileLoader
     abstract protected function directory(): AbstractFilesDirectory;
 
     // Absolute path to the developer's own vendor autoloader, or null if they have none. A
-    // seam rather than a stored dependency because the object that knows it lives in the Plus
+    // seam rather than a stored dependency because the object that knows it lives in the Full
     // layer, which the Shared layer this class sits in must not import.
     abstract protected function userAutoloadPath(): ?string;
 

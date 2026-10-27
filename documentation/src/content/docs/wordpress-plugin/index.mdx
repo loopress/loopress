@@ -106,13 +106,13 @@ The tradeoff is a strict set of guidelines, and Loopress ran into two of them:
 - **Rule 8** forbids a plugin from sending or installing executable code from a third-party system, which includes package registries such as Packagist. That is exactly what Loopress Full's Composer dependency management does, so it cannot be hosted on WordPress.org regardless of implementation quality.
 - Separately, the review team classified snippet sync itself, REST endpoints that let arbitrary PHP/JS/CSS be submitted remotely and stored in another plugin (Code Snippets or WPCode) for later execution, as a remote code-deployment mechanism. This holds regardless of the authentication and capability checks in front of those endpoints: they establish who is allowed to call the endpoint, not whether the code submitted through it is safe. Every submission of Loopress Light that shipped snippet sync was rejected on this basis, and a subsequent appeal was rejected too, explicitly and finally.
 
-Loopress Light no longer ships snippet sync as a result: it covers only configuration stored as plain data (ACF, menus, custom post types, taxonomies, post meta, options), with no executable-code angle, and is published on the WordPress.org directory in that form. Theme styles go through WordPress core's own REST API, so they work with either edition.
+Loopress Light no longer ships snippet sync as a result: it covers only configuration stored as plain data (ACF, forms, menus, custom post types, taxonomies, post meta, roles, options), with no executable-code angle, and is published on the WordPress.org directory in that form. Theme styles go through WordPress core's own REST API, so they work with either edition.
 
 This is why the plugin ships as two editions instead of one: Loopress Light is on the WordPress.org directory, installed and updated in place like any other plugin from there. Loopress Full carries both rejected capabilities (Composer and snippet sync), so it is downloaded directly from loopress.dev, but it still updates itself through the normal Plugins page: it checks GitHub Releases for a newer `loopress-full.zip` and, once found, WordPress downloads and installs it the same way it would a WordPress.org-hosted plugin.
 
 ## Requirements
 
-- WordPress 6.0+
+- WordPress 6.2+
 - PHP 8.2+
 - `manage_options` capability (administrator role)
 

@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Loopress Light
- * Description: Sync ACF field groups, menus, forms and options with the Loopress CLI and keep them in Git.
+ * Description: Sync ACF field groups, forms, menus, post types, taxonomies, roles and options with the Loopress CLI and keep them in Git.
  * Version: 2026.9.0
  * Author: jean-smaug
  * Text Domain: loopress
@@ -73,7 +73,7 @@ use Loopress\Plugin;
 /* LOOPRESS_FULL_START */
 // Stripped from the Loopress Light wordpress.org build by scripts/build-flavor.cjs, together
 // with src/Dependencies/, src/Update/, src/Snippets/, src/Api/ and uninstall.php: the Light
-// artifact must not contain any reference to these Plus features, even inactive ones.
+// artifact must not contain any reference to these Full features, even inactive ones.
 // Snippets and Api in particular: wordpress.org rejected Loopress Light over this exact
 // capability (REST endpoints that remotely deploy arbitrary executable code), regardless of
 // the auth/capability checks in front of it; Api and Apps follow the same rule (a bundled
@@ -81,11 +81,11 @@ use Loopress\Plugin;
 // if anything more directly: it binds arbitrary developer PHP straight into WP core's own
 // action/filter hooks, unconditionally, for every visitor. Pages ships raw HTML (which can
 // carry <script>) straight into the site's pages, close enough to count as the same thing.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressPlusFeature) {
-    /** @var class-string<\Loopress\Contract\FeatureProvider> $loopressPlusFeatureClass */
-    $loopressPlusFeatureClass = "\\Loopress\\{$loopressPlusFeature}\\Feature";
-    add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressPlusFeatureClass::definitions()));
-    add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressPlusFeatureClass::moduleClasses()));
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressFullFeature) {
+    /** @var class-string<\Loopress\Contract\FeatureProvider> $loopressFullFeatureClass */
+    $loopressFullFeatureClass = "\\Loopress\\{$loopressFullFeature}\\Feature";
+    add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressFullFeatureClass::definitions()));
+    add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressFullFeatureClass::moduleClasses()));
 }
 // What `loopress/v1/capabilities` reports, read by the CLI to tell the editions apart.
 add_filter('loopress_capabilities', fn(array $capabilities): array => array_merge($capabilities, ['edition' => 'full']));

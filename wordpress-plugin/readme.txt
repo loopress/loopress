@@ -8,15 +8,19 @@ Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Sync ACF field groups, menus, options, and code snippets with the Loopress CLI, and install, audit, and sync Composer dependencies from the WordPress admin.
+Loopress Light plus hooks, API routes, apps, pages, templates, snippets and Composer, deployed from Git with the Loopress CLI.
 
 == Description ==
 
-Loopress Full is the full edition of the Loopress WordPress plugin. It connects your WordPress site to your development workflow: ACF field groups, menus, options, and code snippets (integrating with Code Snippets and WPCode) all sync with the Loopress CLI, and Composer dependency management sits on top: search Packagist, install and remove PHP packages, audit them for known security advisories, and sync your dependency manifest with the Loopress CLI, all without SSH access.
+Loopress Full is the full edition of the Loopress WordPress plugin. It does everything Loopress Light does (ACF, forms, menus, custom post types, taxonomies, post meta keys, roles and options, synced with the Loopress CLI), and adds the code side of a site: hooks, custom REST API routes, single-page apps, static pages, block templates, parts and patterns in a Loopress child theme, code snippets (through Code Snippets or WPCode), and Composer dependency management: search Packagist, install and remove PHP packages, audit them for known security advisories, all without SSH access.
 
 Features:
 
-* Sync ACF field groups, post types, taxonomies, and options pages with `lps acf pull` / `lps acf push`
+* Everything in Loopress Light: ACF, WPForms forms, menus, custom post types, taxonomies, post meta keys, roles and options
+* Hooks, filters and cron events as PHP classes: `lps hook push`
+* Custom REST API routes: `lps api push`
+* Single-page apps (Vue, React, Svelte bundles) mounted with a shortcode: `lps app push`
+* Static pages, block templates, parts and patterns: `lps page push`, `lps theme template push`, `lps pattern push`
 * Works with Code Snippets and WPCode, no migration needed
 * Pull snippets from the site as files with `lps snippet pull`, push edits back with `lps snippet push`
 * Install and remove Composer packages from the admin panel
@@ -42,7 +46,7 @@ No. Loopress Full runs Composer directly from the PHP process using the Composer
 
 = Why is this plugin not on WordPress.org? =
 
-The plugin directory guidelines do not allow plugins whose purpose is installing executable PHP code from external registries such as Packagist. That capability is exactly what Loopress Full exists for. Separately, the review team also rejected code snippet sync itself, deploying arbitrary PHP/JS/CSS into Code Snippets or WPCode is treated as a remote code deployment mechanism regardless of the authentication in front of it. Both Composer management and snippet sync are therefore distributed only from loopress.dev, in Loopress Full. Loopress Light, the ACF- and SEO-sync-only edition, is on wordpress.org instead.
+The plugin directory guidelines do not allow plugins whose purpose is installing executable PHP code from external registries such as Packagist. That capability is exactly what Loopress Full exists for. Separately, the review team also rejected code snippet sync itself, deploying arbitrary PHP/JS/CSS into Code Snippets or WPCode is treated as a remote code deployment mechanism regardless of the authentication in front of it. Both Composer management and snippet sync are therefore distributed only from loopress.dev, in Loopress Full. Loopress Light, the configuration-only edition, is on wordpress.org instead.
 
 = What happens when I delete the plugin? =
 
@@ -50,25 +54,4 @@ Deleting the plugin removes the `wp-content/loopress/` directory, including `com
 
 == Changelog ==
 
-= 2026.7.6 =
-* The plugin now builds two editions from the same codebase. Loopress Full (this download) keeps Composer dependency management; snippet synchronization moved to the separate Loopress Light plugin on wordpress.org. Installing Loopress Full deactivates Loopress Light automatically.
-
-= 2026.7.5 =
-* Fixed all issues reported by the WordPress Plugin Check tool: escaped dynamic exception messages, added the missing direct access guard, and bumped "Tested up to" to 7.0.
-
-= 2026.7.4 =
-* Fixed `lps snippet pull` failing to delete a locally removed snippet, and excluded trashed snippets from sync.
-
-= 2026.7.3 =
-* Plugin management now relies entirely on WordPress core's REST API instead of a custom endpoint.
-
-= 2026.7.2 =
-* Added a diagnostics tab to the admin UI.
-* Unified the snippet REST route.
-* Switched the integrity hash from md5 to sha256.
-
-= 2026.7.1 =
-* Improved compatibility of the WPCode sidecar file with the WPCode API.
-
-= 2026.7.0 =
-* Initial release: basic UI for Composer dependency installation, and REST endpoints for the Loopress CLI.
+Every release is listed in [CHANGELOG.md](https://github.com/loopress/loopress/blob/main/wordpress-plugin/CHANGELOG.md).
