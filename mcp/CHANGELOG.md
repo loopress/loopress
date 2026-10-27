@@ -1,5 +1,25 @@
 # @loopress/mcp
 
+## 0.33.0
+
+### Minor Changes
+
+- 0bf479c: Dynamic blocks (Loopress Full): `lps block push | pull | list | diff | rollback | rm` and the `block_*` MCP tools deploy `blocks/<slug>/` folders (`block.json` + `render.php`, optionally `style.css` and `view.js`) registered as the server-rendered block `loopress/<slug>`. Each block's CSS and JS load only where it renders, it works inside a Query Loop, and a `render.php` that throws renders nothing instead of breaking the page. `lps push`, `lps pull`, `lps diff` and `lps validate` include them.
+
+### Patch Changes
+
+- 47d5a68: Consistency fixes from the 2026-10-27 audit. `lps api` and `lps hook` help examples pass the directory as a positional argument (there is no `--path` flag), and the public-route warning links to docs.loopress.dev. `lps --help` describes the `app`, `form`, `hook`, `menu`, `option` and `page` topics. The MCP server reports its real version, and its missing-project error names `lps init`. Docs: API route and hook pushes are all or nothing, the declared resources appear in the workflow page, plus the snippet sidecar fields, the `project config` prompts and the push exceptions that do delete.
+- 4613ded: Loopress Light no longer breaks the aggregate commands. `GET loopress/v1/capabilities` now lists the site's `modules`, and `lps pull`, `lps push` (dry run included), `lps diff` and so `lps promote` skip a Full-only step ("needs Loopress Full") when the project has no files for it. When it does, `lps push` refuses before pushing anything, `lps pull` and `lps diff` report it. `lps push` and `lps theme push` skip templates and parts when the project has none, even with `activateChildTheme` (use `lps theme activate` for an empty child), and `lps theme template push` alone refuses with "Nothing to push". The removed SEO module warning is gone.
+- Updated dependencies [47d5a68]
+- Updated dependencies [0bf479c]
+- Updated dependencies [cbe0bd9]
+- Updated dependencies [b038a67]
+- Updated dependencies [4613ded]
+- Updated dependencies [f24e50f]
+- Updated dependencies [da7d681]
+- Updated dependencies [b698800]
+  - @loopress/cli@0.33.0
+
 ## 0.32.2
 
 ### Patch Changes

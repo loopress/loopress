@@ -1,5 +1,13 @@
 # @loopress/wordpress-plugin
 
+## 2026.18.0
+
+### Minor Changes
+
+- 0bf479c: Dynamic blocks (Loopress Full): `lps block push | pull | list | diff | rollback | rm` and the `block_*` MCP tools deploy `blocks/<slug>/` folders (`block.json` + `render.php`, optionally `style.css` and `view.js`) registered as the server-rendered block `loopress/<slug>`. Each block's CSS and JS load only where it renders, it works inside a Query Loop, and a `render.php` that throws renders nothing instead of breaking the page. `lps push`, `lps pull`, `lps diff` and `lps validate` include them.
+- 4613ded: Loopress Light no longer breaks the aggregate commands. `GET loopress/v1/capabilities` now lists the site's `modules`, and `lps pull`, `lps push` (dry run included), `lps diff` and so `lps promote` skip a Full-only step ("needs Loopress Full") when the project has no files for it. When it does, `lps push` refuses before pushing anything, `lps pull` and `lps diff` report it. `lps push` and `lps theme push` skip templates and parts when the project has none, even with `activateChildTheme` (use `lps theme activate` for an empty child), and `lps theme template push` alone refuses with "Nothing to push". The removed SEO module warning is gone.
+- da7d681: The plugin now exposes `loopress/v1/capabilities` (edition, version, environment type, ACF/form/snippet integrations, active theme and Loopress child theme), and the CLI requires it: an older plugin is asked to update. `lps push` refuses upfront, with the fix, when the project uses snippets, forms or ACF the site can't hold, instead of failing at that step after pushing everything before it. New `lps theme activate` (the Loopress child theme by default, which starts from its parent's theme mods and Global Styles) and `"activateChildTheme": true` in loopress.json to keep the child active on `lps theme template push`. Global Styles keep the parent's file name while the child is active. `lps content copy` activates locally the theme and plugins active on the source. `lps doctor` reports the site's capabilities.
+
 ## 2026.17.1
 
 ### Patch Changes
