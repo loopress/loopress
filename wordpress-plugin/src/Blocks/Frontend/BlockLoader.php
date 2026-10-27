@@ -79,7 +79,7 @@ final class BlockLoader
         try {
             // Isolated scope: render.php sees exactly WordPress's own template contract.
             (static function (string $__file, array $attributes, string $content, ?\WP_Block $block): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- read by the included template
-                include $__file;
+                include $__file; // NOSONAR php:S2003: a block renders once per occurrence on the page, include_once would print it once
             })($file, $attributes, $content, $block);
 
             return (string) ob_get_clean();

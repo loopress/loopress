@@ -51,6 +51,11 @@ describe('readLocalBlocks and the rollback materializer', () => {
     expect(await readLocalBlocks(dir)).toEqual({blocks: [{files, slug: 'hero'}], problems: []})
   })
 
+  it('refuses to write a slug or file name that would escape the blocks directory', async () => {
+    await expect(materializeSnapshot('block', {'..': {'render.php': ''}}, dir)).rejects.toThrow('invalid slug or file name')
+    await expect(materializeSnapshot('block', {hero: {'../x.php': ''}}, dir)).rejects.toThrow('invalid slug or file name')
+  })
+
   it('reports problems per folder, skipping dotfiles', async () => {
     mkdirSync(join(dir, 'hero'))
     writeFileSync(join(dir, 'hero', 'block.json'), JSON.stringify({name: 'loopress/hero'}))

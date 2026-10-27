@@ -10,7 +10,6 @@
     findUnusedCode="true"
     ensureArrayStringOffsetsExist="true"
     ensureArrayIntOffsetsExist="true"
-    errorBaseline="psalm-taint-baseline.xml"
 >
     <projectFiles>
         <directory name="src" />
@@ -326,7 +325,6 @@
         <UnusedFunctionCall>
             <errorLevel type="suppress">
                 <file name="src/Infrastructure/AbstractFilesController.php" />
-                <file name="src/Blocks/RestApi/BlockFilesController.php" />
             </errorLevel>
         </UnusedFunctionCall>
     </issueHandlers>

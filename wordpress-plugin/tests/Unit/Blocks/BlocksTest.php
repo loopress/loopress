@@ -82,6 +82,8 @@ class BlocksTest extends TestCase
         $this->assertStringContainsString('unsupported file "x.php"', $this->problem('hero', ['x.php' => '']));
         $this->assertSame('block.json "name" must be "loopress/other".', BlockFilesController::problems('other', ['block.json' => self::BLOCK_JSON, 'render.php' => '']));
         $this->assertSame('block.json is not a valid JSON object.', BlockFilesController::problems('hero', ['block.json' => '[]', 'render.php' => '']));
+        $this->assertStringContainsString('remove its declare statement', $this->problem('hero', ['block.json' => self::BLOCK_JSON, 'render.php' => "<?php\ndeclare(strict_types=1);\necho 1;"]));
+        $this->assertStringContainsString('remove its namespace statement', $this->problem('hero', ['block.json' => self::BLOCK_JSON, 'render.php' => "<?php\nnamespace Acme;\necho 1;"]));
         $this->assertStringStartsWith('render.php: PHP Parse error', $this->problem('hero', ['block.json' => self::BLOCK_JSON, 'render.php' => '<?php if (']));
     }
 

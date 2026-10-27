@@ -5,7 +5,8 @@ import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
-import {BLOCKS_ENDPOINT, readLocalBlocks, type RemoteBlock, writeBlock} from '../../utils/block-format.js'
+import {errorMessage} from '../../lib/narrow.js'
+import {assertSafeBlock, BLOCKS_ENDPOINT, readLocalBlocks, type RemoteBlock, writeBlock} from '../../utils/block-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
 
@@ -33,6 +34,13 @@ export default class Pull extends LoopressCommand {
     this.log(`Blocks path: ${path}`)
 
     const remote = await this.wp.get<RemoteBlock[]>(BLOCKS_ENDPOINT)
+    // All of them before the first rm() below, so a bad entry never costs a good local block.
+    try {
+      for (const block of remote) assertSafeBlock(block)
+    } catch (error) {
+      this.error(errorMessage(error))
+    }
+
     const remoteSlugs = new Set(remote.map((block) => block.slug))
     const orphans = (await readLocalBlocks(path)).blocks.map((block) => block.slug).filter((slug) => !remoteSlugs.has(slug))
     const pulled = remote.map((block) => block.slug)

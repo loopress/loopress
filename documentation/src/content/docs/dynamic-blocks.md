@@ -59,7 +59,9 @@ The [standard WordPress `block.json`](https://developer.wordpress.org/block-edit
 Loopress fills in two defaults:
 
 - **`version`**: when you don't set one, the time of the last push, so browsers pick up a new `style.css` or `view.js` right away.
-- **`"supports": {"inserter": false}`**: the block is placed in `pages/` and `theme/` files, not picked from the editor's inserter. Set `"inserter": true` to show it there.
+- **`"supports": {"inserter": false}`**: the block is placed in `pages/` and `theme/` files, not picked from the editor's inserter.
+
+A block with no editor script isn't known to the editor at all. To pick it from the inserter, with a server-rendered preview, set `"supports": {"inserter": true, "autoRegister": true}` (WordPress 7.0 and later).
 
 ### render.php
 
@@ -86,7 +88,7 @@ A helper shared by several blocks belongs in a [hook](/hooks/) file: hooks load 
 
 ### style.css and view.js
 
-Plain files, served as they are. Loopress doesn't build anything: a block that needs a bundler builds before `lps block push`. `view.js` is loaded as an ES module, so the [Interactivity API](https://developer.wordpress.org/block-editor/reference-guides/interactivity-api/) works with no extra setup.
+Plain files, served as they are. Loopress doesn't build anything: a block that needs a bundler builds before `lps block push`. `view.js` is loaded as an ES module on the pages where the block renders. It can't import WordPress script modules such as `@wordpress/interactivity`: a block folder has no `view.asset.php` to declare them.
 
 ## Typical workflow
 
@@ -129,4 +131,4 @@ The folder is `blocks/` by default, `blockDir` in [`loopress.json`](/loopress-js
 ## Not supported
 
 - **Static blocks** (a `save()` function in JS): their HTML is frozen into the content, a [block pattern](/block-patterns/) does the same with less.
-- **A custom editor UI**: in the editor, the block has no preview. Loopress pages and templates are written as files, not edited in wp-admin.
+- **A custom editor UI** (`editorScript`, an `edit()` function): at most the server-rendered preview `autoRegister` gives. Loopress pages and templates are written as files, not edited in wp-admin.

@@ -159,9 +159,17 @@ final readonly class BlockFilesController
         // PHP's own parser, in-process. Unlike hooks/, no `php -l` pass on top.
         // ponytail: token_get_all only, add AbstractFilesController's `php -l` fallback if a compile error slips through.
         try {
-            token_get_all($render, TOKEN_PARSE);
+            $tokens = token_get_all($render, TOKEN_PARSE);
         } catch (\ParseError $e) {
             return 'render.php: PHP Parse error: ' . $e->getMessage() . ' on line ' . $e->getLine();
+        }
+
+        // Both must be the file's first statement, and BlocksDirectory::GUARD comes before it: the
+        // include would then be a compile error, which no try/catch can turn into an empty block.
+        foreach ($tokens as $token) {
+            if (is_array($token) && in_array($token[0], [T_DECLARE, T_NAMESPACE], true)) {
+                return 'render.php: remove its ' . strtolower(substr(token_name($token[0]), 2)) . ' statement, a block template runs in the global namespace without declare().';
+            }
         }
 
         return null;
