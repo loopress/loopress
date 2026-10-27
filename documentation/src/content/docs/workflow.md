@@ -68,7 +68,7 @@ lps pull --env staging
 lps pull --dry-run
 ```
 
-Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. On Loopress Light, Composer and the Full-only resources (API routes, hooks, patterns, snippets) are skipped the same way when the project has no directory for them, and fail when it does. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
+Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. On Loopress Light, Composer is always skipped, and the Full-only resources (API routes, hooks, patterns, snippets) are skipped the same way when the project has no directory for them, and fail when it does. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
 
 ## `lps push`
 

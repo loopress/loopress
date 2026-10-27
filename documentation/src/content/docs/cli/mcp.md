@@ -121,7 +121,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
-| `theme_push` | Yes | Push everything theme related: versions, then templates and parts, then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
+| `theme_push` | Yes | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory, unless `activateChildTheme` is true), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
 | `theme_version_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_pull` | No | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
@@ -131,8 +131,8 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `theme_styles_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_styles_push` (`list` shows what's available) |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
-| `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push` |
-| `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull` |
+| `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push`. Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
+| `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull`. On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
 | `project_promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
 | `content_copy` | Yes | Replace the local site's posts, pages and terms with those of `from`, then push the project to local, like `lps content copy` |
 | `project_status` | No | Show which project and environment the other tools will target |

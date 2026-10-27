@@ -31,7 +31,7 @@ export function registerBulkTools(server: McpServer): void {
     'pull_all',
     {
       description:
-        'Pull every tracked resource from WordPress into local files in one run, the equivalent of `lps pull`: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets. Global Styles only once the project tracks them, on a block theme. On Loopress Light, composer and the Full-only resources the project does not use are skipped, the ones it uses fail.',
+        'Pull every tracked resource from WordPress into local files in one run, the equivalent of `lps pull`: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets. Global Styles only once the project tracks them, on a block theme. On Loopress Light, composer is always skipped, and the Full-only resources (API routes, hooks, patterns, snippets) are skipped when the project has no directory for them and fail when it does.',
       inputSchema: {env: envFlag},
     },
     async ({env}) =>

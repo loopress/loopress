@@ -32,13 +32,18 @@ const cache = new WeakMap<WpClient, Promise<SiteCapabilities>>()
 export async function getCapabilities(wp: WpClient, site: string): Promise<SiteCapabilities> {
   let capabilities = cache.get(wp)
   if (!capabilities) {
-    capabilities = wp.get<SiteCapabilities>(CAPABILITIES_ENDPOINT).catch((error: unknown) => {
-      if (isNotFoundError(error)) {
-        throw new Error(`The Loopress plugin on ${site} is too old for this CLI. Update it, then try again.`, {cause: error})
-      }
-
-      throw error
-    })
+    const tooOld = `The Loopress plugin on ${site} is too old for this CLI. Update it, then try again.`
+    capabilities = wp
+      .get<SiteCapabilities>(CAPABILITIES_ENDPOINT)
+      .catch((error: unknown) => {
+        if (isNotFoundError(error)) throw new Error(tooOld, {cause: error})
+        throw error
+      })
+      .then((result) => {
+        // A plugin from before `modules` answers without it.
+        if (!Array.isArray(result.modules)) throw new Error(tooOld)
+        return result
+      })
     cache.set(wp, capabilities)
   }
 

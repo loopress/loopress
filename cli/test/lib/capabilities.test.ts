@@ -28,6 +28,12 @@ describe('getCapabilities', () => {
     await expect(getCapabilities(wp, 'staging')).rejects.toThrow('The Loopress plugin on staging is too old for this CLI. Update it, then try again.')
   })
 
+  it('asks to update a plugin whose capabilities predate the modules field', async () => {
+    const {wp} = fakeWp(async () => ({edition: 'full', integrations: {acf: false, form: false}}))
+
+    await expect(getCapabilities(wp, 'staging')).rejects.toThrow('The Loopress plugin on staging is too old for this CLI.')
+  })
+
   it('passes any other failure through', async () => {
     const {wp} = fakeWp(async () => {
       throw new Error('Authentication failed (401).')

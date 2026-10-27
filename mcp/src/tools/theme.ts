@@ -23,7 +23,7 @@ export function registerThemeTools(server: McpServer): void {
     {
       command: ['theme', 'push'],
       description:
-        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Switches the active theme only to the Loopress child, when loopress.json sets "activateChildTheme": true.' +
+        'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts (skipped when the project has no template, part or CSS directory and does not set activateChildTheme), then Global Styles. Switches the active theme only to the Loopress child, when loopress.json sets "activateChildTheme": true.' +
         PREVIEW_SUFFIX +
         CHANGES_SUFFIX +
         ' Each step is under `results` with its own preview in `result`. The templates and parts step splits its `changes` as template_push describes.',
