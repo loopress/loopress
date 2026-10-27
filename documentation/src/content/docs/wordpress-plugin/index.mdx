@@ -8,7 +8,7 @@ import PluginDownload from '../../../components/PluginDownload.astro';
 Loopress ships as a single WordPress plugin, built in two editions from the same codebase. Both are free:
 
 - **Loopress Light** ([on the WordPress.org directory](https://wordpress.org/plugins/loopress-light/)) syncs configuration stored as plain data: [ACF](/acf/), [Forms](/forms/), [Menus](/menus/), [Custom Post Types](/custom-post-types/), [Taxonomies](/taxonomies/), [Post Meta](/post-meta/), [Roles](/roles/), [Options](/options/), and [Theme Styles](/theme-styles/).
-- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Block Patterns](/block-patterns/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
+- **Loopress Full** (from loopress.dev) does everything Loopress Light does, plus everything that deploys or installs code: [Snippets](/snippets/), [Hooks](/hooks/), [Custom API Routes](/api/), [Static Pages](/pages/), [Block Patterns](/block-patterns/), [Dynamic Blocks](/dynamic-blocks/), [Single-Page Apps](/apps/), the [plugin](/plugins/) and [theme](/themes/) lockfile, and [Composer](/composer/) dependency management.
 
 Loopress Full is not a paid upgrade. It is distributed outside WordPress.org because the directory guidelines forbid installing code from Packagist and deploying PHP into another plugin, see [About WordPress.org-hosted plugins](#about-wordpressorg-hosted-plugins). Installing Loopress Full deactivates Loopress Light automatically: it is a full replacement, not an add-on, and the two editions never run side by side.
 
@@ -41,6 +41,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | `lps api pull` / `push` / `list` | | ✓ |
 | Hooks (WordPress actions, filters and cron jobs deployed from PHP files) | | ✓ |
 | `lps hook pull` / `push` / `list` / `rm` | | ✓ |
+| Dynamic blocks (server-rendered `block.json` + `render.php` folders, placed with `wp:loopress/<slug>`) | | ✓ |
+| `lps block pull` / `push` / `list` / `rm` | | ✓ |
 | Static pages (hand-written HTML pages rendered by the theme) | | ✓ |
 | `lps page push` / `list` / `diff` | | ✓ |
 | Block patterns (HTML files, included in pages, templates and parts with `wp:pattern`) | | ✓ |
@@ -80,6 +82,7 @@ Everything in Loopress Light, plus:
 
 - **Snippet sync**: pull the site's snippets as files with `lps snippet pull`, push edits back with `lps snippet push`, for whichever of Code Snippets or WPCode is active
 - **Hooks**: WordPress actions, filters and cron jobs deployed from PHP files with `lps hook push`
+- **Dynamic blocks**: server-rendered blocks with their own CSS and JS, one `block.json` + `render.php` folder each, deployed with `lps block push`
 - **Custom API routes**: REST API endpoints as plain PHP files with `lps api push`, each file becomes one route
 - **Static pages**: hand-written HTML files pushed as WordPress pages with `lps page push`, rendered inside the active theme and locked against edits in wp-admin, plus block templates and parts in a child theme
 - **Block patterns**: groups of blocks as `patterns/<slug>.html` files with `lps pattern push`, referenced from pages, templates and parts so one change updates them all

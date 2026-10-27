@@ -32,6 +32,7 @@ const ALL_COMMAND_IDS = [
   'acf:push',
   'api:push',
   'hook:push',
+  'block:push',
   'form:push',
   'pattern:push',
   'theme:template:push',

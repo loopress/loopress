@@ -5,6 +5,16 @@
       <code><![CDATA[$absPath]]></code>
     </TaintedFile>
   </file>
+  <file src="src/Blocks/Frontend/BlockLoader.php">
+    <TaintedFile>
+      <code><![CDATA[$this->directory->blockPath($slug) . 'block.json']]></code>
+    </TaintedFile>
+  </file>
+  <file src="src/Blocks/Infrastructure/BlocksDirectory.php">
+    <TaintedFile>
+      <code><![CDATA[$path]]></code>
+    </TaintedFile>
+  </file>
   <file src="src/Infrastructure/AbstractFileLoader.php">
     <TaintedInclude>
       <code><![CDATA[$this->directory()->filePath($slug)]]></code>

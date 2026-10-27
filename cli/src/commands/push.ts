@@ -33,7 +33,7 @@ const PLUGIN_BACKED: Record<string, ResourceDirKind> = {'acf:push': 'acf', 'form
 
 // Features of Loopress Full only: on Light, skipped while the project doesn't use them, refused
 // upfront when it does. On Full they run as usual, used or not.
-const FULL_ONLY: Record<string, ResourceDirKind> = {'api:push': 'api', 'hook:push': 'hooks', 'page:push': 'page', 'pattern:push': 'pattern'}
+const FULL_ONLY: Record<string, ResourceDirKind> = {'api:push': 'api', 'block:push': 'block', 'hook:push': 'hooks', 'page:push': 'page', 'pattern:push': 'pattern'}
 
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
@@ -48,6 +48,8 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'acf:push', label: 'ACF'},
   {commandId: 'api:push', label: 'API routes'},
   {commandId: 'hook:push', label: 'hooks'},
+  // Before templates and pages, which place them (`wp:loopress/<slug>`).
+  {commandId: 'block:push', label: 'dynamic blocks'},
   {commandId: 'form:push', label: 'forms'},
   // Before templates and pages, which can reference them (`wp:pattern`).
   {commandId: 'pattern:push', label: 'patterns'},
@@ -64,7 +66,7 @@ const PUSH_TARGETS: PushTarget[] = [
 
 export default class Push extends LoopressCommand {
   static override description =
-    'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets'
+    'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, dynamic blocks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets'
 
   static override enableJsonFlag = true
   static override examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']

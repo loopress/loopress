@@ -34,6 +34,11 @@
       "description": "Directory where custom API route files are read from and written to, relative to rootDir.",
       "default": "api"
     },
+    "blockDir": {
+      "type": "string",
+      "description": "Directory of dynamic blocks, one <slug>/ folder holding block.json and render.php, registered as loopress/<slug>, relative to rootDir.",
+      "default": "blocks"
+    },
     "hooksDir": {
       "type": "string",
       "description": "Directory where hook files (WordPress actions, filters, and scheduled tasks) are read from and written to, relative to rootDir.",

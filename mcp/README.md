@@ -72,6 +72,11 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |
 | `hook_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore hook files to the snapshot saved automatically before an earlier `hook_push` (`list` shows what's available) |
+| `block_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local dynamic blocks (`blocks/<slug>/` folders) to WordPress |
+| `block_pull` | No | `env?`, `path?` | Pull dynamic blocks from WordPress |
+| `block_list` | No | `env?` | List the dynamic blocks Loopress registers, with their load and render errors |
+| `block_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one dynamic block from WordPress |
+| `block_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore dynamic blocks to the snapshot saved automatically before an earlier `block_push` (`list` shows what's available) |
 | `page_push` | Yes | `env?`, `slug?`, `overwrite?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
 | `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
 | `page_diff` | No | `env?` | Show what differs (HTML, title, status) between the local pages and WordPress |

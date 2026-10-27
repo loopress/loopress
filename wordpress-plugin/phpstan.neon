@@ -86,6 +86,8 @@ parameters:
         # checkSyntax() calls token_get_all() for the ParseError it throws, not its tokens.
         - identifier: function.resultUnused
           path: src/Infrastructure/AbstractFilesController.php
+        - identifier: function.resultUnused
+          path: src/Blocks/RestApi/BlockFilesController.php
 
         # WP_REST_Request::get_json_params()'s bundled stub says `@return array` (no `|null`),
         # but the real core implementation (wp-includes/rest-api/class-wp-rest-request.php)

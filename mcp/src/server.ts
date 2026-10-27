@@ -14,6 +14,7 @@ import {registerCptTools} from './tools/cpt.js'
 import {registerDiffTools} from './tools/diff.js'
 import {registerDoctorTools} from './tools/doctor.js'
 import {registerFormTools} from './tools/form.js'
+import {registerBlockTools} from './tools/block.js'
 import {registerHookTools} from './tools/hooks.js'
 import {registerMenuTools} from './tools/menu.js'
 import {registerMetaTools} from './tools/meta.js'
@@ -38,6 +39,7 @@ const server = new McpServer({name: 'loopress', version}, {instructions: SERVER_
 registerSnippetTools(server)
 registerApiTools(server)
 registerHookTools(server)
+registerBlockTools(server)
 registerPageTools(server)
 registerAppTools(server)
 registerAcfTools(server)

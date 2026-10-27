@@ -29,6 +29,7 @@ lps snippet rollback --dry-run  # show what would be restored
 | [API routes](/api/cli/) | `lps api rollback` |
 | [Hooks](/hooks/) | `lps hook rollback` |
 | [Block Patterns](/block-patterns/) | `lps pattern rollback` |
+| [Dynamic Blocks](/dynamic-blocks/) | `lps block rollback` |
 
 Plugins, themes, Composer, static pages, templates and apps have no rollback: to go back, check out the previous version of your files in Git and push again. For plugins, keep in mind that a downgrade replaces files only, it does not undo database migrations.
 

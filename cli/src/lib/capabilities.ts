@@ -8,7 +8,7 @@ export type SiteCapabilities = {
   environmentType: string
   // `snippets` is absent on Loopress Light, which has no snippet sync at all.
   integrations: {acf: boolean; form: boolean; snippets?: boolean | undefined}
-  // The plugin features present: Light's own, plus `api`, `apps`, `dependencies`, `hooks`,
+  // The plugin features present: Light's own, plus `api`, `apps`, `blocks`, `dependencies`, `hooks`,
   // `pages`, `snippets` on Full.
   modules: string[]
   theme: {
@@ -71,6 +71,7 @@ const needsModule =
 const INTEGRATION_CHECKS: Partial<Record<ResourceDirKind, IntegrationCheck>> = {
   acf: ({integrations}) => (integrations.acf ? undefined : {plugins: ['advanced-custom-fields'], reason: 'ACF is not active'}),
   api: needsModule('api', 'API routes'),
+  block: needsModule('blocks', 'dynamic blocks'),
   blockCss: needsModule('pages', 'templates and parts'),
   css: needsModule('pages', 'templates and parts'),
   form: ({integrations}) => (integrations.form ? undefined : {plugins: ['wpforms-lite'], reason: 'no supported form plugin is active'}),

@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, acfNormalizeEndpoint, type AcfObjectType, getAcfKey} from '../utils/acf-format.js'
+import {BLOCKS_ENDPOINT, formatBlockProblems, readLocalBlocks, type RemoteBlock} from '../utils/block-format.js'
 import {
   CPT_SPEC,
   type DeclaredTypeSpec,
@@ -283,6 +284,25 @@ const hookProvider = phpFilesProvider({
   title: 'Hooks',
 })
 
+// ---- Dynamic blocks -------------------------------------------------------------------
+
+// Keyed by slug, compared on the whole folder (file name => text). A local problem fails the
+// resource, the same stance as pages: pushing would stop on it anyway.
+const blockProvider: ResourceStateProvider = {
+  dirKind: 'block',
+  async local(dir) {
+    const {blocks, problems} = await readLocalBlocks(dir)
+    if (problems.length > 0) throw new Error(formatBlockProblems(problems))
+    return new Map(blocks.map((block) => [block.slug, block.files]))
+  },
+  async remote(wp) {
+    const blocks = await wp.get<RemoteBlock[]>(BLOCKS_ENDPOINT)
+    return new Map(blocks.map((block) => [block.slug, block.files]))
+  },
+  resource: 'block',
+  title: 'Dynamic blocks',
+}
+
 // ---- Pages ------------------------------------------------------------------------------
 
 // Keyed by slug (the page's identity on both sides). `link` is server-derived and never
@@ -530,6 +550,7 @@ export const RESOURCE_STATE_PROVIDERS: ResourceStateProvider[] = [
   acfProvider,
   apiProvider,
   hookProvider,
+  blockProvider,
   templateProvider,
   partProvider,
   pageProvider,
