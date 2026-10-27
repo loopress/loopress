@@ -14,16 +14,16 @@ import {toSlug} from '../../utils/to-slug.js'
 type FormPushResult = {changes?: PushChange[]; path: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to forms directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Push local form files to WordPress. Local files created or updated remotely are renamed on disk to the `<id>-<slug>.json` convention.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps form push', '$ lps form push --allow-notifications']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps form push', '$ lps form push --allow-notifications']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
     'allow-notifications': Flags.boolean({

@@ -288,7 +288,7 @@ describe('plugin pull', () => {
 
       const result = await cmd.run()
 
-      const {choices} = prompts.checkbox.mock.calls[0][0] as {choices: Array<{checked?: boolean; value: string}>}
+      const {choices} = prompts.checkbox.mock.calls[0]?.[0] as {choices: Array<{checked?: boolean; value: string}>}
       expect(choices.map((choice) => choice.value)).toEqual(['wordfence', 'akismet'])
       expect(choices.some((choice) => choice.checked)).toBe(false)
       expect(result.untracked).toEqual(['wordfence'])

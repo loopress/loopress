@@ -8,8 +8,8 @@ type RemovalTarget =
   | {kind: 'project'; projectId: string; projectName: string}
 
 export default class Remove extends Command {
-  static description = 'Remove one or more WordPress projects or environments'
-  static examples = ['$ lps project remove']
+  static override description = 'Remove one or more WordPress projects or environments'
+  static override examples = ['$ lps project remove']
 
   async run(): Promise<void> {
     await this.parse(Remove)
@@ -54,7 +54,7 @@ export default class Remove extends Command {
       return
     }
 
-    const selected = chosen.map((index) => targets[Number(index)])
+    const selected = chosen.flatMap((index) => targets[Number(index)] ?? [])
     const projectsToRemove = new Map(
       selected.filter((target) => target.kind === 'project').map((target) => [target.projectId, target.projectName]),
     )

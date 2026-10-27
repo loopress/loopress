@@ -191,16 +191,16 @@ async function loadPhpFiles(command: LoopressCommand, dir: string): Promise<PhpF
 
 export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFilesCommand> {
   class ResourcePush extends PushCommand {
-    static args = pathArg(spec.pathNoun)
-    static description = spec.pushDescription
-    static enableJsonFlag = true
-    static examples = [
+    static override args = pathArg(spec.pathNoun)
+    static override description = spec.pushDescription
+    static override enableJsonFlag = true
+    static override examples = [
       `$ lps ${spec.cliName} push`,
       `$ lps ${spec.cliName} push --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`,
       `$ lps ${spec.cliName} push --prune`,
     ]
 
-    static flags = {
+    static override flags = {
       ...PushCommand.dryRunFlag,
       ...PushCommand.yesFlag,
       prune: Flags.boolean({
@@ -364,11 +364,11 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
 export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFilesCommand> {
   class ResourcePull extends LoopressCommand {
-    static args = pathArg(spec.pathNoun)
-    static description = spec.pullDescription
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} pull`, `$ lps ${spec.cliName} pull --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`]
-    static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
+    static override args = pathArg(spec.pathNoun)
+    static override description = spec.pullDescription
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} pull`, `$ lps ${spec.cliName} pull --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`]
+    static override flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<PullResult> {
       const {args} = await this.parse(ResourcePull)
@@ -428,9 +428,9 @@ export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFi
 
 export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFilesCommand> {
   class ResourceList extends LoopressCommand {
-    static description = spec.listDescription
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} list`]
+    static override description = spec.listDescription
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} list`]
 
     async run(): Promise<RemotePhpFile[]> {
       const files = await this.wp.get<RemotePhpFile[]>(spec.endpoint)
@@ -464,18 +464,18 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
 export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesCommand> {
   class ResourceRm extends LoopressCommand {
     // `remove` matches `lps app remove` and `lps option remove`, `rm` stays for existing scripts.
-    static aliases = [`${spec.cliName}:remove`]
-    static args = {
+    static override aliases = [`${spec.cliName}:remove`]
+    static override args = {
       filename: Args.string({
         description: `The ${spec.noun} to remove, its slug without the .php extension (e.g. "hello" or "invoice-pdf/[order_id]")`,
         required: true,
       }),
     }
 
-    static description = spec.rmDescription
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} rm hello`, `$ lps ${spec.cliName} remove hello --yes`]
-    static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
+    static override description = spec.rmDescription
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} rm hello`, `$ lps ${spec.cliName} remove hello --yes`]
+    static override flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<RmResult> {
       const {args} = await this.parse(ResourceRm)

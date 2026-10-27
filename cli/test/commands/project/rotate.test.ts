@@ -5,7 +5,7 @@ import {configManager} from '../../../src/config/project-config.manager.js'
 import {rotateAppPassword} from '../../../src/lib/rotate-app-password.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
-import {makeEnv} from '../../helpers/project-fixtures.js'
+import {makeEnv, withoutToken} from '../../helpers/project-fixtures.js'
 
 vi.mock('../../../src/lib/rotate-app-password.js', () => ({rotateAppPassword: vi.fn()}))
 
@@ -43,7 +43,7 @@ describe('project rotate', () => {
   })
 
   it('errors when the environment has no credentials configured', async () => {
-    const {cmd} = make({...makeEnv('production', 'https://acme.com'), token: undefined})
+    const {cmd} = make(withoutToken(makeEnv('production', 'https://acme.com')))
 
     await expect(cmd.run()).rejects.toThrow('No credentials configured')
     expect(rotateAppPassword).not.toHaveBeenCalled()

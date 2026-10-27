@@ -6,16 +6,16 @@ import {pinVersion} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
 
 type Advisory = {
-  cve?: string
-  fixedIn?: string
-  score?: number
-  severity?: string
+  cve?: string | undefined
+  fixedIn?: string | undefined
+  score?: number | undefined
+  severity?: string | undefined
   slug: string
   title: string
 }
 
 // The affected range of one advisory, from wpvulnerability's `operator` object.
-type Range = {max?: Bound; min?: Bound}
+type Range = {max?: Bound | undefined; min?: Bound | undefined}
 type Bound = {op: string; version: string}
 
 type HealthNote = {
@@ -33,10 +33,10 @@ const WPVULN_BASE = 'https://www.wpvulnerability.net/plugin'
 const WPORG_INFO = 'https://api.wordpress.org/plugins/info/1.2/'
 
 export default class Audit extends LoopressCommand {
-  static description = 'Check the plugins in loopress.json for known vulnerabilities (wpvulnerability.net) and health issues'
-  static enableJsonFlag = true
-  static examples = ['$ lps plugin audit']
-  static flags = {}
+  static override description = 'Check the plugins in loopress.json for known vulnerabilities (wpvulnerability.net) and health issues'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps plugin audit']
+  static override flags = {}
 
   async run(): Promise<AuditResult> {
     const manifest = {...this.localConfig.plugins}
@@ -49,8 +49,8 @@ export default class Audit extends LoopressCommand {
 
     const advisories: Advisory[] = []
     const health: HealthNote[] = []
-    for (const slug of slugs) {
-      const found = await withSpinner(`Auditing ${slug}`, async () => this.auditOne(slug, pinVersion(manifest[slug])))
+    for (const [slug, pin] of Object.entries(manifest)) {
+      const found = await withSpinner(`Auditing ${slug}`, async () => this.auditOne(slug, pinVersion(pin)))
       advisories.push(...found.advisories)
       health.push(...found.health)
     }
@@ -83,11 +83,11 @@ export default class Audit extends LoopressCommand {
   }
 
   private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'> & {range: Range}>> {
-    let body: {data?: {vulnerability?: unknown[]}}
+    let body: null | {data?: {vulnerability?: unknown[]}}
     try {
       body = await got(`${WPVULN_BASE}/${encodeURIComponent(slug)}/`, {
         timeout: {request: 10_000},
-      }).json<{data?: {vulnerability?: unknown[]}}>()
+      }).json<typeof body>()
     } catch (error) {
       // Never swallow this into an empty list: a clean audit must mean "no advisories found",
       // not "the advisory service was unreachable". Fail the command instead.
@@ -175,7 +175,8 @@ function affects(version: string, range: Range): boolean {
   const within = (bound: Bound | undefined, ok: Record<string, (order: number) => boolean>): boolean => {
     if (!bound) return true
     const order = compareVersions(version, bound.version)
-    return order === null || !Object.hasOwn(ok, bound.op) || ok[bound.op](order)
+    const check = Object.hasOwn(ok, bound.op) ? ok[bound.op] : undefined
+    return order === null || !check || check(order)
   }
 
   return (
@@ -222,6 +223,6 @@ function parseWordPressDate(value: string): number {
   const match = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2})(am|pm) GMT$/i.exec(value)
   if (!match) return Date.parse(value)
   const [, day, hour, minute, half] = match
-  const hours = (Number(hour) % 12) + (half.toLowerCase() === 'pm' ? 12 : 0)
+  const hours = (Number(hour) % 12) + (half?.toLowerCase() === 'pm' ? 12 : 0)
   return Date.parse(`${day}T${String(hours).padStart(2, '0')}:${minute}:00Z`)
 }

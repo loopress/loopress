@@ -118,7 +118,7 @@ describe('diff', () => {
     const result = await cmd.run()
 
     expect(result.drift).toBe(true)
-    expect(result.resources.snippet.added).toEqual(['9'])
+    expect(result.resources.snippet?.added).toEqual(['9'])
     expect(process.exitCode).toBe(1)
   })
 
@@ -152,8 +152,8 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.acf.changed.map((c) => c.id)).toEqual(['field-groups/group_1'])
-    expect(result.resources.form.removed).toEqual(['9'])
+    expect(result.resources.acf?.changed.map((c) => c.id)).toEqual(['field-groups/group_1'])
+    expect(result.resources.form?.removed).toEqual(['9'])
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('17 compared: 1 changed, 0 added, 1 removed'))
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('~ field-groups/group_1'))
   })
@@ -172,12 +172,12 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.snippet.error).toBe('boom')
-    expect(result.resources.snippet.added).toEqual([])
-    expect(result.resources.snippet.changed).toEqual([])
-    expect(result.resources.snippet.removed).toEqual([])
+    expect(result.resources.snippet?.error).toBe('boom')
+    expect(result.resources.snippet?.added).toEqual([])
+    expect(result.resources.snippet?.changed).toEqual([])
+    expect(result.resources.snippet?.removed).toEqual([])
     expect(result.drift).toBe(false)
-    expect(result.resources.form.added).toEqual([]) // the other resources still ran
+    expect(result.resources.form?.added).toEqual([]) // the other resources still ran
     expect(process.exitCode).toBe(2) // 2 = inconclusive, distinct from 1 = drift
     // 16, not 17: the failed resource is excluded from "compared".
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('16 compared: 0 changed, 0 added, 0 removed'))
@@ -218,7 +218,7 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.form.error).toBe('No supported form plugin is active')
+    expect(result.resources.form?.error).toBe('No supported form plugin is active')
     expect(process.exitCode).toBe(2)
   })
 
@@ -232,7 +232,7 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.form.error).toBe('No supported form plugin is active')
+    expect(result.resources.form?.error).toBe('No supported form plugin is active')
     expect(process.exitCode).toBe(2)
   })
 
@@ -247,13 +247,13 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.snippet.error).toBe(down)
-    expect(result.resources.composer.error).toBe(down)
+    expect(result.resources.snippet?.error).toBe(down)
+    expect(result.resources.composer?.error).toBe(down)
     const errorLines = logs.log.mock.calls.filter(([line]) => String(line).includes(down))
     expect(errorLines).toHaveLength(1)
     // Option needs no request without local options, so the failed ones are named.
-    expect(errorLines[0][0]).toContain('Snippets')
-    expect(errorLines[0][0]).not.toContain('Options')
+    expect(errorLines[0]?.[0]).toContain('Snippets')
+    expect(errorLines[0]?.[0]).not.toContain('Options')
     expect(process.exitCode).toBe(2)
   })
 
@@ -273,8 +273,8 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.composer.removed).toEqual([])
-    expect(result.resources.composer.error).toBeUndefined()
+    expect(result.resources.composer?.removed).toEqual([])
+    expect(result.resources.composer?.error).toBeUndefined()
   })
 
   it('stays silent on stdout in --json mode', async () => {

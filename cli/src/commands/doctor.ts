@@ -10,19 +10,19 @@ import {pluralize} from '../utils/pluralize.js'
 export type DoctorCheck = {message?: string; ok: boolean; title: string}
 
 export type DoctorResult = {
-  capabilities?: SiteCapabilities
+  capabilities?: SiteCapabilities | undefined
   checks: DoctorCheck[]
   environment: string
   ok: boolean
-  pluginVersion?: string
+  pluginVersion?: string | undefined
   project: string
   url: string
 }
 
 export default class Doctor extends LoopressCommand {
-  static description = 'Diagnose connectivity, plugin, credential and hook problems for the targeted environment'
-  static enableJsonFlag = true
-  static examples = ['$ lps doctor', '$ lps doctor --env production']
+  static override description = 'Diagnose connectivity, plugin, credential and hook problems for the targeted environment'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps doctor', '$ lps doctor --env production']
 
   private readonly checks: DoctorCheck[] = []
 

@@ -71,7 +71,8 @@ async function loadSnippet(path: string, file: string, onSkip?: (message: string
     }
   }
 
-  const resolvedType = type ?? (Object.hasOwn(TYPE_BY_EXTENSION, ext) ? TYPE_BY_EXTENSION[ext] : 'php')
+  const byExtension = Object.hasOwn(TYPE_BY_EXTENSION, ext) ? TYPE_BY_EXTENSION[ext] : undefined
+  const resolvedType = type ?? byExtension ?? 'php'
 
   return {
     active: isActive,

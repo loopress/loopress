@@ -4,11 +4,11 @@ import {LoopressCommand} from '../../lib/base.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 export default class List extends LoopressCommand {
-  static aliases = ['scf:list']
-  static description = 'List ACF field groups, post types, taxonomies, and options pages currently on WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps acf list', '$ lps acf list --type field-groups']
-  static flags = {
+  static override aliases = ['scf:list']
+  static override description = 'List ACF field groups, post types, taxonomies, and options pages currently on WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps acf list', '$ lps acf list --type field-groups']
+  static override flags = {
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
   }
 
@@ -21,8 +21,7 @@ export default class List extends LoopressCommand {
       byType[type] = await this.wp.get<Array<Record<string, unknown>>>(acfEndpoint(type))
     }
 
-    for (const type of types) {
-      const objects = byType[type]
+    for (const [type, objects] of Object.entries(byType)) {
       this.log(`${type} (${objects.length}):`)
 
       if (objects.length === 0) {

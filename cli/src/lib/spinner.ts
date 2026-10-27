@@ -19,6 +19,7 @@ function start(): void {
   const rawOut = process.stdout.write
   const rawErr = process.stderr.write
   const draw = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- typed as number, but undefined when stderr is not a TTY
     const text = `${FRAMES[frame]} ${label}`.slice(0, (process.stderr.columns ?? 80) - 1)
     rawErr.call(process.stderr, `\r\u{1B}[2K${text}`)
   }

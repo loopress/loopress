@@ -6,7 +6,7 @@ import {diagnoseWpSite} from '../../src/lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
-import {makeEnv, makeListedProject} from '../helpers/project-fixtures.js'
+import {makeEnv, makeListedProject, withoutToken} from '../helpers/project-fixtures.js'
 
 vi.mock('../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
 
@@ -82,7 +82,7 @@ describe('doctor', () => {
   })
 
   it('fails without credentials and skips the authenticated checks', async () => {
-    const {cmd, get, logs} = make({...makeEnv('production', 'https://acme.com'), token: undefined})
+    const {cmd, get, logs} = make(withoutToken(makeEnv('production', 'https://acme.com')))
 
     const result = await cmd.run()
 

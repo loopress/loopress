@@ -188,7 +188,7 @@ describe('template push', () => {
     writeFileSync(join(dir, 'theme', 'blocks', 'core', 'button.css'), '.a{color:red}')
     const put = vi.fn().mockResolvedValue(child)
     await makeCommand(put).run()
-    const sent = put.mock.calls[0][1] as {style: string}
+    const sent = put.mock.calls[0]?.[1] as {style: string}
     const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex')
 
     const cmd = makeCommand(put)

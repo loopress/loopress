@@ -16,16 +16,16 @@ const LOCATIONS_FILENAME = 'menu-locations.json'
 type MenuPushResult = {changes?: PushChange[]; path: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to menus directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Push local nav menus and the active theme menu locations to WordPress. Each menu\'s post_type/taxonomy items are resolved by slug on the target environment, never by a raw id; an item whose target does not exist there fails the whole menu rather than guessing.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps menu push']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps menu push']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }

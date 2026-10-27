@@ -17,17 +17,17 @@ import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '.
 type PromoteResult = {from: string; status: 'dry-run' | 'promoted'; to: string}
 
 export default class Promote extends Command {
-  static args = {
+  static override args = {
     from: Args.string({description: 'Environment to copy the configuration from', required: true}),
     to: Args.string({description: 'Environment to copy the configuration to', required: true}),
   }
 
-  static description =
+  static override description =
     'Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked files are overwritten with <from> in the process. With --dry-run, <from> is pulled into a throwaway copy of the project instead, and the push is only previewed.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps promote staging production', '$ lps promote production staging --dry-run']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps promote staging production', '$ lps promote production staging --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     overwrite: PushCommand.baseFlags.overwrite,

@@ -30,7 +30,7 @@ const ALL_COMMAND_IDS = [
 const SUPPORTS_YES = new Set(['acf:pull', 'api:pull', 'cpt:pull', 'form:pull', 'hook:pull', 'menu:pull', 'meta:pull', 'option:pull', 'pattern:pull', 'role:pull', 'snippet:pull', 'taxonomy:pull'])
 
 class TestPull extends Pull {
-  setup(options: {dryRun?: boolean; siteConfig: EnvironmentConfig; yes?: boolean}) {
+  setup(options: {dryRun?: boolean | undefined; siteConfig: EnvironmentConfig; yes?: boolean | undefined}) {
     this.dryRun = options.dryRun ?? false
     this.yes = options.yes ?? false
     this.siteConfig = options.siteConfig

@@ -163,7 +163,7 @@ describe('plugin push', () => {
 
       await cmd.run()
 
-      const {intent} = post.mock.calls[0][1] as {intent: {plugins: Record<string, string>}}
+      const {intent} = post.mock.calls[0]?.[1] as {intent: {plugins: Record<string, string>}}
       expect(intent.plugins['query-monitor']).toBe(queryMonitor)
     })
 

@@ -21,10 +21,10 @@ const PUSH_TARGETS = [
 ]
 
 export default class Push extends LoopressCommand {
-  static description = 'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Switches the active theme only to the Loopress child, when loopress.json sets "activateChildTheme": true.'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme push', '$ lps theme push --env staging', '$ lps theme push --dry-run']
-  static flags = {
+  static override description = 'Push everything theme related to WordPress: theme versions from loopress.json, then block templates and parts, then Global Styles. Switches the active theme only to the Loopress child, when loopress.json sets "activateChildTheme": true.'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme push', '$ lps theme push --env staging', '$ lps theme push --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     force: Flags.boolean({default: false, description: 'Passed to `lps theme version push`'}),

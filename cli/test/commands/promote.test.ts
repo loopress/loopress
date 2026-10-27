@@ -2,7 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {existsSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join, resolve} from 'node:path'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Promote from '../../src/commands/promote.js'
 import {configManager} from '../../src/config/project-config.manager.js'
@@ -100,6 +100,7 @@ describe('promote', () => {
       expect(cwds[0]).not.toBe(project)
       expect(cwds[1]).toBe(cwds[0])
       expect(hadLocalConfig).toBe(true)
+      assert(cwds[0])
       expect(existsSync(cwds[0])).toBe(false)
       expect(cwd).toBe(project)
       expect(existsSync(join(project, 'pulled.txt'))).toBe(false)

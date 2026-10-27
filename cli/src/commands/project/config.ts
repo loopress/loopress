@@ -18,10 +18,10 @@ const AUTH_BROWSER = 'browser'
 const AUTH_MANUAL = 'manual'
 
 export default class Config extends Command {
-  static description =
+  static override description =
     'Add or update a WordPress project environment. By default, authorizes via WordPress in your browser; manual username/Application Password entry is available as a fallback.'
 
-  static examples = ['$ lps project config']
+  static override examples = ['$ lps project config']
 
   async run(): Promise<void> {
     await this.parse(Config)
@@ -210,10 +210,8 @@ export default class Config extends Command {
         message: 'Project',
       })
 
-      if (choice !== NEW_PROJECT) {
-        const project = projects.find((p) => p.id === choice)!
-        return {projectId: project.id, projectName: project.name}
-      }
+      const project = projects.find((p) => p.id === choice)
+      if (project) return {projectId: project.id, projectName: project.name}
     }
 
     const existingNames = new Set(projects.map((project) => project.name.trim().toLowerCase()))

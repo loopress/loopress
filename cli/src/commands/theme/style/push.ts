@@ -9,16 +9,16 @@ import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} f
 type ThemeStylePushResult = {changes?: PushChange[]; file: string; status: 'dry-run' | 'success'}
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to theme styles directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     "Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress"
 
-  static enableJsonFlag = true
-  static examples = ['$ lps theme style push']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme style push']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }

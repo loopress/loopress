@@ -1,5 +1,5 @@
 import got from 'got'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {type CallbackHelpers, renderResultPage, waitForLocalCallback} from '../../src/lib/local-callback-server.js'
 import {openBrowser} from '../../src/lib/open-browser.js'
@@ -31,7 +31,9 @@ async function openedCallbackUrl(): Promise<string> {
   await vi.waitFor(() => {
     expect(openBrowser).toHaveBeenCalled()
   })
-  return vi.mocked(openBrowser).mock.calls.at(-1)![0]
+  const [url] = vi.mocked(openBrowser).mock.calls.at(-1) ?? []
+  assert(url)
+  return url
 }
 
 describe('waitForLocalCallback', () => {
@@ -83,20 +85,19 @@ describe('waitForLocalCallback', () => {
       extra: {callbackHost?: string; log?: (m: string) => void; timeoutMs?: number} = {},
     ) {
       return waitForLocalCallback<T>({
+        ...extra,
         allowedOrigins: ['https://relay.example'],
         buildUrl: (base, state) => `${base}/callback?state=${state}`,
-        callbackHost: extra.callbackHost,
         handleRequest,
         log: extra.log ?? (() => undefined),
         openingMessage: 'Opening your browser...',
         timeoutMessage: 'timed out',
-        timeoutMs: extra.timeoutMs,
       })
     }
 
     it("serves the handler's page as HTML and resolves with its value", async () => {
       const result = startWait<string>((url, {resolveWithPage}) => {
-        resolveWithPage('ok', url.searchParams.get('password')!)
+        resolveWithPage('ok', url.searchParams.get('password') ?? '')
       })
       const callbackUrl = new URL(await openedCallbackUrl())
       callbackUrl.searchParams.set('password', 'p w')

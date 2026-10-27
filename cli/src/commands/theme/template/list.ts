@@ -5,9 +5,9 @@ import {CHILD_THEME_ENDPOINT, type ChildTheme} from '../../../utils/template-for
 type ListResult = Omit<ChildTheme, 'parts' | 'templates'> & {parts: string[]; templates: string[]}
 
 export default class List extends LoopressCommand {
-  static description = 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme template list']
+  static override description = 'Show the Loopress child theme of the active block theme: whether it is active, its templates and parts, and those edited in the Site Editor'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme template list']
 
   async run(): Promise<ListResult> {
     const child = await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)

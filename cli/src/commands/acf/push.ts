@@ -14,15 +14,15 @@ type AcfChange = PushChange & {fields?: ReturnType<typeof acfFieldChanges>}
 type AcfPushResult = {changes?: AcfChange[]; path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
 
 export default class Push extends PushCommand {
-  static aliases = ['scf:push']
-  static args = {
+  static override aliases = ['scf:push']
+  static override args = {
     path: Args.string({description: 'Path to ACF directory (overrides project config)'}),
   }
 
-  static description = 'Push local ACF field groups, post types, taxonomies, and options pages to WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps acf push', '$ lps acf push --type field-groups']
-  static flags = {
+  static override description = 'Push local ACF field groups, post types, taxonomies, and options pages to WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps acf push', '$ lps acf push --type field-groups']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
     type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),

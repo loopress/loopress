@@ -32,8 +32,8 @@ describe('app-manifest', () => {
       const files = await buildFileList(dir)
 
       expect(files.map((f) => f.path)).toEqual(['assets/a.js', 'index.html'])
-      expect(files[0].sha256).toHaveLength(64)
-      expect(files[1].size).toBe('<!doctype html>'.length)
+      expect(files[0]?.sha256).toHaveLength(64)
+      expect(files[1]?.size).toBe('<!doctype html>'.length)
     })
 
     it('rejects a file whose extension the server would not serve', async () => {
@@ -63,11 +63,10 @@ describe('app-manifest', () => {
 
   describe('computeBuildId', () => {
     it('is stable for the same content and order-independent', () => {
-      const a = [
-        {path: 'a.js', sha256: 'x'.repeat(64), size: 1},
-        {path: 'b.js', sha256: 'y'.repeat(64), size: 2},
-      ]
-      const reordered = [a[1], a[0]]
+      const first = {path: 'a.js', sha256: 'x'.repeat(64), size: 1}
+      const second = {path: 'b.js', sha256: 'y'.repeat(64), size: 2}
+      const a = [first, second]
+      const reordered = [second, first]
 
       expect(computeBuildId(a)).toBe(computeBuildId(reordered))
       expect(computeBuildId(a)).toHaveLength(12)

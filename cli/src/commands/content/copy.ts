@@ -27,22 +27,22 @@ const BATCH_SIZE = 100
 // their term relationships. The plugin refuses the import on any site whose environment type is
 // not "local", whatever this command is pointed at.
 export default class Copy extends LoopressCommand {
-  static args = {
+  static override args = {
     from: Args.string({description: 'Environment to copy the content from', required: true}),
   }
 
   // Hidden, not removed: the type of LoopressCommand.baseFlags requires it. Any value other than
   // "local" is refused in run().
-  static baseFlags = {
+  static override baseFlags = {
     env: Flags.string({hidden: true}),
   }
 
-  static description =
+  static override description =
     'Replace the local site\'s content (posts, pages, public custom post types, terms) with the content of <from>, activate the theme and plugins active there (when installed locally), then push the project to the local site so tracked configuration wins. Media stay served by <from>, users, comments and orders are never copied.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps content copy production', '$ lps content copy staging --dry-run']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps content copy production', '$ lps content copy staging --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

@@ -29,14 +29,14 @@ type PullResult = {
 }
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
 
-  static description = 'Pull snippets from WordPress into local files'
-  static enableJsonFlag = true
-  static examples = ['$ lps snippet pull', '$ lps snippet pull ./snippets']
-  static flags = {
+  static override description = 'Pull snippets from WordPress into local files'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps snippet pull', '$ lps snippet pull ./snippets']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

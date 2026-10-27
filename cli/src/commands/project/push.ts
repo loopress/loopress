@@ -45,9 +45,9 @@ type ProjectPlan = {
 }
 
 export default class Push extends Command {
-  static description = 'Push locally configured projects, environments and credentials to your Loopress account'
-  static examples = ['$ lps project push']
-  static flags = {
+  static override description = 'Push locally configured projects, environments and credentials to your Loopress account'
+  static override examples = ['$ lps project push']
+  static override flags = {
     ...LoopressCommand.yesFlag,
   }
 

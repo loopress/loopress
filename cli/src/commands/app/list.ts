@@ -18,9 +18,9 @@ function humanBytes(bytes: number): string {
 }
 
 export default class List extends LoopressCommand {
-  static description = 'List single-page apps deployed to WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps app list']
+  static override description = 'List single-page apps deployed to WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps app list']
 
   async run(): Promise<RemoteApp[]> {
     const apps = await this.wp.get<RemoteApp[]>('loopress/v1/apps')

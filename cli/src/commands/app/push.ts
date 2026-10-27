@@ -27,17 +27,17 @@ type PushResult = {
 }
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     name: Args.string({description: 'Push only this app (defaults to every app in the directory)'}),
   }
 
-  static description =
+  static override description =
     'Build and push single-page app bundles to WordPress. Each app is an `apps/<name>/` directory holding a loopress.app.json and a dist/ folder. When the app has a package.json with a `build` script, it runs first (use --no-build to skip it). Only files whose content changed are uploaded.'
 
-  static enableJsonFlag = true
+  static override enableJsonFlag = true
 
-  static examples = ['$ lps app push', '$ lps app push search', '$ lps app push --no-build']
-  static flags = {
+  static override examples = ['$ lps app push', '$ lps app push search', '$ lps app push --no-build']
+  static override flags = {
     build: Flags.boolean({
       allowNo: true,
       default: true,
@@ -172,7 +172,7 @@ export default class Push extends PushCommand {
 
   private async remoteFiles(name: string): Promise<AppFile[]> {
     try {
-      const remote = await this.wp.get<{files: AppFile[]}>(`loopress/v1/apps/${name}/manifest`)
+      const remote = await this.wp.get<{files?: AppFile[]}>(`loopress/v1/apps/${name}/manifest`)
       return remote.files ?? []
     } catch (error) {
       if (isNotFoundError(error)) return []

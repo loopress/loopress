@@ -50,11 +50,11 @@ export type DeclaredPushCommand = Omit<PushCommand, 'run'> & {run(): Promise<Pus
 
 export function declaredPushCommand(spec: DeclaredTypeSpec, description: string): CommandClass<DeclaredPushCommand> {
   class DeclaredPush extends PushCommand {
-    static args = {path: pathArg(spec)}
-    static description = description
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} push`]
-    static flags = {...PushCommand.dryRunFlag, ...PushCommand.yesFlag}
+    static override args = {path: pathArg(spec)}
+    static override description = description
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} push`]
+    static override flags = {...PushCommand.dryRunFlag, ...PushCommand.yesFlag}
 
     async run(): Promise<PushResult> {
       const {args} = await this.parse(DeclaredPush)
@@ -135,11 +135,11 @@ export type DeclaredPullCommand = Omit<LoopressCommand, 'run'> & {run(): Promise
 
 export function declaredPullCommand(spec: DeclaredTypeSpec, description: string): CommandClass<DeclaredPullCommand> {
   class DeclaredPull extends LoopressCommand {
-    static args = {path: pathArg(spec)}
-    static description = description
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} pull`]
-    static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
+    static override args = {path: pathArg(spec)}
+    static override description = description
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} pull`]
+    static override flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<PullResult> {
       const {args} = await this.parse(DeclaredPull)
@@ -179,9 +179,9 @@ export function declaredListCommand(
   countLabel: (count: number) => string,
 ): CommandClass<DeclaredListCommand> {
   class DeclaredList extends LoopressCommand {
-    static description = description
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} list`]
+    static override description = description
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} list`]
 
     async run(): Promise<RegisteredItem[]> {
       const items = await this.wp.get<RegisteredItem[]>(spec.registeredEndpoint)
@@ -210,15 +210,15 @@ export type DeclaredRmCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<R
 // happens to what used it ("Its posts stay in the database, hidden until it's pushed again.").
 export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, keptNote: string): CommandClass<DeclaredRmCommand> {
   class DeclaredRm extends LoopressCommand {
-    static aliases = [`${spec.cliName}:remove`]
-    static args = {
+    static override aliases = [`${spec.cliName}:remove`]
+    static override args = {
       slug: Args.string({description: `The ${spec.noun} slug, its ${spec.dir}/ file name without ${fileExtension(spec)}`, required: true}),
     }
 
-    static description = description
-    static enableJsonFlag = true
-    static examples = [`$ lps ${spec.cliName} rm <slug>`, `$ lps ${spec.cliName} remove <slug> --yes`]
-    static flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
+    static override description = description
+    static override enableJsonFlag = true
+    static override examples = [`$ lps ${spec.cliName} rm <slug>`, `$ lps ${spec.cliName} remove <slug> --yes`]
+    static override flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<RmResult> {
       const {args} = await this.parse(DeclaredRm)
@@ -243,7 +243,7 @@ export function declaredRmCommand(spec: DeclaredTypeSpec, description: string, k
       try {
         await this.wp.delete(itemEndpoint(spec, slug))
       } catch (error) {
-        const notFound = `${spec.noun[0].toUpperCase()}${spec.noun.slice(1)} not found`
+        const notFound = `${spec.noun.charAt(0).toUpperCase()}${spec.noun.slice(1)} not found`
         if (isApplicative404(error, notFound)) this.error(`${spec.noun} ${slug} is not managed by Loopress on ${url}.`)
         throw error
       }

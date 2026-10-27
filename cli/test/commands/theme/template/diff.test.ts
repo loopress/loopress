@@ -47,7 +47,7 @@ describe('theme template diff', () => {
     expect(get).toHaveBeenCalledWith('loopress/v1/child-theme')
     expect(Object.keys(result.resources)).toEqual(['template', 'part'])
     expect(result.resources.template).toEqual({added: [], changed: [], removed: []})
-    expect(result.resources.part.changed.map((change) => change.id)).toEqual(['header'])
+    expect(result.resources.part?.changed.map((change) => change.id)).toEqual(['header'])
     expect(result.drift).toBe(true)
   })
 })

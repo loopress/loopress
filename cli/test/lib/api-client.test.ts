@@ -1,6 +1,6 @@
 import {createServer, type IncomingMessage, type Server, type ServerResponse} from 'node:http'
 import {type AddressInfo} from 'node:net'
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, assert, describe, expect, it} from 'vitest'
 
 import {ApiClient} from '../../src/lib/api-client.js'
 
@@ -27,8 +27,9 @@ describe('ApiClient', () => {
     timeoutMs?: number,
   ): Promise<ApiClient> {
     server = createServer(handler)
+    const listening = server
     await new Promise<void>((resolve) => {
-      server!.listen(0, '127.0.0.1', resolve)
+      listening.listen(0, '127.0.0.1', resolve)
     })
     const {port} = server.address() as AddressInfo
     return new ApiClient('secret-token', `http://127.0.0.1:${port}`, timeoutMs)
@@ -199,9 +200,11 @@ describe('ApiClient', () => {
     const client = await serve((_req, res) => {
       res.end()
     })
-    const {port} = server!.address() as AddressInfo
+    const running = server
+    assert(running)
+    const {port} = running.address() as AddressInfo
     await new Promise<void>((resolve) => {
-      server!.close(() => {
+      running.close(() => {
         resolve()
       })
     })

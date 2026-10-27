@@ -11,9 +11,9 @@ function countItems(items: MenuItem[]): number {
 }
 
 export default class List extends LoopressCommand {
-  static description = 'List nav menus and the active theme menu locations on WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps menu list']
+  static override description = 'List nav menus and the active theme menu locations on WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps menu list']
 
   async run(): Promise<ListResult> {
     const menus = await this.wp.get<Menu[]>(MENU_ENDPOINT)

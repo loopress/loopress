@@ -147,13 +147,13 @@ function readToken(source: string, i: number): [Token, number] {
   }
 
   if (source.startsWith('#[', i)) return [{text: '#[', type: 'attribute'}, i + 2]
-  if (source.startsWith('<<<', i) || `'"\``.includes(source[i])) {
+  if (source.startsWith('<<<', i) || `'"\``.includes(source.charAt(i))) {
     return [{text: source[i] === '`' ? '`' : 'a string', type: 'string'}, skipString(source, i)]
   }
 
   const word = /^[\w$\\]+/.exec(source.slice(i))
   if (word) return [{text: word[0], type: 'word'}, i + word[0].length]
-  return [{text: source[i], type: 'punct'}, i + 1]
+  return [{text: source.charAt(i), type: 'punct'}, i + 1]
 }
 
 // Index right after the string (quoted, backtick, heredoc or nowdoc) starting at `i`.

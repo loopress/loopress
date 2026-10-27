@@ -24,8 +24,8 @@ type ApiProject = {
 }
 
 export default class Pull extends Command {
-  static description = 'Pull projects and environments from your Loopress account that are not configured locally yet'
-  static examples = ['$ lps project pull']
+  static override description = 'Pull projects and environments from your Loopress account that are not configured locally yet'
+  static override examples = ['$ lps project pull']
 
   async run(): Promise<void> {
     await this.parse(Pull)

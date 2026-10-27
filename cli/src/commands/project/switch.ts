@@ -4,8 +4,8 @@ import {Command} from '@oclif/core'
 import {configManager} from '../../config/project-config.manager.js'
 
 export default class Switch extends Command {
-  static description = 'Switch the active project (pass --env to target a non-local environment)'
-  static examples = ['$ lps project switch']
+  static override description = 'Switch the active project (pass --env to target a non-local environment)'
+  static override examples = ['$ lps project switch']
 
   async run(): Promise<void> {
     await this.parse(Switch)
@@ -16,21 +16,23 @@ export default class Switch extends Command {
       this.error('No projects configured. Run `lps project config` first.')
     }
 
+    const [only] = projects
+    const currentId = projects.find((project) => project.isCurrent)?.id
     const projectId =
-      projects.length === 1
-        ? projects[0].id
+      only && projects.length === 1
+        ? only.id
         : await select({
             choices: projects.map((project) => ({
               name: `${project.name}${project.isCurrent ? ' [current]' : ''}`,
               value: project.id,
             })),
-            default: projects.find((project) => project.isCurrent)?.id,
+            ...(currentId !== undefined && {default: currentId}),
             message: 'Select project',
           })
 
     configManager.setCurrent(projectId)
 
-    const project = projects.find((candidate) => candidate.id === projectId)!
-    this.log(`✓ Switched to "${project.name}"`)
+    const project = projects.find((candidate) => candidate.id === projectId)
+    this.log(`✓ Switched to "${project?.name ?? projectId}"`)
   }
 }

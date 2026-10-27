@@ -3,8 +3,8 @@ import {type SnippetInsertMethod, type SnippetLocation, type SnippetType} from '
 export type Snippet = {
   active: boolean
   code: string
-  description?: string
-  id?: number
+  description?: string | undefined
+  id?: number | undefined
   insertMethod: SnippetInsertMethod
   location: SnippetLocation
   name: string

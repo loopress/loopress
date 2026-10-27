@@ -55,7 +55,7 @@ describe('snippet push', () => {
 
       return loadSnippets(dir).then((snippets) => {
         expect(snippets).toHaveLength(1)
-        expect(snippets[0].type).toBe('text')
+        expect(snippets[0]?.type).toBe('text')
       })
     })
 
@@ -64,7 +64,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].type).toBe('text')
+        expect(snippets[0]?.type).toBe('text')
       })
     })
 
@@ -72,7 +72,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].type).toBe('php')
+        expect(snippets[0]?.type).toBe('php')
       })
     })
 
@@ -81,7 +81,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '3-css.json'), JSON.stringify({id: 3, name: 'Style', type: 'not-a-real-type'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].type).toBe('css')
+        expect(snippets[0]?.type).toBe('css')
       })
     })
 
@@ -89,7 +89,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '4-note.txt'), 'Thank you for reading!')
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].type).toBe('text')
+        expect(snippets[0]?.type).toBe('text')
       })
     })
   })
@@ -100,7 +100,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({active: true, id: 1, name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].active).toBe(true)
+        expect(snippets[0]?.active).toBe(true)
       })
     })
 
@@ -109,7 +109,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].active).toBe(false)
+        expect(snippets[0]?.active).toBe(false)
       })
     })
 
@@ -117,7 +117,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].active).toBe(false)
+        expect(snippets[0]?.active).toBe(false)
       })
     })
   })
@@ -128,7 +128,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello', tags: ['foo', 'bar']}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].tags).toEqual(['foo', 'bar'])
+        expect(snippets[0]?.tags).toEqual(['foo', 'bar'])
       })
     })
 
@@ -137,7 +137,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].tags).toEqual([])
+        expect(snippets[0]?.tags).toEqual([])
       })
     })
 
@@ -145,7 +145,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].tags).toEqual([])
+        expect(snippets[0]?.tags).toEqual([])
       })
     })
   })
@@ -156,7 +156,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'frontend', name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].location).toBe('frontend')
+        expect(snippets[0]?.location).toBe('frontend')
       })
     })
 
@@ -180,7 +180,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '1-hello.json'), JSON.stringify({id: 1, location: 'not-a-real-location', name: 'Hello'}))
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].location).toBe('everywhere')
+        expect(snippets[0]?.location).toBe('everywhere')
       })
     })
   })
@@ -194,9 +194,9 @@ describe('snippet push', () => {
       )
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].insertMethod).toBe('shortcode')
-        expect(snippets[0].priority).toBe(25)
-        expect(snippets[0].shortcodeAttributes).toEqual(['color'])
+        expect(snippets[0]?.insertMethod).toBe('shortcode')
+        expect(snippets[0]?.priority).toBe(25)
+        expect(snippets[0]?.shortcodeAttributes).toEqual(['color'])
       })
     })
 
@@ -204,9 +204,9 @@ describe('snippet push', () => {
       writeFileSync(join(dir, '2-legacy.php'), '<?php echo 1;')
 
       return loadSnippets(dir).then((snippets) => {
-        expect(snippets[0].insertMethod).toBe('auto')
-        expect(snippets[0].priority).toBe(10)
-        expect(snippets[0].shortcodeAttributes).toEqual([])
+        expect(snippets[0]?.insertMethod).toBe('auto')
+        expect(snippets[0]?.priority).toBe(10)
+        expect(snippets[0]?.shortcodeAttributes).toEqual([])
       })
     })
   })
@@ -224,7 +224,7 @@ describe('snippet push', () => {
       const snippets = await (cmd as unknown as PushWithLoadSnippets).loadSnippets(dir)
 
       expect(snippets).toHaveLength(1)
-      expect(snippets[0].name).toBe('Fine')
+      expect(snippets[0]?.name).toBe('Fine')
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('1-broken.json'))
     })
   })

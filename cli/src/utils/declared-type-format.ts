@@ -109,13 +109,14 @@ function checkMetaKey(key: string, meta: unknown): void {
   if (code) throw new Error(`"${key}": "${code}" runs PHP code, use a hook instead of a file for it`)
 
   const {type} = meta
-  if (typeof type !== 'string' || !Object.hasOwn(META_TYPES, type)) {
+  const schema = typeof type === 'string' && Object.hasOwn(META_TYPES, type) ? META_TYPES[type] : undefined
+  if (typeof type !== 'string' || !schema) {
     throw new Error(`"${key}": "type" must be one of ${Object.keys(META_TYPES).join(', ')}`)
   }
 
   if (Object.hasOwn(meta, 'single') && typeof meta.single !== 'boolean') throw new Error(`"${key}": "single" must be true or false`)
   checkMetaRest(key, type, Object.hasOwn(meta, 'show_in_rest') ? meta.show_in_rest : false)
-  if (Object.hasOwn(meta, 'default') && !META_TYPES[type].safeParse(meta.default).success) throw new Error(`"${key}": "default" must be a ${type}`)
+  if (Object.hasOwn(meta, 'default') && !schema.safeParse(meta.default).success) throw new Error(`"${key}": "default" must be a ${type}`)
 }
 
 // Same checks as the plugin's PostMetaService::assertArgs(): the file is `key => register_post_meta()

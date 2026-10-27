@@ -380,7 +380,7 @@ describe('project config', () => {
       message: 'Application password',
       validate: expect.any(Function),
     })
-    const passwordCall = vi.mocked(passwordPrompt).mock.calls[0][0] as {validate: (value: string) => string | true}
+    const passwordCall = vi.mocked(passwordPrompt).mock.calls[0]?.[0] as {validate: (value: string) => string | true}
     expect(passwordCall.validate(' '.repeat(3))).toBe('Application password cannot be empty')
     expect(passwordCall.validate('secret')).toBe(true)
   })

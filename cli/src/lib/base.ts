@@ -27,7 +27,7 @@ type ParsedBaseFlags = {
 export abstract class LoopressCommand extends Command {
   // On every subclass without opt-in. Without it, commands target the "local" environment, so
   // reaching a remote site is always spelled out in the command itself.
-  static baseFlags = {
+  static override baseFlags = {
     env: Flags.string({
       description: 'Target environment by name (default: "local", or the project\'s only environment)',
     }),
@@ -74,7 +74,7 @@ export abstract class LoopressCommand extends Command {
     return getCapabilities(this.wp, this.siteConfig.name)
   }
 
-  async init(): Promise<void> {
+  override async init(): Promise<void> {
     await super.init()
 
     const {flags} = (await this.parse({

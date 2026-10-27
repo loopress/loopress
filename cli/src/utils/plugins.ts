@@ -54,9 +54,10 @@ export function mergePluginManifest<P extends PluginPin>(
   const merged = {...existing, ...incoming}
 
   const added = Object.keys(incoming).filter((s) => !Object.hasOwn(existing, s))
-  const updated = Object.keys(incoming)
-    .filter((s) => Object.hasOwn(existing, s) && describePin(existing[s]) !== describePin(incoming[s]))
-    .map((s) => ({from: describePin(existing[s]), slug: s, to: describePin(incoming[s])}))
+  const updated = Object.entries(incoming).flatMap(([slug, pin]) => {
+    const before = Object.hasOwn(existing, slug) ? existing[slug] : undefined
+    return before !== undefined && describePin(before) !== describePin(pin) ? [{from: describePin(before), slug, to: describePin(pin)}] : []
+  })
 
   return {added, merged, updated}
 }
@@ -73,7 +74,7 @@ export function mergePluginManifest<P extends PluginPin>(
 const WP_ORG_PLUGIN_URI = /^https?:\/\/wordpress\.org\/plugins\/([^/]+)\/?$/
 
 function slugFromPluginFile(file: string, pluginUri: string): string {
-  if (file.includes('/')) return file.split('/', 1)[0]
+  if (file.includes('/')) return file.slice(0, file.indexOf('/'))
   return WP_ORG_PLUGIN_URI.exec(pluginUri)?.[1] ?? file
 }
 

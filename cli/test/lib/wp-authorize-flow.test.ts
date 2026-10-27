@@ -1,5 +1,5 @@
 import got from 'got'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {openBrowser} from '../../src/lib/open-browser.js'
 import {authorizeWithBrowser} from '../../src/lib/wp-authorize-flow.js'
@@ -11,11 +11,13 @@ async function openedAuthorizeUrl(): Promise<{authorizeUrl: URL; rejectUrl: URL;
   await vi.waitFor(() => {
     expect(openBrowser).toHaveBeenCalled()
   })
-  const authorizeUrl = new URL(vi.mocked(openBrowser).mock.calls[0][0])
+  const [opened] = vi.mocked(openBrowser).mock.calls[0] ?? []
+  assert(opened)
+  const authorizeUrl = new URL(opened)
   return {
     authorizeUrl,
-    rejectUrl: new URL(authorizeUrl.searchParams.get('reject_url')!),
-    successUrl: new URL(authorizeUrl.searchParams.get('success_url')!),
+    rejectUrl: new URL(authorizeUrl.searchParams.get('reject_url') ?? ''),
+    successUrl: new URL(authorizeUrl.searchParams.get('success_url') ?? ''),
   }
 }
 

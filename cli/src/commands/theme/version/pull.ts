@@ -16,10 +16,10 @@ type PullResult = {
 }
 
 export default class Pull extends LoopressCommand {
-  static description = 'Pull installed themes from WordPress into loopress.json, pinned to their live versions'
-  static enableJsonFlag = true
-  static examples = ['$ lps theme version pull']
-  static flags = {
+  static override description = 'Pull installed themes from WordPress into loopress.json, pinned to their live versions'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme version pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
   }
 

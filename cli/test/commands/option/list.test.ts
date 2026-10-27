@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import List from '../../../src/commands/option/list.js'
 import {withSpinner} from '../../../src/lib/spinner.js'
@@ -27,8 +27,8 @@ function rowCells(line: string): string[] {
 }
 
 function tableRows(logs: ReturnType<typeof silenceLogs>): string[] {
-  const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('┌'))
-  return table!.split('\n').filter((line) => line.includes('│'))
+  const table = logs.log.mock.calls.map((call) => String(call[0])).find((line) => line.includes('┌'))
+  return (table ?? '').split('\n').filter((line) => line.includes('│'))
 }
 
 describe('option list', () => {
@@ -59,6 +59,7 @@ describe('option list', () => {
     expect(logs.log).toHaveBeenCalledWith('Found 4 options:\n')
 
     const [header, blognameRow, wpseoRow, codeSnippetsRow, rankMathRow] = tableRows(logs)
+    assert(header && blognameRow && wpseoRow && codeSnippetsRow && rankMathRow)
     expect(rowCells(header)).toEqual(['NAME', 'AUTOLOAD', 'CORE', 'SOURCE?', 'PLUGIN'])
     expect(rowCells(blognameRow)).toEqual(['blogname', 'yes', 'yes', '', ''])
     expect(rowCells(wpseoRow)).toEqual(['wpseo_titles', 'no', '', '', ''])
@@ -116,9 +117,10 @@ describe('option list', () => {
     await cmd.run()
 
     const [, dataRow] = tableRows(logs)
+    assert(dataRow)
     const nameCell = rowCells(dataRow)[0]
-    expect(nameCell.endsWith('…')).toBe(true)
-    expect(nameCell.length).toBeLessThan(longName.length)
+    expect(nameCell?.endsWith('…')).toBe(true)
+    expect(nameCell?.length).toBeLessThan(longName.length)
   })
 
   // Piped/redirected output (and this test itself) has no real TTY: without the $COLUMNS
@@ -133,8 +135,8 @@ describe('option list', () => {
 
     await cmd.run()
 
-    const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('blogname'))
-    const dataRows = table!.split('\n').filter((line) => line.includes('│'))
+    const table = logs.log.mock.calls.map((call) => String(call[0])).find((line) => line.includes('blogname'))
+    const dataRows = (table ?? '').split('\n').filter((line) => line.includes('│'))
     // One header row and one data row: a wrapped cell would split either into two lines instead.
     expect(dataRows).toHaveLength(2)
   })
@@ -151,7 +153,7 @@ describe('option list', () => {
     const result = await cmd.run()
 
     expect(result).toEqual([options[1]])
-    const table = logs.log.mock.calls.map((call) => call[0]!).find((line) => line.includes('NAME'))
+    const table = logs.log.mock.calls.map((call) => String(call[0])).find((line) => line.includes('NAME'))
     expect(table).not.toContain('blogname')
     expect(table).toContain('my_plugin_setting')
     expect(table).not.toContain('CORE')

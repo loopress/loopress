@@ -22,10 +22,10 @@ type PushResult = {
 }
 
 export default class ComposerPush extends PushCommand {
-  static description = 'Push composer.json to WordPress and run Composer to resolve and install dependencies'
-  static enableJsonFlag = true
-  static examples = ['$ lps composer push', '$ lps composer push --dry-run']
-  static flags = {
+  static override description = 'Push composer.json to WordPress and run Composer to resolve and install dependencies'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps composer push', '$ lps composer push --dry-run']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
     force: Flags.boolean({default: false, description: 'Allow downgrades and take over plugins/themes installed outside Loopress'}),

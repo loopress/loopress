@@ -47,7 +47,8 @@ class TestPush extends PushCommand {
 
   setup(dryRun: boolean, siteConfig?: EnvironmentConfig) {
     this.dryRun = dryRun
-    this.siteConfig = siteConfig!
+    // Left unset when omitted, the state catch() sees when init() failed early.
+    if (siteConfig) this.siteConfig = siteConfig
   }
 
   setYes(value: boolean) {
@@ -445,7 +446,7 @@ describe('PushCommand', () => {
       expect(local).not.toHaveBeenCalled()
       expect(remote).toHaveBeenCalledOnce()
       const [snapshot] = await listSnapshots(rootDir, 'snippet', 'test')
-      expect(snapshot.environment).toBe('test')
+      expect(snapshot?.environment).toBe('test')
     })
 
     it('writeAfterPushSnapshot does nothing on a dry run', async () => {

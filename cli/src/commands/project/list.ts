@@ -19,9 +19,9 @@ type ProjectInfo = {
 }
 
 export default class List extends Command {
-  static description = 'List configured WordPress projects'
-  static enableJsonFlag = true
-  static examples = ['$ lps project list']
+  static override description = 'List configured WordPress projects'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps project list']
 
   async run(): Promise<ProjectInfo[]> {
     await this.parse(List)

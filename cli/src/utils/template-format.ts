@@ -74,7 +74,7 @@ export function parseTemplateFile(slug: string, raw: string): Template {
 export function parsePartFile(slug: string, raw: string): Part {
   const {body, meta} = parseFile(raw, ['title', 'area'])
   const nameArea = /^(header|footer)(?:-|$)/.exec(slug)?.[1] ?? 'uncategorized'
-  return {area: meta.area || nameArea, html: body, slug, title: meta.title || titleFromSlug(slug)}
+  return {area: (meta.area ?? '') || nameArea, html: body, slug, title: (meta.title ?? '') || titleFromSlug(slug)}
 }
 
 // Same directory rules as pages/ (flat, `.html` only), with template slugs, every problem at once.

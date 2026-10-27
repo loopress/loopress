@@ -53,11 +53,11 @@ const themes = vi.hoisted(() => ({value: [] as unknown[]}))
 
 class TestPush extends Push {
   setup(options: {
-    dryRun?: boolean
-    localConfig?: LoopressLocalConfig
-    overwrite?: boolean
+    dryRun?: boolean | undefined
+    localConfig?: LoopressLocalConfig | undefined
+    overwrite?: boolean | undefined
     siteConfig: EnvironmentConfig
-    yes?: boolean
+    yes?: boolean | undefined
   }) {
     this.dryRun = options.dryRun ?? false
     this.overwrite = options.overwrite ?? false

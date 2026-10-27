@@ -14,7 +14,7 @@ import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../uti
 import {toSlug} from '../../utils/to-slug.js'
 
 type PushedSnippet = {
-  id?: number
+  id?: number | undefined
   name: string
 }
 
@@ -25,16 +25,16 @@ type PushResult = {
 }
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to snippets directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Push local snippet files to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps snippet push', '$ lps snippet push ./snippets']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps snippet push', '$ lps snippet push ./snippets']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }
@@ -170,8 +170,8 @@ export default class Push extends PushCommand {
         const createdSnippet = normalizeSnippet(body)
         id = createdSnippet.id
         await this.ensureCanonicalFilename(snippet, createdSnippet.id, createdSnippet.name)
-      } else {
-        await this.ensureCanonicalFilename(snippet, snippet.id!, snippet.name)
+      } else if (id !== undefined) {
+        await this.ensureCanonicalFilename(snippet, id, snippet.name)
       }
 
       if (task) task.output = `Pushed: ${snippet.name}`
@@ -209,7 +209,7 @@ export default class Push extends PushCommand {
     }
 
     return snippets.filter((snippet) => {
-      const paths = snippet.id === undefined ? [] : pathsById.get(snippet.id)!
+      const paths = snippet.id === undefined ? [] : (pathsById.get(snippet.id) ?? [])
       if (paths.length < 2) return true
       this.failedCount++
       this.warn(`Skipping "${snippet.path}": id ${snippet.id} is also used by ${paths.filter((p) => p !== snippet.path).join(', ')}.`)

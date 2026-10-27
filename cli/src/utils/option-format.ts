@@ -46,8 +46,8 @@ export type OptionRefs = Record<string, string>
 export type LocalOption = {
   autoload: string
   name: string
-  readonly?: boolean
-  refs?: OptionRefs
+  readonly?: boolean | undefined
+  refs?: OptionRefs | undefined
   value: unknown
 }
 
@@ -120,7 +120,7 @@ const LOCAL_OPTION = z.looseObject(
 
 export function parseLocalOption(raw: string): LocalOption {
   const result = LOCAL_OPTION.safeParse(JSON.parse(raw))
-  if (!result.success) throw new TypeError(result.error.issues[0].message)
+  if (!result.success) throw new TypeError(result.error.issues[0]?.message)
 
   return result.data
 }

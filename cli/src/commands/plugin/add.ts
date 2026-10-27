@@ -12,19 +12,19 @@ type AddResult = {
 }
 
 export default class Add extends LoopressCommand {
-  static args = {
+  static override args = {
     slug: Args.string({description: 'Plugin slug on WordPress.org', required: true}),
   }
 
-  static description = 'Add a WordPress.org plugin to loopress.json'
-  static enableJsonFlag = true
-  static examples = [
+  static override description = 'Add a WordPress.org plugin to loopress.json'
+  static override enableJsonFlag = true
+  static override examples = [
     '$ lps plugin add woocommerce',
     '$ lps plugin add woocommerce --version 9.4.2',
     '$ lps plugin add contact-form-7 --dry-run',
   ]
 
-  static flags = {
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     version: Flags.string({description: 'Exact version to pin (default: "latest", tracked on every push)'}),
   }

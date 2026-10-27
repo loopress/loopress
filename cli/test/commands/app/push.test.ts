@@ -153,7 +153,7 @@ describe('app push', () => {
       const result = await internals.pushApp(appDir, 'search', task)
 
       expect(internals.wpClient.put).toHaveBeenCalledTimes(3) // index.html + app.js + app.css
-      const [commitPath, manifest] = internals.wpClient.post.mock.calls[0]
+      const [commitPath, manifest] = internals.wpClient.post.mock.calls[0] ?? []
       expect(commitPath).toBe('loopress/v1/apps/search/commit')
       expect(manifest).toMatchObject({name: 'search', routing: 'hash', entry: {scripts: ['assets/app.js']}})
       expect(result).toMatchObject({name: 'search', uploaded: 3})
@@ -168,7 +168,7 @@ describe('app push', () => {
       const warn = vi.spyOn(cmd, 'warn')
 
       await internals.pushApp(appDir, 'search', {output: ''})
-      expect(internals.wpClient.post.mock.calls[0][1]).toMatchObject({crossOrigin: 'same-origin'})
+      expect(internals.wpClient.post.mock.calls[0]?.[1]).toMatchObject({crossOrigin: 'same-origin'})
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('crossOrigin "same-origin" was not applied'))
 
       warn.mockClear()
@@ -197,7 +197,7 @@ describe('app push', () => {
       const {internals} = makeCmd()
       internals.wpClient.get.mockRejectedValueOnce(notFound)
       await internals.pushApp(appDir, 'search')
-      const committed = internals.wpClient.post.mock.calls[0][1] as {files: AppFile[]}
+      const committed = internals.wpClient.post.mock.calls[0]?.[1] as {files: AppFile[]}
       internals.wpClient.get.mockResolvedValue({files: committed.files})
       internals.dryRun = true
       const task = {output: ''}
@@ -240,7 +240,7 @@ describe('app push', () => {
       internals.wpClient.get.mockRejectedValueOnce(notFound)
 
       await internals.pushApp(appDir, 'search')
-      const committed = internals.wpClient.post.mock.calls[0][1] as {files: AppFile[]}
+      const committed = internals.wpClient.post.mock.calls[0]?.[1] as {files: AppFile[]}
       internals.wpClient.put.mockClear()
       internals.wpClient.post.mockClear()
       internals.wpClient.get.mockResolvedValue({files: committed.files})

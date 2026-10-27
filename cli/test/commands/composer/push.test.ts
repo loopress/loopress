@@ -120,7 +120,7 @@ describe('composer push', () => {
 
     await cmd.run()
 
-    expect(post.mock.calls[0][1]).toMatchObject({intent: {plugins}})
+    expect(post.mock.calls[0]?.[1]).toMatchObject({intent: {plugins}})
   })
 
   it('sends lock: null when composer.lock is missing', async () => {

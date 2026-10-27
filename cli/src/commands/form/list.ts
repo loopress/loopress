@@ -2,9 +2,9 @@ import {LoopressCommand} from '../../lib/base.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 
 export default class List extends LoopressCommand {
-  static description = 'List forms currently on WordPress'
-  static enableJsonFlag = true
-  static examples = ['$ lps form list']
+  static override description = 'List forms currently on WordPress'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps form list']
 
   async run(): Promise<Array<Record<string, unknown>>> {
     const forms = await this.wp.get<Array<Record<string, unknown>>>(FORM_ENDPOINT)

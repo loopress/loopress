@@ -141,7 +141,7 @@ describe('init', () => {
     silenceLogs(cmd)
     await cmd.run()
 
-    const projectIdCall = vi.mocked(input).mock.calls[0][0] as unknown as {message: string; validate: (value: string) => string | true}
+    const projectIdCall = vi.mocked(input).mock.calls[0]?.[0] as unknown as {message: string; validate: (value: string) => string | true}
     expect(projectIdCall.validate(' '.repeat(3))).toBe('Project ID cannot be empty')
     expect(projectIdCall.validate('manual-id')).toBe(true)
   })
@@ -176,7 +176,7 @@ describe('init', () => {
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('project:config')
     expect(log).toHaveBeenCalledWith('  Project:  manual-id')
 
-    const projectIdCall = vi.mocked(input).mock.calls[0][0] as unknown as {message: string; validate: (value: string) => string | true}
+    const projectIdCall = vi.mocked(input).mock.calls[0]?.[0] as unknown as {message: string; validate: (value: string) => string | true}
     expect(projectIdCall.message).toBe('Project ID')
     expect(projectIdCall.validate(' '.repeat(3))).toBe('Project ID cannot be empty')
     expect(projectIdCall.validate('manual-id')).toBe(true)

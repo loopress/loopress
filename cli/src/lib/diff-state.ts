@@ -39,6 +39,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function formatValue(value: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- typed as string, but JSON.stringify returns undefined for `undefined` (a removed field)
   const text = JSON.stringify(value) ?? String(value)
   return text.length > MAX_VALUE_LENGTH ? `${text.slice(0, MAX_VALUE_LENGTH - 1)}…` : text
 }

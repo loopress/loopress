@@ -12,7 +12,7 @@ import {rotateAppPassword} from '../../src/lib/rotate-app-password.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {readLocalConfig} from '../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
-import {makeEnv, makeListedProject} from '../helpers/project-fixtures.js'
+import {makeEnv, makeListedProject, withoutToken} from '../helpers/project-fixtures.js'
 
 vi.mock('../../src/utils/loopress-config.js', () => ({
   readLocalConfig: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock('../../src/lib/interactive.js', () => ({
 }))
 
 class TestCommand extends LoopressCommand {
-  static flags = {
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }
@@ -307,7 +307,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
 
   it('skips environments without a token', async () => {
     const env = makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE)
-    useActiveEnv({...env, token: undefined})
+    useActiveEnv(withoutToken(env))
 
     await initWith([])
 

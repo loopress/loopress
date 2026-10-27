@@ -32,14 +32,14 @@ type PullResult = {
 }
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to apps directory (overrides project config)'}),
   }
 
-  static description = 'Pull single-page app bundles from WordPress into local files'
-  static enableJsonFlag = true
-  static examples = ['$ lps app pull']
-  static flags = {
+  static override description = 'Pull single-page app bundles from WordPress into local files'
+  static override enableJsonFlag = true
+  static override examples = ['$ lps app pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, assert, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {authManager} from '../../src/config/auth.manager.js'
 import {ApiClient} from '../../src/lib/api-client.js'
@@ -10,11 +10,12 @@ vi.mock('../../src/lib/api-client.js', () => ({ApiClient: vi.fn()}))
 const put = vi.fn()
 
 function site(apiEnvironmentId?: string): EnvironmentConfig {
-  return {addedAt: '2024-01-01', apiEnvironmentId, name: 'production', url: 'https://acme.com'}
+  return {addedAt: '2024-01-01', ...(apiEnvironmentId !== undefined && {apiEnvironmentId}), name: 'production', url: 'https://acme.com'}
 }
 
 async function afterPush(siteConfig: EnvironmentConfig): Promise<void> {
-  await API_FILES_RESOURCE.afterPush!({filenames: ['hello', 'v1/users'], siteConfig})
+  assert(API_FILES_RESOURCE.afterPush)
+  await API_FILES_RESOURCE.afterPush({filenames: ['hello', 'v1/users'], siteConfig})
 }
 
 describe('API_FILES_RESOURCE.afterPush', () => {

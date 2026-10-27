@@ -7,16 +7,16 @@ import {guardProductionPush} from '../../lib/guard-production-push.js'
 type ActivateResult = {active: string; previous: string; status: 'activated' | 'dry-run' | 'unchanged'}
 
 export default class Activate extends LoopressCommand {
-  static args = {
+  static override args = {
     stylesheet: Args.string({description: 'Theme to activate (default: the Loopress child theme, <parent>-loopress)'}),
   }
 
-  static description =
+  static override description =
     'Activate a theme on WordPress, the Loopress child theme by default. A child theme without settings of its own starts from a copy of its parent\'s theme mods and Global Styles. Set "activateChildTheme": true in loopress.json to have `lps theme template push` keep the child active.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps theme activate', '$ lps theme activate twentytwentyfive --env staging', '$ lps theme activate --dry-run']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps theme activate', '$ lps theme activate twentytwentyfive --env staging', '$ lps theme activate --dry-run']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

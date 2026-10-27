@@ -9,16 +9,16 @@ import {type LocalOption, optionEndpoint, optionFileName, parseLocalOption, type
 import {pluralize} from '../../utils/pluralize.js'
 
 export default class Pull extends LoopressCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to options directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Refresh locally tracked options from WordPress. Options not yet tracked are never pulled, run `lps option add <name>` for those first.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps option pull']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps option pull']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
   }

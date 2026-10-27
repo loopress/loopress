@@ -97,8 +97,8 @@ export function computeBuildId(files: AppFile[]): string {
 
 function normalizeAssetUrl(url: string): string {
   let path = url.trim()
-  const schemeMatch = /^(?:[a-z]+:)?\/\/[^/]+(\/.*)$/i.exec(path)
-  if (schemeMatch) path = schemeMatch[1]
+  const schemeMatch = /^(?:[a-z]+:)?\/\/[^/]+(\/.*)$/i.exec(path)?.[1]
+  if (schemeMatch) path = schemeMatch
   path = path.replace(/^\.?\//, '')
 
   return path
@@ -110,15 +110,15 @@ export function deriveEntry(indexHtml: string): AppEntry {
   const scripts: string[] = []
   for (const tag of indexHtml.match(/<script\b[^>]*>/gi) ?? []) {
     if (!/\btype=["']module["']/i.test(tag)) continue
-    const src = /\bsrc=["']([^"']+)["']/i.exec(tag)
-    if (src) scripts.push(normalizeAssetUrl(src[1]))
+    const src = /\bsrc=["']([^"']+)["']/i.exec(tag)?.[1]
+    if (src) scripts.push(normalizeAssetUrl(src))
   }
 
   const styles: string[] = []
   for (const tag of indexHtml.match(/<link\b[^>]*>/gi) ?? []) {
     if (!/\brel=["']stylesheet["']/i.test(tag)) continue
-    const href = /\bhref=["']([^"']+)["']/i.exec(tag)
-    if (href) styles.push(normalizeAssetUrl(href[1]))
+    const href = /\bhref=["']([^"']+)["']/i.exec(tag)?.[1]
+    if (href) styles.push(normalizeAssetUrl(href))
   }
 
   return {scripts, styles}

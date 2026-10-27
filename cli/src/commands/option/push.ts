@@ -15,17 +15,17 @@ type PushResult = {
 }
 
 export default class Push extends PushCommand {
-  static args = {
+  static override args = {
     path: Args.string({description: 'Path to options directory (overrides project config)'}),
   }
 
-  static description =
+  static override description =
     'Push locally tracked, non-readonly options to WordPress (upsert only, never deletes an untracked option). ' +
     'Options marked "readonly": true in their local file are skipped, edit the file to override.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps option push']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps option push']
+  static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
   }

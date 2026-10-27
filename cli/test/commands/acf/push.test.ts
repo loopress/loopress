@@ -85,7 +85,7 @@ describe('acf push', () => {
       const objects = await (cmd as unknown as PushWithLoadObjects).loadObjects(dir)
 
       expect(objects).toHaveLength(1)
-      expect(objects[0].title).toBe('Fine')
+      expect(objects[0]?.title).toBe('Fine')
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('broken.json'))
     })
 
@@ -99,7 +99,7 @@ describe('acf push', () => {
       const objects = await (cmd as unknown as PushWithLoadObjects).loadObjects(dir)
 
       expect(objects).toHaveLength(1)
-      expect(objects[0].title).toBe('Fine')
+      expect(objects[0]?.title).toBe('Fine')
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('no-key.json'))
     })
   })

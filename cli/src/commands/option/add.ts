@@ -14,17 +14,17 @@ import {
 } from '../../utils/option-format.js'
 
 export default class Add extends LoopressCommand {
-  static args = {
+  static override args = {
     name: Args.string({description: 'Option name to start tracking (see `lps option list`)', required: true}),
   }
 
-  static description =
+  static override description =
     'Fetch a WordPress option by name and start tracking it locally. Run `lps option list` first to find the name: ' +
     'this copies a raw value across environments, verify it does not embed post/user IDs before pushing it elsewhere.'
 
-  static enableJsonFlag = true
-  static examples = ['$ lps option add wpseo_titles', '$ lps option add siteurl']
-  static flags = {
+  static override enableJsonFlag = true
+  static override examples = ['$ lps option add wpseo_titles', '$ lps option add siteurl']
+  static override flags = {
     ...LoopressCommand.dryRunFlag,
     path: Flags.string({description: 'Path to options directory (overrides project config)'}),
   }
