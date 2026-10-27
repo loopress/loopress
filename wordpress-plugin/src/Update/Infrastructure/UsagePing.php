@@ -22,9 +22,13 @@ class UsagePing
     private const MIN_INTERVAL     = 12 * HOUR_IN_SECONDS;
     private const ENDPOINT = 'https://api.loopress.dev/ping';
 
+    public function __construct(private readonly bool $sourceCheckout = LOOPRESS_SOURCE_CHECKOUT)
+    {
+    }
+
     public function send(): void
     {
-        if (!UsageStats::isEnabled()) {
+        if (!UsageStats::isEnabled() || $this->sourceCheckout) {
             return;
         }
 

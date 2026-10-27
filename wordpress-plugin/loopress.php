@@ -65,6 +65,10 @@ define('LOOPRESS_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Ve
 define('LOOPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LOOPRESS_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('LOOPRESS_PLUGIN_SLUG', dirname(plugin_basename(__FILE__)));
+// Running from the repo (e.g. a dev site symlinked to it) rather than a release zip: tests/ is
+// never shipped, build-flavor.cjs packs an explicit file list. The committed Version header is
+// stale there (synced only at release), so the usage ping stays off and the admin shows "dev".
+define('LOOPRESS_SOURCE_CHECKOUT', is_dir(__DIR__ . '/tests'));
 
 require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
 

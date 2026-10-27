@@ -14,6 +14,7 @@ function renderApp() {
         autoloadError: null,
         phpVersion: '8.2.29',
         pluginVersion: '2026.7.0',
+        sourceCheckout: false,
         environment: 'staging',
         restUrl: 'http://localhost/wp-json/',
         siteUrl: 'http://localhost',

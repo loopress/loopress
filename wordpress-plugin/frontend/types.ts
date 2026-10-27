@@ -158,6 +158,8 @@ declare global {
             autoloadError: string | null;
             phpVersion: string;
             pluginVersion: string;
+            // Running from the repo, not a release zip: pluginVersion is the stale committed header.
+            sourceCheckout: boolean;
             // wp_get_environment_type(): local, development, staging or production.
             environment: string;
             // get_rest_url(), the site's REST root, to show full route URLs.

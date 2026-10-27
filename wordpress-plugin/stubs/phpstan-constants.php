@@ -7,4 +7,5 @@
 define('LOOPRESS_PLUGIN_URL', '');
 define('LOOPRESS_PLUGIN_PATH', '/var/www/html/wp-content/plugins/loopress/');
 define('LOOPRESS_PLUGIN_SLUG', 'loopress');
+define('LOOPRESS_SOURCE_CHECKOUT', is_dir(__DIR__));
 define('LOOPRESS_VERSION', '0.0.0');

@@ -66,6 +66,12 @@ if (!defined('LOOPRESS_PLUGIN_SLUG')) {
     define('LOOPRESS_PLUGIN_SLUG', 'loopress-full');
 }
 
+// Normally defined in loopress.php; false so the usage ping and admin data behave as in a
+// release zip, same reasoning as LOOPRESS_VERSION above.
+if (!defined('LOOPRESS_SOURCE_CHECKOUT')) {
+    define('LOOPRESS_SOURCE_CHECKOUT', false);
+}
+
 // Normally defined in loopress.php (outside src/, not autoloaded); AdminPageModule builds the
 // admin bar icon URL from it at real test runtime, same reasoning as LOOPRESS_VERSION above.
 if (!defined('LOOPRESS_PLUGIN_URL')) {

@@ -108,6 +108,14 @@ class UsagePingTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_send_does_nothing_from_a_source_checkout(): void
+    {
+        Functions\expect('wp_remote_post')->never();
+
+        (new UsagePing(true))->send();
+        $this->addToAssertionCount(1);
+    }
+
     public function test_send_is_enabled_by_default(): void
     {
         $this->assertTrue(UsageStats::isEnabled());
