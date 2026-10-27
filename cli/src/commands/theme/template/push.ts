@@ -42,7 +42,7 @@ export default class Push extends PushCommand {
     await this.parse(Push)
     const templatesPath = resolveResourceDir('template', this.localConfig)
     const partsPath = resolveResourceDir('part', this.localConfig)
-    // Pushing would only create an empty child theme as a side effect, even with activateChildTheme.
+    // Pushing would only create an empty child theme as a side effect.
     if (!projectHasChildThemeFiles(this.localConfig)) {
       this.error(`Nothing to push: no ${templatesPath}, ${partsPath}, ${resolveResourceDir('css', this.localConfig)} or ${resolveResourceDir('blockCss', this.localConfig)} directory.`)
     }

@@ -132,7 +132,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `plugin_audit` | No | none | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
-| `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory, unless `activateChildTheme` is true), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
+| `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
 | `theme_version_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_pull` | No | `env?` | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | `stylesheet?`, `env?`, `confirmToken?` | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |

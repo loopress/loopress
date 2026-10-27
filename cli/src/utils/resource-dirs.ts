@@ -69,12 +69,8 @@ export function projectUses(kind: ResourceDirKind, localConfig: LoopressLocalCon
   return existsSync(resolve(resolveResourceDir(kind, localConfig)))
 }
 
-// The project has files for the Loopress child theme to hold: templates, parts or CSS.
+// The project has files for the Loopress child theme to hold: templates, parts or CSS. Without
+// them the child would be empty, activateChildTheme or not: `lps theme activate` covers that.
 export function projectHasChildThemeFiles(localConfig: LoopressLocalConfig): boolean {
   return (['template', 'part', 'css', 'blockCss'] as const).some((kind) => projectUses(kind, localConfig))
-}
-
-// The child theme has something to hold, or the project asks for the child to be active.
-export function projectUsesChildTheme(localConfig: LoopressLocalConfig): boolean {
-  return localConfig.activateChildTheme === true || projectHasChildThemeFiles(localConfig)
 }

@@ -10,7 +10,7 @@ import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
-import {projectUses, projectUsesChildTheme, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
+import {projectHasChildThemeFiles, projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
 type PushTarget = {commandId: string; label: string}
@@ -213,7 +213,7 @@ export default class Push extends LoopressCommand {
         used: projectUses(kind, this.localConfig),
       })),
       // Without templates, parts or CSS, the step would only write an empty child theme.
-      {commandId: 'theme:template:push', missing: missingIntegration('template', capabilities), skipUnused: true, used: projectUsesChildTheme(this.localConfig)},
+      {commandId: 'theme:template:push', missing: missingIntegration('template', capabilities), skipUnused: true, used: projectHasChildThemeFiles(this.localConfig)},
     ]
     this.applySiteSteps(steps, skips, {fromComposer: hasComposerJson, plugins: declaredPlugins})
 

@@ -287,12 +287,12 @@ describe('push', () => {
       expect(logs.log).toHaveBeenCalledWith('\n→ templates and parts: not configured, skipped')
     })
 
-    it('runs them when loopress.json asks for the child theme', async () => {
+    it('skips them even when loopress.json asks for the child theme, which would be empty', async () => {
       rmSync(join(projectDir, 'theme/templates'), {recursive: true})
       vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
       await make({localConfig: {activateChildTheme: true, plugins: {akismet: '5.3.3'}}}).cmd.run()
 
-      expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:template:push', expect.anything())
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('theme:template:push', expect.anything())
     })
   })
 

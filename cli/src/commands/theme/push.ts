@@ -7,7 +7,7 @@ import {guardProductionPush} from '../../lib/guard-production-push.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
 import {errorMessage} from '../../lib/narrow.js'
 import {pluralize} from '../../utils/pluralize.js'
-import {projectUsesChildTheme} from '../../utils/resource-dirs.js'
+import {projectHasChildThemeFiles} from '../../utils/resource-dirs.js'
 
 // `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
 type PushTargetResult = {error?: string; label: string; result?: unknown; status: 'failed' | 'pushed'}
@@ -49,7 +49,7 @@ export default class Push extends LoopressCommand {
     const hasVersions =
       Object.keys(this.localConfig.themes ?? {}).length > 0 || existsSync(join(process.cwd(), this.rootDir, 'composer.json'))
     // Same for templates: without templates, parts or CSS the step would refuse (nothing to push).
-    const hasChildTheme = projectUsesChildTheme(this.localConfig)
+    const hasChildTheme = projectHasChildThemeFiles(this.localConfig)
     const targets = PUSH_TARGETS.filter(
       (target) => (hasVersions || target.commandId !== 'theme:version:push') && (hasChildTheme || target.commandId !== 'theme:template:push'),
     )
