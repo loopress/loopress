@@ -53,7 +53,7 @@ final readonly class AdminPageModule implements Module
         $push = $this->pushLog->lastPush();
         $at   = $push === null ? false : strtotime((string) $push['at']);
         $info = [
-            'version'     => 'Version: ' . LOOPRESS_VERSION,
+            'version'     => 'Version: ' . (LOOPRESS_SOURCE_CHECKOUT ? 'dev' : LOOPRESS_VERSION),
             'environment' => 'Environment: ' . wp_get_environment_type(),
             'last-push'   => 'Last push: ' . ($push === null
                 ? 'never'
@@ -110,6 +110,7 @@ final readonly class AdminPageModule implements Module
             'nonce'         => wp_create_nonce('wp_rest'),
             'phpVersion'    => PHP_VERSION,
             'pluginVersion' => $pluginData['Version'] ?? '',
+            'sourceCheckout' => LOOPRESS_SOURCE_CHECKOUT,
             'autoloadError' => null,
             'environment'   => wp_get_environment_type(),
             'restUrl'       => get_rest_url(),

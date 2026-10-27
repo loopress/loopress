@@ -45,6 +45,7 @@ function renderApp(autoloadError: string | null, overrides: Partial<Window['loop
         autoloadError,
         phpVersion: '8.2.29',
         pluginVersion: '2026.7.0',
+        sourceCheckout: false,
         environment: 'production',
         restUrl: 'http://localhost/wp-json/',
         siteUrl: 'http://localhost',
@@ -71,6 +72,12 @@ describe('App', () => {
         apiFetchMock.mockReset();
         stubQuietEndpoints();
         window.location.hash = '';
+    });
+
+    test('shows "dev" instead of the stale committed version when running from the repo', async () => {
+        await renderApp(null, { sourceCheckout: true });
+
+        expect(screen.getByText('Full dev')).toBeInTheDocument();
     });
 
     test('renders the Loopress Full heading without a repair notice when the autoload is healthy', async () => {

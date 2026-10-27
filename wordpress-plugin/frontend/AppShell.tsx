@@ -11,7 +11,7 @@ const STICKY_HEADER = `
 @media (max-width:600px){#loopress-admin-root :is([class$="__header"],[class*="__header "]){inset-block-start:0}}
 `;
 
-const pluginVersion = window.loopressData?.pluginVersion ?? '';
+const pluginVersion = window.loopressData?.sourceCheckout ? 'dev' : `v${window.loopressData?.pluginVersion ?? ''}`;
 const environment = window.loopressData?.environment;
 
 export function AppShell({ edition, actions, children }: Readonly<{
@@ -25,7 +25,7 @@ export function AppShell({ edition, actions, children }: Readonly<{
             visual={<img src={LogoBlack} alt="" height={30} />}
             badges={
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Pill>{edition} v{pluginVersion}</Pill>
+                    <Pill>{edition} {pluginVersion}</Pill>
                     {environment && <EnvironmentBadge environment={environment} />}
                 </span>
             }

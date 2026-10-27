@@ -108,6 +108,7 @@
                 <referencedMethod name="Loopress\Pushes\Module\PushesModule::__construct" />
                 <referencedMethod name="Loopress\Content\Module\ContentModule::__construct" />
                 <referencedMethod name="Loopress\Capabilities\Module\CapabilitiesModule::__construct" />
+                <referencedMethod name="Loopress\Update\Infrastructure\UsagePing::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\LoopressEnvironment::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Infrastructure\ComposerRunner::__construct" />
                 <referencedMethod name="Loopress\Dependencies\Service\ComposerService::__construct" />

@@ -37,6 +37,7 @@ parameters:
         - LOOPRESS_PLUGIN_URL
         - LOOPRESS_PLUGIN_PATH
         - LOOPRESS_PLUGIN_SLUG
+        - LOOPRESS_SOURCE_CHECKOUT
         - LOOPRESS_VERSION
     excludePaths:
         - vendor
