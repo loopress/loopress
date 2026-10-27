@@ -3,14 +3,14 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../lib/base.js'
-import {integrationFix, missingIntegration} from '../lib/capabilities.js'
+import {integrationFix, type MissingIntegration, missingIntegration, missingModule} from '../lib/capabilities.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
-import {projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
+import {projectUses, projectUsesChildTheme, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
 type PushTarget = {commandId: string; label: string}
@@ -20,10 +20,20 @@ type PushTargetResult = {error?: string; label: string; result?: unknown; status
 
 type PushResult = {results: PushTargetResult[]}
 
+type Skip = {note: string; status: 'pushed' | 'skipped'}
+
+// A step the site may be unable to hold: `skipUnused` skips it whenever the project doesn't use
+// it, otherwise only when the site lacks it.
+type SiteStep = {commandId: string; missing: MissingIntegration | undefined; skipUnused: boolean; used: boolean}
+
 // Backed by a plugin the site may not have (ACF, a form or a snippet plugin): a project without
 // the resource's directory doesn't use it, and its push, dry run included, would only stop on the
 // site's 409 or the missing directory.
 const PLUGIN_BACKED: Record<string, ResourceDirKind> = {'acf:push': 'acf', 'form:push': 'form', 'snippet:push': 'snippets'}
+
+// Features of Loopress Full only: on Light, skipped while the project doesn't use them, refused
+// upfront when it does. On Full they run as usual, used or not.
+const FULL_ONLY: Record<string, ResourceDirKind> = {'api:push': 'api', 'hook:push': 'hooks', 'page:push': 'page', 'pattern:push': 'pattern'}
 
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
@@ -66,7 +76,6 @@ export default class Push extends LoopressCommand {
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
-    this.warnRemovedSeoModule()
 
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
@@ -100,6 +109,27 @@ export default class Push extends LoopressCommand {
 
     this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
     return {results}
+  }
+
+  // A step the project uses on a site that can't hold it would only fail at its turn, after
+  // everything before it was pushed: refuse the whole run upfront, saying how to fix it. An unused
+  // one is skipped, saying why when the site lacks it.
+  private applySiteSteps(steps: SiteStep[], skips: Map<string, Skip>, declared: {fromComposer: boolean; plugins: string[]}): void {
+    const blockers: string[] = []
+    for (const {commandId, missing, skipUnused, used} of steps) {
+      if (used && missing) {
+        const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
+        const fix = integrationFix(missing, declared)
+        const fixSentence = fix ? ` ${fix}.` : ''
+        blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`)
+      } else if (!used && missing?.needsFull) {
+        skips.set(commandId, {note: `${missing.reason}, skipped`, status: 'skipped'})
+      } else if (!used && skipUnused) {
+        skips.set(commandId, {note: 'not configured, skipped', status: 'skipped'})
+      }
+    }
+
+    if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}`)
   }
 
   // Every delegated push always gets --yes: either this command's own guard already confirmed
@@ -151,8 +181,8 @@ export default class Push extends LoopressCommand {
 
   // Unconfigured is not a failure: a project that doesn't manage plugins or composer through
   // Loopress must not stop the run before anything else gets pushed.
-  private async skippedTargets(): Promise<Map<string, {note: string; status: 'pushed' | 'skipped'}>> {
-    const skips = new Map<string, {note: string; status: 'pushed' | 'skipped'}>()
+  private async skippedTargets(): Promise<Map<string, Skip>> {
+    const skips = new Map<string, Skip>()
     const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
     const hasComposerJson = existsSync(this.composerJsonPath())
     const declaredPlugins = await this.declaredPlugins(hasComposerJson)
@@ -166,25 +196,26 @@ export default class Push extends LoopressCommand {
     // With a composer.json, plugins come from it only; otherwise from loopress.json.
     if (declaredPlugins.length === 0) skips.set('plugin:push', notConfigured)
 
-    // A resource the project uses on a site that can't hold it would only fail at its turn, after
-    // everything before it was pushed: refuse the whole run upfront, saying how to fix it.
     const capabilities = await this.capabilities()
-    const blockers: string[] = []
-    for (const [commandId, kind] of Object.entries(PLUGIN_BACKED)) {
-      if (!projectUses(kind, this.localConfig)) {
-        skips.set(commandId, notConfigured)
-        continue
-      }
-
-      const missing = missingIntegration(kind, capabilities)
-      if (!missing) continue
-      const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
-      const fix = integrationFix(missing, {fromComposer: hasComposerJson, plugins: declaredPlugins})
-      const fixSentence = fix ? ` ${fix}.` : ''
-      blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`)
-    }
-
-    if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}`)
+    const missingDependencies = missingModule('dependencies', 'plugins and Composer', capabilities)
+    const steps: SiteStep[] = [
+      ...['plugin:push', 'composer:push'].map((commandId) => ({commandId, missing: missingDependencies, skipUnused: false, used: !skips.has(commandId)})),
+      ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => ({
+        commandId,
+        missing: missingIntegration(kind, capabilities),
+        skipUnused: true,
+        used: projectUses(kind, this.localConfig),
+      })),
+      ...Object.entries(FULL_ONLY).map(([commandId, kind]) => ({
+        commandId,
+        missing: missingIntegration(kind, capabilities),
+        skipUnused: false,
+        used: projectUses(kind, this.localConfig),
+      })),
+      // Without templates, parts or CSS, the step would only write an empty child theme.
+      {commandId: 'theme:template:push', missing: missingIntegration('template', capabilities), skipUnused: true, used: projectUsesChildTheme(this.localConfig)},
+    ]
+    this.applySiteSteps(steps, skips, {fromComposer: hasComposerJson, plugins: declaredPlugins})
 
     const stylesNote = await this.globalStylesSkipNote()
     if (stylesNote) skips.set('theme:style:push', {note: stylesNote, status: 'skipped'})

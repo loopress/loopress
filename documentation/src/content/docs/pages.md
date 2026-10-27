@@ -163,7 +163,7 @@ Show what differs (HTML, title, status) between `pages/` and WordPress. Also par
 
 ### `lps theme template push`
 
-Write every template, part and the [theme CSS](#theme-css) to the Loopress child theme. Supports `--dry-run`.
+Write every template, part and the [theme CSS](#theme-css) to the Loopress child theme. Supports `--dry-run`. Refuses with "Nothing to push" when the project has no template, part or CSS directory.
 
 ---
 

@@ -1,5 +1,5 @@
 import {LoopressCommand} from '../lib/base.js'
-import {missingIntegration} from '../lib/capabilities.js'
+import {type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {pluralize} from '../utils/pluralize.js'
@@ -9,8 +9,8 @@ import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 // `supportsYes` marks the commands that prompt before deleting orphaned local files and so
 // accept `--yes` to skip it. `composer:pull` and `plugin:pull` never delete anything and do
 // not define the flag, passing it to them would be a "Nonexistent flag" parse error.
-// `needsPlugin`: backed by a third-party plugin (ACF, a form or a snippet plugin) the site may
-// not have. Its own directory tells whether the project uses it at all.
+// `needsPlugin`: backed by a third-party plugin (ACF, a form or a snippet plugin) or a Loopress
+// Full feature the site may not have. Its own directory tells whether the project uses it at all.
 type PullTarget = {commandId: string; label: string; needsPlugin?: ResourceDirKind; supportsYes?: boolean}
 
 type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled' | 'skipped'}
@@ -28,10 +28,10 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'meta:pull', label: 'post meta', supportsYes: true},
   {commandId: 'role:pull', label: 'roles', supportsYes: true},
   {commandId: 'acf:pull', label: 'ACF', needsPlugin: 'acf', supportsYes: true},
-  {commandId: 'api:pull', label: 'API routes', supportsYes: true},
-  {commandId: 'hook:pull', label: 'hooks', supportsYes: true},
+  {commandId: 'api:pull', label: 'API routes', needsPlugin: 'api', supportsYes: true},
+  {commandId: 'hook:pull', label: 'hooks', needsPlugin: 'hooks', supportsYes: true},
   {commandId: 'form:pull', label: 'forms', needsPlugin: 'form', supportsYes: true},
-  {commandId: 'pattern:pull', label: 'patterns', supportsYes: true},
+  {commandId: 'pattern:pull', label: 'patterns', needsPlugin: 'pattern', supportsYes: true},
   // Templates and parts have no pull. Global Styles are pulled only once the project tracks them,
   // see globalStylesSkipNote.
   {commandId: 'theme:style:pull', label: 'Global Styles'},
@@ -39,6 +39,13 @@ const PULL_TARGETS: PullTarget[] = [
   {commandId: 'option:pull', label: 'options', supportsYes: true},
   {commandId: 'snippet:pull', label: 'snippets', needsPlugin: 'snippets', supportsYes: true},
 ]
+
+// Why this site can't give the target. Composer has no directory to tell whether the project
+// uses it: never pulled from Light, which has nothing to give.
+function missingFor(target: PullTarget, capabilities: SiteCapabilities): MissingIntegration | undefined {
+  if (target.commandId === 'composer:pull') return missingModule('dependencies', 'Composer files', capabilities)
+  return target.needsPlugin === undefined ? undefined : missingIntegration(target.needsPlugin, capabilities)
+}
 
 export default class Pull extends LoopressCommand {
   static override description =
@@ -55,7 +62,6 @@ export default class Pull extends LoopressCommand {
 
   async run(): Promise<PullResult> {
     const results: PullTargetResult[] = []
-    this.warnRemovedSeoModule()
 
     const capabilities = await this.capabilities()
     for (const target of PULL_TARGETS) {
@@ -66,21 +72,9 @@ export default class Pull extends LoopressCommand {
         continue
       }
 
-      // A site without ACF (or a form or snippet plugin) is the common case, not a failure, as
-      // long as the project doesn't use that resource: a vanilla site must pull, and a promote
-      // must not stop on it. A project that does use it still fails, without asking the site.
-      const missing = target.needsPlugin ? missingIntegration(target.needsPlugin, capabilities) : undefined
-      if (missing && target.needsPlugin && !projectUses(target.needsPlugin, this.localConfig)) {
-        this.log(`\n→ ${target.label}: not configured, skipped`)
-        results.push({label: target.label, status: 'skipped'})
-        continue
-      }
-
-      if (missing) {
-        this.failedCount++
-        const error = `${missing.reason} on ${this.siteConfig.name}`
-        this.log(`\n✗ ${target.label} failed: ${error}`)
-        results.push({error, label: target.label, status: 'failed'})
+      const unavailable = this.unavailable(target, capabilities)
+      if (unavailable) {
+        results.push(unavailable)
         continue
       }
 
@@ -124,5 +118,28 @@ export default class Pull extends LoopressCommand {
     } catch {
       return undefined
     }
+  }
+
+  // Composer has no directory: counted as unused, see missingFor.
+  private projectUses(target: PullTarget): boolean {
+    return target.needsPlugin !== undefined && projectUses(target.needsPlugin, this.localConfig)
+  }
+
+  // A site without ACF (or a form or snippet plugin) is the common case, not a failure, as
+  // long as the project doesn't use that resource: a vanilla site must pull, and a promote
+  // must not stop on it. A project that does use it still fails, without asking the site.
+  // Same for a Loopress Full feature on Light.
+  private unavailable(target: PullTarget, capabilities: SiteCapabilities): PullTargetResult | undefined {
+    const missing = missingFor(target, capabilities)
+    if (!missing) return undefined
+    if (!this.projectUses(target)) {
+      this.log(`\n→ ${target.label}: ${missing.needsFull ? missing.reason : 'not configured'}, skipped`)
+      return {label: target.label, status: 'skipped'}
+    }
+
+    this.failedCount++
+    const error = `${missing.reason} on ${this.siteConfig.name}`
+    this.log(`\n✗ ${target.label} failed: ${error}`)
+    return {error, label: target.label, status: 'failed'}
   }
 }

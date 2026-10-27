@@ -1,6 +1,8 @@
 import {Flags} from '@oclif/core'
+import {existsSync} from 'node:fs'
+import {resolve} from 'node:path'
 
-import {getCapabilities, missingIntegration} from '../lib/capabilities.js'
+import {getCapabilities, type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
 import {DiffCommand, type DiffJson, type DiffSides, type DiffTarget} from '../lib/diff-command.js'
 import {RESOURCE_STATE_PROVIDERS, type ResourceStateProvider} from '../lib/resource-state.js'
 import {type WpClient} from '../lib/wp-client.js'
@@ -45,10 +47,19 @@ export default class Diff extends DiffCommand {
       ...(await Promise.all(
         providers.map(async (provider) => ({
           ...this.providerTarget(provider, sides),
-          skip: !(await this.projectUses(provider)) && (await this.siteLacks(provider, sides)),
+          skip: !(await this.projectUses(provider)) && (await this.siteLacks((capabilities) => missingIntegration(provider.dirKind, capabilities), sides)),
         })),
       )),
-      ...(selected.has('composer') ? [this.composerTarget(sides)] : []),
+      ...(selected.has('composer')
+        ? [
+            {
+              ...this.composerTarget(sides),
+              skip:
+                !existsSync(resolve(process.cwd(), this.rootDir, 'composer.json')) &&
+                (await this.siteLacks((capabilities) => missingModule('dependencies', 'Composer files', capabilities), sides)),
+            },
+          ]
+        : []),
     ]
 
     return this.report(targets, sides)
@@ -73,13 +84,13 @@ export default class Diff extends DiffCommand {
 
   // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too
   // old) skip nothing: the comparison then reports the failure itself, as inconclusive.
-  private async siteLacks(provider: ResourceStateProvider, sides: DiffSides): Promise<boolean> {
+  private async siteLacks(missing: (capabilities: SiteCapabilities) => MissingIntegration | undefined, sides: DiffSides): Promise<boolean> {
     try {
       // Inside the try: `this.wp` errors out without credentials, the comparison reports that.
       const sites: Array<[WpClient, string]> = [[this.wp, sides.leftLabel]]
       if (sides.againstWp) sites.push([sides.againstWp, sides.rightLabel])
       const all = await Promise.all(sites.map(async ([wp, name]) => getCapabilities(wp, name)))
-      return all.some((capabilities) => missingIntegration(provider.dirKind, capabilities) !== undefined)
+      return all.some((capabilities) => missing(capabilities) !== undefined)
     } catch {
       return false
     }

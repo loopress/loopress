@@ -1,7 +1,6 @@
 import {confirm} from '@inquirer/prompts'
 import {Command, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
-import {existsSync} from 'node:fs'
 import {mkdir, rm} from 'node:fs/promises'
 import {join} from 'node:path'
 
@@ -247,15 +246,6 @@ export abstract class LoopressCommand extends Command {
 
   protected resolveThemeStylesPath(override?: string): string {
     return resolveResourceDir('themeStyles', this.localConfig, override)
-  }
-
-  // `lps seo` was removed: a leftover seo/ folder or seoDir key would otherwise be silently
-  // ignored by `lps pull` / `lps push`. Remove once projects have had a release to migrate.
-  protected warnRemovedSeoModule(): void {
-    if (!('seoDir' in this.localConfig) && !existsSync(join(this.rootDir, 'seo'))) return
-    this.warn(
-      'The SEO module was removed: seo/ is no longer pulled or pushed. Track SEO plugin settings with `lps option add rank-math-options-titles` (or `wpseo_titles`), then delete seo/ and any seoDir key from loopress.json.',
-    )
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

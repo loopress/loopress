@@ -5,11 +5,21 @@ type Overrides = Partial<Omit<SiteCapabilities, 'integrations' | 'theme'>> & {
   theme?: Partial<SiteCapabilities['theme']>
 }
 
+// What the plugin's CapabilitiesController and loopress.php report for each edition.
+export const LIGHT_MODULES = ['acf', 'content', 'form', 'menu', 'options', 'post-types', 'themes']
+const FULL_MODULES = [...LIGHT_MODULES, 'api', 'apps', 'dependencies', 'hooks', 'pages', 'snippets']
+
+// A Loopress Light site, ACF and a form plugin active, on a block theme.
+export function makeLightCapabilities(overrides: Overrides = {}): SiteCapabilities {
+  return makeCapabilities({edition: 'light', modules: LIGHT_MODULES, ...overrides, integrations: {snippets: undefined, ...overrides.integrations}, theme: {child: undefined, ...overrides.theme}})
+}
+
 // A Loopress Full site with every integration active on a block theme, unless overridden.
 export function makeCapabilities(overrides: Overrides = {}): SiteCapabilities {
   return {
     edition: 'full',
     environmentType: 'local',
+    modules: FULL_MODULES,
     version: '2026.10.0',
     ...overrides,
     integrations: {acf: true, form: true, snippets: true, ...overrides.integrations},

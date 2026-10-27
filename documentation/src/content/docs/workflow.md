@@ -68,7 +68,7 @@ lps pull --env staging
 lps pull --dry-run
 ```
 
-Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
+Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. On Loopress Light, Composer and the Full-only resources (API routes, hooks, patterns, snippets) are skipped the same way when the project has no directory for them, and fail when it does. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
 
 ## `lps push`
 
@@ -81,6 +81,8 @@ lps push --dry-run
 ```
 
 When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
+
+Templates and parts are skipped when the project has no template, part or CSS directory and `loopress.json` doesn't set `"activateChildTheme": true`: the step would only write an empty child theme. On Loopress Light, what needs Full (plugins, Composer, API routes, hooks, patterns, templates and parts, pages, snippets) is skipped when the project doesn't use it. When it does, the push refuses before pushing anything and names each resource, dry run included.
 
 Unlike `lps pull`, the push stops at the first resource that fails and lists the ones it didn't attempt: later resources depend on earlier ones (hooks use the packages Composer installs, pages need their templates), so pushing them anyway could leave the site half working. Fix the failure and run `lps push` again, resources already pushed are simply written again unchanged. Plugins and Composer are skipped, not failed, when the project doesn't manage them (no `plugins` in `loopress.json`, no `composer.json`). So are ACF, forms and snippets when the project has no directory for them (`acf/`, `forms/`, `snippets/`), on a real push and on `--dry-run` alike: a site without a form plugin no longer fails the preview. When the project does use one of them and the site can't hold it (ACF inactive, no form or snippet plugin, snippets on Loopress Light), the push refuses before pushing anything, and says which plugin to declare or activate.
 
@@ -108,7 +110,7 @@ lps diff --skip composer
 
 Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-styles`, `composer`.
 
-The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin or runs a classic theme. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
+The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin, runs a classic theme, or runs Loopress Light for a feature of Full. A project that uses only what Light holds exits `0` on it. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 
 ## `lps promote`
 

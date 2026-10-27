@@ -8,6 +8,9 @@ export type SiteCapabilities = {
   environmentType: string
   // `snippets` is absent on Loopress Light, which has no snippet sync at all.
   integrations: {acf: boolean; form: boolean; snippets?: boolean | undefined}
+  // The plugin features present: Light's own, plus `api`, `apps`, `dependencies`, `hooks`,
+  // `pages`, `snippets` on Full.
+  modules: string[]
   theme: {
     active: string
     // The Loopress child of the block theme in use. Absent on Light, null when the site can't
@@ -43,19 +46,41 @@ export async function getCapabilities(wp: WpClient, site: string): Promise<SiteC
 }
 
 // Why the site can't hold a kind of resource: `plugins` are the wordpress.org slugs that would
-// provide it, `fix` a fixed remedy when no plugin does.
-export type MissingIntegration = {fix?: string; plugins?: string[]; reason: string}
+// provide it, `fix` a fixed remedy when no plugin does. `needsFull`: the plugin edition is the
+// cause, not a third-party plugin.
+export type MissingIntegration = {fix?: string; needsFull?: true; plugins?: string[]; reason: string}
 
 type IntegrationCheck = (capabilities: SiteCapabilities) => MissingIntegration | undefined
+
+// `what` needs the `module` feature of Loopress Full.
+export function missingModule(module: string, what: string, {modules}: SiteCapabilities): MissingIntegration | undefined {
+  return modules.includes(module) ? undefined : {fix: 'Install Loopress Full', needsFull: true, reason: `${what} need Loopress Full`}
+}
+
+const needsModule =
+  (module: string, what: string): IntegrationCheck =>
+  (capabilities) =>
+    missingModule(module, what, capabilities)
 
 // The kinds of resource a site may be unable to hold. Every other kind needs nothing from it.
 const INTEGRATION_CHECKS: Partial<Record<ResourceDirKind, IntegrationCheck>> = {
   acf: ({integrations}) => (integrations.acf ? undefined : {plugins: ['advanced-custom-fields'], reason: 'ACF is not active'}),
+  api: needsModule('api', 'API routes'),
+  blockCss: needsModule('pages', 'templates and parts'),
+  css: needsModule('pages', 'templates and parts'),
   form: ({integrations}) => (integrations.form ? undefined : {plugins: ['wpforms-lite'], reason: 'no supported form plugin is active'}),
-  snippets({integrations}) {
-    if (integrations.snippets === undefined) return {fix: 'Install Loopress Full', reason: 'snippets need Loopress Full'}
-    return integrations.snippets ? undefined : {plugins: ['code-snippets', 'insert-headers-and-footers'], reason: 'no supported snippet plugin is active'}
+  hooks: needsModule('hooks', 'hooks'),
+  page: needsModule('pages', 'pages'),
+  part: needsModule('pages', 'templates and parts'),
+  pattern: needsModule('pages', 'block patterns'),
+  snippets(capabilities) {
+    const missing = missingModule('snippets', 'snippets', capabilities)
+    if (missing) return missing
+    return capabilities.integrations.snippets === true
+      ? undefined
+      : {plugins: ['code-snippets', 'insert-headers-and-footers'], reason: 'no supported snippet plugin is active'}
   },
+  template: needsModule('pages', 'templates and parts'),
   themeStyles: ({theme}) => (theme.isBlock ? undefined : {reason: `the active theme "${theme.active}" is a classic theme`}),
 }
 

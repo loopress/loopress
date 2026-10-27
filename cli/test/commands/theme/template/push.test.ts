@@ -143,6 +143,14 @@ describe('template push', () => {
     })
   })
 
+  it('refuses with nothing to push when the project has no template, part or CSS directory', async () => {
+    rmSync(join(dir, 'theme'), {force: true, recursive: true})
+    const put = vi.fn()
+
+    await expect(makeCommand(put).run()).rejects.toThrow(/Nothing to push: no \S+theme\/templates, \S+theme\/parts, \S+theme\/css or \S+theme\/blocks directory\./)
+    expect(put).not.toHaveBeenCalled()
+  })
+
   it('refuses the whole push before any network call when a file is invalid', async () => {
     writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<!-- wp:template-part {"slug":"header","theme":"twentytwentyfive"} /-->')
     const put = vi.fn()

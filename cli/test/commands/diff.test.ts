@@ -6,7 +6,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Diff from '../../src/commands/diff.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
-import {makeCapabilities} from '../helpers/capabilities.js'
+import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -203,6 +203,19 @@ describe('diff', () => {
     expect(process.exitCode).not.toBe(2)
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/))
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/))
+  })
+
+  it('exits 0 on Light when the project uses none of what needs Full, Composer included', async () => {
+    rmSync(join(dir, 'composer.json'))
+    const get = baselineGet()
+    const {cmd, logs} = make([], get, makeLightCapabilities())
+
+    const result = await cmd.run()
+
+    expect(get).not.toHaveBeenCalledWith('loopress/v1/hooks')
+    expect(result.resources.composer).toBeUndefined()
+    expect(process.exitCode).toBe(0)
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Hooks.*not configured, skipped/))
   })
 
   it('skips nothing when the capabilities cannot be read, so the run stays inconclusive (exit 2), not drift', async () => {

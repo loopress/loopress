@@ -13,7 +13,8 @@ class TestPush extends Push {
     this.dryRun = dryRun
     this.yes = yes
     this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
-    this.localConfig = themes ? {themes} : {}
+    // A project with templates or parts, unless a test says otherwise.
+    this.localConfig = {activateChildTheme: true, ...(themes && {themes})}
   }
 }
 
@@ -81,6 +82,17 @@ describe('theme push', () => {
     await cmd.run()
 
     expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['theme:template:push', 'theme:style:push'])
+  })
+
+  it('skips templates and parts when the project has none and does not ask for the child theme', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    vi.spyOn(process, 'cwd').mockReturnValue(mkdtempSync(join(tmpdir(), 'lps-theme-push-')))
+    const {cmd} = makePush()
+    ;(cmd as unknown as {localConfig: Record<string, unknown>}).localConfig = {themes: {astra: '4.0.0'}}
+
+    await cmd.run()
+
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['theme:version:push', 'theme:style:push'])
   })
 
   it('continues past a failed step and reports it', async () => {

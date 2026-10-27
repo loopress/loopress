@@ -6,7 +6,7 @@ import {errorMessage} from '../../../lib/narrow.js'
 import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
 import {pluralize} from '../../../utils/pluralize.js'
-import {resolveResourceDir} from '../../../utils/resource-dirs.js'
+import {projectUsesChildTheme, resolveResourceDir} from '../../../utils/resource-dirs.js'
 import {CHILD_THEME_ENDPOINT, type ChildTheme, type Part, readLocalTemplates, type Template} from '../../../utils/template-format.js'
 import {bundleThemeCss, type ThemeCss} from '../../../utils/theme-css.js'
 
@@ -42,6 +42,10 @@ export default class Push extends PushCommand {
     await this.parse(Push)
     const templatesPath = resolveResourceDir('template', this.localConfig)
     const partsPath = resolveResourceDir('part', this.localConfig)
+    // Pushing would only create an empty child theme as a side effect.
+    if (!projectUsesChildTheme(this.localConfig)) {
+      this.error(`Nothing to push: no ${templatesPath}, ${partsPath}, ${resolveResourceDir('css', this.localConfig)} or ${resolveResourceDir('blockCss', this.localConfig)} directory.`)
+    }
 
     this.log(`Pushing templates and parts to ${this.siteConfig.url}`)
     this.log(`Templates path: ${templatesPath}, parts path: ${partsPath}`)

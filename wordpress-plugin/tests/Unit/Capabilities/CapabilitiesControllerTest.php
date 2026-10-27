@@ -48,6 +48,7 @@ class CapabilitiesControllerTest extends TestCase
         $this->assertSame([
             'version'         => LOOPRESS_VERSION,
             'edition'         => 'light',
+            'modules'         => ['acf', 'content', 'form', 'menu', 'options', 'post-types', 'themes'],
             'environmentType' => 'local',
             'integrations'    => ['acf' => true, 'form' => false],
             'theme'           => ['active' => 'twentytwentyfive', 'template' => 'twentytwentyfive', 'isBlock' => true],

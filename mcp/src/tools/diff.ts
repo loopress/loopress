@@ -34,7 +34,7 @@ export function registerDiffTools(server: McpServer): void {
     'project_diff',
     {
       description:
-        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, menus, custom post types, taxonomies, post meta, roles, block patterns, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status.',
+        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, menus, custom post types, taxonomies, post meta, roles, block patterns, options, theme styles and Composer. Plugins and themes have their own plugin_status / theme_status. A resource the site cannot hold (a missing plugin, a Full feature on Loopress Light) is skipped when the project does not use it.',
       inputSchema: {
         against: z
           .string()
