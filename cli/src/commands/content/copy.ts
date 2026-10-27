@@ -3,11 +3,11 @@ import {Args, Flags} from '@oclif/core'
 
 import {configManager} from '../../config/project-config.manager.js'
 import {LoopressCommand} from '../../lib/base.js'
-import {activateTheme, getCapabilities} from '../../lib/capabilities.js'
+import {activateTheme, getCapabilities, type SiteCapabilities} from '../../lib/capabilities.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
 import {isLocalEnvironment, LOCAL_ENVIRONMENT_NAME, WpClient} from '../../lib/wp-client.js'
-import {type WpNativePlugin} from '../../types/plugin.js'
+import {type InstalledPlugin, type WpNativePlugin} from '../../types/plugin.js'
 import {parseInstalledPlugins} from '../../utils/plugins.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {CHILD_THEME_SUFFIX, type WpThemeSupportInfo} from '../../utils/theme-styles-format.js'
@@ -17,6 +17,15 @@ type ContentInfo = {home: string; uploadsUrl: string}
 type ContentPage = Record<string, unknown> & {next: null | number}
 
 type ContentCopyResult = {from: string; posts: number; status: 'copied' | 'dry-run'; terms: number}
+
+// What the theme and plugin alignment needs from both sites, read before the local reset.
+type Alignment = {
+  here: SiteCapabilities['theme']
+  installedThemes: Set<string>
+  localPlugins: InstalledPlugin[]
+  sourcePlugins: InstalledPlugin[]
+  there: SiteCapabilities['theme']
+}
 
 const BATCH_SIZE = 100
 
@@ -61,6 +70,8 @@ export default class Copy extends LoopressCommand {
     const source = this.sourceWp(from)
     if (!this.dryRun) await this.confirmReplace(from)
 
+    // Read before the reset: a failing read must not leave the local site emptied and unpushed.
+    const alignment = await this.readAlignment(source, from)
     const info = await source.get<ContentInfo>('loopress/v1/content')
     if (!this.dryRun) {
       await this.wp.post('loopress/v1/content/reset', {home: info.home, uploadsUrl: info.uploadsUrl})
@@ -73,8 +84,8 @@ export default class Copy extends LoopressCommand {
 
     // Before the push: it must meet the source's plugins (a snippet push needs its plugin active)
     // and its theme (templates and Global Styles go to the active one).
-    await this.alignPlugins(source, from)
-    const pendingChild = await this.alignTheme(source, from)
+    await this.alignPlugins(alignment, from)
+    const pendingChild = await this.alignTheme(alignment, from)
 
     const summary = `${pluralize(posts, 'post')} and ${pluralize(terms, 'term')}`
     if (this.dryRun) {
@@ -106,11 +117,7 @@ export default class Copy extends LoopressCommand {
 
   // Activates locally the plugins active on <from> but inactive here. Never installs: a plugin
   // missing here is reported, composer.json is where it gets declared.
-  private async alignPlugins(source: WpClient, from: string): Promise<void> {
-    const [sourcePlugins, localPlugins] = await Promise.all([
-      source.get<WpNativePlugin[]>('wp/v2/plugins').then(parseInstalledPlugins),
-      this.wp.get<WpNativePlugin[]>('wp/v2/plugins').then(parseInstalledPlugins),
-    ])
+  private async alignPlugins({localPlugins, sourcePlugins}: Alignment, from: string): Promise<void> {
     const local = new Map(localPlugins.map((plugin) => [plugin.slug, plugin]))
     const activeThere = sourcePlugins.filter((plugin) => plugin.active)
 
@@ -135,11 +142,9 @@ export default class Copy extends LoopressCommand {
   // Activates locally the theme active on <from>. When that is the Loopress child, not written
   // here yet, its parent is activated now and the child returned, to activate once the push has
   // written it.
-  private async alignTheme(source: WpClient, from: string): Promise<string | undefined> {
-    const [{theme: there}, {theme: here}] = await Promise.all([getCapabilities(source, from), this.capabilities()])
+  private async alignTheme({here, installedThemes: installed, there}: Alignment, from: string): Promise<string | undefined> {
     if (here.active === there.active) return undefined
 
-    const installed = new Set((await this.wp.get<WpThemeSupportInfo[]>('wp/v2/themes')).map((theme) => theme.stylesheet))
     const isChild = there.active === `${there.template}${CHILD_THEME_SUFFIX}`
     let now: string | undefined
     if (installed.has(there.active)) now = there.active
@@ -189,5 +194,19 @@ export default class Copy extends LoopressCommand {
     }
 
     return count
+  }
+
+  // Everything alignPlugins and alignTheme read. The local theme list only matters when the
+  // active themes differ.
+  private async readAlignment(source: WpClient, from: string): Promise<Alignment> {
+    const [sourcePlugins, localPlugins, {theme: there}, {theme: here}] = await Promise.all([
+      source.get<WpNativePlugin[]>('wp/v2/plugins').then(parseInstalledPlugins),
+      this.wp.get<WpNativePlugin[]>('wp/v2/plugins').then(parseInstalledPlugins),
+      getCapabilities(source, from),
+      this.capabilities(),
+    ])
+    const installedThemes =
+      here.active === there.active ? new Set<string>() : new Set((await this.wp.get<WpThemeSupportInfo[]>('wp/v2/themes')).map((theme) => theme.stylesheet))
+    return {here, installedThemes, localPlugins, sourcePlugins, there}
   }
 }

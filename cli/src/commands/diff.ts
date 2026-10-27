@@ -74,9 +74,10 @@ export default class Diff extends DiffCommand {
   // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too
   // old) skip nothing: the comparison then reports the failure itself, as inconclusive.
   private async siteLacks(provider: ResourceStateProvider, sides: DiffSides): Promise<boolean> {
-    const sites: Array<[WpClient, string]> = [[this.wp, sides.leftLabel]]
-    if (sides.againstWp) sites.push([sides.againstWp, sides.rightLabel])
     try {
+      // Inside the try: `this.wp` errors out without credentials, the comparison reports that.
+      const sites: Array<[WpClient, string]> = [[this.wp, sides.leftLabel]]
+      if (sides.againstWp) sites.push([sides.againstWp, sides.rightLabel])
       const all = await Promise.all(sites.map(async ([wp, name]) => getCapabilities(wp, name)))
       return all.some((capabilities) => missingIntegration(provider.dirKind, capabilities) !== undefined)
     } catch {
