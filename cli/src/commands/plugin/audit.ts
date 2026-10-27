@@ -160,11 +160,13 @@ function normalizeAdvisory(raw: Record<string, unknown>): Omit<Advisory, 'slug'>
 // wpvulnerability's `operator`: `max_version` with `max_operator` "lt" (fixed in that version),
 // "le" (affected up to it, no fix yet) or "eq" (that version only), and an optional lower bound `min_version` with
 // `min_operator` "gt" or "ge". No upper bound means every version from the lower one on.
+function toBound(version: unknown, operator: unknown): Bound | undefined {
+  return typeof version === 'string' && version !== '' && typeof operator === 'string' ? {op: operator, version} : undefined
+}
+
 function extractRange(raw: Record<string, unknown>): Range {
   const op = (raw.operator ?? {}) as Record<string, unknown>
-  const bound = (version: unknown, operator: unknown): Bound | undefined =>
-    typeof version === 'string' && version !== '' && typeof operator === 'string' ? {op: operator, version} : undefined
-  return {max: bound(op.max_version, op.max_operator), min: bound(op.min_version, op.min_operator)}
+  return {max: toBound(op.max_version, op.max_operator), min: toBound(op.min_version, op.min_operator)}
 }
 
 // A bound we can't evaluate (odd version strings, unknown operator) counts as affected: a false

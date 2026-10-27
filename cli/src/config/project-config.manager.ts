@@ -7,7 +7,11 @@ import {toSlug} from '../utils/to-slug.js'
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
 export class ProjectConfigManager {
-  constructor(private configDir?: string) {}
+  private configDir: string | undefined
+
+  constructor(configDir?: string) {
+    this.configDir = configDir
+  }
 
   createProjectId(name: string): string {
     const config = this.readConfig()

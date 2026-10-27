@@ -41,13 +41,15 @@ export function assertSecureSiteUrl(siteUrl: string, environmentName: string | u
  */
 export class WpClient {
   private readonly client: Got
+  private readonly siteUrl: string
 
   constructor(
-    private readonly siteUrl: string,
+    siteUrl: string,
     token: string,
     environmentName?: string,
   ) {
     assertSecureSiteUrl(siteUrl, environmentName)
+    this.siteUrl = siteUrl
     this.client = got.extend({
       headers: {Authorization: `Basic ${Buffer.from(token).toString('base64')}`},
       prefixUrl: `${siteUrl}/wp-json`,

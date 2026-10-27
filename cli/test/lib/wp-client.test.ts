@@ -142,7 +142,7 @@ describe('WpClient', () => {
   })
 
   it('tolerates an empty response body', async () => {
-    const {client} = await serve((req, res) => {
+    const {client} = await serve((_req, res) => {
       res.writeHead(200)
       res.end()
     })
@@ -161,7 +161,7 @@ describe('WpClient', () => {
   })
 
   it('maps a 401 to a friendly credentials error', async () => {
-    const {client} = await serve((req, res) => {
+    const {client} = await serve((_req, res) => {
       res.writeHead(401)
       res.end('{}')
     })
@@ -170,7 +170,7 @@ describe('WpClient', () => {
   })
 
   it('maps a 404 with no error body to a friendly missing-plugin error', async () => {
-    const {client} = await serve((req, res) => {
+    const {client} = await serve((_req, res) => {
       res.writeHead(404)
       res.end('{}')
     })
@@ -179,7 +179,7 @@ describe('WpClient', () => {
   })
 
   it("surfaces the server's own error message on a 404 instead of the generic missing-plugin one", async () => {
-    const {client} = await serve((req, res) => {
+    const {client} = await serve((_req, res) => {
       res.writeHead(404, {'Content-Type': 'application/json'})
       res.end(JSON.stringify({error: 'composer.lock not found'}))
     })
@@ -227,7 +227,7 @@ describe('WpClient', () => {
     })
 
     it('rethrows a non-pagination error', async () => {
-      const {client} = await serve((req, res) => {
+      const {client} = await serve((_req, res) => {
         res.writeHead(500)
         res.end('{}')
       })
@@ -299,7 +299,7 @@ describe('WpClient', () => {
   })
 
   it('maps other HTTP errors to a generic message with the status code', async () => {
-    const {client, siteUrl} = await serve((req, res) => {
+    const {client, siteUrl} = await serve((_req, res) => {
       res.writeHead(500)
       res.end('{}')
     })
@@ -312,7 +312,7 @@ describe('WpClient', () => {
   })
 
   it("surfaces the server's own error message alongside the status code", async () => {
-    const {client} = await serve((req, res) => {
+    const {client} = await serve((_req, res) => {
       res.writeHead(500, {'Content-Type': 'application/json'})
       res.end(JSON.stringify({error: 'Multiple snippet plugins are active at once.'}))
     })

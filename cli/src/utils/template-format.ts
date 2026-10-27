@@ -73,7 +73,7 @@ export function parseTemplateFile(slug: string, raw: string): Template {
 // `area` defaults from the name, the way themes name their parts: header, header-large-title...
 export function parsePartFile(slug: string, raw: string): Part {
   const {body, meta} = parseFile(raw, ['title', 'area'])
-  const nameArea = /^(header|footer)(-|$)/.exec(slug)?.[1] ?? 'uncategorized'
+  const nameArea = /^(header|footer)(?:-|$)/.exec(slug)?.[1] ?? 'uncategorized'
   return {area: meta.area || nameArea, html: body, slug, title: meta.title || titleFromSlug(slug)}
 }
 
