@@ -31,7 +31,7 @@ export default class Pull extends Command {
   async run(): Promise<void> {
     await this.parse(Pull)
 
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
+    const token = authManager.getAuth()?.token
     if (!token) {
       this.error('Not logged in. Run `lps login` first.')
     }
