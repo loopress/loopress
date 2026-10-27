@@ -36,8 +36,11 @@ function snapshotRecord(id: string, value: unknown): Record<string, unknown> {
 const SNAPSHOT_OPTION = z.object({autoload: z.string(), value: z.unknown()})
 
 async function snippet(id: string, value: unknown, dir: string): Promise<void> {
-  // normalizeSnippet is idempotent on its own output, so it narrows `value` without changing it.
-  const normalized: NormalizedSnippet = {...normalizeSnippet(snapshotRecord(id, value)), description: '', id: Number(id)}
+  const data = snapshotRecord(id, value)
+  // normalizeSnippet would coerce it, writing a corrupted entry's code over the live snippet.
+  if (typeof data.code !== 'string') throw new Error(`Snapshot entry "${id}" has a non-string "code".`)
+  // normalizeSnippet is idempotent on its own output, so it narrows `data` without changing it.
+  const normalized: NormalizedSnippet = {...normalizeSnippet(data), description: '', id: Number(id)}
   const ext = SNIPPET_EXTENSIONS[normalized.type]
   const base = `${normalized.id}-${toSlug(normalized.name)}`
 

@@ -96,6 +96,15 @@ describe('content copy', () => {
     expect(result).toEqual({from: 'production', posts: 101, status: 'dry-run', terms: 1})
   })
 
+  it('stops on a source page without its list instead of counting it as empty', async () => {
+    const {cmd, internals, local} = make(['production'])
+    const pages = {...PAGES, 'loopress/v1/content/terms?after=0&limit=100': {next: null, termTaxonomy: [], termmeta: []}}
+    internals.sourceWp = vi.fn(() => ({get: siteGet(site(), pages)}))
+
+    await expect(cmd.run()).rejects.toThrow('terms page after 0 from the source has no "terms" list.')
+    expect(local.post.mock.calls.map(([path]) => path)).toEqual(['loopress/v1/content/reset'])
+  })
+
   describe('aligning the local site with <from>', () => {
     const activations = (local: ReturnType<typeof make>['local']) =>
       local.post.mock.calls.filter(([path]) => path === 'loopress/v1/theme/activate').map(([, body]) => body)

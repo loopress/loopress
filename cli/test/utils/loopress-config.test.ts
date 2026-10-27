@@ -30,6 +30,12 @@ describe('loopress-config', () => {
 
       await expect(readLocalConfig()).rejects.toThrow('loopress.json is not valid JSON')
     })
+
+    it('throws when loopress.json is an array, not an object', async () => {
+      writeFileSync(join(tmpDir, 'loopress.json'), '[]')
+
+      await expect(readLocalConfig()).rejects.toThrow('loopress.json must be a JSON object')
+    })
   })
 
   describe('writeLocalConfig / readLocalConfig roundtrip', () => {

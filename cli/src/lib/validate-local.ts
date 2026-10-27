@@ -296,7 +296,7 @@ async function readConfig(cwd: string, problems: Problem[]): Promise<Record<stri
     return {}
   }
 
-  if (isRecord(parsed)) return parsed
+  if (isRecord(parsed) && !Array.isArray(parsed)) return parsed
   problems.push({file: 'loopress.json', message: 'expected a JSON object'})
   return {}
 }

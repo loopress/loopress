@@ -23,7 +23,7 @@ export async function readLocalConfig(): Promise<LoopressLocalConfig> {
     throw new Error('loopress.json is not valid JSON. Fix or delete it, then run `lps init` again.')
   }
 
-  if (!isRecord(parsed)) throw new Error('loopress.json must be a JSON object. Fix or delete it, then run `lps init` again.')
+  if (!isRecord(parsed) || Array.isArray(parsed)) throw new Error('loopress.json must be a JSON object. Fix or delete it, then run `lps init` again.')
   // Its keys are checked by `lps validate` (lib/validate-local.ts), not here: schemas/project-config.schema.json
   // refuses unknown keys, which would stop every command over one stray key.
   return parsed

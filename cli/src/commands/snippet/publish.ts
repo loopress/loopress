@@ -34,7 +34,9 @@ export default class Publish extends Command {
 
     let snippets: Snippet[]
     try {
-      snippets = await loadSnippets(path)
+      snippets = await loadSnippets(path, (message) => {
+        this.warn(message)
+      })
     } catch (error) {
       this.error(errorMessage(error))
     }
