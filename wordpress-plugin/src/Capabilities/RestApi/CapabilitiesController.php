@@ -36,6 +36,9 @@ final readonly class CapabilitiesController
         return new WP_REST_Response(apply_filters('loopress_capabilities', [
             'version'         => LOOPRESS_VERSION,
             'edition'         => 'light',
+            // The features both editions ship, Full adds its own (loopress.php). The CLI skips or
+            // refuses a step whose module is missing instead of hitting its 404.
+            'modules'         => ['acf', 'content', 'form', 'menu', 'options', 'post-types', 'themes'],
             'environmentType' => wp_get_environment_type(),
             'integrations'    => ['acf' => $this->acf->isActive(), 'form' => $this->forms->isActive()],
             'theme'           => ['active' => get_stylesheet(), 'template' => get_template(), 'isBlock' => wp_is_block_theme()],

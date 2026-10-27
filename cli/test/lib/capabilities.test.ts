@@ -1,8 +1,8 @@
 import {describe, expect, it, vi} from 'vitest'
 
-import {activateTheme, getCapabilities, integrationFix, missingIntegration} from '../../src/lib/capabilities.js'
+import {activateTheme, getCapabilities, integrationFix, missingIntegration, missingModule} from '../../src/lib/capabilities.js'
 import {type WpClient} from '../../src/lib/wp-client.js'
-import {makeCapabilities} from '../helpers/capabilities.js'
+import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 
 function fakeWp(get: () => Promise<unknown>): {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; wp: WpClient} {
   const fns = {get: vi.fn(get), post: vi.fn(async () => ({active: 'b', changed: true, previous: 'a'}))}
@@ -26,6 +26,12 @@ describe('getCapabilities', () => {
     })
 
     await expect(getCapabilities(wp, 'staging')).rejects.toThrow('The Loopress plugin on staging is too old for this CLI. Update it, then try again.')
+  })
+
+  it('asks to update a plugin whose capabilities predate the modules field', async () => {
+    const {wp} = fakeWp(async () => ({edition: 'full', integrations: {acf: false, form: false}}))
+
+    await expect(getCapabilities(wp, 'staging')).rejects.toThrow('The Loopress plugin on staging is too old for this CLI.')
   })
 
   it('passes any other failure through', async () => {
@@ -66,11 +72,21 @@ describe('missingIntegration', () => {
     })
   })
 
-  it('sends a Light site to Full for snippets', () => {
-    expect(missingIntegration('snippets', makeCapabilities({integrations: {snippets: undefined}}))).toEqual({
-      fix: 'Install Loopress Full',
-      reason: 'snippets need Loopress Full',
-    })
+  it('sends a Light site to Full for snippets and the other Full-only features', () => {
+    const light = makeLightCapabilities()
+    expect(missingIntegration('snippets', light)).toEqual({fix: 'Install Loopress Full', needsFull: true, reason: 'snippets need Loopress Full'})
+    expect(missingIntegration('api', light)?.reason).toBe('API routes need Loopress Full')
+    expect(missingIntegration('hooks', light)?.reason).toBe('hooks need Loopress Full')
+    expect(missingIntegration('page', light)?.reason).toBe('pages need Loopress Full')
+    expect(missingIntegration('pattern', light)?.reason).toBe('block patterns need Loopress Full')
+    expect(missingIntegration('template', light)?.reason).toBe('templates and parts need Loopress Full')
+    expect(missingIntegration('menu', light)).toBeUndefined()
+  })
+
+  it('lets Full through for its own features', () => {
+    expect(missingIntegration('api', makeCapabilities())).toBeUndefined()
+    expect(missingModule('dependencies', 'plugins', makeCapabilities())).toBeUndefined()
+    expect(missingModule('dependencies', 'plugins', makeLightCapabilities())?.needsFull).toBe(true)
   })
 
   it('refuses Global Styles on a classic theme', () => {

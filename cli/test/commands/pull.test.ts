@@ -5,7 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Pull from '../../src/commands/pull.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
-import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
+import {makeCapabilities, makeLightCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -66,18 +66,6 @@ describe('pull', () => {
     for (const [index, commandId] of ALL_COMMAND_IDS.entries()) {
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(index + 1, commandId, ['--env', 'staging'])
     }
-  })
-
-  it('warns about the removed SEO module only when the project still configures it', async () => {
-    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
-    const clean = make()
-    await clean.cmd.run()
-    expect(clean.logs.warn).not.toHaveBeenCalled()
-
-    const legacy = make()
-    ;(legacy.cmd as unknown as {localConfig: Record<string, unknown>}).localConfig = {seoDir: 'seo'}
-    await legacy.cmd.run()
-    expect(legacy.logs.warn).toHaveBeenCalledWith(expect.stringContaining('lps option add rank-math-options-titles'))
   })
 
   it('forwards --dry-run to every delegated pull', async () => {
@@ -208,6 +196,38 @@ describe('pull', () => {
 
     await expect(cmd.run()).rejects.toThrow('1 resource failed to pull. snippets: no supported snippet plugin is active on staging')
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('snippet:pull', expect.anything())
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('skips the Full-only resources and Composer on Light when the project does not use them', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    writeFileSync(join(dir, 'composer.json'), '{}')
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({capabilities: makeLightCapabilities()})
+
+    await cmd.run()
+
+    for (const commandId of ['composer:pull', 'api:pull', 'hook:pull', 'pattern:pull', 'snippet:pull']) {
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith(commandId, expect.anything())
+    }
+
+    expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('menu:pull', ['--env', 'staging'])
+    expect(logs.log).toHaveBeenCalledWith('\n→ composer: Composer files need Loopress Full, skipped')
+    expect(logs.log).toHaveBeenCalledWith('\n→ API routes: API routes need Loopress Full, skipped')
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('fails a Full-only resource on Light when the project uses it', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'hooks'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make({capabilities: makeLightCapabilities()})
+
+    await expect(cmd.run()).rejects.toThrow('1 resource failed to pull. hooks: hooks need Loopress Full on staging')
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

@@ -7,7 +7,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Push from '../../src/commands/push.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../src/utils/loopress-config.js'
-import {makeCapabilities, stubCapabilities} from '../helpers/capabilities.js'
+import {makeCapabilities, makeLightCapabilities, stubCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
@@ -102,7 +102,7 @@ describe('push', () => {
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
     // Plugin-backed pushes and Global Styles are skipped when the project doesn't use them, see
     // the dedicated tests below.
-    for (const dir of ['acf', 'forms', 'snippets', 'theme']) mkdirSync(join(projectDir, dir))
+    for (const dir of ['acf', 'forms', 'snippets', 'theme', 'theme/templates']) mkdirSync(join(projectDir, dir))
     writeFileSync(join(projectDir, 'theme', 'bakery-global-styles.json'), '{}')
     themes.value = ACTIVE_BLOCK_THEME
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
@@ -248,9 +248,51 @@ describe('push', () => {
     })
 
     it('points a Loopress Light site at Full for snippets', async () => {
-      const {cmd} = make({capabilities: makeCapabilities({edition: 'light', integrations: {snippets: undefined}})})
+      const {cmd} = make({capabilities: makeLightCapabilities()})
 
       await expect(cmd.run()).rejects.toThrow(/snippets: snippets need Loopress Full on staging\. Install Loopress Full\./)
+    })
+
+    it('refuses on Light a Full-only feature or plugins the project uses, dry run included', async () => {
+      mkdirSync(join(projectDir, 'hooks'))
+      const {cmd} = make({capabilities: makeLightCapabilities(), dryRun: true})
+
+      await expect(cmd.run()).rejects.toThrow(/plugins: plugins and Composer need Loopress Full[\s\S]*hooks: hooks need Loopress Full/)
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+    })
+
+    it('skips on Light what needs Full when the project does not use it', async () => {
+      for (const dir of ['snippets', 'theme/templates']) rmSync(join(projectDir, dir), {recursive: true})
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({capabilities: makeLightCapabilities(), localConfig: {}})
+
+      await cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran).toEqual(['cpt:push', 'taxonomy:push', 'meta:push', 'role:push', 'acf:push', 'form:push', 'theme:style:push', 'menu:push', 'option:push'])
+      expect(logs.log).toHaveBeenCalledWith('\n→ API routes: API routes need Loopress Full, skipped')
+      expect(logs.log).toHaveBeenCalledWith('\n→ snippets: snippets need Loopress Full, skipped')
+    })
+  })
+
+  describe('templates and parts', () => {
+    it('skips them when the project has no template, part or CSS directory', async () => {
+      rmSync(join(projectDir, 'theme/templates'), {recursive: true})
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({dryRun: true})
+
+      await cmd.run()
+
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('theme:template:push', expect.anything())
+      expect(logs.log).toHaveBeenCalledWith('\n→ templates and parts: not configured, skipped')
+    })
+
+    it('skips them even when loopress.json asks for the child theme, which would be empty', async () => {
+      rmSync(join(projectDir, 'theme/templates'), {recursive: true})
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      await make({localConfig: {activateChildTheme: true, plugins: {akismet: '5.3.3'}}}).cmd.run()
+
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('theme:template:push', expect.anything())
     })
   })
 

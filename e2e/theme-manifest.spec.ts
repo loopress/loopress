@@ -137,7 +137,8 @@ test.describe('theme pull / push aggregates (block theme active)', () => {
     const push = await runCli(['theme', 'push', '--dry-run'])
 
     expect(output(push)).toContain('theme versions')
-    expect(output(push)).toContain('templates and parts')
+    // No theme/templates, parts or css directory: the child theme step is skipped.
+    expect(output(push)).not.toContain('templates and parts')
     expect(output(push)).toContain('Global Styles')
   })
 })

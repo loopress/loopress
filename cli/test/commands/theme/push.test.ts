@@ -1,4 +1,4 @@
-import {mkdtempSync} from 'node:fs'
+import {mkdirSync, mkdtempSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
@@ -8,12 +8,16 @@ import Push from '../../../src/commands/theme/push.js'
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+// A project with templates: the templates and parts step only runs when it has some.
+const projectWithTemplates = mkdtempSync(join(tmpdir(), 'lps-theme-push-templates-'))
+mkdirSync(join(projectWithTemplates, 'theme', 'templates'), {recursive: true})
+
 class TestPush extends Push {
   setup(dryRun: boolean, yes: boolean, themes?: Record<string, string>) {
     this.dryRun = dryRun
     this.yes = yes
     this.siteConfig = makeEnv('staging', 'https://staging.acme.com')
-    this.localConfig = themes ? {themes} : {}
+    this.localConfig = {rootDir: projectWithTemplates, ...(themes && {themes})}
   }
 }
 
@@ -81,6 +85,17 @@ describe('theme push', () => {
     await cmd.run()
 
     expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['theme:template:push', 'theme:style:push'])
+  })
+
+  it('skips templates and parts when the project has none, even when it asks for the child theme', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    vi.spyOn(process, 'cwd').mockReturnValue(mkdtempSync(join(tmpdir(), 'lps-theme-push-')))
+    const {cmd} = makePush()
+    ;(cmd as unknown as {localConfig: Record<string, unknown>}).localConfig = {activateChildTheme: true, themes: {astra: '4.0.0'}}
+
+    await cmd.run()
+
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['theme:version:push', 'theme:style:push'])
   })
 
   it('continues past a failed step and reports it', async () => {
