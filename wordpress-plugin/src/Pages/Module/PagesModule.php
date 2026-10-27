@@ -13,6 +13,8 @@ use Loopress\Pages\RestApi\ChildThemeController;
 use Loopress\Pages\Service\PatternService;
 use Loopress\PostTypes\RestApi\DeclaredTypesController;
 
+// Static pages (`lps page`), block patterns (`lps pattern`, through the declared types routes),
+// and the Loopress child theme: templates, parts and CSS (`lps theme template`). Full only.
 final class PagesModule implements Module
 {
     public function boot(): void

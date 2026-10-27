@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Loopress\Content\Service;
 
-// After `lps content pull`, media files are not downloaded: an attachment whose file is missing
+// After `lps content copy`, media files are not downloaded: an attachment whose file is missing
 // here is served from the source site's uploads URL instead. Files that do exist locally (an
 // image uploaded on this site since) keep their local URL.
 final class RemoteUploads

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
+import {createRequire} from 'node:module'
 
 import {registerProjectResources} from './resources/project.js'
 import {registerAcfTools} from './tools/acf.js'
@@ -30,7 +31,9 @@ import {registerThemeStylesTools} from './tools/theme-styles.js'
 import {SERVER_INSTRUCTIONS} from './instructions.js'
 import {registerValidateTools} from './tools/validate.js'
 
-const server = new McpServer({name: 'loopress', version: '0.1.0'}, {instructions: SERVER_INSTRUCTIONS})
+// Versioned together with the CLI (changesets `fixed`), so the package's own version is the truth.
+const {version} = createRequire(import.meta.url)('../package.json') as {version: string}
+const server = new McpServer({name: 'loopress', version}, {instructions: SERVER_INSTRUCTIONS})
 
 registerSnippetTools(server)
 registerApiTools(server)

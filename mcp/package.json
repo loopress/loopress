@@ -1,7 +1,23 @@
 {
   "name": "@loopress/mcp",
-  "description": "MCP server exposing Loopress CLI operations (snippet/page/api/acf/form/plugin/composer push/pull, push-all/pull-all, promote, project status) as tool calls for AI agents",
+  "description": "MCP server exposing the Loopress CLI (lps) as tool calls for AI agents: pull, diff, push and roll back a WordPress site's code and config, with a confirmed preview before every change",
   "version": "0.32.2",
+  "author": "jean-smaug",
+  "bugs": {
+    "url": "https://github.com/loopress/loopress/issues"
+  },
+  "homepage": "https://docs.loopress.dev/cli/mcp/",
+  "keywords": [
+    "mcp",
+    "wordpress",
+    "loopress",
+    "ai-agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopress/loopress.git",
+    "directory": "mcp"
+  },
   "type": "module",
   "bin": {
     "lps-mcp": "dist/server.js"

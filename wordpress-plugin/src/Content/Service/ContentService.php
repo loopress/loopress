@@ -10,7 +10,7 @@ use Loopress\Infrastructure\Narrow;
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- every IN list is either %s placeholders passed to prepare(), or integers from (int)/intval.
 
-// `lps content pull`: copies a site's content (posts of public post types, terms of public
+// `lps content copy`: copies a site's content (posts of public post types, terms of public
 // taxonomies, their meta and relationships) into the local site, IDs unchanged so every
 // reference between them still holds. Code goes up, content comes down: the export runs on any
 // site, the import only on a "local" one. Users, comments and orders are never exported, every

@@ -203,8 +203,8 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all`/`pull_all`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
-| `ExecError` | The `lps` process failed outside the two cases above |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all` / `pull_all` / `project_promote` / `content_copy`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
+| `ExecError` | The `lps` process failed for another reason than a timeout |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
 | `STALE_PREVIEW` | The environment changed since the preview; call again without `confirmToken` for a fresh one |

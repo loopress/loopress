@@ -26,10 +26,15 @@ Not every resource takes part in every aggregate command:
 |----------|:---:|:---:|:---:|:---:|
 | [Plugins](/plugins/) | ✓ | ✓ | `lps plugin status` | ✓ |
 | [Composer](/composer/cli/) | ✓ | ✓ | ✓ | |
+| [Custom post types](/custom-post-types/) | ✓ | ✓ | ✓ | |
+| [Taxonomies](/taxonomies/) | ✓ | ✓ | ✓ | |
+| [Post meta](/post-meta/) | ✓ | ✓ | ✓ | |
+| [Roles](/roles/) | ✓ | ✓ | ✓ | |
 | [ACF](/acf/) | ✓ | ✓ | ✓ | |
 | [API routes](/api/cli/) | ✓ | ✓ | ✓ | ✓ |
 | [Hooks](/hooks/) | ✓ | ✓ | ✓ | ✓ |
 | [Forms](/forms/) | ✓ | ✓ | ✓ | |
+| [Block patterns](/block-patterns/) | ✓ | ✓ | ✓ | |
 | [Templates and parts](/pages/#templates-and-parts) | no pull | ✓ | ✓ | ✓ |
 | [Theme CSS](/pages/#theme-css) | no pull | ✓ | | ✓ |
 | [Static pages](/pages/) | no pull | ✓ | ✓ | ✓ |
@@ -51,7 +56,7 @@ lps status
 lps status --env staging
 ```
 
-With `--json`, the result includes an `environment` field: the name of the environment that resolved, absent when none does (no project configured, or a project with several environments and none active).
+With `--json`, the result includes an `environment` field: the name of the environment that resolved, absent when none does (no project configured, or a project with several environments and none named `local`).
 
 ## `lps pull`
 
@@ -67,7 +72,7 @@ Composer runs before plugins, so that with a `composer.json` the live plugin ver
 
 ## `lps push`
 
-Push every resource to WordPress, in dependency order: plugins and Composer first, then ACF, API routes, hooks, forms, templates and parts, Global Styles, pages, menus, options, and snippets last.
+Push every resource to WordPress, in dependency order: plugins and Composer first, then post types, taxonomies, post meta and roles (before ACF, whose location rules can target them), ACF, API routes, hooks, forms, block patterns, templates and parts, Global Styles, pages, menus, options, and snippets last.
 
 ```bash
 lps push
@@ -101,7 +106,7 @@ lps diff --skip composer
 | `--only <resource>` | Only compare these resources. Repeatable |
 | `--skip <resource>` | Compare every resource except these. Repeatable |
 
-Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `option`, `theme-styles`, `composer`.
+Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-styles`, `composer`.
 
 The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin or runs a classic theme. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 

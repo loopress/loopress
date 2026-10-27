@@ -26,18 +26,17 @@ export function resolveResourceTypes(only?: ResourceType[], skip: ResourceType[]
 // directories which are all optional. `plugins` watches the whole `loopress.json` lockfile since
 // the plugin manifest is a field in it, not its own directory.
 export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLocalConfig, cwd: string): WatchTarget[] {
-  const rootDir = join(cwd, localConfig.rootDir ?? '.')
   const candidates: Record<ResourceType, WatchTarget> = {
-    api: {commandId: 'api:push', path: join(rootDir, localConfig.apiDir ?? 'api'), type: 'api'},
+    api: {commandId: 'api:push', path: join(cwd, resolveResourceDir('api', localConfig)), type: 'api'},
     // The theme CSS is bundled into the child theme with the templates, by the same push.
     blocks: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('blockCss', localConfig)), type: 'blocks'},
     css: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('css', localConfig)), type: 'css'},
-    hooks: {commandId: 'hook:push', path: join(rootDir, localConfig.hooksDir ?? 'hooks'), type: 'hooks'},
-    pages: {commandId: 'page:push', path: join(rootDir, localConfig.pageDir ?? 'pages'), type: 'pages'},
+    hooks: {commandId: 'hook:push', path: join(cwd, resolveResourceDir('hooks', localConfig)), type: 'hooks'},
+    pages: {commandId: 'page:push', path: join(cwd, resolveResourceDir('page', localConfig)), type: 'pages'},
     plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},
     parts: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('part', localConfig)), type: 'parts'},
     templates: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('template', localConfig)), type: 'templates'},
-    snippets: {commandId: 'snippet:push', path: join(rootDir, localConfig.snippetsDir ?? 'snippets'), type: 'snippets'},
+    snippets: {commandId: 'snippet:push', path: join(cwd, resolveResourceDir('snippets', localConfig)), type: 'snippets'},
   }
 
   return types

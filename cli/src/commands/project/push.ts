@@ -58,7 +58,7 @@ export default class Push extends Command {
     const {flags} = await this.parse(Push)
     this.yes = flags.yes
 
-    const token = authManager.getAuth()?.token
+    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
     if (!token) {
       this.error('Not logged in. Run `lps login` first.')
     }

@@ -63,6 +63,11 @@
   ],
   "homepage": "https://github.com/loopress/loopress",
   "keywords": [
+    "wordpress",
+    "git",
+    "deploy",
+    "acf",
+    "cli",
     "oclif"
   ],
   "license": "MPL-2.0",
@@ -106,6 +111,9 @@
       "api": {
         "description": "Manage custom WordPress REST API routes"
       },
+      "app": {
+        "description": "Build and ship single-page app bundles (Vue, React, Svelte...), mounted with a shortcode"
+      },
       "content": {
         "description": "Copy an environment's content (posts, pages, terms) into the local site, never the reverse"
       },
@@ -114,6 +122,21 @@
       },
       "composer": {
         "description": "Sync composer.json and composer.lock between your project and WordPress"
+      },
+      "form": {
+        "description": "Manage WPForms forms"
+      },
+      "hook": {
+        "description": "Manage hook files: WordPress actions, filters and cron events"
+      },
+      "menu": {
+        "description": "Manage nav menus and their theme locations"
+      },
+      "option": {
+        "description": "Manage the wp_options rows the project tracks, only the ones added with lps option add"
+      },
+      "page": {
+        "description": "Manage static HTML pages rendered inside the theme's header and footer"
       },
       "plugin": {
         "description": "Manage WordPress.org plugins tracked in loopress.json"
@@ -125,7 +148,7 @@
         "description": "Manage WordPress code snippets"
       },
       "theme": {
-        "description": "Manage everything theme related: versions, block templates and parts, Global Styles (never switches the active theme)"
+        "description": "Manage everything theme related: versions, block templates and parts, Global Styles, and activating the Loopress child theme"
       },
       "theme:template": {
         "description": "Manage block templates and template parts, written as the files of the <parent>-loopress child theme"

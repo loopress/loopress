@@ -34,13 +34,14 @@ type ResourceToolsSpec = {
   pathNoun: string
   // CLI topic and tool-name prefix: 'form' -> `lps form pull` and the `form_pull` tool.
   resource: string
-  // api and hooks only: `push --prune` deletes server-side files with no local counterpart,
-  // and a dedicated `<resource>_rm` tool removes one file. form and snippet have neither.
+  // api and hooks only: `push --prune` deletes server-side files with no local counterpart.
   supportsPrune?: boolean
   // Every resource-state-backed resource (see cli's resource-state.ts) gets a `<resource>_rollback`
   // tool mirroring `lps <resource> rollback`; app/plugin/theme/composer don't have one (no
   // `lps <resource> push` snapshot to roll back to).
   supportsRollback?: boolean
+  // A `<resource>_rm` tool removes one file: api, hooks and the declared types (cpt, taxonomy,
+  // meta, role, pattern). form, menu and snippet have none.
   supportsRm?: boolean
 }
 
@@ -114,9 +115,9 @@ export function registerAddTool(server: McpServer, {exampleSlug, resource}: {exa
 }
 
 // Registers push/pull/list for a directory-backed resource whose tools differ only in wording
-// (api, hook, form, snippet). push runs through the confirmToken handshake; pull and list are
-// plain reads; list takes no path. api and hook additionally get `prune` on push and a `rm`
-// tool (supportsPrune / supportsRm). Resources with an extra flag (acf's `type`) register their tools directly instead.
+// (api, hook, form, menu, snippet and the declared types). push runs through the confirmToken
+// handshake; pull and list are plain reads; list takes no path. api and hook additionally get
+// `prune` on push (supportsPrune), they and the declared types a `rm` tool (supportsRm). Resources with an extra flag (acf's `type`) register their tools directly instead.
 export function registerResourceTools(
   server: McpServer,
   {descriptions, pathNoun, resource, supportsPrune, supportsRm, supportsRollback}: ResourceToolsSpec,
