@@ -65,6 +65,16 @@ function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+// The source says it runs from the repo, every packaged zip must say it doesn't: a missing
+// line throws instead of shipping a release that stops its usage ping and shows "dev".
+const SOURCE_CHECKOUT_LINE = "define('LOOPRESS_SOURCE_CHECKOUT', true);"
+function stampRelease(entry) {
+  if (!entry.includes(SOURCE_CHECKOUT_LINE)) {
+    throw new Error(`Could not find ${SOURCE_CHECKOUT_LINE} in loopress.php`)
+  }
+  return entry.replace(SOURCE_CHECKOUT_LINE, "define('LOOPRESS_SOURCE_CHECKOUT', false);")
+}
+
 function run(cmd, args, cwd) {
   execFileSync(cmd, args, { cwd, stdio: 'inherit' })
 }
@@ -139,7 +149,7 @@ if (require.main === module) {
   entry = entry.replace('Text Domain: loopress', `Text Domain: ${flavor.textDomain}`)
   entry = entry.replace("'loopress'", `'${flavor.textDomain}'`)
 
-  fs.writeFileSync(path.join(stageDir, 'loopress.php'), entry)
+  fs.writeFileSync(path.join(stageDir, 'loopress.php'), stampRelease(entry))
 
   // 3. uninstall.php: full-edition only, it cleans up wp-content/loopress/ which only
   // that edition ever creates.
@@ -262,4 +272,4 @@ if (require.main === module) {
   console.log(`\n${flavor.zipName}.zip ready at ${path.join(root, `${flavor.zipName}.zip`)}`)
 }
 
-module.exports = { deriveFullOnlyFeatures }
+module.exports = { deriveFullOnlyFeatures, stampRelease }

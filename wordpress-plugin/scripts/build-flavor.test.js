@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { deriveFullOnlyFeatures } from './build-flavor.cjs'
+import { deriveFullOnlyFeatures, stampRelease } from './build-flavor.cjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -16,5 +16,18 @@ describe('deriveFullOnlyFeatures', () => {
       .sort()
 
     expect(deriveFullOnlyFeatures(root).sort()).toEqual(featureDirsOnDisk)
+  })
+})
+
+describe('stampRelease', () => {
+  it('turns the source checkout flag off in the real loopress.php', () => {
+    const stamped = stampRelease(fs.readFileSync(path.join(root, 'loopress.php'), 'utf8'))
+
+    expect(stamped).toContain("define('LOOPRESS_SOURCE_CHECKOUT', false);")
+    expect(stamped).not.toContain("define('LOOPRESS_SOURCE_CHECKOUT', true);")
+  })
+
+  it('fails the build when the flag line is missing', () => {
+    expect(() => stampRelease('<?php\n')).toThrow('LOOPRESS_SOURCE_CHECKOUT')
   })
 })
