@@ -104,13 +104,13 @@ lps option rollback --to <id>  # an older one
 
 ---
 
-### `lps option remove`
+### `lps option rm`
 
 Stop tracking an option and delete it from WordPress. Supports `--dry-run`.
 
 ```bash
-lps option remove <name>
-lps option remove <name> --local-only   # only stop tracking it, keep it on WordPress
+lps option rm <name>
+lps option rm <name> --local-only   # only stop tracking it, keep it on WordPress
 ```
 
 ## Readonly options

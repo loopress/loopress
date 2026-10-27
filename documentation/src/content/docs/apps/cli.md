@@ -97,12 +97,12 @@ Apps (1):
      Deployed: 2026-08-30T12:00:00+00:00
 ```
 
-### `lps app remove`
+### `lps app rm`
 
 Delete an app's bundle from `wp-content/loopress/apps/` and unregister its shortcode. Local files are left untouched.
 
 ```bash
-lps app remove <name>
+lps app rm <name>
 ```
 
 | Argument | Default | Description |

@@ -167,18 +167,18 @@ test('remove deletes the option on WordPress and stops tracking it; --local-only
   writeOption(projectDir, {autoload: 'off', name: deleted, value: 2})
   expect((await runCli(['option', 'push'])).exitCode).toBe(0)
 
-  const localOnly = await runCli(['option', 'remove', kept, '--local-only'])
+  const localOnly = await runCli(['option', 'rm', kept, '--local-only'])
   expect(localOnly.exitCode, output(localOnly)).toBe(0)
   expect(existsSync(optionFile(projectDir, kept))).toBe(false)
   expect((await restGet(request, wp, `loopress/v1/options/${kept}`)).ok()).toBe(true)
 
-  const remove = await runCli(['option', 'remove', deleted, '--yes'])
+  const remove = await runCli(['option', 'rm', deleted, '--yes'])
   expect(remove.exitCode, output(remove)).toBe(0)
   expect(remove.stdout).toContain(`Removed "${deleted}"`)
   expect(existsSync(optionFile(projectDir, deleted))).toBe(false)
   expect((await restGet(request, wp, `loopress/v1/options/${deleted}`)).status()).toBe(404)
 
-  const again = await runCli(['option', 'remove', deleted, '--yes'])
+  const again = await runCli(['option', 'rm', deleted, '--yes'])
   expect(again.exitCode).toBe(0)
   expect(again.stdout).toContain('was already absent')
 })

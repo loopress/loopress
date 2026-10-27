@@ -1,7 +1,7 @@
 import {confirm} from '@inquirer/prompts'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Remove from '../../../src/commands/app/remove.js'
+import Remove from '../../../src/commands/app/rm.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'

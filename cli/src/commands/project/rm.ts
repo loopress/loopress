@@ -8,8 +8,9 @@ type RemovalTarget =
   | {kind: 'project'; projectId: string; projectName: string}
 
 export default class Remove extends Command {
+  static override aliases = ['project:remove']
   static override description = 'Remove one or more WordPress projects or environments'
-  static override examples = ['$ lps project remove']
+  static override examples = ['$ lps project rm']
 
   async run(): Promise<void> {
     await this.parse(Remove)

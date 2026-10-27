@@ -1,7 +1,7 @@
 import {checkbox} from '@inquirer/prompts'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Remove from '../../../src/commands/project/remove.js'
+import Remove from '../../../src/commands/project/rm.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv, makeListedEnv, makeListedProject} from '../../helpers/project-fixtures.js'

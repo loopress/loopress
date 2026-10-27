@@ -13,7 +13,7 @@ A **project** is one WordPress site you manage, and an **environment** is one in
 lps project config          # Add or update a project/environment
 lps project list            # Show all configured projects and their environments
 lps project switch          # Interactively pick the active project
-lps project remove          # Remove a saved project or environment
+lps project rm          # Remove a saved project or environment
 lps project rotate          # Rotate the Application Password of the active (or --env) environment
 ```
 

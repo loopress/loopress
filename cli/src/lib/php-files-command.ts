@@ -464,7 +464,7 @@ export function resourceListCommand(spec: PhpFilesResource): CommandClass<ListFi
 
 export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesCommand> {
   class ResourceRm extends LoopressCommand {
-    // `remove` matches `lps app remove` and `lps option remove`, `rm` stays for existing scripts.
+    // `rm` is canonical everywhere, `remove` stays an alias for existing scripts.
     static override aliases = [`${spec.cliName}:remove`]
     static override args = {
       filename: Args.string({
