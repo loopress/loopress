@@ -308,7 +308,7 @@ describe('api push', () => {
         'Pruned: stale',
       ])
       expect(logs.warn.mock.calls.map(([line]) => line)).toEqual([
-        'open: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions',
+        'open: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://docs.loopress.dev/api/routes/#authentication-and-permissions',
       ])
     })
 

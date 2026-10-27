@@ -197,7 +197,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     static override enableJsonFlag = true
     static override examples = [
       `$ lps ${spec.cliName} push`,
-      `$ lps ${spec.cliName} push --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`,
+      `$ lps ${spec.cliName} push ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`,
       `$ lps ${spec.cliName} push --prune`,
     ]
 
@@ -306,7 +306,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         )
         if (file.public) {
           this.warn(
-            `${file.filename}: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://loopress.dev/api/routes/#authentication-and-permissions`,
+            `${file.filename}: PUBLIC route, no authentication required. Anyone on the internet can call it. See https://docs.loopress.dev/api/routes/#authentication-and-permissions`,
           )
         }
       }
@@ -368,7 +368,7 @@ export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFi
     static override args = pathArg(spec.pathNoun)
     static override description = spec.pullDescription
     static override enableJsonFlag = true
-    static override examples = [`$ lps ${spec.cliName} pull`, `$ lps ${spec.cliName} pull --path ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`]
+    static override examples = [`$ lps ${spec.cliName} pull`, `$ lps ${spec.cliName} pull ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`]
     static override flags = {...LoopressCommand.dryRunFlag, ...LoopressCommand.yesFlag}
 
     async run(): Promise<PullResult> {

@@ -17,7 +17,7 @@ export function registerProjectResources(server: McpServer): void {
         text = await readFile(path, 'utf8')
       } catch {
         text = JSON.stringify({
-          error: {message: `No loopress.json found at ${path}. Run \`lps project config\` first.`, name: 'NO_PROJECT_CONFIG'},
+          error: {message: `No loopress.json found at ${path}. Run \`lps init\` first.`, name: 'NO_PROJECT_CONFIG'},
         })
       }
 

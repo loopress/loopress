@@ -26,8 +26,8 @@ export function runtimeContext(): {node: string; os: string} {
   }
 }
 
-// Positional args and flag values can carry WordPress URLs, usernames, application passwords,
-// or tokens (e.g. `lps login --token xxx`, `lps project config <url>`). Only flag names are
+// Positional args and flag values are user input: environment names, local paths, slugs, and
+// anything else typed after a command, possibly a URL or a credential. Only flag names are
 // safe to report, they help tell which code path crashed without leaking what was passed to it.
 export function redactArgv(argv: string[]): string[] {
   return argv.map((arg) => {

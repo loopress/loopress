@@ -48,7 +48,8 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | Single-page apps (ship a built Vue, React or Svelte bundle, mount with a shortcode) | | ✓ |
 | `lps app pull` / `push` / `list` / `remove` | | ✓ |
 | Plugin and theme lockfile (pin WordPress.org plugins and themes, install via Composer + WPackagist) | | ✓ |
-| `lps plugin` / `lps theme` `pull` / `push` / `add` / `status` | | ✓ |
+| `lps plugin` / `lps theme` `pull` / `add` (WordPress core routes, or `loopress.json` only) | ✓ | ✓ |
+| `lps plugin` / `lps theme` `push` / `status` | | ✓ |
 | Composer dependency management (Packagist search, install, remove, update) | | ✓ |
 | Security audit (known CVEs, abandoned packages) | | ✓ |
 | Platform diagnostics (PHP version mismatches) | | ✓ |
@@ -138,8 +139,8 @@ Both editions add a **Loopress** page to the WordPress admin, with the site's en
 
 - **Overview** (the default): what was pushed to this site from your repository, see [Push history and drift](#push-history-and-drift). Above it, every issue the other tabs raise, so none waits for its tab to be opened: webserver configuration, Composer platform problems and security advisories, code files that failed to load, and Loopress declarations skipped because a theme or plugin registered the same slug first
 - **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) and [taxonomy](/taxonomies/) on the site with its source, registered [meta keys](/post-meta/), every [role](/roles/) with its number of users, and [forms](/forms/), each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
-- **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Code**: the code deployed with the CLI, read-only: [API routes](/api/admin-ui/) (with a gear to change their namespace), [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
+- **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Settings**: the [API routes namespace](/api/admin-ui/#route-namespace), crash reporting, anonymous usage statistics, and a reset of every Loopress setting
 
 Platform and webserver checks also appear in **Tools → Site Health**.

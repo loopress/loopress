@@ -4,9 +4,10 @@ import {z} from 'zod'
 import {parseHtmlHeader, titleFromSlug} from './page-format.js'
 import {type ResourceDirKind} from './resource-dirs.js'
 
-// A WordPress object type declared as one JSON file per item: post types (`lps cpt`, cpt/),
-// taxonomies (`lps taxonomy`, taxonomies/) and post meta keys (`lps meta`, meta/). The file is the
-// plain arguments of its `register_*()` call, named after the slug, never repeated inside. Mirrors
+// A WordPress object type declared as one file per item: post types (`lps cpt`, cpt/), taxonomies
+// (`lps taxonomy`, taxonomies/), post meta keys (`lps meta`, meta/) and roles (`lps role`, roles/)
+// as JSON, block patterns (`lps pattern`, patterns/) as HTML. A JSON file is the plain arguments
+// of its `register_*()` call, named after the slug, never repeated inside. Mirrors
 // the plugin's AbstractDeclaredTypeService and its subclasses, which stay the authority (they also
 // refuse reserved slugs).
 export type DeclaredTypeSpec = {

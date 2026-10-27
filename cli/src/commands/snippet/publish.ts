@@ -1,5 +1,4 @@
 import {Args, Command} from '@oclif/core'
-import {join} from 'node:path'
 
 import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
@@ -7,6 +6,7 @@ import {errorMessage} from '../../lib/narrow.js'
 import {resolveLinkedProject} from '../../lib/resolve-linked-project.js'
 import {type Snippet} from '../../types/snippet.js'
 import {pluralize} from '../../utils/pluralize.js'
+import {resolveResourceDir} from '../../utils/resource-dirs.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 // Publishes to the Loopress api (not a WordPress site), so this does not extend
@@ -28,7 +28,7 @@ export default class Publish extends Command {
 
     const {apiProjectId, localConfig, token} = await resolveLinkedProject((message) => this.error(message))
 
-    const path = args.path ?? join(localConfig.rootDir ?? '.', localConfig.snippetsDir ?? 'snippets')
+    const path = resolveResourceDir('snippets', localConfig, args.path)
 
     this.log(`Publishing snippets from ${path}`)
 

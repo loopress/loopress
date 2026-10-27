@@ -43,7 +43,7 @@ const sites = ["bakery", "law-firm", "shop", "school", "studio"];
 const tree = [
   ["acf/", "", ""],
   ["│   └── group_product_delivery.json", "field groups", "light"],
-  ["├── seo/  menus/  options/  theme/", "configuration", "light"],
+  ["├── menus/  options/  theme/", "configuration", "light"],
   ["├── hooks/", "", ""],
   ["│   └── vat-notice.php", "one class per file", "full"],
   ["├── api/  apps/  pages/", "code", "full"],
@@ -53,7 +53,7 @@ const tree = [
 
 const tracked = [
   ["ACF field groups", "Light"],
-  ["SEO, menus, options", "Light"],
+  ["Menus, options", "Light"],
   ["Block theme styles", "Light"],
   ["Hooks, API routes", "Full"],
   ["Apps, pages", "Full"],
@@ -116,10 +116,10 @@ $ git commit -am "chore: sync client menu edit"`,
   },
   {
     stage: "Ship", when: "Thursday 16:20", site: "all five",
-    ask: "The same SEO fix, on every site.",
+    ask: "The same settings fix, on every site.",
     body: "Each site used to have its own ritual: FTP here, a plugin upload there, a note in a doc somewhere. Now they all ship the same way.",
     code: `$ for s in ${sites.join(" ")}; do
-    (cd $s && lps seo push --env production)
+    (cd $s && lps option push --env production)
   done`,
     note: "five sites, one for loop.",
   },

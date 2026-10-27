@@ -40,7 +40,7 @@ Plugins, themes, Composer, static pages, templates and apps have no rollback: to
 | `--to <id>` | Restore this snapshot instead of the most recent one |
 | `--dry-run` / `-d` | Show what would be restored without changing anything |
 | `--yes` / `-y` | Roll back even if the environment changed since that push |
-| `--env <name>` | Roll back this environment instead of the active one |
+| `--env <name>` | Roll back this environment instead of the default one |
 
 ## Where snapshots live
 

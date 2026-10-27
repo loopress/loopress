@@ -91,7 +91,7 @@
         },
         "token": {
           "type": "string",
-          "description": "API token used to authenticate against this environment."
+          "description": "WordPress Application Password credentials for this environment, as \"user:password\". Not the Loopress account token."
         },
         "url": {
           "type": "string",

@@ -23,8 +23,8 @@ lps project rotate          # Rotate the Application Password of the active (or 
 
 | Prompt | Description |
 |--------|-------------|
-| Project name | A local identifier, lowercase, no spaces (e.g. `my-site`) |
-| Environment | `production`, `staging`, `development`, or a custom name |
+| Project name | Any name not already used (e.g. `My Site`). The project id commands use is derived from it (`my-site`) |
+| Environment | `local` (the default target), `staging`, `production`, or a custom name |
 | WordPress URL | Full URL including scheme (`https://example.com`) |
 | How to authenticate | **Authorize in my browser (recommended)** or **Enter credentials manually** |
 
@@ -69,7 +69,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 
 | Flag | Description |
 |------|-------------|
-| `--env <name>` | Target this environment instead of the active one. Accepted by every command that talks to WordPress. |
+| `--env <name>` | Target this environment instead of the default one (`local`, or the project's only environment). Accepted by every command that talks to WordPress. |
 | `--dry-run` / `-d` | Show what would happen without changing anything, see [dry runs](#dry-runs). |
 | `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to `production`, `--prune`, removals, rollbacks. |
 | `--overwrite` | Push even over changes made on the site outside Loopress since your last push, see [changes made outside Loopress](#changes-made-outside-loopress). Not implied by `--yes`. |
@@ -91,7 +91,7 @@ When a file's id doesn't exist on the target site (a fresh install, another envi
 
 ### Push never deletes by default
 
-A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: `--prune` on [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) deletes server files absent locally, `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) uninstalls it, and the `remove` commands delete one object on purpose.
+A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: `--prune` on [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) deletes server files absent locally, `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) or the [theme lockfile](/themes/) uninstalls it (never the active theme), [`lps theme template push`](/pages/#templates-and-parts) mirrors the project into the Loopress child theme (a template, part or CSS file deleted locally is removed from it), and the `remove` commands delete one object on purpose.
 
 Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/).
 

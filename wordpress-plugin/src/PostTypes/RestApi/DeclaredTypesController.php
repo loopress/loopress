@@ -13,8 +13,9 @@ use Loopress\RestApi\RequiresManageOptionsCapability;
 use WP_REST_Request;
 use WP_REST_Response;
 
-// The same five routes for each declared type, under its own base: `post-types`, `taxonomies`
-// and `post-meta`, plus `registered-post-types` / `registered-taxonomies` / `registered-post-meta`.
+// The same five routes for each declared type, under its own base: `post-types`, `taxonomies`,
+// `post-meta` and `roles` (PostTypes module), `patterns` (Pages module), plus a `registered-<base>`
+// listing of what the site has.
 final class DeclaredTypesController
 {
     use MapsServiceExceptions;
