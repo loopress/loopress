@@ -1,5 +1,6 @@
 import {launchLocalBrowser} from './browser-launch.js'
 import {downloadLatestFullZip} from './github-release.js'
+import {errorMessage} from './narrow.js'
 import {createTempAdmin, deleteTempAdmin, type TempAdmin} from './temp-admin.js'
 import {type WpClient} from './wp-client.js'
 
@@ -35,7 +36,7 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
     removeTempAdmin()
       .catch((error: unknown) => {
         log(
-          `Could not remove the temporary admin account "${admin.username}"; remove it manually in wp-admin. (${(error as Error).message})`,
+          `Could not remove the temporary admin account "${admin.username}"; remove it manually in wp-admin. (${errorMessage(error)})`,
         )
       })
       .finally(() => {
@@ -74,16 +75,16 @@ export async function bootstrapLoopressFull(wp: WpClient, siteUrl: string, log: 
 
   const manualFallback = `Install it manually: upload ${zipPath} at ${siteUrl}/wp-admin/plugin-install.php?tab=upload`
 
-  if (installError && cleanupError) {
+  if (installError !== undefined && cleanupError !== undefined) {
     throw new Error(
-      `Could not install Loopress Full automatically, and the temporary admin account could not be removed (${(cleanupError as Error).message}). ${manualFallback}`,
+      `Could not install Loopress Full automatically, and the temporary admin account could not be removed (${errorMessage(cleanupError)}). ${manualFallback}`,
       {cause: installError},
     )
   }
 
-  if (cleanupError) throw cleanupError as Error
+  if (cleanupError !== undefined) throw cleanupError instanceof Error ? cleanupError : new Error(errorMessage(cleanupError))
 
-  if (installError) {
+  if (installError !== undefined) {
     throw new Error(`Could not install Loopress Full automatically. ${manualFallback}`, {cause: installError})
   }
 }

@@ -4,9 +4,10 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {confirmUninstall} from '../../lib/interactive.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isLocalEnvironment, isTimeoutError} from '../../lib/wp-client.js'
-import {type ComposerJson, requireToInstall, toIntent} from '../../utils/composer.js'
+import {parseComposerJson, requireToInstall, toIntent} from '../../utils/composer.js'
 import {
   type LockDriftEntry,
   parseCollisions,
@@ -43,7 +44,7 @@ export default class ComposerPush extends PushCommand {
       this.error(`No composer.json found at ${composerJsonPath}. Run \`lps composer init\` first.`)
     }
 
-    const parsed = JSON.parse(await readFile(composerJsonPath, 'utf8')) as ComposerJson
+    const parsed = parseComposerJson(await readFile(composerJsonPath, 'utf8'))
     const require = requireToInstall(parsed, isLocalEnvironment(this.siteConfig.name))
     const packageCount = Object.keys(require).length
     const intent = toIntent(require)
@@ -82,7 +83,7 @@ export default class ComposerPush extends PushCommand {
       }
 
       if (isTimeoutError(error)) {
-        this.error(`${(error as Error).message} The Composer run may still be in progress on the server.`)
+        this.error(`${errorMessage(error)} The Composer run may still be in progress on the server.`)
       }
 
       throw error
@@ -118,7 +119,7 @@ export default class ComposerPush extends PushCommand {
 
   private async wpackagistToRemove(require: Record<string, string>): Promise<string[]> {
     const {composerJson} = await this.wp.get<{composerJson: string}>('loopress/v1/composer/json')
-    const current = (JSON.parse(composerJson) as ComposerJson).require ?? {}
+    const current = parseComposerJson(composerJson).require ?? {}
     return Object.keys(current).filter((name) => name.startsWith('wpackagist-') && !Object.hasOwn(require, name))
   }
 }

@@ -20,14 +20,14 @@ export default class Pull extends LoopressCommand {
   static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
-    type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
+    type: Flags.option({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES})(),
   }
 
   async run(): Promise<AcfPullResult> {
     const {args, flags} = await this.parse(Pull)
     const {url} = this.siteConfig
     const path = this.resolveAcfPath(args.path)
-    const types = (flags.type && flags.type.length > 0 ? flags.type : ACF_OBJECT_TYPES) as AcfObjectType[]
+    const types = flags.type && flags.type.length > 0 ? flags.type : [...ACF_OBJECT_TYPES]
 
     this.log(`Pulling ACF configuration from ${url}`)
     this.log(`ACF path: ${path}`)

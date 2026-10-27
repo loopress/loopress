@@ -1,3 +1,5 @@
+import {isRecord} from '../lib/narrow.js'
+
 export const FORM_ENDPOINT = 'loopress/v1/forms'
 
 export function formEndpoint(id: number): string {
@@ -27,7 +29,6 @@ export function getFormId(data: Record<string, unknown>): null | number {
 }
 
 export function getFormTitle(data: Record<string, unknown>): string {
-  const settings = data.settings as Record<string, unknown> | undefined
-  const title = settings?.form_title
+  const title = isRecord(data.settings) ? data.settings.form_title : undefined
   return typeof title === 'string' && title.trim() !== '' ? title : '(untitled)'
 }

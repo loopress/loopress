@@ -1,7 +1,7 @@
 import {Flags} from '@oclif/core'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
+import {ACF_OBJECT_TYPES, acfEndpoint, getAcfKey} from '../../utils/acf-format.js'
 
 export default class List extends LoopressCommand {
   static override aliases = ['scf:list']
@@ -9,12 +9,12 @@ export default class List extends LoopressCommand {
   static override enableJsonFlag = true
   static override examples = ['$ lps acf list', '$ lps acf list --type field-groups']
   static override flags = {
-    type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
+    type: Flags.option({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES})(),
   }
 
   async run(): Promise<Record<string, Array<Record<string, unknown>>>> {
     const {flags} = await this.parse(List)
-    const types = (flags.type && flags.type.length > 0 ? flags.type : ACF_OBJECT_TYPES) as AcfObjectType[]
+    const types = flags.type && flags.type.length > 0 ? flags.type : [...ACF_OBJECT_TYPES]
 
     const byType: Record<string, Array<Record<string, unknown>>> = {}
     for (const type of types) {

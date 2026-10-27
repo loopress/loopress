@@ -6,9 +6,10 @@ import {LoopressCommand} from '../lib/base.js'
 import {integrationFix, missingIntegration} from '../lib/capabilities.js'
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
-import {type ComposerJson, wpackagistRequire} from '../utils/composer.js'
+import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
@@ -86,7 +87,7 @@ export default class Push extends LoopressCommand {
         this.log(this.dryRun ? `✓ ${target.label} would push` : `✓ ${target.label} pushed`)
         results.push({label: target.label, result, status: 'pushed'})
       } catch (error) {
-        const {message} = error as Error
+        const message = errorMessage(error)
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
         // Stop here: later targets depend on earlier ones (hooks use what composer installs,
@@ -117,11 +118,11 @@ export default class Push extends LoopressCommand {
   }
 
   // The wordpress.org plugins the project declares: composer.json's wpackagist plugins when it
-  // exists, loopress.json's otherwise. Unreadable composer.json: none, the commands report it.
+  // exists, loopress.json's otherwise. Unreadable or invalid composer.json: none, the commands report it.
   private async declaredPlugins(hasComposerJson: boolean): Promise<string[]> {
     if (!hasComposerJson) return Object.keys(this.localConfig.plugins ?? {})
     try {
-      const composerJson = JSON.parse(await readFile(this.composerJsonPath(), 'utf8')) as ComposerJson
+      const composerJson = parseComposerJson(await readFile(this.composerJsonPath(), 'utf8'))
       return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig.name)))
     } catch {
       return []

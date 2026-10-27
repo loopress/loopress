@@ -15,6 +15,7 @@ import {type ResourceState} from './diff-state.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
+import {errorMessage} from './narrow.js'
 import {type PushChange, PushCommand} from './push-command.js'
 import {getResourceStateProvider} from './resource-state.js'
 import {isApplicative404} from './wp-client.js'
@@ -294,7 +295,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       try {
         result = await this.wp.post<BatchPushResult>(`${spec.endpoint}/batch`, body)
       } catch (error) {
-        this.error(`Push failed, nothing was changed on ${this.siteConfig.url}: ${(error as Error).message}`)
+        this.error(`Push failed, nothing was changed on ${this.siteConfig.url}: ${errorMessage(error)}`)
       }
 
       for (const file of result.files) {

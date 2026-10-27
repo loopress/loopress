@@ -2,6 +2,7 @@ import {Args} from '@oclif/core'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {errorCode, isRecord} from '../../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../../lib/push-command.js'
 import {getResourceStateProvider} from '../../../lib/resource-state.js'
 import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
@@ -37,7 +38,7 @@ export default class Push extends PushCommand {
     try {
       raw = await readFile(file, 'utf8')
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (errorCode(error) === 'ENOENT') {
         this.error(`No local Global Styles file found for the active theme ("${file}"). Run \`lps theme style pull\` first.`)
       }
 
@@ -50,8 +51,11 @@ export default class Push extends PushCommand {
 
     if (this.dryRun) return {changes: this.previewChanges, file, status: 'dry-run'}
 
-    const local = JSON.parse(raw) as {settings?: Record<string, unknown>; styles?: Record<string, unknown>}
-    await this.wp.post(globalStylesEndpoint(id), {settings: local.settings ?? {}, styles: local.styles ?? {}})
+    const local: unknown = JSON.parse(raw)
+    // Never fall back to empty settings/styles: that push would wipe the site's customizations.
+    if (!isRecord(local)) throw new Error(`${file} is not a JSON object`)
+    const {settings, styles} = local
+    await this.wp.post(globalStylesEndpoint(id), {settings: settings ?? {}, styles: styles ?? {}})
     this.log(`Pushed: ${file}`)
 
     await this.writeAfterPushSnapshot(provider, dir, beforeState)

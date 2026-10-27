@@ -19,6 +19,7 @@ import {LoopressCommand} from './base.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles} from './load-files.js'
+import {errorMessage} from './narrow.js'
 import {type CommandClass} from './php-files-command.js'
 import {type PushChange, PushCommand} from './push-command.js'
 import {getResourceStateProvider} from './resource-state.js'
@@ -123,7 +124,7 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
         await this.wp.post(spec.endpoint, body)
         if (task) task.output = `Pushed: ${slug}`
       } catch (error) {
-        this.reportTaskFailure(`Failed to push ${slug}: ${(error as Error).message}`, error, task)
+        this.reportTaskFailure(`Failed to push ${slug}: ${errorMessage(error)}`, error, task)
       }
     }
   }

@@ -4,6 +4,7 @@ import {Listr} from 'listr2'
 import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {withoutSpinner} from '../../lib/spinner.js'
 import {type EnvironmentConfig} from '../../types/config.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -74,7 +75,7 @@ export default class Pull extends Command {
     try {
       return await api.get<ApiProject[]>('projects')
     } catch (error) {
-      this.error(`Could not fetch projects from the API: ${(error as Error).message}`)
+      this.error(`Could not fetch projects from the API: ${errorMessage(error)}`)
     }
   }
 

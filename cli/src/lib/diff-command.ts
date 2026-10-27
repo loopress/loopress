@@ -5,6 +5,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
+import {errorMessage} from './narrow.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
 
@@ -185,7 +186,7 @@ export abstract class DiffCommand extends LoopressCommand {
         title: target.title,
       }
     } catch (error) {
-      const {message} = error as Error
+      const message = errorMessage(error)
       return {drift: false, json: {...empty, error: message}, resource: target.resource, title: target.title}
     }
   }

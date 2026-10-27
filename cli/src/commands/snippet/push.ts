@@ -3,6 +3,7 @@ import {readFile, rename, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
+import {errorCode, errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
@@ -97,17 +98,16 @@ export default class Push extends PushCommand {
     const canonicalBase = `${id}-${toSlug(name)}`
 
     const oldMetaPath = join(dir, `${currentBase}.json`)
-    let meta: LoopressSnippetMetadata = {}
+    let existing: Record<string, unknown> = {}
     try {
-      const existing = await readFile(oldMetaPath, 'utf8')
-      meta = JSON.parse(existing) as LoopressSnippetMetadata
+      const parsed: unknown = JSON.parse(await readFile(oldMetaPath, 'utf8'))
+      if (isRecord(parsed)) existing = parsed
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      if (errorCode(error) !== 'ENOENT') throw error
     }
 
-    meta.id = id
-    meta.name = name
-    meta.type = snippet.type
+    // Spread, not rebuilt: keys the CLI doesn't know about survive, in their original order.
+    const meta = {...existing, id, name, type: snippet.type} satisfies LoopressSnippetMetadata
 
     // Persist the id against the *current* file pairing before renaming anything, so a
     // crash between the rename and the sidecar write still leaves a valid `<name>.<ext>` /
@@ -129,7 +129,7 @@ export default class Push extends PushCommand {
     try {
       return await loadSnippetsFromDisk(path, (message) => { this.warn(message) })
     } catch (error) {
-      this.error((error as Error).message)
+      this.error(errorMessage(error))
     }
   }
 
@@ -157,7 +157,7 @@ export default class Push extends PushCommand {
 
       // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
       // falls back to POST instead of failing, adopting whatever id the site assigns.
-      const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
+      const {body, created} = await putOrCreate(this.wp, {
         id: snippet.id ?? null,
         payload: putPayload,
         postEndpoint: SNIPPETS_ENDPOINT,
@@ -177,7 +177,7 @@ export default class Push extends PushCommand {
       if (task) task.output = `Pushed: ${snippet.name}`
       return id
     } catch (error) {
-      this.reportTaskFailure(`Failed to push ${snippet.name}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${snippet.name}: ${errorMessage(error)}`, error, task)
     }
   }
 

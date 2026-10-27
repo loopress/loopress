@@ -1,14 +1,16 @@
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
+import {z} from 'zod'
 
 import {getAcfKey} from '../utils/acf-format.js'
 import {CPT_SPEC, type DeclaredTypeSpec, fileExtension, formatDeclaredFile, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {getFormId, getFormTitle} from '../utils/form-format.js'
 import {getMenuSlug} from '../utils/menu-format.js'
 import {defaultReadonlyFor, type LocalOption, optionFileName} from '../utils/option-format.js'
-import {buildMetaFile, buildSnippetFile, type NormalizedSnippet, type SnippetType} from '../utils/snippet-format.js'
+import {buildMetaFile, buildSnippetFile, type NormalizedSnippet, normalizeSnippet, type SnippetType} from '../utils/snippet-format.js'
 import {themeStylesFileName} from '../utils/theme-styles-format.js'
 import {toSlug} from '../utils/to-slug.js'
+import {isRecord} from './narrow.js'
 
 const SNIPPET_EXTENSIONS: Record<SnippetType, string> = {css: 'css', html: 'html', js: 'js', php: 'php', text: 'txt'}
 
@@ -25,9 +27,20 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 // compares (no `id`, no `description`, `code` with its `<?php` tag already stripped), exactly
 // what `normalizeSnippet` + `stripPhpOpeningTag` produce, so it plugs straight into the same
 // `buildSnippetFile`/`buildMetaFile` pair `snippet pull` uses to write files.
+// A snapshot entry that should be an object: anything else is a corrupted snapshot file.
+function snapshotRecord(id: string, value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`Snapshot entry "${id}" is not an object.`)
+  return value
+}
+
+const SNAPSHOT_OPTION = z.object({autoload: z.string(), value: z.unknown()})
+
 async function snippet(id: string, value: unknown, dir: string): Promise<void> {
-  const fields = value as Omit<NormalizedSnippet, 'description' | 'id'>
-  const normalized: NormalizedSnippet = {...fields, description: '', id: Number(id)}
+  const data = snapshotRecord(id, value)
+  // normalizeSnippet would coerce it, writing a corrupted entry's code over the live snippet.
+  if (typeof data.code !== 'string') throw new Error(`Snapshot entry "${id}" has a non-string "code".`)
+  // normalizeSnippet is idempotent on its own output, so it narrows `data` without changing it.
+  const normalized: NormalizedSnippet = {...normalizeSnippet(data), description: '', id: Number(id)}
   const ext = SNIPPET_EXTENSIONS[normalized.type]
   const base = `${normalized.id}-${toSlug(normalized.name)}`
 
@@ -39,7 +52,7 @@ async function snippet(id: string, value: unknown, dir: string): Promise<void> {
 // value is the whole form JSON (minus `modified`/`modified_gmt`), the same shape `form pull`
 // writes verbatim; `form push` re-sends it as-is.
 async function form(id: string, value: unknown, dir: string): Promise<void> {
-  const data = value as Record<string, unknown>
+  const data = snapshotRecord(id, value)
   const formId = getFormId(data) ?? Number(id)
   const slug = toSlug(getFormTitle(data), 'untitled')
   await writeJson(join(dir, `${formId}-${slug}.json`), data)
@@ -50,7 +63,7 @@ async function form(id: string, value: unknown, dir: string): Promise<void> {
 async function acf(id: string, value: unknown, dir: string): Promise<void> {
   const separator = id.indexOf('/')
   const type = id.slice(0, separator)
-  const data = value as Record<string, unknown>
+  const data = snapshotRecord(id, value)
   const key = getAcfKey(data) ?? id.slice(separator + 1)
   await writeJson(join(dir, type, `${key}.json`), data)
 }
@@ -69,7 +82,7 @@ async function menu(id: string, value: unknown, dir: string): Promise<void> {
     return
   }
 
-  const data = value as Record<string, unknown>
+  const data = snapshotRecord(id, value)
   const slug = getMenuSlug(data) ?? id.slice('menu/'.length)
   await writeJson(join(dir, `${slug}.json`), data)
 }
@@ -80,7 +93,7 @@ async function menu(id: string, value: unknown, dir: string): Promise<void> {
 // dangerous option (siteurl, home, ...); defaulting to the same policy `option add` itself uses
 // keeps a rolled-back option exactly as protected as a freshly tracked one, never less.
 async function option(id: string, value: unknown, dir: string): Promise<void> {
-  const {autoload, value: optionValue} = value as {autoload: string; value: unknown}
+  const {autoload, value: optionValue} = SNAPSHOT_OPTION.parse(value)
   const local: LocalOption = {autoload, name: id, readonly: defaultReadonlyFor(id), value: optionValue}
   await writeJson(join(dir, optionFileName(id)), local)
 }
@@ -94,7 +107,7 @@ async function themeStyles(id: string, value: unknown, dir: string): Promise<voi
 // written in the spec's file format like `<resource> pull` does.
 function declaredType(spec: DeclaredTypeSpec): Materializer {
   return async (id, value, dir) => {
-    await writeFile(join(dir, `${id}${fileExtension(spec)}`), formatDeclaredFile(spec, value as Record<string, unknown>))
+    await writeFile(join(dir, `${id}${fileExtension(spec)}`), formatDeclaredFile(spec, snapshotRecord(id, value)))
   }
 }
 

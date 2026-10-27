@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {LoopressCommand} from '../../lib/base.js'
 import {guardProductionPush} from '../../lib/guard-production-push.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 // `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
@@ -61,7 +62,7 @@ export default class Push extends LoopressCommand {
         this.log(`✓ ${target.label} pushed`)
         results.push({label: target.label, result, status: 'pushed'})
       } catch (error) {
-        const {message} = error as Error
+        const message = errorMessage(error)
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
       }

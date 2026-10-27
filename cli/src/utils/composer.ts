@@ -2,7 +2,9 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import writeFileAtomic from 'write-file-atomic'
+import {z} from 'zod'
 
+import {errorMessage} from '../lib/narrow.js'
 import {withSpinner} from '../lib/spinner.js'
 import {type SyncIntent} from './plugin-sync.js'
 import {type MergeResult} from './plugins.js'
@@ -11,17 +13,31 @@ import {isExactVersion} from './version.js'
 // Why pullIntoComposerJson skips a plugin it can't install: premium or custom, not on WPackagist.
 export const NOT_ON_WORDPRESS_ORG = 'not on WordPress.org'
 
-export type ComposerJson = {
-  config?: {
-    'allow-plugins'?: Record<string, boolean>
-  }
-  extra?: {
-    'installer-paths'?: Record<string, string[]>
-  }
-  name?: string
-  repositories?: Array<{type: string; url: string}>
-  require?: Record<string, string>
-  'require-dev'?: Record<string, string>
+// Only the sections the CLI reads are checked: the rest is Composer's own business, and goes
+// back to disk untouched.
+export const COMPOSER_JSON = z.looseObject(
+  {
+    require: z.record(z.string(), z.string('"require" must map each package to a version constraint'), '"require" must be an object').optional(),
+    'require-dev': z
+      .record(z.string(), z.string('"require-dev" must map each package to a version constraint'), '"require-dev" must be an object')
+      .optional(),
+  },
+  'expected a JSON object',
+)
+
+export type ComposerJson = z.infer<typeof COMPOSER_JSON>
+
+// Returns the parsed object itself, not zod's copy: zod's output moves the checked keys first, and
+// pullIntoComposerJson writes this object back to the user's composer.json.
+export function parseComposerJson(raw: string): ComposerJson {
+  const parsed: unknown = JSON.parse(raw)
+  if (isComposerJson(parsed)) return parsed
+  const issues = COMPOSER_JSON.safeParse(parsed).error?.issues ?? []
+  throw new Error(`Invalid composer.json: ${issues.map(({message}) => message).join(', ')}`)
+}
+
+function isComposerJson(value: unknown): value is ComposerJson {
+  return COMPOSER_JSON.safeParse(value).success
 }
 
 export async function readComposerJson(): Promise<ComposerJson | null> {
@@ -29,7 +45,7 @@ export async function readComposerJson(): Promise<ComposerJson | null> {
   if (!existsSync(path)) return null
   try {
     const content = await readFile(path, 'utf8')
-    return JSON.parse(content) as ComposerJson
+    return parseComposerJson(content)
   } catch {
     return null
   }
@@ -73,7 +89,7 @@ async function isOnWordPressOrg(kind: 'plugin' | 'theme', slug: string): Promise
   try {
     response = await withSpinner(`Checking WordPress.org for ${slug}`, async () => fetch(url))
   } catch (error) {
-    throw fail(`network error: ${(error as Error).message}`)
+    throw fail(`network error: ${errorMessage(error)}`)
   }
 
   if (response.status === 404) return false
@@ -146,7 +162,7 @@ export async function pullIntoComposerJson(
   {dryRun, log}: {dryRun: boolean; log: (message: string) => void},
 ): Promise<ComposerPullResult> {
   const raw = await readFile(path, 'utf8')
-  const composerJson = JSON.parse(raw) as ComposerJson
+  const composerJson = parseComposerJson(raw)
   const prefix = `wpackagist-${kind}/`
   const {candidates, result} = planComposerPull(composerJson, prefix, incoming)
 

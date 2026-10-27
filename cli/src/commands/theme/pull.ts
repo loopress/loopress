@@ -1,5 +1,6 @@
 import {LoopressCommand} from '../../lib/base.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled'}
@@ -32,7 +33,7 @@ export default class Pull extends LoopressCommand {
         this.log(`✓ ${target.label} pulled`)
         results.push({label: target.label, status: 'pulled'})
       } catch (error) {
-        const {message} = error as Error
+        const message = errorMessage(error)
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
       }

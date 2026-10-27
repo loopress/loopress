@@ -4,6 +4,7 @@ import {Command} from '@oclif/core'
 import {configManager} from '../../config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {sweepTempAdmins} from '../../lib/temp-admin.js'
@@ -151,7 +152,7 @@ export default class Config extends Command {
         }),
       )
     } catch (error) {
-      this.warn((error as Error).message)
+      this.warn(errorMessage(error))
     }
   }
 
@@ -193,7 +194,7 @@ export default class Config extends Command {
       const {password, userLogin} = await authorizeWithBrowser(url, (message) => { this.log(message); })
       return {appPassword: password, user: userLogin}
     } catch (error) {
-      this.warn(`${(error as Error).message}\nFalling back to manual credential entry.`)
+      this.warn(`${errorMessage(error)}\nFalling back to manual credential entry.`)
       return this.promptManualCredentials()
     }
   }
@@ -234,7 +235,7 @@ export default class Config extends Command {
       const removed = await sweepTempAdmins(wp)
       if (removed.length > 0) this.log(`✓ Removed ${pluralize(removed.length, 'leftover temporary admin account')}: ${removed.join(', ')}`)
     } catch (error) {
-      this.warn((error as Error).message)
+      this.warn(errorMessage(error))
     }
   }
 }

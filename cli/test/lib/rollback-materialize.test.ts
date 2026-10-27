@@ -139,6 +139,10 @@ describe('rollback-materialize', () => {
     expect(readdirSync(dir)).toEqual(['main.json'])
   })
 
+  it('rejects a snippet entry whose code is not a string, instead of writing it coerced', async () => {
+    await expect(materializeSnapshot('snippet', {7: {code: 42, name: 'Hero', type: 'php'}}, dir)).rejects.toThrow('Snapshot entry "7" has a non-string "code".')
+  })
+
   it('rejects an unsupported resource', async () => {
     await expect(materializeSnapshot('composer', {}, dir)).rejects.toThrow('Rollback is not supported for "composer"')
   })

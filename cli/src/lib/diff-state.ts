@@ -2,6 +2,8 @@ import {createTwoFilesPatch} from 'diff'
 import microdiff from 'microdiff'
 import {isDeepStrictEqual} from 'node:util'
 
+import {isRecord} from './narrow.js'
+
 // One resource's comparable state: identity -> canonical value. The value is whatever the
 // resource's provider decides is worth comparing (a normalized object for snippets, the
 // raw plugin object for forms/ACF, a file's text for API routes), projected identically from
@@ -33,10 +35,6 @@ export type StateDiff = {
 }
 
 const MAX_VALUE_LENGTH = 200
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 function formatValue(value: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- typed as string, but JSON.stringify returns undefined for `undefined` (a removed field)

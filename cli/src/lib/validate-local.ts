@@ -4,6 +4,7 @@ import {z} from 'zod'
 
 import {configManager} from '../config/project-config.manager.js'
 import {PLUGIN_PIN} from '../types/plugin.js'
+import {COMPOSER_JSON} from '../utils/composer.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
 import {parseLocalOption} from '../utils/option-format.js'
 import {readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
@@ -11,6 +12,7 @@ import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
 import {parseType} from '../utils/snippet-format.js'
 import {readLocalTemplates} from '../utils/template-format.js'
 import {loadSnippets} from './load-snippets.js'
+import {errorCode, errorMessage, isRecord} from './narrow.js'
 import {API_FILES_RESOURCE, HOOK_FILES_RESOURCE, phpFileProblems, type PhpFilesResource} from './php-files-command.js'
 import {readdirTolerant} from './readdir-tolerant.js'
 
@@ -137,15 +139,6 @@ async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: strin
 
 const JSON_OBJECT = z.record(z.string(), z.unknown())
 
-// Only the sections Composer sync writes to; the rest is Composer's own business.
-const COMPOSER_JSON = z.looseObject(
-  {
-    require: z.record(z.string(), z.unknown(), '"require" must be an object').optional(),
-    'require-dev': z.record(z.string(), z.unknown(), '"require-dev" must be an object').optional(),
-  },
-  'expected a JSON object',
-)
-
 async function checkComposerJson(cwd: string, problems: Problem[]): Promise<number> {
   let raw: string
   try {
@@ -159,7 +152,7 @@ async function checkComposerJson(cwd: string, problems: Problem[]): Promise<numb
   try {
     parsed = JSON.parse(raw)
   } catch (error) {
-    problems.push({file: 'composer.json', message: `not valid JSON: ${(error as Error).message}`})
+    problems.push({file: 'composer.json', message: `not valid JSON: ${errorMessage(error)}`})
     return 1
   }
 
@@ -188,7 +181,7 @@ async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: stri
     try {
       parsed = JSON.parse(raw)
     } catch (error) {
-      problems.push({file: filePath, message: `not valid JSON: ${(error as Error).message}`})
+      problems.push({file: filePath, message: `not valid JSON: ${errorMessage(error)}`})
       continue
     }
 
@@ -200,7 +193,7 @@ async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: stri
     try {
       shape?.(raw, filePath)
     } catch (error) {
-      problems.push({file: filePath, message: (error as Error).message})
+      problems.push({file: filePath, message: errorMessage(error)})
     }
   }
 
@@ -249,7 +242,7 @@ async function checkSnippets(dir: string, problems: Problem[]): Promise<number> 
       problems.push({file: dir, message})
     })
   } catch (error) {
-    problems.push({file: dir, message: (error as Error).message})
+    problems.push({file: dir, message: errorMessage(error)})
     return 0
   }
 
@@ -258,11 +251,16 @@ async function checkSnippets(dir: string, problems: Problem[]): Promise<number> 
   const sidecars = listing.filter((file) => file.endsWith('.json'))
   for (const file of sidecars) {
     const filePath = join(dir, file)
-    let meta: Record<string, unknown>
+    let meta: unknown
     try {
-      meta = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>
+      meta = JSON.parse(await readFile(filePath, 'utf8'))
     } catch {
       problems.push({file: filePath, message: 'not valid JSON'})
+      continue
+    }
+
+    if (!isRecord(meta)) {
+      problems.push({file: filePath, message: 'expected a JSON object'})
       continue
     }
 
@@ -286,14 +284,19 @@ async function readConfig(cwd: string, problems: Problem[]): Promise<Record<stri
   try {
     raw = await readFile(join(cwd, 'loopress.json'), 'utf8')
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {}
+    if (errorCode(error) === 'ENOENT') return {}
     throw error
   }
 
+  let parsed: unknown
   try {
-    return JSON.parse(raw) as Record<string, unknown>
+    parsed = JSON.parse(raw)
   } catch {
     problems.push({file: 'loopress.json', message: 'loopress.json is not valid JSON. Fix or delete it, then run `lps init` again.'})
     return {}
   }
+
+  if (isRecord(parsed) && !Array.isArray(parsed)) return parsed
+  problems.push({file: 'loopress.json', message: 'expected a JSON object'})
+  return {}
 }

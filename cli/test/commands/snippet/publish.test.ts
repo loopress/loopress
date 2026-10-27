@@ -132,7 +132,7 @@ describe('snippet publish', () => {
 
     await cmd.run()
 
-    expect(loadSnippets).toHaveBeenCalledWith('my-snippets')
+    expect(loadSnippets).toHaveBeenCalledWith('my-snippets', expect.any(Function))
     expect(post).toHaveBeenCalledWith('projects/api-project-1/snippets/publish', {
       snippets: [
         expect.objectContaining({

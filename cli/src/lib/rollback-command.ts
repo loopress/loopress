@@ -10,6 +10,7 @@ import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type StateDiff} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
+import {errorMessage} from './narrow.js'
 import {getResourceStateProvider} from './resource-state.js'
 import {materializeSnapshot} from './rollback-materialize.js'
 import {listSnapshots, readSnapshot, recordToState, type SnapshotSummary} from './snapshot-store.js'
@@ -94,7 +95,7 @@ export function resourceRollbackCommand(
       try {
         snapshot = await readSnapshot(rootDir, resource, this.siteConfig.name, flags.to)
       } catch (error) {
-        this.error((error as Error).message)
+        this.error(errorMessage(error))
       }
 
       await guardProductionPush({
@@ -179,7 +180,7 @@ export function resourceRollbackCommand(
         // A cleanup failure here must never hide a real error from the push above: warn about
         // it and let the original error (if any) keep propagating instead of being replaced.
         await rm(tmpDir, {force: true, recursive: true}).catch((error: unknown) => {
-          this.warn(`Could not remove the temporary directory "${tmpDir}": ${(error as Error).message}`)
+          this.warn(`Could not remove the temporary directory "${tmpDir}": ${errorMessage(error)}`)
         })
       }
 

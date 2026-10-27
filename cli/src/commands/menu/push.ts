@@ -2,11 +2,12 @@ import {Args} from '@oclif/core'
 import {readFile} from 'node:fs/promises'
 import {extname, join} from 'node:path'
 
+import {errorCode, errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
-import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, menuEndpoint, type MenuLocations} from '../../utils/menu-format.js'
+import {getMenuSlug, type Menu, MENU_ENDPOINT, MENU_LOCATIONS, MENU_LOCATIONS_ENDPOINT, menuEndpoint} from '../../utils/menu-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 // A menu literally slugged "menu-locations" would still collide, but that's far less likely
@@ -73,7 +74,7 @@ export default class Push extends PushCommand {
     try {
       raw = await readFile(file, 'utf8')
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
+      if (errorCode(error) === 'ENOENT') return
 
       throw error
     }
@@ -84,11 +85,11 @@ export default class Push extends PushCommand {
     }
 
     try {
-      await this.wp.put(MENU_LOCATIONS_ENDPOINT, JSON.parse(raw) as MenuLocations)
+      await this.wp.put(MENU_LOCATIONS_ENDPOINT, MENU_LOCATIONS.parse(JSON.parse(raw)))
       this.log(`Pushed: ${file}`)
     } catch (error) {
       this.failedCount++
-      this.warn(`Failed to push ${file}: ${(error as Error).message}`)
+      this.warn(`Failed to push ${file}: ${errorMessage(error)}`)
     }
   }
 
@@ -100,10 +101,9 @@ export default class Push extends PushCommand {
     }
 
     try {
-      const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown
-      if (typeof parsed !== 'object' || parsed === null) throw new Error('not a JSON object')
+      const record: unknown = JSON.parse(await readFile(filePath, 'utf8'))
+      if (!isRecord(record)) throw new Error('not a JSON object')
 
-      const record = parsed as Record<string, unknown>
       const slug = getMenuSlug(record)
       if (slug === null) throw new Error('missing or invalid "slug"')
 
@@ -125,7 +125,7 @@ export default class Push extends PushCommand {
         task.output = result.warnings.length > 0 ? `Pushed: ${slug} (warning: ${result.warnings.join('; ')})` : `Pushed: ${slug}`
       }
     } catch (error) {
-      this.reportTaskFailure(`Failed to push ${filePath}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${filePath}: ${errorMessage(error)}`, error, task)
     }
   }
 

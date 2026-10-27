@@ -1,13 +1,12 @@
 import {existsSync, unlinkSync} from 'node:fs'
 import {join} from 'node:path'
+import {z} from 'zod'
 
 import {readJsonFile, writeJsonFileAtomic} from './json-file.js'
 
-export type ConsoleAuth = {
-  email?: string | undefined
-  savedAt: string
-  token: string
-}
+const CONSOLE_AUTH = z.object({email: z.string().optional(), savedAt: z.string(), token: z.string()})
+
+export type ConsoleAuth = z.infer<typeof CONSOLE_AUTH>
 
 export class AuthManager {
   private dataDir: string | undefined
@@ -22,7 +21,9 @@ export class AuthManager {
   }
 
   getAuth(): ConsoleAuth | null {
-    return readJsonFile<ConsoleAuth>(this.getAuthFilePath())
+    // A hand-edited or truncated auth.json reads as logged out, not as a token-less session.
+    const result = CONSOLE_AUTH.safeParse(readJsonFile(this.getAuthFilePath()))
+    return result.success ? result.data : null
   }
 
   getAuthFilePath(): string {

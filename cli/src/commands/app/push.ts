@@ -11,6 +11,7 @@ import {
   diffFiles,
   loadAppManifest,
 } from '../../lib/app-manifest.js'
+import {errorCode, errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -88,7 +89,7 @@ export default class Push extends PushCommand {
     try {
       entries = await readdir(path, {withFileTypes: true})
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (errorCode(error) === 'ENOENT') {
         this.error(`Apps directory not found: ${path}. Create ${join(path, '<name>', APP_CONFIG_FILENAME)} first.`)
       }
 
@@ -129,7 +130,7 @@ export default class Push extends PushCommand {
 
       ;({distDir, manifest} = await loadAppManifest(appDir, dirName))
     } catch (error) {
-      this.reportTaskFailure(`${dirName}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`${dirName}: ${errorMessage(error)}`, error, task)
     }
 
     const remote = await this.remoteFiles(manifest.name)
@@ -155,7 +156,7 @@ export default class Push extends PushCommand {
     try {
       committed = await this.wp.post(`loopress/v1/apps/${manifest.name}/commit`, manifest)
     } catch (error) {
-      this.reportTaskFailure(`${manifest.name}: commit failed: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`${manifest.name}: commit failed: ${errorMessage(error)}`, error, task)
     }
 
     this.warnIfCrossOriginIgnored(manifest, committed)
@@ -185,7 +186,7 @@ export default class Push extends PushCommand {
     try {
       await this.wp.put(`loopress/v1/apps/${name}/assets`, {content, encoding: 'base64', path: file.path})
     } catch (error) {
-      this.reportTaskFailure(`${name}: failed to upload ${file.path}: ${(error as Error).message}`, error)
+      this.reportTaskFailure(`${name}: failed to upload ${file.path}: ${errorMessage(error)}`, error)
     }
   }
 

@@ -1,3 +1,4 @@
+import {isOneOf} from '../lib/narrow.js'
 import {type LoopressSnippetMetadata} from '../types/snippet.generated.js'
 
 export const SNIPPETS_ENDPOINT = 'loopress/v1/snippets'
@@ -38,14 +39,14 @@ function coerceString(value: unknown, fallback = ''): string {
 export function parseType(raw: unknown): null | SnippetType {
   const valid: SnippetType[] = ['css', 'html', 'js', 'php', 'text']
   const value = coerceString(raw).toLowerCase()
-  return valid.includes(value as SnippetType) ? (value as SnippetType) : null
+  return isOneOf(valid, value) ? value : null
 }
 
 const VALID_LOCATIONS = new Set<SnippetLocation>(['admin', 'body', 'everywhere', 'footer', 'frontend', 'header', 'once'])
 
 export function parseLocation(raw: unknown): null | SnippetLocation {
   const value = coerceString(raw).toLowerCase()
-  return VALID_LOCATIONS.has(value as SnippetLocation) ? (value as SnippetLocation) : null
+  return isOneOf(VALID_LOCATIONS, value) ? value : null
 }
 
 export function parseInsertMethod(raw: unknown): null | SnippetInsertMethod {
@@ -121,7 +122,7 @@ export function normalizeSnippet(data: Record<string, unknown>): NormalizedSnipp
     priority: resolvePriority(data.priority),
     revision: typeof data.revision === 'string' ? data.revision : undefined,
     shortcodeAttributes: Array.isArray(data.shortcodeAttributes) ? (data.shortcodeAttributes as unknown[]).map(String) : [],
-    tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
+    tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     type: parseType(data.type) ?? 'php',
   }
 }

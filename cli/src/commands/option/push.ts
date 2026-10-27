@@ -1,6 +1,7 @@
 import {Args} from '@oclif/core'
 
 import {loadFiles} from '../../lib/load-files.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
@@ -115,7 +116,7 @@ export default class Push extends PushCommand {
       await this.wp.put(optionEndpoint(option.name), body)
       if (task) task.output = `Pushed: ${option.name}`
     } catch (error) {
-      this.reportTaskFailure(`Failed to push ${option.name}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${option.name}: ${errorMessage(error)}`, error, task)
     }
   }
 }

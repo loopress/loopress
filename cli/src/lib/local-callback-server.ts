@@ -1,7 +1,6 @@
 import {Buffer} from 'node:buffer'
 import {randomBytes, timingSafeEqual} from 'node:crypto'
 import {createServer, type IncomingMessage, type ServerResponse} from 'node:http'
-import {type AddressInfo} from 'node:net'
 
 import {openBrowser} from './open-browser.js'
 import {withSpinner} from './spinner.js'
@@ -123,7 +122,14 @@ export async function waitForLocalCallback<T>(options: {
     }, timeoutMs)
 
     server.listen(0, '127.0.0.1', () => {
-      const {port} = server.address() as AddressInfo
+      const address = server.address()
+      // Only a pipe or a closed server has no AddressInfo, never a TCP listen that just succeeded.
+      if (address === null || typeof address === 'string') {
+        reject(new Error('The local callback server has no TCP port'))
+        return
+      }
+
+      const {port} = address
       const targetUrl = options.buildUrl(`http://${options.callbackHost ?? 'localhost'}:${port}`, state)
 
       options.log(options.openingMessage)

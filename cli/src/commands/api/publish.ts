@@ -3,6 +3,7 @@ import {basename, join} from 'node:path'
 
 import {ApiClient} from '../../lib/api-client.js'
 import {loadFiles} from '../../lib/load-files.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {resolveLinkedProject} from '../../lib/resolve-linked-project.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -52,7 +53,7 @@ export default class Publish extends Command {
         filenames: files.map((file) => file.filename),
       })
     } catch (error) {
-      this.error((error as Error).message)
+      this.error(errorMessage(error))
     }
 
     this.log(`Published ${pluralize(files.length, 'route')} to your Loopress account.`)

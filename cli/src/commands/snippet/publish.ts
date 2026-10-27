@@ -3,6 +3,7 @@ import {join} from 'node:path'
 
 import {ApiClient} from '../../lib/api-client.js'
 import {loadSnippets} from '../../lib/load-snippets.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {resolveLinkedProject} from '../../lib/resolve-linked-project.js'
 import {type Snippet} from '../../types/snippet.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -33,9 +34,11 @@ export default class Publish extends Command {
 
     let snippets: Snippet[]
     try {
-      snippets = await loadSnippets(path)
+      snippets = await loadSnippets(path, (message) => {
+        this.warn(message)
+      })
     } catch (error) {
-      this.error((error as Error).message)
+      this.error(errorMessage(error))
     }
 
     const api = new ApiClient(token)
@@ -44,7 +47,7 @@ export default class Publish extends Command {
         snippets: snippets.map((snippet) => this.toPayload(snippet)),
       })
     } catch (error) {
-      this.error((error as Error).message)
+      this.error(errorMessage(error))
     }
 
     this.log(`Published ${pluralize(snippets.length, 'snippet')} to your Loopress account.`)

@@ -34,7 +34,10 @@ function start(): void {
       return result
     }
 
+  // write() is overloaded, and a single rest-args wrapper can't be typed as every overload.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
   process.stdout.write = intercept(process.stdout, rawOut) as typeof rawOut
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
   process.stderr.write = intercept(process.stderr, rawErr) as typeof rawErr
   draw()
   const timer = setInterval(() => {

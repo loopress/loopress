@@ -234,6 +234,14 @@ describe('validateLocal', () => {
     ])
   })
 
+  it('flags loopress.json that is an array, not an object', async () => {
+    write('loopress.json', '[]')
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toEqual([{file: 'loopress.json', message: 'expected a JSON object'}])
+  })
+
   it('flags a projectId that is not a configured project', async () => {
     write('loopress.json', JSON.stringify({projectId: 'ghost'}))
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)

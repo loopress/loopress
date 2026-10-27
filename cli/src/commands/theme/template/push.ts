@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto'
 
 import {activateTheme} from '../../../lib/capabilities.js'
 import {type ResourceState} from '../../../lib/diff-state.js'
+import {errorMessage} from '../../../lib/narrow.js'
 import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
 import {pluralize} from '../../../utils/pluralize.js'
@@ -128,7 +129,7 @@ export default class Push extends PushCommand {
     try {
       child = await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
     } catch (error) {
-      this.error(`The site would refuse this push: ${(error as Error).message}`)
+      this.error(`The site would refuse this push: ${errorMessage(error)}`)
     }
 
     const localCss: ResourceState = new Map(css.blocks.map((block) => [`blocks/${block.name}.css`, sha256(block.css)]))

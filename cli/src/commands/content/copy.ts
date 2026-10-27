@@ -180,7 +180,10 @@ export default class Copy extends LoopressCommand {
     while (after !== null) {
       const page: ContentPage = await source.get<ContentPage>(`loopress/v1/content/${kind}?after=${after}&limit=${BATCH_SIZE}`)
       const {next, ...rows} = page
-      count += (rows[kind] as unknown[]).length
+      const batch = rows[kind]
+      // The local site is already emptied: a page without its list must stop the copy, not count as 0.
+      if (!Array.isArray(batch)) this.error(`${kind} page after ${after} from the source has no "${kind}" list.`)
+      count += batch.length
       if (!this.dryRun) await this.wp.post(`loopress/v1/content/${kind}`, rows)
       after = next
     }

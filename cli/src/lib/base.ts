@@ -77,8 +77,12 @@ export abstract class LoopressCommand extends Command {
   override async init(): Promise<void> {
     await super.init()
 
+    // oclif types `this.ctor` as the base `typeof Command`, and parse() can't infer flags from a
+    // runtime-chosen subclass: both casts state what every LoopressCommand subclass declares.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
     const {flags} = (await this.parse({
       args: this.ctor.args,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
       baseFlags: (this.ctor as typeof LoopressCommand).baseFlags,
       enableJsonFlag: this.ctor.enableJsonFlag,
       flags: this.ctor.flags,
