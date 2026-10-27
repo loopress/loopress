@@ -91,9 +91,9 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
       <text x="0" y="-213" text-anchor="middle" class="h-sub">loopress.dev · installed by lps project config</text>
       <polygon points={hex(215)} class="ring-full" />
       <polygon points={hex(112)} class="ring-light" />
-      <text x="0" y="-60" text-anchor="middle" class="h-title h-light">Loopress Light</text>
-      <text x="0" y="-45" text-anchor="middle" class="h-sub">WordPress.org</text>
-      {config.map(([name], i) => <text x="0" y={-20 + i * 17} text-anchor="middle" class="h-mod">{name}</text>)}
+      <text x="0" y="-75" text-anchor="middle" class="h-title h-light">Loopress Light</text>
+      <text x="0" y="-60" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-38 + i * 14} text-anchor="middle" class="h-mod">{name}</text>)}
       {around(150).map((m) => (
         <>
           <text x={m.x} y={m.y} text-anchor="middle" class="h-mod">{m.name}</text>
@@ -107,9 +107,9 @@ const toggleId = `ed-toggle-${Math.random().toString(36).slice(2, 8)}`;
       <polygon points={hex(105)} class="thick thick-light" />
       <text x="0" y="-135" text-anchor="middle" class="h-title h-full">Full</text>
       <text x="0" y="-119" text-anchor="middle" class="h-sub">loopress.dev</text>
-      <text x="0" y="-52" text-anchor="middle" class="h-title h-light">Light</text>
-      <text x="0" y="-38" text-anchor="middle" class="h-sub">WordPress.org</text>
-      {config.map(([name], i) => <text x="0" y={-15 + i * 16} text-anchor="middle" class="h-mod">{name}</text>)}
+      <text x="0" y="-70" text-anchor="middle" class="h-title h-light">Light</text>
+      <text x="0" y="-56" text-anchor="middle" class="h-sub">WordPress.org</text>
+      {config.map(([name], i) => <text x="0" y={-36 + i * 14} text-anchor="middle" class="h-mod">{name}</text>)}
       {around(232).map((m) => (
         <>
           <text x={m.x} y={m.y} text-anchor={m.anchor} class="h-mod h-big">{m.name}</text>

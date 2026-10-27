@@ -98,4 +98,4 @@ The shortcode exposes a small config object on the page, named `loopressApp_<nam
 
 ## Pages
 
-- [CLI](/apps/cli/): the `lps app pull/push/list/remove` commands
+- [CLI](/apps/cli/): the `lps app pull/push/list/rm` commands

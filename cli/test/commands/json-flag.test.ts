@@ -18,7 +18,7 @@ const NOT_WRAPPED_BY_MCP = new Set([
   'project/config',
   'project/pull',
   'project/push',
-  'project/remove',
+  'project/rm',
   'project/rotate',
   'project/switch',
   'sentry-test',
