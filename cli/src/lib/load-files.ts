@@ -1,6 +1,7 @@
 import {readFile} from 'node:fs/promises'
 import {extname, join} from 'node:path'
 
+import {errorMessage} from './narrow.js'
 import {readdirTolerant, walkFiles} from './readdir-tolerant.js'
 
 // Loads every `<extension>` file of a directory through `parse`. One file is read in
@@ -30,7 +31,7 @@ export async function loadFiles<T>(
     try {
       items.push(options.parse(await readFile(filePath, 'utf8'), filePath))
     } catch (error) {
-      options.onSkip(`Skipping "${filePath}": ${(error as Error).message}`)
+      options.onSkip(`Skipping "${filePath}": ${errorMessage(error)}`)
     }
   }
 

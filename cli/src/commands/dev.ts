@@ -4,6 +4,7 @@ import {basename} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, RESOURCE_TYPES, type ResourceType, resourceTypeForPath, type WatchTarget} from '../lib/dev-watch.js'
+import {errorMessage, isOneOf} from '../lib/narrow.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 
 const DEBOUNCE_MS = 400
@@ -50,11 +51,11 @@ export default class Dev extends Command {
       .map((value) => value.trim())
       .filter(Boolean)
       .map((value) => {
-        if (!RESOURCE_TYPES.includes(value as ResourceType)) {
+        if (!isOneOf(RESOURCE_TYPES, value)) {
           this.error(`Unknown resource type "${value}" in --${flagName}. Valid types: ${RESOURCE_TYPES.join(', ')}`)
         }
 
-        return value as ResourceType
+        return value
       })
   }
 
@@ -81,7 +82,7 @@ export default class Dev extends Command {
         await this.config.runCommand(commandId, ['--env', 'local'])
         this.log(`✓ ${label} synced`)
       } catch (error) {
-        this.log(`✗ ${label} failed: ${(error as Error).message}`)
+        this.log(`✗ ${label} failed: ${errorMessage(error)}`)
       }
     }
   }

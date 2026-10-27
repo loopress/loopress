@@ -6,11 +6,13 @@ import {resolve} from 'node:path'
 import {isDeepStrictEqual} from 'node:util'
 
 import {authManager} from '../config/auth.manager.js'
+import {type EnvironmentConfig} from '../types/config.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
+import {errorMessage} from './narrow.js'
 import {type ResourceStateProvider} from './resource-state.js'
 import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
@@ -80,7 +82,7 @@ export abstract class PushCommand extends LoopressCommand {
       } catch (error) {
         // The push reports the unreadable files itself, but an empty `changes` must not read as
         // "nothing changes".
-        this.warn(`Could not list what this push would change: ${(error as Error).message}`)
+        this.warn(`Could not list what this push would change: ${errorMessage(error)}`)
       }
 
       logChanges((message) => { this.log(message); }, this.previewChanges)
@@ -97,7 +99,7 @@ export abstract class PushCommand extends LoopressCommand {
         dir,
       )
     } catch (error) {
-      this.warn(`Could not read remote state for a rollback snapshot: ${(error as Error).message}`)
+      this.warn(`Could not read remote state for a rollback snapshot: ${errorMessage(error)}`)
       return undefined
     }
 
@@ -106,8 +108,8 @@ export abstract class PushCommand extends LoopressCommand {
   }
 
   override async catch(err: Error): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- catch() also runs when init() failed before assigning siteConfig
-    if (!this.dryRun && !this.refusedByGuard && this.siteConfig) {
+    // Unset when init() failed before resolving the environment, despite its declared type.
+    if (!this.dryRun && !this.refusedByGuard && (this.siteConfig as EnvironmentConfig | undefined)) {
       await this.recordDeployment('failure')
     }
 
@@ -139,7 +141,7 @@ export abstract class PushCommand extends LoopressCommand {
     try {
       return await provider.remote(this.wp, () => {}, dir)
     } catch (error) {
-      this.error(`The site would refuse this push: ${(error as Error).message}`)
+      this.error(`The site would refuse this push: ${errorMessage(error)}`)
     }
   }
 
@@ -244,7 +246,7 @@ export abstract class PushCommand extends LoopressCommand {
         rootDir: resolve(process.cwd(), this.rootDir),
       })
     } catch (error) {
-      this.warn(`Could not save a rollback snapshot after this push: ${(error as Error).message}`)
+      this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
     }
   }
 
@@ -280,7 +282,7 @@ export abstract class PushCommand extends LoopressCommand {
     try {
       local = await provider.local(dir, () => {}, this.wp)
     } catch (error) {
-      this.error(`Could not check for changes made on ${this.siteConfig.url} outside Loopress: ${(error as Error).message}. Retry, or pass --overwrite.`)
+      this.error(`Could not check for changes made on ${this.siteConfig.url} outside Loopress: ${errorMessage(error)}. Retry, or pass --overwrite.`)
     }
 
     const overwritten = [...local.keys()].filter(

@@ -1,3 +1,5 @@
+import {z} from 'zod'
+
 export const MENU_ENDPOINT = 'loopress/v1/menus'
 export const MENU_LOCATIONS_ENDPOINT = 'loopress/v1/menu-locations'
 
@@ -38,7 +40,10 @@ export type Menu = {
 
 // location => menu slug, or null when unassigned. Scoped to whichever theme is active on
 // whichever environment answered the request (a theme_mod, see MenuService::getLocations()).
-export type MenuLocations = Record<string, null | string>
+// Location slug -> assigned menu slug, null for an unassigned location.
+export const MENU_LOCATIONS = z.record(z.string(), z.string().nullable())
+
+export type MenuLocations = z.infer<typeof MENU_LOCATIONS>
 
 export function getMenuSlug(data: Record<string, unknown>): null | string {
   return typeof data.slug === 'string' && data.slug.trim() !== '' ? data.slug : null

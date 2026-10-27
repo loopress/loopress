@@ -30,6 +30,7 @@ import {
 import {type ResourceState} from './diff-state.js'
 import {loadFiles} from './load-files.js'
 import {loadSnippets} from './load-snippets.js'
+import {causeOf, errorCode, isRecord} from './narrow.js'
 import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 
 // A resource `lps diff` knows how to compare. `remote` reads and normalizes the live state
@@ -53,12 +54,12 @@ export type ResourceStateProvider = {
 }
 
 function readJson(raw: string): Record<string, unknown> {
-  const parsed = JSON.parse(raw) as unknown
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+  const parsed: unknown = JSON.parse(raw)
+  if (!isRecord(parsed) || Array.isArray(parsed)) {
     throw new Error('not a JSON object')
   }
 
-  return parsed as Record<string, unknown>
+  return parsed
 }
 
 // Removes top-level keys that the server rewrites without the tracked configuration itself
@@ -115,7 +116,7 @@ const snippetProvider: ResourceStateProvider = {
     } catch (error) {
       // A directory that was never created is "nothing tracked locally", the same tolerance
       // loadFiles/readdirTolerant already have; loadSnippets wraps the ENOENT in its own Error.
-      if ((error as {cause?: NodeJS.ErrnoException}).cause?.code === 'ENOENT') return state
+      if (errorCode(causeOf(error)) === 'ENOENT') return state
       throw error
     }
 
@@ -317,7 +318,10 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
   const state: ResourceState = new Map(files.map(({slug, ...rest}) => [slug, rest]))
   for (const entry of child.customized) {
     const [dir, slug] = entry.split('/', 2)
-    if (dir === kind && slug !== undefined) state.set(slug, {...(state.get(slug) as Record<string, unknown> | undefined), siteEditor: 'customized'})
+    if (dir === kind && slug !== undefined) {
+      const existing = state.get(slug)
+      state.set(slug, {...(isRecord(existing) && existing), siteEditor: 'customized'})
+    }
   }
 
   return state
@@ -576,7 +580,7 @@ export async function composerLocalState(rootDir: string): Promise<ResourceState
     try {
       state.set(file, await readFile(join(rootDir, file), 'utf8'))
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      if (errorCode(error) !== 'ENOENT') throw error
     }
   }
 

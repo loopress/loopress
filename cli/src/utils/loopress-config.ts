@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs'
 import {readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {isRecord} from '../lib/narrow.js'
 import {type LoopressProjectConfiguration} from '../types/project-config.generated.js'
 
 export type LoopressLocalConfig = LoopressProjectConfiguration
@@ -15,11 +16,17 @@ export async function readLocalConfig(): Promise<LoopressLocalConfig> {
 
   const content = await readFile(configPath, 'utf8')
 
+  let parsed: unknown
   try {
-    return JSON.parse(content) as LoopressLocalConfig
+    parsed = JSON.parse(content)
   } catch {
     throw new Error('loopress.json is not valid JSON. Fix or delete it, then run `lps init` again.')
   }
+
+  if (!isRecord(parsed)) throw new Error('loopress.json must be a JSON object. Fix or delete it, then run `lps init` again.')
+  // Its keys are checked by `lps validate` (lib/validate-local.ts), not here: schemas/project-config.schema.json
+  // refuses unknown keys, which would stop every command over one stray key.
+  return parsed
 }
 
 export async function writeLocalConfig(config: LoopressLocalConfig): Promise<void> {

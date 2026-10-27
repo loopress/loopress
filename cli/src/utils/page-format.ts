@@ -1,6 +1,8 @@
 import {readdir, readFile} from 'node:fs/promises'
 import {basename, extname, join} from 'node:path'
 
+import {errorCode, errorMessage, isOneOf} from '../lib/narrow.js'
+
 export const PAGES_ENDPOINT = 'loopress/v1/pages'
 
 // Mirrored server-side in PagesController. No leading, trailing or doubled hyphen: WordPress's
@@ -77,7 +79,7 @@ export function parsePageFile(slug: string, raw: string): Page {
   const {body, meta} = parseHtmlHeader(raw, HEADER_KEYS)
 
   const status = meta.status ?? 'draft'
-  if (!(PAGE_STATUSES as readonly string[]).includes(status)) {
+  if (!isOneOf(PAGE_STATUSES, status)) {
     throw new Error(`status "${status}" is not one of ${PAGE_STATUSES.join(', ')}`)
   }
 
@@ -86,7 +88,7 @@ export function parsePageFile(slug: string, raw: string): Page {
     hideTitle: parseBoolean('hide-title', meta['hide-title']),
     html: body,
     slug,
-    status: status as PageStatus,
+    status,
     template: meta.template ?? '',
     title: (meta.title ?? '') || titleFromSlug(slug),
   }
@@ -129,7 +131,7 @@ export async function readLocalHtmlFiles<T>(
   try {
     entries = await readdir(dir, {withFileTypes: true})
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {files: [], problems: []}
+    if (errorCode(error) === 'ENOENT') return {files: [], problems: []}
     throw error
   }
 
@@ -160,7 +162,7 @@ export async function readLocalHtmlFiles<T>(
     try {
       files.push(parse(slug, await readFile(filePath, 'utf8')))
     } catch (error) {
-      problems.push({file: filePath, message: (error as Error).message})
+      problems.push({file: filePath, message: errorMessage(error)})
     }
   }
 

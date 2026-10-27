@@ -1,6 +1,7 @@
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
+import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {pinVersion} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
@@ -92,7 +93,7 @@ export default class Audit extends LoopressCommand {
       // Never swallow this into an empty list: a clean audit must mean "no advisories found",
       // not "the advisory service was unreachable". Fail the command instead.
       throw new Error(
-        `Could not reach the vulnerability database (wpvulnerability.net) for "${slug}": ${(error as Error).message}. ` +
+        `Could not reach the vulnerability database (wpvulnerability.net) for "${slug}": ${errorMessage(error)}. ` +
           'Audit aborted so a service outage is not reported as a clean result.',
         {cause: error},
       )
@@ -100,14 +101,15 @@ export default class Audit extends LoopressCommand {
 
     // A 200 with the wrong shape (degraded service) must not read as "no advisories" either.
     const list = body?.data?.vulnerability
-    if (!Array.isArray(list)) {
+    if (!Array.isArray(list) || list.some((raw) => !isRecord(raw))) {
       throw new TypeError(
         `Unexpected answer from the vulnerability database (wpvulnerability.net) for "${slug}". ` +
           'Audit aborted so a malformed response is not reported as a clean result.',
       )
     }
 
-    return list.map((raw) => normalizeAdvisory(raw as Record<string, unknown>))
+    // Already all objects (checked above), the filter only carries that to the type.
+    return list.filter((raw) => isRecord(raw)).map((raw) => normalizeAdvisory(raw))
   }
 
   private report(advisories: Advisory[], health: HealthNote[], count: number): AuditResult {
@@ -142,17 +144,17 @@ function advisoryMeta(a: Advisory): string {
 }
 
 function normalizeAdvisory(raw: Record<string, unknown>): Omit<Advisory, 'slug'> & {range: Range} {
-  const cvss = (raw.cvss ?? {}) as {score?: number; severity?: string}
-  const source = Array.isArray(raw.source) ? (raw.source as Array<{id?: string}>) : []
-  const cve = typeof raw.cve === 'string' ? raw.cve : source.find((s) => s.id?.startsWith('CVE-'))?.id
+  const cvss = isRecord(raw.cvss) ? raw.cvss : {}
+  const sourceIds = Array.isArray(raw.source) ? raw.source.map((s: unknown) => (isRecord(s) && typeof s.id === 'string' ? s.id : '')) : []
+  const cve = typeof raw.cve === 'string' ? raw.cve : sourceIds.find((id) => id.startsWith('CVE-'))
 
   const range = extractRange(raw)
   return {
     cve,
     fixedIn: range.max?.op === 'lt' ? range.max.version : undefined,
     range,
-    score: cvss.score,
-    severity: cvss.severity,
+    score: typeof cvss.score === 'number' ? cvss.score : undefined,
+    severity: typeof cvss.severity === 'string' ? cvss.severity : undefined,
     title: typeof raw.name === 'string' ? decodeEntities(raw.name) : 'Unnamed advisory',
   }
 }
@@ -165,7 +167,7 @@ function toBound(version: unknown, operator: unknown): Bound | undefined {
 }
 
 function extractRange(raw: Record<string, unknown>): Range {
-  const op = (raw.operator ?? {}) as Record<string, unknown>
+  const op = isRecord(raw.operator) ? raw.operator : {}
   return {max: toBound(op.max_version, op.max_operator), min: toBound(op.min_version, op.min_operator)}
 }
 

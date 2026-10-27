@@ -1,9 +1,11 @@
-import {build, type BuildFailure} from 'esbuild'
+import {build} from 'esbuild'
 import {Buffer} from 'node:buffer'
 import {existsSync} from 'node:fs'
 import {readdir} from 'node:fs/promises'
 import {extname, join, relative, resolve, sep} from 'node:path'
+import {z} from 'zod'
 
+import {errorCode} from '../lib/narrow.js'
 import {type PageProblem} from './page-format.js'
 
 // theme/blocks/<namespace>/<block>.css, enqueued by the plugin with wp_enqueue_block_style(), so
@@ -32,7 +34,7 @@ async function listFiles(dir: string): Promise<string[]> {
       .map((entry) => join(entry.parentPath, entry.name))
       .toSorted((a, b) => a.localeCompare(b))
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    if (errorCode(error) === 'ENOENT') return []
     throw error
   }
 }
@@ -54,10 +56,15 @@ async function readBlockEntries(blocksDir: string, problems: PageProblem[]): Pro
   return entries
 }
 
+const BUILD_LOCATION = z.object({file: z.string(), line: z.number()})
+const BUILD_MESSAGE = z.object({location: BUILD_LOCATION.nullable(), text: z.string()})
+const BUILD_FAILURE = z.object({errors: z.array(BUILD_MESSAGE)})
+
 function buildProblems(error: unknown): PageProblem[] {
-  const {errors} = error as BuildFailure
-  if (!Array.isArray(errors)) throw error
-  return errors.map((message) => ({
+  // esbuild's BuildFailure, the only part of it read here. Anything else is not a CSS problem.
+  const failure = BUILD_FAILURE.safeParse(error)
+  if (!failure.success) throw error
+  return failure.data.errors.map((message) => ({
     file: message.location ? `${message.location.file}:${message.location.line}` : 'esbuild',
     message: message.text,
   }))

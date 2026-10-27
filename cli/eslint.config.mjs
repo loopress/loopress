@@ -98,6 +98,18 @@ export default defineConfig([
       '@typescript-eslint/no-misused-spread': 'error',
       '@typescript-eslint/no-redundant-type-constituents': 'error',
       '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+      // A type parameter that only appears in the return type is the same unchecked cast, moved
+      // to the call site.
+      '@typescript-eslint/no-unnecessary-type-parameters': 'error',
+      // A cast is a claim the compiler can't check: narrow at the boundary instead (zod for a
+      // parsed document, src/lib/narrow.ts for a caught error or an unknown record).
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
+      // Strings may be tested for truthiness: `if (!flags.name)` meaning "absent or empty" is
+      // this codebase's idiom. Numbers and any may not, `0` is too easy to treat as missing.
+      '@typescript-eslint/strict-boolean-expressions': [
+        'error',
+        {allowNullableBoolean: true, allowNullableObject: true, allowNullableString: true, allowNumber: false, allowString: true},
+      ],
       // Every eslint-disable states why, inline ones included.
       '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
       '@eslint-community/eslint-comments/require-description': ['error', {ignore: ['eslint-enable']}],
@@ -125,6 +137,9 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      // Same reason: casting a fixture or a mock to the type under test is the point of a test.
+      '@typescript-eslint/no-unsafe-type-assertion': 'off',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
       // Default max of 3 flags the standard `expect(JSON.parse(readFileSync(join(...))))`
       // one-liner used throughout these tests to read back a written file.
       'unicorn/max-nested-calls': 'off',

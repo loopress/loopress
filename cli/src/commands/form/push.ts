@@ -2,6 +2,7 @@ import {Args, Flags} from '@oclif/core'
 import {readFile, rename, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
+import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {putOrCreate} from '../../lib/put-or-create.js'
 import {readdirTolerant} from '../../lib/readdir-tolerant.js'
@@ -103,16 +104,16 @@ export default class Push extends PushCommand {
       try {
         parsed = JSON.parse(await readFile(filePath, 'utf8'))
       } catch (error) {
-        this.warn(`Skipping "${filePath}": ${(error as Error).message}`)
+        this.warn(`Skipping "${filePath}": ${errorMessage(error)}`)
         continue
       }
 
-      if (typeof parsed !== 'object' || parsed === null) {
+      if (!isRecord(parsed)) {
         this.warn(`Skipping "${filePath}": not a JSON object`)
         continue
       }
 
-      forms.push({data: parsed as Record<string, unknown>, filePath})
+      forms.push({data: parsed, filePath})
     }
 
     return forms
@@ -140,7 +141,7 @@ export default class Push extends PushCommand {
       const expectedRevision = id === null ? undefined : await this.currentRevision(id)
       const putPayload = expectedRevision === undefined ? payload : {...payload, expectedRevision}
 
-      const {body, created} = await putOrCreate<Record<string, unknown>>(this.wp, {
+      const {body, created} = await putOrCreate(this.wp, {
         id,
         payload: putPayload,
         postEndpoint: FORM_ENDPOINT,
@@ -155,7 +156,7 @@ export default class Push extends PushCommand {
 
       if (task) task.output = `Pushed: ${title}`
     } catch (error) {
-      this.reportTaskFailure(`Failed to push ${title}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${title}: ${errorMessage(error)}`, error, task)
     }
   }
 }

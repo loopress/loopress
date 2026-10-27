@@ -59,8 +59,8 @@ export function resolveResourceDir(kind: ResourceDirKind, localConfig: LoopressL
   if (override) return override
 
   const rootDir = localConfig.rootDir ?? '.'
-  const configured = localConfig[CONFIG_KEY[kind]] as string | undefined
-  return join(rootDir, configured ?? RESOURCE_DIR_DEFAULTS[kind])
+  const configured = localConfig[CONFIG_KEY[kind]]
+  return join(rootDir, typeof configured === 'string' ? configured : RESOURCE_DIR_DEFAULTS[kind])
 }
 
 // Whether the project uses a resource at all: its directory exists. What the aggregate `lps push`,

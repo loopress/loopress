@@ -1,6 +1,7 @@
 import got, {type Got} from 'got'
 import {Buffer} from 'node:buffer'
 
+import {causeOf, errorCode, isRecord} from './narrow.js'
 import {withSpinner} from './spinner.js'
 
 export const REQUEST_TIMEOUT_MS = 30_000
@@ -110,6 +111,8 @@ export class WpClient {
       const response = await withSpinner(`Waiting for ${new URL(this.siteUrl).host}`, async () =>
         this.client(path, {json, method, timeout: {request: timeoutMs}}),
       )
+      // The REST contract boundary: each endpoint's shape is the caller's `T`, not checked here.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
       throw new Error(formatWpError(error, `${this.siteUrl}/wp-json/${path}`, timeoutMs), {cause: error})
@@ -122,14 +125,12 @@ type RequestOptions = {
 }
 
 export function isNotFoundError(error: unknown): boolean {
-  const cause = (error as undefined | {cause?: {response?: {statusCode?: number}}})?.cause
-  return cause?.response?.statusCode === 404
+  return responseOf(causeOf(error)).statusCode === 404
 }
 
 // Authenticated but missing the capability the endpoint needs (e.g. `list_users`).
 export function isForbiddenError(error: unknown): boolean {
-  const cause = (error as undefined | {cause?: {response?: {statusCode?: number}}})?.cause
-  return cause?.response?.statusCode === 403
+  return responseOf(causeOf(error)).statusCode === 403
 }
 
 // A 404 a Loopress controller raises on purpose, identified by its JSON body's `error` field
@@ -137,88 +138,88 @@ export function isForbiddenError(error: unknown): boolean {
 // isNotFoundError: a bare 404 also covers the route being absent because the plugin isn't
 // installed or predates the feature, which callers must still surface normally.
 export function isApplicative404(error: unknown, marker: string): boolean {
-  if (!isNotFoundError(error)) return false
-
-  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
-  if (!body) return false
-
-  try {
-    return (JSON.parse(body) as {error?: unknown}).error === marker
-  } catch {
-    return false
-  }
+  return isNotFoundError(error) && parseBody(responseOf(causeOf(error)).body).error === marker
 }
 
 // A 409 a Loopress controller tags with a `code`, for a refusal the CLI can act on (e.g.
 // `loopress_page_not_managed`, which `lps page push` offers to take over).
 export function isConflictCode(error: unknown, code: string): boolean {
-  const response = (error as undefined | {cause?: {response?: {body?: string; statusCode?: number}}})?.cause?.response
-  if (response?.statusCode !== 409 || !response.body) return false
-
-  try {
-    return (JSON.parse(response.body) as {code?: unknown}).code === code
-  } catch {
-    return false
-  }
+  const {body, statusCode} = responseOf(causeOf(error))
+  return statusCode === 409 && parseBody(body).code === code
 }
 
 export function isTimeoutError(error: unknown): boolean {
-  const cause = (error as undefined | {cause?: {name?: string}})?.cause
-  return cause?.name === 'TimeoutError'
+  const cause = causeOf(error)
+  return isRecord(cause) && cause.name === 'TimeoutError'
 }
 
 // WordPress core answers 400 with this `code` when `?page=N` is past the last page of a
 // collection, which is how `WpClient.getAll` knows it has walked them all.
 export function isInvalidPageNumber(error: unknown): boolean {
-  const body = (error as {cause?: {response?: {body?: string}}}).cause?.response?.body
-  if (!body) return false
+  return parseBody(responseOf(causeOf(error)).body).code === 'rest_post_invalid_page_number'
+}
 
+// The HTTP response a got error carries, read structurally so a mocked error reads the same.
+export function responseOf(error: unknown): {body?: string | undefined; statusCode?: number | undefined} {
+  const response = isRecord(error) ? error.response : undefined
+  if (!isRecord(response)) return {}
+  return {
+    body: typeof response.body === 'string' ? response.body : undefined,
+    statusCode: typeof response.statusCode === 'number' ? response.statusCode : undefined,
+  }
+}
+
+// A response body's top-level JSON fields, or none when it isn't JSON.
+export function parseBody(body: string | undefined): Record<string, unknown> {
+  if (!body) return {}
   try {
-    return (JSON.parse(body) as {code?: unknown}).code === 'rest_post_invalid_page_number'
+    const parsed: unknown = JSON.parse(body)
+    return isRecord(parsed) ? parsed : {}
   } catch {
-    return false
+    return {}
   }
 }
 
 export function formatWpError(error: unknown, url: string, timeoutMs: number = REQUEST_TIMEOUT_MS): string {
-  const err = error as {code?: string; message?: string; name?: string; response?: {body?: string; statusCode?: number}}
-  const status = err.response?.statusCode
+  const {body, statusCode: status} = responseOf(error)
 
   if (status === 401 || status === 403) {
     // A Loopress controller's own `{"error": ...}` on a 403 is a deliberate refusal of this one
     // request (e.g. OptionsController protecting a secret-looking option), not bad credentials:
     // pointing at `lps project config` there sends the user the wrong way. WordPress core's own
     // auth failures use `{code, message}` instead and keep the credentials hint.
-    const refusal = extractLoopressError(err.response?.body)
+    const refusal = extractLoopressError(body)
     if (refusal) return `Request refused (${status}) on ${url}: ${refusal}`
 
     return `Authentication failed (${status}) on ${url}. Check your credentials with \`lps project config\`.`
   }
 
   if (status === 404) {
-    const reason = extractServerErrorMessage(err.response?.body)
+    const reason = extractServerErrorMessage(body)
     return reason
       ? `Request failed (404) on ${url}: ${reason}`
       : `Endpoint not found (404) on ${url}. Is the required plugin installed and up to date on the site?`
   }
 
   if (status !== undefined) {
-    const reason = extractServerErrorMessage(err.response?.body)
+    const reason = extractServerErrorMessage(body)
     return reason ? `Request failed (${status}) on ${url}: ${reason}` : `Request failed (${status}) on ${url}.`
   }
 
-  if (err.name === 'TimeoutError') {
+  if (isRecord(error) && error.name === 'TimeoutError') {
     return `Request timed out after ${timeoutMs / 1000}s on ${url}. Is the site reachable?`
   }
 
-  const reason = err.code ? NETWORK_ERROR_HINTS[err.code] : undefined
+  const code = errorCode(error)
+  const reason = code ? NETWORK_ERROR_HINTS[code] : undefined
   // The site, not the endpoint: every resource fails the same way when the site is down, so
   // `lps diff` can print it once (see DiffCommand.report).
   if (reason) return `Could not reach ${new URL(url).origin}: ${reason}. Run \`lps doctor\` to check the environment.`
 
   // Node leaves `message` empty on some network errors (an AggregateError over IPv4 + IPv6):
   // fall back to the error code so the reason is never blank.
-  return `Request to ${url} failed: ${err.message?.length ? err.message : (err.code ?? String(error))}`
+  const message = isRecord(error) && typeof error.message === 'string' ? error.message : ''
+  return `Request to ${url} failed: ${message || (code ?? String(error))}`
 }
 
 const NETWORK_ERROR_HINTS: Record<string, string> = {
@@ -229,14 +230,8 @@ const NETWORK_ERROR_HINTS: Record<string, string> = {
 }
 
 function extractLoopressError(body: string | undefined): string | undefined {
-  if (!body) return undefined
-
-  try {
-    const {error} = JSON.parse(body) as {error?: unknown}
-    return typeof error === 'string' && error.trim() ? decodeEntities(error) : undefined
-  } catch {
-    return undefined
-  }
+  const {error} = parseBody(body)
+  return typeof error === 'string' && error.trim() ? decodeEntities(error) : undefined
 }
 
 // Plugin exception messages go through esc_html() (WordPress coding standards require it for
@@ -261,24 +256,18 @@ function decodeEntities(text: string): string {
 // specifically so a caller that only reads `error` doesn't see it, which is exactly what this
 // function used to do, hiding the one piece of text that actually explains the failure.
 function extractServerErrorMessage(body: string | undefined): string | undefined {
-  if (!body) return undefined
+  const parsed = parseBody(body)
 
-  try {
-    const parsed = JSON.parse(body) as {code?: unknown; error?: unknown; message?: unknown; output?: unknown}
+  // WP core's own generic body for a route it never registered (e.g. a plugin too old to
+  // expose this endpoint yet) is never more useful than the "is the plugin up to date?"
+  // fallback below; surfacing it verbatim buries a version-skew mismatch behind text that
+  // reads like the endpoint doesn't exist at all, pointing the user in the wrong direction.
+  if (parsed.code === 'rest_no_route') return undefined
 
-    // WP core's own generic body for a route it never registered (e.g. a plugin too old to
-    // expose this endpoint yet) is never more useful than the "is the plugin up to date?"
-    // fallback below; surfacing it verbatim buries a version-skew mismatch behind text that
-    // reads like the endpoint doesn't exist at all, pointing the user in the wrong direction.
-    if (parsed.code === 'rest_no_route') return undefined
+  const reason = parsed.error ?? parsed.message
+  const summary = typeof reason === 'string' && reason.trim() ? decodeEntities(reason) : undefined
+  const detail = typeof parsed.output === 'string' && parsed.output.trim() ? parsed.output.trim() : undefined
 
-    const reason = parsed.error ?? parsed.message
-    const summary = typeof reason === 'string' && reason.trim() ? decodeEntities(reason) : undefined
-    const detail = typeof parsed.output === 'string' && parsed.output.trim() ? parsed.output.trim() : undefined
-
-    if (summary && detail) return `${summary}\n${detail}`
-    return summary ?? detail
-  } catch {
-    return undefined
-  }
+  if (summary && detail) return `${summary}\n${detail}`
+  return summary ?? detail
 }

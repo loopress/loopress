@@ -1,7 +1,9 @@
 import {mkdir, readdir, readFile, rm, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
+import {z} from 'zod'
 
 import {type ResourceState} from './diff-state.js'
+import {errorCode} from './narrow.js'
 
 // How many snapshots `writeSnapshot` keeps per resource before pruning the oldest, so the
 // cache directory doesn't grow without bound across a project's lifetime.
@@ -12,13 +14,15 @@ export const SNAPSHOT_RETENTION = 10
 // is the local state that was about to be pushed (the "right" side). Rolling back restores
 // `beforeState`; comparing the environment's *current* state against `afterState` at rollback
 // time is what detects whether anything else touched the environment since.
-export type Snapshot = {
-  afterState: Record<string, unknown>
-  beforeState: Record<string, unknown>
-  createdAt: string
-  environment: string
-  resource: string
-}
+const SNAPSHOT = z.object({
+  afterState: z.record(z.string(), z.unknown()),
+  beforeState: z.record(z.string(), z.unknown()),
+  createdAt: z.string(),
+  environment: z.string(),
+  resource: z.string(),
+})
+
+export type Snapshot = z.infer<typeof SNAPSHOT>
 
 export type SnapshotSummary = {createdAt: string; environment: string; id: string; resource: string}
 
@@ -51,11 +55,11 @@ function snapshotPath(rootDir: string, resource: string, environment: string, id
 }
 
 function isEnoent(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException).code === 'ENOENT'
+  return errorCode(error) === 'ENOENT'
 }
 
 function isEexist(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException).code === 'EEXIST'
+  return errorCode(error) === 'EEXIST'
 }
 
 // Snapshot ids are the millisecond timestamp they were written at: sortable, unique enough for
@@ -140,7 +144,8 @@ export async function listSnapshots(rootDir: string, resource: string, environme
   for (const entry of snapshotFiles) {
     const id = entry.slice(0, -'.json'.length)
     try {
-      const parsed = JSON.parse(await readFile(join(dir, entry), 'utf8')) as Snapshot
+      const raw: unknown = JSON.parse(await readFile(join(dir, entry), 'utf8'))
+      const parsed = SNAPSHOT.parse(raw)
       summaries.push({createdAt: parsed.createdAt, environment: parsed.environment, id, resource})
     } catch {
       // A corrupted or partially-written snapshot file (e.g. an interrupted write) is skipped
@@ -158,7 +163,7 @@ export async function listSnapshots(rootDir: string, resource: string, environme
 export async function readSnapshot(rootDir: string, resource: string, environment: string, id?: string): Promise<Snapshot & {id: string}> {
   let targetId = id
   if (targetId === undefined) {
-    const [latest] = await listSnapshots(rootDir, resource, environment)
+    const latest = (await listSnapshots(rootDir, resource, environment)).at(0)
     if (!latest) {
       throw new Error(
         `No snapshots found for "${resource}" on "${environment}". A snapshot is written automatically by \`lps ${resource} push\`.`,
@@ -182,7 +187,7 @@ export async function readSnapshot(rootDir: string, resource: string, environmen
     throw error
   }
 
-  return {...(JSON.parse(raw) as Snapshot), id: targetId}
+  return {...SNAPSHOT.parse(JSON.parse(raw)), id: targetId}
 }
 
 export async function pruneSnapshots(rootDir: string, resource: string, environment: string, retain: number): Promise<void> {

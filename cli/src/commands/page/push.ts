@@ -2,6 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {Args} from '@oclif/core'
 
 import {isInteractive} from '../../lib/interactive.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isConflictCode} from '../../lib/wp-client.js'
@@ -122,7 +123,7 @@ export default class Push extends PushCommand {
         return false
       }
 
-      this.reportTaskFailure(`Failed to push ${page.slug}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${page.slug}: ${errorMessage(error)}`, error, task)
     }
   }
 }

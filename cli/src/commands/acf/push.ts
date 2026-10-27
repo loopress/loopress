@@ -2,6 +2,7 @@ import {Args, Flags} from '@oclif/core'
 import {join} from 'node:path'
 
 import {loadFiles} from '../../lib/load-files.js'
+import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
@@ -25,14 +26,14 @@ export default class Push extends PushCommand {
   static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
-    type: Flags.string({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES}),
+    type: Flags.option({description: 'Limit to specific ACF object types', multiple: true, options: ACF_OBJECT_TYPES})(),
   }
 
   async run(): Promise<AcfPushResult> {
     const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveAcfPath(args.path)
-    const types = (flags.type && flags.type.length > 0 ? flags.type : ACF_OBJECT_TYPES) as AcfObjectType[]
+    const types = flags.type && flags.type.length > 0 ? flags.type : [...ACF_OBJECT_TYPES]
 
     this.log(`Pushing ACF configuration to ${url}`)
     this.log(`ACF path: ${path}`)
@@ -80,12 +81,12 @@ export default class Push extends PushCommand {
       extension: '.json',
       onSkip: (message) => { this.warn(message) },
       parse(raw) {
-        const parsed = JSON.parse(raw) as unknown
-        if (typeof parsed !== 'object' || parsed === null || getAcfKey(parsed as Record<string, unknown>) === null) {
+        const parsed: unknown = JSON.parse(raw)
+        if (!isRecord(parsed) || getAcfKey(parsed) === null) {
           throw new Error('missing or invalid "key"')
         }
 
-        return parsed as Record<string, unknown>
+        return parsed
       },
     })
   }
@@ -114,7 +115,7 @@ export default class Push extends PushCommand {
       await this.wp.post(acfEndpoint(type), body)
       if (task) task.output = `Pushed: ${key}`
     } catch (error) {
-      this.reportTaskFailure(`Failed to push ${key}: ${(error as Error).message}`, error, task)
+      this.reportTaskFailure(`Failed to push ${key}: ${errorMessage(error)}`, error, task)
     }
   }
 

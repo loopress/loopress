@@ -7,6 +7,7 @@ import {configManager} from '../../config/project-config.manager.js'
 import {ApiClient} from '../../lib/api-client.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
+import {errorMessage} from '../../lib/narrow.js'
 import {withoutSpinner} from '../../lib/spinner.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -110,7 +111,7 @@ export default class Push extends Command {
       configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
       if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to push "${envPlan.env.name}": ${(error as Error).message}`
+      const message = `Failed to push "${envPlan.env.name}": ${errorMessage(error)}`
       if (task) task.output = message
       throw error
     }
@@ -156,7 +157,7 @@ export default class Push extends Command {
       configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
       if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to push project "${plan.project.name}": ${(error as Error).message}`
+      const message = `Failed to push project "${plan.project.name}": ${errorMessage(error)}`
       if (task) task.output = message
       throw error
     }
@@ -213,7 +214,7 @@ export default class Push extends Command {
     try {
       return await api.get<ApiProject[]>('projects')
     } catch (error) {
-      this.warn(`Could not fetch existing projects from the API, will create everything as new: ${(error as Error).message}`)
+      this.warn(`Could not fetch existing projects from the API, will create everything as new: ${errorMessage(error)}`)
       return []
     }
   }
@@ -318,7 +319,7 @@ export default class Push extends Command {
         try {
           await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
         } catch (error) {
-          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${(error as Error).message}`)
+          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${errorMessage(error)}`)
         }
       }
     }

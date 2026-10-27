@@ -184,6 +184,9 @@ const PATTERN_HEADER = {
   'viewport-width': {key: 'viewportWidth', type: 'integer'},
 } as const
 
+// Typed lookups by header name: a plain object index needs `keyof typeof` on a string.
+const PATTERN_HEADER_BY_NAME = new Map(Object.entries(PATTERN_HEADER))
+
 function readPatternValue(header: string, type: string, value: string): unknown {
   if (type === 'list') return value.split(',').map((item) => item.trim()).filter(Boolean)
   if (type === 'boolean') {
@@ -204,8 +207,9 @@ export function parsePatternFile(slug: string, raw: string): DeclaredArgs {
   const {body, meta} = parseHtmlHeader(raw, Object.keys(PATTERN_HEADER))
   const args: DeclaredArgs = {title: titleFromSlug(slug)}
   for (const [header, value] of Object.entries(meta)) {
-    const {key, type} = PATTERN_HEADER[header as keyof typeof PATTERN_HEADER]
-    args[key] = readPatternValue(header, type, value)
+    // parseHtmlHeader already refuses any other header name.
+    const spec = PATTERN_HEADER_BY_NAME.get(header)
+    if (spec) args[spec.key] = readPatternValue(header, spec.type, value)
   }
 
   args.content = body

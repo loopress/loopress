@@ -1,5 +1,7 @@
 import {isDeepStrictEqual} from 'node:util'
 
+import {isRecord} from '../lib/narrow.js'
+
 export const ACF_OBJECT_TYPES = ['field-groups', 'post-types', 'taxonomies', 'options-pages'] as const
 export type AcfObjectType = (typeof ACF_OBJECT_TYPES)[number]
 
@@ -32,10 +34,10 @@ export function getAcfKey(data: Record<string, unknown>): null | string {
 type AcfField = Record<string, unknown> & {key?: unknown; name?: unknown}
 
 function topLevelFields(group: unknown): Map<string, AcfField> {
-  const fields = (group as undefined | {fields?: unknown})?.fields
+  const fields = isRecord(group) ? group.fields : undefined
   const byKey = new Map<string, AcfField>()
-  for (const field of Array.isArray(fields) ? (fields as Array<AcfField | null>) : []) {
-    if (typeof field?.key === 'string') byKey.set(field.key, field)
+  for (const field of Array.isArray(fields) ? fields : []) {
+    if (isRecord(field) && typeof field.key === 'string') byKey.set(field.key, field)
   }
 
   return byKey

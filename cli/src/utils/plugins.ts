@@ -1,3 +1,4 @@
+import {isRecord} from '../lib/narrow.js'
 import {
   type InstalledPlugin,
   pinActive,
@@ -151,10 +152,11 @@ export function lockedWpackagistSlugs(composerLock: null | string, kind: 'plugin
 
   const prefix = `wpackagist-${kind}/`
   try {
-    const parsed = JSON.parse(composerLock) as {packages?: Array<{name?: string}>}
+    const parsed: unknown = JSON.parse(composerLock)
+    const packages = isRecord(parsed) && Array.isArray(parsed.packages) ? parsed.packages : []
     return new Set(
-      (parsed.packages ?? [])
-        .map((p) => p.name ?? '')
+      packages
+        .map((p: unknown) => (isRecord(p) && typeof p.name === 'string' ? p.name : ''))
         .filter((name) => name.startsWith(prefix))
         .map((name) => name.slice(prefix.length)),
     )

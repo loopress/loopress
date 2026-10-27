@@ -1,6 +1,7 @@
 import {existsSync, mkdirSync} from 'node:fs'
 import {join} from 'node:path'
 
+import {isRecord} from '../lib/narrow.js'
 import {LOCAL_ENVIRONMENT_NAME} from '../lib/wp-client.js'
 import {type CurrentProjectPointer, type EnvironmentConfig, type LoopressConfig, type ProjectConfig, type TelemetryConfig} from '../types/config.js'
 import {toSlug} from '../utils/to-slug.js'
@@ -102,7 +103,7 @@ export class ProjectConfigManager {
   }
 
   readConfig(): LoopressConfig {
-    const parsed = readJsonFile<unknown>(this.getConfigFilePath())
+    const parsed = readJsonFile(this.getConfigFilePath())
     if (parsed === null) {
       return {currentProject: null, projects: {}}
     }
@@ -194,9 +195,7 @@ export class ProjectConfigManager {
   }
 
   private isProjectConfig(value: unknown): value is ProjectConfig {
-    if (typeof value !== 'object' || value === null) return false
-    const candidate = value as Record<string, unknown>
-    return typeof candidate.name === 'string' && typeof candidate.environments === 'object' && candidate.environments !== null
+    return isRecord(value) && typeof value.name === 'string' && isRecord(value.environments)
   }
 
   // Real CLI runs get this from the `init` hook (src/hooks/init.ts) before any command runs.
@@ -208,29 +207,26 @@ export class ProjectConfigManager {
   }
 
   private sanitizeConfig(value: unknown): LoopressConfig {
-    if (typeof value !== 'object' || value === null) return {currentProject: null, projects: {}}
+    if (!isRecord(value)) return {currentProject: null, projects: {}}
 
-    const candidate = value as Record<string, unknown>
-    const telemetry = this.sanitizeTelemetry(candidate.telemetry)
+    const telemetry = this.sanitizeTelemetry(value.telemetry)
     return {
-      currentProject: this.sanitizeCurrentProject(candidate.currentProject),
-      projects: this.sanitizeProjects(candidate.projects),
+      currentProject: this.sanitizeCurrentProject(value.currentProject),
+      projects: this.sanitizeProjects(value.projects),
       ...(telemetry && {telemetry}),
     }
   }
 
   private sanitizeCurrentProject(value: unknown): CurrentProjectPointer | null {
-    if (value === null || typeof value !== 'object') return null
-    const pointer = value as Partial<CurrentProjectPointer>
     // A legacy `env` field, from when switch also picked the environment, is dropped here.
-    return typeof pointer.id === 'string' ? {id: pointer.id} : null
+    return isRecord(value) && typeof value.id === 'string' ? {id: value.id} : null
   }
 
   private sanitizeProjects(value: unknown): Record<string, ProjectConfig> {
-    if (typeof value !== 'object' || value === null) return {}
+    if (!isRecord(value)) return {}
 
     const projects: Record<string, ProjectConfig> = {}
-    for (const [id, project] of Object.entries(value as Record<string, unknown>)) {
+    for (const [id, project] of Object.entries(value)) {
       if (this.isProjectConfig(project)) projects[id] = project
     }
 
@@ -238,9 +234,7 @@ export class ProjectConfigManager {
   }
 
   private sanitizeTelemetry(value: unknown): TelemetryConfig | undefined {
-    if (typeof value !== 'object' || value === null) return undefined
-    const candidate = value as Partial<TelemetryConfig>
-    return typeof candidate.disabled === 'boolean' ? {disabled: candidate.disabled} : undefined
+    return isRecord(value) && typeof value.disabled === 'boolean' ? {disabled: value.disabled} : undefined
   }
 }
 

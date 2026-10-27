@@ -2,7 +2,9 @@ import {spawn} from 'node:child_process'
 import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {dirname, join} from 'node:path'
+import {z} from 'zod'
 
+import {isOneOf} from './narrow.js'
 import {withSpinner} from './spinner.js'
 
 // The package managers `lps app push` may spawn. An allowlist, not the raw `packageManager`
@@ -18,6 +20,9 @@ const LOCKFILES: Array<[string, PackageManager]> = [
   ['package-lock.json', 'npm'],
 ]
 
+// Only the fields read here; the rest of package.json is the app's own business.
+const PACKAGE_JSON = z.looseObject({packageManager: z.string().optional(), scripts: z.record(z.string(), z.string()).optional()})
+
 // How many trailing lines of build output a failure message carries.
 const OUTPUT_TAIL_LINES = 20
 
@@ -26,7 +31,7 @@ const OUTPUT_TAIL_LINES = 20
 // then npm.
 export function detectPackageManager(appDir: string, packageManagerField?: string): PackageManager {
   const fromField = packageManagerField?.split('@', 1)[0]
-  if (PACKAGE_MANAGERS.includes(fromField as PackageManager)) return fromField as PackageManager
+  if (isOneOf(PACKAGE_MANAGERS, fromField)) return fromField
 
   for (let dir = appDir; ; dir = dirname(dir)) {
     const lockfile = LOCKFILES.find(([file]) => existsSync(join(dir, file)))
@@ -43,10 +48,7 @@ export async function buildApp(appDir: string, onStart?: (command: string) => vo
   const packageJsonPath = join(appDir, 'package.json')
   if (!existsSync(packageJsonPath)) return undefined
 
-  const pkg = JSON.parse(await readFile(packageJsonPath, 'utf8')) as {
-    packageManager?: string
-    scripts?: Record<string, string>
-  }
+  const pkg = PACKAGE_JSON.parse(JSON.parse(await readFile(packageJsonPath, 'utf8')))
   if (!pkg.scripts?.build) return undefined
 
   const pm = detectPackageManager(appDir, pkg.packageManager)

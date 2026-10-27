@@ -1,6 +1,7 @@
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
 import {type SiteCapabilities} from '../lib/capabilities.js'
+import {errorMessage} from '../lib/narrow.js'
 import {formatRuntimeError, HOOK_FILES_RESOURCE, type RuntimeError} from '../lib/php-files-command.js'
 import {findTempAdmins} from '../lib/temp-admin.js'
 import {isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
@@ -97,7 +98,7 @@ export default class Doctor extends LoopressCommand {
       this.out(`✓ ${title}`)
       return true
     } catch (error) {
-      const {message} = error as Error
+      const message = errorMessage(error)
       this.checks.push({message, ok: false, title})
       this.out(`✗ ${title}`)
       this.out(`  ${message}`)

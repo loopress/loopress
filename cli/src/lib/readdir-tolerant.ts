@@ -2,6 +2,8 @@ import {type Dirent} from 'node:fs'
 import {readdir, stat} from 'node:fs/promises'
 import {join, relative, sep} from 'node:path'
 
+import {errorCode} from './narrow.js'
+
 // A directory that was simply never pulled/pushed to yet (ENOENT) means "nothing there",
 // not an error, unlike any other failure to read it (permissions, not-a-directory, ...).
 export async function readdirTolerant(dir: string): Promise<string[]>
@@ -15,7 +17,7 @@ export async function readdirTolerant(
       ? await readdir(dir, {recursive: options.recursive, withFileTypes: true})
       : await readdir(dir, {recursive: options?.recursive})
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    if (errorCode(error) === 'ENOENT') return []
 
     throw error
   }

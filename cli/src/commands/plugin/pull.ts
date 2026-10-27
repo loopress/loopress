@@ -8,10 +8,10 @@ import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {type InstalledPlugin, type PluginManifest, type WpNativePlugin} from '../../types/plugin.js'
 import {
-  type ComposerJson,
   type ComposerPullResult,
   getComposerManagedSlugs,
   NOT_ON_WORDPRESS_ORG,
+  parseComposerJson,
   pullIntoComposerJson,
 } from '../../utils/composer.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
@@ -50,7 +50,7 @@ export default class Pull extends LoopressCommand {
     const raw = await this.wp.get<WpNativePlugin[]>('wp/v2/plugins')
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
     const composerJson = existsSync(composerJsonPath)
-      ? (JSON.parse(await readFile(composerJsonPath, 'utf8')) as ComposerJson)
+      ? parseComposerJson(await readFile(composerJsonPath, 'utf8'))
       : undefined
     const declared = new Set(composerJson ? getComposerManagedSlugs(composerJson) : Object.keys(this.localConfig.plugins ?? {}))
 

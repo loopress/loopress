@@ -14,7 +14,7 @@ import {
   type PluginManifest,
   type WpNativePlugin,
 } from '../../types/plugin.js'
-import {type ComposerJson, requireToInstall, toIntent, wpackagistRequire} from '../../utils/composer.js'
+import {parseComposerJson, requireToInstall, toIntent, wpackagistRequire} from '../../utils/composer.js'
 import {
   isDowngrade,
   parseCollisions,
@@ -248,7 +248,7 @@ export default class Push extends PushCommand {
   private async loadSource(activate: boolean): Promise<Source> {
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
     if (existsSync(composerJsonPath)) {
-      const composerJson = JSON.parse(await readFile(composerJsonPath, 'utf8')) as ComposerJson
+      const composerJson = parseComposerJson(await readFile(composerJsonPath, 'utf8'))
       const includeDev = isLocalEnvironment(this.siteConfig.name)
       const manifest = wpackagistRequire(composerJson, 'plugin', includeDev)
       if (Object.keys(manifest).length === 0) {

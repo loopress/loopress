@@ -9,6 +9,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
 import {isInteractive} from '../lib/interactive.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
+import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
@@ -66,7 +67,7 @@ export default class Promote extends Command {
         // A partial pull must never be pushed onward: stop before touching <to>.
         // "untouched" is only true of <to>: a real (non dry-run) pull has already rewritten the files.
         const filesNote = dryRun ? '' : ` Your local files may already hold part of ${from.name}, review them before pushing.`
-        this.error(`Pull from ${from.name} failed, nothing was pushed to ${to.name}.${filesNote} ${(error as Error).message}`)
+        this.error(`Pull from ${from.name} failed, nothing was pushed to ${to.name}.${filesNote} ${errorMessage(error)}`)
       }
 
       this.log(`\n=== Pushing to ${to.name} (${to.url}) ===`)
@@ -89,7 +90,10 @@ export default class Promote extends Command {
   // resource dir would land outside the copy, in the user's real files, during a dry run.
   private async assertDirsInsideProject(projectDir: string): Promise<void> {
     const localConfig = await readLocalConfig()
-    const dirs = [localConfig.rootDir ?? '.', ...Object.keys(RESOURCE_DIR_DEFAULTS).map((kind) => resolveResourceDir(kind as ResourceDirKind, localConfig))]
+    // Object.keys() is typed string[] even on an `as const` object: these are its own keys.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+    const kinds = Object.keys(RESOURCE_DIR_DEFAULTS) as ResourceDirKind[]
+    const dirs = [localConfig.rootDir ?? '.', ...kinds.map((kind) => resolveResourceDir(kind, localConfig))]
     const outside = dirs.find((dir) => {
       const rel = relative(projectDir, resolve(projectDir, dir))
       return rel.startsWith('..') || isAbsolute(rel)

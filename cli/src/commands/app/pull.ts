@@ -8,6 +8,7 @@ import {dirname, join} from 'node:path'
 import {APP_CONFIG_FILENAME, type AppEntry, type AppFile, parseAppConfig} from '../../lib/app-manifest.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {isInteractive} from '../../lib/interactive.js'
+import {errorCode} from '../../lib/narrow.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type RemoteManifest = {
@@ -82,7 +83,7 @@ export default class Pull extends LoopressCommand {
     try {
       entries = await readdir(path, {withFileTypes: true})
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+      if (errorCode(error) === 'ENOENT') return []
       throw error
     }
 

@@ -1,7 +1,8 @@
 import got, {type Got} from 'got'
 
+import {errorMessage, isRecord} from './narrow.js'
 import {withSpinner} from './spinner.js'
-import {REQUEST_TIMEOUT_MS} from './wp-client.js'
+import {parseBody, REQUEST_TIMEOUT_MS, responseOf} from './wp-client.js'
 
 export const API_URL = process.env.LPS_API_URL ?? 'https://api.loopress.dev'
 
@@ -41,6 +42,8 @@ export class ApiClient {
   private async request<T>(method: HttpMethod, path: string, json?: Record<string, unknown>): Promise<T> {
     try {
       const response = await withSpinner('Waiting for the Loopress API', async () => this.client(path, {json, method}))
+      // The API contract boundary: each endpoint's shape is the caller's `T`, not checked here.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
       return (response.body ? JSON.parse(response.body) : undefined) as T
     } catch (error) {
       throw new Error(formatApiError(error, `${this.baseUrl}/${path}`, this.timeoutMs), {cause: error})
@@ -49,19 +52,17 @@ export class ApiClient {
 }
 
 function formatApiError(error: unknown, url: string, timeoutMs: number): string {
-  const err = error as {message?: string; name?: string; response?: {body?: string; statusCode?: number}}
-  const status = err.response?.statusCode
+  const {body, statusCode: status} = responseOf(error)
 
   if (status === 401) {
     return `Not logged in or session expired on ${url}. Run \`lps login\` again.`
   }
 
-  const reason = nestErrorMessage(err.response?.body)
+  const reason = nestErrorMessage(body)
 
   if (status === 403) {
     // An empty body (not just a missing one) falls back to got's message too, never a bare ": ".
-    const body = err.response?.body === '' ? undefined : err.response?.body
-    return `Request rejected (${status}) on ${url}: ${reason ?? body ?? err.message}`
+    return `Request rejected (${status}) on ${url}: ${reason ?? (body === '' ? undefined : body) ?? errorMessage(error)}`
   }
 
   // Any other API refusal (a 400 validation error, a 409 conflict) carries its explanation in
@@ -70,25 +71,19 @@ function formatApiError(error: unknown, url: string, timeoutMs: number): string 
     return `Request failed (${status}) on ${url}: ${reason}`
   }
 
-  if (err.name === 'TimeoutError') {
+  if (isRecord(error) && error.name === 'TimeoutError') {
     return `Request timed out after ${timeoutMs / 1000}s on ${url}. Check your network connection, or the Loopress API may be temporarily unreachable.`
   }
 
-  return err.message ?? String(error)
+  return errorMessage(error)
 }
 
 // NestJS's HttpException body: `{statusCode, message, error}`, where `message` is a list for a
 // ValidationPipe failure (one entry per invalid field).
 function nestErrorMessage(body: string | undefined): string | undefined {
-  if (!body) return undefined
-
-  try {
-    const {message} = JSON.parse(body) as {message?: unknown}
-    if (typeof message === 'string' && message.trim()) return message
-    if (Array.isArray(message) && message.length > 0) return message.join('; ')
-  } catch {
-    // not JSON (a proxy's HTML error page): nothing to extract
-  }
-
+  // Not JSON (a proxy's HTML error page) reads as no fields: nothing to extract.
+  const {message} = parseBody(body)
+  if (typeof message === 'string' && message.trim()) return message
+  if (Array.isArray(message) && message.length > 0) return message.join('; ')
   return undefined
 }

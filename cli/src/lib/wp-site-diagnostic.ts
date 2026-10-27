@@ -1,5 +1,6 @@
 import got from 'got'
 
+import {errorMessage, isRecord} from './narrow.js'
 import {withSpinner} from './spinner.js'
 
 export const REQUEST_TIMEOUT_MS = 10_000
@@ -37,11 +38,11 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
   } catch (error) {
     return {
       ok: false,
-      reason: `Could not reach the WordPress REST API at ${siteUrl}/wp-json/. The site may be unreachable, or a security plugin may be blocking it. (${describe(error)})`,
+      reason: `Could not reach the WordPress REST API at ${siteUrl}/wp-json/. The site may be unreachable, or a security plugin may be blocking it. (${errorMessage(error)})`,
     }
   }
 
-  if (!index?.authentication?.['application-passwords']) {
+  if (!isRecord(index?.authentication?.['application-passwords'])) {
     return {
       ok: false,
       reason: `Application Passwords are not available on ${siteUrl}. The site may be older than WordPress 5.6, require HTTPS, or have the feature disabled by a plugin or filter.`,
@@ -83,8 +84,4 @@ async function detectWpVersion(siteUrl: string): Promise<string | undefined> {
   }
 
   return undefined
-}
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
