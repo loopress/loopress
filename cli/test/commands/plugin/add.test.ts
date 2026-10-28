@@ -8,6 +8,10 @@ import Add from '../../../src/commands/plugin/add.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
+// WordPress.org plugin info, keyed by slug: `requires_plugins` drives the dependency lookup.
+const {gotFn, wporg} = vi.hoisted(() => ({gotFn: vi.fn(), wporg: new Map<string, string[]>()}))
+vi.mock('got', () => ({default: gotFn}))
+
 type AddInternals = {
   dryRun: boolean
   localConfig: LoopressLocalConfig
@@ -26,6 +30,10 @@ describe('plugin add', () => {
   let tmpDir: string
 
   beforeEach(() => {
+    wporg.clear()
+    gotFn.mockImplementation((_url: string, opts: {searchParams: Record<string, string>}) => ({
+      json: async () => ({requires_plugins: wporg.get(opts.searchParams['request[slug]'] ?? '') ?? []}),
+    }))
     tmpDir = mkdtempSync(join(tmpdir(), 'lps-plugin-add-test-'))
     vi.spyOn(process, 'cwd').mockReturnValue(tmpDir)
   })
@@ -45,18 +53,74 @@ describe('plugin add', () => {
   })
 
   it('returns a structured result for --json and the MCP plugin_add tool', async () => {
-    expect(await make(['woocommerce']).cmd.run()).toEqual({slug: 'woocommerce', status: 'added', version: 'latest'})
+    expect(await make(['woocommerce']).cmd.run()).toEqual({
+      dependencies: [],
+      slug: 'woocommerce',
+      status: 'added',
+      version: 'latest',
+    })
     expect(await make(['woocommerce'], {plugins: {woocommerce: 'latest'}}).cmd.run()).toEqual({
+      dependencies: [],
       slug: 'woocommerce',
       status: 'unchanged',
       version: 'latest',
     })
     expect(await make(['woocommerce', '--version', '9.4.2'], {plugins: {woocommerce: 'latest'}}).cmd.run()).toEqual({
+      dependencies: [],
       slug: 'woocommerce',
       status: 'updated',
       version: '9.4.2',
     })
-    expect(await make(['akismet'], {}, true).cmd.run()).toEqual({slug: 'akismet', status: 'dry-run', version: 'latest'})
+    expect(await make(['akismet'], {}, true).cmd.run()).toEqual({
+      dependencies: [],
+      slug: 'akismet',
+      status: 'dry-run',
+      version: 'latest',
+    })
+  })
+
+  it('adds the plugins it requires, transitively, as "latest" and keeps existing pins', async () => {
+    wporg.set('dokan-pro-addon', ['dokan-lite'])
+    wporg.set('dokan-lite', ['woocommerce'])
+    const {cmd, logs} = make(['dokan-pro-addon'], {plugins: {acf: '6.3.0'}})
+
+    expect(await cmd.run()).toEqual({
+      dependencies: ['dokan-lite', 'woocommerce'],
+      slug: 'dokan-pro-addon',
+      status: 'added',
+      version: 'latest',
+    })
+    expect(logs.log).toHaveBeenCalledWith(
+      'Added dokan-pro-addon (latest), with required dokan-lite, woocommerce (latest). Run `lps plugin push` to apply.',
+    )
+    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    expect(written.plugins).toEqual({
+      acf: '6.3.0',
+      'dokan-lite': 'latest',
+      'dokan-pro-addon': 'latest',
+      woocommerce: 'latest',
+    })
+  })
+
+  it('leaves an already pinned dependency alone, and adds a missing one to an unchanged plugin', async () => {
+    wporg.set('dokan-lite', ['woocommerce'])
+    expect(
+      (await make(['dokan-lite'], {plugins: {'dokan-lite': 'latest', woocommerce: '9.4.2'}}).cmd.run()).status,
+    ).toBe('unchanged')
+
+    await make(['dokan-lite'], {plugins: {'dokan-lite': 'latest'}}).cmd.run()
+    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    expect(written.plugins).toEqual({'dokan-lite': 'latest', woocommerce: 'latest'})
+  })
+
+  it('adds the plugin alone when WordPress.org is unreachable', async () => {
+    gotFn.mockImplementation(() => ({
+      async json() {
+        throw new Error('ENOTFOUND')
+      },
+    }))
+
+    expect((await make(['dokan-lite']).cmd.run()).dependencies).toEqual([])
   })
 
   it('pins an exact version with --version', async () => {

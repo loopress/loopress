@@ -157,7 +157,10 @@ describe('plugin push', () => {
       ['production', undefined],
       ['local', '^3.0'],
     ])('sends require-dev plugins to the local environment only (%s)', async (envName, queryMonitor) => {
-      writeFileSync(join(dir, 'composer.json'), JSON.stringify({...composerJson, 'require-dev': {'wpackagist-plugin/query-monitor': '^3.0'}}))
+      writeFileSync(
+        join(dir, 'composer.json'),
+        JSON.stringify({...composerJson, 'require-dev': {'wpackagist-plugin/query-monitor': '^3.0'}}),
+      )
       const {cmd, get, post} = make({}, [], envName)
       site({get, post}, {after, before, locked: ['hello-dolly', 'woocommerce']})
 
@@ -278,6 +281,60 @@ describe('plugin push', () => {
 
     expect(put).toHaveBeenCalledWith('wp/v2/plugins/akismet/akismet.php', {status: 'active'})
     expect(result.activated).toContain('akismet')
+  })
+
+  describe('plugin dependencies', () => {
+    // WordPress core's REST answer when `Requires Plugins` are not all active.
+    const missingDeps = (notInstalled: Record<string, string> = {}) =>
+      new Error('500', {
+        cause: {
+          response: {
+            body: JSON.stringify({code: 'plugin_missing_dependencies', data: {not_installed: notInstalled}}),
+            statusCode: 500,
+          },
+        },
+      })
+
+    it('retries a plugin WordPress refused until its dependency is active', async () => {
+      const {cmd, get, post, put} = make({plugins: {'dokan-lite': 'latest', woocommerce: 'latest'}})
+      site(
+        {get, post},
+        {
+          after: [native('dokan-lite', '1.0.0', 'inactive'), native('woocommerce', '1.0.0', 'inactive')],
+          before: [],
+          locked: [],
+        },
+      )
+      let wooActive = false
+      put.mockImplementation(async (path: string) => {
+        if (path.startsWith('wp/v2/plugins/woocommerce')) wooActive = true
+        else if (!wooActive) throw missingDeps()
+        return {}
+      })
+
+      const result = await cmd.run()
+
+      expect(statusCalls(put)).toEqual(['dokan-lite active', 'woocommerce active', 'dokan-lite active'])
+      expect(result.activated).toEqual(['dokan-lite', 'woocommerce'])
+    })
+
+    it('names the missing dependency when no activation can make progress', async () => {
+      const {cmd, get, post, put} = make({plugins: {'dokan-lite': 'latest'}})
+      site({get, post}, {after: [native('dokan-lite', '1.0.0', 'inactive')], before: [], locked: []})
+      put.mockRejectedValue(missingDeps({woocommerce: 'WooCommerce'}))
+
+      await expect(cmd.run()).rejects.toThrow(
+        'Could not activate dokan-lite: WordPress reports required plugins missing or inactive. Not installed: woocommerce.',
+      )
+    })
+
+    it('still throws any other activation error', async () => {
+      const {cmd, get, post, put} = make({plugins: {akismet: 'latest'}})
+      site({get, post}, {after: [native('akismet', '1.0.0', 'inactive')], before: [], locked: []})
+      put.mockRejectedValue(new Error('boom'))
+
+      await expect(cmd.run()).rejects.toThrow('boom')
+    })
   })
 
   it('restores the plugins it deactivated when the sync fails', async () => {

@@ -4,8 +4,9 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {confirmUninstall} from '../../lib/interactive.js'
+import {causeOf, isRecord} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
-import {isLocalEnvironment, isNotFoundError} from '../../lib/wp-client.js'
+import {isLocalEnvironment, isNotFoundError, parseBody, responseOf} from '../../lib/wp-client.js'
 import {
   type InstalledPlugin,
   pinActive,
@@ -158,11 +159,36 @@ export default class Push extends PushCommand {
     })
   }
 
+  // WordPress refuses to activate a plugin whose `Requires Plugins` are inactive, and loopress.json
+  // has no dependency order (dokan-lite sorts before woocommerce). A refused plugin is retried
+  // after the others, until a round activates nothing.
   private async activate(plugins: Plugin[]): Promise<void> {
-    for (const plugin of plugins) {
-      this.log(`  ⊙ activating ${plugin.slug}`)
+    let pending = plugins
+    while (pending.length > 0) {
+      const blocked: Plugin[] = []
+      let missing: string[] = []
+      for (const plugin of pending) {
+        this.log(`  ⊙ activating ${plugin.slug}`)
 
-      await this.wp.put(`wp/v2/plugins/${plugin.file}`, {status: 'active'})
+        try {
+          await this.wp.put(`wp/v2/plugins/${plugin.file}`, {status: 'active'})
+        } catch (error) {
+          const notInstalled = missingDependencies(error)
+          if (!notInstalled) throw error
+          blocked.push(plugin)
+          missing = [...missing, ...notInstalled]
+        }
+      }
+
+      if (blocked.length === pending.length) {
+        const hint = missing.length > 0 ? ` Not installed: ${[...new Set(missing)].join(', ')}.` : ''
+        this.error(
+          `Could not activate ${blocked.map((p) => p.slug).join(', ')}: WordPress reports required plugins missing or inactive.${hint} ` +
+            'Add them with `lps plugin add <slug>`, then push again.',
+        )
+      }
+
+      pending = blocked
     }
   }
 
@@ -327,6 +353,14 @@ export default class Push extends PushCommand {
       throw error
     }
   }
+}
+
+// The dependency slugs not installed at all when WordPress refused an activation over unmet
+// `Requires Plugins` (empty when they are only inactive), or null for any other error.
+function missingDependencies(error: unknown): null | string[] {
+  const body = parseBody(responseOf(causeOf(error)).body)
+  if (body.code !== 'plugin_missing_dependencies') return null
+  return isRecord(body.data) && isRecord(body.data.not_installed) ? Object.keys(body.data.not_installed) : []
 }
 
 function isNoop(diff: PluginDiff, toPrune: string[]): boolean {

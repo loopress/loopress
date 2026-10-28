@@ -49,6 +49,8 @@ lps plugin add woocommerce --version 9.4.2 # pins an exact version
 | `--version` | Exact version to pin (default `"latest"`) |
 | `--dry-run` / `-d` | Show what would be written without touching `loopress.json` |
 
+A plugin that requires others (its `Requires Plugins` header, e.g. `dokan-lite` requires `woocommerce`) brings them along: `lps plugin add` reads the dependencies from WordPress.org and adds the missing ones as `"latest"`, transitively. A dependency already in `loopress.json` keeps its pin. If WordPress.org is unreachable, only the plugin itself is added.
+
 ### `lps plugin pull`
 
 Snapshot the project's plugins into `loopress.json`, each **pinned to the version running on the site**, with its active state: an inactive plugin is written as `{"version": "…", "active": false}` so the next push leaves it inactive.
@@ -112,6 +114,8 @@ To install (1):
 To re-pin (1):
   ~ woocommerce 9.5.0 to 9.4.2
 ```
+
+Activation follows dependencies: WordPress refuses to activate a plugin while a plugin it requires is inactive, so the push retries it once the others are on. A dependency missing from the site entirely stops the push with its slug, add it with `lps plugin add <slug>`.
 
 **Downgrades** are refused without `--force`: reinstalling older plugin files does not undo database migrations the newer version ran. **Plugins installed outside Loopress** are refused without `--force`, because Composer can't cleanly install over an unmanaged folder.
 
