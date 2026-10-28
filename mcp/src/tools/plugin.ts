@@ -27,7 +27,11 @@ const activateFlag = z
   .describe('composer.json projects only: activate every plugin it declares (by default they keep their current state)')
 
 export function registerPluginTools(server: McpServer): void {
-  registerAddTool(server, {exampleSlug: 'woocommerce', resource: 'plugin'})
+  registerAddTool(server, {
+    exampleSlug: 'woocommerce',
+    note: 'Also adds, as "latest", the plugins it requires (its Requires Plugins header) that loopress.json lacks, listed in `dependencies`, when WordPress.org is reachable (otherwise `dependencies` is empty). ',
+    resource: 'plugin',
+  })
 
   server.registerTool(
     'plugin_push',

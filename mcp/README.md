@@ -130,7 +130,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
 | `form_list` | No | `env?` | List forms currently on WordPress |
 | `form_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
-| `plugin_add` | No | `slug`, `version?` | Add a WordPress.org plugin to `loopress.json`, or change its pinned version (local file only) |
+| `plugin_add` | No | `slug`, `version?` | Add a WordPress.org plugin to `loopress.json`, or change its pinned version, plus the plugins it requires (local file only) |
 | `plugin_push` | Yes | `env?`, `force?`, `prune?`, `activate?`, `confirmToken?` | Install WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | `env?`, `plugins?` | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
 | `plugin_status` | No | `env?` | Compare the plugins on WordPress against `loopress.json` and report drift |
