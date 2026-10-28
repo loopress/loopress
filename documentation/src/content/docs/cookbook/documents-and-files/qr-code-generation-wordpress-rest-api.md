@@ -6,6 +6,34 @@ kind: route
 
 A site sells event tickets, one `ticket` custom post per purchase. Each ticket needs a QR code a scanner at the door reads to verify it, encoding a URL like `/verify-ticket/?ticket=482`. The tempting approach is generating a PNG at purchase time and storing it as an attachment, which works until the verification URL scheme changes, a domain migration, an added query parameter, and every previously generated image now encodes a dead link. Generating the QR code from the ticket's current data on every request instead means there's nothing to regenerate, the image is never stale because it's never stored.
 
+## The ticket post type
+
+Tickets are declared as data, not PHP: one [`cpt/`](/custom-post-types/) file for the post type, and one [`meta/`](/post-meta/) file for the key the route's permission check reads, the buyer's user id.
+
+```json title="cpt/ticket.json"
+{
+  "labels": { "name": "Tickets", "singular_name": "Ticket" },
+  "public": false,
+  "show_ui": true,
+  "show_in_rest": true,
+  "menu_icon": "dashicons-tickets-alt",
+  "supports": ["title"]
+}
+```
+
+```json title="meta/ticket.json"
+{
+  "_customer_id": { "type": "integer", "single": true }
+}
+```
+
+```bash
+lps cpt push
+lps meta push
+```
+
+Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key gives it a type WordPress enforces, nothing more: the value stays content.
+
 ## Why this needs a package
 
 A QR code is a specific 2D barcode format with its own encoding rules, error correction levels, module sizing. [`endroid/qr-code`](https://packagist.org/packages/endroid/qr-code) is the standard PHP library for generating one, it turns a string into a PNG (or SVG, WebP, EPS) without the route needing to know anything about the QR spec itself.
