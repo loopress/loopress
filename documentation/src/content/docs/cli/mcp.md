@@ -119,7 +119,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `form_pull` | No | Pull forms from WordPress into local files |
 | `form_list` | No | List forms currently on WordPress |
 | `form_rollback` | Yes | Restore forms to the snapshot saved automatically before an earlier `form_push` (`list` shows what's available) |
-| `plugin_add` | No | Add a WordPress.org plugin to `loopress.json`, or change its pinned version (local file only) |
+| `plugin_add` | No | Add a WordPress.org plugin to `loopress.json`, or change its pinned version, plus the plugins it requires (local file only) |
 | `plugin_push` | Yes | Install WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
 | `plugin_status` | No | Compare the plugins on WordPress against `loopress.json` and report drift |

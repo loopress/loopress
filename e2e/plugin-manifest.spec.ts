@@ -27,7 +27,7 @@ test.describe('lps plugin add', () => {
     expect(readPlugins(projectDir)).toEqual({'hello-dolly': 'latest'})
 
     const pin = await runCli(['plugin', 'add', 'hello-dolly', '--version', '1.7.2', '--json'])
-    expect(JSON.parse(pin.stdout)).toEqual({slug: 'hello-dolly', status: 'updated', version: '1.7.2'})
+    expect(JSON.parse(pin.stdout)).toEqual({dependencies: [], slug: 'hello-dolly', status: 'updated', version: '1.7.2'})
     expect(readPlugins(projectDir)).toEqual({'hello-dolly': '1.7.2'})
 
     const again = await runCli(['plugin', 'add', 'hello-dolly', '--version', '1.7.2'])

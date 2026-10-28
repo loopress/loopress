@@ -113,6 +113,15 @@ describe('plugin add', () => {
     expect(written.plugins).toEqual({'dokan-lite': 'latest', woocommerce: 'latest'})
   })
 
+  it('warns when a dependency is pinned inactive', async () => {
+    wporg.set('dokan-lite', ['woocommerce'])
+    const {cmd, logs} = make(['dokan-lite'], {plugins: {woocommerce: {active: false, version: '9.4.2'}}})
+
+    await cmd.run()
+
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('requires woocommerce, pinned inactive'))
+  })
+
   it('adds the plugin alone when WordPress.org is unreachable', async () => {
     gotFn.mockImplementation(() => ({
       async json() {

@@ -289,7 +289,11 @@ describe('plugin push', () => {
       new Error('500', {
         cause: {
           response: {
-            body: JSON.stringify({code: 'plugin_missing_dependencies', data: {not_installed: notInstalled}}),
+            body: JSON.stringify({
+              additional_data: [{not_installed: notInstalled}],
+              code: 'plugin_missing_dependencies',
+              data: {status: 500},
+            }),
             statusCode: 500,
           },
         },

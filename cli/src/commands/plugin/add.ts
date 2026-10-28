@@ -2,7 +2,7 @@ import {Args, Flags} from '@oclif/core'
 import got from 'got'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {pinVersion, type PluginPin} from '../../types/plugin.js'
+import {pinActive, pinVersion, type PluginPin} from '../../types/plugin.js'
 import {writeLocalConfig} from '../../utils/loopress-config.js'
 import {isExactVersion} from '../../utils/version.js'
 
@@ -42,7 +42,15 @@ export default class Add extends LoopressCommand {
     }
 
     const existing = this.localConfig.plugins ?? {}
-    const dependencies = (await requiredPlugins(slug)).filter((dep) => !Object.hasOwn(existing, dep))
+    const required = await requiredPlugins(slug)
+    const dependencies = required.filter((dep) => !Object.hasOwn(existing, dep))
+    // An inactive pin keeps its dependency off, so push could never activate `slug`.
+    const inactive = required.filter((dep) => Object.hasOwn(existing, dep) && !pinActive(existing[dep]))
+    if (inactive.length > 0) {
+      this.warn(
+        `${slug} requires ${inactive.join(', ')}, pinned inactive in loopress.json. Remove \`"active": false\` there, or push cannot activate ${slug}.`,
+      )
+    }
 
     const current = existing[slug] as PluginPin | undefined
     if (current !== undefined && pinVersion(current) === version && dependencies.length === 0) {

@@ -356,11 +356,14 @@ export default class Push extends PushCommand {
 }
 
 // The dependency slugs not installed at all when WordPress refused an activation over unmet
-// `Requires Plugins` (empty when they are only inactive), or null for any other error.
+// `Requires Plugins` (empty when they are only inactive), or null for any other error. The REST
+// controller adds `{status: 500}` as the error data, which pushes activate_plugin()'s own data
+// (`{not_installed, inactive}`) into `additional_data`.
 function missingDependencies(error: unknown): null | string[] {
   const body = parseBody(responseOf(causeOf(error)).body)
   if (body.code !== 'plugin_missing_dependencies') return null
-  return isRecord(body.data) && isRecord(body.data.not_installed) ? Object.keys(body.data.not_installed) : []
+  const data = [body.data, ...(Array.isArray(body.additional_data) ? (body.additional_data as unknown[]) : [])]
+  return data.flatMap((d) => (isRecord(d) && isRecord(d.not_installed) ? Object.keys(d.not_installed) : []))
 }
 
 function isNoop(diff: PluginDiff, toPrune: string[]): boolean {
