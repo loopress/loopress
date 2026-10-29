@@ -9,6 +9,7 @@ import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
+import {pinActive} from '../types/plugin.js'
 import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {projectHasChildThemeFiles, projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
@@ -199,12 +200,16 @@ export default class Push extends LoopressCommand {
     if (declaredPlugins.length === 0) skips.set('plugin:push', notConfigured)
 
     const capabilities = await this.capabilities()
+    // Installed and activated by this run's first step, before the steps that need them: a fresh
+    // site (CI, a new staging) gets ACF from loopress.json and its field groups in one push.
+    // composer.json records no active state, so its plugins stay inactive until --activate.
+    const activatedByPush = hasComposerJson ? [] : declaredPlugins.filter((slug) => pinActive(this.localConfig.plugins?.[slug]))
     const missingDependencies = missingModule('dependencies', 'plugins and Composer', capabilities)
     const steps: SiteStep[] = [
       ...['plugin:push', 'composer:push'].map((commandId) => ({commandId, missing: missingDependencies, skipUnused: false, used: !skips.has(commandId)})),
       ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => ({
         commandId,
-        missing: missingIntegration(kind, capabilities),
+        missing: activatedBy(missingIntegration(kind, capabilities), activatedByPush),
         skipUnused: true,
         used: projectUses(kind, this.localConfig),
       })),
@@ -224,4 +229,9 @@ export default class Push extends LoopressCommand {
 
     return skips
   }
+}
+
+// Not missing when one of the plugins that would provide it is activated earlier in the run.
+function activatedBy(missing: MissingIntegration | undefined, activatedByPush: string[]): MissingIntegration | undefined {
+  return missing?.plugins?.some((slug) => activatedByPush.includes(slug)) ? undefined : missing
 }

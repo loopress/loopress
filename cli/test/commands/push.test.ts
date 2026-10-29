@@ -234,6 +234,28 @@ describe('push', () => {
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
+    it('lets it through when loopress.json pins the plugin active: the plugins step installs it first', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd} = make({
+        capabilities: makeCapabilities({integrations: {acf: false}}),
+        localConfig: {plugins: {'advanced-custom-fields': '6.8.10'}},
+      })
+
+      await cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran.indexOf('plugin:push')).toBeLessThan(ran.indexOf('acf:push'))
+    })
+
+    it('still refuses when loopress.json pins the plugin inactive', async () => {
+      const {cmd} = make({
+        capabilities: makeCapabilities({integrations: {acf: false}}),
+        localConfig: {plugins: {'advanced-custom-fields': {active: false, version: '6.8.10'}}},
+      })
+
+      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active on staging\. The project declares advanced-custom-fields, activate it/)
+    })
+
     it('says to activate a plugin composer.json already declares', async () => {
       writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/code-snippets': '3.6.0'}}))
       const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
