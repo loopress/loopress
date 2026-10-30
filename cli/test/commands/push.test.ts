@@ -244,7 +244,25 @@ describe('push', () => {
       await cmd.run()
 
       const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran).toContain('plugin:push')
       expect(ran.indexOf('plugin:push')).toBeLessThan(ran.indexOf('acf:push'))
+    })
+
+    it('skips the step on dry-run: nothing activates the plugin, so the site has nothing to preview against', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({
+        capabilities: makeCapabilities({integrations: {acf: false}}),
+        dryRun: true,
+        localConfig: {plugins: {'advanced-custom-fields': '6.8.10'}},
+      })
+
+      const result = await cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran).toContain('plugin:push')
+      expect(ran).not.toContain('acf:push')
+      expect(result.results).toContainEqual({label: 'ACF', status: 'skipped'})
+      expect(logs.log).toHaveBeenCalledWith('\n→ ACF: ACF is not active until this push activates it, skipped')
     })
 
     it('still refuses when loopress.json pins the plugin inactive', async () => {

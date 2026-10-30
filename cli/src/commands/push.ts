@@ -207,12 +207,14 @@ export default class Push extends LoopressCommand {
     const missingDependencies = missingModule('dependencies', 'plugins and Composer', capabilities)
     const steps: SiteStep[] = [
       ...['plugin:push', 'composer:push'].map((commandId) => ({commandId, missing: missingDependencies, skipUnused: false, used: !skips.has(commandId)})),
-      ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => ({
-        commandId,
-        missing: activatedBy(missingIntegration(kind, capabilities), activatedByPush),
-        skipUnused: true,
-        used: projectUses(kind, this.localConfig),
-      })),
+      ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => {
+        const missing = missingIntegration(kind, capabilities)
+        // Not missing when one of the plugins that would provide it is activated earlier in the run.
+        const activated = missing?.plugins?.some((slug) => activatedByPush.includes(slug)) ?? false
+        // A dry run activates nothing, so the site can't preview this step yet.
+        if (activated && this.dryRun) skips.set(commandId, {note: `${missing?.reason} until this push activates it, skipped`, status: 'skipped'})
+        return {commandId, missing: activated ? undefined : missing, skipUnused: true, used: projectUses(kind, this.localConfig)}
+      }),
       ...Object.entries(FULL_ONLY).map(([commandId, kind]) => ({
         commandId,
         missing: missingIntegration(kind, capabilities),
@@ -229,9 +231,4 @@ export default class Push extends LoopressCommand {
 
     return skips
   }
-}
-
-// Not missing when one of the plugins that would provide it is activated earlier in the run.
-function activatedBy(missing: MissingIntegration | undefined, activatedByPush: string[]): MissingIntegration | undefined {
-  return missing?.plugins?.some((slug) => activatedByPush.includes(slug)) ? undefined : missing
 }
