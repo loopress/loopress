@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.33.1
+
+### Patch Changes
+
+- f1fbed3: Handle plugin dependencies (`Requires Plugins`): `lps plugin add` also adds the plugins a plugin requires (e.g. `woocommerce` for `dokan-lite`), and `lps plugin push` activates dependencies before the plugins that need them instead of failing on WordPress's `plugin_missing_dependencies` refusal.
+- 7c15780: `lps push` no longer refuses a fresh site (CI, a new staging) because ACF, a form or a snippet plugin isn't active yet, when the project has no `composer.json` and `loopress.json` pins that plugin active: the run's plugins step installs it before the steps that need it. `--dry-run` skips those steps, since nothing gets activated to preview against.
+
 ## 0.33.0
 
 ### Minor Changes
