@@ -9,6 +9,7 @@ import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
+import {pinActive} from '../types/plugin.js'
 import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {projectHasChildThemeFiles, projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
@@ -199,15 +200,21 @@ export default class Push extends LoopressCommand {
     if (declaredPlugins.length === 0) skips.set('plugin:push', notConfigured)
 
     const capabilities = await this.capabilities()
+    // Installed and activated by this run's first step, before the steps that need them: a fresh
+    // site (CI, a new staging) gets ACF from loopress.json and its field groups in one push.
+    // composer.json records no active state, so its plugins stay inactive until --activate.
+    const activatedByPush = hasComposerJson ? [] : declaredPlugins.filter((slug) => pinActive(this.localConfig.plugins?.[slug]))
     const missingDependencies = missingModule('dependencies', 'plugins and Composer', capabilities)
     const steps: SiteStep[] = [
       ...['plugin:push', 'composer:push'].map((commandId) => ({commandId, missing: missingDependencies, skipUnused: false, used: !skips.has(commandId)})),
-      ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => ({
-        commandId,
-        missing: missingIntegration(kind, capabilities),
-        skipUnused: true,
-        used: projectUses(kind, this.localConfig),
-      })),
+      ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => {
+        const missing = missingIntegration(kind, capabilities)
+        // Not missing when one of the plugins that would provide it is activated earlier in the run.
+        const activated = missing?.plugins?.some((slug) => activatedByPush.includes(slug)) ?? false
+        // A dry run activates nothing, so the site can't preview this step yet.
+        if (activated && this.dryRun) skips.set(commandId, {note: `${missing?.reason} until this push activates it, skipped`, status: 'skipped'})
+        return {commandId, missing: activated ? undefined : missing, skipUnused: true, used: projectUses(kind, this.localConfig)}
+      }),
       ...Object.entries(FULL_ONLY).map(([commandId, kind]) => ({
         commandId,
         missing: missingIntegration(kind, capabilities),
