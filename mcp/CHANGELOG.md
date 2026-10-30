@@ -1,5 +1,14 @@
 # @loopress/mcp
 
+## 0.33.1
+
+### Patch Changes
+
+- f1fbed3: Handle plugin dependencies (`Requires Plugins`): `lps plugin add` also adds the plugins a plugin requires (e.g. `woocommerce` for `dokan-lite`), and `lps plugin push` activates dependencies before the plugins that need them instead of failing on WordPress's `plugin_missing_dependencies` refusal.
+- Updated dependencies [f1fbed3]
+- Updated dependencies [7c15780]
+  - @loopress/cli@0.33.1
+
 ## 0.33.0
 
 ### Minor Changes
