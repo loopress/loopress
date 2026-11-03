@@ -40,6 +40,7 @@ lps snippet push --env staging --yes
 
 - [GitHub Actions](/ci/github-actions/)
 - [GitLab CI](/ci/gitlab/)
+- [Drift detection](/ci/drift-detection/) (scheduled GitHub Actions job)
 
 ## Beyond syncing files
 
