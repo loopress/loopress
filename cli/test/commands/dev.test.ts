@@ -173,18 +173,18 @@ describe('dev', () => {
       const {log} = silenceLogs(cmd)
       const themeTargets: WatchTarget[] = [
         {commandId: 'theme:template:push', path: join('theme', 'css'), type: 'css'},
-        {commandId: 'theme:template:push', path: join('theme', 'blocks'), type: 'blocks'},
+        {commandId: 'theme:template:push', path: join('theme', 'blocks'), type: 'block'},
       ]
       const changes = new Map([
-        ['blocks', ['theme/blocks/core/button.css']],
+        ['block', ['theme/blocks/core/button.css']],
         ['css', ['theme/css/style.css']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, themeTargets)
 
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:template:push', ['--env', 'local'])
-      expect(log).toHaveBeenCalledWith('\n→ blocks, css changed (button.css, style.css), pushing to local...')
-      expect(log).toHaveBeenCalledWith('✓ blocks, css synced')
+      expect(log).toHaveBeenCalledWith('\n→ block, css changed (button.css, style.css), pushing to local...')
+      expect(log).toHaveBeenCalledWith('✓ block, css synced')
     })
   })
 
