@@ -433,8 +433,8 @@ describe('resource-state providers', () => {
     })
   })
 
-  describe('theme-styles', () => {
-    const themeStylesProvider = provider('theme-styles')
+  describe('theme-style', () => {
+    const themeStylesProvider = provider('theme-style')
     const activeTheme = (extra: Record<string, unknown> = {}) => ({
       _links: {'wp:user-global-styles': [{href: 'https://example.com/wp-json/wp/v2/global-styles/7'}]},
       status: 'active',

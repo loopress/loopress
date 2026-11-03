@@ -51,7 +51,7 @@ function indentPatch(patch: string): string {
 // anything, this runs the equivalent of `lps <resource> diff` between the environment's current
 // state and the state the original push expected to leave behind, and requires explicit
 // confirmation (the same interactive/`--yes` shape as guardProductionPush) when they differ.
-// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-styles).
+// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-style).
 export function resourceRollbackCommand(
   resource: string,
   options: {command?: string; description: string; pathNoun: string},

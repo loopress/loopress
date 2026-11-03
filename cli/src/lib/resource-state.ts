@@ -540,7 +540,7 @@ const themeStylesProvider: ResourceStateProvider = {
 
     return new Map([[stylesheet, canonicalGlobalStyles(item)]])
   },
-  resource: 'theme-styles',
+  resource: 'theme-style',
   title: 'Theme styles',
 }
 

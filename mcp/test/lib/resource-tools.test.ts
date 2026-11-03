@@ -49,15 +49,15 @@ describe('registerResourceTools', () => {
 
   it('api_rm runs `api rm <file> --yes` through the confirm handshake', async () => {
     const tools = register({supportsRm: true})
-    await tools.get('api_rm')!({env: 'prod', filename: 'hello'})
+    await tools.get('api_rm')!({env: 'prod', slug: 'hello'})
 
     expect(runMutatingTool).toHaveBeenCalledWith('api_rm', ['api', 'rm', 'hello', '--env', 'prod', '--yes'], undefined)
   })
 
-  it('api_rm rejects a filename starting with "-" at the schema layer', () => {
+  it('api_rm rejects a slug starting with "-" at the schema layer', () => {
     // The schema refine is on the tool definition; assert the shape rather than dispatching.
     const {server} = fakeServer()
-    const defs: {name: string; def: {inputSchema: {filename?: {safeParse(v: unknown): {success: boolean}}}}}[] = []
+    const defs: {name: string; def: {inputSchema: {slug?: {safeParse(v: unknown): {success: boolean}}}}}[] = []
     ;(server as {registerTool: unknown}).registerTool = (name: string, def: unknown) => {
       defs.push({def: def as never, name})
     }
@@ -68,8 +68,8 @@ describe('registerResourceTools', () => {
       supportsRm: true,
     })
     const rmDef = defs.find((d) => d.name === 'api_rm')!
-    expect(rmDef.def.inputSchema.filename!.safeParse('--yes').success).toBe(false)
-    expect(rmDef.def.inputSchema.filename!.safeParse('hello').success).toBe(true)
+    expect(rmDef.def.inputSchema.slug!.safeParse('--yes').success).toBe(false)
+    expect(rmDef.def.inputSchema.slug!.safeParse('hello').success).toBe(true)
   })
 
   it('api_push appends --prune --yes only when prune is true', async () => {
@@ -115,10 +115,10 @@ describe('registerRollbackTool', () => {
     const {registerRollbackTool} = await import('../../src/lib/resource-tools.js')
     const {server, tools} = fakeServer()
 
-    registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme style', toolName: 'theme_styles'})
+    registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme style', toolName: 'theme_style'})
 
-    expect([...tools.keys()]).toEqual(['theme_styles_rollback'])
-    await tools.get('theme_styles_rollback')!({})
-    expect(runMutatingTool).toHaveBeenCalledWith('theme_styles_rollback', ['theme', 'style', 'rollback', '--yes'], undefined)
+    expect([...tools.keys()]).toEqual(['theme_style_rollback'])
+    await tools.get('theme_style_rollback')!({})
+    expect(runMutatingTool).toHaveBeenCalledWith('theme_style_rollback', ['theme', 'style', 'rollback', '--yes'], undefined)
   })
 })

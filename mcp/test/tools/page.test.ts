@@ -28,16 +28,16 @@ describe('registerPageTools', () => {
   })
 
   it('registers push, list and diff for pages and templates', () => {
-    expect([...register().keys()].sort()).toEqual(['page_diff', 'page_list', 'page_push', 'template_diff', 'template_list', 'template_push'])
+    expect([...register().keys()].sort()).toEqual(['page_diff', 'page_list', 'page_push', 'theme_template_diff', 'theme_template_list', 'theme_template_push'])
   })
 
-  it('template_push and template_list run the template commands', async () => {
+  it('theme_template_push and theme_template_list run the template commands', async () => {
     const tools = register()
-    await tools.get('template_push')!.handler({})
-    await tools.get('template_list')!.handler({env: 'prod'})
+    await tools.get('theme_template_push')!.handler({})
+    await tools.get('theme_template_list')!.handler({env: 'prod'})
 
-    expect(tools.get('template_push')!.def.inputSchema.slug).toBeUndefined()
-    expect(runMutatingTool).toHaveBeenCalledWith('template_push', ['theme', 'template', 'push'], undefined)
+    expect(tools.get('theme_template_push')!.def.inputSchema.slug).toBeUndefined()
+    expect(runMutatingTool).toHaveBeenCalledWith('theme_template_push', ['theme', 'template', 'push'], undefined)
     expect(runLps).toHaveBeenCalledWith(['theme', 'template', 'list', '--env', 'prod'])
   })
 
