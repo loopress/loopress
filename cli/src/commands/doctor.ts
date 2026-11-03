@@ -4,7 +4,7 @@ import {type SiteCapabilities} from '../lib/capabilities.js'
 import {errorMessage} from '../lib/narrow.js'
 import {formatRuntimeError, HOOK_FILES_RESOURCE, type RuntimeError} from '../lib/php-files-command.js'
 import {findTempAdmins} from '../lib/temp-admin.js'
-import {isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
+import {isApplicationPasswordsDisabled, isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
 import {diagnoseWpSite} from '../lib/wp-site-diagnostic.js'
 import {pluralize} from '../utils/pluralize.js'
 
@@ -55,9 +55,20 @@ export default class Doctor extends LoopressCommand {
 
         // wp/v2/users/me is WordPress core and requires authentication, so it validates the
         // application password without depending on any Loopress feature.
-        const isAuthenticated = await this.check('Credentials accepted (authenticated request)', async () =>
-          this.wp.get('wp/v2/users/me'),
-        )
+        const isAuthenticated = await this.check('Credentials accepted (authenticated request)', async () => {
+          try {
+            await this.wp.get('wp/v2/users/me')
+          } catch (error) {
+            if (isApplicationPasswordsDisabled(error)) {
+              throw new Error(
+                'Application Passwords are disabled for this account. Enable them for this user (a security plugin or the `wp_is_application_passwords_available` filter may turn them off), or use another account.',
+                {cause: error},
+              )
+            }
+
+            throw error
+          }
+        })
 
         // Skipped when the credentials were just rejected: it would only repeat that same 401.
         if (isAuthenticated) {
