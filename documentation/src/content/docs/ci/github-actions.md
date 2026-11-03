@@ -9,7 +9,7 @@ Add the `loopress/setup-ci` action to your workflow. It starts a full WordPress 
 steps:
   - uses: actions/checkout@v4
   - uses: loopress/setup-ci@main
-  - run: lps snippet push
+  - run: lps push
 ```
 
 ## Inputs
@@ -19,7 +19,7 @@ steps:
 | `wp-version` | WordPress version | `latest` |
 | `site-id` | Loopress site ID | `ci` |
 | `port` | WordPress port on the runner | `8080` |
-| `token` | Loopress cloud token | |
+| `token` | Optional Loopress cloud token (not needed to push) | |
 
 ## Outputs
 
@@ -39,7 +39,7 @@ steps:
       port: "9090"
       token: ${{ secrets.LOOPRESS_TOKEN }}
 
-  - run: lps snippet push
+  - run: lps push
 ```
 
 ## Restoring between groups of tests
@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: loopress/setup-ci@main
-      - run: lps snippet push
+      - run: lps push
 
   deploy:
     runs-on: ubuntu-latest
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install -g @loopress/cli
-      - run: lps snippet push
+      - run: lps push
         env:
           LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
 ```
