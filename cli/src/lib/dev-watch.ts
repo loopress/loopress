@@ -3,10 +3,11 @@ import {join, sep} from 'node:path'
 
 import {type LoopressLocalConfig} from '../utils/loopress-config.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {selectResources} from './resource-selection.js'
 
-export type ResourceType = 'api' | 'blocks' | 'css' | 'hooks' | 'pages' | 'parts' | 'plugins' | 'snippets' | 'templates'
+export type ResourceType = 'api' | 'block' | 'css' | 'hook' | 'page' | 'part' | 'plugin' | 'snippet' | 'template'
 
-export const RESOURCE_TYPES: ResourceType[] = ['snippets', 'templates', 'parts', 'css', 'blocks', 'pages', 'api', 'hooks', 'plugins']
+export const RESOURCE_TYPES: ResourceType[] = ['snippet', 'template', 'part', 'css', 'block', 'page', 'api', 'hook', 'plugin']
 
 export type WatchTarget = {
   commandId: string
@@ -14,11 +15,8 @@ export type WatchTarget = {
   type: ResourceType
 }
 
-// `only` narrows the default set, `skip` then removes from whatever that set is, same
-// precedence a combined `--only=a,b --skip=b` reads as: watch a, b, then drop b.
 export function resolveResourceTypes(only?: ResourceType[], skip: ResourceType[] = []): ResourceType[] {
-  const base = only && only.length > 0 ? only : RESOURCE_TYPES
-  return base.filter((type) => !skip.includes(type))
+  return selectResources(RESOURCE_TYPES, only, skip)
 }
 
 // One target per requested type that actually has something to watch: a missing directory (no
@@ -29,20 +27,20 @@ export function buildWatchTargets(types: ResourceType[], localConfig: LoopressLo
   const candidates: Record<ResourceType, WatchTarget> = {
     api: {commandId: 'api:push', path: join(cwd, resolveResourceDir('api', localConfig)), type: 'api'},
     // The theme CSS is bundled into the child theme with the templates, by the same push.
-    blocks: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('blockCss', localConfig)), type: 'blocks'},
+    block: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('blockCss', localConfig)), type: 'block'},
     css: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('css', localConfig)), type: 'css'},
-    hooks: {commandId: 'hook:push', path: join(cwd, resolveResourceDir('hooks', localConfig)), type: 'hooks'},
-    pages: {commandId: 'page:push', path: join(cwd, resolveResourceDir('page', localConfig)), type: 'pages'},
-    plugins: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugins'},
-    parts: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('part', localConfig)), type: 'parts'},
-    templates: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('template', localConfig)), type: 'templates'},
-    snippets: {commandId: 'snippet:push', path: join(cwd, resolveResourceDir('snippets', localConfig)), type: 'snippets'},
+    hook: {commandId: 'hook:push', path: join(cwd, resolveResourceDir('hooks', localConfig)), type: 'hook'},
+    page: {commandId: 'page:push', path: join(cwd, resolveResourceDir('page', localConfig)), type: 'page'},
+    plugin: {commandId: 'plugin:push', path: join(cwd, 'loopress.json'), type: 'plugin'},
+    part: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('part', localConfig)), type: 'part'},
+    template: {commandId: 'theme:template:push', path: join(cwd, resolveResourceDir('template', localConfig)), type: 'template'},
+    snippet: {commandId: 'snippet:push', path: join(cwd, resolveResourceDir('snippets', localConfig)), type: 'snippet'},
   }
 
   return types
     .map((type) => candidates[type])
     .filter((target) => {
-      if (target.type === 'plugins') return Object.keys(localConfig.plugins ?? {}).length > 0
+      if (target.type === 'plugin') return Object.keys(localConfig.plugins ?? {}).length > 0
       return existsSync(target.path)
     })
 }

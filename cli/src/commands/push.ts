@@ -8,13 +8,15 @@ import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {PushCommand} from '../lib/push-command.js'
+import {parseSelectionFlag, selectionFlags, selectResources} from '../lib/resource-selection.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {pinActive} from '../types/plugin.js'
 import {parseComposerJson, wpackagistRequire} from '../utils/composer.js'
 import {projectHasChildThemeFiles, projectUses, resolveResourceDir, type ResourceDirKind} from '../utils/resource-dirs.js'
 import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 
-type PushTarget = {commandId: string; label: string}
+// `id`: the singular resource id `--only` / `--skip` take. `template` covers templates, parts and CSS.
+type PushTarget = {commandId: string; id: string; label: string}
 
 // `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
 type PushTargetResult = {error?: string; label: string; result?: unknown; status: 'failed' | 'pushed' | 'skipped'}
@@ -39,51 +41,57 @@ const FULL_ONLY: Record<string, ResourceDirKind> = {'api:push': 'api', 'block:pu
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
 const PUSH_TARGETS: PushTarget[] = [
-  {commandId: 'plugin:push', label: 'plugins'},
-  {commandId: 'composer:push', label: 'composer'},
+  {commandId: 'plugin:push', id: 'plugin', label: 'plugins'},
+  {commandId: 'composer:push', id: 'composer', label: 'composer'},
   // Before ACF: a field group's location rule can target a Loopress post type or taxonomy.
-  {commandId: 'cpt:push', label: 'post types'},
-  {commandId: 'taxonomy:push', label: 'taxonomies'},
-  {commandId: 'meta:push', label: 'post meta'},
-  {commandId: 'role:push', label: 'roles'},
-  {commandId: 'acf:push', label: 'ACF'},
-  {commandId: 'api:push', label: 'API routes'},
-  {commandId: 'hook:push', label: 'hooks'},
+  {commandId: 'cpt:push', id: 'cpt', label: 'post types'},
+  {commandId: 'taxonomy:push', id: 'taxonomy', label: 'taxonomies'},
+  {commandId: 'meta:push', id: 'meta', label: 'post meta'},
+  {commandId: 'role:push', id: 'role', label: 'roles'},
+  {commandId: 'acf:push', id: 'acf', label: 'ACF'},
+  {commandId: 'api:push', id: 'api', label: 'API routes'},
+  {commandId: 'hook:push', id: 'hook', label: 'hooks'},
   // Before templates and pages, which place them (`wp:loopress/<slug>`).
-  {commandId: 'block:push', label: 'dynamic blocks'},
-  {commandId: 'form:push', label: 'forms'},
+  {commandId: 'block:push', id: 'block', label: 'dynamic blocks'},
+  {commandId: 'form:push', id: 'form', label: 'forms'},
   // Before templates and pages, which can reference them (`wp:pattern`).
-  {commandId: 'pattern:push', label: 'patterns'},
+  {commandId: 'pattern:push', id: 'pattern', label: 'patterns'},
   // Before pages: WordPress refuses a page whose `template` it doesn't know yet.
-  {commandId: 'theme:template:push', label: 'templates and parts'},
+  {commandId: 'theme:template:push', id: 'template', label: 'templates and parts'},
   // Belong to whichever theme is active, so right after its templates. Theme versions stay out:
   // installing or removing themes is `lps theme push`'s call.
-  {commandId: 'theme:style:push', label: 'Global Styles'},
-  {commandId: 'page:push', label: 'pages'},
-  {commandId: 'menu:push', label: 'menus'},
-  {commandId: 'option:push', label: 'options'},
-  {commandId: 'snippet:push', label: 'snippets'},
+  {commandId: 'theme:style:push', id: 'theme-style', label: 'Global Styles'},
+  {commandId: 'page:push', id: 'page', label: 'pages'},
+  {commandId: 'menu:push', id: 'menu', label: 'menus'},
+  {commandId: 'option:push', id: 'option', label: 'options'},
+  {commandId: 'snippet:push', id: 'snippet', label: 'snippets'},
 ]
+
+const PUSH_IDS = PUSH_TARGETS.map((target) => target.id)
 
 export default class Push extends LoopressCommand {
   static override description =
     'Push every local resource to WordPress in one run: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, dynamic blocks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets'
 
   static override enableJsonFlag = true
-  static override examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run']
+  static override examples = ['$ lps push', '$ lps push --env staging', '$ lps push --dry-run', '$ lps push --only acf,page', '$ lps push --skip plugin --skip composer']
   static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    ...selectionFlags('push', PUSH_IDS),
     overwrite: PushCommand.baseFlags.overwrite,
   }
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
 
+    const {flags} = await this.parse(Push)
+    const skipFlag = parseSelectionFlag(flags.skip, 'skip', PUSH_IDS, (message) => this.error(message))
+    const selected = new Set(selectResources(PUSH_IDS, parseSelectionFlag(flags.only, 'only', PUSH_IDS, (message) => this.error(message)), skipFlag))
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
 
-    const skips = await this.skippedTargets()
+    const skips = await this.skippedTargets(selected, skipFlag.includes('composer'))
 
     for (const target of PUSH_TARGETS) {
       const skip = skips.get(target.commandId)
@@ -104,13 +112,15 @@ export default class Push extends LoopressCommand {
         results.push({error: message, label: target.label, status: 'failed'})
         // Stop here: later targets depend on earlier ones (hooks use what composer installs,
         // pages need their templates), so pushing them anyway can ship a silently broken site.
-        const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1).map((next) => next.label)
+        const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1)
+          .filter((next) => !skips.has(next.commandId))
+          .map((next) => next.label)
         const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
         this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
     }
 
-    this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
+    this.log(this.doneMessage(selected.size < PUSH_IDS.length))
     return {results}
   }
 
@@ -162,6 +172,13 @@ export default class Push extends LoopressCommand {
     }
   }
 
+  // A run narrowed by --only / --skip must not read as a full push. Unused resources skipped
+  // on a plain run don't count: that run still pushes everything the project has.
+  private doneMessage(narrowed: boolean): string {
+    if (narrowed) return this.dryRun ? '\nEvery selected resource would push, the others are skipped.' : '\nSelected resources pushed, the others are skipped.'
+    return this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.'
+  }
+
   // The site unreachable or the theme list refused: let the step run and report it itself.
   private async globalStylesSkipNote(): Promise<string | undefined> {
     try {
@@ -184,14 +201,20 @@ export default class Push extends LoopressCommand {
 
   // Unconfigured is not a failure: a project that doesn't manage plugins or composer through
   // Loopress must not stop the run before anything else gets pushed.
-  private async skippedTargets(): Promise<Map<string, Skip>> {
+  // `composerSkipped`: `composer` was named in --skip, as opposed to just left out of --only.
+  private async skippedTargets(selected: Set<string>, composerSkipped: boolean): Promise<Map<string, Skip>> {
     const skips = new Map<string, Skip>()
+    const isSelected = (commandId: string): boolean => selected.has(PUSH_TARGETS.find((target) => target.commandId === commandId)?.id ?? '')
     const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
     const hasComposerJson = existsSync(this.composerJsonPath())
     const declaredPlugins = await this.declaredPlugins(hasComposerJson)
     // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
     // safety), so `composer:push` would only run Composer on the server a second time.
-    const composerPushedByPlugins = hasComposerJson && declaredPlugins.length > 0
+    const composerPushedByPlugins = hasComposerJson && declaredPlugins.length > 0 && isSelected('plugin:push')
+    // That push runs Composer on the server, so a run told to skip Composer can't push plugins.
+    if (composerPushedByPlugins && composerSkipped) {
+      this.error('--skip composer conflicts with pushing plugins: composer.json declares them, so plugin push runs Composer on the server. Skip plugin too, or drop --skip composer.')
+    }
 
     if (composerPushedByPlugins) skips.set('composer:push', {note: 'already pushed whole by plugins', status: 'pushed'})
     else if (!hasComposerJson) skips.set('composer:push', notConfigured)
@@ -203,9 +226,11 @@ export default class Push extends LoopressCommand {
     // Installed and activated by this run's first step, before the steps that need them: a fresh
     // site (CI, a new staging) gets ACF from loopress.json and its field groups in one push.
     // composer.json records no active state, so its plugins stay inactive until --activate.
-    const activatedByPush = hasComposerJson ? [] : declaredPlugins.filter((slug) => pinActive(this.localConfig.plugins?.[slug]))
+    const activatedByPush = hasComposerJson || !isSelected('plugin:push') ? [] : declaredPlugins.filter((slug) => pinActive(this.localConfig.plugins?.[slug]))
     const missingDependencies = missingModule('dependencies', 'plugins and Composer', capabilities)
-    const steps: SiteStep[] = [
+    // A target left out by --only / --skip is reported skipped and never reaches the site checks,
+    // so it can't block the run.
+    const allSteps: SiteStep[] = [
       ...['plugin:push', 'composer:push'].map((commandId) => ({commandId, missing: missingDependencies, skipUnused: false, used: !skips.has(commandId)})),
       ...Object.entries(PLUGIN_BACKED).map(([commandId, kind]) => {
         const missing = missingIntegration(kind, capabilities)
@@ -224,10 +249,17 @@ export default class Push extends LoopressCommand {
       // Without templates, parts or CSS, the step would only write an empty child theme.
       {commandId: 'theme:template:push', missing: missingIntegration('template', capabilities), skipUnused: true, used: projectHasChildThemeFiles(this.localConfig)},
     ]
+    const steps = allSteps.filter((step) => isSelected(step.commandId))
     this.applySiteSteps(steps, skips, {fromComposer: hasComposerJson, plugins: declaredPlugins})
 
-    const stylesNote = await this.globalStylesSkipNote()
+    const stylesNote = isSelected('theme:style:push') ? await this.globalStylesSkipNote() : undefined
     if (stylesNote) skips.set('theme:style:push', {note: stylesNote, status: 'skipped'})
+
+    for (const target of PUSH_TARGETS) {
+      // Composer left out of --only still runs when plugin push syncs composer.json: say so.
+      if (composerPushedByPlugins && target.commandId === 'composer:push') continue
+      if (!selected.has(target.id)) skips.set(target.commandId, {note: 'not selected, skipped', status: 'skipped'})
+    }
 
     return skips
   }

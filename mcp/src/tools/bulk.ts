@@ -1,4 +1,5 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
+import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
@@ -10,6 +11,30 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 // Listr run over many files, so the default runLps timeout is too tight for a real site.
 const BULK_TIMEOUT_MS = 600_000
 
+// Mirrors the PUSH_TARGETS ids in cli/src/commands/push.ts, in push order.
+const PUSH_RESOURCES = [
+  'plugin',
+  'composer',
+  'cpt',
+  'taxonomy',
+  'meta',
+  'role',
+  'acf',
+  'api',
+  'hook',
+  'block',
+  'form',
+  'pattern',
+  'template',
+  'theme-style',
+  'page',
+  'menu',
+  'option',
+  'snippet',
+] as const
+
+const pushResourceArray = z.array(z.enum(PUSH_RESOURCES)).optional()
+
 export function registerBulkTools(server: McpServer): void {
   server.registerTool(
     'push',
@@ -19,11 +44,17 @@ export function registerBulkTools(server: McpServer): void {
         PREVIEW_SUFFIX +
         CHANGES_SUFFIX +
         ' Each step is under `results` with its own preview in `result`.',
-      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag},
+      inputSchema: {
+        confirmToken: confirmTokenFlag,
+        env: envFlag,
+        only: pushResourceArray.describe('Only push these resources (template covers templates, parts and CSS)'),
+        overwrite: overwriteFlag,
+        skip: pushResourceArray.describe('Push every resource except these'),
+      },
     },
-    async ({confirmToken, env, overwrite}) =>
+    async ({confirmToken, env, only, overwrite, skip}) =>
       toCallToolResult(
-        await runMutatingTool('push', buildArgs(['push'], {env, overwrite}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
+        await runMutatingTool('push', buildArgs(['push'], {env, overwrite, repeatFlags: {only, skip}}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
       ),
   )
 

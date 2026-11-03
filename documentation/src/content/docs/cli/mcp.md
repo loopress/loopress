@@ -136,7 +136,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `theme_style_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_style_push` (`list` shows what's available) |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
-| `push` | Yes | Push every local resource to WordPress in one run, like `lps push`. Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
+| `push` | Yes | Push every local resource to WordPress in one run, like `lps push`, or only some of them (`only`, `skip`). Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
 | `pull` | No | Pull every resource from WordPress into local files in one run, like `lps pull`. On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
 | `promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
 | `content_copy` | Yes | Replace the local site's posts, pages and terms with those of `from`, then push the project to local, like `lps content copy` |

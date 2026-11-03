@@ -39,7 +39,7 @@ type DevWithPushBatch = {
 }
 
 type DevWithParseTypeFlag = {
-  parseTypeFlag(raw: string, flagName: 'only' | 'skip'): string[]
+  parseTypeFlag(raw: string[], flagName: 'only' | 'skip'): string[]
 }
 
 function make(argv: string[] = []): Dev {
@@ -87,7 +87,7 @@ describe('dev', () => {
     const cmd = make(['--only=bogus'])
     silenceLogs(cmd)
 
-    await expect(cmd.run()).rejects.toThrow('Unknown resource type "bogus" in --only')
+    await expect(cmd.run()).rejects.toThrow('Unknown resource "bogus" in --only')
     expect(configManager.getCurrentProject).not.toHaveBeenCalled()
   })
 
@@ -95,7 +95,7 @@ describe('dev', () => {
     const cmd = make(['--skip=bogus'])
     silenceLogs(cmd)
 
-    await expect(cmd.run()).rejects.toThrow('Unknown resource type "bogus" in --skip')
+    await expect(cmd.run()).rejects.toThrow('Unknown resource "bogus" in --skip')
   })
 
   it('errors when none of the selected resource directories exist', async () => {
@@ -110,7 +110,7 @@ describe('dev', () => {
 
   describe('pushBatch', () => {
     const targets: WatchTarget[] = [
-      {commandId: 'snippet:push', path: join('snippets'), type: 'snippets'},
+      {commandId: 'snippet:push', path: join('snippets'), type: 'snippet'},
       {commandId: 'api:push', path: join('api'), type: 'api'},
     ]
 
@@ -121,7 +121,7 @@ describe('dev', () => {
       const {log} = silenceLogs(cmd)
       const changes = new Map([
         ['api', ['api/ping.php']],
-        ['snippets', ['snippets/hello.php', 'snippets/world.php']],
+        ['snippet', ['snippets/hello.php', 'snippets/world.php']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
@@ -129,8 +129,8 @@ describe('dev', () => {
       expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'snippet:push', ['--env', 'local'])
       // Exact match on the joined path list, not a substring: proves the ", " separator between
       // multiple changed files, not just that both filenames appear somewhere in the message.
-      expect(log).toHaveBeenCalledWith('\n→ snippets changed (hello.php, world.php), pushing to local...')
-      expect(log).toHaveBeenCalledWith('✓ snippets synced')
+      expect(log).toHaveBeenCalledWith('\n→ snippet changed (hello.php, world.php), pushing to local...')
+      expect(log).toHaveBeenCalledWith('✓ snippet synced')
       expect(log).toHaveBeenCalledWith('✓ api synced')
     })
 
@@ -141,13 +141,13 @@ describe('dev', () => {
       const {log} = silenceLogs(cmd)
       const changes = new Map([
         ['api', ['api/ping.php']],
-        ['plugins', ['loopress.json']], // not in `targets` above
+        ['plugin', ['loopress.json']], // not in `targets` above
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('api:push', ['--env', 'local'])
-      expect(log).not.toHaveBeenCalledWith(expect.stringContaining('plugins'))
+      expect(log).not.toHaveBeenCalledWith(expect.stringContaining('plugin'))
     })
 
     it('logs a failure and still pushes the remaining types', async () => {
@@ -157,12 +157,12 @@ describe('dev', () => {
       const {log} = silenceLogs(cmd)
       const changes = new Map([
         ['api', ['api/ping.php']],
-        ['snippets', ['snippets/hello.php']],
+        ['snippet', ['snippets/hello.php']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, targets)
 
       expect(log).toHaveBeenCalledWith('✗ api failed: boom')
-      expect(log).toHaveBeenCalledWith('✓ snippets synced')
+      expect(log).toHaveBeenCalledWith('✓ snippet synced')
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
     })
 
@@ -173,18 +173,18 @@ describe('dev', () => {
       const {log} = silenceLogs(cmd)
       const themeTargets: WatchTarget[] = [
         {commandId: 'theme:template:push', path: join('theme', 'css'), type: 'css'},
-        {commandId: 'theme:template:push', path: join('theme', 'blocks'), type: 'blocks'},
+        {commandId: 'theme:template:push', path: join('theme', 'blocks'), type: 'block'},
       ]
       const changes = new Map([
-        ['blocks', ['theme/blocks/core/button.css']],
+        ['block', ['theme/blocks/core/button.css']],
         ['css', ['theme/css/style.css']],
       ])
       await (cmd as unknown as DevWithPushBatch).pushBatch(changes, themeTargets)
 
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:template:push', ['--env', 'local'])
-      expect(log).toHaveBeenCalledWith('\n→ blocks, css changed (button.css, style.css), pushing to local...')
-      expect(log).toHaveBeenCalledWith('✓ blocks, css synced')
+      expect(log).toHaveBeenCalledWith('\n→ block, css changed (button.css, style.css), pushing to local...')
+      expect(log).toHaveBeenCalledWith('✓ block, css synced')
     })
   })
 
@@ -195,14 +195,14 @@ describe('dev', () => {
     const {emit, watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
 
-    const cmd = make(['--only=snippets'])
+    const cmd = make(['--only=snippet'])
     const {log} = silenceLogs(cmd)
 
     // `watch()` blocks on SIGINT; fire it once the "Watching..." line proves we got past every
     // pre-flight guard, so this test doesn't need to actually wait for a real file event.
     const runPromise = cmd.run()
     await vi.waitFor(() => { expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching for changes')); })
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching snippets:'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Watching snippet:'))
 
     expect(watchMock).toHaveBeenCalledWith([join(dir, 'snippets')], {
       awaitWriteFinish: {pollInterval: 100, stabilityThreshold: 300},
@@ -236,7 +236,7 @@ describe('dev', () => {
     const {emit, watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
 
-    const cmd = make(['--only=snippets,pages'])
+    const cmd = make(['--only=snippet,page'])
     const {log} = silenceLogs(cmd)
 
     const runPromise = cmd.run()
@@ -258,8 +258,8 @@ describe('dev', () => {
     )
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('snippet:push', ['--env', 'local'])
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('page:push', ['--env', 'local'])
-    expect(log).toHaveBeenCalledWith('\n→ snippets changed (a.php, b.php), pushing to local...')
-    expect(log).toHaveBeenCalledWith('\n→ pages changed (about.html), pushing to local...')
+    expect(log).toHaveBeenCalledWith('\n→ snippet changed (a.php, b.php), pushing to local...')
+    expect(log).toHaveBeenCalledWith('\n→ page changed (about.html), pushing to local...')
 
     process.emit('SIGINT')
     await runPromise
@@ -283,7 +283,7 @@ describe('dev', () => {
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
     const {watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
-    const cmd = make(['--only=snippets'])
+    const cmd = make(['--only=snippet'])
     const {log} = silenceLogs(cmd)
 
     const runPromise = cmd.run()
@@ -303,26 +303,26 @@ describe('dev', () => {
       const cmd = make()
       silenceLogs(cmd)
 
-      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag(' snippets , api ', 'only')
+      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag([' snippet , api '], 'only')
 
-      expect(parsed).toEqual(['snippets', 'api'])
+      expect(parsed).toEqual(['snippet', 'api'])
     })
 
     it('drops empty segments left by consecutive or trailing commas', () => {
       const cmd = make()
       silenceLogs(cmd)
 
-      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('snippets,,api,', 'only')
+      const parsed = (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag(['snippet,,api,'], 'only')
 
-      expect(parsed).toEqual(['snippets', 'api'])
+      expect(parsed).toEqual(['snippet', 'api'])
     })
 
     it('reports the flag name and the full list of valid types in the error', () => {
       const cmd = make()
       silenceLogs(cmd)
 
-      expect(() => (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag('bogus', 'skip')).toThrow(
-        'Unknown resource type "bogus" in --skip. Valid types: snippets, templates, parts, css, blocks, pages, api, hooks, plugins',
+      expect(() => (cmd as unknown as DevWithParseTypeFlag).parseTypeFlag(['bogus'], 'skip')).toThrow(
+        'Unknown resource "bogus" in --skip. Valid resources: snippet, template, part, css, block, page, api, hook, plugin',
       )
     })
   })
