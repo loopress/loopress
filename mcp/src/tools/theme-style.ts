@@ -9,9 +9,9 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 const pathArg = z.string().optional().describe('Path to the theme styles directory (overrides project config)')
 
-export function registerThemeStylesTools(server: McpServer): void {
+export function registerThemeStyleTools(server: McpServer): void {
   server.registerTool(
-    'theme_styles_push',
+    'theme_style_push',
     {
       description:
         "Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress. Only supports block themes (Full Site Editing)." +
@@ -19,11 +19,11 @@ export function registerThemeStylesTools(server: McpServer): void {
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, overwrite: overwriteFlag, path: pathArg},
     },
     async ({confirmToken, env, overwrite, path}) =>
-      toCallToolResult(await runMutatingTool('theme_styles_push', buildArgs(['theme', 'style', 'push'], {env, overwrite, path}), confirmToken)),
+      toCallToolResult(await runMutatingTool('theme_style_push', buildArgs(['theme', 'style', 'push'], {env, overwrite, path}), confirmToken)),
   )
 
   server.registerTool(
-    'theme_styles_pull',
+    'theme_style_pull',
     {
       description:
         "Pull the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing) from WordPress into a local file. Only supports block themes (Full Site Editing).",
@@ -32,5 +32,5 @@ export function registerThemeStylesTools(server: McpServer): void {
     async ({env, path}) => toCallToolResult(unwrap(await runLps(buildArgs(['theme', 'style', 'pull'], {env, path})))),
   )
 
-  registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme style', toolName: 'theme_styles'})
+  registerRollbackTool(server, {pathNoun: 'theme styles directory', resource: 'theme style', toolName: 'theme_style'})
 }

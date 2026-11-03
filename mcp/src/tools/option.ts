@@ -9,6 +9,7 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 const pathArg = z.string().optional().describe('Path to the options directory (overrides project config)')
 const nameArg = z.string().describe('Option name (see option_list to find it)')
+const localOnlyFlag = z.boolean().optional().describe('Only stop tracking the option locally, without deleting it on WordPress')
 const noCoreFlag = z.boolean().optional().describe('Hide WordPress-native default options from the result')
 
 // Registered directly, not via registerResourceTools: list takes an extra flag (noCore) the shared helper's shape doesn't support.
@@ -64,13 +65,19 @@ export function registerOptionTools(server: McpServer): void {
   )
 
   server.registerTool(
-    'option_remove',
+    'option_rm',
     {
-      description: 'Stop tracking an option locally and delete it from WordPress.' + PREVIEW_SUFFIX,
-      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, name: nameArg},
+      description:
+        'Stop tracking an option locally and delete it from WordPress. With localOnly, only stop tracking it: the option is left untouched on WordPress.' +
+        PREVIEW_SUFFIX,
+      inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, localOnly: localOnlyFlag, name: nameArg, path: pathArg},
     },
-    async ({confirmToken, env, name}) =>
-      toCallToolResult(await runMutatingTool('option_remove', buildArgs(['option', 'remove', name], {env}), confirmToken)),
+    async ({confirmToken, env, localOnly, name, path}) => {
+      const args = buildArgs(['option', 'rm', name], {env})
+      if (localOnly) args.push('--local-only')
+      if (path) args.push('--path', path)
+      return toCallToolResult(await runMutatingTool('option_rm', args, confirmToken))
+    },
   )
 
   registerRollbackTool(server, {pathNoun: 'options directory', resource: 'option'})

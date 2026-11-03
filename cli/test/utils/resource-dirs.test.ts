@@ -23,18 +23,18 @@ describe('resolveResourceDir', () => {
   it.each([
     ['acf', 'acfDir'],
     ['api', 'apiDir'],
-    ['apps', 'appsDir'],
+    ['apps', 'appDir'],
     ['form', 'formDir'],
-    ['hooks', 'hooksDir'],
+    ['hooks', 'hookDir'],
     ['menu', 'menuDir'],
-    ['options', 'optionsDir'],
+    ['options', 'optionDir'],
     ['page', 'pageDir'],
     ['part', 'partDir'],
     ['pattern', 'patternDir'],
     ['role', 'roleDir'],
     ['snippets', 'snippetsDir'],
     ['template', 'templateDir'],
-    ['themeStyles', 'themeStylesDir'],
+    ['themeStyles', 'themeStyleDir'],
   ] as const)('reads %s from loopress.json "%s"', (kind, key) => {
     expect(resolveResourceDir(kind, {[key]: 'custom', rootDir: 'r'})).toBe(join('r', 'custom'))
   })

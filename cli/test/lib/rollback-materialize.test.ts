@@ -107,7 +107,7 @@ describe('rollback-materialize', () => {
   it('round-trips theme styles', async () => {
     const state = {'twentytwentyfour': {settings: {color: {}}, styles: {}}}
 
-    expect(await roundTrip('theme-styles', state)).toEqual(state)
+    expect(await roundTrip('theme-style', state)).toEqual(state)
   })
 
   it.each([

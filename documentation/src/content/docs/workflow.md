@@ -82,7 +82,7 @@ lps push --only acf,page
 lps push --skip plugin --skip composer
 ```
 
-`--only` and `--skip` take the singular resource ids below, comma-separated or repeated. `--only` narrows the run, `--skip` then removes from it, and the order stays the push order whatever order you wrote. A resource left out is reported `skipped` and never checked against the site, so it can't block the run (an unsupported or missing integration only matters for what you push). Ids: `plugin`, `composer`, `cpt`, `taxonomy`, `meta`, `role`, `acf`, `api`, `hook`, `block`, `form`, `pattern`, `template` (templates, parts and CSS), `theme-styles`, `page`, `menu`, `option`, `snippet`.
+`--only` and `--skip` take the singular resource ids below, comma-separated or repeated. `--only` narrows the run, `--skip` then removes from it, and the order stays the push order whatever order you wrote. A resource left out is reported `skipped` and never checked against the site, so it can't block the run (an unsupported or missing integration only matters for what you push). Ids: `plugin`, `composer`, `cpt`, `taxonomy`, `meta`, `role`, `acf`, `api`, `hook`, `block`, `form`, `pattern`, `template` (templates, parts and CSS), `theme-style`, `page`, `menu`, `option`, `snippet`.
 
 The same ids work in `lps diff` and `lps dev`.
 
@@ -114,7 +114,7 @@ lps diff --skip composer
 | `--only <resources>` | Only compare these resources. Comma-separated or repeated |
 | `--skip <resources>` | Compare every resource except these. Comma-separated or repeated |
 
-Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-styles`, `composer`.
+Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-style`, `composer`.
 
 The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin, runs a classic theme, or runs Loopress Light for a feature of Full. A project that uses only what Light holds exits `0` on it. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 

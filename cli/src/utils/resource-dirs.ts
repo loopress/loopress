@@ -33,16 +33,16 @@ export type ResourceDirKind = keyof typeof RESOURCE_DIR_DEFAULTS
 const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   acf: 'acfDir',
   api: 'apiDir',
-  apps: 'appsDir',
+  apps: 'appDir',
   block: 'blockDir',
   blockCss: 'blockCssDir',
   cpt: 'cptDir',
   css: 'cssDir',
   form: 'formDir',
-  hooks: 'hooksDir',
+  hooks: 'hookDir',
   menu: 'menuDir',
   meta: 'metaDir',
-  options: 'optionsDir',
+  options: 'optionDir',
   page: 'pageDir',
   part: 'partDir',
   pattern: 'patternDir',
@@ -50,7 +50,7 @@ const CONFIG_KEY: Record<ResourceDirKind, keyof LoopressLocalConfig> = {
   snippets: 'snippetsDir',
   taxonomy: 'taxonomyDir',
   template: 'templateDir',
-  themeStyles: 'themeStylesDir',
+  themeStyles: 'themeStyleDir',
 }
 
 // Resolves where a resource's files live: an explicit override wins, otherwise the

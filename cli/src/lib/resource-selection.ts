@@ -18,7 +18,7 @@ export const RESOURCE_IDS = [
   'template',
   'part',
   'css',
-  'theme-styles',
+  'theme-style',
   'page',
   'menu',
   'option',

@@ -132,7 +132,7 @@ const MATERIALIZERS: Record<string, Materializer> = {
   role: declaredType(ROLE_SPEC),
   snippet,
   taxonomy: declaredType(TAXONOMY_SPEC),
-  'theme-styles': themeStyles,
+  'theme-style': themeStyles,
 }
 
 // Writes a snapshot's state back to `dir` in the exact on-disk layout `<resource> pull` would

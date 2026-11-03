@@ -7,7 +7,7 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 export function registerDoctorTools(server: McpServer): void {
   server.registerTool(
-    'project_doctor',
+    'doctor',
     {
       description:
         'Diagnose connectivity, plugin, credential and hook problems for the targeted WordPress environment: whether the site is reachable, the Loopress plugin is installed, the stored credentials are accepted, and the pushed hooks load and run without errors.',

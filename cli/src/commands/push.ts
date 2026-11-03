@@ -60,7 +60,7 @@ const PUSH_TARGETS: PushTarget[] = [
   {commandId: 'theme:template:push', id: 'template', label: 'templates and parts'},
   // Belong to whichever theme is active, so right after its templates. Theme versions stay out:
   // installing or removing themes is `lps theme push`'s call.
-  {commandId: 'theme:style:push', id: 'theme-styles', label: 'Global Styles'},
+  {commandId: 'theme:style:push', id: 'theme-style', label: 'Global Styles'},
   {commandId: 'page:push', id: 'page', label: 'pages'},
   {commandId: 'menu:push', id: 'menu', label: 'menus'},
   {commandId: 'option:push', id: 'option', label: 'options'},

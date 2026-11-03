@@ -6,7 +6,7 @@ edition: light
 
 The `option` command group version-controls individual rows of the WordPress `wp_options` table: a plugin's settings array, the site's date format, the front page setting. Unlike the other resources, nothing is tracked by default. You pick the options you care about one by one with `lps option add`, and only those are ever pulled, pushed or compared.
 
-Each tracked option is one JSON file in `options/` (or `loopress.json`'s `optionsDir`), named after the option:
+Each tracked option is one JSON file in `options/` (or `loopress.json`'s `optionDir`), named after the option:
 
 ```json
 {

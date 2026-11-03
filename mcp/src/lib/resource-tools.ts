@@ -28,7 +28,7 @@ export const CHANGES_SUFFIX =
   ' The preview lists each item the push writes under `changes`, as created, changed or unchanged against the site, so tell the user from it what will change instead of asking them to check by hand.'
 
 type ResourceToolsSpec = {
-  // rmTarget: the rm tool's `filename` description, for a resource whose items aren't .php files.
+  // rmTarget: the rm tool's `slug` description, for a resource whose items aren't .php files.
   descriptions: {list: string; pull: string; push: string; rm?: string; rmTarget?: string}
   // Noun dropped into the path arg's description, e.g. 'forms directory'.
   pathNoun: string
@@ -182,15 +182,15 @@ export function registerResourceTools(
         inputSchema: {
           confirmToken: confirmTokenFlag,
           env: envFlag,
-          filename: z
+          slug: z
             .string()
             .refine((value) => !value.startsWith('-'), 'must not start with "-"')
             .describe(descriptions.rmTarget ?? `The ${resource} file slug to remove, without the .php extension (e.g. "hello")`),
         },
       },
-      async ({confirmToken, env, filename}) => {
+      async ({confirmToken, env, slug}) => {
         // --yes for the same reason as prune above; the handshake is the approval gate.
-        const args = [...buildArgs([resource, 'rm', filename], {env}), '--yes']
+        const args = [...buildArgs([resource, 'rm', slug], {env}), '--yes']
         return toCallToolResult(await runMutatingTool(`${resource}_rm`, args, confirmToken))
       },
     )

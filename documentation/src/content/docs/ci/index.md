@@ -3,7 +3,7 @@ title: CI/CD Integration
 description: Bootstrap a full WordPress environment in CI with a single step and run Loopress against it.
 ---
 
-`loopress/setup-ci` starts MySQL and WordPress via Docker, installs WP-CLI, creates the REST credentials, and installs the Loopress CLI. Your pipeline can run `lps snippet push` immediately after.
+`loopress/setup-ci` starts MySQL and WordPress via Docker, installs WP-CLI, creates the REST credentials, and installs the Loopress CLI. Your pipeline can run `lps push` immediately after.
 
 ## How it works
 
@@ -17,21 +17,19 @@ description: Bootstrap a full WordPress environment in CI with a single step and
 
 ## Token requirements
 
-No token is needed to run `lps snippet push` or `lps plugin push` against a local WordPress instance.
-
-A token is required only when deploying to a real site. Get one at [console.loopress.dev/tokens](https://console.loopress.dev/tokens).
+No token is required to push, locally, in CI, or to a real site. `LOOPRESS_TOKEN` is only read for best-effort cloud features (deployment record, publish). Get one at [console.loopress.dev/tokens](https://console.loopress.dev/tokens) if you want them.
 
 ## Deploying to a real environment
 
 The ephemeral instance above is for tests. To deploy to a real site (staging, production), provide the project configuration as a CI secret and pick the environment per command with `--env`, instead of fabricating the active-environment state in the config file:
 
 1. Configure the project once on your machine (`lps project config`).
-2. Store your `config.json` (see its path under "How it works") as a CI secret file, and set `LOOPRESS_TOKEN`.
+2. Store your `config.json` (see its path under "How it works") as a CI secret file. Optionally set `LOOPRESS_TOKEN` for the cloud features.
 3. Target the environment explicitly in the pipeline:
 
 ```bash
 lps doctor --env staging
-lps snippet push --env staging --yes
+lps push --env staging --yes
 ```
 
 `--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment named `production` requires it in a non-interactive run.
@@ -40,6 +38,7 @@ lps snippet push --env staging --yes
 
 - [GitHub Actions](/ci/github-actions/)
 - [GitLab CI](/ci/gitlab/)
+- [Drift detection](/ci/drift-detection/) (scheduled GitHub Actions job)
 
 ## Beyond syncing files
 

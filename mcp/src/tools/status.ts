@@ -6,7 +6,7 @@ import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
 export function registerStatusTools(server: McpServer): void {
   server.registerTool(
-    'project_status',
+    'status',
     {
       description: 'Show which WordPress project and environment the other tools will target.',
       inputSchema: {env: z.string().optional().describe('Show what would be targeted with this environment override')},

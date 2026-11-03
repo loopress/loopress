@@ -43,8 +43,10 @@ const RESOURCES: HtmlResource[] = [
 // Not registerResourceTools: no directory path argument, no pull yet, and both have a diff tool.
 export function registerPageTools(server: McpServer): void {
   for (const {command, descriptions, kind, slugExample} of RESOURCES) {
+    // Tool names follow the CLI topic: `lps theme template push` is `theme_template_push`.
+    const name = command.join('_')
     server.registerTool(
-      `${kind}_push`,
+      `${name}_push`,
       {
         description: descriptions.push + PREVIEW_SUFFIX + CHANGES_SUFFIX,
         inputSchema: {
@@ -68,18 +70,18 @@ export function registerPageTools(server: McpServer): void {
       },
       async ({confirmToken, env, overwrite, slug}: {confirmToken?: string; env?: string; overwrite?: boolean; slug?: string}) =>
         toCallToolResult(
-          await runMutatingTool(`${kind}_push`, buildArgs(slug ? [...command, 'push', slug] : [...command, 'push'], {env, overwrite}), confirmToken),
+          await runMutatingTool(`${name}_push`, buildArgs(slug ? [...command, 'push', slug] : [...command, 'push'], {env, overwrite}), confirmToken),
         ),
     )
 
     server.registerTool(
-      `${kind}_list`,
+      `${name}_list`,
       {description: descriptions.list, inputSchema: {env: envFlag}},
       async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([...command, 'list'], {env})))),
     )
 
     server.registerTool(
-      `${kind}_diff`,
+      `${name}_diff`,
       {description: descriptions.diff, inputSchema: {env: envFlag}},
       async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([...command, 'diff'], {env})))),
     )

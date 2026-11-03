@@ -46,10 +46,10 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `taxonomyDir` | `taxonomies` | Taxonomies, one `<slug>.json` file of `register_taxonomy()` arguments plus `object_type` each | [`lps taxonomy`](/taxonomies/) |
 | `metaDir` | `meta` | Post meta keys, one `<post-type>.json` file mapping each key to its `register_post_meta()` arguments | [`lps meta`](/post-meta/) |
 | `roleDir` | `roles` | User roles, one `<slug>.json` file with a name and capabilities | [`lps role`](/roles/) |
-| `optionsDir` | `options` | Tracked `wp_options` rows, only the ones added with `lps option add` | [`lps option`](/options/) |
-| `themeStylesDir` | `theme` | The active block theme's Global Styles | [`lps theme style`](/theme-styles/) |
+| `optionDir` | `options` | Tracked `wp_options` rows, only the ones added with `lps option add` | [`lps option`](/options/) |
+| `themeStyleDir` | `theme` | The active block theme's Global Styles | [`lps theme style`](/theme-styles/) |
 | `apiDir` | `api` | Custom API route files | [`lps api`](/api/cli/) |
-| `hooksDir` | `hooks` | Hook files (actions, filters, cron) | [`lps hook`](/hooks/) |
+| `hookDir` | `hooks` | Hook files (actions, filters, cron) | [`lps hook`](/hooks/) |
 | `blockDir` | `blocks` | Dynamic blocks, one `<slug>/` folder holding `block.json` and `render.php`, registered as `loopress/<slug>` | [`lps block`](/dynamic-blocks/) |
 | `pageDir` | `pages` | Static HTML pages | [`lps page`](/pages/) |
 | `patternDir` | `patterns` | Block patterns, one `<slug>.html` file of block markup, registered as `loopress/<slug>` | [`lps pattern`](/block-patterns/) |
@@ -57,7 +57,7 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `partDir` | `theme/parts` | Block template parts, written to the Loopress child theme | [`lps theme template`](/pages/#templates-and-parts) |
 | `cssDir` | `theme/css` | Global theme CSS, `style.css` is the entry, bundled into the child's `style.css` | [`lps theme template`](/pages/#theme-css) |
 | `blockCssDir` | `theme/blocks` | Per-block CSS (`<namespace>/<block>.css`), loaded only where the block renders | [`lps theme template`](/pages/#theme-css) |
-| `appsDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |
+| `appDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |
 
 ## Plugins and themes
 

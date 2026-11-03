@@ -199,7 +199,7 @@ describe('diff', () => {
 
     expect(get).not.toHaveBeenCalledWith('loopress/v1/forms')
     expect(result.resources.form).toBeUndefined()
-    expect(result.resources['theme-styles']).toBeUndefined()
+    expect(result.resources['theme-style']).toBeUndefined()
     expect(process.exitCode).not.toBe(2)
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/))
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/))

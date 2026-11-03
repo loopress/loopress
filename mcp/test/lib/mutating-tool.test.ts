@@ -108,7 +108,7 @@ describe('runMutatingTool', () => {
   })
 
   it('refuses a promote whose destination is production (case-insensitive)', async () => {
-    const result = await runMutatingTool('project_promote', ['promote', 'staging', 'Production', '--yes'])
+    const result = await runMutatingTool('promote', ['promote', 'staging', 'Production', '--yes'])
 
     expect(result.status).toBe('error')
     expect(result.error?.name).toBe('PRODUCTION_BLOCKED')
@@ -118,7 +118,7 @@ describe('runMutatingTool', () => {
   it('allows a promote whose destination is not production', async () => {
     mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
 
-    const result = await runMutatingTool('project_promote', ['promote', 'production', 'staging', '--yes'])
+    const result = await runMutatingTool('promote', ['promote', 'production', 'staging', '--yes'])
 
     expect(result.status).toBe('preview')
     expect(mockedRunLps).toHaveBeenCalled()

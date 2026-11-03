@@ -69,13 +69,13 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
 | `page_diff` | No | Show what differs between the local pages and WordPress |
-| `template_push` | Yes | Push local block templates, parts and theme CSS as the files of the Loopress child theme |
-| `template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
-| `template_diff` | No | Show what differs between the local templates and parts and WordPress, Site Editor edits included |
+| `theme_template_push` | Yes | Push local block templates, parts and theme CSS as the files of the Loopress child theme |
+| `theme_template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
+| `theme_template_diff` | No | Show what differs between the local templates and parts and WordPress, Site Editor edits included |
 | `app_push` | Yes | Build and push single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |
-| `app_remove` | Yes | Remove a single-page app from WordPress |
+| `app_rm` | Yes | Remove a single-page app from WordPress |
 | `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |
@@ -113,7 +113,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `option_pull` | No | Refresh locally tracked options from WordPress |
 | `option_list` | No | List WordPress option names and autoload flags currently on the site (names only, never values) |
 | `option_add` | No | Fetch a WordPress option by name and start tracking it locally |
-| `option_remove` | Yes | Stop tracking an option locally and delete it from WordPress |
+| `option_rm` | Yes | Stop tracking an option locally and delete it from WordPress (`localOnly` skips the delete) |
 | `option_rollback` | Yes | Restore tracked options to the snapshot saved automatically before an earlier `option_push` (`list` shows what's available) |
 | `form_push` | Yes | Push local form files to WordPress |
 | `form_pull` | No | Pull forms from WordPress into local files |
@@ -131,21 +131,21 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `theme_pull` | No | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
 | `theme_status` | No | Compare the themes on WordPress against `loopress.json` and report version drift |
-| `theme_styles_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
-| `theme_styles_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |
-| `theme_styles_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_styles_push` (`list` shows what's available) |
+| `theme_style_push` | Yes | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
+| `theme_style_pull` | No | Pull the active block theme's Global Styles customizations from WordPress into a local file |
+| `theme_style_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_style_push` (`list` shows what's available) |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
-| `push_all` | Yes | Push every local resource to WordPress in one run, like `lps push`. Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
-| `pull_all` | No | Pull every resource from WordPress into local files in one run, like `lps pull`. On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
-| `project_promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
+| `push` | Yes | Push every local resource to WordPress in one run, like `lps push`. Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
+| `pull` | No | Pull every resource from WordPress into local files in one run, like `lps pull`. On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
+| `promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |
 | `content_copy` | Yes | Replace the local site's posts, pages and terms with those of `from`, then push the project to local, like `lps content copy` |
-| `project_status` | No | Show which project and environment the other tools will target |
-| `project_diff` | No | Show what differs between local tracked files and a WordPress environment, or between two environments (`against`) |
-| `project_doctor` | No | Diagnose connectivity, plugin, credential and hook problems for the targeted environment |
-| `validate_local` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
+| `status` | No | Show which project and environment the other tools will target |
+| `diff` | No | Show what differs between local tracked files and a WordPress environment, or between two environments (`against`) |
+| `doctor` | No | Diagnose connectivity, plugin, credential and hook problems for the targeted environment |
+| `validate` | No | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
-Every tool that talks to one WordPress environment accepts an optional `env` to target it instead of the project's default one (`local`, or its only environment). The exceptions take no `env`: `plugin_add` and `theme_add` only edit `loopress.json`, `plugin_audit` and `validate_local` never contact WordPress, `project_promote` names its two environments (`from`, `to`), and `content_copy` takes `from` and always writes to `local`. The `_push`, `_pull` and `_rollback` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`; the `_list` tools only take `env`. The ACF tools take an optional `type` array to scope the operation, mirroring the CLI's `--type` flag. `project_diff` also takes optional `only`/`skip` resource-name arrays (the same names as `lps diff --only`, including `template`, `part` and `page`) and an `against` environment name to compare two environments instead of an environment against local files. Push tools that check for [changes made outside Loopress](/concepts/#changes-made-outside-loopress) (`push_all`, `project_promote`, `page_push` and every resource with a `_rollback` tool) take an optional `overwrite` boolean, the CLI's `--overwrite`: without it, a confirmed push over such a change fails and names what it would overwrite. Each `_rollback` tool restores the snapshot its resource's `_push` tool saved automatically right before the last real push; pass `list: true` to see what's available instead (id, timestamp, environment) or `to` to pick an older one. The preview result's `drift` field reports whether the environment changed since that push, and if it changes again between the preview and the confirmed call, the confirmed call is refused rather than applied, the same staleness check every other mutating tool's confirmation handshake now does.
+Every tool that talks to one WordPress environment accepts an optional `env` to target it instead of the project's default one (`local`, or its only environment). The exceptions take no `env`: `plugin_add` and `theme_add` only edit `loopress.json`, `plugin_audit` and `validate` never contact WordPress, `promote` names its two environments (`from`, `to`), and `content_copy` takes `from` and always writes to `local`. The `_push`, `_pull` and `_rollback` tools that sync files also accept an optional `path` to override the directory configured in `loopress.json`; the `_list` tools only take `env`. The ACF tools take an optional `type` array to scope the operation, mirroring the CLI's `--type` flag. `diff` also takes optional `only`/`skip` resource-name arrays (the same names as `lps diff --only`, including `template`, `part` and `page`) and an `against` environment name to compare two environments instead of an environment against local files. Push tools that check for [changes made outside Loopress](/concepts/#changes-made-outside-loopress) (`push`, `promote`, `page_push` and every resource with a `_rollback` tool) take an optional `overwrite` boolean, the CLI's `--overwrite`: without it, a confirmed push over such a change fails and names what it would overwrite. Each `_rollback` tool restores the snapshot its resource's `_push` tool saved automatically right before the last real push; pass `list: true` to see what's available instead (id, timestamp, environment) or `to` to pick an older one. The preview result's `drift` field reports whether the environment changed since that push, and if it changes again between the preview and the confirmed call, the confirmed call is refused rather than applied, the same staleness check every other mutating tool's confirmation handshake now does.
 
 ## Confirming changes
 

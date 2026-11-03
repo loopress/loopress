@@ -13,7 +13,7 @@ These commands are separate from the aggregate `lps push` / `lps pull` / `lps pr
 `push` and `pull` operate on one local directory, resolved the same way:
 
 1. The `path` argument, if given (`pull` only)
-2. The `appsDir` key in the project's `loopress.json`, if set
+2. The `appDir` key in the project's `loopress.json`, if set
 3. `./apps`, the default
 
 ## Typical workflow
@@ -46,7 +46,7 @@ lps app push [name]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `name` | every app in `appsDir` | Push only this app |
+| `name` | every app in `appDir` | Push only this app |
 
 | Flag | Description |
 |------|-------------|
@@ -67,7 +67,7 @@ lps app pull [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./apps` (or `loopress.json`'s `appsDir`) | Local directory to write into |
+| `path` | `./apps` (or `loopress.json`'s `appDir`) | Local directory to write into |
 
 | Flag | Description |
 |------|-------------|

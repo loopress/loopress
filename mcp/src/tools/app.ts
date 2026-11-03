@@ -40,13 +40,13 @@ export function registerAppTools(server: McpServer): void {
   )
 
   server.registerTool(
-    'app_remove',
+    'app_rm',
     {
       description:
         'Remove a single-page app from WordPress: deletes its bundle from wp-content/loopress/apps/ and unregisters the shortcode. Local files are left untouched.' + PREVIEW_SUFFIX,
       inputSchema: {confirmToken: confirmTokenFlag, env: envFlag, name: nameArg},
     },
     async ({confirmToken, env, name}) =>
-      toCallToolResult(await runMutatingTool('app_remove', buildArgs(['app', 'remove', name], {env}), confirmToken)),
+      toCallToolResult(await runMutatingTool('app_rm', buildArgs(['app', 'rm', name], {env}), confirmToken)),
   )
 }

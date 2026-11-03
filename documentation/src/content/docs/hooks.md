@@ -143,7 +143,7 @@ lps hook pull [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./hooks` (or `loopress.json`'s `hooksDir`) | Local directory where hook files are written |
+| `path` | `./hooks` (or `loopress.json`'s `hookDir`) | Local directory where hook files are written |
 
 | Flag | Description |
 |------|-------------|
@@ -163,7 +163,7 @@ lps hook push [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./hooks` (or `loopress.json`'s `hooksDir`) | Local directory to read `.php` files from |
+| `path` | `./hooks` (or `loopress.json`'s `hookDir`) | Local directory to read `.php` files from |
 
 | Flag | Description |
 |------|-------------|

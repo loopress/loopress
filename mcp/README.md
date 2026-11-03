@@ -65,28 +65,28 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `api_push` | Yes | `env?`, `path?`, `prune?`, `overwrite?`, `confirmToken?` | Push local custom API route files to WordPress (`prune` also deletes server-side files not present locally) |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress (flags each route `public`) |
-| `api_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one custom API route file from WordPress |
+| `api_rm` | Yes | `env?`, `slug`, `confirmToken?` | Remove one custom API route file from WordPress |
 | `api_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore API route files to the snapshot saved automatically before an earlier `api_push` (`list` shows what's available) |
 | `hook_push` | Yes | `env?`, `path?`, `prune?`, `overwrite?`, `confirmToken?` | Push local hook files to WordPress (`prune` also deletes server-side files not present locally) |
 | `hook_pull` | No | `env?`, `path?` | Pull hook files from WordPress |
 | `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
-| `hook_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |
+| `hook_rm` | Yes | `env?`, `slug`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |
 | `hook_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore hook files to the snapshot saved automatically before an earlier `hook_push` (`list` shows what's available) |
 | `block_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local dynamic blocks (`blocks/<slug>/` folders) to WordPress |
 | `block_pull` | No | `env?`, `path?` | Pull dynamic blocks from WordPress |
 | `block_list` | No | `env?` | List the dynamic blocks Loopress registers, with their load and render errors |
-| `block_rm` | Yes | `env?`, `filename`, `confirmToken?` | Remove one dynamic block from WordPress |
+| `block_rm` | Yes | `env?`, `slug`, `confirmToken?` | Remove one dynamic block from WordPress |
 | `block_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore dynamic blocks to the snapshot saved automatically before an earlier `block_push` (`list` shows what's available) |
 | `page_push` | Yes | `env?`, `slug?`, `overwrite?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
 | `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
 | `page_diff` | No | `env?` | Show what differs (HTML, title, status) between the local pages and WordPress |
-| `template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`theme/templates/<slug>.html`), parts (`theme/parts/<slug>.html`) and theme CSS (`theme/css/`, `theme/blocks/`) as the files of the Loopress child theme |
-| `template_list` | No | `env?` | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
-| `template_diff` | No | `env?` | Show what differs between the local templates and parts and the child theme, Site Editor edits included |
+| `theme_template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`theme/templates/<slug>.html`), parts (`theme/parts/<slug>.html`) and theme CSS (`theme/css/`, `theme/blocks/`) as the files of the Loopress child theme |
+| `theme_template_list` | No | `env?` | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
+| `theme_template_diff` | No | `env?` | Show what differs between the local templates and parts and the child theme, Site Editor edits included |
 | `app_push` | Yes | `env?`, `name?`, `noBuild?`, `confirmToken?` | Build (package.json `build` script) and push single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |
-| `app_remove` | Yes | `env?`, `name`, `confirmToken?` | Remove a single-page app from WordPress |
+| `app_rm` | Yes | `env?`, `name`, `confirmToken?` | Remove a single-page app from WordPress |
 | `acf_push` | Yes | `env?`, `path?`, `type?`, `overwrite?`, `confirmToken?` | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |
@@ -98,33 +98,33 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `cpt_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `cpt/<slug>.json` custom post types to WordPress (create or update only) |
 | `cpt_pull` | No | `env?`, `path?` | Pull the custom post types Loopress manages into `cpt/<slug>.json` files |
 | `cpt_list` | No | `env?` | List the post types registered on WordPress and where each comes from |
-| `cpt_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress custom post type (its posts stay in the database, hidden) |
+| `cpt_rm` | Yes | `slug`, `env?`, `confirmToken?` | Stop registering a Loopress custom post type (its posts stay in the database, hidden) |
 | `cpt_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore custom post types to the snapshot saved automatically before an earlier `cpt_push` (`list` shows what's available) |
 | `taxonomy_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `taxonomies/<slug>.json` taxonomies to WordPress (create or update only, never their terms) |
 | `taxonomy_pull` | No | `env?`, `path?` | Pull the taxonomies Loopress manages into `taxonomies/<slug>.json` files |
 | `taxonomy_list` | No | `env?` | List the taxonomies registered on WordPress, where each comes from and the post types it attaches to |
-| `taxonomy_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress taxonomy (its terms stay in the database, hidden) |
+| `taxonomy_rm` | Yes | `slug`, `env?`, `confirmToken?` | Stop registering a Loopress taxonomy (its terms stay in the database, hidden) |
 | `taxonomy_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore taxonomies to the snapshot saved automatically before an earlier `taxonomy_push` (`list` shows what's available) |
 | `meta_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `meta/<post-type>.json` meta keys to WordPress (create or update only, never their values) |
 | `meta_pull` | No | `env?`, `path?` | Pull the post meta keys Loopress manages into `meta/<post-type>.json` files |
 | `meta_list` | No | `env?` | List the meta keys registered for each post type on WordPress, and whether Loopress declares them |
-| `meta_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
+| `meta_rm` | Yes | `slug`, `env?`, `confirmToken?` | Stop registering the Loopress meta keys of one post type (their values stay in the database) |
 | `meta_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore post meta keys to the snapshot saved automatically before an earlier `meta_push` (`list` shows what's available) |
 | `role_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `roles/<slug>.json` roles to WordPress (create or update only, never changes which users have them) |
 | `role_pull` | No | `env?`, `path?` | Pull the roles Loopress manages into `roles/<slug>.json` files |
 | `role_list` | No | `env?` | List the user roles on WordPress, where each comes from and how many users have it |
-| `role_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress role (its users keep it, with no capability) |
+| `role_rm` | Yes | `slug`, `env?`, `confirmToken?` | Stop registering a Loopress role (its users keep it, with no capability) |
 | `role_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore roles to the snapshot saved automatically before an earlier `role_push` (`list` shows what's available) |
 | `pattern_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local `patterns/<slug>.html` block patterns to WordPress, registered as `loopress/<slug>` (create or update only) |
 | `pattern_pull` | No | `env?`, `path?` | Pull the block patterns Loopress manages into `patterns/<slug>.html` files |
 | `pattern_list` | No | `env?` | List the block patterns registered by Loopress, the theme and plugins |
-| `pattern_rm` | Yes | `filename`, `env?`, `confirmToken?` | Stop registering a Loopress block pattern (references to it render nothing) |
+| `pattern_rm` | Yes | `slug`, `env?`, `confirmToken?` | Stop registering a Loopress block pattern (references to it render nothing) |
 | `pattern_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore block patterns to the snapshot saved automatically before an earlier `pattern_push` (`list` shows what's available) |
 | `option_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push locally tracked, non-readonly options to WordPress |
 | `option_pull` | No | `env?`, `path?` | Refresh locally tracked options from WordPress |
 | `option_list` | No | `env?`, `noCore?` | List WordPress option names and autoload flags currently on the site (names only, never values) |
 | `option_add` | No | `env?`, `name` | Fetch a WordPress option by name and start tracking it locally |
-| `option_remove` | Yes | `env?`, `name`, `confirmToken?` | Stop tracking an option locally and delete it from WordPress |
+| `option_rm` | Yes | `env?`, `name`, `path?`, `localOnly?`, `confirmToken?` | Stop tracking an option locally and delete it from WordPress (`localOnly` skips the delete) |
 | `option_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore tracked options to the snapshot saved automatically before an earlier `option_push` (`list` shows what's available) |
 | `form_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push local form files to WordPress |
 | `form_pull` | No | `env?`, `path?` | Pull forms from WordPress into local files |
@@ -142,25 +142,25 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `theme_pull` | No | `env?` | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | `stylesheet?`, `env?`, `confirmToken?` | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
 | `theme_status` | No | `env?` | Compare the themes on WordPress against `loopress.json` and report version drift |
-| `theme_styles_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
-| `theme_styles_pull` | No | `env?`, `path?` | Pull the active block theme's Global Styles customizations from WordPress into a local file |
-| `theme_styles_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore Global Styles to the snapshot saved automatically before an earlier `theme_styles_push` (`list` shows what's available) |
+| `theme_style_push` | Yes | `env?`, `path?`, `overwrite?`, `confirmToken?` | Push the local Global Styles file to the active block theme's Site Editor > Styles on WordPress |
+| `theme_style_pull` | No | `env?`, `path?` | Pull the active block theme's Global Styles customizations from WordPress into a local file |
+| `theme_style_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore Global Styles to the snapshot saved automatically before an earlier `theme_style_push` (`list` shows what's available) |
 | `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
-| `push_all` | Yes | `env?`, `overwrite?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`). Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
-| `pull_all` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`). On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
-| `project_promote` | Yes | `from`, `to`, `overwrite?`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
+| `push` | Yes | `env?`, `overwrite?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`). Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
+| `pull` | No | `env?` | Pull every resource from WordPress into local files in one run (`lps pull`). On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
+| `promote` | Yes | `from`, `to`, `overwrite?`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
 | `content_copy` | Yes | `from`, `confirmToken?` | Replace the local site's posts, pages and terms with `from`'s, then push the project to local (`lps content copy`) |
-| `project_status` | No | `env?` | Show which project and environment the other tools will target |
-| `project_diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
-| `project_doctor` | No | `env?` | Diagnose connectivity, plugin, credential and hook problems for the targeted environment |
-| `validate_local` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
+| `status` | No | `env?` | Show which project and environment the other tools will target |
+| `diff` | No | `env?`, `against?`, `only?`, `skip?` | Show what differs between local tracked files and a WordPress environment, or between two environments |
+| `doctor` | No | `env?` | Diagnose connectivity, plugin, credential and hook problems for the targeted environment |
+| `validate` | No | none | Check local tracked files are well formed and push-ready, without contacting WordPress |
 
 `env` picks the environment for that call, instead of the project's default (`local`, or its only one). `path` overrides the directory
 configured in `loopress.json` for that feature. `type` (ACF) is an optional
-array that scopes the operation to specific object types, matching the CLI's `--type` flag. `project_diff`'s `only`/`skip` are optional arrays of resource names
+array that scopes the operation to specific object types, matching the CLI's `--type` flag. `diff`'s `only`/`skip` are optional arrays of resource names
 (`snippet`, `form`, `acf`, `api`, `hook`, `template`, `part`, `page`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`,
-`theme-styles`, `composer`) and `against`
+`theme-style`, `composer`) and `against`
 compares two environments instead of an environment against local files. Each `_rollback` tool
 restores the snapshot its resource's `_push` tool saved automatically right before the last real
 push; `list: true` shows what's available (id, timestamp, environment) instead of rolling back,
@@ -208,7 +208,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push_all` / `pull_all` / `project_promote` / `content_copy`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push` / `pull` / `promote` / `content_copy`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
 | `ExecError` | The `lps` process failed for another reason than a timeout |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
