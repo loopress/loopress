@@ -37,7 +37,7 @@ lps theme style pull [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./theme` (or `loopress.json`'s `themeStylesDir`) | Local directory where the Global Styles file is written |
+| `path` | `./theme` (or `loopress.json`'s `themeStyleDir`) | Local directory where the Global Styles file is written |
 
 | Flag | Description |
 |------|-------------|
@@ -55,7 +55,7 @@ lps theme style push [path]
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `path` | `./theme` (or `loopress.json`'s `themeStylesDir`) | Local directory to read the Global Styles file from |
+| `path` | `./theme` (or `loopress.json`'s `themeStyleDir`) | Local directory to read the Global Styles file from |
 
 | Flag | Description |
 |------|-------------|

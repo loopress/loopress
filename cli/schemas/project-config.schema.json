@@ -39,12 +39,12 @@
       "description": "Directory of dynamic blocks, one <slug>/ folder holding block.json and render.php, registered as loopress/<slug>, relative to rootDir.",
       "default": "blocks"
     },
-    "hooksDir": {
+    "hookDir": {
       "type": "string",
       "description": "Directory where hook files (WordPress actions, filters, and scheduled tasks) are read from and written to, relative to rootDir.",
       "default": "hooks"
     },
-    "appsDir": {
+    "appDir": {
       "type": "string",
       "description": "Directory where single-page app bundles are read from and written to, relative to rootDir. Each subdirectory is one app: a loopress.app.json plus a built dist/ folder.",
       "default": "apps"
@@ -74,7 +74,7 @@
       "description": "Directory of per-block CSS (one <namespace>/<block>.css per block, e.g. core/button.css), relative to rootDir. Each file is bundled into the Loopress child theme and only loaded on pages that render that block.",
       "default": "theme/blocks"
     },
-    "optionsDir": {
+    "optionDir": {
       "type": "string",
       "description": "Directory where explicitly tracked WordPress options (wp_options rows) are read from and written to, relative to rootDir. Only options added via `lps option add` live here, this is never the whole options table.",
       "default": "options"
@@ -109,7 +109,7 @@
       "description": "Directory where nav menus (one JSON file per menu, plus menu-locations.json for the active theme's menu locations) are read from and written to, relative to rootDir.",
       "default": "menus"
     },
-    "themeStylesDir": {
+    "themeStyleDir": {
       "type": "string",
       "description": "Directory where the active block theme's Global Styles customizations (Site Editor > Styles: colors, typography, spacing) are read from and written to, relative to rootDir. Classic (non-block) themes are not supported.",
       "default": "theme"

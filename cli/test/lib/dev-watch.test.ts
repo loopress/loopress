@@ -51,10 +51,10 @@ describe('buildWatchTargets', () => {
     expect(targets).toEqual([{commandId: 'snippet:push', path: join(dir, 'wp', 'code'), type: 'snippets'}])
   })
 
-  it('watches the hooks directory with hook:push, honoring hooksDir', () => {
+  it('watches the hooks directory with hook:push, honoring hookDir', () => {
     mkdirSync(join(dir, 'wp-hooks'))
 
-    const targets = buildWatchTargets(['hooks'], {hooksDir: 'wp-hooks'}, dir)
+    const targets = buildWatchTargets(['hooks'], {hookDir: 'wp-hooks'}, dir)
 
     expect(targets).toEqual([{commandId: 'hook:push', path: join(dir, 'wp-hooks'), type: 'hooks'}])
   })
