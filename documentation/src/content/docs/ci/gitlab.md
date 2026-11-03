@@ -25,13 +25,13 @@ deploy:
 | `LOOPRESS_WP_VERSION` | WordPress version | `latest` |
 | `LOOPRESS_WP_PORT` | WordPress port | `8080` |
 | `LOOPRESS_SITE` | Site ID for deploy jobs | `staging` |
-| `LOOPRESS_TOKEN` | Loopress cloud token | |
+| `LOOPRESS_TOKEN` | Optional Loopress cloud token | |
 
 ## Available templates
 
-`.loopress-test` boots WordPress and runs `lps snippet push`. Triggers on branches and merge requests.
+`.loopress-test` boots WordPress and runs `lps push`. Triggers on branches and merge requests.
 
-`.loopress-deploy` deploys to a real site with `lps snippet push`. Requires a `LOOPRESS_TOKEN` variable set in your project CI settings.
+`.loopress-deploy` deploys to a real site with `lps push`. No token is required; set `LOOPRESS_TOKEN` in your project CI settings only for the optional cloud features.
 
 ## Restoring between groups of tests
 
