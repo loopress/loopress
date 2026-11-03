@@ -20,10 +20,10 @@ await client.connect(
 )
 
 try {
-  const result = await client.callTool({arguments: {}, name: 'validate_local'})
+  const result = await client.callTool({arguments: {}, name: 'validate'})
   const text = result.content.map((item) => item.text ?? '').join('\n')
   console.log(text)
-  if (result.isError) throw new Error('validate_local failed: the MCP server could not run the CLI.')
+  if (result.isError) throw new Error('validate failed: the MCP server could not run the CLI.')
   console.log('Smoke test passed: lps-mcp started and ran the CLI.')
 } finally {
   await client.close()

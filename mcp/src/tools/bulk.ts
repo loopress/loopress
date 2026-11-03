@@ -12,7 +12,7 @@ const BULK_TIMEOUT_MS = 600_000
 
 export function registerBulkTools(server: McpServer): void {
   server.registerTool(
-    'push_all',
+    'push',
     {
       description:
         'Push every local resource to WordPress in one run, the equivalent of `lps push`: plugins, composer dependencies, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, templates and parts, Global Styles, pages, menus, options, and snippets. Global Styles, ACF, forms and snippets are skipped when the project does not use them (no Global Styles file, no directory), and Global Styles also on a classic theme. Templates and parts are skipped when the project has no template, part or CSS directory. On Loopress Light, what needs Full (plugins, composer, API routes, hooks, patterns, templates and parts, pages, snippets) is skipped when the project does not use it. When the project uses something the site cannot hold (no active plugin for it, or a Full feature on Light), the run refuses before pushing anything.' +
@@ -23,12 +23,12 @@ export function registerBulkTools(server: McpServer): void {
     },
     async ({confirmToken, env, overwrite}) =>
       toCallToolResult(
-        await runMutatingTool('push_all', buildArgs(['push'], {env, overwrite}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
+        await runMutatingTool('push', buildArgs(['push'], {env, overwrite}), confirmToken, {timeoutMs: BULK_TIMEOUT_MS}),
       ),
   )
 
   server.registerTool(
-    'pull_all',
+    'pull',
     {
       description:
         'Pull every tracked resource from WordPress into local files in one run, the equivalent of `lps pull`: composer dependencies, plugins, post types, taxonomies, post meta, roles, ACF, API routes, hooks, forms, patterns, Global Styles, menus, options, and snippets. Global Styles only once the project tracks them, on a block theme. On Loopress Light, composer is always skipped, and the Full-only resources (API routes, hooks, patterns, snippets) are skipped when the project has no directory for them and fail when it does.',

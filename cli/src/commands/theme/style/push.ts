@@ -46,7 +46,7 @@ export default class Push extends PushCommand {
     }
 
     // Only the active theme's file is pushed, whatever else the directory holds.
-    const provider = getResourceStateProvider('theme-styles')
+    const provider = getResourceStateProvider('theme-style')
     const beforeState = await this.captureBeforePushState(provider, dir, (name) => name === stylesheet)
 
     if (this.dryRun) return {changes: this.previewChanges, file, status: 'dry-run'}

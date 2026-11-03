@@ -108,7 +108,7 @@ lps diff --skip composer
 | `--only <resource>` | Only compare these resources. Repeatable |
 | `--skip <resource>` | Compare every resource except these. Repeatable |
 
-Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-styles`, `composer`.
+Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-style`, `composer`.
 
 The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin, runs a classic theme, or runs Loopress Light for a feature of Full. A project that uses only what Light holds exits `0` on it. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 

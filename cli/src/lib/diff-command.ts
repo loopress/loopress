@@ -233,7 +233,7 @@ export abstract class DiffCommand extends LoopressCommand {
 
 // Builds the `lps <resource> diff` command class for one directory-backed resource. They differ
 // only in wording and which provider they target, so the whole body lives here.
-// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-styles).
+// `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-style).
 export function resourceDiffCommand(
   resource: string,
   options: {command?: string; description: string; pathNoun: string},
