@@ -160,6 +160,7 @@ export default defineConfig({
 										{ label: "GitHub Actions", slug: "ci/github-actions" },
 										{ label: "GitLab CI", slug: "ci/gitlab" },
 										{ label: "E2E Testing", slug: "ci/e2e-testing" },
+										{ label: "Drift detection", slug: "ci/drift-detection" },
 									],
 								},
 								{
