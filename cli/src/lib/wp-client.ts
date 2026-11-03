@@ -133,6 +133,13 @@ export function isForbiddenError(error: unknown): boolean {
   return responseOf(causeOf(error)).statusCode === 403
 }
 
+// WordPress core answers the authenticated request with this `code` when Application
+// Passwords are turned off for the user (a security plugin, `wp_is_application_passwords_available`
+// filter or the user's role), as opposed to `incorrect_password`/`invalid_username` for bad credentials.
+export function isApplicationPasswordsDisabled(error: unknown): boolean {
+  return parseBody(responseOf(causeOf(error)).body).code === 'application_passwords_disabled_for_user'
+}
+
 // A 404 a Loopress controller raises on purpose, identified by its JSON body's `error` field
 // (e.g. `{"error": "composer.lock not found"}` from ComposerController). Narrower than
 // isNotFoundError: a bare 404 also covers the route being absent because the plugin isn't

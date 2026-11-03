@@ -18,7 +18,7 @@ The command first prints the project, environment and URL it targets (the same r
 |-------|---------------|
 | WordPress REST API reachable | The site is down, the URL is wrong, or a security plugin blocks `/wp-json/` |
 | Loopress plugin installed | The `loopress/v1` endpoints are missing: the plugin is not installed, not active, or outdated |
-| Credentials accepted | The application password is rejected by an authenticated core endpoint |
+| Credentials accepted | The application password is rejected by an authenticated core endpoint. When WordPress answers `application_passwords_disabled_for_user`, the doctor says Application Passwords are disabled for this account (enable them for that user or use another account) instead of suggesting the credentials are wrong |
 | Plugin recent enough for this CLI | `loopress/v1/capabilities` is missing: the plugin predates this CLI, update it. When it passes, the doctor also prints the edition and version, the environment type, the ACF, form and snippet integrations, the active theme and the state of the Loopress child theme |
 | No leftover temporary admin accounts | An interrupted Loopress Full install (see [`project config`](/concepts/#configuring-an-environment)) left its temporary administrator behind. Re-run `lps project config` to remove it, or delete it in wp-admin > Users. The check only reports, it never deletes. Skipped when the credentials are rejected, and informational when they can't list users |
 | Hooks load and run without errors | A [hook file](/hooks/) failed to load, or one of its methods threw while running (the last error, until the file is pushed again). Skipped on Loopress Light, which has no hooks |

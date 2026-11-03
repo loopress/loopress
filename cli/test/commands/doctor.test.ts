@@ -133,6 +133,36 @@ describe('doctor', () => {
     expect(users).not.toHaveBeenCalled()
   })
 
+  it('tells disabled Application Passwords apart from bad credentials', async () => {
+    const {cmd, get, logs} = make()
+    const body = JSON.stringify({code: 'application_passwords_disabled_for_user', message: 'Application passwords are not available for your account.'})
+    get.mockImplementation(async (path: string) => {
+      if (path === 'wp/v2/users/me') throw new Error('boom', {cause: {response: {body, statusCode: 403}}})
+      return {}
+    })
+
+    const result = await cmd.run()
+
+    expect(result.ok).toBe(false)
+    expect(logs.log).toHaveBeenCalledWith('✗ Credentials accepted (authenticated request)')
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('Application Passwords are disabled for this account'))
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('lps project config'))
+  })
+
+  it('keeps the generic message for incorrect_password', async () => {
+    const {cmd, get, logs} = make()
+    const body = JSON.stringify({code: 'incorrect_password'})
+    get.mockImplementation(async (path: string) => {
+      if (path === 'wp/v2/users/me') throw new Error('Authentication failed (401). Check your credentials with `lps project config`.', {cause: {response: {body, statusCode: 401}}})
+      return {}
+    })
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('lps project config'))
+    expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Application Passwords are disabled'))
+  })
+
   it('fails a plugin too old to report its capabilities', async () => {
     const {cmd, get, logs} = make()
     get.mockResolvedValue({})
