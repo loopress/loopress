@@ -27,7 +27,7 @@ export type ValidateResult = {
 
 // Directories holding one JSON document per resource. Snippets (code file plus JSON sidecar)
 // and api routes (`.php`, not JSON) are checked separately, options too (a stricter shape).
-const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'menuDir', 'themeStylesDir'] as const
+const JSON_RESOURCE_DIRS = ['acfDir', 'formDir', 'menuDir', 'themeStyleDir'] as const
 
 const DEFAULT_DIR = {
   acfDir: 'acf',
@@ -35,10 +35,10 @@ const DEFAULT_DIR = {
   blockDir: RESOURCE_DIR_DEFAULTS.block,
   cptDir: 'cpt',
   formDir: 'forms',
-  hooksDir: 'hooks',
+  hookDir: 'hooks',
   menuDir: 'menus',
   metaDir: 'meta',
-  optionsDir: 'options',
+  optionDir: 'options',
   pageDir: 'pages',
   partDir: RESOURCE_DIR_DEFAULTS.part,
   patternDir: RESOURCE_DIR_DEFAULTS.pattern,
@@ -46,7 +46,7 @@ const DEFAULT_DIR = {
   snippetsDir: 'snippets',
   taxonomyDir: 'taxonomies',
   templateDir: RESOURCE_DIR_DEFAULTS.template,
-  themeStylesDir: 'theme',
+  themeStyleDir: 'theme',
 }
 
 // Inspects the local tracked files under `cwd` without contacting WordPress: JSON files parse
@@ -75,7 +75,7 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
 
   // Same reader `option push` uses: a file missing "name", "autoload" or "value" is skipped
   // there with a warning, so it's a problem here.
-  checked += await checkJsonDir(resolve('optionsDir'), problems, parseLocalOption)
+  checked += await checkJsonDir(resolve('optionDir'), problems, parseLocalOption)
   checked += await checkJsonDir(resolve('cptDir'), problems, declaredFileChecker(CPT_SPEC))
   checked += await checkJsonDir(resolve('taxonomyDir'), problems, declaredFileChecker(TAXONOMY_SPEC))
   checked += await checkJsonDir(resolve('metaDir'), problems, declaredFileChecker(META_SPEC))
@@ -84,7 +84,7 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
 
   checked += await checkSnippets(resolve('snippetsDir'), problems)
   checked += await checkPhpDir(resolve('apiDir'), problems, 'API route file is empty', API_FILES_RESOURCE)
-  checked += await checkPhpDir(resolve('hooksDir'), problems, 'Hook file is empty', HOOK_FILES_RESOURCE)
+  checked += await checkPhpDir(resolve('hookDir'), problems, 'Hook file is empty', HOOK_FILES_RESOURCE)
 
   const blocks = await readLocalBlocks(resolve('blockDir'))
   checked += blocks.blocks.length
