@@ -326,7 +326,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     // A file excluded from this environment (loopress.json) is left alone, never pruned.
     private async resolvePruneList(localFilenames: Set<string>, path: string): Promise<string[]> {
       const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
-      const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name) && !isExcluded(join(path, name)))
+      const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name) && !isExcluded(join(path, `${name}.php`)))
 
       if (orphans.length === 0) return []
 

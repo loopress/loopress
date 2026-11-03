@@ -140,7 +140,7 @@ async function checkExcludes(localConfig: Record<string, unknown>, root: string,
 
 const ENVIRONMENT_SETTINGS = z.strictObject({exclude: z.array(z.string()).optional()})
 
-// Every file under `root` as '/'-split segments, without node_modules and dot directories (.git).
+// Every file under `root` as '/'-split segments, without node_modules and .git.
 async function projectFiles(root: string): Promise<string[][]> {
   const files: string[][] = []
   const walk = async (dir: string): Promise<void> => {
@@ -155,7 +155,7 @@ async function projectFiles(root: string): Promise<string[][]> {
     for (const entry of entries) {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && !entry.name.startsWith('.')) await walk(path)
+        if (entry.name !== 'node_modules' && entry.name !== '.git') await walk(path)
       } else {
         files.push(relative(root, path).split(sep))
       }

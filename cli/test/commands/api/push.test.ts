@@ -365,11 +365,11 @@ describe('api push', () => {
     it('never prunes a file this environment excludes in loopress.json', async () => {
       confirm.mockResolvedValue(true)
       const {cmd, get} = makeResolvePruneList()
-      get.mockResolvedValue([{filename: 'keep'}, {filename: 'feature/page.php'}, {filename: 'stale.php'}])
-      activateExclusions({config: {environments: {production: {exclude: ['api/feature']}}}, cwd: process.cwd(), envName: 'production', honors: true})
+      get.mockResolvedValue([{filename: 'keep'}, {filename: 'feature/page'}, {filename: 'legacy'}, {filename: 'stale'}])
+      activateExclusions({config: {environments: {production: {exclude: ['api/feature', 'api/legacy.php']}}}, cwd: process.cwd(), envName: 'production', honors: true})
 
       try {
-        expect(await cmd.resolvePruneList(new Set(['keep']), 'api')).toEqual(['stale.php'])
+        expect(await cmd.resolvePruneList(new Set(['keep']), 'api')).toEqual(['stale'])
       } finally {
         activateExclusions({config: {}, cwd: process.cwd(), envName: 'production', honors: false})
       }

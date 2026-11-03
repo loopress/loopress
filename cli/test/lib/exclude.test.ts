@@ -1,6 +1,6 @@
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {join, relative} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {activateExclusions, globToRegExp, heldBackPaths, isExcluded, matchesAny, withoutExclusions} from '../../src/lib/exclude.js'
@@ -61,6 +61,12 @@ describe('exclusions in the listing layer', () => {
     expect((await readdirTolerant(join(root, 'hooks'))).toSorted((a, b) => a.localeCompare(b))).toEqual(['live.php'])
     expect(heldBackPaths()).toEqual(['hooks/feature', 'hooks/feature/page.php', 'hooks/games.php'])
     expect(isExcluded(join(root, 'hooks', 'feature', 'new.php'))).toBe(true)
+  })
+
+  it('matches a nested file of a directory given relative to the cwd', async () => {
+    activateExclusions({config: {environments: {production: {exclude: ['hooks/feature/page.php']}}}, cwd: root, envName: 'production', honors: true})
+
+    expect((await walkFiles(relative(process.cwd(), join(root, 'hooks')))).toSorted((a, b) => a.localeCompare(b))).toEqual(['games.php', 'live.php'])
   })
 
   it('lists everything inside withoutExclusions', async () => {

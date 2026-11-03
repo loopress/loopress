@@ -1,11 +1,11 @@
 import {Args, Flags, ux} from '@oclif/core'
-import {resolve} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
-import {hasExclusions, withoutExclusions} from './exclude.js'
+import {hasExclusions, isExcluded, withoutExclusions} from './exclude.js'
 import {errorMessage} from './narrow.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
@@ -32,6 +32,8 @@ export type DiffTarget = {
   // The local state with the environment's excluded files listed too: what it has more than
   // `right` is held back.
   heldBackFrom?: (() => Promise<ResourceState>) | undefined
+  // A site-only id whose file would sit under an excluded path: held back too, not removed.
+  isHeldBack?: ((id: string) => boolean) | undefined
   left: () => Promise<ResourceState>
   resource: string
   right: () => Promise<ResourceState>
@@ -93,6 +95,7 @@ export abstract class DiffCommand extends LoopressCommand {
     return {
       // Only against local files: they are what an exclude glob names.
       heldBackFrom: againstWp !== undefined || !hasExclusions() ? undefined : async () => withoutExclusions(async () => provider.local(dir, () => {}, this.wp)),
+      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id),
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
       right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
@@ -189,7 +192,10 @@ export abstract class DiffCommand extends LoopressCommand {
 
     try {
       const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
-      const heldBack = fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)).toSorted((a, b) => a.localeCompare(b)) : []
+      const heldBack = [
+        ...(fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)) : []),
+        ...[...leftState.keys()].filter((id) => !rightState.has(id) && !fullState?.has(id) && target.isHeldBack?.(id) === true),
+      ].toSorted((a, b) => a.localeCompare(b))
       for (const id of heldBack) leftState.delete(id)
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
       return {
@@ -285,6 +291,14 @@ export function resourceDiffCommand(
   }
 
   return ResourceDiff
+}
+
+// The id is the file's path under the resource directory for most resources (a slug, an API
+// route), without its extension: try the extensions resource files use.
+const RESOURCE_FILE_EXTENSIONS = ['', '.json', '.php', '.html']
+
+function excludedFileFor(dir: string, id: string): boolean {
+  return RESOURCE_FILE_EXTENSIONS.some((extension) => isExcluded(join(dir, `${id}${extension}`)))
 }
 
 // Indents an already-formatted change block (a per-field list or a header-less unified diff)

@@ -122,17 +122,19 @@ describe('DiffCommand.report', () => {
     expect(process.exitCode).toBe(2)
   })
 
-  it('lists held-back items in their own group, never as drift', async () => {
+  it('lists held-back items in their own group instead of as removed', async () => {
     const {lines, result} = await report([
-      {...target('Hooks', {live: 1, games: 1}, {live: 1}), heldBackFrom: async () => state({games: 2, live: 1, unreleased: 1})},
+      {
+        ...target('Hooks', {games: 1, live: 1, 'site-only': 1, stale: 1}, {live: 1}),
+        heldBackFrom: async () => state({games: 2, live: 1, unreleased: 1}),
+        isHeldBack: (id) => id === 'site-only',
+      },
     ])
 
-    expect(lines).toContain('Hooks  in sync')
+    expect(lines).toContain('  - stale')
     expect(lines).toContain('Held back from staging (exclude in loopress.json), not compared')
-    expect(lines).toContain('  Hooks: games, unreleased')
-    expect(result.resources.hooks).toEqual({added: [], changed: [], heldBack: ['games', 'unreleased'], removed: []})
-    expect(result.drift).toBe(false)
-    expect(process.exitCode).toBeUndefined()
+    expect(lines).toContain('  Hooks: games, site-only, unreleased')
+    expect(result.resources.hooks).toEqual({added: [], changed: [], heldBack: ['games', 'site-only', 'unreleased'], removed: ['stale']})
   })
 
   it('prints nothing in --json mode', async () => {

@@ -121,7 +121,7 @@ Excluded means "leave alone", not "absent": an excluded file is never pushed, an
 - `lps push` (and each `lps <resource> push`), `lps diff` and `lps promote` honor it. `lps diff` lists excluded items in their own "held back" group, not as drift, and its exit code ignores them. A push names what it held back, `--dry-run` included.
 - `lps pull` and `lps dev` ignore it: the feature keeps flowing into your files and to `local`.
 - `lps validate` warns about a glob that matches no file, a typo would let the feature through.
-- Exclusion works on whole files: one menu item or one option inside a file can't be held back. Put it in its own file, or edit it by hand. The theme CSS (`theme/css/`, `theme/blocks/`) is bundled whole and can't be excluded.
+- Exclusion works on whole files: one menu item or one option inside a file can't be held back. Put it in its own file, or edit it by hand. A dynamic block is excluded as its whole folder (`blocks/<slug>`), not file by file. The theme CSS (`theme/css/`, `theme/blocks/`) is bundled whole and can't be excluded.
 
 ### Changes made outside Loopress
 
