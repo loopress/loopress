@@ -86,17 +86,12 @@ export default class Push extends LoopressCommand {
     await this.guardProductionPush()
 
     const {flags} = await this.parse(Push)
-    const selected = new Set(
-      selectResources(
-        PUSH_IDS,
-        parseSelectionFlag(flags.only, 'only', PUSH_IDS, (message) => this.error(message)),
-        parseSelectionFlag(flags.skip, 'skip', PUSH_IDS, (message) => this.error(message)),
-      ),
-    )
+    const skipFlag = parseSelectionFlag(flags.skip, 'skip', PUSH_IDS, (message) => this.error(message))
+    const selected = new Set(selectResources(PUSH_IDS, parseSelectionFlag(flags.only, 'only', PUSH_IDS, (message) => this.error(message)), skipFlag))
     const argv = this.buildArgv()
     const results: PushTargetResult[] = []
 
-    const skips = await this.skippedTargets(selected)
+    const skips = await this.skippedTargets(selected, skipFlag.includes('composer'))
 
     for (const target of PUSH_TARGETS) {
       const skip = skips.get(target.commandId)
@@ -125,7 +120,7 @@ export default class Push extends LoopressCommand {
       }
     }
 
-    this.log(this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.')
+    this.log(this.doneMessage(selected.size < PUSH_IDS.length))
     return {results}
   }
 
@@ -177,6 +172,13 @@ export default class Push extends LoopressCommand {
     }
   }
 
+  // A run narrowed by --only / --skip must not read as a full push. Unused resources skipped
+  // on a plain run don't count: that run still pushes everything the project has.
+  private doneMessage(narrowed: boolean): string {
+    if (narrowed) return this.dryRun ? '\nEvery selected resource would push, the others are skipped.' : '\nSelected resources pushed, the others are skipped.'
+    return this.dryRun ? '\nEvery resource would push.' : '\nAll resources pushed.'
+  }
+
   // The site unreachable or the theme list refused: let the step run and report it itself.
   private async globalStylesSkipNote(): Promise<string | undefined> {
     try {
@@ -199,7 +201,8 @@ export default class Push extends LoopressCommand {
 
   // Unconfigured is not a failure: a project that doesn't manage plugins or composer through
   // Loopress must not stop the run before anything else gets pushed.
-  private async skippedTargets(selected: Set<string>): Promise<Map<string, Skip>> {
+  // `composerSkipped`: `composer` was named in --skip, as opposed to just left out of --only.
+  private async skippedTargets(selected: Set<string>, composerSkipped: boolean): Promise<Map<string, Skip>> {
     const skips = new Map<string, Skip>()
     const isSelected = (commandId: string): boolean => selected.has(PUSH_TARGETS.find((target) => target.commandId === commandId)?.id ?? '')
     const notConfigured = {note: 'not configured, skipped', status: 'skipped'} as const
@@ -208,6 +211,10 @@ export default class Push extends LoopressCommand {
     // A composer.json that declares plugins is pushed whole by `plugin:push` (with its activation
     // safety), so `composer:push` would only run Composer on the server a second time.
     const composerPushedByPlugins = hasComposerJson && declaredPlugins.length > 0 && isSelected('plugin:push')
+    // That push runs Composer on the server, so a run told to skip Composer can't push plugins.
+    if (composerPushedByPlugins && composerSkipped) {
+      this.error('--skip composer conflicts with pushing plugins: composer.json declares them, so plugin push runs Composer on the server. Skip plugin too, or drop --skip composer.')
+    }
 
     if (composerPushedByPlugins) skips.set('composer:push', {note: 'already pushed whole by plugins', status: 'pushed'})
     else if (!hasComposerJson) skips.set('composer:push', notConfigured)
@@ -249,6 +256,8 @@ export default class Push extends LoopressCommand {
     if (stylesNote) skips.set('theme:style:push', {note: stylesNote, status: 'skipped'})
 
     for (const target of PUSH_TARGETS) {
+      // Composer left out of --only still runs when plugin push syncs composer.json: say so.
+      if (composerPushedByPlugins && target.commandId === 'composer:push') continue
       if (!selected.has(target.id)) skips.set(target.commandId, {note: 'not selected, skipped', status: 'skipped'})
     }
 

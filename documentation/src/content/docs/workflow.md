@@ -84,7 +84,9 @@ lps push --skip plugin --skip composer
 
 `--only` and `--skip` take the singular resource ids below, comma-separated or repeated. `--only` narrows the run, `--skip` then removes from it, and the order stays the push order whatever order you wrote. A resource left out is reported `skipped` and never checked against the site, so it can't block the run (an unsupported or missing integration only matters for what you push). Ids: `plugin`, `composer`, `cpt`, `taxonomy`, `meta`, `role`, `acf`, `api`, `hook`, `block`, `form`, `pattern`, `template` (templates, parts and CSS), `theme-style`, `page`, `menu`, `option`, `snippet`.
 
-The same ids work in `lps diff` and `lps dev`.
+`lps diff` and `lps dev` use the same singular ids, each for the resources it covers: `lps dev` takes `snippet`, `template`, `part`, `css`, `block`, `page`, `api`, `hook`, `plugin`, and `lps diff` takes the [resource names listed below](#lps-diff).
+
+With a `composer.json` that declares plugins, `plugin` push runs Composer on the server, so `--skip composer` is refused unless `plugin` is skipped too. Left out of `--only plugin`, Composer is reported as pushed by plugins.
 
 When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
 

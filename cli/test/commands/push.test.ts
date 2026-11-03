@@ -149,6 +149,35 @@ describe('push', () => {
     expect(results.find((r) => r.label === 'snippets')?.status).toBe('skipped')
   })
 
+  it('says a narrowed run pushed only the selected resources', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--only', 'page']})
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('\nSelected resources pushed, the others are skipped.')
+    expect(logs.log).not.toHaveBeenCalledWith('\nAll resources pushed.')
+  })
+
+  it('refuses --skip composer when plugin push would run Composer from composer.json', async () => {
+    writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '5.3.3'}}))
+    const {cmd} = make({argv: ['--skip', 'composer']})
+
+    await expect(cmd.run()).rejects.toThrow('--skip composer conflicts with pushing plugins')
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
+  })
+
+  it('reports composer pushed by plugins when --only plugin syncs composer.json', async () => {
+    writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/akismet': '5.3.3'}}))
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make({argv: ['--only', 'plugin']})
+
+    const {results} = await cmd.run()
+
+    expect(vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)).toEqual(['plugin:push'])
+    expect(results.find((r) => r.label === 'composer')?.status).toBe('pushed')
+  })
+
   it('rejects an unknown --only resource', async () => {
     const {cmd} = make({argv: ['--only', 'nope']})
 
