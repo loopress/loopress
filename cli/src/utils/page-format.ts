@@ -1,8 +1,8 @@
 import {readdir, readFile} from 'node:fs/promises'
 import {basename, extname, join} from 'node:path'
 
-import {errorCode, errorMessage, isOneOf} from '../lib/narrow.js'
 import {withoutExcluded} from '../lib/exclude.js'
+import {errorCode, errorMessage, isOneOf} from '../lib/narrow.js'
 
 export const PAGES_ENDPOINT = 'loopress/v1/pages'
 

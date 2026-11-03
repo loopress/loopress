@@ -1,8 +1,8 @@
 import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {errorCode, isRecord} from '../lib/narrow.js'
 import {withoutExcluded} from '../lib/exclude.js'
+import {errorCode, isRecord} from '../lib/narrow.js'
 
 // A dynamic block: blocks/<slug>/ in WordPress's own block format, registered on the site as
 // loopress/<slug> (the plugin's BlocksDirectory and BlockFilesController).

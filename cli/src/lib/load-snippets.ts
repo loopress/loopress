@@ -9,8 +9,8 @@ import {
   parseType,
   type SnippetType,
 } from '../utils/snippet-format.js'
-import {errorCode, errorMessage, isRecord} from './narrow.js'
 import {withoutExcluded} from './exclude.js'
+import {errorCode, errorMessage, isRecord} from './narrow.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',

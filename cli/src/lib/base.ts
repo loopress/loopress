@@ -9,8 +9,8 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
-import {activateExclusions} from './exclude.js'
 import {getCapabilities, type SiteCapabilities} from './capabilities.js'
+import {activateExclusions} from './exclude.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {withoutSpinner} from './spinner.js'
@@ -37,14 +37,15 @@ export abstract class LoopressCommand extends Command {
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
   }
 
+  // Whether the environment's `exclude` globs in loopress.json apply (lib/exclude.ts): push and
+  // diff commands only, never pull.
+  static honorsExclude = false
+
   static yesFlag = {
     yes: Flags.boolean({char: 'y', description: 'Answer yes to confirmation prompts'}),
   }
 
   protected dryRun = false
-  // Whether the environment's `exclude` globs in loopress.json apply (lib/exclude.ts): push and
-  // diff commands only, never pull.
-  static honorsExclude = false
 
   protected localConfig: LoopressLocalConfig = {}
   // Set by PushCommand's --overwrite, see PushCommand.guardOutsideEdits.

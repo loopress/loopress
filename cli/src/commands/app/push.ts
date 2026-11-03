@@ -11,11 +11,11 @@ import {
   diffFiles,
   loadAppManifest,
 } from '../../lib/app-manifest.js'
+import {withoutExcluded} from '../../lib/exclude.js'
 import {errorCode, errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
-import {withoutExcluded} from '../../lib/exclude.js'
 
 type PushedApp = {
   buildId: string
