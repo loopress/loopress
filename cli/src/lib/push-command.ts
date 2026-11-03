@@ -10,6 +10,7 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
+import {heldBackPaths} from './exclude.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
 import {errorMessage} from './narrow.js'
@@ -49,6 +50,8 @@ export abstract class PushCommand extends LoopressCommand {
     }),
     'production-confirmed': Flags.boolean({hidden: true}),
   }
+
+  static override honorsExclude = true
 
   protected failedCount = 0
   // A dry run's per-item preview, set by captureBeforePushState: what the push would create,
@@ -114,6 +117,18 @@ export abstract class PushCommand extends LoopressCommand {
     }
 
     await super.catch(err)
+  }
+
+  // Lists what the environment's `exclude` globs (loopress.json) kept out of this push, so a
+  // feature held back from it is never forgotten there.
+  override async finally(error: Error | undefined): Promise<void> {
+    const paths = error ? [] : heldBackPaths()
+    if (paths.length > 0) {
+      const prefix = this.dryRun ? '[dry-run] ' : ''
+      this.log(`${prefix}Held back from ${this.siteConfig.name} (exclude in loopress.json): ${paths.join(', ')}`)
+    }
+
+    await super.finally(error)
   }
 
   protected async guardProductionPush(): Promise<void> {

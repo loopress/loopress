@@ -15,6 +15,7 @@ import {errorCode, errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
+import {withoutExcluded} from '../../lib/exclude.js'
 
 type PushedApp = {
   buildId: string
@@ -87,7 +88,7 @@ export default class Push extends PushCommand {
   private async appDirNames(path: string, only?: string): Promise<string[]> {
     let entries
     try {
-      entries = await readdir(path, {withFileTypes: true})
+      entries = withoutExcluded(path, await readdir(path, {withFileTypes: true}), (entry) => entry.name)
     } catch (error) {
       if (errorCode(error) === 'ENOENT') {
         this.error(`Apps directory not found: ${path}. Create ${join(path, '<name>', APP_CONFIG_FILENAME)} first.`)

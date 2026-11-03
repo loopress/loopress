@@ -2,6 +2,7 @@ import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {errorCode, isRecord} from '../lib/narrow.js'
+import {withoutExcluded} from '../lib/exclude.js'
 
 // A dynamic block: blocks/<slug>/ in WordPress's own block format, registered on the site as
 // loopress/<slug> (the plugin's BlocksDirectory and BlockFilesController).
@@ -61,7 +62,7 @@ export function blockProblems(slug: string, files: BlockFiles): string[] {
 export async function readLocalBlocks(dir: string): Promise<{blocks: LocalBlock[]; problems: BlockProblem[]}> {
   let entries
   try {
-    entries = await readdir(dir, {withFileTypes: true})
+    entries = withoutExcluded(dir, await readdir(dir, {withFileTypes: true}), (entry) => entry.name)
   } catch (error) {
     if (errorCode(error) === 'ENOENT') return {blocks: [], problems: []}
     throw error

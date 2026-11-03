@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../../src/commands/theme/template/push.js'
+import {activateExclusions} from '../../../../src/lib/exclude.js'
 import {stubCapabilities} from '../../../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
 import {makeEnv} from '../../../helpers/project-fixtures.js'
@@ -72,6 +73,52 @@ describe('template push', () => {
       stylesheet: 'twentytwentyfive-loopress',
       templates: ['single'],
       unknownBlocks: [],
+    })
+  })
+
+  describe('with an exclude for this environment in loopress.json', () => {
+    const exclude = (): void => {
+      activateExclusions({config: {environments: {local: {exclude: ['theme/templates/*-games.html']}}, rootDir: dir}, cwd: dir, envName: 'local', honors: true})
+    }
+
+    afterEach(() => {
+      activateExclusions({config: {}, cwd: dir, envName: 'local', honors: false})
+    })
+
+    it('neither pushes an excluded template nor removes the site copy', async () => {
+      writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+      writeFileSync(join(dir, 'theme', 'templates', 'single-games.html'), '<p>unreleased</p>')
+      const put = vi.fn().mockResolvedValue(child)
+      const cmd = makeCommand(put)
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({
+        ...child,
+        templates: [{html: '<p>live</p>', slug: 'archive-games'}, {html: '<p>gone</p>', slug: 'old'}],
+      })
+      exclude()
+
+      await cmd.run()
+
+      expect(put.mock.calls[0]?.[1]).toMatchObject({
+        templates: [
+          {html: '<p/>', slug: 'single'},
+          {html: '<p>live</p>', slug: 'archive-games'},
+        ],
+      })
+    })
+
+    it('leaves held-back templates out of the dry run changes', async () => {
+      writeFileSync(join(dir, 'theme', 'templates', 'single.html'), '<p/>')
+      const cmd = makeCommand(vi.fn())
+      cmd.dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({
+        ...child,
+        templates: [{html: '<p>live</p>', slug: 'archive-games'}, {html: '<p/>', slug: 'single'}],
+      })
+      exclude()
+
+      const result = (await cmd.run()) as {changes: {templates: unknown[]}}
+
+      expect(result.changes.templates).toEqual([{id: 'single', status: 'unchanged'}])
     })
   })
 

@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/api/push.js'
 import {type ResourceState} from '../../../src/lib/diff-state.js'
+import {activateExclusions} from '../../../src/lib/exclude.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
@@ -42,7 +43,7 @@ type PushWithPushBatch = {
 }
 type PushWithResolvePruneList = {
   dryRun: boolean
-  resolvePruneList(localFilenames: Set<string>): Promise<string[]>
+  resolvePruneList(localFilenames: Set<string>, path: string): Promise<string[]>
   siteConfig: EnvironmentConfig
   wpClient: {get: ReturnType<typeof vi.fn>}
   yes: boolean
@@ -354,18 +355,31 @@ describe('api push', () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'keep'}, {filename: 'stale-a'}, {filename: 'stale-b'}])
 
-      const pruned = await cmd.resolvePruneList(new Set(['keep']))
+      const pruned = await cmd.resolvePruneList(new Set(['keep']), 'api')
 
       expect(get).toHaveBeenCalledWith('loopress/v1/api-files')
       expect(pruned).toEqual(['stale-a', 'stale-b'])
       expect(confirm).toHaveBeenCalledWith({default: false, message: expect.stringContaining('stale-a, stale-b')})
     })
 
+    it('never prunes a file this environment excludes in loopress.json', async () => {
+      confirm.mockResolvedValue(true)
+      const {cmd, get} = makeResolvePruneList()
+      get.mockResolvedValue([{filename: 'keep'}, {filename: 'feature/page.php'}, {filename: 'stale.php'}])
+      activateExclusions({config: {environments: {production: {exclude: ['api/feature']}}}, cwd: process.cwd(), envName: 'production', honors: true})
+
+      try {
+        expect(await cmd.resolvePruneList(new Set(['keep']), 'api')).toEqual(['stale.php'])
+      } finally {
+        activateExclusions({config: {}, cwd: process.cwd(), envName: 'production', honors: false})
+      }
+    })
+
     it('does nothing when every server-side file is present locally', async () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'keep'}])
 
-      const pruned = await cmd.resolvePruneList(new Set(['keep']))
+      const pruned = await cmd.resolvePruneList(new Set(['keep']), 'api')
 
       expect(confirm).not.toHaveBeenCalled()
       expect(pruned).toEqual([])
@@ -376,7 +390,7 @@ describe('api push', () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      const pruned = await cmd.resolvePruneList(new Set())
+      const pruned = await cmd.resolvePruneList(new Set(), 'api')
 
       expect(pruned).toEqual([])
     })
@@ -386,14 +400,14 @@ describe('api push', () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      await expect(cmd.resolvePruneList(new Set())).rejects.toThrow(/--prune would delete .* not a TTY/s)
+      await expect(cmd.resolvePruneList(new Set(), 'api')).rejects.toThrow(/--prune would delete .* not a TTY/s)
     })
 
     it('lists the orphans without prompting when --yes is set', async () => {
       const {cmd, get} = makeResolvePruneList({yes: true})
       get.mockResolvedValue([{filename: 'stale'}])
 
-      const pruned = await cmd.resolvePruneList(new Set())
+      const pruned = await cmd.resolvePruneList(new Set(), 'api')
 
       expect(confirm).not.toHaveBeenCalled()
       expect(pruned).toEqual(['stale'])
@@ -403,7 +417,7 @@ describe('api push', () => {
       const {cmd, get, logs} = makeResolvePruneList({dryRun: true})
       get.mockResolvedValue([{filename: 'stale'}])
 
-      const pruned = await cmd.resolvePruneList(new Set())
+      const pruned = await cmd.resolvePruneList(new Set(), 'api')
 
       expect(pruned).toEqual(['stale'])
       expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\[dry-run\] Would prune .*stale/))

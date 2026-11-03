@@ -4,6 +4,7 @@ import {basename} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, RESOURCE_TYPES, type ResourceType, resourceTypeForPath, type WatchTarget} from '../lib/dev-watch.js'
+import {disableExclusions} from '../lib/exclude.js'
 import {errorMessage, isOneOf} from '../lib/narrow.js'
 import {parseSelectionFlag, selectionFlags} from '../lib/resource-selection.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
@@ -23,6 +24,8 @@ export default class Dev extends Command {
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Dev)
+    // Dev only targets local, where an excluded feature is being built: it pushes everything.
+    disableExclusions()
 
     const only = this.parseTypeFlag(flags.only, 'only')
     const skip = this.parseTypeFlag(flags.skip, 'skip')

@@ -96,6 +96,8 @@ Unlike `lps pull`, the push stops at the first resource that fails and lists the
 
 `--overwrite` is passed on to every resource, see [changes made outside Loopress](/concepts/#changes-made-outside-loopress).
 
+Files the environment excludes in `loopress.json` are left alone on it, never pushed, pruned or mirrored away, and the push lists them as held back, see [holding a feature back](/concepts/#holding-a-feature-back-from-an-environment).
+
 Like every push, it never deletes what you don't have locally unless asked ([push never deletes by default](/concepts/#push-never-deletes-by-default)), asks for confirmation when the target is named `production` (`--yes` in CI), and saves snapshots that [`rollback`](/rollback/) can restore, for the resources that support it. Run `lps diff` or `lps push --dry-run` first to see what will change.
 
 ## `lps diff`
@@ -120,6 +122,8 @@ Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `pa
 
 The exit code makes it a CI drift gate: `0` in sync, `1` on drift, `2` when a resource could not be compared. A resource the project doesn't use (no `acf/`, `forms/` or `snippets/` directory, no Global Styles file) is reported as skipped, not as a failure, when the site lacks its plugin, runs a classic theme, or runs Loopress Light for a feature of Full. A project that uses only what Light holds exits `0` on it. Every feature also has its own `diff` subcommand (`lps snippet diff`, `lps acf diff`, ...) with the same `--against` flag and exit codes.
 
+Against local files, what the environment [excludes](/concepts/#holding-a-feature-back-from-an-environment) in `loopress.json` is left out of the comparison and listed in a separate "held back" group (`heldBack` per resource in `--json`), so a feature held back from production doesn't trip the drift gate.
+
 ## `lps promote`
 
 Copy every tracked resource from one environment to another: `lps pull` from the source, then `lps push` to the target.
@@ -132,6 +136,8 @@ lps promote production staging --dry-run
 A real promotion **overwrites your local tracked files** with the source environment's, so it always asks for confirmation (`--yes` in CI), whatever the target's name. If the pull fails, nothing is pushed. Changes made on the target outside Loopress stop the push the same way they stop `lps push`: pass `--overwrite` to promote anyway. To undo a promotion, run the [`rollback`](/rollback/) of each resource that has one, with `--env` set to the target.
 
 With `--dry-run`, the source is pulled into a throwaway copy of the project and the push is only previewed from there: the preview shows what a real promotion would push, and your own files stay untouched. It refuses to run when `loopress.json` points a directory outside the project, use `lps diff --env <from> --against <to>` instead.
+
+The push honors the target's [excludes](/concepts/#holding-a-feature-back-from-an-environment): a feature held back from it is not promoted, and what the target already has under an excluded path stays.
 
 ## `lps content copy`
 
@@ -161,6 +167,8 @@ Check that local tracked files are well formed and push-ready, without contactin
 ```bash
 lps validate
 ```
+
+It also checks `environments` in `loopress.json`, and warns (without failing) about an `exclude` glob that matches no file.
 
 ## `lps dev`
 

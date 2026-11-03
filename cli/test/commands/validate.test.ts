@@ -21,13 +21,13 @@ describe('validate', () => {
   })
 
   it('prints a clean summary and leaves the exit code untouched when valid', async () => {
-    vi.mocked(validateLocal).mockResolvedValue({checked: 4, problems: [], valid: true})
+    vi.mocked(validateLocal).mockResolvedValue({checked: 4, problems: [], valid: true, warnings: []})
     const cmd = new Validate([], fakeOclifConfig)
     const {log} = silenceLogs(cmd)
 
     const result = await cmd.run()
 
-    expect(result).toEqual({checked: 4, problems: [], valid: true})
+    expect(result).toEqual({checked: 4, problems: [], valid: true, warnings: []})
     expect(log).toHaveBeenCalledWith('4 file(s) checked, no problems found.')
     expect(process.exitCode).toBe(originalExitCode)
   })
@@ -40,6 +40,7 @@ describe('validate', () => {
         {file: 'loopress.json', message: 'projectId "ghost" is not a configured project'},
       ],
       valid: false,
+      warnings: [{file: 'loopress.json', message: 'environments.production.exclude: "cpt/x.json" matches no file'}],
     })
     const cmd = new Validate([], fakeOclifConfig)
     const {log} = silenceLogs(cmd)
@@ -48,12 +49,13 @@ describe('validate', () => {
 
     expect(log).toHaveBeenCalledWith('  ✗ forms/5.json: not valid JSON')
     expect(log).toHaveBeenCalledWith('  ✗ loopress.json: projectId "ghost" is not a configured project')
+    expect(log).toHaveBeenCalledWith('  ! loopress.json: environments.production.exclude: "cpt/x.json" matches no file')
     expect(log).toHaveBeenCalledWith('2 file(s) checked, 2 problem(s) found.')
     expect(process.exitCode).toBe(1)
   })
 
   it('stays silent on stdout under --json so only the JSON payload is emitted', async () => {
-    vi.mocked(validateLocal).mockResolvedValue({checked: 1, problems: [{file: 'x', message: 'y'}], valid: false})
+    vi.mocked(validateLocal).mockResolvedValue({checked: 1, problems: [{file: 'x', message: 'y'}], valid: false, warnings: []})
     const cmd = new Validate(['--json'], fakeOclifConfig)
     const {log} = silenceLogs(cmd)
 

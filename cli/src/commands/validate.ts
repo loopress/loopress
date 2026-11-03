@@ -17,6 +17,10 @@ export default class Validate extends Command {
         this.log(`  ✗ ${problem.file}: ${problem.message}`)
       }
 
+      for (const warning of result.warnings) {
+        this.log(`  ! ${warning.file}: ${warning.message}`)
+      }
+
       this.log('')
       this.log(
         result.valid

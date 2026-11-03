@@ -10,6 +10,7 @@ import {
   type SnippetType,
 } from '../utils/snippet-format.js'
 import {errorCode, errorMessage, isRecord} from './narrow.js'
+import {withoutExcluded} from './exclude.js'
 
 const TYPE_BY_EXTENSION: Record<string, SnippetType> = {
   '.css': 'css',
@@ -86,7 +87,7 @@ async function readSidecar(metaPath: string): Promise<Record<string, unknown>> {
 export async function loadSnippets(path: string, onSkip?: (message: string) => void): Promise<Snippet[]> {
   let files: string[]
   try {
-    files = await readdir(path)
+    files = withoutExcluded(path, await readdir(path), (file) => file)
   } catch (error) {
     throw new Error(`Error loading snippets: ${errorMessage(error)}`, {cause: error})
   }

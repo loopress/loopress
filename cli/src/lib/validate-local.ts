@@ -1,4 +1,4 @@
-import {readFile} from 'node:fs/promises'
+import {readdir, readFile} from 'node:fs/promises'
 import {join, relative, sep} from 'node:path'
 import {z} from 'zod'
 
@@ -12,6 +12,7 @@ import {readLocalHtmlFiles, readLocalPages} from '../utils/page-format.js'
 import {RESOURCE_DIR_DEFAULTS} from '../utils/resource-dirs.js'
 import {parseType} from '../utils/snippet-format.js'
 import {readLocalTemplates} from '../utils/template-format.js'
+import {globToRegExp, matchesAny} from './exclude.js'
 import {loadSnippets} from './load-snippets.js'
 import {errorCode, errorMessage, isRecord} from './narrow.js'
 import {API_FILES_RESOURCE, HOOK_FILES_RESOURCE, phpFileProblems, type PhpFilesResource} from './php-files-command.js'
@@ -23,6 +24,8 @@ export type ValidateResult = {
   checked: number
   problems: Problem[]
   valid: boolean
+  // Worth a look but push-ready: an exclude glob matching no file.
+  warnings: Problem[]
 }
 
 // Directories holding one JSON document per resource. Snippets (code file plus JSON sidecar)
@@ -98,7 +101,69 @@ export async function validateLocal(cwd: string): Promise<ValidateResult> {
   checked += templates.templates.length + templates.parts.length + templates.problems.length
   problems.push(...templates.problems)
 
-  return {checked, problems, valid: problems.length === 0}
+  const warnings = await checkExcludes(localConfig, join(cwd, rootDir), problems)
+
+  return {checked, problems, valid: problems.length === 0, warnings}
+}
+
+// `environments.<name>.exclude` (lib/exclude.ts): a list of globs per environment. A glob that
+// matches no file is a warning, not a problem: likely a typo or a renamed file, so the feature it
+// was meant to hold back would reach that environment.
+async function checkExcludes(localConfig: Record<string, unknown>, root: string, problems: Problem[]): Promise<Problem[]> {
+  const {environments} = localConfig
+  if (environments === undefined) return []
+  if (!isRecord(environments) || Array.isArray(environments)) {
+    problems.push({file: 'loopress.json', message: '"environments" must be an object of environment name -> settings'})
+    return []
+  }
+
+  const warnings: Problem[] = []
+  let files: string[][] | undefined
+  for (const [name, settings] of Object.entries(environments)) {
+    const parsed = ENVIRONMENT_SETTINGS.safeParse(settings)
+    if (!parsed.success) {
+      problems.push({file: 'loopress.json', message: `environments.${name} must be an object with an optional "exclude" list of glob strings`})
+      continue
+    }
+
+    for (const pattern of parsed.data.exclude ?? []) {
+      files ??= await projectFiles(root)
+      const matcher = globToRegExp(pattern)
+      if (files.every((segments) => !matchesAny([matcher], segments))) {
+        warnings.push({file: 'loopress.json', message: `environments.${name}.exclude: "${pattern}" matches no file`})
+      }
+    }
+  }
+
+  return warnings
+}
+
+const ENVIRONMENT_SETTINGS = z.strictObject({exclude: z.array(z.string()).optional()})
+
+// Every file under `root` as '/'-split segments, without node_modules and dot directories (.git).
+async function projectFiles(root: string): Promise<string[][]> {
+  const files: string[][] = []
+  const walk = async (dir: string): Promise<void> => {
+    let entries
+    try {
+      entries = await readdir(dir, {withFileTypes: true})
+    } catch (error) {
+      if (errorCode(error) === 'ENOENT') return
+      throw error
+    }
+
+    for (const entry of entries) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name !== 'node_modules' && !entry.name.startsWith('.')) await walk(path)
+      } else {
+        files.push(relative(root, path).split(sep))
+      }
+    }
+  }
+
+  await walk(root)
+  return files
 }
 
 // Same directory rules as pages (flat, .html only), then the same checks as `pattern push`.

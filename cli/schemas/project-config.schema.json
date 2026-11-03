@@ -143,6 +143,23 @@
         }
       ]
     },
+    "environments": {
+      "type": "object",
+      "description": "Per-environment settings, keyed by environment name (as in `lps project config`).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "exclude": {
+            "type": "array",
+            "description": "Globs relative to rootDir (`*`, `**`, `?`) of files this environment never receives. `lps push`, `lps diff` and `lps promote` leave them alone on it: never pushed, never pruned or mirrored away, reported as held back instead of drift. A glob matching a directory covers everything inside. `lps pull` and `lps dev` ignore it.",
+            "items": {"type": "string"},
+            "examples": [["cpt/vocabulary-games.json", "theme/templates/*-vocabulary-games.html"]]
+          }
+        }
+      },
+      "examples": [{"production": {"exclude": ["hooks/vocabulary-games-page.php"]}}]
+    },
     "activateChildTheme": {
       "type": "boolean",
       "description": "Keep the Loopress child theme (<parent>-loopress) active: `lps theme template push`, and so `lps push`, activates it when it isn't. Off by default, a theme switch changes the settings WordPress stores per theme.",

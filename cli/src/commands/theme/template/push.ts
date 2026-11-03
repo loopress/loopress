@@ -1,7 +1,9 @@
 import {createHash} from 'node:crypto'
+import {join} from 'node:path'
 
 import {activateTheme} from '../../../lib/capabilities.js'
 import {type ResourceState} from '../../../lib/diff-state.js'
+import {hasExclusions, isExcluded} from '../../../lib/exclude.js'
 import {errorMessage} from '../../../lib/narrow.js'
 import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
@@ -70,8 +72,12 @@ export default class Push extends PushCommand {
         `${css.style ? 'a global stylesheet' : 'no global stylesheet'} and ${pluralize(css.blocks.length, 'block stylesheet')}`,
     )
 
+    // The PUT replaces every file of the child theme: what the site has under a path this
+    // environment excludes (loopress.json) is sent back as it is, so it is left alone.
+    const kept = await this.keptFromSite(templatesPath, partsPath, templates, parts)
+
     if (this.dryRun) {
-      const changes = await this.previewChildTheme(templates, parts, css)
+      const changes = await this.previewChildTheme(templates, parts, css, kept)
       logChanges((message) => { this.log(message); }, changes.templates, 'templates/')
       logChanges((message) => { this.log(message); }, changes.parts, 'parts/')
       logChanges((message) => { this.log(message); }, changes.css, 'css/')
@@ -83,7 +89,7 @@ export default class Push extends PushCommand {
       return {...names, changes, status: 'dry-run'}
     }
 
-    const child = await this.wp.put<ChildTheme>(CHILD_THEME_ENDPOINT, {...css, parts, templates})
+    const child = await this.wp.put<ChildTheme>(CHILD_THEME_ENDPOINT, {...css, parts: [...parts, ...kept.parts], templates: [...templates, ...kept.templates]})
     await this.recordSuccess()
     this.log(`Child theme ${child.stylesheet} written.`)
 
@@ -127,14 +133,28 @@ export default class Push extends PushCommand {
     }
   }
 
-  // Same read and same refusal as previewRemote, one GET for templates, parts and CSS.
-  private async previewChildTheme(templates: Template[], parts: Part[], css: ThemeCss): Promise<NonNullable<PushResult['changes']>> {
-    let child: ChildTheme
-    try {
-      child = await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
-    } catch (error) {
-      this.error(`The site would refuse this push: ${errorMessage(error)}`)
+  // The site's templates and parts under an excluded path the project doesn't push. Refuses when
+  // the site can't be read: pushing blind would remove them.
+  private async keptFromSite(templatesPath: string, partsPath: string, templates: Template[], parts: Part[]): Promise<{parts: Part[]; templates: Template[]}> {
+    if (!hasExclusions()) return {parts: [], templates: []}
+    const child = await this.readChildTheme()
+    const localTemplates = new Set(templates.map((template) => template.slug))
+    const localParts = new Set(parts.map((part) => part.slug))
+    return {
+      parts: child.parts.filter((part) => !localParts.has(part.slug) && isExcluded(join(partsPath, `${part.slug}.html`))),
+      templates: child.templates.filter((template) => !localTemplates.has(template.slug) && isExcluded(join(templatesPath, `${template.slug}.html`))),
     }
+  }
+
+  // Same read and same refusal as previewRemote, one GET for templates, parts and CSS. Kept
+  // files are held back, they are neither changes nor removals.
+  private async previewChildTheme(
+    templates: Template[],
+    parts: Part[],
+    css: ThemeCss,
+    kept: {parts: Part[]; templates: Template[]},
+  ): Promise<NonNullable<PushResult['changes']>> {
+    const child = await this.readChildTheme()
 
     const localCss: ResourceState = new Map(css.blocks.map((block) => [`blocks/${block.name}.css`, sha256(block.css)]))
     if (css.style !== '') localCss.set('style.css', sha256(css.style))
@@ -144,14 +164,27 @@ export default class Push extends PushCommand {
 
     return {
       css: cssChanges,
-      parts: pushChanges(bySlug(parts), bySlug(child.parts), {mirror: true}),
-      templates: pushChanges(bySlug(templates), bySlug(child.templates), {mirror: true}),
+      parts: withoutKept(pushChanges(bySlug([...parts, ...kept.parts]), bySlug(child.parts), {mirror: true}), kept.parts),
+      templates: withoutKept(pushChanges(bySlug([...templates, ...kept.templates]), bySlug(child.templates), {mirror: true}), kept.templates),
+    }
+  }
+
+  private async readChildTheme(): Promise<ChildTheme> {
+    try {
+      return await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
+    } catch (error) {
+      this.error(`The site would refuse this push: ${errorMessage(error)}`)
     }
   }
 }
 
 function bySlug(files: Array<Part | Template>): ResourceState {
   return new Map(files.map(({slug, ...rest}) => [slug, rest]))
+}
+
+function withoutKept(changes: PushChange[], kept: Array<Part | Template>): PushChange[] {
+  const slugs = new Set(kept.map((file) => file.slug))
+  return changes.filter((change) => !slugs.has(change.id))
 }
 
 function sha256(text: string): string {

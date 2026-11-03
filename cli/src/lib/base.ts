@@ -9,6 +9,7 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {activateExclusions} from './exclude.js'
 import {getCapabilities, type SiteCapabilities} from './capabilities.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
@@ -41,6 +42,10 @@ export abstract class LoopressCommand extends Command {
   }
 
   protected dryRun = false
+  // Whether the environment's `exclude` globs in loopress.json apply (lib/exclude.ts): push and
+  // diff commands only, never pull.
+  static honorsExclude = false
+
   protected localConfig: LoopressLocalConfig = {}
   // Set by PushCommand's --overwrite, see PushCommand.guardOutsideEdits.
   protected overwrite = false
@@ -97,6 +102,13 @@ export abstract class LoopressCommand extends Command {
     const resolved = this.resolveEnvironment(flags.env)
     this.siteConfig = resolved.env
     this.projectId = resolved.projectId
+    activateExclusions({
+      config: this.localConfig,
+      cwd: process.cwd(),
+      envName: this.siteConfig.name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+      honors: (this.ctor as typeof LoopressCommand).honorsExclude,
+    })
 
     await this.maybeAutoRotate()
   }

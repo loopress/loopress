@@ -5,6 +5,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
+import {hasExclusions, withoutExclusions} from './exclude.js'
 import {errorMessage} from './narrow.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
@@ -15,6 +16,8 @@ export type ResourceDiffJson = {
   added: string[]
   changed: StateChange[]
   error?: string
+  // Excluded from this environment in loopress.json: left out of the comparison, not drift.
+  heldBack?: string[]
   removed: string[]
 }
 
@@ -26,6 +29,9 @@ export type DiffJson = {
 }
 
 export type DiffTarget = {
+  // The local state with the environment's excluded files listed too: what it has more than
+  // `right` is held back.
+  heldBackFrom?: (() => Promise<ResourceState>) | undefined
   left: () => Promise<ResourceState>
   resource: string
   right: () => Promise<ResourceState>
@@ -58,6 +64,8 @@ export abstract class DiffCommand extends LoopressCommand {
     }),
   }
 
+  static override honorsExclude = true
+
   protected composerTarget(sides: DiffSides): DiffTarget {
     // resolve(), not join(): an absolute `rootDir` in loopress.json must stay absolute rather
     // than being prefixed with the cwd, so Composer is read from the same place as the
@@ -83,6 +91,8 @@ export abstract class DiffCommand extends LoopressCommand {
     const {againstWp} = sides
 
     return {
+      // Only against local files: they are what an exclude glob names.
+      heldBackFrom: againstWp !== undefined || !hasExclusions() ? undefined : async () => withoutExclusions(async () => provider.local(dir, () => {}, this.wp)),
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
       right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
@@ -133,6 +143,8 @@ export abstract class DiffCommand extends LoopressCommand {
       if (result.drift) drift = true
     }
 
+    this.renderHeldBack(checked, sides.leftLabel)
+
     const skipped = results.filter((result) => result.skipped)
     for (const result of skipped) this.out(`${c('bold', result.title)}  ${c('dim', 'not configured, skipped')}`)
 
@@ -176,11 +188,13 @@ export abstract class DiffCommand extends LoopressCommand {
     if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
 
     try {
-      const [leftState, rightState] = await Promise.all([target.left(), target.right()])
+      const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
+      const heldBack = fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)).toSorted((a, b) => a.localeCompare(b)) : []
+      for (const id of heldBack) leftState.delete(id)
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
       return {
         drift: !isEmptyDiff(stateDiff),
-        json: {added: stateDiff.added, changed: stateDiff.changed, removed: stateDiff.removed},
+        json: {added: stateDiff.added, changed: stateDiff.changed, removed: stateDiff.removed, ...(heldBack.length > 0 && {heldBack})},
         resource: target.resource,
         stateDiff,
         title: target.title,
@@ -200,6 +214,15 @@ export abstract class DiffCommand extends LoopressCommand {
     if (sharedError !== undefined) return
     const errorLabel = c('red', `error: ${error}`)
     this.out(`${c('bold', title)}  ${errorLabel}`)
+  }
+
+  // Its own group, after the comparison: excluded items are never drift, but a feature held back
+  // from an environment must stay visible there.
+  private renderHeldBack(results: Array<{json: ResourceDiffJson; title: string}>, envName: string): void {
+    const held = results.filter((result) => (result.json.heldBack ?? []).length > 0)
+    if (held.length === 0) return
+    this.out(c('bold', `\nHeld back from ${envName} (exclude in loopress.json), not compared`))
+    for (const result of held) this.out(c('dim', `  ${result.title}: ${(result.json.heldBack ?? []).join(', ')}`))
   }
 
   private renderSection(title: string, stateDiff: StateDiff): void {

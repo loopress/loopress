@@ -69,6 +69,12 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 
 When the repository has a `composer.json`, that file is authoritative for plugins and themes instead, see [where the Composer files live](/plugins/#where-the-composer-files-live).
 
+## Environments
+
+| Field | Description |
+|-------|-------------|
+| `environments.<name>.exclude` | Globs relative to `rootDir` of files the environment named `<name>` never receives: never pushed, pruned or mirrored away there, held back in `lps diff`. See [holding a feature back](/concepts/#holding-a-feature-back-from-an-environment). |
+
 ## Editor validation
 
 The JSON Schema for this file ships with the CLI package, as `@loopress/cli/schema/project-config`. Point your editor's JSON schema setting at it to get completion and validation for every field above.
