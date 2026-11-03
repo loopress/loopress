@@ -161,6 +161,8 @@ jobs:
           docker exec "$CONTAINER" wp plugin delete loopress loopress-full loopress-light --allow-root || true
           docker cp wordpress-plugin/loopress-full.zip "$CONTAINER":/tmp/loopress-full.zip
           docker exec "$CONTAINER" wp plugin install /tmp/loopress-full.zip --activate --allow-root
+          # form-sync.spec.ts and project-rotate.spec.ts need a form plugin; setup-ci never installed one.
+          docker exec "$CONTAINER" wp plugin install wpforms-lite --activate --allow-root
           # A packaged zip pings api.loopress.dev, and each shard's fresh database would count as
           # a new active site. Also needed once setup-ci does it: this pins an older setup-ci.
           docker exec "$CONTAINER" wp option update loopress_usage_stats_enabled 0 --allow-root
