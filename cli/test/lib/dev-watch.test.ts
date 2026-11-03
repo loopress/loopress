@@ -7,19 +7,19 @@ import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, resourc
 
 describe('resolveResourceTypes', () => {
   it('defaults to every resource type when neither --only nor --skip is given', () => {
-    expect(resolveResourceTypes()).toEqual(['snippets', 'templates', 'parts', 'css', 'blocks', 'pages', 'api', 'hooks', 'plugins'])
+    expect(resolveResourceTypes()).toEqual(['snippet', 'template', 'part', 'css', 'block', 'page', 'api', 'hook', 'plugin'])
   })
 
   it('narrows to --only', () => {
-    expect(resolveResourceTypes(['snippets', 'api'])).toEqual(['snippets', 'api'])
+    expect(resolveResourceTypes(['snippet', 'api'])).toEqual(['snippet', 'api'])
   })
 
   it('removes --skip from the default set', () => {
-    expect(resolveResourceTypes(undefined, ['plugins'])).toEqual(['snippets', 'templates', 'parts', 'css', 'blocks', 'pages', 'api', 'hooks'])
+    expect(resolveResourceTypes(undefined, ['plugin'])).toEqual(['snippet', 'template', 'part', 'css', 'block', 'page', 'api', 'hook'])
   })
 
   it('applies --skip on top of --only', () => {
-    expect(resolveResourceTypes(['snippets', 'api'], ['api'])).toEqual(['snippets'])
+    expect(resolveResourceTypes(['snippet', 'api'], ['api'])).toEqual(['snippet'])
   })
 })
 
@@ -38,49 +38,49 @@ describe('buildWatchTargets', () => {
     mkdirSync(join(dir, 'snippets'))
     // no api/ dir created
 
-    const targets = buildWatchTargets(['snippets', 'api'], {}, dir)
+    const targets = buildWatchTargets(['snippet', 'api'], {}, dir)
 
-    expect(targets.map((t) => t.type)).toEqual(['snippets'])
+    expect(targets.map((t) => t.type)).toEqual(['snippet'])
   })
 
   it('resolves directories relative to rootDir and honors custom dir names', () => {
     mkdirSync(join(dir, 'wp', 'code'), {recursive: true})
 
-    const targets = buildWatchTargets(['snippets'], {rootDir: 'wp', snippetsDir: 'code'}, dir)
+    const targets = buildWatchTargets(['snippet'], {rootDir: 'wp', snippetsDir: 'code'}, dir)
 
-    expect(targets).toEqual([{commandId: 'snippet:push', path: join(dir, 'wp', 'code'), type: 'snippets'}])
+    expect(targets).toEqual([{commandId: 'snippet:push', path: join(dir, 'wp', 'code'), type: 'snippet'}])
   })
 
   it('watches the hooks directory with hook:push, honoring hooksDir', () => {
     mkdirSync(join(dir, 'wp-hooks'))
 
-    const targets = buildWatchTargets(['hooks'], {hooksDir: 'wp-hooks'}, dir)
+    const targets = buildWatchTargets(['hook'], {hooksDir: 'wp-hooks'}, dir)
 
-    expect(targets).toEqual([{commandId: 'hook:push', path: join(dir, 'wp-hooks'), type: 'hooks'}])
+    expect(targets).toEqual([{commandId: 'hook:push', path: join(dir, 'wp-hooks'), type: 'hook'}])
   })
 
   it('excludes plugins when the manifest is empty, regardless of loopress.json existing', () => {
-    const targets = buildWatchTargets(['plugins'], {plugins: {}}, dir)
+    const targets = buildWatchTargets(['plugin'], {plugins: {}}, dir)
 
     expect(targets).toEqual([])
   })
 
   it('includes plugins (watching loopress.json at cwd) when the manifest has entries', () => {
-    const targets = buildWatchTargets(['plugins'], {plugins: {'code-snippets': 'latest'}}, dir)
+    const targets = buildWatchTargets(['plugin'], {plugins: {'code-snippets': 'latest'}}, dir)
 
-    expect(targets).toEqual([{commandId: 'plugin:push', path: join(dir, 'loopress.json'), type: 'plugins'}])
+    expect(targets).toEqual([{commandId: 'plugin:push', path: join(dir, 'loopress.json'), type: 'plugin'}])
   })
 })
 
 // Built with join: real watcher paths use the OS separator, which resourceTypeForPath matches on.
 describe('resourceTypeForPath', () => {
   const targets = [
-    {commandId: 'snippet:push', path: join('/proj', 'snippets'), type: 'snippets' as const},
-    {commandId: 'plugin:push', path: join('/proj', 'loopress.json'), type: 'plugins' as const},
+    {commandId: 'snippet:push', path: join('/proj', 'snippets'), type: 'snippet' as const},
+    {commandId: 'plugin:push', path: join('/proj', 'loopress.json'), type: 'plugin' as const},
   ]
 
   it('matches a file inside a directory target', () => {
-    expect(resourceTypeForPath(join('/proj', 'snippets', 'hello.php'), targets)).toBe('snippets')
+    expect(resourceTypeForPath(join('/proj', 'snippets', 'hello.php'), targets)).toBe('snippet')
   })
 
   it('does not match a sibling directory that merely shares a prefix', () => {
@@ -88,7 +88,7 @@ describe('resourceTypeForPath', () => {
   })
 
   it('matches the file target by exact equality', () => {
-    expect(resourceTypeForPath(join('/proj', 'loopress.json'), targets)).toBe('plugins')
+    expect(resourceTypeForPath(join('/proj', 'loopress.json'), targets)).toBe('plugin')
   })
 
   it('returns undefined for a path outside every target', () => {

@@ -70,6 +70,7 @@ class TestPush extends Push {
 
 function make(
   options: {
+    argv?: string[]
     capabilities?: ReturnType<typeof makeCapabilities>
     dryRun?: boolean
     localConfig?: LoopressLocalConfig
@@ -78,7 +79,7 @@ function make(
     yes?: boolean
   } = {},
 ) {
-  const cmd = new TestPush([], fakeOclifConfig)
+  const cmd = new TestPush(options.argv ?? [], fakeOclifConfig)
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn(async () => themes.value)}
   stubCapabilities(cmd, options.capabilities ?? makeCapabilities())
   cmd.setup({
@@ -124,6 +125,34 @@ describe('push', () => {
     const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
     expect(ran).toEqual(ALL_COMMAND_IDS.filter((id) => id !== 'composer:push'))
     expect(logs.log).toHaveBeenCalledWith('\n→ composer: already pushed whole by plugins')
+  })
+
+  it('--only pushes just those resources, in push order, and reports the rest skipped', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make({argv: ['--only', 'page,acf']})
+
+    const {results} = await cmd.run()
+
+    const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+    expect(ran).toEqual(['acf:push', 'page:push'])
+    expect(results.find((r) => r.label === 'snippets')?.status).toBe('skipped')
+    expect(results.find((r) => r.label === 'pages')?.status).toBe('pushed')
+  })
+
+  it('--skip leaves a target out of the site checks so it cannot block the run', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make({argv: ['--skip', 'plugin,template', '--skip', 'snippet'], capabilities: makeLightCapabilities()})
+
+    const {results} = await cmd.run()
+
+    expect(results.find((r) => r.label === 'plugins')?.status).toBe('skipped')
+    expect(results.find((r) => r.label === 'snippets')?.status).toBe('skipped')
+  })
+
+  it('rejects an unknown --only resource', async () => {
+    const {cmd} = make({argv: ['--only', 'nope']})
+
+    await expect(cmd.run()).rejects.toThrow('Unknown resource "nope" in --only')
   })
 
   it('delegates to every resource push, in dependency order, with the resolved env and --yes', async () => {

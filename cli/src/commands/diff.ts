@@ -1,9 +1,9 @@
-import {Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 import {getCapabilities, type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
 import {DiffCommand, type DiffJson, type DiffSides, type DiffTarget} from '../lib/diff-command.js'
+import {parseSelectionFlag, selectionFlags, selectResources} from '../lib/resource-selection.js'
 import {RESOURCE_STATE_PROVIDERS, type ResourceStateProvider} from '../lib/resource-state.js'
 import {type WpClient} from '../lib/wp-client.js'
 import {projectUses, resolveResourceDir} from '../utils/resource-dirs.js'
@@ -32,15 +32,20 @@ export default class Diff extends DiffCommand {
 
   static override flags = {
     ...DiffCommand.againstFlag,
-    only: Flags.string({description: 'Only compare these resources', multiple: true, options: [...RESOURCES]}),
-    skip: Flags.string({description: 'Compare every resource except these', multiple: true, options: [...RESOURCES]}),
+    ...selectionFlags('compare', RESOURCES),
   }
 
   async run(): Promise<DiffJson> {
     const {flags} = await this.parse(Diff)
 
     const sides = this.resolveSides(flags.against)
-    const selected = this.selectResources(flags.only, flags.skip)
+    const selected = new Set(
+      selectResources(
+        RESOURCES,
+        parseSelectionFlag(flags.only, 'only', RESOURCES, (message) => this.error(message)),
+        parseSelectionFlag(flags.skip, 'skip', RESOURCES, (message) => this.error(message)),
+      ),
+    )
 
     const providers = RESOURCE_STATE_PROVIDERS.filter((provider) => selected.has(provider.resource))
     const targets: DiffTarget[] = [
@@ -73,13 +78,6 @@ export default class Diff extends DiffCommand {
     }
 
     return projectUses(provider.dirKind, this.localConfig)
-  }
-
-  // `--only` narrows the default set, `--skip` then removes from whatever that set is, same
-  // precedence a combined `--only=a,b --skip=b` reads as (mirrors dev-watch's resolveResourceTypes).
-  private selectResources(only: string[] | undefined, skip: string[] | undefined): Set<string> {
-    const base = only && only.length > 0 ? only : RESOURCES
-    return new Set(base.filter((resource) => !(skip ?? []).includes(resource)))
   }
 
   // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too

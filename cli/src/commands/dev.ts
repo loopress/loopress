@@ -1,10 +1,11 @@
-import {Command, Flags} from '@oclif/core'
+import {Command} from '@oclif/core'
 import {watch as watchFiles} from 'chokidar'
 import {basename} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {buildWatchTargets, createDebouncedBatcher, resolveResourceTypes, RESOURCE_TYPES, type ResourceType, resourceTypeForPath, type WatchTarget} from '../lib/dev-watch.js'
 import {errorMessage, isOneOf} from '../lib/narrow.js'
+import {parseSelectionFlag, selectionFlags} from '../lib/resource-selection.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 
 const DEBOUNCE_MS = 400
@@ -15,17 +16,16 @@ export default class Dev extends Command {
   static override description =
     'Watch project files and push changes to the local WordPress instance as they happen. Always targets the "local" environment, run `lps snippet push` etc. directly for any other environment.'
 
-  static override examples = ['$ lps dev', '$ lps dev --only=snippets,api', '$ lps dev --skip=plugins']
+  static override examples = ['$ lps dev', '$ lps dev --only=snippet,api', '$ lps dev --skip=plugin']
   static override flags = {
-    only: Flags.string({description: `Only watch these resource types (comma-separated): ${RESOURCE_TYPES.join(', ')}`}),
-    skip: Flags.string({description: `Skip these resource types (comma-separated): ${RESOURCE_TYPES.join(', ')}`}),
+    ...selectionFlags('watch', RESOURCE_TYPES),
   }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Dev)
 
-    const only = flags.only ? this.parseTypeFlag(flags.only, 'only') : undefined
-    const skip = flags.skip ? this.parseTypeFlag(flags.skip, 'skip') : []
+    const only = this.parseTypeFlag(flags.only, 'only')
+    const skip = this.parseTypeFlag(flags.skip, 'skip')
     const types = resolveResourceTypes(only, skip)
 
     const localConfig = await readLocalConfig()
@@ -45,18 +45,8 @@ export default class Dev extends Command {
     await this.watch(targets)
   }
 
-  private parseTypeFlag(raw: string, flagName: 'only' | 'skip'): ResourceType[] {
-    return raw
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .map((value) => {
-        if (!isOneOf(RESOURCE_TYPES, value)) {
-          this.error(`Unknown resource type "${value}" in --${flagName}. Valid types: ${RESOURCE_TYPES.join(', ')}`)
-        }
-
-        return value
-      })
+  private parseTypeFlag(raw: string[] | undefined, flagName: 'only' | 'skip'): ResourceType[] {
+    return parseSelectionFlag(raw, flagName, RESOURCE_TYPES, (message) => this.error(message)).filter((value): value is ResourceType => isOneOf(RESOURCE_TYPES, value))
   }
 
   // Sequential on purpose (see notes technique: parallelizing push is out of scope). A failed

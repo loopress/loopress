@@ -78,7 +78,13 @@ Push every resource to WordPress, in dependency order: plugins and Composer firs
 lps push
 lps push --env staging --yes
 lps push --dry-run
+lps push --only acf,page
+lps push --skip plugin --skip composer
 ```
+
+`--only` and `--skip` take the singular resource ids below, comma-separated or repeated. `--only` narrows the run, `--skip` then removes from it, and the order stays the push order whatever order you wrote. A resource left out is reported `skipped` and never checked against the site, so it can't block the run (an unsupported or missing integration only matters for what you push). Ids: `plugin`, `composer`, `cpt`, `taxonomy`, `meta`, `role`, `acf`, `api`, `hook`, `block`, `form`, `pattern`, `template` (templates, parts and CSS), `theme-styles`, `page`, `menu`, `option`, `snippet`.
+
+The same ids work in `lps diff` and `lps dev`.
 
 When the repository has a `composer.json` that declares plugins, `plugin push` already pushes it whole, so `composer push` is skipped and Composer runs only once on the server.
 
@@ -105,8 +111,8 @@ lps diff --skip composer
 | Flag | Description |
 |------|-------------|
 | `--against <env>` | Compare the target environment with this second environment instead of local files |
-| `--only <resource>` | Only compare these resources. Repeatable |
-| `--skip <resource>` | Compare every resource except these. Repeatable |
+| `--only <resources>` | Only compare these resources. Comma-separated or repeated |
+| `--skip <resources>` | Compare every resource except these. Comma-separated or repeated |
 
 Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-styles`, `composer`.
 
@@ -160,15 +166,15 @@ Watch project files and push each change to the `local` environment as soon as y
 
 ```bash
 lps dev
-lps dev --only=snippets,api
-lps dev --skip=plugins
+lps dev --only=snippet,api
+lps dev --skip=plugin
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--only <types>` | Only watch these resource types, comma-separated |
-| `--skip <types>` | Skip these resource types, comma-separated |
+| `--only <resources>` | Only watch these resources. Comma-separated or repeated |
+| `--skip <resources>` | Skip these resources. Comma-separated or repeated |
 
-Watched types: `snippets`, `templates`, `parts`, `css`, `blocks`, `pages`, `api`, `hooks`, `plugins`.
+Watched resources: `snippet`, `template`, `part`, `css`, `block`, `page`, `api`, `hook`, `plugin`.
 
 `lps dev` always targets the environment named `local`, never any other: add one with `lps project config` first. To push to another environment, run the feature's `push` command with `--env`.
