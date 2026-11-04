@@ -117,8 +117,6 @@ export default class Config extends Command {
     this.log(`✓ "${projectName}/${envName}" configured`)
 
     await this.maybeBootstrapLoopressFull(env)
-
-    this.log('→ Run `lps project switch` to change the active project or environment')
   }
 
   private async maybeBootstrapLoopressFull(env: EnvironmentConfig): Promise<void> {

@@ -403,7 +403,7 @@ describe('project config', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith('→ Run `lps project switch` to change the active project or environment')
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('lps project switch'))
   })
 
   it('offers existing projects plus "Add a new project…" and selects the chosen one', async () => {

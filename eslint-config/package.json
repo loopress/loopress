@@ -1,6 +1,7 @@
 {
   "name": "@loopress/eslint-config",
   "version": "1.1.0",
+  "private": true,
   "type": "module",
   "exports": {
     "./base": "./base.js",
@@ -9,8 +10,8 @@
     "./react": "./react.js"
   },
   "dependencies": {
-    "@darraghor/eslint-plugin-nestjs-typed": "latest",
-    "@eslint-react/eslint-plugin": "latest",
+    "@darraghor/eslint-plugin-nestjs-typed": "^7.5.8",
+    "@eslint-react/eslint-plugin": "^5.28.8",
     "@eslint/js": "^10.0.1",
     "eslint-plugin-n": "^18.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
