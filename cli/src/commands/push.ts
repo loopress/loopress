@@ -35,8 +35,12 @@ type SiteStep = {commandId: string; missing: MissingIntegration | undefined; ski
 const PLUGIN_BACKED: Record<string, ResourceDirKind> = {'acf:push': 'acf', 'form:push': 'form', 'snippet:push': 'snippets'}
 
 // Features of Loopress Full only: on Light, skipped while the project doesn't use them, refused
-// upfront when it does. On Full they run as usual, used or not.
+// upfront when it does. Like every other resource, skipped when the project doesn't use them.
 const FULL_ONLY: Record<string, ResourceDirKind> = {'api:push': 'api', 'block:push': 'block', 'hook:push': 'hooks', 'page:push': 'page', 'pattern:push': 'pattern'}
+
+// Always available on the site: nothing to refuse, but a project without the resource's
+// directory has nothing to push, so the step is skipped instead of running on an empty directory.
+const CORE_BACKED: Record<string, ResourceDirKind> = {'cpt:push': 'cpt', 'menu:push': 'menu', 'meta:push': 'meta', 'option:push': 'options', 'role:push': 'role', 'taxonomy:push': 'taxonomy'}
 
 // Dependency-ish order: code first (plugins, composer), then the ACF definitions content
 // relies on, then content itself.
@@ -243,9 +247,10 @@ export default class Push extends LoopressCommand {
       ...Object.entries(FULL_ONLY).map(([commandId, kind]) => ({
         commandId,
         missing: missingIntegration(kind, capabilities),
-        skipUnused: false,
+        skipUnused: true,
         used: projectUses(kind, this.localConfig),
       })),
+      ...Object.entries(CORE_BACKED).map(([commandId, kind]) => ({commandId, missing: undefined, skipUnused: true, used: projectUses(kind, this.localConfig)})),
       // Without templates, parts or CSS, the step would only write an empty child theme.
       {commandId: 'theme:template:push', missing: missingIntegration('template', capabilities), skipUnused: true, used: projectHasChildThemeFiles(this.localConfig)},
     ]
