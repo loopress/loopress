@@ -3,8 +3,9 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
+import {activateExclusions, heldBackPaths} from '../../src/lib/exclude.js'
 import {materializeSnapshot} from '../../src/lib/rollback-materialize.js'
-import {blockProblems, readLocalBlocks} from '../../src/utils/block-format.js'
+import {blockFilesToPush, blockProblems, readLocalBlocks} from '../../src/utils/block-format.js'
 
 const BLOCK_JSON = JSON.stringify({apiVersion: 3, name: 'loopress/hero', style: 'file:./style.css', viewScriptModule: ['file:./view.js']})
 
@@ -63,5 +64,38 @@ describe('readLocalBlocks and the rollback materializer', () => {
 
     const {problems} = await readLocalBlocks(dir)
     expect(problems).toEqual([{file: join(dir, 'hero'), message: 'render.php is missing'}])
+  })
+})
+
+describe('excluded files inside a block folder', () => {
+  let root: string
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'lps-block-exclude-'))
+    mkdirSync(join(root, 'blocks', 'hero'), {recursive: true})
+    writeFileSync(join(root, 'blocks', 'hero', 'block.json'), BLOCK_JSON)
+    writeFileSync(join(root, 'blocks', 'hero', 'render.php'), 'local render')
+    writeFileSync(join(root, 'blocks', 'hero', 'style.css'), 'local style')
+    writeFileSync(join(root, 'blocks', 'hero', 'view.js'), 'local view')
+    activateExclusions({config: {environments: {production: {exclude: ['blocks/hero/view.js']}}}, cwd: root, envName: 'production', honors: true})
+  })
+
+  afterEach(() => {
+    activateExclusions({config: {}, cwd: root, envName: 'production', honors: false})
+    rmSync(root, {force: true, recursive: true})
+  })
+
+  it('checks the whole folder, drops the excluded file and records it as held back', async () => {
+    const {blocks, problems} = await readLocalBlocks(join(root, 'blocks'))
+    expect(problems).toEqual([])
+    expect(blocks).toEqual([{files: {'block.json': BLOCK_JSON, 'render.php': 'local render', 'style.css': 'local style'}, slug: 'hero'}])
+    expect(heldBackPaths()).toEqual(['blocks/hero/view.js'])
+  })
+
+  it("sends the site's copy of the excluded file, or leaves it out when the site has none", async () => {
+    const dir = join(root, 'blocks')
+    const block = {files: {'render.php': 'local render', 'view.js': 'local view'}, slug: 'hero'}
+    expect(blockFilesToPush(dir, block, {'view.js': 'site view'})).toEqual({'render.php': 'local render', 'view.js': 'site view'})
+    expect(blockFilesToPush(dir, block, undefined)).toEqual({'render.php': 'local render'})
   })
 })

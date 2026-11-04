@@ -1,7 +1,7 @@
 import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-import {withoutExcluded} from '../lib/exclude.js'
+import {isExcluded, withoutExcluded} from '../lib/exclude.js'
 import {errorCode, isRecord} from '../lib/narrow.js'
 
 // A dynamic block: blocks/<slug>/ in WordPress's own block format, registered on the site as
@@ -77,11 +77,28 @@ export async function readLocalBlocks(dir: string): Promise<{blocks: LocalBlock[
       if (file.isFile() && !file.name.startsWith('.')) files[file.name] = await readFile(join(dir, slug, file.name), 'utf8')
     }
 
+    // Checked whole, then the environment's excluded files are dropped: a push keeps the site's
+    // copy of those (see blockFilesToPush), a diff holds the block back.
     for (const message of blockProblems(slug, files)) problems.push({file: join(dir, slug), message})
-    blocks.push({files, slug})
+    const kept = new Set(withoutExcluded(join(dir, slug), Object.keys(files), (name) => name))
+    blocks.push({files: Object.fromEntries(Object.entries(files).filter(([name]) => kept.has(name))), slug})
   }
 
   return {blocks, problems}
+}
+
+// Block files the environment excludes: never sent, so the site's copy of each one goes back in
+// the PUT (a block is replaced as a whole).
+export function excludedBlockFiles(dir: string, slug: string): string[] {
+  return BLOCK_FILES.filter((name) => isExcluded(join(dir, slug, name)))
+}
+
+// What a push sends for `block`: its local files plus the site's copy of its excluded ones.
+export function blockFilesToPush(dir: string, block: LocalBlock, site: BlockFiles | undefined): BlockFiles {
+  const excluded = new Set(excludedBlockFiles(dir, block.slug))
+  const kept = Object.entries(block.files).filter(([name]) => !excluded.has(name))
+  const fromSite = Object.entries(site ?? {}).filter(([name]) => excluded.has(name))
+  return Object.fromEntries([...kept, ...fromSite])
 }
 
 export function formatBlockProblems(problems: BlockProblem[]): string {

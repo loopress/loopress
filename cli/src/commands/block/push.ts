@@ -4,7 +4,7 @@ import {isDeepStrictEqual} from 'node:util'
 import {errorMessage} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
 import {getResourceStateProvider} from '../../lib/resource-state.js'
-import {BLOCKS_ENDPOINT, formatBlockProblems, readLocalBlocks} from '../../utils/block-format.js'
+import {blockFilesToPush, BLOCKS_ENDPOINT, excludedBlockFiles, formatBlockProblems, readLocalBlocks, type RemoteBlock} from '../../utils/block-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {resolveResourceDir} from '../../utils/resource-dirs.js'
 
@@ -34,8 +34,13 @@ export default class Push extends PushCommand {
     this.log(`Pushing dynamic blocks to ${this.siteConfig.url}`)
     this.log(`Blocks path: ${path}`)
 
-    const {blocks, problems} = await readLocalBlocks(path)
-    if (problems.length > 0) this.error(formatBlockProblems(problems))
+    const read = await readLocalBlocks(path)
+    if (read.problems.length > 0) this.error(formatBlockProblems(read.problems))
+    // An excluded file inside a block folder: the site's copy is sent back, read here rather than
+    // from the best-effort snapshot so a failed read stops the push instead of deleting it.
+    const withExcluded = read.blocks.some((block) => excludedBlockFiles(path, block.slug).length > 0)
+    const site = withExcluded && !this.dryRun ? new Map((await this.wp.get<RemoteBlock[]>(BLOCKS_ENDPOINT)).map((block) => [block.slug, block.files])) : undefined
+    const blocks = site ? read.blocks.map((block) => ({...block, files: blockFilesToPush(path, block, site.get(block.slug))})) : read.blocks
     this.log(`Found ${pluralize(blocks.length, 'block')} to push`)
 
     const provider = getResourceStateProvider('block')

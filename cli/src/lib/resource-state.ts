@@ -48,6 +48,9 @@ import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 // would store (ACF fills in its defaults on save): that provider asks the site to normalize them.
 export type ResourceStateProvider = {
   dirKind: ResourceDirKind
+  // The extension of one item's file (`.php` for api/foo.php), when the resource has one: tells
+  // which exclude globs name a site-only item. Unset, every resource file extension is tried.
+  fileExtension?: string
   local(dir: string, onWarn: (message: string) => void, wp?: WpClient): Promise<ResourceState>
   remote(wp: WpClient, onWarn: (message: string) => void, dir: string): Promise<ResourceState>
   resource: string
@@ -149,6 +152,7 @@ const snippetProvider: ResourceStateProvider = {
 // stance as form-format.ts.
 const formProvider: ResourceStateProvider = {
   dirKind: 'form',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(dir, {
       extension: '.json',
@@ -197,6 +201,7 @@ async function normalizeAcf(wp: WpClient, type: AcfObjectType, objects: Array<Re
 
 const acfProvider: ResourceStateProvider = {
   dirKind: 'acf',
+  fileExtension: '.json',
   async local(dir, onWarn, wp) {
     const state: ResourceState = new Map()
     for (const type of ACF_OBJECT_TYPES) {
@@ -249,6 +254,7 @@ function phpFilesProvider(spec: {
 }): ResourceStateProvider {
   return {
     dirKind: spec.dirKind,
+    fileExtension: '.php',
     async local(dir, onWarn) {
       return filesToState(
         await loadFiles<{content: string; filename: string}>(dir, {
@@ -349,6 +355,7 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
 
 const templateProvider: ResourceStateProvider = {
   dirKind: 'template',
+  fileExtension: '.html',
   async local(dir) {
     const {files, problems} = await readLocalHtmlFiles(dir, parseTemplateFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
@@ -361,6 +368,7 @@ const templateProvider: ResourceStateProvider = {
 
 const partProvider: ResourceStateProvider = {
   dirKind: 'part',
+  fileExtension: '.html',
   async local(dir) {
     const {files, problems} = await readLocalHtmlFiles(dir, parsePartFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
@@ -392,6 +400,7 @@ function canonicalMenu(menu: Record<string, unknown>): Record<string, unknown> {
 
 const menuProvider: ResourceStateProvider = {
   dirKind: 'menu',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const state: ResourceState = new Map()
 
@@ -436,6 +445,7 @@ const menuProvider: ResourceStateProvider = {
 function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceStateProvider {
   return {
     dirKind: spec.dirKind,
+    fileExtension: fileExtension(spec),
     async local(dir, onWarn) {
       const entries = await loadFiles<{args: Record<string, unknown>; slug: string}>(dir, {
         extension: fileExtension(spec),
@@ -469,6 +479,7 @@ const patternProvider = declaredTypeProvider(PATTERN_SPEC, 'Patterns')
 // sides so it can never itself show up as drift.
 const optionsProvider: ResourceStateProvider = {
   dirKind: 'options',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const entries = await loadFiles<{autoload: string; name: string; value: unknown}>(dir, {
       extension: '.json',
@@ -516,6 +527,7 @@ const optionsProvider: ResourceStateProvider = {
 // individually rather than colliding on a single key.
 const themeStylesProvider: ResourceStateProvider = {
   dirKind: 'themeStyles',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const entries = await loadFiles<{stylesheet: string; value: Record<string, unknown>}>(dir, {
       extension: '.json',

@@ -95,7 +95,7 @@ export abstract class DiffCommand extends LoopressCommand {
     return {
       // Only against local files: they are what an exclude glob names.
       heldBackFrom: againstWp !== undefined || !hasExclusions() ? undefined : async () => withoutExclusions(async () => provider.local(dir, () => {}, this.wp)),
-      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id),
+      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id, provider.fileExtension),
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
       right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
@@ -294,11 +294,13 @@ export function resourceDiffCommand(
 }
 
 // The id is the file's path under the resource directory for most resources (a slug, an API
-// route), without its extension: try the extensions resource files use.
-const RESOURCE_FILE_EXTENSIONS = ['', '.json', '.php', '.html']
+// route), without its extension: try the bare path (a block folder) and the resource's own
+// extension, or every extension resource files use when the provider doesn't declare one.
+const RESOURCE_FILE_EXTENSIONS = ['.json', '.php', '.html']
 
-function excludedFileFor(dir: string, id: string): boolean {
-  return RESOURCE_FILE_EXTENSIONS.some((extension) => isExcluded(join(dir, `${id}${extension}`)))
+export function excludedFileFor(dir: string, id: string, fileExtension: string | undefined): boolean {
+  const extensions = ['', ...(fileExtension === undefined ? RESOURCE_FILE_EXTENSIONS : [fileExtension])]
+  return extensions.some((extension) => isExcluded(join(dir, `${id}${extension}`)))
 }
 
 // Indents an already-formatted change block (a per-field list or a header-less unified diff)
