@@ -24,6 +24,14 @@ type ParsedBaseFlags = {
   yes?: boolean
 }
 
+// Listr's default renderer wraps every label to the terminal width, so a terminal reporting no
+// width (columns 0 or undefined, e.g. `script` without a size) renders one letter per line. The
+// simple renderer prints plain lines and does not wrap.
+export function listrRenderer(silent: boolean): 'default' | 'silent' | 'simple' {
+  if (silent) return 'silent'
+  return process.stdout.columns > 0 ? 'default' : 'simple'
+}
+
 export abstract class LoopressCommand extends Command {
   // On every subclass without opt-in. Without it, commands target the "local" environment, so
   // reaching a remote site is always spelled out in the command itself.
@@ -187,7 +195,9 @@ export abstract class LoopressCommand extends Command {
           },
           title: `Pull ${options.title(item)}`,
         })),
-        {renderer: this.jsonEnabled() ? 'silent' : 'default'},
+        // Listr types the task wrapper per renderer, a union of renderer names does not fit it.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        {renderer: listrRenderer(this.jsonEnabled()) as 'default'},
       ).run()
     })
 
