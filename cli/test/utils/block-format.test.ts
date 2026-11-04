@@ -4,7 +4,9 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {activateExclusions, heldBackPaths} from '../../src/lib/exclude.js'
+import {getResourceStateProvider} from '../../src/lib/resource-state.js'
 import {materializeSnapshot} from '../../src/lib/rollback-materialize.js'
+import {type WpClient} from '../../src/lib/wp-client.js'
 import {blockFilesToPush, blockProblems, readLocalBlocks} from '../../src/utils/block-format.js'
 
 const BLOCK_JSON = JSON.stringify({apiVersion: 3, name: 'loopress/hero', style: 'file:./style.css', viewScriptModule: ['file:./view.js']})
@@ -97,5 +99,11 @@ describe('excluded files inside a block folder', () => {
     const block = {files: {'render.php': 'local render', 'view.js': 'local view'}, slug: 'hero'}
     expect(blockFilesToPush(dir, block, {'view.js': 'site view'})).toEqual({'render.php': 'local render', 'view.js': 'site view'})
     expect(blockFilesToPush(dir, block, undefined)).toEqual({'render.php': 'local render'})
+  })
+
+  it("compares the block with the site's copy of the excluded file, as the push sends it", async () => {
+    const wp = {get: async () => [{files: {'view.js': 'site view'}, slug: 'hero'}]} as unknown as WpClient
+    const state = await getResourceStateProvider('block').local(join(root, 'blocks'), () => {}, wp)
+    expect(state.get('hero')).toEqual({'block.json': BLOCK_JSON, 'render.php': 'local render', 'style.css': 'local style', 'view.js': 'site view'})
   })
 })

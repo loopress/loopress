@@ -137,6 +137,18 @@ describe('DiffCommand.report', () => {
     expect(result.resources.hooks).toEqual({added: [], changed: [], heldBack: ['games', 'site-only', 'unreleased'], removed: ['stale']})
   })
 
+  it('holds back an item whose excluded file differs locally, without drift', async () => {
+    const {result} = await report([
+      {
+        ...target('Blocks', {hero: 1}, {hero: 1}),
+        heldBackFrom: async () => state({hero: 2}),
+      },
+    ])
+
+    expect(result.resources.blocks).toEqual({added: [], changed: [], heldBack: ['hero'], removed: []})
+    expect(process.exitCode).not.toBe(1)
+  })
+
   it('prints nothing in --json mode', async () => {
     const {lines} = await report([target('Forms', {f: 1}, {})], ['--json'])
 

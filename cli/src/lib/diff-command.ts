@@ -1,5 +1,6 @@
 import {Args, Flags, ux} from '@oclif/core'
 import {join, resolve} from 'node:path'
+import {isDeepStrictEqual} from 'node:util'
 
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
@@ -95,7 +96,7 @@ export abstract class DiffCommand extends LoopressCommand {
     return {
       // Only against local files: they are what an exclude glob names.
       heldBackFrom: againstWp !== undefined || !hasExclusions() ? undefined : async () => withoutExclusions(async () => provider.local(dir, () => {}, this.wp)),
-      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id, provider.fileExtension),
+      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id, provider),
       left: async () => provider.remote(this.wp, sides.warn, dir),
       resource: provider.resource,
       right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
@@ -192,11 +193,16 @@ export abstract class DiffCommand extends LoopressCommand {
 
     try {
       const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
-      const heldBack = [
+      // Whole items: only in the unfiltered local files, or only on the site under an excluded path.
+      const heldBackItems = [
         ...(fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)) : []),
         ...[...leftState.keys()].filter((id) => !rightState.has(id) && !fullState?.has(id) && target.isHeldBack?.(id) === true),
-      ].toSorted((a, b) => a.localeCompare(b))
-      for (const id of heldBack) leftState.delete(id)
+      ]
+      for (const id of heldBackItems) leftState.delete(id)
+      // An item an excluded file is part of (a block's view.js): compared with the site's copy of
+      // that file, held back when the local one differs.
+      const heldBackFiles = fullState ? [...rightState.keys()].filter((id) => fullState.has(id) && !isDeepStrictEqual(fullState.get(id), rightState.get(id))) : []
+      const heldBack = [...heldBackItems, ...heldBackFiles].toSorted((a, b) => a.localeCompare(b))
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
       return {
         drift: !isEmptyDiff(stateDiff),
@@ -294,12 +300,18 @@ export function resourceDiffCommand(
 }
 
 // The id is the file's path under the resource directory for most resources (a slug, an API
-// route), without its extension: try the bare path (a block folder) and the resource's own
-// extension, or every extension resource files use when the provider doesn't declare one.
+// route), without its extension: a provider whose ids don't follow that names the file itself
+// (`fileName`), one with an extension is tried with it only, and one without (a block folder)
+// with the bare path and every extension resource files use.
 const RESOURCE_FILE_EXTENSIONS = ['.json', '.php', '.html']
 
-export function excludedFileFor(dir: string, id: string, fileExtension: string | undefined): boolean {
-  const extensions = ['', ...(fileExtension === undefined ? RESOURCE_FILE_EXTENSIONS : [fileExtension])]
+export function excludedFileFor(dir: string, id: string, provider: Pick<ResourceStateProvider, 'fileExtension' | 'fileName'>): boolean {
+  if (provider.fileName) {
+    const fileName = provider.fileName(id)
+    return fileName !== undefined && isExcluded(join(dir, fileName))
+  }
+
+  const extensions = provider.fileExtension === undefined ? ['', ...RESOURCE_FILE_EXTENSIONS] : [provider.fileExtension]
   return extensions.some((extension) => isExcluded(join(dir, `${id}${extension}`)))
 }
 
