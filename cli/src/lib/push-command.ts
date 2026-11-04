@@ -10,6 +10,7 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
+import {environmentUrlWarnings, type ScannedItem} from './environment-urls.js'
 import {heldBackPaths} from './exclude.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
@@ -231,6 +232,13 @@ export abstract class PushCommand extends LoopressCommand {
         {concurrent: false, exitOnError: false, renderer: this.jsonEnabled() ? 'silent' : 'default'},
       ).run()
     })
+  }
+
+  // Absolute URLs to another environment of the project in what this push sends: warned about,
+  // never rewritten, on a dry run too.
+  protected warnEnvironmentUrls(items: ScannedItem[]): void {
+    const prefix = this.dryRun ? '[dry-run] ' : ''
+    for (const warning of environmentUrlWarnings(items, this.siteConfig, this.projectEnvironments)) this.warn(`${prefix}${warning}`)
   }
 
   // Pairs `beforeState` (from captureBeforePushState, read before this push touched anything)

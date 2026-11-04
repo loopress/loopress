@@ -75,6 +75,8 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
       })
 
       this.log(`Found ${pluralize(items.length, spec.noun, spec.plural)} to push`)
+      // Patterns carry block markup, the other declared types only registration arguments.
+      if (spec.cliName === 'pattern') this.warnEnvironmentUrls(items.map((item) => ({id: `${spec.plural}/${item.slug}`, value: item.args})))
 
       const pushed: string[] = []
       await this.runPushTasks(

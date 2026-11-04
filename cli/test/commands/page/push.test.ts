@@ -165,6 +165,26 @@ describe('page push', () => {
       expect(put).not.toHaveBeenCalled()
     })
 
+    it('warns about an absolute URL to another environment of the project on a dry run', async () => {
+      writeFileSync(join(dir, 'about.html'), '<a href="https://staging.example.com/contact">c</a> <a href="/team">t</a>')
+      const cmd = makeCommand()
+      cmd.dryRun = true
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue([])
+      ;(cmd as unknown as {projectEnvironments: unknown}).projectEnvironments = [
+        {name: 'local', url: 'http://localhost:8080'},
+        {name: 'staging', url: 'https://staging.example.com'},
+      ]
+      cmd.siteConfig = {...makeEnv('local'), url: 'http://localhost:8080'}
+      cmd.localConfig = {pageDir: '.', rootDir: dir}
+      cmd.parse = async () => ({args: {}})
+
+      await cmd.run()
+
+      const {warn} = cmd as unknown as {warn: ReturnType<typeof vi.fn>}
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[dry-run] pages/about links to the "staging" environment'))
+    })
+
     it('errors with the failed count instead of reporting success', async () => {
       writeFileSync(join(dir, 'about.html'), '<p>a</p>')
       const cmd = makeCommand(vi.fn().mockRejectedValue(new Error('boom')))

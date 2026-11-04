@@ -60,6 +60,8 @@ export abstract class LoopressCommand extends Command {
   protected overwrite = false
   // Set by PushCommand's hidden --production-confirmed, see there.
   protected productionConfirmed = false
+  // Every environment of the project, the target included (see environment-urls.ts).
+  protected projectEnvironments: EnvironmentConfig[] = []
   protected projectId!: string
   protected siteConfig!: EnvironmentConfig
   protected yes = false
@@ -293,6 +295,7 @@ export abstract class LoopressCommand extends Command {
       this.error(`Project "${projectId}" (from loopress.json) not found. Run \`lps project config\` to configure it.`)
     }
 
+    this.projectEnvironments = Object.values(project.environments)
     const envNames = Object.keys(project.environments)
     if (envNames.length === 0) {
       this.error(`Project "${project.name}" has no environments configured. Run \`lps project config\` to add one.`)
