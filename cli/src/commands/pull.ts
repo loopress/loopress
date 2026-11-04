@@ -100,6 +100,7 @@ export default class Pull extends LoopressCommand {
     }
 
     if (this.failedCount > 0) {
+      await this.warnUnsupported()
       // Each failure's own reason, not just the count: under --json the per-resource lines above
       // never reach stdout, and this message is all an MCP caller or a script gets to see.
       const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)

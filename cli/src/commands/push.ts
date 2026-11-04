@@ -127,14 +127,13 @@ export default class Push extends LoopressCommand {
           .filter((next) => !skips.has(next.commandId))
           .map((next) => next.label)
         const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+        this.warnUnsupported()
         this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
     }
 
     this.log(this.doneMessage(selected.size < PUSH_IDS.length))
-    if (this.unsupported.length > 0) {
-      this.warn(`Skipped with --skip-unsupported, this site can't hold them:\n  ${this.unsupported.join('\n  ')}\nResources that depend on them (a page placing a block, code calling a hook) may not work until they are pushed.`)
-    }
+    this.warnUnsupported()
 
     return {results}
   }
@@ -287,5 +286,11 @@ export default class Push extends LoopressCommand {
     const fix = integrationFix(missing, declared)
     const fixSentence = fix ? ` ${fix}.` : ''
     return `${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`
+  }
+
+  private warnUnsupported(): void {
+    if (this.unsupported.length > 0) {
+      this.warn(`Skipped with --skip-unsupported, this site can't hold them:\n  ${this.unsupported.join('\n  ')}\nResources that depend on them (a page placing a block, code calling a hook) may not work until they are pushed.`)
+    }
   }
 }

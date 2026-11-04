@@ -148,9 +148,9 @@ The push honors the target's [excludes](/concepts/#holding-a-feature-back-from-a
 
 ## Skipping what a site can't hold
 
-By default, a project that uses something the site can't hold (ACF inactive, no form or snippet plugin, a Full feature on Loopress Light, a classic theme for Global Styles) is refused: `lps push` pushes nothing, `lps pull` fails that resource. That is deliberate, since pushing the rest can leave a site that looks fine and is broken.
+By default, a project that uses something the site can't hold (ACF inactive, no form or snippet plugin, a Full feature on Loopress Light) is refused: `lps push` pushes nothing, `lps pull` fails that resource. That is deliberate, since pushing the rest can leave a site that looks fine and is broken.
 
-For a quick setup of a site that lacks some of it, pass `--skip-unsupported` to `lps push`, `lps pull`, `lps diff` or `lps promote` (which hands it to its pull and its push). Each such resource is reported as skipped with its reason (`ACF is not active, skipped (--skip-unsupported)`), the run exits `0`, and a final warning lists every skipped resource with how to fix it. With `--json`, the entry has `status: "skipped"` and a `reason`. Nothing else changes: without the flag the behavior is the one above.
+For a quick setup of a site that lacks some of it, pass `--skip-unsupported` to `lps push`, `lps pull`, `lps diff` or `lps promote` (which hands it to its pull and its push). Each such resource is reported as skipped with its reason (`ACF is not active, skipped (--skip-unsupported)`), skipping a resource does not set a failure exit code by itself, and a final warning lists every skipped resource with how to fix it. With `--json`, the entry has `status: "skipped"` and a `reason`. Nothing else changes: without the flag the behavior is the one above.
 
 The skipped resources may be needed by the others: a page that places a dynamic block, or code that calls a hook, won't work on the site until that resource is pushed. For a lasting, per-environment choice, hold the feature back with [`exclude`](/concepts/#holding-a-feature-back-from-an-environment) instead.
 
