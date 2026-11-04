@@ -27,16 +27,18 @@ export default class Promote extends Command {
     'Copy every tracked resource from one environment to another by pulling from <from> then pushing to <to>. Local tracked files are overwritten with <from> in the process. With --dry-run, <from> is pulled into a throwaway copy of the project instead, and the push is only previewed.'
 
   static override enableJsonFlag = true
-  static override examples = ['$ lps promote staging production', '$ lps promote production staging --dry-run']
+  static override examples = ['$ lps promote staging production', '$ lps promote production staging --dry-run', '$ lps promote staging production --skip-unsupported']
   static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    ...LoopressCommand.skipUnsupportedFlag,
     overwrite: PushCommand.baseFlags.overwrite,
   }
 
   async run(): Promise<PromoteResult> {
     const {args, flags} = await this.parse(Promote)
     const {overwrite, yes} = flags
+    const skipUnsupported = flags['skip-unsupported']
     const dryRun = flags['dry-run']
 
     const {environments, projectName} = await this.resolveProject()
@@ -62,7 +64,7 @@ export default class Promote extends Command {
     try {
       this.log(`\n=== Pulling from ${from.name} (${from.url}) ===`)
       try {
-        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('pull', this.delegateArgv(from.name, false)))
+        await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('pull', this.delegateArgv(from.name, false, skipUnsupported)))
       } catch (error) {
         // A partial pull must never be pushed onward: stop before touching <to>.
         // "untouched" is only true of <to>: a real (non dry-run) pull has already rewritten the files.
@@ -71,7 +73,7 @@ export default class Promote extends Command {
       }
 
       this.log(`\n=== Pushing to ${to.name} (${to.url}) ===`)
-      await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', [...this.delegateArgv(to.name, dryRun), ...(overwrite ? ['--overwrite'] : [])]))
+      await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', [...this.delegateArgv(to.name, dryRun, skipUnsupported), ...(overwrite ? ['--overwrite'] : [])]))
     } finally {
       if (scratch) {
         if (previousNoRotate === undefined) delete process.env.LOOPRESS_NO_AUTO_ROTATE
@@ -131,8 +133,9 @@ export default class Promote extends Command {
   // `--yes` is always forwarded: confirmPromotion above already gathered intent once, so the
   // delegated `pull` and `push` must not prompt again (push would otherwise re-run its own
   // production guard, and pull its orphan-deletion prompt).
-  private delegateArgv(env: string, dryRun: boolean): string[] {
+  private delegateArgv(env: string, dryRun: boolean, skipUnsupported: boolean): string[] {
     const argv = ['--env', env, '--yes']
+    if (skipUnsupported) argv.push('--skip-unsupported')
     if (dryRun) argv.push('--dry-run')
     return argv
   }

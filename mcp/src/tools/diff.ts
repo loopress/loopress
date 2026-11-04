@@ -2,7 +2,7 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
-import {envFlag} from '../lib/resource-tools.js'
+import {envFlag, skipUnsupportedFlag} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -34,7 +34,7 @@ export function registerDiffTools(server: McpServer): void {
     'diff',
     {
       description:
-        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, menus, custom post types, taxonomies, post meta, roles, block patterns, options, Global Styles and Composer. Plugins and themes have their own plugin_status / theme_status. A resource the site cannot hold (a missing plugin, a Full feature on Loopress Light) is skipped when the project does not use it.',
+        'Show what differs between local tracked files and a WordPress environment, or between two environments. Covers snippets, forms, ACF, API routes, hooks, templates, template parts, pages, menus, custom post types, taxonomies, post meta, roles, block patterns, options, Global Styles and Composer. Plugins and themes have their own plugin_status / theme_status. A resource the site cannot hold (a missing plugin, a Full feature on Loopress Light) is skipped when the project does not use it; with `skipUnsupported`, also when it does (reported skipped with its reason, exit code unaffected).',
       inputSchema: {
         against: z
           .string()
@@ -43,10 +43,11 @@ export function registerDiffTools(server: McpServer): void {
         env: envFlag,
         only: resourceArray.describe('Only compare these resources'),
         skip: resourceArray.describe('Compare every resource except these'),
+        skipUnsupported: skipUnsupportedFlag,
       },
     },
-    async ({against, env, only, skip}) => {
-      const args = buildArgs(['diff'], {env, repeatFlags: {only, skip}})
+    async ({against, env, only, skip, skipUnsupported}) => {
+      const args = buildArgs(['diff'], {env, repeatFlags: {only, skip}, skipUnsupported})
       if (against) args.push('--against', against)
       return toCallToolResult(unwrap(await runLps(args)))
     },

@@ -19,6 +19,12 @@ export const overwriteFlag = z
   .optional()
   .describe('Push even over changes made on the site outside Loopress since the last push, which the push otherwise refuses, naming them')
 
+// On the bulk tools (push, pull, diff, promote): `--skip-unsupported`.
+export const skipUnsupportedFlag = z
+  .boolean()
+  .optional()
+  .describe("Skip the resources the project uses but the site can't hold (a missing plugin, a Full feature on Light) instead of failing: each is reported skipped with its reason, and a warning lists them")
+
 // Every `*_push` tool's description ends with this two-call handshake note, verbatim.
 export const PREVIEW_SUFFIX =
   ' Without confirmToken, returns a dry-run preview and a confirmToken instead of making any change; call again with that confirmToken to apply it.'

@@ -218,6 +218,31 @@ describe('diff', () => {
     expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Hooks.*not configured, skipped/))
   })
 
+  it('with --skip-unsupported, skips a used resource the site cannot hold, exits 0 and warns', async () => {
+    mkdirSync(join(dir, 'forms'))
+    const get = baselineGet()
+    const {cmd, logs} = make(['--skip-unsupported'], get, makeCapabilities({integrations: {form: false}}))
+
+    const result = await cmd.run()
+
+    expect(get).not.toHaveBeenCalledWith('loopress/v1/forms')
+    expect(result.resources.form).toEqual({added: [], changed: [], reason: 'no supported form plugin is active on staging', removed: [], status: 'skipped'})
+    expect(process.exitCode).toBe(0)
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*no supported form plugin is active on staging, skipped \(--skip-unsupported\)/))
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/Forms: no supported form plugin is active on staging\. Declare wpforms-lite/))
+  })
+
+  it('without --skip-unsupported, still compares a used resource the site cannot hold', async () => {
+    mkdirSync(join(dir, 'forms'))
+    const get = baselineGet()
+    const {cmd} = make([], get, makeCapabilities({integrations: {form: false}}))
+
+    const result = await cmd.run()
+
+    expect(result.resources.form?.status).toBeUndefined()
+    expect(get).toHaveBeenCalledWith('loopress/v1/forms')
+  })
+
   it('skips nothing when the capabilities cannot be read, so the run stays inconclusive (exit 2), not drift', async () => {
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/forms') throw new Error('No supported form plugin is active')

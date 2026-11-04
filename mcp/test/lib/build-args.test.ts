@@ -39,4 +39,9 @@ describe('buildArgs', () => {
     expect(buildArgs(['menu', 'push'], {overwrite: true})).toEqual(['menu', 'push', '--overwrite'])
     expect(buildArgs(['menu', 'push'], {overwrite: false})).toEqual(['menu', 'push'])
   })
+
+  it('appends --skip-unsupported only when asked', () => {
+    expect(buildArgs(['push'], {skipUnsupported: true})).toEqual(['push', '--skip-unsupported'])
+    expect(buildArgs(['push'], {skipUnsupported: false})).toEqual(['push'])
+  })
 })

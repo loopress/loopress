@@ -1,7 +1,8 @@
 import {existsSync} from 'node:fs'
 import {resolve} from 'node:path'
 
-import {getCapabilities, type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
+import {getCapabilities, integrationFix, type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
+import {declaredPlugins} from '../lib/declared-plugins.js'
 import {DiffCommand, type DiffJson, type DiffSides, type DiffTarget} from '../lib/diff-command.js'
 import {parseSelectionFlag, selectionFlags, selectResources} from '../lib/resource-selection.js'
 import {RESOURCE_STATE_PROVIDERS, type ResourceStateProvider} from '../lib/resource-state.js'
@@ -32,6 +33,7 @@ export default class Diff extends DiffCommand {
 
   static override flags = {
     ...DiffCommand.againstFlag,
+    ...DiffCommand.skipUnsupportedFlag,
     ...selectionFlags('compare', RESOURCES),
   }
 
@@ -48,26 +50,31 @@ export default class Diff extends DiffCommand {
     )
 
     const providers = RESOURCE_STATE_PROVIDERS.filter((provider) => selected.has(provider.resource))
+    const skipUnsupported = flags['skip-unsupported']
     const targets: DiffTarget[] = [
       ...(await Promise.all(
-        providers.map(async (provider) => ({
-          ...this.providerTarget(provider, sides),
-          skip: !(await this.projectUses(provider)) && (await this.siteLacks((capabilities) => missingIntegration(provider.dirKind, capabilities), sides)),
-        })),
+        providers.map(async (provider) => {
+          const lacking = await this.siteMissing((capabilities) => missingIntegration(provider.dirKind, capabilities), sides)
+          return this.withSiteSkip(this.providerTarget(provider, sides), lacking, await this.projectUses(provider), skipUnsupported)
+        }),
       )),
-      ...(selected.has('composer')
-        ? [
-            {
-              ...this.composerTarget(sides),
-              skip:
-                !existsSync(resolve(process.cwd(), this.rootDir, 'composer.json')) &&
-                (await this.siteLacks((capabilities) => missingModule('dependencies', 'Composer files', capabilities), sides)),
-            },
-          ]
-        : []),
+      ...(selected.has('composer') ? [await this.composerSiteTarget(sides, skipUnsupported)] : []),
     ]
 
+    if (skipUnsupported) {
+      const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+      for (const {unsupported} of targets) {
+        if (unsupported) unsupported.fix = integrationFix(unsupported.missing, declared)
+      }
+    }
+
     return this.report(targets, sides)
+  }
+
+  private async composerSiteTarget(sides: DiffSides, skipUnsupported: boolean): Promise<DiffTarget> {
+    const lacking = await this.siteMissing((capabilities) => missingModule('dependencies', 'Composer files', capabilities), sides)
+    const used = existsSync(resolve(process.cwd(), this.rootDir, 'composer.json'))
+    return this.withSiteSkip(this.composerTarget(sides), lacking, used, skipUnsupported)
   }
 
   // Tells apart a resource the project doesn't use from one it does, for the ones a site can lack:
@@ -82,15 +89,37 @@ export default class Diff extends DiffCommand {
 
   // Either side can't hold the resource. Capabilities that can't be read (site down, plugin too
   // old) skip nothing: the comparison then reports the failure itself, as inconclusive.
-  private async siteLacks(missing: (capabilities: SiteCapabilities) => MissingIntegration | undefined, sides: DiffSides): Promise<boolean> {
+  private async siteMissing(
+    missing: (capabilities: SiteCapabilities) => MissingIntegration | undefined,
+    sides: DiffSides,
+  ): Promise<undefined | {missing: MissingIntegration; site: string}> {
     try {
       // Inside the try: `this.wp` errors out without credentials, the comparison reports that.
       const sites: Array<[WpClient, string]> = [[this.wp, sides.leftLabel]]
       if (sides.againstWp) sites.push([sides.againstWp, sides.rightLabel])
-      const all = await Promise.all(sites.map(async ([wp, name]) => getCapabilities(wp, name)))
-      return all.some((capabilities) => missing(capabilities) !== undefined)
+      const all = await Promise.all(sites.map(async ([wp, site]) => ({capabilities: await getCapabilities(wp, site), site})))
+      for (const {capabilities, site} of all) {
+        const found = missing(capabilities)
+        if (found) return {missing: found, site}
+      }
+
+      return undefined
     } catch {
-      return false
+      return undefined
     }
+  }
+
+  // A resource the site can't hold is skipped when the project doesn't use it, and also when it
+  // does with --skip-unsupported, which then reports why instead of "not configured".
+  private withSiteSkip(
+    target: DiffTarget,
+    lacking: undefined | {missing: MissingIntegration; site: string},
+    used: boolean,
+    skipUnsupported: boolean,
+  ): DiffTarget {
+    if (!lacking) return target
+    if (!used) return {...target, skip: true}
+    if (!skipUnsupported) return target
+    return {...target, skip: true, unsupported: {missing: lacking.missing, reason: `${lacking.missing.reason} on ${lacking.site}`}}
   }
 }

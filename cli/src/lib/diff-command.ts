@@ -5,6 +5,7 @@ import {isDeepStrictEqual} from 'node:util'
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
+import {type MissingIntegration} from './capabilities.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
 import {hasExclusions, isExcluded, withoutExclusions} from './exclude.js'
 import {errorMessage} from './narrow.js'
@@ -19,7 +20,10 @@ export type ResourceDiffJson = {
   error?: string
   // Excluded from this environment in loopress.json: left out of the comparison, not drift.
   heldBack?: string[]
+  // Set with --skip-unsupported: the site can't hold the resource, which was not compared.
+  reason?: string
   removed: string[]
+  status?: 'skipped'
 }
 
 export type DiffJson = {
@@ -42,6 +46,8 @@ export type DiffTarget = {
   // classic theme for Global Styles): reported as skipped instead of making the run inconclusive.
   skip?: boolean
   title: string
+  // With --skip-unsupported, the resource is used by the project and skipped for the site's sake.
+  unsupported?: {fix?: string | undefined; missing: MissingIntegration; reason: string}
 }
 
 // `left` is always the primary environment. `right` is a second environment (`--against`) or
@@ -155,11 +161,13 @@ export abstract class DiffCommand extends LoopressCommand {
     this.renderHeldBack(checked, sides.leftLabel)
 
     const skipped = results.filter((result) => result.skipped)
-    for (const result of skipped) this.out(`${c('bold', result.title)}  ${c('dim', 'not configured, skipped')}`)
+    const unsupported = this.renderSkipped(skipped, resources)
 
     this.out(`\n${compared} compared: ${changed} changed, ${added} added, ${removed} removed`)
     if (failed) this.out(c('red', 'Some resources could not be compared; this run is inconclusive.'))
     else this.out(drift ? c('yellow', 'Drift detected.') : c('green', 'Everything is in sync.'))
+
+    if (unsupported.length > 0) this.warn(`Skipped with --skip-unsupported, not compared:\n  ${unsupported.join('\n  ')}`)
 
     if (failed) process.exitCode = 2
     else if (drift) process.exitCode = 1
@@ -192,9 +200,9 @@ export abstract class DiffCommand extends LoopressCommand {
   private async computeResource(
     target: DiffTarget,
     sides: DiffSides,
-  ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; skipped?: boolean; stateDiff?: StateDiff; title: string}> {
+  ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; skipped?: boolean; stateDiff?: StateDiff; title: string; unsupported?: DiffTarget['unsupported']}> {
     const empty = {added: [], changed: [], removed: []}
-    if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
+    if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title, unsupported: target.unsupported}
 
     try {
       const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
@@ -255,6 +263,30 @@ export abstract class DiffCommand extends LoopressCommand {
       this.out(c('yellow', `  ~ ${change.id}`))
       this.out(indentPatch(change.patch))
     }
+  }
+
+  // The skipped resources' lines. Returns the --skip-unsupported ones for the final warning, and
+  // adds them to the JSON result as skipped, with their reason.
+  private renderSkipped(
+    skipped: Array<{resource: string; title: string; unsupported?: DiffTarget['unsupported']}>,
+    resources: Record<string, ResourceDiffJson>,
+  ): string[] {
+    const warnings: string[] = []
+    for (const {resource, title, unsupported} of skipped) {
+      if (!unsupported) {
+        this.out(`${c('bold', title)}  ${c('dim', 'not configured, skipped')}`)
+        continue
+      }
+
+      const {fix, reason} = unsupported
+      resources[resource] = {added: [], changed: [], reason, removed: [], status: 'skipped'}
+      const note = `${reason}, skipped (--skip-unsupported)`
+      this.out(`${c('bold', title)}  ${c('dim', note)}`)
+      const fixSentence = fix ? ` ${fix}.` : ''
+      warnings.push(`${title}: ${reason}.${fixSentence}`)
+    }
+
+    return warnings
   }
 
   private wpForEnvironment(envName: string): WpClient {
