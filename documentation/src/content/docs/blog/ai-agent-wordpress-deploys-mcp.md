@@ -36,15 +36,15 @@ It runs from the directory your agent starts in, using that project's `loopress.
 
 Everything that reads. Pull snippets, hooks, API routes, ACF objects, forms, menus, and options into local files. List what's on a site. And three tools that turn an agent into a decent operator:
 
-- `project_diff`: what differs between the local files and an environment, or between two environments. "What's on staging that isn't on production?" becomes a question the agent can answer by itself.
-- `project_doctor`: connectivity, plugin, and credential diagnostics, so "the push failed" comes with a reason.
-- `validate_local`: checks that local files are well-formed and push-ready, without contacting WordPress at all.
+- `diff`: what differs between the local files and an environment, or between two environments. "What's on staging that isn't on production?" becomes a question the agent can answer by itself.
+- `doctor`: connectivity, plugin, and credential diagnostics, so "the push failed" comes with a reason.
+- `validate`: checks that local files are well-formed and push-ready, without contacting WordPress at all.
 
 Read tools run immediately. That's what makes the agent useful: it can look before it touches.
 
 ## What it can't do in one step
 
-Every tool that changes a site, `hook_push`, `acf_push`, `option_remove`, `snippet_rollback` and the rest, needs two calls.
+Every tool that changes a site, `hook_push`, `acf_push`, `option_rm`, `snippet_rollback` and the rest, needs two calls.
 
 **The first call changes nothing.** It takes a private copy of the working directory, runs a dry run against the target environment from that copy, and returns the preview along with a single-use `confirmToken` that expires after five minutes.
 

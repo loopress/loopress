@@ -27,8 +27,8 @@ describe('registerPageTools', () => {
     runLps.mockClear()
   })
 
-  it('registers push, list and diff for pages and templates', () => {
-    expect([...register().keys()].sort()).toEqual(['page_diff', 'page_list', 'page_push', 'theme_template_diff', 'theme_template_list', 'theme_template_push'])
+  it('registers push and list for pages and templates', () => {
+    expect([...register().keys()].sort()).toEqual(['page_list', 'page_push', 'theme_template_list', 'theme_template_push'])
   })
 
   it('theme_template_push and theme_template_list run the template commands', async () => {
@@ -57,9 +57,4 @@ describe('registerPageTools', () => {
     expect(slug.safeParse('../x').success).toBe(false)
   })
 
-  it('page_diff runs `page diff` read-only', async () => {
-    await register().get('page_diff')!.handler({env: 'staging'})
-
-    expect(runLps).toHaveBeenCalledWith(['page', 'diff', '--env', 'staging'])
-  })
 })
