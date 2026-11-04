@@ -8,7 +8,7 @@ import { expect, test } from "./helpers/environment.js";
 // the default environment. Every other spec in this suite drives one resource directly (`lps
 // snippet push`, `lps api push`, ...); none of them exercise the aggregate command itself, so a
 // regression in its own orchestration, an unhandled resource, a dropped --yes/--env, would have
-// no coverage. This project deliberately leaves `plugins`, ACF, forms and Global Styles
+// no coverage. This project deliberately leaves `plugins`, ACF, hooks, forms and Global Styles
 // unconfigured and never runs `composer init`, the common case for a project that doesn't manage either through Loopress, so the run
 // also has to prove an unconfigured resource is skipped rather than stopping the run (a real
 // failure does stop it, so later resources never land on a site missing what they depend on).
@@ -51,14 +51,14 @@ test("lps push runs every resource, pushing what's local and skipping what isn't
 	const push = await runCli(["push"]);
 
 	// Unconfigured is skipped, not failed: plugins and composer, ACF and forms without their
-	// directory, Global Styles without a tracked file.
+	// directory, hooks without a hooks directory, Global Styles without a tracked file.
 	expect(push.exitCode).toBe(0);
-	for (const label of ["plugins", "composer", "ACF", "forms", "Global Styles"]) {
+	for (const label of ["plugins", "composer", "ACF", "hooks", "forms", "Global Styles"]) {
 		expect(push.stdout).toContain(`→ ${label}: not configured, skipped`);
 	}
 
 	// Every other resource ran and succeeded, in the documented order.
-	const succeeded = ["API routes", "hooks", "snippets"];
+	const succeeded = ["API routes", "snippets"];
 	for (const label of succeeded) {
 		expect(push.stdout).toContain(`✓ ${label} pushed`);
 	}
