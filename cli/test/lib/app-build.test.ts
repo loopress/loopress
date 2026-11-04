@@ -48,7 +48,7 @@ describe('app-build', () => {
 
   describe('buildApp', () => {
     // These spawn a real npm: a cold start alone can pass vitest's 5 s default on a Windows runner.
-    const SPAWN_TIMEOUT_MS = 30_000
+    const SPAWN_TIMEOUT_MS = 90_000
 
     const writePackage = (scripts: Record<string, string>) => {
       writeFileSync(join(dir, 'package.json'), JSON.stringify({packageManager: 'npm@10.0.0', scripts}))

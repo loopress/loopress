@@ -59,6 +59,7 @@ export default class Push extends PushCommand {
     }
 
     this.log(`Found ${pluralize(writable.length, 'option')} to push`)
+    this.warnEnvironmentUrls(writable.map((option) => ({id: `options/${option.name}`, value: option.value})))
 
     const pushed: string[] = []
 

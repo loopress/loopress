@@ -137,6 +137,16 @@ Objects added on the site and absent from your files are never flagged, a push d
 
 This relies on the [snapshots](/rollback/#where-snapshots-live) kept on the machine that pushed, so it protects a push from the same machine. The first push from a new clone or a CI runner has nothing to compare with and isn't checked. Templates and template parts don't need it: a Site Editor edit stays in the database and keeps winning over the pushed file, and the push warns about it.
 
+### Links to another environment
+
+Content copied from one site often keeps that site's absolute URLs. When an option value, a page, a template, a template part or a block pattern holds an absolute URL whose host is another environment of the project, the push warns, `--dry-run` included, and names the URLs:
+
+```text
+pages/about links to the "staging" environment (staging.acme.com), it will still point there on production: https://staging.acme.com/contact. Use a relative path (/about) instead.
+```
+
+The push never rewrites them, and still goes through. Relative paths (`/contact`), links to the target environment itself and links to any other site pass without a warning. Environments are told apart by host and port, so `localhost:8080` and `localhost:8081` count as two. Menus run their own check on custom item URLs, see [Menus](/menus/).
+
 ## Dry runs
 
 Most commands accept `--dry-run` (`-d`), which shows what would happen without making any changes:

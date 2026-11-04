@@ -72,6 +72,11 @@ export default class Push extends PushCommand {
         `${css.style ? 'a global stylesheet' : 'no global stylesheet'} and ${pluralize(css.blocks.length, 'block stylesheet')}`,
     )
 
+    this.warnEnvironmentUrls([
+      ...templates.map((template) => ({id: `templates/${template.slug}`, value: template.html})),
+      ...parts.map((part) => ({id: `parts/${part.slug}`, value: part.html})),
+    ])
+
     // The PUT replaces every file of the child theme: what the site has under a path this
     // environment excludes (loopress.json) is sent back as it is, so it is left alone.
     const kept = await this.keptFromSite(templatesPath, partsPath, templates, parts)

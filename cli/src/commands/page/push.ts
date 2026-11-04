@@ -52,6 +52,7 @@ export default class Push extends PushCommand {
     }
 
     this.log(`Found ${pluralize(selected.length, 'page')} to push`)
+    this.warnEnvironmentUrls(selected.map((page) => ({id: `pages/${page.slug}`, value: page.html})))
     const provider = getResourceStateProvider('page')
     const beforeState = await this.captureBeforePushState(provider, path, args.slug === undefined ? undefined : (id) => id === args.slug)
 
