@@ -196,7 +196,7 @@ export abstract class LoopressCommand extends Command {
           title: `Pull ${options.title(item)}`,
         })),
         // Listr types the task wrapper per renderer, a union of renderer names does not fit it.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Listr ties the task wrapper type to one renderer
         {renderer: listrRenderer(this.jsonEnabled()) as 'default'},
       ).run()
     })
