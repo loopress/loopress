@@ -299,6 +299,8 @@ const hookProvider = phpFilesProvider({
 // resource, the same stance as pages: pushing would stop on it anyway.
 const blockProvider: ResourceStateProvider = {
   dirKind: 'block',
+  // A block is a folder: only the bare `blocks/<slug>` path names a site-only block.
+  fileExtension: '',
   // A file the environment excludes inside a block folder keeps the site's copy, as the push
   // sends it back: without `wp`, that file is just left out.
   async local(dir, _onWarn, wp) {

@@ -13,7 +13,7 @@ describe('excludedFileFor', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'lps-held-back-'))
     activateExclusions({
-      config: {environments: {production: {exclude: ['api/foo.json', 'api/bar', 'hooks/games.php', 'blocks/games', 'menus/primary.json', 'theme-styles/twentyfive-global-styles.json']}}},
+      config: {environments: {production: {exclude: ['api/foo.json', 'api/bar', 'hooks/games.php', 'blocks/games', 'blocks/quiz.json', 'menus/primary.json', 'theme-styles/twentyfive-global-styles.json']}}},
       cwd: root,
       envName: 'production',
       honors: true,
@@ -34,6 +34,11 @@ describe('excludedFileFor', () => {
   it('tries every extension when the resource declares none, and the bare path', () => {
     expect(excludedFileFor(join(root, 'api'), 'foo', {})).toBe(true)
     expect(excludedFileFor(join(root, 'blocks'), 'games', {})).toBe(true)
+  })
+
+  it('matches a site-only block against its bare folder only', () => {
+    expect(excludedFileFor(join(root, 'blocks'), 'games', getResourceStateProvider('block'))).toBe(true)
+    expect(excludedFileFor(join(root, 'blocks'), 'quiz', getResourceStateProvider('block'))).toBe(false)
   })
 
   it('maps menu and Global Styles ids to their file names', () => {
