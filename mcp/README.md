@@ -164,6 +164,16 @@ restores the snapshot its resource's `_push` tool saved automatically right befo
 push; `list: true` shows what's available (id, timestamp, environment) instead of rolling back,
 and `to` picks an older snapshot than the most recent one.
 
+## Deliberately not exposed
+
+These CLI commands have no tool, on purpose:
+
+- Interactive or credential commands: `init`, `login`, `logout`, `project config`, `project list`, `project switch`, `project rm`, `project rotate`, `project push`, `project pull`, `telemetry enable`, `telemetry disable`. They prompt, or handle credentials and cloud state, which the server never touches.
+- Long-running or developer-only commands: `dev` (watch mode) and `sentry-test`.
+- Publishing: `api publish`, `snippet publish`, which need Loopress cloud features.
+- `composer init`, a one-time scaffold best run by hand.
+- Per-resource `<resource> diff` commands, covered by the single `diff` tool and its `only` list.
+
 ## Confirmation handshake
 
 Every mutating tool (anything that reaches a real WordPress site) requires two calls:
