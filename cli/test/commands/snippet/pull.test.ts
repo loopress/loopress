@@ -320,6 +320,7 @@ describe('pull helpers', () => {
 
       const {cmd: plainCmd, get: plainGet} = make(false, [runDir])
       plainGet.mockResolvedValue([{code: 'a', id: 1, name: 'A', type: 'text'}])
+      Object.defineProperty(process.stdout, 'columns', {configurable: true, value: 120}) // default renderer needs a width
       await plainCmd.run()
 
       expect(listrInstances.at(-1)?.options).toEqual({renderer: 'default'})

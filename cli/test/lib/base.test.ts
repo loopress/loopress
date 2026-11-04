@@ -7,7 +7,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import type * as RotateAppPassword from '../../src/lib/rotate-app-password.js'
 
 import {configManager} from '../../src/config/project-config.manager.js'
-import {LoopressCommand} from '../../src/lib/base.js'
+import {listrRenderer, LoopressCommand} from '../../src/lib/base.js'
 import {rotateAppPassword} from '../../src/lib/rotate-app-password.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {readLocalConfig} from '../../src/utils/loopress-config.js'
@@ -416,5 +416,31 @@ describe('LoopressCommand.wp', () => {
     }
 
     expect(() => cmd.resolvedWp).toThrow(/No credentials configured/)
+  })
+})
+
+describe('listrRenderer', () => {
+  const original = Object.getOwnPropertyDescriptor(process.stdout, 'columns')
+  const setColumns = (value: number | undefined) =>
+    Object.defineProperty(process.stdout, 'columns', {configurable: true, value})
+
+  afterEach(() => {
+    if (original) Object.defineProperty(process.stdout, 'columns', original)
+    else delete (process.stdout as {columns?: number}).columns
+  })
+
+  it('uses the default renderer on a terminal with a width', () => {
+    setColumns(120)
+    expect(listrRenderer(false)).toBe('default')
+  })
+
+  it.each([0, undefined])('falls back to the simple renderer when columns is %s', (columns) => {
+    setColumns(columns)
+    expect(listrRenderer(false)).toBe('simple')
+  })
+
+  it('stays silent for JSON output whatever the width', () => {
+    setColumns(0)
+    expect(listrRenderer(true)).toBe('silent')
   })
 })
