@@ -47,6 +47,9 @@ const ALL_COMMAND_IDS = [
 // composer:push is skipped as unconfigured.
 const DELEGATED_IDS = ALL_COMMAND_IDS.filter((id) => id !== 'composer:push')
 
+// Directories of the resources every site can hold: a project without one skips its step.
+const CORE_DIRS = ['cpt', 'taxonomies', 'meta', 'roles', 'menus', 'options', 'api', 'hooks', 'blocks', 'patterns', 'pages']
+
 // What `wp/v2/themes` answers: by default a block theme, matching the Global Styles file every
 // test project tracks.
 const ACTIVE_BLOCK_THEME = [{status: 'active', stylesheet: 'bakery', theme_supports: {'block-templates': true}}]
@@ -104,7 +107,7 @@ describe('push', () => {
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
     // Plugin-backed pushes and Global Styles are skipped when the project doesn't use them, see
     // the dedicated tests below.
-    for (const dir of ['acf', 'forms', 'snippets', 'theme', 'theme/templates']) mkdirSync(join(projectDir, dir))
+    for (const dir of [...CORE_DIRS, 'acf', 'forms', 'snippets', 'theme', 'theme/templates']) mkdirSync(join(projectDir, dir))
     writeFileSync(join(projectDir, 'theme', 'bakery-global-styles.json'), '{}')
     themes.value = ACTIVE_BLOCK_THEME
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
@@ -141,7 +144,7 @@ describe('push', () => {
 
   it('--skip leaves a target out of the site checks so it cannot block the run', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
-    const {cmd} = make({argv: ['--skip', 'plugin,template', '--skip', 'snippet'], capabilities: makeLightCapabilities()})
+    const {cmd} = make({argv: ['--skip', 'plugin,template,api,hook,block,page,pattern', '--skip', 'snippet'], capabilities: makeLightCapabilities()})
 
     const {results} = await cmd.run()
 
@@ -249,6 +252,30 @@ describe('push', () => {
     expect(logs.log).toHaveBeenCalledWith('\nAll resources pushed.')
   })
 
+  it.each([
+    ['cpt', 'cpt:push', 'post types'],
+    ['taxonomies', 'taxonomy:push', 'taxonomies'],
+    ['meta', 'meta:push', 'post meta'],
+    ['roles', 'role:push', 'roles'],
+    ['menus', 'menu:push', 'menus'],
+    ['options', 'option:push', 'options'],
+    ['api', 'api:push', 'API routes'],
+    ['hooks', 'hook:push', 'hooks'],
+    ['blocks', 'block:push', 'dynamic blocks'],
+    ['patterns', 'pattern:push', 'patterns'],
+    ['pages', 'page:push', 'pages'],
+  ])('skips %s when the project has no directory for it', async (dir, commandId, label) => {
+    rmSync(join(projectDir, dir), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    await cmd.run()
+
+    const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+    expect(ran).not.toContain(commandId)
+    expect(logs.log).toHaveBeenCalledWith(`\n→ ${label}: not configured, skipped`)
+  })
+
   it('skips snippets when the project has no snippets directory, instead of failing on ENOENT', async () => {
     rmSync(join(projectDir, 'snippets'), {recursive: true})
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
@@ -353,7 +380,6 @@ describe('push', () => {
     })
 
     it('refuses on Light a Full-only feature or plugins the project uses, dry run included', async () => {
-      mkdirSync(join(projectDir, 'hooks'))
       const {cmd} = make({capabilities: makeLightCapabilities(), dryRun: true})
 
       await expect(cmd.run()).rejects.toThrow(/plugins: plugins and Composer need Loopress Full[\s\S]*hooks: hooks need Loopress Full/)
@@ -361,7 +387,7 @@ describe('push', () => {
     })
 
     it('skips on Light what needs Full when the project does not use it', async () => {
-      for (const dir of ['snippets', 'theme/templates']) rmSync(join(projectDir, dir), {recursive: true})
+      for (const dir of ['snippets', 'theme/templates', 'api', 'hooks', 'blocks', 'patterns', 'pages']) rmSync(join(projectDir, dir), {recursive: true})
       vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
       const {cmd, logs} = make({capabilities: makeLightCapabilities(), localConfig: {}})
 
@@ -369,6 +395,7 @@ describe('push', () => {
 
       const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
       expect(ran).toEqual(['cpt:push', 'taxonomy:push', 'meta:push', 'role:push', 'acf:push', 'form:push', 'theme:style:push', 'menu:push', 'option:push'])
+      expect(logs.log).toHaveBeenCalledWith('\n→ hooks: hooks need Loopress Full, skipped')
       expect(logs.log).toHaveBeenCalledWith('\n→ API routes: API routes need Loopress Full, skipped')
       expect(logs.log).toHaveBeenCalledWith('\n→ snippets: snippets need Loopress Full, skipped')
     })
