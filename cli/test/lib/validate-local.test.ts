@@ -32,6 +32,31 @@ describe('validateLocal', () => {
     expect(result.problems).toEqual([])
   })
 
+  it('warns about an exclude glob matching no file, without failing', async () => {
+    write('cpt/games.json', '{}')
+    write('theme/templates/single-games.html', '<!-- wp:paragraph /-->')
+    write(
+      'loopress.json',
+      JSON.stringify({environments: {production: {exclude: ['cpt/games.json', 'theme/templates/*-games.html', 'hooks/typo.php']}}}),
+    )
+
+    const result = await validateLocal(dir)
+
+    expect(result.valid).toBe(true)
+    expect(result.warnings).toEqual([{file: 'loopress.json', message: 'environments.production.exclude: "hooks/typo.php" matches no file'}])
+  })
+
+  it('reports a malformed environments entry as a problem', async () => {
+    write('loopress.json', JSON.stringify({environments: {production: {exclude: 'cpt/games.json'}}}))
+
+    const result = await validateLocal(dir)
+
+    expect(result.problems).toContainEqual({
+      file: 'loopress.json',
+      message: 'environments.production must be an object with an optional "exclude" list of glob strings',
+    })
+  })
+
   it('passes a well formed tree', async () => {
     write('composer.json', JSON.stringify({require: {php: '^8.1'}}))
     write('acf/group_1.json', JSON.stringify({key: 'group_1'}))

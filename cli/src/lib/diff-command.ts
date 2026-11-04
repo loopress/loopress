@@ -1,10 +1,12 @@
 import {Args, Flags, ux} from '@oclif/core'
-import {resolve} from 'node:path'
+import {join, resolve} from 'node:path'
+import {isDeepStrictEqual} from 'node:util'
 
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
+import {hasExclusions, isExcluded, withoutExclusions} from './exclude.js'
 import {errorMessage} from './narrow.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {WpClient} from './wp-client.js'
@@ -15,6 +17,8 @@ export type ResourceDiffJson = {
   added: string[]
   changed: StateChange[]
   error?: string
+  // Excluded from this environment in loopress.json: left out of the comparison, not drift.
+  heldBack?: string[]
   removed: string[]
 }
 
@@ -26,6 +30,11 @@ export type DiffJson = {
 }
 
 export type DiffTarget = {
+  // The local state with the environment's excluded files listed too: what it has more than
+  // `right` is held back.
+  heldBackFrom?: (() => Promise<ResourceState>) | undefined
+  // A site-only id whose file would sit under an excluded path: held back too, not removed.
+  isHeldBack?: ((id: string) => boolean) | undefined
   left: () => Promise<ResourceState>
   resource: string
   right: () => Promise<ResourceState>
@@ -58,6 +67,8 @@ export abstract class DiffCommand extends LoopressCommand {
     }),
   }
 
+  static override honorsExclude = true
+
   protected composerTarget(sides: DiffSides): DiffTarget {
     // resolve(), not join(): an absolute `rootDir` in loopress.json must stay absolute rather
     // than being prefixed with the cwd, so Composer is read from the same place as the
@@ -81,11 +92,19 @@ export abstract class DiffCommand extends LoopressCommand {
 
     const dir = resolveResourceDir(provider.dirKind, this.localConfig, dirOverride)
     const {againstWp} = sides
+    const holdsBack = againstWp === undefined && hasExclusions()
+    // With exclusions, the local side may read the site too (an excluded file keeps the site's
+    // copy): both sides then share one response, so a site change between two reads can't show
+    // up as drift.
+    const wp = holdsBack ? sharedReads(this.wp) : this.wp
 
     return {
-      left: async () => provider.remote(this.wp, sides.warn, dir),
+      // Only against local files: they are what an exclude glob names.
+      heldBackFrom: holdsBack ? async () => withoutExclusions(async () => provider.local(dir, () => {}, wp)) : undefined,
+      isHeldBack: holdsBack ? (id) => excludedFileFor(dir, id, provider) : undefined,
+      left: async () => provider.remote(wp, sides.warn, dir),
       resource: provider.resource,
-      right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
+      right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, wp),
       title: provider.title,
     }
   }
@@ -133,6 +152,8 @@ export abstract class DiffCommand extends LoopressCommand {
       if (result.drift) drift = true
     }
 
+    this.renderHeldBack(checked, sides.leftLabel)
+
     const skipped = results.filter((result) => result.skipped)
     for (const result of skipped) this.out(`${c('bold', result.title)}  ${c('dim', 'not configured, skipped')}`)
 
@@ -176,11 +197,21 @@ export abstract class DiffCommand extends LoopressCommand {
     if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title}
 
     try {
-      const [leftState, rightState] = await Promise.all([target.left(), target.right()])
+      const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
+      // Whole items: only in the unfiltered local files, or only on the site under an excluded path.
+      const heldBackItems = [
+        ...(fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)) : []),
+        ...[...leftState.keys()].filter((id) => !rightState.has(id) && !fullState?.has(id) && target.isHeldBack?.(id) === true),
+      ]
+      for (const id of heldBackItems) leftState.delete(id)
+      // An item an excluded file is part of (a block's view.js): compared with the site's copy of
+      // that file, held back when the local one differs.
+      const heldBackFiles = fullState ? [...rightState.keys()].filter((id) => fullState.has(id) && !isDeepStrictEqual(fullState.get(id), rightState.get(id))) : []
+      const heldBack = [...heldBackItems, ...heldBackFiles].toSorted((a, b) => a.localeCompare(b))
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
       return {
         drift: !isEmptyDiff(stateDiff),
-        json: {added: stateDiff.added, changed: stateDiff.changed, removed: stateDiff.removed},
+        json: {added: stateDiff.added, changed: stateDiff.changed, removed: stateDiff.removed, ...(heldBack.length > 0 && {heldBack})},
         resource: target.resource,
         stateDiff,
         title: target.title,
@@ -200,6 +231,15 @@ export abstract class DiffCommand extends LoopressCommand {
     if (sharedError !== undefined) return
     const errorLabel = c('red', `error: ${error}`)
     this.out(`${c('bold', title)}  ${errorLabel}`)
+  }
+
+  // Its own group, after the comparison: excluded items are never drift, but a feature held back
+  // from an environment must stay visible there.
+  private renderHeldBack(results: Array<{json: ResourceDiffJson; title: string}>, envName: string): void {
+    const held = results.filter((result) => (result.json.heldBack ?? []).length > 0)
+    if (held.length === 0) return
+    this.out(c('bold', `\nHeld back from ${envName} (exclude in loopress.json), not compared`))
+    for (const result of held) this.out(c('dim', `  ${result.title}: ${(result.json.heldBack ?? []).join(', ')}`))
   }
 
   private renderSection(title: string, stateDiff: StateDiff): void {
@@ -264,6 +304,22 @@ export function resourceDiffCommand(
   return ResourceDiff
 }
 
+// The id is the file's path under the resource directory for most resources (a slug, an API
+// route), without its extension: a provider whose ids don't follow that names the file itself
+// (`fileName`), one with an extension is tried with it only, and one without (a block folder)
+// with the bare path and every extension resource files use.
+const RESOURCE_FILE_EXTENSIONS = ['.json', '.php', '.html']
+
+export function excludedFileFor(dir: string, id: string, provider: Pick<ResourceStateProvider, 'fileExtension' | 'fileName'>): boolean {
+  if (provider.fileName) {
+    const fileName = provider.fileName(id)
+    return fileName !== undefined && isExcluded(join(dir, fileName))
+  }
+
+  const extensions = provider.fileExtension === undefined ? ['', ...RESOURCE_FILE_EXTENSIONS] : [provider.fileExtension]
+  return extensions.some((extension) => isExcluded(join(dir, `${id}${extension}`)))
+}
+
 // Indents an already-formatted change block (a per-field list or a header-less unified diff)
 // so it sits visually under the `~ id` line.
 function indentPatch(patch: string): string {
@@ -279,4 +335,26 @@ function sharedFailure(errors: Array<string | undefined>): string | undefined {
   const failures = errors.filter((error) => error !== undefined)
   const distinct = new Set(failures)
   return failures.length > 1 && distinct.size === 1 ? failures[0] : undefined
+}
+
+// A client whose plain GETs are read once per path and shared, for the lifetime of one
+// resource comparison. Every other call goes to `wp` unchanged.
+export function sharedReads(wp: WpClient): WpClient {
+  const reads = new Map<string, Promise<unknown>>()
+  // `Object.create` keeps every other WpClient method, bound to `wp`'s own state.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+  const shared = Object.create(wp) as WpClient
+  shared.get = async <T>(path: string, options?: Parameters<WpClient['get']>[1]): Promise<T> => {
+    if (options !== undefined) return wp.get<T>(path, options)
+    let read = reads.get(path)
+    if (read === undefined) {
+      read = wp.get<T>(path)
+      reads.set(path, read)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the same path yields the same T
+    return read as Promise<T>
+  }
+
+  return shared
 }

@@ -12,6 +12,7 @@ import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '.
 import {ApiClient} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
+import {isExcluded} from './exclude.js'
 import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
@@ -243,7 +244,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       // confirmation), but their removal itself happens inside the same atomic swap as the push
       // below, not as separate DELETE calls, so a mid-push failure can't remove server-side
       // files without also landing the new ones.
-      const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename))) : []
+      const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path) : []
 
       if (this.dryRun) {
         await this.writeAfterPushSnapshot(provider, path, beforeState)
@@ -322,9 +323,10 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     // local path in CI must not silently wipe production routes, and unlike `pull`'s local
     // deletions these are not recoverable from the repo. Only decides *which* filenames to
     // prune; pushBatch() is what actually removes them, atomically alongside the push.
-    private async resolvePruneList(localFilenames: Set<string>): Promise<string[]> {
+    // A file excluded from this environment (loopress.json) is left alone, never pruned.
+    private async resolvePruneList(localFilenames: Set<string>, path: string): Promise<string[]> {
       const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
-      const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name))
+      const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name) && !isExcluded(join(path, `${name}.php`)))
 
       if (orphans.length === 0) return []
 

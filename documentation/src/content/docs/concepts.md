@@ -95,6 +95,34 @@ A `push` creates and updates, it doesn't remove what you don't have locally. The
 
 Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/).
 
+### Holding a feature back from an environment
+
+A branch often carries a feature that isn't ready for production next to changes that are. List the feature's files under `environments.<name>.exclude` in `loopress.json`, as globs relative to `rootDir`, and that environment never receives them:
+
+```json
+{
+  "environments": {
+    "production": {
+      "exclude": [
+        "cpt/vocabulary-games.json",
+        "meta/vocabulary-games.json",
+        "hooks/vocabulary-games-page.php",
+        "theme/templates/*-vocabulary-games.html"
+      ]
+    }
+  }
+}
+```
+
+`*` matches within one directory, `**` across directories, `?` one character. A glob that names a directory (`apps/games`) covers everything inside it.
+
+Excluded means "leave alone", not "absent": an excluded file is never pushed, and never pruned or mirrored away either. `--prune` keeps a server file under an excluded path, and the child theme keeps the site's copy of an excluded template or part. Adding an exclude never deletes the feature from the environment.
+
+- `lps push` (and each `lps <resource> push`), `lps diff` and `lps promote` honor it. `lps diff` lists excluded items in their own "held back" group, not as drift, and its exit code ignores them. A push names what it held back, `--dry-run` included.
+- `lps pull` and `lps dev` ignore it: the feature keeps flowing into your files and to `local`.
+- `lps validate` warns about a glob that matches no file, a typo would let the feature through.
+- Exclusion works on whole files: one menu item or one option inside a file can't be held back. Put it in its own file, or edit it by hand. A dynamic block is excluded as its whole folder (`blocks/<slug>`), not file by file. The theme CSS (`theme/css/`, `theme/blocks/`) is bundled whole and can't be excluded.
+
 ### Changes made outside Loopress
 
 Before writing, a push compares the site with the state your last push from this machine left it in. If an object was changed there since (an edit in wp-admin, another tool) and the push would write a different version over it, the push stops and names those objects:

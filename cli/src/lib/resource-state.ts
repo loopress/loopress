@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises'
 import {basename, join, relative, sep} from 'node:path'
 
 import {ACF_OBJECT_TYPES, acfEndpoint, acfNormalizeEndpoint, type AcfObjectType, getAcfKey} from '../utils/acf-format.js'
-import {BLOCKS_ENDPOINT, formatBlockProblems, readLocalBlocks, type RemoteBlock} from '../utils/block-format.js'
+import {blockFilesToPush, BLOCKS_ENDPOINT, excludedBlockFiles, formatBlockProblems, readLocalBlocks, type RemoteBlock} from '../utils/block-format.js'
 import {
   CPT_SPEC,
   type DeclaredTypeSpec,
@@ -48,6 +48,12 @@ import {isApplicative404, isNotFoundError, type WpClient} from './wp-client.js'
 // would store (ACF fills in its defaults on save): that provider asks the site to normalize them.
 export type ResourceStateProvider = {
   dirKind: ResourceDirKind
+  // The extension of one item's file (`.php` for api/foo.php), when the resource has one: tells
+  // which exclude globs name a site-only item. Unset, every resource file extension is tried.
+  fileExtension?: string
+  // The file one item's id is read from, relative to the resource directory, when the id is not
+  // that path without its extension (a menu's `menu/<slug>`). Undefined: no file can be told.
+  fileName?(id: string): string | undefined
   local(dir: string, onWarn: (message: string) => void, wp?: WpClient): Promise<ResourceState>
   remote(wp: WpClient, onWarn: (message: string) => void, dir: string): Promise<ResourceState>
   resource: string
@@ -149,6 +155,7 @@ const snippetProvider: ResourceStateProvider = {
 // stance as form-format.ts.
 const formProvider: ResourceStateProvider = {
   dirKind: 'form',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const entries = await loadFiles<{file: string; value: Record<string, unknown>}>(dir, {
       extension: '.json',
@@ -197,6 +204,7 @@ async function normalizeAcf(wp: WpClient, type: AcfObjectType, objects: Array<Re
 
 const acfProvider: ResourceStateProvider = {
   dirKind: 'acf',
+  fileExtension: '.json',
   async local(dir, onWarn, wp) {
     const state: ResourceState = new Map()
     for (const type of ACF_OBJECT_TYPES) {
@@ -249,6 +257,7 @@ function phpFilesProvider(spec: {
 }): ResourceStateProvider {
   return {
     dirKind: spec.dirKind,
+    fileExtension: '.php',
     async local(dir, onWarn) {
       return filesToState(
         await loadFiles<{content: string; filename: string}>(dir, {
@@ -290,10 +299,16 @@ const hookProvider = phpFilesProvider({
 // resource, the same stance as pages: pushing would stop on it anyway.
 const blockProvider: ResourceStateProvider = {
   dirKind: 'block',
-  async local(dir) {
+  // A block is a folder: only the bare `blocks/<slug>` path names a site-only block.
+  fileExtension: '',
+  // A file the environment excludes inside a block folder keeps the site's copy, as the push
+  // sends it back: without `wp`, that file is just left out.
+  async local(dir, _onWarn, wp) {
     const {blocks, problems} = await readLocalBlocks(dir)
     if (problems.length > 0) throw new Error(formatBlockProblems(problems))
-    return new Map(blocks.map((block) => [block.slug, block.files]))
+    const withExcluded = wp !== undefined && blocks.some((block) => excludedBlockFiles(dir, block.slug).length > 0)
+    const site = withExcluded ? new Map((await wp.get<RemoteBlock[]>(BLOCKS_ENDPOINT)).map((block) => [block.slug, block.files])) : undefined
+    return new Map(blocks.map((block) => [block.slug, site ? blockFilesToPush(dir, block, site.get(block.slug)) : block.files]))
   },
   async remote(wp) {
     const blocks = await wp.get<RemoteBlock[]>(BLOCKS_ENDPOINT)
@@ -349,6 +364,7 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
 
 const templateProvider: ResourceStateProvider = {
   dirKind: 'template',
+  fileExtension: '.html',
   async local(dir) {
     const {files, problems} = await readLocalHtmlFiles(dir, parseTemplateFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
@@ -361,6 +377,7 @@ const templateProvider: ResourceStateProvider = {
 
 const partProvider: ResourceStateProvider = {
   dirKind: 'part',
+  fileExtension: '.html',
   async local(dir) {
     const {files, problems} = await readLocalHtmlFiles(dir, parsePartFile, TEMPLATE_SLUG_RULE)
     if (problems.length > 0) throw new Error(formatPageProblems(problems))
@@ -392,6 +409,11 @@ function canonicalMenu(menu: Record<string, unknown>): Record<string, unknown> {
 
 const menuProvider: ResourceStateProvider = {
   dirKind: 'menu',
+  fileExtension: '.json',
+  fileName(id) {
+    if (id === MENU_LOCATIONS_FILE) return `${id}.json`
+    return id.startsWith('menu/') ? `${id.slice('menu/'.length)}.json` : undefined
+  },
   async local(dir, onWarn) {
     const state: ResourceState = new Map()
 
@@ -436,6 +458,7 @@ const menuProvider: ResourceStateProvider = {
 function declaredTypeProvider(spec: DeclaredTypeSpec, title: string): ResourceStateProvider {
   return {
     dirKind: spec.dirKind,
+    fileExtension: fileExtension(spec),
     async local(dir, onWarn) {
       const entries = await loadFiles<{args: Record<string, unknown>; slug: string}>(dir, {
         extension: fileExtension(spec),
@@ -469,6 +492,7 @@ const patternProvider = declaredTypeProvider(PATTERN_SPEC, 'Patterns')
 // sides so it can never itself show up as drift.
 const optionsProvider: ResourceStateProvider = {
   dirKind: 'options',
+  fileExtension: '.json',
   async local(dir, onWarn) {
     const entries = await loadFiles<{autoload: string; name: string; value: unknown}>(dir, {
       extension: '.json',
@@ -516,6 +540,8 @@ const optionsProvider: ResourceStateProvider = {
 // individually rather than colliding on a single key.
 const themeStylesProvider: ResourceStateProvider = {
   dirKind: 'themeStyles',
+  fileExtension: '.json',
+  fileName: (stylesheet) => `${stylesheet}${THEME_STYLES_FILE_SUFFIX}`,
   async local(dir, onWarn) {
     const entries = await loadFiles<{stylesheet: string; value: Record<string, unknown>}>(dir, {
       extension: '.json',

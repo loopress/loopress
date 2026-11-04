@@ -10,6 +10,7 @@ import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-confi
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {getCapabilities, type SiteCapabilities} from './capabilities.js'
+import {activateExclusions} from './exclude.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {withoutSpinner} from './spinner.js'
@@ -36,11 +37,16 @@ export abstract class LoopressCommand extends Command {
     'dry-run': Flags.boolean({char: 'd', description: 'Show what would change without making changes'}),
   }
 
+  // Whether the environment's `exclude` globs in loopress.json apply (lib/exclude.ts): push and
+  // diff commands only, never pull.
+  static honorsExclude = false
+
   static yesFlag = {
     yes: Flags.boolean({char: 'y', description: 'Answer yes to confirmation prompts'}),
   }
 
   protected dryRun = false
+
   protected localConfig: LoopressLocalConfig = {}
   // Set by PushCommand's --overwrite, see PushCommand.guardOutsideEdits.
   protected overwrite = false
@@ -97,6 +103,13 @@ export abstract class LoopressCommand extends Command {
     const resolved = this.resolveEnvironment(flags.env)
     this.siteConfig = resolved.env
     this.projectId = resolved.projectId
+    activateExclusions({
+      config: this.localConfig,
+      cwd: process.cwd(),
+      envName: this.siteConfig.name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+      honors: (this.ctor as typeof LoopressCommand).honorsExclude,
+    })
 
     await this.maybeAutoRotate()
   }

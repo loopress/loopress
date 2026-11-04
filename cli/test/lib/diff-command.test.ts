@@ -122,6 +122,33 @@ describe('DiffCommand.report', () => {
     expect(process.exitCode).toBe(2)
   })
 
+  it('lists held-back items in their own group instead of as removed', async () => {
+    const {lines, result} = await report([
+      {
+        ...target('Hooks', {games: 1, live: 1, 'site-only': 1, stale: 1}, {live: 1}),
+        heldBackFrom: async () => state({games: 2, live: 1, unreleased: 1}),
+        isHeldBack: (id) => id === 'site-only',
+      },
+    ])
+
+    expect(lines).toContain('  - stale')
+    expect(lines).toContain('Held back from staging (exclude in loopress.json), not compared')
+    expect(lines).toContain('  Hooks: games, site-only, unreleased')
+    expect(result.resources.hooks).toEqual({added: [], changed: [], heldBack: ['games', 'site-only', 'unreleased'], removed: ['stale']})
+  })
+
+  it('holds back an item whose excluded file differs locally, without drift', async () => {
+    const {result} = await report([
+      {
+        ...target('Blocks', {hero: 1}, {hero: 1}),
+        heldBackFrom: async () => state({hero: 2}),
+      },
+    ])
+
+    expect(result.resources.blocks).toEqual({added: [], changed: [], heldBack: ['hero'], removed: []})
+    expect(process.exitCode).not.toBe(1)
+  })
+
   it('prints nothing in --json mode', async () => {
     const {lines} = await report([target('Forms', {f: 1}, {})], ['--json'])
 

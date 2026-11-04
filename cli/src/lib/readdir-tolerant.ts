@@ -1,7 +1,8 @@
 import {type Dirent} from 'node:fs'
 import {readdir, stat} from 'node:fs/promises'
-import {join, relative, sep} from 'node:path'
+import {join, relative, resolve, sep} from 'node:path'
 
+import {withoutExcluded} from './exclude.js'
 import {errorCode} from './narrow.js'
 
 // A directory that was simply never pulled/pushed to yet (ENOENT) means "nothing there",
@@ -13,9 +14,11 @@ export async function readdirTolerant(
   options?: {recursive?: boolean; withFileTypes?: boolean},
 ): Promise<Dirent[] | string[]> {
   try {
+    // Excluded paths (lib/exclude.ts) are hidden here, so every resource listing through this
+    // helper leaves them out of a push or a diff on the environment that excludes them.
     return options?.withFileTypes
-      ? await readdir(dir, {recursive: options.recursive, withFileTypes: true})
-      : await readdir(dir, {recursive: options?.recursive})
+      ? withoutExcluded(dir, await readdir(dir, {recursive: options.recursive, withFileTypes: true}), (entry) => resolve(entry.parentPath, entry.name))
+      : withoutExcluded(dir, await readdir(dir, {recursive: options?.recursive}), (entry) => entry)
   } catch (error) {
     if (errorCode(error) === 'ENOENT') return []
 

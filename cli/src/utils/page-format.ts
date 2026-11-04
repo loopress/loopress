@@ -1,6 +1,7 @@
 import {readdir, readFile} from 'node:fs/promises'
 import {basename, extname, join} from 'node:path'
 
+import {withoutExcluded} from '../lib/exclude.js'
 import {errorCode, errorMessage, isOneOf} from '../lib/narrow.js'
 
 export const PAGES_ENDPOINT = 'loopress/v1/pages'
@@ -129,7 +130,7 @@ export async function readLocalHtmlFiles<T>(
 ): Promise<{files: T[]; problems: PageProblem[]}> {
   let entries
   try {
-    entries = await readdir(dir, {withFileTypes: true})
+    entries = withoutExcluded(dir, await readdir(dir, {withFileTypes: true}), (entry) => entry.name)
   } catch (error) {
     if (errorCode(error) === 'ENOENT') return {files: [], problems: []}
     throw error
