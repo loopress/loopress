@@ -283,6 +283,7 @@ describe('api pull', () => {
 
       const {cmd: plainCmd, get: plainGet} = make(false, [dir])
       plainGet.mockResolvedValue([{content: '<?php', filename: 'hello'}])
+      Object.defineProperty(process.stdout, 'columns', {configurable: true, value: 120}) // default renderer needs a width
       await plainCmd.run()
 
       expect(listrInstances.at(-1)?.options).toEqual({renderer: 'default'})
