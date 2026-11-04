@@ -34,7 +34,7 @@ export function ApiRoutes() {
                     renderToggle={({ isOpen, onToggle }) => (
                         <Button icon="admin-generic" label="Routes namespace" size="small" onClick={onToggle} aria-expanded={isOpen} />
                     )}
-                    renderContent={() => <div style={{ padding: 16, width: 360 }}><ApiNamespaceSettings /></div>}
+                    renderContent={() => <div style={{ padding: 16, width: 'min(360px, calc(100vw - 80px))', maxWidth: '100%' }}><ApiNamespaceSettings /></div>}
                 />
             )}
             query={query}

@@ -43,7 +43,7 @@ export function Skeleton({ rows = 3 }: Readonly<{ rows?: number }>) {
                     key={i}
                     data-testid="skeleton"
                     style={{
-                        height: 12, width: 220, background: '#e0e0e0', borderRadius: 4, margin: '8px 0',
+                        height: 12, width: 'min(220px, 100%)', background: '#e0e0e0', borderRadius: 4, margin: '8px 0',
                         animation: `lp-pulse 1.5s ease-in-out ${i * 0.15}s infinite`,
                     }}
                 />
@@ -63,7 +63,7 @@ export function Section({ title, description, busy = false, actions, children }:
 }>) {
     return (
         <Card style={{ marginBottom: 24 }}>
-            <CardHeader>
+            <CardHeader className="lp-section-head">
                 <div>
                     <h2 style={{ fontSize: 14, margin: 0 }}>{title}</h2>
                     {description && <p style={{ color: MUTED, fontSize: 13, margin: '4px 0 0' }}>{description}</p>}
@@ -106,6 +106,7 @@ export function ResourceSection({ title, description, actions, alert, query, isE
 
 export function Table({ columns, children }: Readonly<{ columns: string[]; children: React.ReactNode }>) {
     return (
+        <div className="lp-table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
                 <tr style={{ borderBottom: '1px solid #dcdcde', textAlign: 'left', color: MUTED }}>
@@ -116,6 +117,7 @@ export function Table({ columns, children }: Readonly<{ columns: string[]; child
             </thead>
             <tbody>{children}</tbody>
         </table>
+        </div>
     );
 }
 
