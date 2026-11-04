@@ -1,9 +1,11 @@
 import {mkdtempSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {afterEach, beforeEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
-import {excludedFileFor} from '../../src/lib/diff-command.js'
+import type {WpClient} from '../../src/lib/wp-client.js'
+
+import {excludedFileFor, sharedReads} from '../../src/lib/diff-command.js'
 import {activateExclusions} from '../../src/lib/exclude.js'
 import {getResourceStateProvider} from '../../src/lib/resource-state.js'
 
@@ -45,5 +47,18 @@ describe('excludedFileFor', () => {
     expect(excludedFileFor(join(root, 'menus'), 'menu/primary', getResourceStateProvider('menu'))).toBe(true)
     expect(excludedFileFor(join(root, 'menus'), 'menu/footer', getResourceStateProvider('menu'))).toBe(false)
     expect(excludedFileFor(join(root, 'theme-styles'), 'twentyfive', getResourceStateProvider('theme-style'))).toBe(true)
+  })
+})
+
+describe('sharedReads', () => {
+  it('reads each path once so both diff sides see the same site response', async () => {
+    const get = vi.fn(async (path: string) => ({path, read: get.mock.calls.length}))
+    const shared = sharedReads({get} as unknown as WpClient)
+
+    const [first, second] = await Promise.all([shared.get('loopress/v1/blocks'), shared.get('loopress/v1/blocks')])
+    await shared.get('loopress/v1/pages')
+
+    expect(first).toBe(second)
+    expect(get).toHaveBeenCalledTimes(2)
   })
 })

@@ -92,14 +92,19 @@ export abstract class DiffCommand extends LoopressCommand {
 
     const dir = resolveResourceDir(provider.dirKind, this.localConfig, dirOverride)
     const {againstWp} = sides
+    const holdsBack = againstWp === undefined && hasExclusions()
+    // With exclusions, the local side may read the site too (an excluded file keeps the site's
+    // copy): both sides then share one response, so a site change between two reads can't show
+    // up as drift.
+    const wp = holdsBack ? sharedReads(this.wp) : this.wp
 
     return {
       // Only against local files: they are what an exclude glob names.
-      heldBackFrom: againstWp !== undefined || !hasExclusions() ? undefined : async () => withoutExclusions(async () => provider.local(dir, () => {}, this.wp)),
-      isHeldBack: againstWp !== undefined || !hasExclusions() ? undefined : (id) => excludedFileFor(dir, id, provider),
-      left: async () => provider.remote(this.wp, sides.warn, dir),
+      heldBackFrom: holdsBack ? async () => withoutExclusions(async () => provider.local(dir, () => {}, wp)) : undefined,
+      isHeldBack: holdsBack ? (id) => excludedFileFor(dir, id, provider) : undefined,
+      left: async () => provider.remote(wp, sides.warn, dir),
       resource: provider.resource,
-      right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, this.wp),
+      right: againstWp ? async () => provider.remote(againstWp, sides.warn, dir) : async () => provider.local(dir, sides.warn, wp),
       title: provider.title,
     }
   }
@@ -330,4 +335,26 @@ function sharedFailure(errors: Array<string | undefined>): string | undefined {
   const failures = errors.filter((error) => error !== undefined)
   const distinct = new Set(failures)
   return failures.length > 1 && distinct.size === 1 ? failures[0] : undefined
+}
+
+// A client whose plain GETs are read once per path and shared, for the lifetime of one
+// resource comparison. Every other call goes to `wp` unchanged.
+export function sharedReads(wp: WpClient): WpClient {
+  const reads = new Map<string, Promise<unknown>>()
+  // `Object.create` keeps every other WpClient method, bound to `wp`'s own state.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+  const shared = Object.create(wp) as WpClient
+  shared.get = async <T>(path: string, options?: Parameters<WpClient['get']>[1]): Promise<T> => {
+    if (options !== undefined) return wp.get<T>(path, options)
+    let read = reads.get(path)
+    if (read === undefined) {
+      read = wp.get<T>(path)
+      reads.set(path, read)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the same path yields the same T
+    return read as Promise<T>
+  }
+
+  return shared
 }
