@@ -68,7 +68,10 @@ export default class Diff extends DiffCommand {
       }
     }
 
-    return this.report(targets, sides)
+    const result = await this.report(targets, sides)
+    // Only the environment against its local files is drift; two environments differing is not.
+    if (!sides.againstWp) await this.reportDrift(result)
+    return result
   }
 
   private async composerSiteTarget(sides: DiffSides, skipUnsupported: boolean): Promise<DiffTarget> {

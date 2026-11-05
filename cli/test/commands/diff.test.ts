@@ -1,14 +1,18 @@
+import got from 'got'
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Diff from '../../src/commands/diff.js'
+import {authManager} from '../../src/config/auth.manager.js'
 import {configManager} from '../../src/config/project-config.manager.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
+
+vi.mock('got', () => ({default: {post: vi.fn(async () => ({}))}}))
 
 // The command resolves local files under localConfig.rootDir; tests point it at an absolute
 // temp dir instead of process.chdir(), which Stryker's worker-thread pool disallows.
@@ -88,6 +92,8 @@ describe('diff', () => {
     mkdirSync(join(dir, 'theme'))
     writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))
     process.exitCode = 0
+    delete process.env.LOOPRESS_TOKEN
+    vi.spyOn(authManager, 'getAuth').mockReturnValue(null)
   })
 
   afterEach(() => {
@@ -381,5 +387,77 @@ describe('diff', () => {
     // 4 spaces are indentPatch's own indent, and the embedded "\n" between the two lines
     // confirms indentPatch joins with a real newline rather than concatenating everything.
     expect(output).toContain('    --- composer.json\tstaging\n    +++ composer.json\tlocal')
+  })
+
+  describe('drift report', () => {
+    const post = vi.mocked(got.post)
+
+    function addLocalSnippet() {
+      mkdirSync(join(dir, 'snippets'))
+      writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
+      writeFileSync(join(dir, 'snippets', '9-x.json'), JSON.stringify({active: true, id: 9, name: 'X', type: 'php'}))
+    }
+
+    it('sends the drifted items, reduced to resource, id and change', async () => {
+      process.env.LOOPRESS_TOKEN = 'tok'
+      addLocalSnippet()
+      const {cmd} = make([], baselineGet())
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledOnce()
+      const [url, options] = post.mock.calls[0] as unknown as [string, {headers: unknown; json: unknown; timeout: unknown}]
+      expect(url).toMatch(/\/drift-reports$/)
+      expect(options.headers).toEqual({Authorization: 'Bearer tok'})
+      expect(options.timeout).toEqual({request: 3000})
+      expect(options.json).toEqual({
+        exitCode: 1,
+        items: [{change: 'added', id: '9', resource: 'snippet'}],
+        status: 'drift',
+        url: 'https://staging.acme.com',
+      })
+    })
+
+    it('sends a clean report with no items', async () => {
+      process.env.LOOPRESS_TOKEN = 'tok'
+      const {cmd} = make([], baselineGet())
+
+      await cmd.run()
+
+      expect(post.mock.calls[0]?.[1]).toMatchObject({json: {exitCode: 0, items: [], status: 'clean'}})
+    })
+
+    it('sends an inconclusive report when a resource could not be compared', async () => {
+      process.env.LOOPRESS_TOKEN = 'tok'
+      const {cmd} = make(['--only', 'snippet'], vi.fn(async (path: string) => {
+        if (path === 'loopress/v1/capabilities') return makeCapabilities()
+        throw new Error('boom')
+      }))
+
+      await cmd.run()
+
+      expect(post.mock.calls[0]?.[1]).toMatchObject({json: {exitCode: 2, status: 'inconclusive'}})
+    })
+
+    it('sends nothing without a token', async () => {
+      addLocalSnippet()
+      const {cmd} = make([], baselineGet())
+
+      await cmd.run()
+
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('keeps the result and exit code when the request fails', async () => {
+      process.env.LOOPRESS_TOKEN = 'tok'
+      post.mockRejectedValueOnce(new Error('network down'))
+      addLocalSnippet()
+      const {cmd} = make([], baselineGet())
+
+      const result = await cmd.run()
+
+      expect(result.drift).toBe(true)
+      expect(process.exitCode).toBe(1)
+    })
   })
 })

@@ -36,6 +36,10 @@ See [`lps snippet publish`](/snippets/#lps-snippet-publish) and [`lps api publis
 
 When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push.
 
+## Drift reports
+
+When a token is available, `lps diff` also sends its result to the console once it has printed it: the target URL, the verdict (`clean`, `drift` or `inconclusive`), the exit code, and for each difference only the resource, the id and the kind of change (`added`, `removed` or `changed`). File contents and patches are never sent. Comparing two environments with `--against` is not reported. This is best effort with a 3 second timeout: it never changes the exit code or the `--json` output, and without a token nothing is sent.
+
 ## Tokens for CI
 
 A CI runner can't run `lps login`. Create a token at [console.loopress.dev/tokens](https://console.loopress.dev/tokens) and expose it as the `LOOPRESS_TOKEN` environment variable: the CLI uses it in place of the stored login token. See [CI/CD Integration](/ci/#deploying-to-a-real-environment).
