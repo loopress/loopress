@@ -19,11 +19,12 @@ import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 type PushTarget = {commandId: string; id: string; label: string}
 
 // `result`: the step's own JSON result, e.g. a dry run's per-item `changes`.
-type PushTargetResult = {error?: string; label: string; result?: unknown; status: 'failed' | 'pushed' | 'skipped'}
+type PushTargetResult = {error?: string; label: string; reason?: string; result?: unknown; status: 'failed' | 'pushed' | 'skipped'}
 
 type PushResult = {results: PushTargetResult[]}
 
-type Skip = {note: string; status: 'pushed' | 'skipped'}
+// `reason`: set when --skip-unsupported turned a refusal into a skip.
+type Skip = {note: string; reason?: string; status: 'pushed' | 'skipped'}
 
 // A step the site may be unable to hold: `skipUnused` skips it whenever the project doesn't use
 // it, otherwise only when the site lacks it.
@@ -83,13 +84,19 @@ export default class Push extends LoopressCommand {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
     ...selectionFlags('push', PUSH_IDS),
+    ...LoopressCommand.skipUnsupportedFlag,
     overwrite: PushCommand.baseFlags.overwrite,
   }
+
+  private skipUnsupported = false
+  // What --skip-unsupported held back, for the final warning.
+  private readonly unsupported: string[] = []
 
   async run(): Promise<PushResult> {
     await this.guardProductionPush()
 
     const {flags} = await this.parse(Push)
+    this.skipUnsupported = flags['skip-unsupported']
     const skipFlag = parseSelectionFlag(flags.skip, 'skip', PUSH_IDS, (message) => this.error(message))
     const selected = new Set(selectResources(PUSH_IDS, parseSelectionFlag(flags.only, 'only', PUSH_IDS, (message) => this.error(message)), skipFlag))
     const argv = this.buildArgv()
@@ -101,7 +108,7 @@ export default class Push extends LoopressCommand {
       const skip = skips.get(target.commandId)
       if (skip) {
         this.log(`\n→ ${target.label}: ${skip.note}`)
-        results.push({label: target.label, status: skip.status})
+        results.push({label: target.label, ...(skip.reason && {reason: skip.reason}), status: skip.status})
         continue
       }
 
@@ -120,11 +127,14 @@ export default class Push extends LoopressCommand {
           .filter((next) => !skips.has(next.commandId))
           .map((next) => next.label)
         const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+        this.warnUnsupported()
         this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
     }
 
     this.log(this.doneMessage(selected.size < PUSH_IDS.length))
+    this.warnUnsupported()
+
     return {results}
   }
 
@@ -135,10 +145,11 @@ export default class Push extends LoopressCommand {
     const blockers: string[] = []
     for (const {commandId, missing, skipUnused, used} of steps) {
       if (used && missing) {
-        const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
-        const fix = integrationFix(missing, declared)
-        const fixSentence = fix ? ` ${fix}.` : ''
-        blockers.push(`${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`)
+        const line = this.unsupportedLine(commandId, missing, declared)
+        if (this.skipUnsupported) {
+          skips.set(commandId, {note: `${missing.reason}, skipped (--skip-unsupported)`, reason: `${missing.reason} on ${this.siteConfig.name}`, status: 'skipped'})
+          this.unsupported.push(line)
+        } else blockers.push(line)
       } else if (!used && missing?.needsFull) {
         skips.set(commandId, {note: `${missing.reason}, skipped`, status: 'skipped'})
       } else if (!used && skipUnused) {
@@ -267,5 +278,19 @@ export default class Push extends LoopressCommand {
     }
 
     return skips
+  }
+
+  // "<resources>: <why> on <site>. <fix>", for the refusal and for the --skip-unsupported warning.
+  private unsupportedLine(commandId: string, missing: MissingIntegration, declared: {fromComposer: boolean; plugins: string[]}): string {
+    const label = PUSH_TARGETS.find((target) => target.commandId === commandId)?.label
+    const fix = integrationFix(missing, declared)
+    const fixSentence = fix ? ` ${fix}.` : ''
+    return `${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`
+  }
+
+  private warnUnsupported(): void {
+    if (this.unsupported.length > 0) {
+      this.warn(`Skipped with --skip-unsupported, this site can't hold them:\n  ${this.unsupported.join('\n  ')}\nResources that depend on them (a page placing a block, code calling a hook) may not work until they are pushed.`)
+    }
   }
 }

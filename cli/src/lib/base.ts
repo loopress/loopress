@@ -49,6 +49,14 @@ export abstract class LoopressCommand extends Command {
   // diff commands only, never pull.
   static honorsExclude = false
 
+  // Opt-in on push, pull, diff and promote: a resource the project uses but the site can't hold
+  // (see lib/capabilities.ts) is reported skipped, with a final warning, instead of failing the run.
+  static skipUnsupportedFlag = {
+    'skip-unsupported': Flags.boolean({
+      description: "Skip the resources the project uses but this site can't hold (a missing plugin, a Full feature on Light) instead of failing, and warn about each",
+    }),
+  }
+
   static yesFlag = {
     yes: Flags.boolean({char: 'y', description: 'Answer yes to confirmation prompts'}),
   }

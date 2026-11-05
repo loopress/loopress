@@ -70,6 +70,8 @@ lps pull --dry-run
 
 Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. On Loopress Light, Composer is always skipped, and the Full-only resources (API routes, hooks, patterns, snippets) are skipped the same way when the project has no directory for them, and fail when it does. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
 
+With `--skip-unsupported`, a resource the project uses but the site can't hold is reported `skipped` with its reason instead of failing, and the run exits `0`. See [skipping what a site can't hold](#skipping-what-a-site-cant-hold).
+
 ## `lps push`
 
 Push every resource to WordPress, in dependency order: plugins and Composer first, then post types, taxonomies, post meta and roles (before ACF, whose location rules can target them), ACF, API routes, hooks, forms, block patterns, templates and parts, Global Styles, pages, menus, options, and snippets last.
@@ -80,6 +82,7 @@ lps push --env staging --yes
 lps push --dry-run
 lps push --only acf,page
 lps push --skip plugin --skip composer
+lps push --skip-unsupported
 ```
 
 `--only` and `--skip` take the singular resource ids below, comma-separated or repeated. `--only` narrows the run, `--skip` then removes from it, and the order stays the push order whatever order you wrote. A resource left out is reported `skipped` and never checked against the site, so it can't block the run (an unsupported or missing integration only matters for what you push). Ids: `plugin`, `composer`, `cpt`, `taxonomy`, `meta`, `role`, `acf`, `api`, `hook`, `block`, `form`, `pattern`, `template` (templates, parts and CSS), `theme-style`, `page`, `menu`, `option`, `snippet`.
@@ -117,6 +120,7 @@ lps diff --skip composer
 | `--against <env>` | Compare the target environment with this second environment instead of local files |
 | `--only <resources>` | Only compare these resources. Comma-separated or repeated |
 | `--skip <resources>` | Compare every resource except these. Comma-separated or repeated |
+| `--skip-unsupported` | Skip, instead of comparing, a resource the project uses but a site can't hold, see [below](#skipping-what-a-site-cant-hold) |
 
 Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-style`, `composer`.
 
@@ -131,13 +135,24 @@ Copy every tracked resource from one environment to another: `lps pull` from the
 ```bash
 lps promote staging production
 lps promote production staging --dry-run
+lps promote staging production --skip-unsupported
 ```
+
+`--skip-unsupported` is passed to the pull and to the push, see [skipping what a site can't hold](#skipping-what-a-site-cant-hold).
 
 A real promotion **overwrites your local tracked files** with the source environment's, so it always asks for confirmation (`--yes` in CI), whatever the target's name. If the pull fails, nothing is pushed. Changes made on the target outside Loopress stop the push the same way they stop `lps push`: pass `--overwrite` to promote anyway. To undo a promotion, run the [`rollback`](/rollback/) of each resource that has one, with `--env` set to the target.
 
 With `--dry-run`, the source is pulled into a throwaway copy of the project and the push is only previewed from there: the preview shows what a real promotion would push, and your own files stay untouched. It refuses to run when `loopress.json` points a directory outside the project, use `lps diff --env <from> --against <to>` instead.
 
 The push honors the target's [excludes](/concepts/#holding-a-feature-back-from-an-environment): a feature held back from it is not promoted, and what the target already has under an excluded path stays.
+
+## Skipping what a site can't hold
+
+By default, a project that uses something the site can't hold (ACF inactive, no form or snippet plugin, a Full feature on Loopress Light) is refused: `lps push` pushes nothing, `lps pull` fails that resource. That is deliberate, since pushing the rest can leave a site that looks fine and is broken.
+
+For a quick setup of a site that lacks some of it, pass `--skip-unsupported` to `lps push`, `lps pull`, `lps diff` or `lps promote` (which hands it to its pull and its push). Each such resource is reported as skipped with its reason (`ACF is not active, skipped (--skip-unsupported)`), skipping a resource does not set a failure exit code by itself, and a final warning lists every skipped resource with how to fix it. With `--json`, the entry has `status: "skipped"` and a `reason`. Nothing else changes: without the flag the behavior is the one above.
+
+The skipped resources may be needed by the others: a page that places a dynamic block, or code that calls a hook, won't work on the site until that resource is pushed. For a lasting, per-environment choice, hold the feature back with [`exclude`](/concepts/#holding-a-feature-back-from-an-environment) instead.
 
 ## `lps content copy`
 

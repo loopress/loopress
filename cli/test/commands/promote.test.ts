@@ -59,6 +59,16 @@ describe('promote', () => {
     expect(result).toEqual({from: 'staging', status: 'promoted', to: 'production'})
   })
 
+  it('forwards --skip-unsupported to both the pull and the push', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd} = make(['staging', 'production', '--yes', '--skip-unsupported'])
+
+    await cmd.run()
+
+    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(1, 'pull', ['--env', 'staging', '--yes', '--skip-unsupported'])
+    expect(fakeOclifConfig.runCommand).toHaveBeenNthCalledWith(2, 'push', ['--env', 'production', '--yes', '--skip-unsupported'])
+  })
+
   it('forwards --overwrite to the push only, never to the pull', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = make(['staging', 'production', '--yes', '--overwrite'])

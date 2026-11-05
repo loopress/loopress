@@ -2,7 +2,7 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 import {z} from 'zod'
 
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, overwriteFlag, PREVIEW_SUFFIX, skipUnsupportedFlag} from '../lib/resource-tools.js'
 import {toCallToolResult} from '../lib/tool-result.js'
 
 // `lps promote` runs a full pull then a full push in sequence, so it needs the same generous
@@ -20,14 +20,15 @@ export function registerPromoteTools(server: McpServer): void {
         confirmToken: confirmTokenFlag,
         from: z.string().describe('Environment to copy the configuration from'),
         overwrite: overwriteFlag,
+        skipUnsupported: skipUnsupportedFlag,
         to: z.string().describe('Environment to copy the configuration to'),
       },
     },
-    async ({confirmToken, from, overwrite, to}) =>
+    async ({confirmToken, from, overwrite, skipUnsupported, to}) =>
       // --yes: confirmPromotion refuses outside a TTY without it, which the MCP server always
       // is; the confirmToken handshake is the actual approval gate, same as prune/rm elsewhere.
       toCallToolResult(
-        await runMutatingTool('promote', ['promote', from, to, '--yes', ...(overwrite ? ['--overwrite'] : [])], confirmToken, {
+        await runMutatingTool('promote', ['promote', from, to, '--yes', ...(overwrite ? ['--overwrite'] : []), ...(skipUnsupported ? ['--skip-unsupported'] : [])], confirmToken, {
           timeoutMs: PROMOTE_TIMEOUT_MS,
         }),
       ),

@@ -39,8 +39,8 @@ class TestPull extends Pull {
   }
 }
 
-function make(options: {capabilities?: ReturnType<typeof makeCapabilities>; dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
-  const cmd = new TestPull([], fakeOclifConfig)
+function make(options: {argv?: string[]; capabilities?: ReturnType<typeof makeCapabilities>; dryRun?: boolean; siteConfig?: EnvironmentConfig; yes?: boolean} = {}) {
+  const cmd = new TestPull(options.argv ?? [], fakeOclifConfig)
   stubCapabilities(cmd, options.capabilities ?? makeCapabilities())
   cmd.setup({
     dryRun: options.dryRun,
@@ -197,6 +197,23 @@ describe('pull', () => {
 
     await expect(cmd.run()).rejects.toThrow('1 resource failed to pull. snippets: no supported snippet plugin is active on staging')
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('snippet:pull', expect.anything())
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('with --skip-unsupported, skips a resource the project uses and the site cannot hold, then warns with the fix', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'snippets'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+    const result = await cmd.run()
+
+    expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('snippet:pull', expect.anything())
+    expect(result.results).toContainEqual({label: 'snippets', reason: 'no supported snippet plugin is active on staging', status: 'skipped'})
+    expect(logs.log).toHaveBeenCalledWith('\n→ snippets: no supported snippet plugin is active, skipped (--skip-unsupported)')
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('snippets: no supported snippet plugin is active on staging. Declare code-snippets'))
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

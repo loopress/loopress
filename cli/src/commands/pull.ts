@@ -1,5 +1,6 @@
 import {LoopressCommand} from '../lib/base.js'
-import {type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
+import {integrationFix, type MissingIntegration, missingIntegration, missingModule, type SiteCapabilities} from '../lib/capabilities.js'
+import {declaredPlugins} from '../lib/declared-plugins.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
 import {pluralize} from '../utils/pluralize.js'
@@ -13,7 +14,7 @@ import {globalStylesSkipNote} from '../utils/theme-styles-format.js'
 // Full feature the site may not have. Its own directory tells whether the project uses it at all.
 type PullTarget = {commandId: string; label: string; needsPlugin?: ResourceDirKind; supportsYes?: boolean}
 
-type PullTargetResult = {error?: string; label: string; status: 'failed' | 'pulled' | 'skipped'}
+type PullTargetResult = {error?: string; label: string; reason?: string; status: 'failed' | 'pulled' | 'skipped'}
 
 type PullResult = {results: PullTargetResult[]}
 
@@ -57,11 +58,17 @@ export default class Pull extends LoopressCommand {
   static override flags = {
     ...LoopressCommand.dryRunFlag,
     ...LoopressCommand.yesFlag,
+    ...LoopressCommand.skipUnsupportedFlag,
   }
 
   private failedCount = 0
+  private skipUnsupported = false
+  // What --skip-unsupported held back: the target and why, for the final warning.
+  private readonly unsupported: Array<{label: string; missing: MissingIntegration}> = []
 
   async run(): Promise<PullResult> {
+    const {flags} = await this.parse(Pull)
+    this.skipUnsupported = flags['skip-unsupported']
     const results: PullTargetResult[] = []
 
     const capabilities = await this.capabilities()
@@ -93,6 +100,7 @@ export default class Pull extends LoopressCommand {
     }
 
     if (this.failedCount > 0) {
+      await this.warnUnsupported()
       // Each failure's own reason, not just the count: under --json the per-resource lines above
       // never reach stdout, and this message is all an MCP caller or a script gets to see.
       const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
@@ -100,6 +108,7 @@ export default class Pull extends LoopressCommand {
     }
 
     this.log('\nAll resources pulled.')
+    await this.warnUnsupported()
     return {results}
   }
 
@@ -138,9 +147,26 @@ export default class Pull extends LoopressCommand {
       return {label: target.label, status: 'skipped'}
     }
 
+    if (this.skipUnsupported) {
+      this.unsupported.push({label: target.label, missing})
+      this.log(`\n→ ${target.label}: ${missing.reason}, skipped (--skip-unsupported)`)
+      return {label: target.label, reason: `${missing.reason} on ${this.siteConfig.name}`, status: 'skipped'}
+    }
+
     this.failedCount++
     const error = `${missing.reason} on ${this.siteConfig.name}`
     this.log(`\n✗ ${target.label} failed: ${error}`)
     return {error, label: target.label, status: 'failed'}
+  }
+
+  private async warnUnsupported(): Promise<void> {
+    if (this.unsupported.length === 0) return
+    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+    const lines = this.unsupported.map(({label, missing}) => {
+      const fix = integrationFix(missing, declared)
+      const fixSentence = fix ? ` ${fix}.` : ''
+      return `${label}: ${missing.reason} on ${this.siteConfig.name}.${fixSentence}`
+    })
+    this.warn(`Skipped with --skip-unsupported, this site can't hold them:\n  ${lines.join('\n  ')}`)
   }
 }

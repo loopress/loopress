@@ -386,6 +386,40 @@ describe('push', () => {
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
+    it('with --skip-unsupported, skips what the site cannot hold instead of refusing, and warns with the fix', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {acf: false, form: false}})})
+
+      const result = await cmd.run()
+
+      const ran = vi.mocked(fakeOclifConfig.runCommand).mock.calls.map(([id]) => id)
+      expect(ran).not.toContain('acf:push')
+      expect(ran).not.toContain('form:push')
+      expect(ran).toContain('page:push')
+      expect(result.results).toContainEqual({label: 'ACF', reason: 'ACF is not active on staging', status: 'skipped'})
+      expect(logs.log).toHaveBeenCalledWith('\n→ ACF: ACF is not active, skipped (--skip-unsupported)')
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/ACF: ACF is not active on staging\.[\s\S]*forms: no supported form plugin is active on staging\./))
+    })
+
+    it('with --skip-unsupported, skips a Full feature on Light and exits cleanly', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeLightCapabilities()})
+
+      await expect(cmd.run()).resolves.toBeDefined()
+
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalledWith('hook:push', expect.anything())
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('hooks: hooks need Loopress Full on staging. Install Loopress Full.'))
+    })
+
+    it('does not warn with --skip-unsupported when the site holds everything', async () => {
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      const {cmd, logs} = make({argv: ['--skip-unsupported']})
+
+      await cmd.run()
+
+      expect(logs.warn).not.toHaveBeenCalled()
+    })
+
     it('skips on Light what needs Full when the project does not use it', async () => {
       for (const dir of ['snippets', 'theme/templates', 'api', 'hooks', 'blocks', 'patterns', 'pages']) rmSync(join(projectDir, dir), {recursive: true})
       vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
