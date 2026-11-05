@@ -1,5 +1,5 @@
 import {Args, Flags} from '@oclif/core'
-import {readFile, rename, writeFile} from 'node:fs/promises'
+import {readFile, writeFile} from 'node:fs/promises'
 import {dirname, extname, join} from 'node:path'
 
 import {errorMessage, isRecord} from '../../lib/narrow.js'
@@ -10,6 +10,7 @@ import {getResourceStateProvider} from '../../lib/resource-state.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {FORM_ENDPOINT, formEndpoint, getFormId, getFormTitle, type RemoteForm} from '../../utils/form-format.js'
 import {pluralize} from '../../utils/pluralize.js'
+import {renameWithRetry} from '../../utils/rename-retry.js'
 import {toSlug} from '../../utils/to-slug.js'
 
 type FormPushResult = {changes?: PushChange[]; path: string; status: 'dry-run' | 'success'}
@@ -86,7 +87,7 @@ export default class Push extends PushCommand {
   // commands/snippet/push.ts.
   private async ensureCanonicalFilename(filePath: string, id: number, title: string): Promise<void> {
     const canonicalPath = join(dirname(filePath), `${id}-${toSlug(title, 'untitled')}.json`)
-    if (filePath !== canonicalPath) await rename(filePath, canonicalPath)
+    if (filePath !== canonicalPath) await renameWithRetry(filePath, canonicalPath)
   }
 
   // One file is read in isolation: a corrupted or hand-broken JSON file must only skip that
