@@ -9,7 +9,8 @@ import {type EnvironmentConfig} from '../types/config.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
-import {getCapabilities, type SiteCapabilities} from './capabilities.js'
+import {commandResourceKind, getCapabilities, missingIntegration, type SiteCapabilities, unsupportedMessage} from './capabilities.js'
+import {declaredPlugins} from './declared-plugins.js'
 import {activateExclusions} from './exclude.js'
 import {isInteractive} from './interactive.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
@@ -130,6 +131,7 @@ export abstract class LoopressCommand extends Command {
     })
 
     await this.maybeAutoRotate()
+    await this.assertSiteSupportsResource()
   }
 
   // Silent, best-effort: a stale app password still works, so a failed rotation attempt
@@ -279,6 +281,24 @@ export abstract class LoopressCommand extends Command {
 
   protected resolveThemeStylesPath(override?: string): string {
     return resolveResourceDir('themeStyles', this.localConfig, override)
+  }
+
+  // A command on a single kind of resource (`lps hook push`) says what `lps push` says when the
+  // site can't hold it, instead of failing on the 404. A site whose capabilities can't be read
+  // (too old a plugin, unreachable) lets the command run and report its own error.
+  private async assertSiteSupportsResource(): Promise<void> {
+    const kind = commandResourceKind(this.id)
+    if (!kind) return
+    let missing
+    try {
+      missing = missingIntegration(kind, await this.capabilities())
+    } catch {
+      return
+    }
+
+    if (!missing) return
+    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+    this.error(unsupportedMessage(missing, this.siteConfig.name, declared))
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

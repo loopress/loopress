@@ -152,6 +152,8 @@ By default, a project that uses something the site can't hold (ACF inactive, no 
 
 For a quick setup of a site that lacks some of it, pass `--skip-unsupported` to `lps push`, `lps pull`, `lps diff` or `lps promote` (which hands it to its pull and its push). Each such resource is reported as skipped with its reason (`ACF is not active, skipped (--skip-unsupported)`), skipping a resource does not set a failure exit code by itself, and a final warning lists every skipped resource with how to fix it. With `--json`, the entry has `status: "skipped"` and a `reason`. Nothing else changes: without the flag the behavior is the one above.
 
+The commands of a single resource (`lps hook push`, `lps acf list`, `lps block pull`, ...) read the site the same way: on a site that can't hold the resource, they stop before any request with `Not supported by <environment>: <reason>. <fix>.`, instead of a raw 404. They have no `--skip-unsupported`, since there is nothing else to run.
+
 The skipped resources may be needed by the others: a page that places a dynamic block, or code that calls a hook, won't work on the site until that resource is pushed. For a lasting, per-environment choice, hold the feature back with [`exclude`](/concepts/#holding-a-feature-back-from-an-environment) instead.
 
 ## `lps content copy`
