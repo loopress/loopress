@@ -28,7 +28,7 @@ function gitState(): {commit?: string; dirty?: boolean} {
     const git = (args: string[]) => execFileSync('git', args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000}).trim()
     const commit = git(['rev-parse', 'HEAD'])
     if (!commit) return {}
-    return {commit, dirty: git(['status', '--porcelain']) !== ''}
+    return {commit, dirty: git(['status', '--porcelain', '--untracked-files=normal']) !== ''}
   } catch {
     return {}
   }
