@@ -1,5 +1,31 @@
 # @loopress/mcp
 
+## 0.34.0
+
+### Minor Changes
+
+- 0d965b3: The `page_diff` and `theme_template_diff` tools are removed. Use the `diff` tool with `only: ["page"]` or `only: ["template", "part"]` instead.
+- 5ec57f8: MCP tool names and inputs now follow the CLI. Tools are named `<topic>_<command>`, top-level commands bare (`push`, `pull`, `diff`, `status`, `doctor`, `promote`, `validate`); `template_*` is now `theme_template_*` and `theme_styles_*` is now `theme_style_*`. `app_remove` and `option_remove` are now `app_rm` and `option_rm`, the `*_rm` tools take `slug` instead of `filename`, and `option_rm` gains `localOnly` and `path` like `lps option rm`. The `diff` resource id `theme-styles` is now `theme-style`. The old names are no longer accepted, so update any agent prompt or config that names them.
+- 22368b6: New opt-in `--skip-unsupported` flag on `lps push`, `lps pull` and `lps diff`, passed on by `lps promote`. A resource the project uses but the site can't hold (ACF inactive, no form or snippet plugin, a Full feature on Loopress Light) is reported skipped with its reason instead of refusing the push or failing the pull, the run exits 0, `--json` carries `status: "skipped"` and the reason, and a final warning lists the skipped resources with how to fix them. Without the flag nothing changes. The MCP `push`, `pull`, `diff` and `promote` tools take a matching `skipUnsupported` input.
+
+### Patch Changes
+
+- f1fbed3: Handle plugin dependencies (`Requires Plugins`): `lps plugin add` also adds the plugins a plugin requires (e.g. `woocommerce` for `dokan-lite`), and `lps plugin push` activates dependencies before the plugins that need them instead of failing on WordPress's `plugin_missing_dependencies` refusal.
+- Updated dependencies [d7a8e80]
+- Updated dependencies [aeea005]
+- Updated dependencies [5042773]
+- Updated dependencies [5ec57f8]
+- Updated dependencies [2df0d69]
+- Updated dependencies [c09a598]
+- Updated dependencies [85af14c]
+- Updated dependencies [f1fbed3]
+- Updated dependencies [7c15780]
+- Updated dependencies [86cab32]
+- Updated dependencies [5ec57f8]
+- Updated dependencies [3336323]
+- Updated dependencies [22368b6]
+  - @loopress/cli@0.34.0
+
 ## 0.33.0
 
 ### Minor Changes
