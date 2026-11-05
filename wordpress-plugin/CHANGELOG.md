@@ -1,5 +1,12 @@
 # @loopress/wordpress-plugin
 
+## 2026.18.1
+
+### Patch Changes
+
+- 14a9b03: When the plugin runs from a source checkout, skip the anonymous usage ping and show "dev" instead of the stale committed version in the admin header and admin bar.
+- bc691d3: The wp-admin screen of Loopress (Full and Light) now fits phones and tablets: no sideways page scroll down to 360px, wide tables scroll inside their own card, headers and action bars wrap, and the tabs scroll under 600px.
+
 ## 2026.18.0
 
 ### Minor Changes

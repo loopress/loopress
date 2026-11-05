@@ -1,5 +1,26 @@
 # @loopress/cli
 
+## 0.34.0
+
+### Minor Changes
+
+- aeea005: Deployments reported to the console now include the command that ran, the current Git commit and whether the working tree had uncommitted changes. Outside a Git repository only the command is sent.
+- 5042773: `lps diff` now sends its result to the console when a token is available: the verdict, the exit code and, for each difference, the resource, the id and the kind of change (never file contents). It is best effort and never changes the exit code or the `--json` output. Nothing is sent without a token or when comparing two environments with `--against`.
+- 2df0d69: Hold files back from an environment with `environments.<name>.exclude` globs in `loopress.json`. `lps push`, `lps diff` and `lps promote` leave them alone on that environment: never pushed, pruned or mirrored away. `lps diff` lists them as held back without counting them as drift, a push names them, and `lps validate` warns about a glob that matches no file.
+- c09a598: `lps option push`, `lps page push`, `lps theme template push` and `lps pattern push` now warn when a pushed value, page, template, template part or pattern holds an absolute URL to another environment of the project (a staging link about to land on production), `--dry-run` included. The URLs are never rewritten and the push still goes through; relative paths, links to the target environment and external links pass silently.
+- 5ec57f8: `lps push` gains `--only` and `--skip`, with the same resource ids as `lps dev` and `lps diff`: comma-separated or repeated (`--only acf,page`, `--skip plugin --skip composer`). A resource left out is reported skipped and never checked against the site, and the run keeps its usual order. `lps dev --only` now takes singular ids (`snippet`, `page`, `hook`, `plugin`...), like the other two commands.
+- 3336323: Rename the `loopress.json` directory keys to the singular form used by the others: `hooksDir` is now `hookDir`, `optionsDir` is now `optionDir`, `appsDir` is now `appDir` and `themeStylesDir` is now `themeStyleDir`. The old keys are no longer read, so rename them in existing `loopress.json` files.
+- 22368b6: New opt-in `--skip-unsupported` flag on `lps push`, `lps pull` and `lps diff`, passed on by `lps promote`. A resource the project uses but the site can't hold (ACF inactive, no form or snippet plugin, a Full feature on Loopress Light) is reported skipped with its reason instead of refusing the push or failing the pull, the run exits 0, `--json` carries `status: "skipped"` and the reason, and a final warning lists the skipped resources with how to fix them. Without the flag nothing changes. The MCP `push`, `pull`, `diff` and `promote` tools take a matching `skipUnsupported` input.
+
+### Patch Changes
+
+- d7a8e80: `lps project config` no longer ends with a hint about changing the active project or environment. The CLI test tooling moves to Vitest 5.
+- 5ec57f8: `lps doctor` now tells "Application Passwords disabled for this account" apart from bad credentials, instead of sending you to `lps project config` when the account simply can't use Application Passwords. Wrong usernames and passwords keep the existing hint.
+- 85af14c: Task labels no longer render one letter per line when the terminal reports no width (for example `script` without a size). The CLI now prints plain task lines in that case.
+- f1fbed3: Handle plugin dependencies (`Requires Plugins`): `lps plugin add` also adds the plugins a plugin requires (e.g. `woocommerce` for `dokan-lite`), and `lps plugin push` activates dependencies before the plugins that need them instead of failing on WordPress's `plugin_missing_dependencies` refusal.
+- 7c15780: `lps push` no longer refuses a fresh site (CI, a new staging) because ACF, a form or a snippet plugin isn't active yet, when the project has no `composer.json` and `loopress.json` pins that plugin active: the run's plugins step installs it before the steps that need it. `--dry-run` skips those steps, since nothing gets activated to preview against.
+- 86cab32: `lps push` now skips every resource the project has no local directory for ("not configured, skipped"), instead of running it on an empty directory and sending a request to the site for each: post types, taxonomies, post meta, roles, menus, options, API routes, hooks, dynamic blocks, patterns and pages. On Loopress Light, a Full-only resource the project does use is still refused upfront.
+
 ## 0.33.0
 
 ### Minor Changes
