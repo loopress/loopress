@@ -182,9 +182,6 @@ export abstract class DiffCommand extends LoopressCommand {
   // and the changed items (resource, id, change kind, never contents). Silent on any failure, and
   // it never touches the exit code or the `--json` output.
   protected async reportDrift(result: DiffJson): Promise<void> {
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
-    if (!token) return
-
     const items = Object.entries(result.resources).flatMap(([resource, diff]) => [
       ...diff.added.map((id) => ({change: 'added', id, resource})),
       ...diff.removed.map((id) => ({change: 'removed', id, resource})),
@@ -195,6 +192,9 @@ export abstract class DiffCommand extends LoopressCommand {
     if (inconclusive) status = 'inconclusive'
 
     try {
+      const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
+      if (!token) return
+
       await got.post(`${API_URL}/drift-reports`, {
         headers: {Authorization: `Bearer ${token}`},
         json: {exitCode: process.exitCode ?? 0, items, status, url: this.siteConfig.url},
