@@ -190,11 +190,11 @@ test.describe('no active form plugin', () => {
     await setPluginActive(requestUtils, WPFORMS_SLUG, true)
   })
 
-  test('form list fails with a clear "No supported form plugin is active" error', async ({runCli}) => {
+  test('form list fails with a clear "no supported form plugin is active" error', async ({runCli}) => {
     const result = await runCli(['form', 'list'])
 
     expect(result.exitCode).not.toBe(0)
-    expect(unwrap(result.stderr)).toContain('No supported form plugin is active')
+    expect(unwrap(result.stderr)).toContain('no supported form plugin is active')
   })
 
   // Regression coverage: FormController checks
