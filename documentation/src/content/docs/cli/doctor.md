@@ -23,6 +23,8 @@ The command first prints the project, environment and URL it targets (the same r
 | No leftover temporary admin accounts | An interrupted Loopress Full install (see [`project config`](/concepts/#configuring-an-environment)) left its temporary administrator behind. Re-run `lps project config` to remove it, or delete it in wp-admin > Users. The check only reports, it never deletes. Skipped when the credentials are rejected, and informational when they can't list users |
 | Hooks load and run without errors | A [hook file](/hooks/) failed to load, or one of its methods threw while running (the last error, until the file is pushed again). Skipped on Loopress Light, which has no hooks |
 
+When a check gets a 403 whose body is not a WordPress JSON error (no `code`/`message`), the doctor says a firewall or security plugin (ModSecurity, Imunify360, Wordfence) probably blocked the request, instead of blaming the credentials: allow-list the request or your IP in the firewall. A 403 that is a real WordPress error keeps the credentials message. Other commands print the same diagnosis.
+
 Each check prints ✓ or ✗ with the cause and the corrective action. If the site is unreachable or no credentials are stored, the remaining checks are skipped instead of piling up timeouts.
 
 ## Exit code

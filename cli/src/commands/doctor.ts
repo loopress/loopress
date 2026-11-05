@@ -4,7 +4,7 @@ import {type SiteCapabilities} from '../lib/capabilities.js'
 import {errorMessage} from '../lib/narrow.js'
 import {formatRuntimeError, HOOK_FILES_RESOURCE, type RuntimeError} from '../lib/php-files-command.js'
 import {findTempAdmins} from '../lib/temp-admin.js'
-import {isApplicationPasswordsDisabled, isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
+import {isApplicationPasswordsDisabled, isFirewallBlock, isForbiddenError, isNotFoundError} from '../lib/wp-client.js'
 import {diagnoseWpSite} from '../lib/wp-site-diagnostic.js'
 import {pluralize} from '../utils/pluralize.js'
 
@@ -178,7 +178,7 @@ export default class Doctor extends LoopressCommand {
       lookup = {error}
     }
 
-    if ('error' in lookup && isForbiddenError(lookup.error)) {
+    if ('error' in lookup && isForbiddenError(lookup.error) && !isFirewallBlock(lookup.error)) {
       this.out('- Leftover temporary admin accounts: not checked, these credentials cannot list users.')
       return
     }
