@@ -88,7 +88,7 @@ export function defaultReadonlyFor(name: string): boolean {
 }
 
 // Windows refuses these device names as a file name, with or without an extension (`NUL.json`).
-const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
+const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])$/i
 
 export function isWindowsReservedName(name: string): boolean {
   return WINDOWS_RESERVED_NAME.test(name.split('.', 1)[0]?.trimEnd() ?? '')

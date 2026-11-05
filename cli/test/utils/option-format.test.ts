@@ -21,7 +21,7 @@ describe('option-format', () => {
   })
 
   it('rejects Windows reserved device names, any case, with or without extension', () => {
-    for (const name of ['CON', 'nul', 'Prn', 'AUX', 'com1', 'COM9', 'lpt1', 'LPT9', 'nul.backup']) {
+    for (const name of ['CON', 'nul', 'Prn', 'AUX', 'com1', 'COM9', 'lpt1', 'LPT9', 'COM¹', 'lpt³', 'nul.backup']) {
       expect(isWindowsReservedName(name)).toBe(true)
       expect(() => optionFileName(name)).toThrow(/reserved Windows file name/)
     }
