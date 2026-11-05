@@ -34,7 +34,7 @@ See [`lps snippet publish`](/snippets/#lps-snippet-publish) and [`lps api publis
 
 ## Deployment history
 
-When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. This is best effort: it never blocks or fails a push.
+When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push.
 
 ## Tokens for CI
 

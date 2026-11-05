@@ -2,6 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {Flags} from '@oclif/core'
 import got from 'got'
 import {Listr} from 'listr2'
+import {execFileSync} from 'node:child_process'
 import {resolve} from 'node:path'
 import {isDeepStrictEqual} from 'node:util'
 
@@ -18,6 +19,20 @@ import {errorMessage} from './narrow.js'
 import {type ResourceStateProvider} from './resource-state.js'
 import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
+
+// The Git state the deployment record carries: the HEAD commit and whether the working tree has
+// uncommitted changes. Empty outside a Git repository (or without git), so nothing is sent then.
+function gitState(): {commit?: string; dirty?: boolean} {
+  try {
+    // eslint-disable-next-line sonarjs/no-os-command-from-path -- git is resolved from PATH like in every dev tool
+    const git = (args: string[]) => execFileSync('git', args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000}).trim()
+    const commit = git(['rev-parse', 'HEAD'])
+    if (!commit) return {}
+    return {commit, dirty: git(['status', '--porcelain']) !== ''}
+  } catch {
+    return {}
+  }
+}
 
 // One item of a dry run's preview, against the site's current state. `removed` only comes from a
 // push that mirrors the project (the child theme): every other push leaves site-only items alone.
@@ -169,7 +184,7 @@ export abstract class PushCommand extends LoopressCommand {
       await withSpinner('Recording the deployment', async () =>
         got.post(`${API_URL}/deployments`, {
           headers: {Authorization: `Bearer ${token}`},
-          json: {status, url: this.siteConfig.url},
+          json: {status, url: this.siteConfig.url, command: this.id, ...gitState()},
           timeout: {request: 3000},
         }),
       )
