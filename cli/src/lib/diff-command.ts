@@ -1,9 +1,12 @@
 import {Args, Flags, ux} from '@oclif/core'
+import got from 'got'
 import {join, resolve} from 'node:path'
 import {isDeepStrictEqual} from 'node:util'
 
+import {authManager} from '../config/auth.manager.js'
 import {configManager} from '../config/project-config.manager.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
+import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type MissingIntegration} from './capabilities.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
@@ -173,6 +176,33 @@ export abstract class DiffCommand extends LoopressCommand {
     else if (drift) process.exitCode = 1
 
     return {drift, left: sides.leftLabel, resources, right: sides.rightLabel}
+  }
+
+  // Best-effort, like `recordDeployment`: when a token is present, sends the console the verdict
+  // and the changed items (resource, id, change kind, never contents). Silent on any failure, and
+  // it never touches the exit code or the `--json` output.
+  protected async reportDrift(result: DiffJson): Promise<void> {
+    const items = Object.entries(result.resources).flatMap(([resource, diff]) => [
+      ...diff.added.map((id) => ({change: 'added', id, resource})),
+      ...diff.removed.map((id) => ({change: 'removed', id, resource})),
+      ...diff.changed.map(({id}) => ({change: 'changed', id, resource})),
+    ])
+    const inconclusive = Object.values(result.resources).some((diff) => diff.error !== undefined)
+    let status = result.drift ? 'drift' : 'clean'
+    if (inconclusive) status = 'inconclusive'
+
+    try {
+      const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
+      if (!token) return
+
+      await got.post(`${API_URL}/drift-reports`, {
+        headers: {Authorization: `Bearer ${token}`},
+        json: {exitCode: process.exitCode ?? 0, items, status, url: this.siteConfig.url},
+        timeout: {request: 3000},
+      })
+    } catch {
+      // non-blocking: reporting must never change the diff's outcome
+    }
   }
 
   protected resolveSides(against: string | undefined): DiffSides {
