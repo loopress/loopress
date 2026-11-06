@@ -32,14 +32,15 @@ function make(config: LoopressLocalConfig, argv: string[] = [], envName = 'produ
   const get = vi.fn()
   const post = vi.fn().mockResolvedValue(SYNC_OK)
   const put = vi.fn().mockResolvedValue({})
+  const del = vi.fn().mockResolvedValue({})
   // 404 on the instance lock = nothing managed yet.
   const lock404 = new Error('nf', {cause: {response: {statusCode: 404}}})
   get.mockImplementation(async (path: string) => {
     if (path === 'loopress/v1/composer/lock') throw lock404
     return []
   })
-  ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
-  return {cmd, get, logs, post, put}
+  ;(cmd as unknown as {wpClient: unknown}).wpClient = {delete: del, get, post, put}
+  return {cmd, del, get, logs, post, put}
 }
 
 const native = (slug: string, version = '1.0.0', status = 'active') => ({
@@ -282,6 +283,75 @@ describe('plugin push', () => {
     expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'inactive'})
     expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'active'})
     expect(result.activated).toContain('woocommerce')
+  })
+
+  describe('forced takeover', () => {
+    // Core's Hello Dolly: a single file the site lists under the WordPress.org slug.
+    const coreHello = (status: string) => ({
+      name: 'Hello Dolly',
+      plugin: 'hello',
+      plugin_uri: 'https://wordpress.org/plugins/hello-dolly/',
+      status,
+      version: '1.7.2',
+    })
+    const folderHello = {...native('hello-dolly', '1.7.2', 'inactive'), plugin: 'hello-dolly/hello'}
+
+    it.each(['active', 'inactive'])(
+      'replaces a %s core hello.php with the folder it installs, and activates the folder',
+      async (status) => {
+        const {cmd, del, get, post, put} = make({plugins: {'hello-dolly': 'latest'}}, ['--force', '--yes'])
+        site({get, post}, {after: [coreHello('inactive'), folderHello], before: [coreHello(status)], locked: []})
+
+        const result = await cmd.run()
+
+        expect(del).toHaveBeenCalledWith('wp/v2/plugins/hello')
+        expect(put).toHaveBeenLastCalledWith('wp/v2/plugins/hello-dolly/hello', {status: 'active'})
+        expect(put).not.toHaveBeenCalledWith('wp/v2/plugins/hello', {status: 'active'})
+        expect(result.activated).toEqual(['hello-dolly'])
+      },
+    )
+
+    it('activates an inactive plugin it took over when loopress.json pins it active', async () => {
+      const {cmd, del, get, post, put} = make({plugins: {akismet: '5.3.3'}}, ['--force'])
+      const akismet = (version: string) => native('akismet', version, 'inactive')
+      site({get, post}, {after: [akismet('5.3.3')], before: [akismet('5.0')], locked: []})
+
+      const result = await cmd.run()
+
+      expect(statusCalls(put)).toEqual(['akismet active'])
+      expect(del).not.toHaveBeenCalled()
+      expect(result.activated).toEqual(['akismet'])
+    })
+
+    it('leaves a taken-over plugin inactive when loopress.json pins it inactive', async () => {
+      const {cmd, get, post, put} = make({plugins: {akismet: {active: false, version: '5.3.3'}}}, ['--force'])
+      site(
+        {get, post},
+        {after: [native('akismet', '5.3.3', 'inactive')], before: [native('akismet', '5.0', 'active')], locked: []},
+      )
+
+      await cmd.run()
+
+      expect(statusCalls(put)).toEqual(['akismet inactive'])
+    })
+
+    it('activates the folder copy when a previous push left both copies', async () => {
+      const {cmd, get, post, put} = make({plugins: {'hello-dolly': '1.7.2'}})
+      site({get, post}, {after: [], before: [coreHello('inactive'), folderHello], locked: ['hello-dolly']})
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith('wp/v2/plugins/hello-dolly/hello', {status: 'active'})
+      expect(put).not.toHaveBeenCalledWith('wp/v2/plugins/hello', {status: 'active'})
+    })
+  })
+
+  it('refuses a plugin pin with an unknown key', async () => {
+    const config: Record<string, unknown> = {plugins: {akismet: {activate: false, version: '5.3.3'}}}
+    const {cmd, post} = make(config)
+
+    await expect(cmd.run()).rejects.toThrow(/unknown key\(s\) "activate" \(did you mean "active"\?\)/)
+    expect(post).not.toHaveBeenCalled()
   })
 
   it('activates a plugin freshly installed by this push', async () => {

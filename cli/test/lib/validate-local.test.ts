@@ -464,6 +464,18 @@ describe('validateLocal', () => {
     expect(result.problems).toEqual([{file: 'loopress.json', message: 'plugin "woo" must map to a version string or {version, active}'}])
   })
 
+  it.each([
+    [{activate: false, version: '1.0'}, '"activate" (did you mean "active"?)'],
+    [{verison: '1.0'}, '"verison" (did you mean "version"?)'],
+    [{note: 'x', version: '1.0'}, '"note"'],
+  ])('flags the unknown keys of the plugin pin %j', async (pin, keys) => {
+    write('loopress.json', JSON.stringify({plugins: {woo: pin}}))
+
+    expect((await validateLocal(dir)).problems).toEqual([
+      {file: 'loopress.json', message: `plugin "woo" has unknown key(s) ${keys}: a pin is a version string or {version, active}`},
+    ])
+  })
+
   it('accepts a pin without active', async () => {
     write('loopress.json', JSON.stringify({plugins: {woo: {version: '1.0'}}}))
 

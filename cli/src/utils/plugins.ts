@@ -91,6 +91,12 @@ export function parseInstalledPlugins(raw: WpNativePlugin[]): InstalledPlugin[] 
     .filter((plugin) => !LOOPRESS_PLUGIN_SLUGS.has(plugin.slug))
 }
 
+// Composer installs a plugin into `<slug>/`; a site can also hold another copy under the same
+// slug (core's `hello.php` is Hello Dolly). Prefer the one in the slug's folder.
+export function preferredCopy<P extends {file: string}>(copies: P[], slug: string): P | undefined {
+  return copies.find((p) => p.file.startsWith(`${slug}/`)) ?? copies[0]
+}
+
 export function diffPlugins(
   manifest: PluginManifest,
   installed: InstalledPlugin[],
@@ -99,7 +105,9 @@ export function diffPlugins(
   // `toRemove` then stays empty (removals still happen server-side, they just aren't previewed).
   managedSlugs = new Set<string>(),
 ): PluginDiff {
-  const installedMap = new Map(installed.map((p) => [p.slug, p]))
+  const installedMap = new Map(
+    installed.map((p) => [p.slug, preferredCopy(installed.filter((q) => q.slug === p.slug), p.slug) ?? p]),
+  )
 
   const toInstall: PluginDiff['toInstall'] = []
   const toPin: PluginDiff['toPin'] = []

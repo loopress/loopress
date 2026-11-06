@@ -23,7 +23,7 @@ Keys are [WordPress.org](https://wordpress.org/plugins/) plugin slugs. Each valu
 - an **exact version** to pin (`"9.4.2"`), installed on every push and reported as drift if the site diverges, or
 - `"latest"`, which updates that plugin to the newest release on every push. Because it re-resolves each time, it is not reproducible across environments.
 
-Either form keeps the plugin **active**. To keep a plugin installed but inactive, use the object form `{"version": "1.7.2", "active": false}`: `lps plugin pull` writes it for every plugin that is inactive on the site, and `lps plugin push` deactivates the plugin if it is active.
+Either form keeps the plugin **active**. To keep a plugin installed but inactive, use the object form `{"version": "1.7.2", "active": false}`: `lps plugin pull` writes it for every plugin that is inactive on the site, and `lps plugin push` deactivates the plugin if it is active. The object takes only `version` and `active`: `lps validate` and `lps plugin push` reject any other key (a typo such as `activate` would otherwise be ignored).
 
 **Removing an entry uninstalls the plugin** on the next push (shown in the plan, with a confirmation prompt).
 
@@ -117,7 +117,7 @@ To re-pin (1):
 
 Activation follows dependencies: WordPress refuses to activate a plugin while a plugin it requires is inactive, so the push retries it once the others are on. A dependency missing from the site entirely stops the push with its slug, add it with `lps plugin add <slug>`.
 
-**Downgrades** are refused without `--force`: reinstalling older plugin files does not undo database migrations the newer version ran. **Plugins installed outside Loopress** are refused without `--force`, because Composer can't cleanly install over an unmanaged folder.
+**Downgrades** are refused without `--force`: reinstalling older plugin files does not undo database migrations the newer version ran. **Plugins installed outside Loopress** are refused without `--force`, because Composer can't cleanly install over an unmanaged folder. With `--force`, the push replaces them and leaves each one in the state `loopress.json` asks for (active unless pinned `"active": false`). A copy outside the plugin's folder is deleted: on a fresh WordPress, taking over `hello-dolly` installs `wp-content/plugins/hello-dolly/` and removes core's `hello.php`, so the two never coexist.
 
 #### With a composer.json
 
