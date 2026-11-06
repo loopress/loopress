@@ -165,6 +165,17 @@ akismet      5.3.3    5.3.3   -
 acf-pro      6.0.0    -       unknown
 ```
 
+### `lps plugin update [slug...]`
+
+Rewrite plugin versions in `loopress.json` to the latest WordPress.org release, for every plugin or only the slugs you name. It never touches the site: run `lps plugin push` afterwards, as usual. `--minor` stays on the current major version and `--patch` on the current minor version, picking the newest stable release that fits. `latest` pins, plugins that are not on WordPress.org and pins already at the newest allowed version are left as they are. `--dry-run` shows the changes without writing them, `--json` lists them (`changes` with slug, from, to and jump, plus `skipped`). Exits non-zero when WordPress.org could not be reached for a plugin.
+
+```console
+$ lps plugin update --minor
+woocommerce  9.4.2 -> 9.5.1  (minor)
+
+Updated 1 plugin(s) in loopress.json. Run `lps plugin push` to apply.
+```
+
 ## Limits
 
 - **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` offers them like any other plugin (leave them unticked), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
