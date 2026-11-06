@@ -5,7 +5,7 @@ description: Run lps diff on a schedule in GitHub Actions and notify a webhook w
 
 Drift is a change made directly on a site (in wp-admin, by a plugin, by a teammate) that your repository does not know about. `lps diff` compares your tracked files with an environment and reports the difference, so a scheduled job can warn you before the next `lps push` overwrites it.
 
-No token is needed: the job only reads from the site, using the site credentials already stored in your project configuration.
+The webhook variant below needs no token: the job only reads from the site, using the site credentials already stored in your project configuration. You can also [report to Loopress](#report-to-loopress) instead, with a token and no webhook.
 
 ## How it works
 
@@ -93,6 +93,49 @@ jobs:
 ```
 
 The payload has a `text` field (what Slack and Discord-compatible endpoints display) plus the full `report`. Adapt the `jq` expression if your endpoint expects another shape.
+
+## Report to Loopress
+
+Instead of (or next to) a webhook, the job can send each result to your Loopress console, which shows the drift status of every environment with the date of the last check. No webhook and no `jq` step: with a token present, `lps diff` reports by itself.
+
+1. Create a token in the console and store it as a repository secret named `LOOPRESS_TOKEN`.
+2. Make sure the environment's URL in the console matches the `url` in your site credentials: the report is attached to the environment with that exact URL.
+3. Store `config.json` as `LOOPRESS_CONFIG`, as above.
+
+```yaml
+name: Drift detection
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm install -g @loopress/cli
+
+      - name: Restore site credentials
+        env:
+          LOOPRESS_CONFIG: ${{ secrets.LOOPRESS_CONFIG }}
+        run: |
+          mkdir -p ~/.config/loopress
+          printf '%s' "$LOOPRESS_CONFIG" > ~/.config/loopress/config.json
+
+      - name: Compare production with the repository
+        env:
+          LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
+        run: lps diff --env production
+```
+
+Reporting is best effort: it never changes the exit code nor the `--json` output, and a failure to reach Loopress is silent. The exit code still fails the job on drift (`1`) or when the comparison is inconclusive (`2`); add `|| true` to the command if you only want the console to show the result. Only the resource, the id and the kind of change (added, changed, removed) are sent, never the content of the diff.
 
 ## Variations
 
