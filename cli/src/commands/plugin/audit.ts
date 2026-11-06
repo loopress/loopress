@@ -97,7 +97,7 @@ export default class Audit extends LoopressCommand {
   }
 
   private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'> & {range: Range}>> {
-    let body: null | {data?: {vulnerability?: unknown[]}}
+    let body: null | {data?: {vulnerability?: null | unknown[]}}
     try {
       body = await got(`${WPVULN_BASE}/${encodeURIComponent(slug)}/`, {
         timeout: {request: 10_000},
@@ -113,7 +113,8 @@ export default class Audit extends LoopressCommand {
     }
 
     // A 200 with the wrong shape (degraded service) must not read as "no advisories" either.
-    const list = body?.data?.vulnerability
+    // wpvulnerability.net answers `"vulnerability": null` when it has no advisories: that is an empty list.
+    const list = body?.data?.vulnerability === null ? [] : body?.data?.vulnerability
     if (!Array.isArray(list) || list.some((raw) => !isRecord(raw))) {
       throw new TypeError(
         `Unexpected answer from the vulnerability database (wpvulnerability.net) for "${slug}". ` +
