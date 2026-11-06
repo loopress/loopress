@@ -135,7 +135,7 @@ jobs:
         run: lps diff --env production
 ```
 
-Reporting is best effort: it never changes the exit code nor the `--json` output, and a failure to reach Loopress is silent. The exit code still fails the job on drift (`1`) or when the comparison is inconclusive (`2`); add `|| true` to the command if you only want the console to show the result. Only the resource, the id and the kind of change (added, changed, removed) are sent, never the content of the diff.
+Reporting is best effort: it never changes the exit code nor the `--json` output, and a failure to reach Loopress is silent. The exit code still fails the job on drift (`1`) or when the comparison is inconclusive (`2`); add `|| true` to the command if you only want the console to show the result. The report sends the site URL, status, and exit code, plus the resource, ID, and kind of change (added, changed, removed) for each item. It never sends the content of the diff.
 
 ## Variations
 
