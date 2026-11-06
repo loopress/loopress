@@ -40,11 +40,11 @@ After a successful `lps plugin push` (a full `lps push` runs it as a step), the 
 
 ## Plugin audit reports
 
-When a token is available, `lps plugin audit` also sends its result to the console once it has printed it: the target URL, and for each advisory only the plugin slug, its version, the CVE, the severity, the fixed version and the title, plus the health notes. This is best effort with a 3 second timeout: it never changes the output or the exit code, and without a token nothing is sent.
+When a token is available, `lps plugin audit` also sends its result to the console once it has printed it: the target URL, and for each advisory only the plugin slug, its version, the CVE, the severity, the fixed version and the title, plus the health notes. This is best effort with a 3-second timeout: it never changes the output or the exit code, and without a token nothing is sent.
 
 ## Drift reports
 
-When a token is available, `lps diff` also sends its result to the console once it has printed it: the target URL, the verdict (`clean`, `drift` or `inconclusive`), the exit code, and for each difference only the resource, the id and the kind of change (`added`, `removed` or `changed`). File contents and patches are never sent. Comparing two environments with `--against` is not reported. This is best effort with a 3 second timeout: it never changes the exit code or the `--json` output, and without a token nothing is sent.
+When a token is available, `lps diff` also sends its result to the console once it has printed it: the target URL, the verdict (`clean`, `drift` or `inconclusive`), the exit code, and for each difference only the resource, the id and the kind of change (`added`, `removed` or `changed`). File contents and patches are never sent. Comparing two environments with `--against` is not reported. This is best effort with a 3-second timeout: it never changes the exit code or the `--json` output, and without a token nothing is sent.
 
 ## Tokens for CI
 

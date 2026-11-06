@@ -59,8 +59,17 @@ export default class Audit extends LoopressCommand {
       health.push(...found.health)
     }
 
+    // Print first: report() may set the exit code, and the console request must not delay the output.
+    const result = this.report(advisories, health, slugs.length)
     await this.reportToConsole(advisories, health, manifest)
-    return this.report(advisories, health, slugs.length)
+
+    // exit() throws before oclif prints the --json result, which a CI reading it needs most here.
+    if (advisories.length > 0) {
+      if (this.jsonEnabled()) process.exitCode = 1
+      else this.exit(1)
+    }
+
+    return result
   }
 
   private async auditOne(slug: string, pinned: string): Promise<{advisories: Advisory[]; health: HealthNote[]}> {
@@ -130,12 +139,6 @@ export default class Audit extends LoopressCommand {
       `\n${advisories.length} vulnerability ${noun}, ${health.length} health note(s). ` +
         'Vulnerability data: wpvulnerability.net.',
     )
-
-    // exit() throws before oclif prints the --json result, which a CI reading it needs most here.
-    if (advisories.length > 0) {
-      if (this.jsonEnabled()) process.exitCode = 1
-      else this.exit(1)
-    }
 
     return {advisories, health, status: 'issues'}
   }

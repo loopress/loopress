@@ -111,6 +111,8 @@ export default class Push extends PushCommand {
     if (!hasFloatingPin && isNoop(diff, toPrune)) {
       this.log('Everything is already in sync.')
       this.logStillInactive(skippedActivations)
+      // The inventory still matters to the console when nothing had to change.
+      if (!this.dryRun) await this.recordDeployment('success')
       return {...IN_SYNC}
     }
 

@@ -209,6 +209,23 @@ describe('plugin push', () => {
     expect(post).not.toHaveBeenCalled()
   })
 
+  it('records the deployment when already in sync, but not on a dry run', async () => {
+    const lock = JSON.stringify({packages: [{name: 'wpackagist-plugin/akismet'}]})
+    const run = async (dryRun: boolean) => {
+      const {cmd, get} = make({plugins: {akismet: '5.3.3'}})
+      ;(cmd as unknown as {dryRun: boolean}).dryRun = dryRun
+      get.mockImplementation(async (path: string) =>
+        path === 'loopress/v1/composer/lock' ? {composerLock: lock} : [native('akismet', '5.3.3')],
+      )
+      const record = vi.spyOn(cmd as unknown as {recordDeployment: () => Promise<void>}, 'recordDeployment').mockResolvedValue()
+      await cmd.run()
+      return record
+    }
+
+    expect(await run(false)).toHaveBeenCalledWith('success')
+    expect(await run(true)).not.toHaveBeenCalled()
+  })
+
   it('refuses to take over an unmanaged plugin folder without --force', async () => {
     const {cmd, get} = make({plugins: {woocommerce: '9.4.2'}})
     get.mockImplementation(async (path: string) => {
