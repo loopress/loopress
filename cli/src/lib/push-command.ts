@@ -8,6 +8,7 @@ import {isDeepStrictEqual} from 'node:util'
 
 import {authManager} from '../config/auth.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
+import {pinActive, pinVersion} from '../types/plugin.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
@@ -184,7 +185,7 @@ export abstract class PushCommand extends LoopressCommand {
       await withSpinner('Recording the deployment', async () =>
         got.post(`${API_URL}/deployments`, {
           headers: {Authorization: `Bearer ${token}`},
-          json: {status, url: this.siteConfig.url, command: this.id, ...gitState()},
+          json: {status, url: this.siteConfig.url, command: this.id, ...gitState(), ...this.pushedPlugins(status)},
           timeout: {request: 3000},
         }),
       )
@@ -345,6 +346,14 @@ export abstract class PushCommand extends LoopressCommand {
 
     this.warn(message)
     if (!(await confirm({default: false, message: 'Overwrite those changes?'}))) this.error('Aborted.')
+  }
+
+  // The plugin inventory of a landed `plugin:push` (a full `lps push` runs it as a step), read from
+  // loopress.json: slug, pinned version and whether it must be active. Other commands send none.
+  private pushedPlugins(status: 'failure' | 'success'): {plugins?: Array<{active: boolean; slug: string; version: string}>} {
+    if (status !== 'success' || this.id !== 'plugin:push') return {}
+    const plugins = Object.entries(this.localConfig.plugins ?? {}).map(([slug, pin]) => ({active: pinActive(pin), slug, version: pinVersion(pin)}))
+    return {plugins}
   }
 }
 

@@ -96,6 +96,38 @@ describe('PushCommand.recordDeployment()', () => {
     expect(options.json).not.toHaveProperty('dirty')
   })
 
+  it('sends the plugins of loopress.json after a plugin:push', async () => {
+    vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+    const command = new TestPush([], {} as never)
+    command.id = 'plugin:push'
+    Object.assign(command, {localConfig: {plugins: {akismet: '5.3.3', hello: {active: false, version: 'latest'}}}})
+
+    await command.testRecordDeployment('success')
+
+    const [, options] = vi.mocked(got.post).mock.calls[0] as unknown as [string, {json: Record<string, unknown>}]
+    expect(options.json.plugins).toEqual([
+      {active: true, slug: 'akismet', version: '5.3.3'},
+      {active: false, slug: 'hello', version: 'latest'},
+    ])
+  })
+
+  it('sends no plugins for another command or a failed plugin:push', async () => {
+    vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+    const other = new TestPush([], {} as never)
+    other.id = 'acf:push'
+    Object.assign(other, {localConfig: {plugins: {akismet: '5.3.3'}}})
+    const failed = new TestPush([], {} as never)
+    failed.id = 'plugin:push'
+    Object.assign(failed, {localConfig: {plugins: {akismet: '5.3.3'}}})
+
+    await other.testRecordDeployment('success')
+    await failed.testRecordDeployment('failure')
+
+    for (const [, options] of vi.mocked(got.post).mock.calls as unknown as Array<[string, {json: Record<string, unknown>}]>) {
+      expect(options.json).not.toHaveProperty('plugins')
+    }
+  })
+
   it('records nothing without any token', async () => {
     vi.spyOn(authManager, 'getAuth').mockReturnValue(null)
 

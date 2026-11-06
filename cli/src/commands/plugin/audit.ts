@@ -1,9 +1,12 @@
 import got from 'got'
 
+import {authManager} from '../../config/auth.manager.js'
+import {API_URL} from '../../lib/api-client.js'
 import {LoopressCommand} from '../../lib/base.js'
 import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {withSpinner} from '../../lib/spinner.js'
-import {pinVersion} from '../../types/plugin.js'
+import {type EnvironmentConfig} from '../../types/config.js'
+import {pinVersion, type PluginPin} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
 
 type Advisory = {
@@ -56,6 +59,7 @@ export default class Audit extends LoopressCommand {
       health.push(...found.health)
     }
 
+    await this.reportToConsole(advisories, health, manifest)
     return this.report(advisories, health, slugs.length)
   }
 
@@ -134,6 +138,33 @@ export default class Audit extends LoopressCommand {
     }
 
     return {advisories, health, status: 'issues'}
+  }
+
+  // Best-effort, like `recordDeployment`: when a token is present, sends the console the advisories
+  // and health notes (slug, version, CVE, severity, fixed version, title). Silent on any failure,
+  // and it never touches the output or the exit code.
+  private async reportToConsole(advisories: Advisory[], health: HealthNote[], manifest: Record<string, PluginPin>): Promise<void> {
+    try {
+      const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
+      const url = (this.siteConfig as EnvironmentConfig | undefined)?.url
+      if (!token || !url) return
+
+      const sent = advisories.map(({cve, fixedIn, severity, slug, title}) => ({
+        cve,
+        fixedIn,
+        severity,
+        slug,
+        title,
+        version: pinVersion(manifest[slug] ?? 'latest'),
+      }))
+      await got.post(`${API_URL}/plugin-audits`, {
+        headers: {Authorization: `Bearer ${token}`},
+        json: {advisories: sent, health, url},
+        timeout: {request: 3000},
+      })
+    } catch {
+      // non-blocking: reporting must never change the audit's outcome
+    }
   }
 }
 

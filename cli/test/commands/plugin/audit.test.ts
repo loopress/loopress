@@ -1,11 +1,13 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Audit from '../../../src/commands/plugin/audit.js'
+import {authManager} from '../../../src/config/auth.manager.js'
+import {API_URL} from '../../../src/lib/api-client.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 
 const {gotFn} = vi.hoisted(() => {
-  const gotFn = vi.fn()
+  const gotFn = Object.assign(vi.fn(), {post: vi.fn()})
   return {gotFn}
 })
 
@@ -43,6 +45,63 @@ function make(config: LoopressLocalConfig) {
 describe('plugin audit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubEnv('LOOPRESS_TOKEN', '')
+    delete process.env.LOOPRESS_TOKEN
+    vi.spyOn(authManager, 'getAuth').mockReturnValue(null)
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  describe('console report', () => {
+    const vuln = () => ({
+      data: {vulnerability: [{cve: 'CVE-2024-1234', cvss: {severity: 'high'}, name: 'XSS bug', operator: {max_operator: 'lt', max_version: '5.3.3'}}]},
+    })
+
+    function withSite() {
+      const made = make({plugins: {akismet: '5.3.2'}})
+      Object.assign(made.cmd, {siteConfig: {addedAt: '2024-01-01', name: 'production', url: 'https://acme.com'}})
+      return made
+    }
+
+    it('posts advisories and health to the console when a token is present, output unchanged', async () => {
+      vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+      mockGot({vuln, wporg: null})
+      const {cmd, logs} = withSite()
+
+      await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+      expect(gotFn.post).toHaveBeenCalledWith(`${API_URL}/plugin-audits`, {
+        headers: {Authorization: 'Bearer env-token'},
+        json: {
+          advisories: [{cve: 'CVE-2024-1234', fixedIn: '5.3.3', severity: 'high', slug: 'akismet', title: 'XSS bug', version: '5.3.2'}],
+          health: [],
+          url: 'https://acme.com',
+        },
+        timeout: {request: 3000},
+      })
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('⚠ akismet: XSS bug'))
+    })
+
+    it('sends no request without a token', async () => {
+      mockGot({vuln, wporg: null})
+      const {cmd} = withSite()
+
+      await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+
+      expect(gotFn.post).not.toHaveBeenCalled()
+    })
+
+    it('ignores a console failure', async () => {
+      vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+      gotFn.post.mockRejectedValueOnce(new Error('console down'))
+      mockGot({vuln, wporg: null})
+      const {cmd} = withSite()
+
+      await expect(cmd.run()).rejects.toThrow('EEXIT: 1')
+    })
   })
 
   it('reports clean and makes no request when loopress.json has no plugins', async () => {

@@ -36,6 +36,12 @@ See [`lps snippet publish`](/snippets/#lps-snippet-publish) and [`lps api publis
 
 When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push.
 
+After a successful `lps plugin push` (a full `lps push` runs it as a step), the deployment record also carries the plugins listed in `loopress.json`: for each one the slug, the pinned version and whether it must be active. Other commands send no plugin list.
+
+## Plugin audit reports
+
+When a token is available, `lps plugin audit` also sends its result to the console once it has printed it: the target URL, and for each advisory only the plugin slug, its version, the CVE, the severity, the fixed version and the title, plus the health notes. This is best effort with a 3 second timeout: it never changes the output or the exit code, and without a token nothing is sent.
+
 ## Drift reports
 
 When a token is available, `lps diff` also sends its result to the console once it has printed it: the target URL, the verdict (`clean`, `drift` or `inconclusive`), the exit code, and for each difference only the resource, the id and the kind of change (`added`, `removed` or `changed`). File contents and patches are never sent. Comparing two environments with `--against` is not reported. This is best effort with a 3 second timeout: it never changes the exit code or the `--json` output, and without a token nothing is sent.
