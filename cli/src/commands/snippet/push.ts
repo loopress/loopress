@@ -1,5 +1,5 @@
 import {Args} from '@oclif/core'
-import {readFile, rename, rm, writeFile} from 'node:fs/promises'
+import {readFile, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
@@ -11,6 +11,7 @@ import {isNotFoundError} from '../../lib/wp-client.js'
 import {type LoopressSnippetMetadata} from '../../types/snippet.generated.js'
 import {type Snippet} from '../../types/snippet.js'
 import {pluralize} from '../../utils/pluralize.js'
+import {renameWithRetry} from '../../utils/rename-retry.js'
 import {normalizeSnippet, SNIPPETS_ENDPOINT, stripPhpOpeningTag} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
 
@@ -120,7 +121,7 @@ export default class Push extends PushCommand {
     const newPath = join(dir, `${canonicalBase}${ext}`)
     const newMetaPath = join(dir, `${canonicalBase}.json`)
 
-    await rename(snippet.path, newPath)
+    await renameWithRetry(snippet.path, newPath)
     await writeFile(newMetaPath, JSON.stringify(meta, null, 2) + '\n')
     await rm(oldMetaPath, {force: true})
   }

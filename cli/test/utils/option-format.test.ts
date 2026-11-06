@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
   defaultReadonlyFor,
   isReservedOptionName,
+  isWindowsReservedName,
   optionEndpoint,
   optionFileName,
   parseLocalOption,
@@ -17,6 +18,21 @@ describe('option-format', () => {
 
   it('builds the local file name from the option name', () => {
     expect(optionFileName('wpseo_titles')).toBe('wpseo_titles.json')
+  })
+
+  it('rejects Windows reserved device names, any case, with or without extension', () => {
+    for (const name of ['CON', 'nul', 'Prn', 'AUX', 'com1', 'COM9', 'lpt1', 'LPT9', 'COM¹', 'lpt³', 'nul.backup']) {
+      expect(isWindowsReservedName(name)).toBe(true)
+      expect(() => optionFileName(name)).toThrow(/reserved Windows file name/)
+    }
+
+    for (const name of ['console', 'com0', 'com10', 'lpt', 'my_nul', 'wpseo_titles']) {
+      expect(isWindowsReservedName(name)).toBe(false)
+    }
+  })
+
+  it('reports a reserved option name when parsing a local file', () => {
+    expect(() => parseLocalOption(JSON.stringify({autoload: 'no', name: 'NUL', value: 1}))).toThrow(/reserved Windows file name/)
   })
 
   it('flags names already owned by the plugin/theme resources as reserved', () => {

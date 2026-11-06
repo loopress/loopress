@@ -87,7 +87,20 @@ export function defaultReadonlyFor(name: string): boolean {
   return (READONLY_BY_DEFAULT_OPTION_NAMES as readonly string[]).includes(name)
 }
 
+// Windows refuses these device names as a file name, with or without an extension (`NUL.json`).
+const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])$/i
+
+export function isWindowsReservedName(name: string): boolean {
+  return WINDOWS_RESERVED_NAME.test(name.split('.', 1)[0]?.trimEnd() ?? '')
+}
+
+function reservedNameMessage(name: string): string {
+  return `Option name "${name}" is a reserved Windows file name (CON, PRN, AUX, NUL, COM1-COM9, LPT1-LPT9) and cannot be tracked as ${name}.json`
+}
+
 export function optionFileName(name: string): string {
+  if (isWindowsReservedName(name)) throw new Error(reservedNameMessage(name))
+
   return `${name}.json`
 }
 
@@ -107,7 +120,10 @@ const REFS_ERROR = '"refs" must map a value path to a post type, e.g. {"purchase
 // keys (`readonly`, future ones) pass through untouched.
 const LOCAL_OPTION = z.looseObject(
   {
-    name: z.string('missing a "name" string').min(1, 'missing a "name" string'),
+    name: z
+      .string('missing a "name" string')
+      .min(1, 'missing a "name" string')
+      .refine((name) => !isWindowsReservedName(name), {error: (issue) => reservedNameMessage(String(issue.input))}),
     autoload: z.string('missing an "autoload" string'),
     // `value` itself is deliberately untyped (a WP option can hold any JSON-safe value, including
     // null); only the key's presence is checked, so a hand-edited file that dropped it entirely is

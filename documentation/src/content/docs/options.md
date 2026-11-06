@@ -113,6 +113,8 @@ lps option rm <name>
 lps option rm <name> --local-only   # only stop tracking it, keep it on WordPress
 ```
 
+Option names that Windows reserves as device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, any case) cannot be tracked, since they cannot be a file name on Windows. `lps option add` and `lps validate` report them with a clear error.
+
 ## Readonly options
 
 Some options must not be copied from one environment to another, even when you want to watch them for drift: `siteurl` and `home` would repoint the target site to the source site's URLs. These are tracked with `"readonly": true` by default, and `option push` skips them:
