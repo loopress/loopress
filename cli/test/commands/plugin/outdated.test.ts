@@ -76,6 +76,21 @@ describe('plugin outdated', () => {
   })
 })
 
+describe('outdated when WordPress.org fails', () => {
+  it('reports an error and exits 1', async () => {
+    gotFn.mockImplementation(() => ({
+      async json() {
+        throw new Error('network down')
+      },
+    }))
+    const {cmd} = make({plugins: {akismet: '5.0.0'}})
+    vi.spyOn(cmd, 'exit').mockImplementation((() => {
+      throw new Error('exit')
+    }))
+    await expect(cmd.run()).rejects.toThrow('exit')
+  })
+})
+
 describe('versionJump', () => {
   it('returns null when not behind', () => {
     expect(versionJump('2.0.0', '2.0.0')).toBeNull()

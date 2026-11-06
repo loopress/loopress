@@ -33,7 +33,7 @@ export function versionJump(from: string, to: string): null | VersionJump {
   const a = numericSegments(from)
   const b = numericSegments(to)
   if (a[0] !== b[0]) return 'major'
-  if (a[1] !== b[1]) return 'minor'
+  if ((a[1] ?? 0) !== (b[1] ?? 0)) return 'minor'
   return 'patch'
 }
 
