@@ -1,10 +1,16 @@
 import {Flags, ux} from '@oclif/core'
-import ttyTable from 'tty-table'
+import ttyTableModule, {type Header} from 'tty-table'
 
 import {LoopressCommand} from '../../lib/base.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {type ListedOption, OPTIONS_ENDPOINT} from '../../utils/option-format.js'
 import {pluralize} from '../../utils/pluralize.js'
+
+// tty-table 7 ships CJS-flavored typings (`types` before `import` in its exports map), so under
+// Node16 resolution TS types the default import as the whole CJS namespace, while at runtime the
+// ESM build's default export is the factory itself (it exports no named `Table`).
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+const ttyTable = ttyTableModule as unknown as typeof ttyTableModule.default
 
 // Same green/yellow pairing drives both SOURCE? and PLUGIN, so a row's whole "where did this come
 // from" story reads as one color at a glance instead of requiring the "?" to be spotted in text.
@@ -71,7 +77,7 @@ function fillPercent(width: number, includeCore: boolean): number {
   return Math.max(50, ((width - reserved) / width) * 100)
 }
 
-function columnWidth(weight: number, width: number, includeCore: boolean): string {
+function columnWidth(weight: number, width: number, includeCore: boolean): `${number}%` {
   const total = COLUMN_WEIGHT.name + COLUMN_WEIGHT.source + COLUMN_WEIGHT.plugin
   return `${Math.round((weight / total) * fillPercent(width, includeCore))}%`
 }
@@ -99,7 +105,7 @@ function renderTable(rows: ListedOption[], {includeCore}: {includeCore: boolean}
   const envColumns = Number(process.env.COLUMNS)
   const width = (ttyColumns ?? (envColumns > 0 ? envColumns : NON_TTY_FALLBACK_COLUMNS)) - 2
 
-  const header = [
+  const header: Header[] = [
     {align: 'left', headerAlign: 'left', value: 'NAME', width: columnWidth(COLUMN_WEIGHT.name, width, includeCore)},
     {align: 'left', headerAlign: 'left', value: 'AUTOLOAD'},
   ]
