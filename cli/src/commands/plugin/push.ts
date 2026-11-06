@@ -283,8 +283,11 @@ export default class Push extends PushCommand {
 
     const afterSync = parseInstalledPlugins(await this.wp.get<WpNativePlugin[]>('wp/v2/plugins'))
     const takenOver = filesFor(collisions, afterSync)
-    await this.removeStaleCopies(installed, takenOver)
-    return {newlyInstalled: filesFor(diff.toInstall.map((p) => p.slug), afterSync), takenOver}
+    const kept = await this.removeStaleCopies(installed, afterSync, takenOver)
+    return {
+      newlyInstalled: filesFor(diff.toInstall.map((p) => p.slug), afterSync),
+      takenOver: takenOver.filter((p) => !kept.includes(p.slug)),
+    }
   }
 
   private async loadSource(activate: boolean): Promise<Source> {
@@ -337,17 +340,35 @@ export default class Push extends PushCommand {
   // elsewhere: core's Hello Dolly is `hello.php`, which the site lists under the slug
   // `hello-dolly`. Composer leaves that file in place, and both copies declare the same
   // functions, so activating them together would fatal: delete the stale copy, as --force says.
-  private async removeStaleCopies(installed: InstalledPlugin[], managedCopies: Plugin[]): Promise<void> {
+  // Returns the slugs whose stale copy could not be deleted: the caller must not activate
+  // their replacement beside it. Copies the sync already removed are skipped, and a failed
+  // deletion does not stop the others or the activations.
+  private async removeStaleCopies(
+    installed: InstalledPlugin[],
+    afterSync: InstalledPlugin[],
+    managedCopies: Plugin[],
+  ): Promise<string[]> {
     const replaced = installed.flatMap((old) => {
       const copy = managedCopies.find((c) => c.slug === old.slug && c.file !== old.file)
-      return copy ? [{copy, old}] : []
+      return copy && afterSync.some((a) => a.file === old.file) ? [{copy, old}] : []
     })
+    const kept: string[] = []
     for (const {copy, old} of replaced) {
       this.log(`  ✕ removing ${old.file} (replaced by ${copy.file})`)
-      // Deactivated before the sync if it was active (deactivateEndangered): WordPress
-      // refuses to delete an active plugin.
-      await this.wp.delete(`wp/v2/plugins/${old.file}`)
+      try {
+        // Deactivated before the sync if it was active (deactivateEndangered): WordPress
+        // refuses to delete an active plugin.
+        await this.wp.delete(`wp/v2/plugins/${old.file}`)
+      } catch (error) {
+        kept.push(old.slug)
+        this.warn(
+          `Could not delete ${old.file}: ${error instanceof Error ? error.message : String(error)}. ` +
+            `${copy.file} stays inactive until it is deleted: remove ${old.file} in wp-admin, then activate ${copy.slug}.`,
+        )
+      }
     }
+
+    return kept
   }
 
   private result(

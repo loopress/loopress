@@ -311,6 +311,28 @@ describe('plugin push', () => {
       },
     )
 
+    it('keeps going and activates nothing beside the stale copy when its deletion fails', async () => {
+      const {cmd, del, get, post, put} = make({plugins: {'hello-dolly': 'latest'}}, ['--force', '--yes'])
+      del.mockRejectedValue(new Error('boom'))
+      site({get, post}, {after: [coreHello('inactive'), folderHello], before: [coreHello('active')], locked: []})
+      const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
+
+      const result = await cmd.run()
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not delete hello'))
+      expect(put).not.toHaveBeenCalledWith('wp/v2/plugins/hello-dolly/hello', {status: 'active'})
+      expect(result.status).toBe('success')
+    })
+
+    it('skips a stale copy the sync already removed', async () => {
+      const {cmd, del, get, post} = make({plugins: {'hello-dolly': 'latest'}}, ['--force', '--yes'])
+      site({get, post}, {after: [folderHello], before: [coreHello('inactive')], locked: []})
+
+      await cmd.run()
+
+      expect(del).not.toHaveBeenCalled()
+    })
+
     it('activates an inactive plugin it took over when loopress.json pins it active', async () => {
       const {cmd, del, get, post, put} = make({plugins: {akismet: '5.3.3'}}, ['--force'])
       const akismet = (version: string) => native('akismet', version, 'inactive')
