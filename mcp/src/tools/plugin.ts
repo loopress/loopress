@@ -89,4 +89,15 @@ export function registerPluginTools(server: McpServer): void {
     },
     async () => toCallToolResult(unwrap(await runLps(['plugin', 'audit']))),
   )
+
+  server.registerTool(
+    'plugin_outdated',
+    {
+      description:
+        'Compare the plugins in loopress.json to the latest WordPress.org versions: slug, current, latest and the jump (major, minor, patch). ' +
+        'Plugins not on WordPress.org are listed as unknown. Reports an error status when something is behind.',
+      inputSchema: {},
+    },
+    async () => toCallToolResult(unwrap(await runLps(['plugin', 'outdated']))),
+  )
 }

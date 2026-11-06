@@ -133,6 +133,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `plugin_pull` | No | `env?`, `plugins?` | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
 | `plugin_status` | No | `env?` | Compare the plugins on WordPress against `loopress.json` and report drift |
 | `plugin_audit` | No | none | Check `loopress.json` plugins for known vulnerabilities and health issues |
+| `plugin_outdated` | No | none | Compare `loopress.json` plugins to the latest WordPress.org versions |
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |

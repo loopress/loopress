@@ -5,6 +5,7 @@ import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {pinVersion} from '../../types/plugin.js'
 import {compareVersions} from '../../utils/version.js'
+import {fetchPluginInfo} from '../../utils/wporg.js'
 
 type Advisory = {
   cve?: string | undefined
@@ -31,7 +32,6 @@ type AuditResult = {
 }
 
 const WPVULN_BASE = 'https://www.wpvulnerability.net/plugin'
-const WPORG_INFO = 'https://api.wordpress.org/plugins/info/1.2/'
 
 export default class Audit extends LoopressCommand {
   static override description = 'Check the plugins in loopress.json for known vulnerabilities (wpvulnerability.net) and health issues'
@@ -60,7 +60,7 @@ export default class Audit extends LoopressCommand {
   }
 
   private async auditOne(slug: string, pinned: string): Promise<{advisories: Advisory[]; health: HealthNote[]}> {
-    const [vulns, info] = await Promise.all([this.fetchVulnerabilities(slug), this.fetchHealth(slug)])
+    const [vulns, info] = await Promise.all([this.fetchVulnerabilities(slug), fetchPluginInfo(slug)])
     // "latest" is the newest WordPress.org release, the one a push installs: audit that version.
     // Unknown (WordPress.org unreachable), every advisory is reported, safer than none.
     const version = pinned === 'latest' && typeof info?.version === 'string' ? info.version : pinned
@@ -69,18 +69,6 @@ export default class Audit extends LoopressCommand {
       .map(({range: _range, ...v}) => ({...v, slug}))
     const health = info ? describeHealth(slug, pinned, info) : []
     return {advisories, health}
-  }
-
-  private async fetchHealth(slug: string): Promise<null | Record<string, unknown>> {
-    try {
-      const body = await got(WPORG_INFO, {
-        searchParams: {action: 'plugin_information', 'request[slug]': slug},
-        timeout: {request: 10_000},
-      }).json<Record<string, unknown>>()
-      return typeof body === 'object' && !('error' in body) ? body : null
-    } catch {
-      return null
-    }
   }
 
   private async fetchVulnerabilities(slug: string): Promise<Array<Omit<Advisory, 'slug'> & {range: Range}>> {
