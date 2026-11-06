@@ -225,10 +225,22 @@ describe('doctor', () => {
     expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('lps-temp-jane'))
   })
 
+  it('fails the leftover check when a firewall, not WordPress, answers 403', async () => {
+    const {cmd, get, logs, users} = make()
+    get.mockResolvedValue({'current_version': '2026.7.1'})
+    users.mockRejectedValue(new Error('Request blocked (403): a firewall or security plugin (ModSecurity, Imunify360, Wordfence) probably blocked the request.', {cause: {response: {body: '<html>Forbidden</html>', statusCode: 403}}}))
+
+    const result = await cmd.run()
+
+    expect(result.ok).toBe(false)
+    expect(logs.log).toHaveBeenCalledWith('✗ No leftover temporary admin accounts')
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('ModSecurity, Imunify360, Wordfence'))
+  })
+
   it('reports the leftover check as not run, not failed, when the credentials cannot list users', async () => {
     const {cmd, get, logs, users} = make()
     get.mockResolvedValue({'current_version': '2026.7.1'})
-    users.mockRejectedValue(new Error('Request refused (403).', {cause: {response: {statusCode: 403}}}))
+    users.mockRejectedValue(new Error('Request refused (403).', {cause: {response: {body: '{"code":"rest_forbidden","message":"x"}', statusCode: 403}}}))
 
     const result = await cmd.run()
 

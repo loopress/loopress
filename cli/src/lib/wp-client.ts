@@ -133,6 +133,18 @@ export function isForbiddenError(error: unknown): boolean {
   return responseOf(causeOf(error)).statusCode === 403
 }
 
+// A 403 whose body is not a WordPress JSON error (`code`/`message`) nor a Loopress `error`
+// refusal: the answer of a firewall (ModSecurity, Imunify360, Wordfence...) in front of PHP.
+export function isFirewallBlock(error: unknown): boolean {
+  return isFirewallResponse(responseOf(causeOf(error)))
+}
+
+function isFirewallResponse({body, statusCode}: {body?: string | undefined; statusCode?: number | undefined}): boolean {
+  if (statusCode !== 403) return false
+  const parsed = parseBody(body)
+  return typeof parsed.code !== 'string' && typeof parsed.message !== 'string' && typeof parsed.error !== 'string'
+}
+
 // WordPress core answers the authenticated request with this `code` when Application
 // Passwords are turned off for the user (a security plugin, `wp_is_application_passwords_available`
 // filter or the user's role), as opposed to `incorrect_password`/`invalid_username` for bad credentials.
@@ -190,16 +202,7 @@ export function parseBody(body: string | undefined): Record<string, unknown> {
 export function formatWpError(error: unknown, url: string, timeoutMs: number = REQUEST_TIMEOUT_MS): string {
   const {body, statusCode: status} = responseOf(error)
 
-  if (status === 401 || status === 403) {
-    // A Loopress controller's own `{"error": ...}` on a 403 is a deliberate refusal of this one
-    // request (e.g. OptionsController protecting a secret-looking option), not bad credentials:
-    // pointing at `lps project config` there sends the user the wrong way. WordPress core's own
-    // auth failures use `{code, message}` instead and keep the credentials hint.
-    const refusal = extractLoopressError(body)
-    if (refusal) return `Request refused (${status}) on ${url}: ${refusal}`
-
-    return `Authentication failed (${status}) on ${url}. Check your credentials with \`lps project config\`.`
-  }
+  if (status === 401 || status === 403) return formatAuthError(status, body, url)
 
   if (status === 404) {
     const reason = extractServerErrorMessage(body)
@@ -227,6 +230,25 @@ export function formatWpError(error: unknown, url: string, timeoutMs: number = R
   // fall back to the error code so the reason is never blank.
   const message = isRecord(error) && typeof error.message === 'string' ? error.message : ''
   return `Request to ${url} failed: ${message || (code ?? String(error))}`
+}
+
+function formatAuthError(status: number, body: string | undefined, url: string): string {
+  if (isFirewallResponse({body, statusCode: status})) return firewallMessage(url)
+
+  // A Loopress controller's own `{"error": ...}` on a 403 is a deliberate refusal of this one
+  // request (e.g. OptionsController protecting a secret-looking option), not bad credentials:
+  // pointing at `lps project config` there sends the user the wrong way. WordPress core's own
+  // auth failures use `{code, message}` instead and keep the credentials hint.
+  const refusal = extractLoopressError(body)
+  if (refusal) return `Request refused (${status}) on ${url}: ${refusal}`
+
+  return `Authentication failed (${status}) on ${url}. Check your credentials with \`lps project config\`.`
+}
+
+// A 403 that is not a WordPress JSON error never came from WordPress: a web application
+// firewall answered before PHP ran, and no credential change will fix it.
+function firewallMessage(url: string): string {
+  return `Request blocked (403) on ${url}: the response is not a WordPress error, so a firewall or security plugin (ModSecurity, Imunify360, Wordfence) probably blocked the request. Allow-list the request or your IP in the firewall, then retry.`
 }
 
 const NETWORK_ERROR_HINTS: Record<string, string> = {

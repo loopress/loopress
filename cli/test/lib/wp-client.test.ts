@@ -8,6 +8,7 @@ import {
   formatWpError,
   isApplicative404,
   isConflictCode,
+  isFirewallBlock,
   isForbiddenError,
   isInvalidPageNumber,
   isLocalEnvironment,
@@ -338,11 +339,21 @@ describe('formatWpError', () => {
     expect(formatWpError({code: 'EPROTO', message: ''}, url)).toBe(`Request to ${url} failed: EPROTO`)
   })
 
-  it('suggests lps project config on 401 and 403', () => {
-    for (const statusCode of [401, 403]) {
-      const message = formatWpError({response: {statusCode}}, url)
-      expect(message).toContain(`Authentication failed (${statusCode})`)
+  it('suggests lps project config on 401 and on a WordPress 403', () => {
+    const wordpressError = JSON.stringify({code: 'rest_forbidden', message: 'Nope.'})
+    for (const response of [{statusCode: 401}, {body: wordpressError, statusCode: 403}]) {
+      const message = formatWpError({response}, url)
+      expect(message).toContain(`Authentication failed (${response.statusCode})`)
       expect(message).toContain('lps project config')
+    }
+  })
+
+  it('blames a firewall, not the credentials, on a 403 that is not a WordPress JSON error', () => {
+    for (const body of [undefined, '', '<html><body>403 Forbidden, ModSecurity</body></html>', '{"foo":1}']) {
+      const message = formatWpError({response: {body, statusCode: 403}}, url)
+      expect(message).toContain(`Request blocked (403) on ${url}`)
+      expect(message).toContain('ModSecurity, Imunify360, Wordfence')
+      expect(message).not.toContain('lps project config')
     }
   })
 
@@ -564,6 +575,14 @@ describe('isTimeoutError', () => {
       expect(isForbiddenError(error)).toBe(false)
     })
 
+    it('reads only a non-WordPress 403 as a firewall block', () => {
+      expect(isFirewallBlock(withResponse({body: '<html>blocked</html>', statusCode: 403}))).toBe(true)
+      expect(isFirewallBlock(withResponse({statusCode: 403}))).toBe(true)
+      expect(isFirewallBlock(withResponse({body: '{"code":"rest_forbidden","message":"x"}', statusCode: 403}))).toBe(false)
+      expect(isFirewallBlock(withResponse({body: '{"error":"x"}', statusCode: 403}))).toBe(false)
+      expect(isFirewallBlock(withResponse({statusCode: 401}))).toBe(false)
+    })
+
     it('reads a 403 as forbidden', () => {
       expect(isForbiddenError(withResponse({statusCode: 403}))).toBe(true)
       expect(isForbiddenError(withResponse({statusCode: 401}))).toBe(false)
@@ -600,10 +619,11 @@ describe('isTimeoutError', () => {
     const failure = (statusCode: number, body?: string) => ({response: {body, statusCode}})
 
     it.each([
-      [failure(403), 'Authentication failed (403)'],
-      [failure(403, 'oops'), 'Authentication failed (403)'],
+      [failure(403), 'Request blocked (403)'],
+      [failure(403, 'oops'), 'Request blocked (403)'],
       [failure(403, '{"error":"  "}'), 'Authentication failed (403)'],
-      [failure(403, '{"error":5}'), 'Authentication failed (403)'],
+      [failure(403, '{"error":5}'), 'Request blocked (403)'],
+      [failure(403, '{"code":"rest_forbidden"}'), 'Authentication failed (403)'],
       [failure(403, '{"error":"Option &quot;x&quot; is protected"}'), `Request refused (403) on ${url}: Option "x" is protected`],
     ])('formats %j', (error, expected) => {
       expect(formatWpError(error, url)).toContain(expected)
