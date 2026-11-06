@@ -38,6 +38,8 @@ lps push --env staging --yes
 
 - [GitHub Actions](/ci/github-actions/)
 - [GitLab CI](/ci/gitlab/)
+- [Drift detection](/ci/drift-detection/)
+- [Plugin update PRs](/ci/plugin-update-prs/)
 - [Drift detection](/ci/drift-detection/) (scheduled GitHub Actions job)
 
 ## Beyond syncing files

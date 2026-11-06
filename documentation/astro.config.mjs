@@ -161,6 +161,7 @@ export default defineConfig({
 										{ label: "GitLab CI", slug: "ci/gitlab" },
 										{ label: "E2E Testing", slug: "ci/e2e-testing" },
 										{ label: "Drift detection", slug: "ci/drift-detection" },
+										{ label: "Plugin update PRs", slug: "ci/plugin-update-prs" },
 									],
 								},
 								{
