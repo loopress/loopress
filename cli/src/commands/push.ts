@@ -7,7 +7,7 @@ import {integrationFix, type MissingIntegration, missingIntegration, missingModu
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
-import {PushCommand} from '../lib/push-command.js'
+import {postDeployment, PushCommand, startDeploymentCollector, stopDeploymentCollector} from '../lib/push-command.js'
 import {parseSelectionFlag, selectionFlags, selectResources} from '../lib/resource-selection.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
 import {pinActive} from '../types/plugin.js'
@@ -104,6 +104,15 @@ export default class Push extends LoopressCommand {
 
     const skips = await this.skippedTargets(selected, skipFlag.includes('composer'))
 
+    // The steps run in process and would each post their own record: collect, and post once.
+    const collected = startDeploymentCollector()
+    const record = async (status: 'failure' | 'success'): Promise<void> => {
+      stopDeploymentCollector()
+      if (this.dryRun) return
+      const steps = results.map((result, index) => ({command: PUSH_TARGETS[index]?.commandId ?? '', status: result.status}))
+      await postDeployment({command: 'push', status, steps, url: this.siteConfig.url, ...(status === 'success' && collected.plugins && {plugins: collected.plugins})})
+    }
+
     for (const target of PUSH_TARGETS) {
       const skip = skips.get(target.commandId)
       if (skip) {
@@ -128,10 +137,12 @@ export default class Push extends LoopressCommand {
           .map((next) => next.label)
         const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
         this.warnUnsupported()
+        await record('failure')
         this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
       }
     }
 
+    await record('success')
     this.log(this.doneMessage(selected.size < PUSH_IDS.length))
     this.warnUnsupported()
 
