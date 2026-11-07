@@ -1,9 +1,9 @@
 ---
 title: Loopress Account
-description: Log in to the Loopress console to share projects between machines, publish snippets and routes, and see your deployments.
+description: Log in to the Loopress console to share projects between machines, and see your deployments.
 ---
 
-Everything that syncs with WordPress works without a Loopress account. An account adds what a single machine can't do on its own: sharing your project configuration between machines, publishing reusable snippets and route files, and a history of deployments in the console at [console.loopress.dev](https://console.loopress.dev).
+Everything that syncs with WordPress works without a Loopress account. An account adds what a single machine can't do on its own: sharing your project configuration between machines and a history of deployments in the console at [console.loopress.dev](https://console.loopress.dev).
 
 ## Log in
 
@@ -25,12 +25,6 @@ Both commands require being logged in.
 |---------|-------------|
 | `lps project push` | Create a matching project and environment on your Loopress account for each one configured locally, then push the WordPress Application Password as that environment's credentials. Run it again after adding projects or environments: it only creates what's missing and always refreshes credentials. |
 | `lps project pull` | Fetch the projects and environments already on your account and add the ones not configured locally yet. Useful when setting up a new machine. |
-
-## Publish snippets and routes
-
-`lps snippet publish` and `lps api publish` upload local files to your Loopress account so they can be deployed to other projects. They don't touch any WordPress site, so they work whichever [plugin edition](/wordpress-plugin/) is installed. The current project must be linked to your account first (`lps project push`).
-
-See [`lps snippet publish`](/snippets/#lps-snippet-publish) and [`lps api publish`](/api/cli/#lps-api-publish).
 
 ## Deployment history
 

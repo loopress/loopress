@@ -54,7 +54,6 @@ report.
 * [`lps acf rollback [PATH]`](#lps-acf-rollback-path)
 * [`lps api diff [PATH]`](#lps-api-diff-path)
 * [`lps api list`](#lps-api-list)
-* [`lps api publish [PATH]`](#lps-api-publish-path)
 * [`lps api pull [PATH]`](#lps-api-pull-path)
 * [`lps api push [PATH]`](#lps-api-push-path)
 * [`lps api rm FILENAME`](#lps-api-rm-filename)
@@ -121,7 +120,6 @@ report.
 * [`lps seo rollback [PATH]`](#lps-seo-rollback-path)
 * [`lps snippet diff [PATH]`](#lps-snippet-diff-path)
 * [`lps snippet list`](#lps-snippet-list)
-* [`lps snippet publish [PATH]`](#lps-snippet-publish-path)
 * [`lps snippet pull [PATH]`](#lps-snippet-pull-path)
 * [`lps snippet push [PATH]`](#lps-snippet-push-path)
 * [`lps snippet rollback [PATH]`](#lps-snippet-rollback-path)
@@ -346,29 +344,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/api/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/list.ts)_
-
-## `lps api publish [PATH]`
-
-Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.
-
-```
-USAGE
-  $ lps api publish [PATH]
-
-ARGUMENTS
-  [PATH]  Path to api directory (overrides project config)
-
-DESCRIPTION
-  Publish custom API routes to your Loopress account so they can be deployed to other projects. Does not touch any
-  WordPress site.
-
-EXAMPLES
-  $ lps api publish
-
-  $ lps api publish --path ./api
-```
-
-_See code: [src/commands/api/publish.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/api/publish.ts)_
 
 ## `lps api pull [PATH]`
 
@@ -2191,29 +2166,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/snippet/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/list.ts)_
-
-## `lps snippet publish [PATH]`
-
-Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress site.
-
-```
-USAGE
-  $ lps snippet publish [PATH]
-
-ARGUMENTS
-  [PATH]  Path to snippets directory (overrides project config)
-
-DESCRIPTION
-  Publish snippets to your Loopress account so they can be deployed to other projects. Does not touch any WordPress
-  site.
-
-EXAMPLES
-  $ lps snippet publish
-
-  $ lps snippet publish --path ./snippets
-```
-
-_See code: [src/commands/snippet/publish.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/snippet/publish.ts)_
 
 ## `lps snippet pull [PATH]`
 

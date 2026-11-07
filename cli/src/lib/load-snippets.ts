@@ -80,10 +80,7 @@ async function readSidecar(metaPath: string): Promise<Record<string, unknown>> {
   return meta
 }
 
-// Shared by `snippet push` (pushes to the project's own WordPress site) and `snippet publish`
-// (publishes to the Loopress api as a shared source): both read the same local `snippets/`
-// directory the same way. `onSkip` is optional so callers that don't care about per-file
-// warnings (e.g. `snippet publish`) can ignore them; skipped files are simply left out either way.
+// Reads the local `snippets/` directory. `onSkip` is optional: skipped files are simply left out either way.
 export async function loadSnippets(path: string, onSkip?: (message: string) => void): Promise<Snippet[]> {
   let files: string[]
   try {
