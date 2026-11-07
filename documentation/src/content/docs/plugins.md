@@ -154,6 +154,17 @@ Active but untracked: hello-dolly
 
 Check every pinned plugin against a WordPress vulnerability database ([wpvulnerability.net](https://www.wpvulnerability.net/)) and the WordPress.org plugin API for health signals (removed from the directory, PHP requirement, abandonment). Exits non-zero when a known vulnerability affects a pinned version.
 
+### `lps plugin outdated`
+
+Compare every plugin in `loopress.json` to the latest version on WordPress.org. The table lists the slug, the current pin, the latest version and the jump (`major`, `minor` or `patch`). Plugins that are not on WordPress.org (zip, premium) are listed as `unknown`, never as an error, and a `latest` pin is never behind. Exits non-zero when a plugin is behind, so it works in CI. Add `--json` for a machine-readable result.
+
+```console
+PLUGIN       CURRENT  LATEST  JUMP
+woocommerce  9.4.2    9.5.1   minor
+akismet      5.3.3    5.3.3   -
+acf-pro      6.0.0    -       unknown
+```
+
 ## Limits
 
 - **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` offers them like any other plugin (leave them unticked), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.

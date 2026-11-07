@@ -22,3 +22,25 @@ export function isExactVersion(value: string): boolean {
 export function compareVersions(a: string, b: string): null | number {
   return validate(a) && validate(b) ? cmp(a, b) : null
 }
+
+export type VersionJump = 'major' | 'minor' | 'patch'
+
+// How far `from` is behind `to`: the first numeric segment that differs, major, minor, then
+// anything finer is a patch. Null when `from` is not behind `to` or either isn't comparable.
+export function versionJump(from: string, to: string): null | VersionJump {
+  const order = compareVersions(from, to)
+  if (order === null || order >= 0) return null
+  const a = numericSegments(from)
+  const b = numericSegments(to)
+  if (a[0] !== b[0]) return 'major'
+  if ((a[1] ?? 0) !== (b[1] ?? 0)) return 'minor'
+  return 'patch'
+}
+
+function numericSegments(version: string): number[] {
+  const core = version.split('-', 1)[0] ?? version
+  return core.split('.').map((part) => {
+    const n = Number(part)
+    return Number.isNaN(n) ? 0 : Math.trunc(n)
+  })
+}
