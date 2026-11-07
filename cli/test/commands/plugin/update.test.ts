@@ -63,6 +63,21 @@ describe('plugin update', () => {
     expect(minor.changes).toEqual([{from: '9.4.2', jump: 'minor', slug: 'woocommerce', to: '9.5.1'}])
   })
 
+  it('leaves wildcard constraints alone', async () => {
+    mockWporg({woocommerce: ['9.5.0']})
+    const result = await make({plugins: {woocommerce: '9.4.x'}}).run()
+    expect(result.changes).toEqual([])
+    expect(result.skipped.map((s) => s.reason)).toEqual(['unknown'])
+    expect(writeLocalConfig).not.toHaveBeenCalled()
+  })
+
+  it('reports unknown when a cap has no version list to work with', async () => {
+    mockWporg({woocommerce: []})
+    const result = await make({plugins: {woocommerce: '9.4.2'}}, ['--patch']).run()
+    expect(result.changes).toEqual([])
+    expect(result.skipped.map((s) => s.reason)).toEqual(['unknown'])
+  })
+
   it('only updates the named slugs', async () => {
     mockWporg({akismet: ['5.3.4'], woocommerce: ['9.5.1']})
     const result = await make({plugins: {akismet: '5.3.3', woocommerce: '9.4.2'}}, ['akismet']).run()

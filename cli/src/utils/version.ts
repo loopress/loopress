@@ -38,7 +38,7 @@ export function versionJump(from: string, to: string): null | VersionJump {
 }
 
 function numericSegments(version: string): number[] {
-  const core = version.split('-', 1)[0] ?? version
+  const core = (version.split('-', 1)[0] ?? version).replace(/^v/i, '')
   return core.split('.').map((part) => {
     const n = Number(part)
     return Number.isNaN(n) ? 0 : Math.trunc(n)

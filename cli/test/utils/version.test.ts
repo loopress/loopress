@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {compareVersions, isExactVersion} from '../../src/utils/version.js'
+import {compareVersions, isExactVersion, versionJump} from '../../src/utils/version.js'
 
 describe('isExactVersion', () => {
   it('accepts 2-4 segment versions with an optional prerelease tag', () => {
@@ -61,5 +61,11 @@ describe('compareVersions order', () => {
     expect(compareVersions('1.0.0', '2.0.0')).toBe(-1)
     expect(compareVersions('2.0.0', '2.0.0')).toBe(0)
     expect(compareVersions('2.0.1', '2.0.0')).toBe(1)
+  })
+})
+
+describe('versionJump', () => {
+  it('ignores a v prefix on the major segment', () => {
+    expect(versionJump('v1.0.0', '1.1.0')).toBe('minor')
   })
 })

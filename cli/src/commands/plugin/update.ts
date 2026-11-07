@@ -65,8 +65,9 @@ export default class Update extends LoopressCommand {
     const skipped = results.filter((r): r is SkippedPlugin => 'reason' in r)
 
     for (const c of changes) this.log(`${this.dryRun ? '[dry-run] ' : ''}${c.slug}  ${c.from} -> ${c.to}  (${c.jump})`)
-    if (changes.length === 0) this.log('Every plugin is already at the newest version allowed.')
-    else if (!this.dryRun) await this.write(changes)
+    const unchecked = skipped.some((s) => s.reason === 'unknown' || s.reason === 'error')
+    if (!unchecked && changes.length === 0) this.log('Every plugin is already at the newest version allowed.')
+    else if (changes.length > 0 && !this.dryRun) await this.write(changes)
 
     const failed = skipped.filter((s) => s.reason === 'error').map((s) => s.slug)
     if (failed.length > 0) {
@@ -99,6 +100,8 @@ function capOf(flags: {minor: boolean; patch: boolean}): Cap {
 
 async function resolveUpdate(slug: string, current: string, cap: Cap): Promise<PluginChange | SkippedPlugin> {
   if (current === 'latest') return {reason: 'latest', slug, version: current}
+  // A wildcard or range constraint (9.4.x) is not an exact pin: rewriting it would widen it.
+  if (!isExactVersion(current)) return {reason: 'unknown', slug, version: current}
 
   let info: null | Record<string, unknown>
   try {
@@ -109,6 +112,12 @@ async function resolveUpdate(slug: string, current: string, cap: Cap): Promise<P
 
   const latest = typeof info?.version === 'string' ? info.version : null
   if (!latest || compareVersions(current, latest) === null) return {reason: 'unknown', slug, version: current}
+
+  // A cap needs the release list: without it an eligible release could be missed silently.
+  const listed = info?.versions
+  if (cap !== undefined && (typeof listed !== 'object' || listed === null || Object.keys(listed).length === 0)) {
+    return {reason: 'unknown', slug, version: current}
+  }
 
   const to = pickUpdate(current, latest, info?.versions, cap)
   const jump = to ? versionJump(current, to) : null
