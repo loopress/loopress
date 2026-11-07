@@ -1,5 +1,11 @@
 # @loopress/wordpress-plugin
 
+## 2026.18.2
+
+### Patch Changes
+
+- 8bafdc8: Updates dependencies to pick up security fixes, including `tty-table` 7 behind `lps option list` (its table output is unchanged).
+
 ## 2026.18.1
 
 ### Patch Changes

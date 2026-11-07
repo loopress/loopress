@@ -1,5 +1,27 @@
 # @loopress/mcp
 
+## 0.35.0
+
+### Minor Changes
+
+- b3376ed: New `lps plugin outdated`: compares each plugin of `loopress.json` to the latest WordPress.org version and prints the slug, current and latest versions and the jump (major, minor, patch). Plugins not on WordPress.org are listed as unknown, `--json` gives a machine-readable result, and the command exits 1 when a plugin is behind, so it works in CI. New MCP tool `plugin_outdated`.
+- 2cef16c: New `lps plugin update [slug...]`: rewrites plugin versions in `loopress.json` to the latest WordPress.org release, for every plugin or only the named ones, without touching the site (`lps plugin push` applies them). `--minor` and `--patch` cap the jump, `--dry-run` previews and `--json` lists the changes. New MCP tool `plugin_update`.
+
+### Patch Changes
+
+- Updated dependencies [f0328ae]
+- Updated dependencies [8bafdc8]
+- Updated dependencies [4d16591]
+- Updated dependencies [ad8ddb8]
+- Updated dependencies [2cef16c]
+- Updated dependencies [b3376ed]
+- Updated dependencies [692ccc0]
+- Updated dependencies [2cef16c]
+- Updated dependencies [420c5a3]
+- Updated dependencies [5ef8768]
+- Updated dependencies [498437b]
+  - @loopress/cli@0.35.0
+
 ## 0.34.0
 
 ### Minor Changes
