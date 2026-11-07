@@ -100,4 +100,26 @@ export function registerPluginTools(server: McpServer): void {
     },
     async () => toCallToolResult(unwrap(await runLps(['plugin', 'outdated']))),
   )
+
+  server.registerTool(
+    'plugin_update',
+    {
+      description:
+        'Rewrite plugin versions in loopress.json to the latest WordPress.org releases (writes loopress.json only, no change to WordPress). ' +
+        'Updates every plugin unless `slugs` names some; `cap` limits the jump to minor or patch releases. ' +
+        'Returns `changes` (slug, from, to, jump) and `skipped`. Run plugin_push afterwards to install them on the site.',
+      inputSchema: {
+        cap: z.enum(['minor', 'patch']).optional().describe('"minor" stays on the current major, "patch" on the current minor'),
+        slugs: z
+          .array(z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'must be a WordPress.org slug'))
+          .optional()
+          .describe('Plugin slugs in loopress.json to update (default: all of them)'),
+      },
+    },
+    async ({cap, slugs}) => {
+      const args = ['plugin', 'update', ...(slugs ?? [])]
+      if (cap) args.push(`--${cap}`)
+      return toCallToolResult(unwrap(await runLps(args)))
+    },
+  )
 }

@@ -156,13 +156,24 @@ Check every pinned plugin against a WordPress vulnerability database ([wpvulnera
 
 ### `lps plugin outdated`
 
-Compare every plugin in `loopress.json` to the latest version on WordPress.org. The table lists the slug, the current pin, the latest version and the jump (`major`, `minor` or `patch`). Plugins that are not on WordPress.org (zip, premium) are listed as `unknown`, never as an error, and a `latest` pin is never behind. Exits non-zero when a plugin is behind, so it works in CI. Add `--json` for a machine-readable result.
+Compare every plugin in `loopress.json` to the latest version on WordPress.org. The table lists the slug, the current pin, the latest version and the jump (`major`, `minor` or `patch`). Plugins that are not on WordPress.org (zip, premium) are listed as `unknown`, never as an error, a plugin closed on WordPress.org is reported as `closed` and fails the check, and a `latest` pin is never behind. Exits non-zero when a plugin is behind, so it works in CI. Add `--json` for a machine-readable result.
 
 ```console
 PLUGIN       CURRENT  LATEST  JUMP
 woocommerce  9.4.2    9.5.1   minor
 akismet      5.3.3    5.3.3   -
 acf-pro      6.0.0    -       unknown
+```
+
+### `lps plugin update [slug...]`
+
+Rewrite plugin versions in `loopress.json` to the latest WordPress.org release, for every plugin or only the slugs you name. It never touches the site: run `lps plugin push` afterwards, as usual. `--minor` stays on the current major version and `--patch` on the current minor version, picking the newest stable release that fits. `latest` pins, plugins that are not on WordPress.org and pins already at the newest allowed version are left as they are. `--dry-run` shows the changes without writing them, `--json` lists them (`changes` with slug, from, to and jump, plus `skipped`). Exits non-zero when WordPress.org could not be reached for a plugin.
+
+```console
+$ lps plugin update --minor
+woocommerce  9.4.2 -> 9.5.1  (minor)
+
+Updated 1 plugin(s) in loopress.json. Run `lps plugin push` to apply.
 ```
 
 ## Limits

@@ -76,6 +76,21 @@ describe('plugin outdated', () => {
   })
 })
 
+describe('outdated with a closed plugin', () => {
+  it('reports closed and exits 1', async () => {
+    gotFn.mockImplementation(() => ({
+      async json() {
+        return {error: 'closed'}
+      },
+    }))
+    const {cmd} = make({plugins: {gone: '1.0.0'}})
+    vi.spyOn(cmd, 'exit').mockImplementation((() => {
+      throw new Error('exit')
+    }))
+    await expect(cmd.run()).rejects.toThrow('exit')
+  })
+})
+
 describe('outdated when WordPress.org fails', () => {
   it('reports an error and exits 1', async () => {
     gotFn.mockImplementation(() => ({
