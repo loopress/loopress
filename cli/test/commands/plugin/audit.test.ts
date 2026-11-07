@@ -124,6 +124,15 @@ describe('plugin audit', () => {
     expect(logs.log).toHaveBeenCalledWith('No known vulnerabilities or health issues for 1 plugin(s).')
   })
 
+  it('reads `"vulnerability": null` (no advisories) as an empty list', async () => {
+    mockGot({vuln: () => ({data: {vulnerability: null}}), wporg: {name: 'Akismet', requires_php: null, version: '5.3.3'}})
+    const {cmd} = make({plugins: {akismet: '5.3.3'}})
+
+    const result = await cmd.run()
+
+    expect(result.status).toBe('clean')
+  })
+
   it('flags an advisory whose fixedIn is above the pinned version', async () => {
     mockGot({
       vuln: () => ({
