@@ -156,7 +156,7 @@ Check every pinned plugin against a WordPress vulnerability database ([wpvulnera
 
 ### `lps plugin outdated`
 
-Compare every plugin in `loopress.json` to the latest version on WordPress.org. The table lists the slug, the current pin, the latest version and the jump (`major`, `minor` or `patch`). Plugins that are not on WordPress.org (zip, premium) are listed as `unknown`, never as an error, and a `latest` pin is never behind. Exits non-zero when a plugin is behind, so it works in CI. Add `--json` for a machine-readable result.
+Compare every plugin in `loopress.json` to the latest version on WordPress.org. The table lists the slug, the current pin, the latest version and the jump (`major`, `minor` or `patch`). Plugins that are not on WordPress.org (zip, premium) are listed as `unknown`, never as an error, a plugin closed on WordPress.org is reported as `closed` and fails the check, and a `latest` pin is never behind. Exits non-zero when a plugin is behind, so it works in CI. Add `--json` for a machine-readable result.
 
 ```console
 PLUGIN       CURRENT  LATEST  JUMP

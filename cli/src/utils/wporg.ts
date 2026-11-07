@@ -3,7 +3,7 @@ import got from 'got'
 export const WPORG_INFO = 'https://api.wordpress.org/plugins/info/1.2/'
 
 // The WordPress.org plugin_information answer for one slug, or null when the plugin isn't
-// listed there (zip, premium). Throws when the API can't be reached or answers with an error.
+// listed there (zip, premium), or {error: 'closed'} for a closed one. Throws when the API can't be reached or answers with an error.
 // `versions` adds every released version (`versions`: version -> download URL) to the answer.
 export async function requestPluginInfo(
   slug: string,
@@ -18,6 +18,8 @@ export async function requestPluginInfo(
       },
       timeout: {request: 10_000},
     }).json<Record<string, unknown>>()
+    // A removed plugin answers {error: 'closed'}: kept so callers can tell it from an unlisted one.
+    if (typeof body === 'object' && 'error' in body && body.error === 'closed') return body
     return typeof body === 'object' && !('error' in body) ? body : null
   } catch (error) {
     if (isNotFound(error)) return null

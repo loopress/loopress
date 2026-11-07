@@ -9,7 +9,7 @@ export type OutdatedPlugin = {
   jump: null | VersionJump
   latest: null | string
   slug: string
-  status: 'current' | 'error' | 'outdated' | 'unknown'
+  status: 'closed' | 'current' | 'error' | 'outdated' | 'unknown'
 }
 
 type OutdatedResult = {outdated: number; plugins: OutdatedPlugin[]}
@@ -33,9 +33,9 @@ export default class Outdated extends LoopressCommand {
 
     const outdated = plugins.filter((p) => p.status === 'outdated').length
     this.printTable(plugins)
-    const failed = plugins.filter((p) => p.status === 'error').length
+    const failed = plugins.filter((p) => ['closed', 'error'].includes(p.status)).length
     if (outdated > 0) this.log(`\n${outdated} plugin(s) behind WordPress.org.`)
-    if (failed > 0) this.log(`\n${failed} plugin(s) could not be checked (WordPress.org unreachable).`)
+    if (failed > 0) this.log(`\n${failed} plugin(s) closed on WordPress.org or could not be checked.`)
     if (outdated === 0 && failed === 0) this.log('\nAll plugins are up to date.')
 
     // exit() throws before oclif prints the --json result, which a CI reading it needs most here.
@@ -50,7 +50,7 @@ export default class Outdated extends LoopressCommand {
   private printTable(plugins: OutdatedPlugin[]): void {
     const rows = [
       ['PLUGIN', 'CURRENT', 'LATEST', 'JUMP'],
-      ...plugins.map((p) => [p.slug, p.current, p.latest ?? '-', p.jump ?? (p.status === 'unknown' || p.status === 'error' ? p.status : '-')]),
+      ...plugins.map((p) => [p.slug, p.current, p.latest ?? '-', p.jump ?? (['closed', 'error', 'unknown'].includes(p.status) ? p.status : '-')]),
     ]
     const widths = [0, 1, 2, 3].map((i) => Math.max(...rows.map((r) => (r[i] ?? '').length)))
     for (const row of rows) this.log(row.map((cell, i) => cell.padEnd(widths[i] ?? 0)).join('  ').trimEnd())
@@ -65,6 +65,7 @@ async function checkPlugin(slug: string, current: string): Promise<OutdatedPlugi
     return {current, jump: null, latest: null, slug, status: 'error'}
   }
 
+  if (info?.error === 'closed') return {current, jump: null, latest: null, slug, status: 'closed'}
   const latest = typeof info?.version === 'string' ? info.version : null
   // Not on WordPress.org (zip, premium), unknown. An unreachable API is an error.
   if (!latest) return {current, jump: null, latest: null, slug, status: 'unknown'}
