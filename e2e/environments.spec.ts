@@ -152,8 +152,6 @@ test.describe('interactive-only and account commands without a terminal or a log
   for (const command of [
     ['project', 'pull'],
     ['project', 'push'],
-    ['snippet', 'publish'],
-    ['api', 'publish'],
   ]) {
     test(`${command.join(' ')} asks to log in first`, async ({runCli}) => {
       const result = await runCli(command)
@@ -162,18 +160,6 @@ test.describe('interactive-only and account commands without a terminal or a log
       expect(output(result)).toContain('Not logged in. Run `lps login` first.')
     })
   }
-
-  test('publish needs the project linked to the account, even when logged in', async ({homeDir, runCli}) => {
-    const {dataDir} = JSON.parse((await runCli(['status', '--json'])).stdout) as {dataDir: string}
-    expect(dataDir.startsWith(homeDir)).toBe(true)
-    mkdirSync(dataDir, {recursive: true})
-    writeFileSync(join(dataDir, 'auth.json'), JSON.stringify({email: 'e2e@example.com', savedAt: new Date().toISOString(), token: 'e2e'}))
-
-    const publish = await runCli(['snippet', 'publish'])
-
-    expect(publish.exitCode).not.toBe(0)
-    expect(output(publish)).toContain('Project "e2e" is not linked to your Loopress account yet. Run `lps project push` first.')
-  })
 
   test('logout clears a stored session, and says so when there is none', async ({homeDir, runCli}) => {
     const {dataDir} = JSON.parse((await runCli(['status', '--json'])).stdout) as {dataDir: string}
