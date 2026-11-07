@@ -132,29 +132,6 @@ lps snippet rollback --list     # available snapshots
 lps snippet rollback --to <id>  # an older one
 ```
 
----
-
-### `lps snippet publish`
-
-Publish local snippet files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
-
-Requires `lps login` first, and the current project must be linked to your [Loopress account](/account/) (`lps project push`). Since it never talks to WordPress, it works whichever plugin edition is installed.
-
-```bash
-lps snippet publish [path]
-```
-
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `path` | `./snippets` (or `loopress.json`'s `snippetsDir`) | Local directory to read snippet files from |
-
-**Example:**
-
-```bash
-lps snippet publish
-lps snippet publish ./wp-snippets
-```
-
 ## File format
 
 :::tip

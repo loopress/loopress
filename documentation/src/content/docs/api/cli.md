@@ -23,7 +23,7 @@ lps api push
 
 ## The local directory
 
-`pull`, `push`, `diff`, `rollback` and `publish` each operate on one local directory, resolved the same way:
+`pull`, `push`, `diff` and `rollback` each operate on one local directory, resolved the same way:
 
 1. The `path` argument, if given
 2. The `apiDir` key in the project's `loopress.json`, if set
@@ -171,29 +171,6 @@ lps api rm <filename>
 ```bash
 lps api rm legacy-webhook
 lps api rm legacy-webhook --yes   # in CI
-```
-
----
-
-### `lps api publish`
-
-Publish local route files to your Loopress account so they can be deployed to other projects. This does not touch any WordPress site, it uploads to Loopress only.
-
-Requires `lps login` first, and the current project must be linked to your [Loopress account](/account/) (`lps project push`). Since it never talks to WordPress, it works whichever plugin edition is installed.
-
-```bash
-lps api publish [path]
-```
-
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `path` | `./api` (or `loopress.json`'s `apiDir`) | Local directory to read `.php` files from |
-
-**Example:**
-
-```bash
-lps api publish
-lps api publish ./api
 ```
 
 ## File format
