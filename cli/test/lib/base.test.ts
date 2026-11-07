@@ -11,6 +11,7 @@ import {listrRenderer, LoopressCommand} from '../../src/lib/base.js'
 import {rotateAppPassword} from '../../src/lib/rotate-app-password.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {readLocalConfig} from '../../src/utils/loopress-config.js'
+import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv, makeListedProject, withoutToken} from '../helpers/project-fixtures.js'
 
@@ -227,6 +228,47 @@ describe('LoopressCommand.init', () => {
     )
 
     await expect(initWith([])).rejects.toThrow(/has no "local" environment, pass --env.*Available: production, staging/)
+  })
+})
+
+describe('LoopressCommand single-resource capability check', () => {
+  class HookCommand extends TestCommand {
+    static override id = 'hook:push'
+  }
+
+  class PublishCommand extends TestCommand {
+    static override id = 'api:publish'
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.mocked(readLocalConfig).mockResolvedValue({})
+    useActiveEnv(makeEnv('production', 'https://acme.com'))
+  })
+
+  it('refuses a hook command on Loopress Light with the message lps push gives', async () => {
+    vi.spyOn(HookCommand.prototype as unknown as {capabilities(): Promise<unknown>}, 'capabilities').mockResolvedValue(makeLightCapabilities())
+
+    await expect(new HookCommand([], fakeOclifConfig).init()).rejects.toThrow('Not supported by production: hooks need Loopress Full. Install Loopress Full.')
+  })
+
+  it('lets the command run on a site that can hold the resource', async () => {
+    vi.spyOn(HookCommand.prototype as unknown as {capabilities(): Promise<unknown>}, 'capabilities').mockResolvedValue(makeCapabilities())
+
+    await expect(new HookCommand([], fakeOclifConfig).init()).resolves.toBeUndefined()
+  })
+
+  it('lets the command run when the capabilities cannot be read', async () => {
+    vi.spyOn(HookCommand.prototype as unknown as {capabilities(): Promise<unknown>}, 'capabilities').mockRejectedValue(new Error('too old'))
+
+    await expect(new HookCommand([], fakeOclifConfig).init()).resolves.toBeUndefined()
+  })
+
+  it('does not read the capabilities for a command that goes through the console', async () => {
+    const spy = vi.spyOn(PublishCommand.prototype as unknown as {capabilities(): Promise<unknown>}, 'capabilities')
+
+    await new PublishCommand([], fakeOclifConfig).init()
+    expect(spy).not.toHaveBeenCalled()
   })
 })
 

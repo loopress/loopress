@@ -116,6 +116,24 @@ export function integrationFix(missing: MissingIntegration, declared: {fromCompo
   return `Declare ${first}${or} (${where}), then activate it: ${activate(first)}`
 }
 
+// The command topics that act on one kind of resource the site may be unable to hold
+// (`lps hook push`, `lps acf list`...), so they can say so instead of surfacing the 404. `publish`
+// goes through the console, not the site. `scf` is the alias of `acf`.
+const TOPIC_KINDS: Record<string, ResourceDirKind> = {acf: 'acf', api: 'api', block: 'block', form: 'form', hook: 'hooks', page: 'page', pattern: 'pattern', scf: 'acf', snippet: 'snippets'}
+
+export function commandResourceKind(commandId: string | undefined): ResourceDirKind | undefined {
+  const [topic, action] = (commandId ?? '').split(':', 2)
+  if (!topic || !action || action === 'publish') return undefined
+  return TOPIC_KINDS[topic]
+}
+
+// "Not supported by <site>: <reason>. <fix>.", for the single-resource commands.
+export function unsupportedMessage(missing: MissingIntegration, site: string, declared: {fromComposer: boolean; plugins: string[]}): string {
+  const fix = integrationFix(missing, declared)
+  const fixSentence = fix ? ` ${fix}.` : ''
+  return `Not supported by ${site}: ${missing.reason}.${fixSentence}`
+}
+
 export type ThemeActivation = {active: string; changed: boolean; previous: string}
 
 export async function activateTheme(wp: WpClient, stylesheet: string): Promise<ThemeActivation> {
