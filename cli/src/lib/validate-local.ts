@@ -3,7 +3,7 @@ import {join, relative, sep} from 'node:path'
 import {z} from 'zod'
 
 import {configManager} from '../config/project-config.manager.js'
-import {PLUGIN_PIN} from '../types/plugin.js'
+import {pinProblem} from '../types/plugin.js'
 import {readLocalBlocks} from '../utils/block-format.js'
 import {COMPOSER_JSON} from '../utils/composer.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
@@ -296,9 +296,8 @@ function checkLoopressJson(localConfig: Record<string, unknown>, problems: Probl
 
   for (const [slug, version] of Object.entries(manifest.data)) {
     // The object form is what `plugin pull` writes for a plugin installed but inactive (see PluginPin).
-    if (!PLUGIN_PIN.safeParse(version).success) {
-      problems.push({file: 'loopress.json', message: `plugin "${slug}" must map to a version string or {version, active}`})
-    }
+    const message = pinProblem(slug, version)
+    if (message) problems.push({file: 'loopress.json', message})
   }
 }
 

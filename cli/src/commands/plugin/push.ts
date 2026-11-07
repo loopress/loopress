@@ -10,6 +10,7 @@ import {isLocalEnvironment, isNotFoundError, parseBody, responseOf} from '../../
 import {
   type InstalledPlugin,
   pinActive,
+  pinProblem,
   pinVersion,
   pinVersions,
   type PluginManifest,
@@ -23,7 +24,13 @@ import {
   type SyncIntent,
   type SyncResponse,
 } from '../../utils/plugin-sync.js'
-import {diffPlugins, lockedWpackagistSlugs, parseInstalledPlugins, type PluginDiff} from '../../utils/plugins.js'
+import {
+  diffPlugins,
+  lockedWpackagistSlugs,
+  parseInstalledPlugins,
+  type PluginDiff,
+  preferredCopy,
+} from '../../utils/plugins.js'
 import {isExactVersion} from '../../utils/version.js'
 
 type PushResult = {
@@ -124,8 +131,9 @@ export default class Push extends PushCommand {
     }
 
     if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
+    const switchedOff = await this.deactivateEndangered(installed, diff, force)
     // Plugins switched off for the file swap come back on, unless loopress.json wants them inactive.
-    const deactivated = (await this.deactivateEndangered(installed, diff, force)).filter(
+    const deactivated = switchedOff.filter(
       (p) => !diff.toRemove.includes(p.slug) && (fromComposer || pinActive(source.manifest[p.slug])),
     )
 
@@ -139,9 +147,15 @@ export default class Push extends PushCommand {
       throw error
     }
 
-    const activateNew = (slug: string) => (fromComposer ? activate : pinActive(source.manifest[slug]))
-    const newlyInstalled = await this.filesForNewlyInstalled(diff.toInstall)
-    const toActivate = [...deactivated, ...diff.toActivate, ...newlyInstalled.filter((p) => activateNew(p.slug))]
+    const wasActive = new Set(switchedOff.map((p) => p.slug))
+    const activateNew = (slug: string) =>
+      fromComposer ? activate || wasActive.has(slug) : pinActive(source.manifest[slug])
+    const {newlyInstalled, takenOver} = await this.installedBySync(installed, diff, force)
+    const toActivate = [
+      ...deactivated.filter((p) => takenOver.every((t) => t.slug !== p.slug)),
+      ...diff.toActivate,
+      ...[...newlyInstalled, ...takenOver].filter((p) => activateNew(p.slug)),
+    ]
     const toDeactivate = [...diff.toDeactivate, ...installed.filter((p) => toPrune.includes(p.slug))]
 
     await this.deactivate(toDeactivate)
@@ -234,23 +248,6 @@ export default class Push extends PushCommand {
     }
   }
 
-  // toInstall entries carry no `file`: the plugin didn't exist on the site at diff time, so its
-  // WordPress core plugin id (folder/main-file.php) is only knowable after sync() has actually
-  // installed it. Refetch to get it, then activate like everything else.
-  private async filesForNewlyInstalled(
-    toInstall: PluginDiff['toInstall'],
-  ): Promise<Array<{file: string; slug: string}>> {
-    if (toInstall.length === 0) return []
-
-    const installedAfterSync = parseInstalledPlugins(await this.wp.get<WpNativePlugin[]>('wp/v2/plugins'))
-    const fileBySlug = new Map(installedAfterSync.map((p) => [p.slug, p.file]))
-
-    return toInstall.flatMap(({slug}) => {
-      const file = fileBySlug.get(slug)
-      return file ? [{file, slug}] : []
-    })
-  }
-
   private guardForce(diff: PluginDiff, force: boolean, file: Source['file']): void {
     if (force) return
 
@@ -270,6 +267,26 @@ export default class Push extends PushCommand {
         `Refusing to downgrade: ${list}. A downgrade only replaces plugin files, it does not undo database ` +
           `migrations the newer version ran, which can break the site. Re-run with --force, or bump the version in ${file}.`,
       )
+    }
+  }
+
+  // New and taken-over plugins only get their final WordPress id (folder/main-file) once
+  // sync() has installed them: read it from the site. A taken-over plugin is activated from
+  // the folder Composer installed, with no stale copy left beside it.
+  private async installedBySync(
+    installed: InstalledPlugin[],
+    diff: PluginDiff,
+    force: boolean,
+  ): Promise<{newlyInstalled: Plugin[]; takenOver: Plugin[]}> {
+    const collisions = force ? diff.collisions.map((c) => c.slug) : []
+    if (diff.toInstall.length === 0 && collisions.length === 0) return {newlyInstalled: [], takenOver: []}
+
+    const afterSync = parseInstalledPlugins(await this.wp.get<WpNativePlugin[]>('wp/v2/plugins'))
+    const takenOver = filesFor(collisions, afterSync)
+    const kept = await this.removeStaleCopies(installed, afterSync, takenOver)
+    return {
+      newlyInstalled: filesFor(diff.toInstall.map((p) => p.slug), afterSync),
+      takenOver: takenOver.filter((p) => !kept.includes(p.slug)),
     }
   }
 
@@ -300,6 +317,10 @@ export default class Push extends PushCommand {
       this.error('No plugins found in loopress.json. Run `lps plugin pull` or `lps plugin add <slug>` first.')
     }
 
+    // A mistyped key (`activate`) would otherwise push the plugin with the default state.
+    const problems = Object.entries(manifest).flatMap(([slug, pin]) => pinProblem(slug, pin) ?? [])
+    if (problems.length > 0) this.error(`Invalid loopress.json: ${problems.join('; ')}. Fix it, then push again.`)
+
     return {
       file: 'loopress.json',
       intent: {plugins: pinVersions(manifest)},
@@ -313,6 +334,41 @@ export default class Push extends PushCommand {
     if (!fromComposer || plugins.length === 0) return
     this.log(`${plugins.length} plugin(s) from composer.json are inactive: ${plugins.map((p) => p.slug).join(', ')}.`)
     this.log('Re-run with --activate to activate them, or activate them in wp-admin.')
+  }
+
+  // A takeover installs `wp-content/plugins/<slug>/`, but the plugin it replaces may live
+  // elsewhere: core's Hello Dolly is `hello.php`, which the site lists under the slug
+  // `hello-dolly`. Composer leaves that file in place, and both copies declare the same
+  // functions, so activating them together would fatal: delete the stale copy, as --force says.
+  // Returns the slugs whose stale copy could not be deleted: the caller must not activate
+  // their replacement beside it. Copies the sync already removed are skipped, and a failed
+  // deletion does not stop the others or the activations.
+  private async removeStaleCopies(
+    installed: InstalledPlugin[],
+    afterSync: InstalledPlugin[],
+    managedCopies: Plugin[],
+  ): Promise<string[]> {
+    const replaced = installed.flatMap((old) => {
+      const copy = managedCopies.find((c) => c.slug === old.slug && c.file !== old.file)
+      return copy && afterSync.some((a) => a.file === old.file) ? [{copy, old}] : []
+    })
+    const kept: string[] = []
+    for (const {copy, old} of replaced) {
+      this.log(`  ✕ removing ${old.file} (replaced by ${copy.file})`)
+      try {
+        // Deactivated before the sync if it was active (deactivateEndangered): WordPress
+        // refuses to delete an active plugin.
+        await this.wp.delete(`wp/v2/plugins/${old.file}`)
+      } catch (error) {
+        kept.push(old.slug)
+        this.warn(
+          `Could not delete ${old.file}: ${error instanceof Error ? error.message : String(error)}. ` +
+            `${copy.file} stays inactive until it is deleted: remove ${old.file} in wp-admin, then activate ${copy.slug}.`,
+        )
+      }
+    }
+
+    return kept
   }
 
   private result(
@@ -366,6 +422,15 @@ function missingDependencies(error: unknown): null | string[] {
   if (body.code !== 'plugin_missing_dependencies') return null
   const data = [body.data, ...(Array.isArray(body.additional_data) ? (body.additional_data as unknown[]) : [])]
   return data.flatMap((d) => (isRecord(d) && isRecord(d.not_installed) ? Object.keys(d.not_installed) : []))
+}
+
+// The WordPress plugin id of each slug, read after sync() has installed it: a plugin the diff
+// saw as missing (or as an unmanaged copy) has no id, or the wrong one, before that.
+function filesFor(slugs: string[], installed: InstalledPlugin[]): Plugin[] {
+  return slugs.flatMap((slug) => {
+    const match = preferredCopy(installed.filter((p) => p.slug === slug), slug)
+    return match ? [{file: match.file, slug}] : []
+  })
 }
 
 function isNoop(diff: PluginDiff, toPrune: string[]): boolean {
