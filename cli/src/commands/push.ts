@@ -110,7 +110,7 @@ export default class Push extends LoopressCommand {
       stopDeploymentCollector()
       if (this.dryRun) return
       const steps = results.map((result, index) => ({command: PUSH_TARGETS[index]?.commandId ?? '', status: result.status}))
-      await postDeployment({command: 'push', status, steps, url: this.siteConfig.url, ...(status === 'success' && collected.plugins && {plugins: collected.plugins})})
+      await postDeployment({command: 'push', status, steps, url: this.siteConfig.url, ...(collected.plugins && {plugins: collected.plugins})})
     }
 
     for (const target of PUSH_TARGETS) {
