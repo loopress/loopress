@@ -30,6 +30,8 @@ Both commands require being logged in.
 
 When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push.
 
+A full `lps push` sends a single record, with command `push` and a `steps` list: each step (`acf:push`, `option:push`...) with its status, pushed, skipped or failed, in push order. When a step fails the record is sent with a failure status, ending at that step. A resource pushed alone (`lps acf push`) keeps its own record, without steps. The console is contacted once per `lps push`, with a 3-second timeout.
+
 After a successful `lps plugin push` (a full `lps push` runs it as a step), the deployment record also carries the plugins listed in `loopress.json`: for each one the slug, the pinned version and whether it must be active. Other commands send no plugin list.
 
 ## Plugin audit reports

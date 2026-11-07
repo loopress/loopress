@@ -35,6 +35,40 @@ function gitState(): {commit?: string; dirty?: boolean} {
   }
 }
 
+export type DeploymentStep = {command: string; status: 'failed' | 'pushed' | 'skipped'}
+type DeploymentPlugins = Array<{active: boolean; slug: string; version: string}>
+
+// Set while `lps push` runs its steps in process: they hand over what they would have posted
+// instead of posting, so the run sends one record (and waits at most one timeout).
+let deploymentCollector: undefined | {plugins?: DeploymentPlugins}
+
+export function startDeploymentCollector(): {plugins?: DeploymentPlugins} {
+  deploymentCollector = {}
+  return deploymentCollector
+}
+
+export function stopDeploymentCollector(): void {
+  deploymentCollector = undefined
+}
+
+// Best-effort: recording must never interrupt the push flow.
+export async function postDeployment(body: {command: string | undefined; plugins?: DeploymentPlugins; status: 'failure' | 'success'; steps?: DeploymentStep[]; url: string}): Promise<void> {
+  const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
+  if (!token) return
+
+  try {
+    await withSpinner('Recording the deployment', async () =>
+      got.post(`${API_URL}/deployments`, {
+        headers: {Authorization: `Bearer ${token}`},
+        json: {...body, ...gitState()},
+        timeout: {request: 3000},
+      }),
+    )
+  } catch {
+    // non-blocking
+  }
+}
+
 // One item of a dry run's preview, against the site's current state. `removed` only comes from a
 // push that mirrors the project (the child theme): every other push leaves site-only items alone.
 export type PushChange = {id: string; status: 'changed' | 'created' | 'removed' | 'unchanged'}
@@ -178,20 +212,14 @@ export abstract class PushCommand extends LoopressCommand {
   }
 
   protected async recordDeployment(status: 'failure' | 'success'): Promise<void> {
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
-    if (!token) return
-
-    try {
-      await withSpinner('Recording the deployment', async () =>
-        got.post(`${API_URL}/deployments`, {
-          headers: {Authorization: `Bearer ${token}`},
-          json: {status, url: this.siteConfig.url, command: this.id, ...gitState(), ...this.pushedPlugins(status)},
-          timeout: {request: 3000},
-        }),
-      )
-    } catch {
-      // non-blocking: recording must never interrupt the push flow
+    // Inside `lps push`, the steps only report the plugin inventory: the run posts one record.
+    if (deploymentCollector) {
+      const {plugins} = this.pushedPlugins(status)
+      if (plugins) deploymentCollector.plugins = plugins
+      return
     }
+
+    await postDeployment({command: this.id, status, url: this.siteConfig.url, ...this.pushedPlugins(status)})
   }
 
   protected async recordSuccess(): Promise<void> {
