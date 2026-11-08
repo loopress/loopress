@@ -85,14 +85,14 @@ use Loopress\Plugin;
 // if anything more directly: it binds arbitrary developer PHP straight into WP core's own
 // action/filter hooks, unconditionally, for every visitor. Pages ships raw HTML (which can
 // carry <script>) straight into the site's pages, close enough to count as the same thing.
-foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Blocks', 'Apps', 'Settings', 'Pages', 'TempAdmin'] as $loopressFullFeature) {
+foreach (['Sentry', 'Dependencies', 'Update', 'Snippets', 'Api', 'Hooks', 'Blocks', 'Apps', 'Settings', 'Pages', 'TempAdmin', 'SiteReport'] as $loopressFullFeature) {
     /** @var class-string<\Loopress\Contract\FeatureProvider> $loopressFullFeatureClass */
     $loopressFullFeatureClass = "\\Loopress\\{$loopressFullFeature}\\Feature";
     add_filter('loopress_feature_definitions', fn(array $definitions): array => array_merge($definitions, $loopressFullFeatureClass::definitions()));
     add_filter('loopress_module_classes', fn(array $classes): array => array_merge($classes, $loopressFullFeatureClass::moduleClasses()));
 }
 // What `loopress/v1/capabilities` reports, read by the CLI to tell the editions apart. `modules`
-// gains the features above the CLI has commands for (Sentry, Update, Settings, TempAdmin have none).
+// gains the features above the CLI has commands for (Sentry, Update, Settings, TempAdmin, SiteReport have none).
 add_filter('loopress_capabilities', fn(array $capabilities): array => array_merge($capabilities, [
     'edition' => 'full',
     'modules' => array_merge((array) ($capabilities['modules'] ?? []), ['api', 'apps', 'blocks', 'dependencies', 'hooks', 'pages', 'snippets']),

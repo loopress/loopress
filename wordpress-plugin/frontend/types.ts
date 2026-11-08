@@ -172,3 +172,15 @@ declare global {
         };
     }
 }
+
+export interface SiteReportState {
+    connected: boolean;
+    // Masked (prefix and last 4 characters), never the token in clear.
+    token: string | null;
+    // home_url() when the token was saved. Differs from `url` on a site cloned from another
+    // one's database, whose reports the console rejects.
+    connectedUrl: string | null;
+    url: string;
+    // Only in the answer to a save: the first report reached the console, or the api was down.
+    result?: 'connected' | 'unreachable';
+}

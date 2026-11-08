@@ -67,6 +67,8 @@ deptrac:
         - type: classNameRegex
           value: '#^Loopress\\Settings\\.+$#'
         - type: classNameRegex
+          value: '#^Loopress\\SiteReport\\.+$#'
+        - type: classNameRegex
           value: '#^Loopress\\Pages\\.+$#'
         - type: classNameRegex
           value: '#^Loopress\\TempAdmin\\.+$#'

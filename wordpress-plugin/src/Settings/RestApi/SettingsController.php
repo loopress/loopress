@@ -7,6 +7,7 @@ namespace Loopress\Settings\RestApi;
 use Loopress\Api\ApiNamespace;
 use Loopress\RestApi\RequiresManageOptionsCapability;
 use Loopress\Sentry\Consent;
+use Loopress\SiteReport\SiteToken;
 use Loopress\Update\UsageStats;
 use WP_REST_Response;
 
@@ -23,6 +24,9 @@ final class SettingsController
         Consent::OPTION,
         ApiNamespace::OPTION,
         UsageStats::OPTION,
+        // The cron event unschedules itself on its next run once the token is gone.
+        SiteToken::OPTION,
+        SiteToken::URL_OPTION,
     ];
 
     public function register_routes(): void

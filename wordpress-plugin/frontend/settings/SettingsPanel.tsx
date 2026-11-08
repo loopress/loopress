@@ -4,6 +4,7 @@ import { apiFetch } from '../api';
 import { ApiNamespaceSettings } from '../api-routes/ApiNamespaceSettings';
 import { Section } from '../ui';
 import { SentrySettings } from './SentrySettings';
+import { SiteReportSettings } from './SiteReportSettings';
 import { UsageStatsSettings } from './UsageStatsSettings';
 
 // One reset button for every Loopress setting rendered on this tab, not one per feature
@@ -18,6 +19,7 @@ export function SettingsPanel() {
             queryClient.invalidateQueries({ queryKey: ['sentry-consent'] });
             queryClient.invalidateQueries({ queryKey: ['usage-stats-consent'] });
             queryClient.invalidateQueries({ queryKey: ['api-namespace'] });
+            queryClient.invalidateQueries({ queryKey: ['site-report'] });
         },
     });
 
@@ -25,6 +27,9 @@ export function SettingsPanel() {
         <>
             <Section title="API routes">
                 <ApiNamespaceSettings />
+            </Section>
+            <Section title="Console" description="Show this site's versions, plugins and pending updates in the Loopress console.">
+                <SiteReportSettings />
             </Section>
             <Section title="Data sharing" description="What this site sends to Loopress.">
                 <SentrySettings />
@@ -35,7 +40,7 @@ export function SettingsPanel() {
                 size="small"
                 disabled={isPending}
                 onClick={() => {
-                    if (window.confirm('Reset every Loopress setting to its default, including the API routes namespace?')) resetAll();
+                    if (window.confirm('Reset every Loopress setting to its default, including the API routes namespace and the console connection?')) resetAll();
                 }}
             >
                 Reset all settings to default

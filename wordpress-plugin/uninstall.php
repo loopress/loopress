@@ -6,6 +6,12 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
+// Site reports (src/SiteReport/): the console token and the twice-daily event. Literal names,
+// the autoloader is not loaded yet and these need nothing from it.
+delete_option('loopress_site_token');
+delete_option('loopress_site_token_url');
+wp_clear_scheduled_hook('loopress_site_report');
+
 $autoload = __DIR__ . '/vendor/autoload.php';
 
 // A dev checkout symlinked straight into wp-content/plugins/ without `composer install` has no
