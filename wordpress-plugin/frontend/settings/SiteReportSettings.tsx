@@ -78,9 +78,7 @@ export function SiteReportSettings() {
                     />
                     {connect.error instanceof ApiError && (
                         <Notice status="error" isDismissible={false}>
-                            {connect.error.status === undefined || connect.error.status >= 500
-                                ? 'The Loopress console could not be reached.'
-                                : connect.error.message}
+                            {connect.error.message}
                         </Notice>
                     )}
                     <Button

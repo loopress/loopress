@@ -21,7 +21,7 @@ Connecting sends a first report right away and shows the result:
 
 One token per environment. It can only send reports for its own environment, and the console rejects a report whose site URL differs from the environment's URL. A staging site cloned from the production database copies the token: its reports are rejected instead of landing on production, and its **Console** setting warns that the token was connected from another URL. Generate a token for the staging environment and paste it there.
 
-Reports are sent by WP-cron, which only runs when the site gets traffic. A site with no visitors reports late, which is why the console shows the date of the last report.
+Reports are sent by WP-cron, which only runs when the site gets traffic. A site with no visitors reports late, which is why the console shows the date of the last report. To report on schedule anyway, run WP-cron from a system scheduler (`wp cron event run --due-now` from a crontab, or a request to `wp-cron.php`).
 
 ## What is sent
 
@@ -44,7 +44,7 @@ Content, users, email addresses (including the admin email), options, and plugin
 
 ## Disconnect
 
-Click **Disconnect** under **Loopress → Settings → Console**: the token is deleted from the site and the reports stop. Revoking the token from the console stops them too, and **Reset all settings to default** also disconnects the site.
+Click **Disconnect** under **Loopress → Settings → Console**: the token is deleted from the site and the reports stop. **Reset all settings to default** also disconnects the site. Revoking the token from the console makes the console reject the reports, but the site keeps sending them until you disconnect it in WordPress.
 
 Uninstalling Loopress Full deletes the token and the scheduled report.
 

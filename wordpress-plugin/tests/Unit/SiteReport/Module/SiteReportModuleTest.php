@@ -30,7 +30,8 @@ class SiteReportModuleTest extends TestCase
     public function test_boot_never_reads_the_token(): void
     {
         Functions\expect('get_option')->never();
-        Functions\expect('add_action')->twice();
+        Functions\expect('add_action')->once()->with('rest_api_init', \Mockery::type(\Closure::class));
+        Functions\expect('add_action')->once()->with(SiteReportModule::CRON_HOOK, [SiteReportModule::class, 'report']);
 
         (new SiteReportModule())->boot();
         $this->addToAssertionCount(1);
