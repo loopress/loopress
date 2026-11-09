@@ -1,5 +1,15 @@
 # @loopress/wordpress-plugin
 
+## 2026.19.0
+
+### Minor Changes
+
+- bdfe657: Loopress Full can be connected to the Loopress console: paste a site token under Settings, Console, and the site reports its WordPress, PHP and Loopress versions, installed plugins, pending updates and Site Health counts twice a day. Saving the token sends a first report and shows whether it was accepted. Disconnect, a settings reset or uninstalling the plugin deletes the token and stops the reports. Loopress Light never sends anything.
+
+### Patch Changes
+
+- 8bafdc8: Updates dependencies to pick up security fixes, including `tty-table` 7 behind `lps option list` (its table output is unchanged).
+
 ## 2026.18.1
 
 ### Patch Changes
