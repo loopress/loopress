@@ -17,11 +17,11 @@ Connecting sends a first report right away and shows the result:
 - **Connected**: the token is saved, the site then reports twice a day.
 - **Invalid token**: it was revoked or regenerated in the console. Nothing is saved.
 - **This token belongs to `<url>`**: the token was generated for another environment. Nothing is saved: generate a token for this environment instead.
-- **Could not be reached**: the token is saved anyway, the next report retries.
+- **Could not be reached**: the token is saved anyway, the next report retries. It also shows when the report is larger than 256 KiB, in which case nothing is sent until the reported data shrinks (fewer installed plugins, for instance).
 
 One token per environment. It can only send reports for its own environment, and the console rejects a report whose site URL differs from the environment's URL. A staging site cloned from the production database copies the token: its reports are rejected instead of landing on production, and its **Console** setting warns that the token was connected from another URL. Generate a token for the staging environment and paste it there.
 
-Reports are sent by WP-cron, which only runs when the site gets traffic. A site with no visitors reports late, which is why the console shows the date of the last report. To report on schedule anyway, run WP-cron from a system scheduler (`wp cron event run --due-now` from a crontab, or a request to `wp-cron.php`).
+Reports are sent by WP-cron, which by default runs only when the site gets traffic. A site with no visitors reports late unless a system scheduler triggers WP-cron, which is why the console shows the date of the last report. To report on schedule, run WP-cron from a system scheduler (`wp cron event run --due-now` from a crontab, or a request to `wp-cron.php`).
 
 ## What is sent
 

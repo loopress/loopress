@@ -57,6 +57,7 @@ class UninstallTest extends TestCase
     private function expectSiteReportCleanup(): void
     {
         Monkey\setUp();
+        Functions\when('is_multisite')->justReturn(false);
         Functions\expect('delete_option')->once()->with('loopress_site_token');
         Functions\expect('delete_option')->once()->with('loopress_site_token_url');
         Functions\expect('wp_clear_scheduled_hook')->once()->with('loopress_site_report');

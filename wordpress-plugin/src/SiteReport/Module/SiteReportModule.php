@@ -36,11 +36,14 @@ final class SiteReportModule implements Module
         (new ReportSender())->sendInBackground($token);
     }
 
-    public static function schedule(): void
+    /** False when WordPress could not store the event: no report would ever follow. */
+    public static function schedule(): bool
     {
-        if (wp_next_scheduled(self::CRON_HOOK) === false) {
-            wp_schedule_event(time() + 12 * HOUR_IN_SECONDS, 'twicedaily', self::CRON_HOOK);
+        if (wp_next_scheduled(self::CRON_HOOK) !== false) {
+            return true;
         }
+
+        return wp_schedule_event(time() + 12 * HOUR_IN_SECONDS, 'twicedaily', self::CRON_HOOK) === true;
     }
 
     public static function unschedule(): void

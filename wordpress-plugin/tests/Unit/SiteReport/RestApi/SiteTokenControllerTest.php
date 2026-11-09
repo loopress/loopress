@@ -113,6 +113,17 @@ class SiteTokenControllerTest extends TestCase
         $this->assertSame('Bearer ' . self::TOKEN, self::at($this->posted, 0, 'headers', 'Authorization'));
     }
 
+    public function test_a_failed_scheduling_returns_500_and_keeps_no_token(): void
+    {
+        $this->apiResponse = ['code' => 204, 'body' => ''];
+        Functions\when('wp_schedule_event')->justReturn(false);
+
+        $response = $this->connect();
+
+        $this->assertSame(500, $response->status);
+        $this->assertArrayNotHasKey(SiteToken::OPTION, $this->options);
+    }
+
     public function test_an_invalid_token_is_not_saved(): void
     {
         $this->apiResponse = ['code' => 401, 'body' => ''];

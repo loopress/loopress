@@ -81,7 +81,11 @@ final readonly class SiteTokenController
 
         // Connected, or the api could not be reached: kept either way, the cron retries.
         SiteToken::save($token);
-        SiteReportModule::schedule();
+        if (!SiteReportModule::schedule()) {
+            SiteToken::clear();
+
+            return new WP_REST_Response(['error' => 'The token is valid, but WordPress could not schedule the twice-daily report. Check that WP-cron is writable, then connect again.'], 500);
+        }
 
         return new WP_REST_Response(['result' => $sent['result']] + $this->state(), 200);
     }
