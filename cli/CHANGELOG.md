@@ -1,5 +1,25 @@
 # @loopress/cli
 
+## 0.35.0
+
+### Minor Changes
+
+- ad8ddb8: When a console token is available, a `plugin push` (and a full `push`, which runs it) now includes the plugins listed in `loopress.json` (slug, version, active) in the deployment it reports, and `lps plugin audit` sends its advisories and health notes to the console. Both are best effort: output and exit codes are unchanged, and without a token nothing is sent.
+- b3376ed: New `lps plugin outdated`: compares each plugin of `loopress.json` to the latest WordPress.org version and prints the slug, current and latest versions and the jump (major, minor, patch). Plugins not on WordPress.org are listed as unknown, `--json` gives a machine-readable result, and the command exits 1 when a plugin is behind, so it works in CI. New MCP tool `plugin_outdated`.
+- 2cef16c: New `lps plugin update [slug...]`: rewrites plugin versions in `loopress.json` to the latest WordPress.org release, for every plugin or only the named ones, without touching the site (`lps plugin push` applies them). `--minor` and `--patch` cap the jump, `--dry-run` previews and `--json` lists the changes. New MCP tool `plugin_update`.
+- c00239d: `lps push` now records a single deployment in the console, `push`, with the status of each of its steps, instead of one record per step. A slow or unreachable console now delays a push by at most one 3 s timeout instead of one per step. A resource pushed alone (`lps acf push`) keeps its own record.
+- 420c5a3: Breaking: `lps snippet publish` and `lps api publish` are removed. Loopress no longer stores snippets or API routes in your account; use `lps snippet push` and `lps api push` to send them straight to your WordPress site.
+
+### Patch Changes
+
+- f0328ae: A 403 whose body is not a WordPress JSON error is now reported as a probable firewall or security plugin block (ModSecurity, Imunify360, Wordfence) instead of a credentials failure, in every command and in `lps doctor`. WordPress's own 403s keep the credentials hint.
+- 8bafdc8: Updates dependencies to pick up security fixes, including `tty-table` 7 behind `lps option list` (its table output is unchanged).
+- 4d16591: `lps plugin audit` (and the MCP `plugin_audit` tool) no longer aborts when wpvulnerability.net answers `"vulnerability": null`, its value for a plugin without advisories. It now reads as no advisory; any other unexpected shape is still rejected.
+- 2cef16c: `lps plugin outdated` now reports a plugin closed on WordPress.org as `closed` and exits non-zero, instead of listing it as unknown.
+- 692ccc0: `lps plugin push --force` now leaves a taken-over plugin in the state `loopress.json` asks for in a single push (an inactive plugin pinned with a version string is activated), and activates the folder Composer installed. When the plugin it replaces lives outside that folder, such as core's `hello.php` for `hello-dolly`, the old copy is deleted instead of staying next to the new one. A plugin pin object with an unknown key (`{"version": "1.0", "activate": false}`) is now reported by `lps validate`, with a hint for a likely typo, and refused by `lps plugin push`.
+- 5ef8768: Single-resource commands (`lps hook push`, `lps acf list`, `lps block pull`, ...) now read the site capabilities first. On a site that can't hold the resource, such as hooks on Loopress Light, they print the same "Not supported by this site" message as `lps push`, with how to fix it, instead of a raw 404.
+- 498437b: On Windows, `snippet push` and `form push` now retry the file rename a few times when an editor or antivirus briefly holds the file (EPERM/EBUSY). Option names that Windows reserves as device names (`CON`, `NUL`, `COM1`...) are now rejected with a clear error by `option add` and `lps validate`.
+
 ## 0.34.0
 
 ### Minor Changes
