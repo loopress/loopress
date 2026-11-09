@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Loopress\Tests\Unit;
 
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 use FilesystemIterator;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -22,6 +24,7 @@ class UninstallTest extends TestCase
         // during the 6th QA pass (DELETE wp/v2/plugins returned a clean 200 instead of the
         // fatal `Failed opening required '.../vendor/autoload.php'` seen before this fix.
         $dir = $this->makeTempPluginCopy(withVendor: false);
+        $this->expectSiteReportCleanup();
 
         define('WP_UNINSTALL_PLUGIN', true);
 
@@ -39,6 +42,7 @@ class UninstallTest extends TestCase
         $dir = $this->makeTempPluginCopy(withVendor: true);
         $contentDir = $dir . '/wp-content';
         mkdir($contentDir . '/loopress', 0777, true);
+        $this->expectSiteReportCleanup();
 
         define('WP_CONTENT_DIR', $contentDir);
         define('WP_UNINSTALL_PLUGIN', true);
@@ -48,6 +52,21 @@ class UninstallTest extends TestCase
         $this->assertSame([$contentDir . '/loopress/'], \Symfony\Component\Filesystem\Filesystem::$removed); // @phpstan-ignore staticProperty.notFound (the fake Filesystem loaded below, not Symfony's)
 
         $this->removeDirRecursive($dir);
+    }
+
+    private function expectSiteReportCleanup(): void
+    {
+        Monkey\setUp();
+        Functions\when('is_multisite')->justReturn(false);
+        Functions\expect('delete_option')->once()->with('loopress_site_token');
+        Functions\expect('delete_option')->once()->with('loopress_site_token_url');
+        Functions\expect('wp_clear_scheduled_hook')->once()->with('loopress_site_report');
+    }
+
+    protected function tearDown(): void
+    {
+        Monkey\tearDown();
+        parent::tearDown();
     }
 
     private function makeTempPluginCopy(bool $withVendor): string

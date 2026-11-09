@@ -47,6 +47,7 @@
                 <directory name="src/Form/RestApi" />
                 <directory name="src/Sentry/RestApi" />
                 <directory name="src/Settings/RestApi" />
+                <directory name="src/SiteReport/RestApi" />
                 <!-- PagesController's endpoints are invoked by register_rest_route(), and
                      PageFilters' public methods by add_filter(), same untraceable shape. -->
                 <directory name="src/Pages/RestApi" />
@@ -282,6 +283,8 @@
                 <file name="src/Snippets/Service/SnippetService.php" />
                 <file name="src/Update/Infrastructure/GithubReleaseChecker.php" />
                 <file name="src/Update/Infrastructure/UsagePing.php" />
+                <!-- Stubbed in SiteTokenControllerTest. -->
+                <file name="src/SiteReport/Service/ReportPayload.php" />
             </errorLevel>
         </ClassMustBeFinal>
 
@@ -313,6 +316,7 @@
                 <file name="src/Snippets/Feature.php" />
                 <file name="src/Sentry/Feature.php" />
                 <file name="src/Settings/Feature.php" />
+                <file name="src/SiteReport/Feature.php" />
                 <file name="src/Api/Feature.php" />
                 <file name="src/Hooks/Feature.php" />
                 <file name="src/Blocks/Feature.php" />
