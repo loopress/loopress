@@ -309,6 +309,18 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     expect(setEnvironment).toHaveBeenCalledWith('id-acme', 'production', rotated)
   })
 
+  it('prints the CI refresh hint after a rotation, and not otherwise', async () => {
+    const log = vi.spyOn(LoopressCommand.prototype, 'log').mockImplementation(() => {})
+    useActiveEnv(makeEnv('production', 'https://acme.com'))
+    await initWith([])
+    expect(log).not.toHaveBeenCalled()
+
+    useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
+    vi.mocked(rotateAppPassword).mockResolvedValue(makeEnv('production', 'https://acme.com', 'user:new-pass'))
+    await initWith([])
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("lps project export --env 'production'"))
+  })
+
   it('does not rotate during --dry-run', async () => {
     useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
 

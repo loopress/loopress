@@ -134,6 +134,17 @@ export abstract class LoopressCommand extends Command {
     await this.assertSiteSupportsResource()
   }
 
+  // Rotation revokes the old app password, so a copy stored as a CI secret now gets a 401.
+  protected logCiRefreshHint(envName: string): void {
+    const escaped = envName.replaceAll("'", String.raw`'\''`)
+    const name = `'${escaped}'`
+    const capture = `cfg=$(lps project export --env ${name})`
+    const message = `The CI copy of the "${envName}" credentials is now revoked. Refresh it: \`${capture} && gh secret set LOOPRESS_CONFIG --body "$cfg"\` (GitLab: \`${capture} && glab variable update LOOPRESS_CONFIG "$cfg" --type file\`).`
+    // oclif mutes this.log under --json, and MCP always passes --json: stderr keeps the notice visible.
+    if (this.jsonEnabled()) process.stderr.write(`${message}\n`)
+    else this.log(message)
+  }
+
   // Silent, best-effort: a stale app password still works, so a failed rotation attempt
   // (offline, site down) just tries again on the next command instead of blocking this one.
   // `dryRun` is excluded since rotating writes a new credential, a real side effect a
@@ -161,6 +172,7 @@ export abstract class LoopressCommand extends Command {
       const rotated = await rotateAppPassword({...this.siteConfig, token})
       this.siteConfig = rotated
       configManager.setEnvironment(this.projectId, rotated.name, rotated)
+      this.logCiRefreshHint(rotated.name)
     } catch {
       // swallowed: see comment above
     }

@@ -40,6 +40,7 @@ describe('project rotate', () => {
     expect(rotateAppPassword).toHaveBeenCalledWith(expect.objectContaining({token: 'user:pass', url: 'https://acme.com'}))
     expect(setEnvironment).toHaveBeenCalledWith('id-acme', 'production', rotated)
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('✓'))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining("lps project export --env 'production'"))
   })
 
   it('errors when the environment has no credentials configured', async () => {

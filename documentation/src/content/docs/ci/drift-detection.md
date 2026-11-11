@@ -29,7 +29,7 @@ A resource that could not be compared carries an `error` string.
 ## Setup
 
 1. Configure the project once on your machine (`lps project config`).
-2. Store your `config.json` (`$XDG_CONFIG_HOME/loopress/config.json`, or `~/.config/loopress/config.json`) as a repository secret named `LOOPRESS_CONFIG`.
+2. Store the export of the environment as a repository secret named `LOOPRESS_CONFIG`: `cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"`. It holds only that one environment's credentials, not your whole `config.json`. See [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
 3. Store the webhook URL (Slack, Discord, or any endpoint accepting JSON) as a secret named `DRIFT_WEBHOOK_URL`.
 4. Add the workflow below to `.github/workflows/drift.yml`.
 
@@ -100,7 +100,7 @@ Instead of (or next to) a webhook, the job can send each result to your Loopress
 
 1. Create a token in the console and store it as a repository secret named `LOOPRESS_TOKEN`.
 2. Make sure the environment's URL in the console matches the `url` in your site credentials: the report is attached to the environment with that exact URL.
-3. Store `config.json` as `LOOPRESS_CONFIG`, as above.
+3. Store the export as `LOOPRESS_CONFIG`, as above (`cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"`).
 
 ```yaml
 name: Drift detection

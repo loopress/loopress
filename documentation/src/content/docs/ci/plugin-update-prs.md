@@ -105,7 +105,7 @@ The branch is reused from one week to the next, so an unmerged pull request is r
 
 ## Site credentials
 
-The job needs no secret: `loopress/setup-ci` creates a disposable site and its credentials every run. If you also want the workflow to read from a real site (for example `lps plugin status --env production`), restore your configuration from a `LOOPRESS_CONFIG` secret exactly as in [Drift detection](/ci/drift-detection/#setup), before the update step.
+The job needs no secret: `loopress/setup-ci` creates a disposable site and its credentials every run. If you also want the workflow to read from a real site (for example `lps plugin status --env production`), store `cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"` and restore it exactly as in [Drift detection](/ci/drift-detection/#setup), before the update step.
 
 ## Variations
 
