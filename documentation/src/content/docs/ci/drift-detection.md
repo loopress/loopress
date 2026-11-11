@@ -137,10 +137,6 @@ jobs:
 
 Reporting is best effort: it never changes the exit code nor the `--json` output, and a failure to reach Loopress is silent. The exit code still fails the job on drift (`1`) or when the comparison is inconclusive (`2`); add `|| true` to the command if you only want the console to show the result. The report sends the site URL, status, and exit code, plus the resource, ID, and kind of change (added, changed, removed) for each item. It never sends the content of the diff.
 
-## Guard a deploy
-
-Drift detection is most useful right before `lps push`. A push from CI has no previous snapshot, so it overwrites wp-admin edits without warning. Run `lps diff --env production` first and fail the job on exit code `1` (the edit would be overwritten: `lps pull --env production` it into the repository first), also stop on `2` (inconclusive), then keep a `lps diff` after the push to verify. See [GitHub Actions](/ci/github-actions/#guard-against-wp-admin-edits-before-a-deploy) for the full job.
-
 ## Preview a pull request
 
 `lps diff --env production --json` on a pull request previews tracked resource changes, with no secret beyond `LOOPRESS_CONFIG`. It excludes plugins declared in `loopress.json`: without a `composer.json`, run `lps plugin status --env production` to check plugin drift (floating versions can still update on push). See [GitHub Actions](/ci/github-actions/#preview-what-a-pull-request-will-change).

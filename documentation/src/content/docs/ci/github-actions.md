@@ -92,43 +92,6 @@ jobs:
           LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
 ```
 
-## Guard against wp-admin edits before a deploy
-
-A push from CI has no previous snapshot, so `lps push` cannot tell that someone edited the site in wp-admin since your last deploy: the edit is overwritten silently. Run `lps diff` before the push to catch it, and again after to verify the result:
-
-```yaml
-  deploy:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install -g @loopress/cli
-      - name: Restore site credentials
-        env:
-          LOOPRESS_CONFIG: ${{ secrets.LOOPRESS_CONFIG }}
-        run: |
-          mkdir -p ~/.config/loopress
-          printf '%s' "$LOOPRESS_CONFIG" > ~/.config/loopress/config.json
-
-      - name: Check production for edits made outside the repository
-        run: |
-          set +e
-          lps diff --env production
-          code=$?
-          if [ "$code" = "1" ]; then
-            echo "::error::A wp-admin edit would be overwritten. Run lps pull --env production and commit it first."
-            exit 1
-          elif [ "$code" = "2" ]; then
-            echo "::error::Drift check inconclusive, not deploying."
-            exit 1
-          fi
-
-      - run: lps push --env production --yes
-      - run: lps diff --env production
-```
-
-Exit code `1` means production differs from your files: pull the edit into the repository (`lps pull --env production`), commit it, then deploy. Exit code `2` means a resource could not be compared, so the job stops too rather than risk overwriting an edit. See [Drift detection](/ci/drift-detection/) for the report format.
-
 ## Preview what a pull request will change
 
 On a pull request, `lps diff` previews tracked resource changes on an environment, so a reviewer sees more than file diffs. The preview excludes plugins declared in `loopress.json`; see [Drift detection](/ci/drift-detection/#preview-a-pull-request). The job needs no secret beyond `LOOPRESS_CONFIG`, and it does not post a comment: the summary is in the job log.
