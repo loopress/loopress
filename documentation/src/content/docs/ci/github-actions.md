@@ -116,21 +116,22 @@ A push from CI has no previous snapshot, so `lps push` cannot tell that someone 
           lps diff --env production
           code=$?
           if [ "$code" = "1" ]; then
-            echo "::error::A wp-admin edit would be overwritten. Run lps pull and commit it first."
+            echo "::error::A wp-admin edit would be overwritten. Run lps pull --env production and commit it first."
             exit 1
           elif [ "$code" = "2" ]; then
-            echo "::warning::Drift check inconclusive, deploying anyway."
+            echo "::error::Drift check inconclusive, not deploying."
+            exit 1
           fi
 
       - run: lps push --env production --yes
       - run: lps diff --env production
 ```
 
-Exit code `1` means production differs from your files: pull the edit into the repository (`lps pull`), commit it, then deploy. Exit code `2` means a resource could not be compared, so the job only warns. See [Drift detection](/ci/drift-detection/) for the report format.
+Exit code `1` means production differs from your files: pull the edit into the repository (`lps pull --env production`), commit it, then deploy. Exit code `2` means a resource could not be compared, so the job stops too rather than risk overwriting an edit. See [Drift detection](/ci/drift-detection/) for the report format.
 
 ## Preview what a pull request will change
 
-On a pull request, `lps diff` shows what a deploy would change on an environment, so a reviewer sees more than file diffs. The job needs no secret beyond `LOOPRESS_CONFIG`, and it does not post a comment: the summary is in the job log.
+On a pull request, `lps diff` previews tracked resource changes on an environment, so a reviewer sees more than file diffs. The preview excludes plugins declared in `loopress.json`; see [Drift detection](/ci/drift-detection/#preview-a-pull-request). The job needs no secret beyond `LOOPRESS_CONFIG`, and it does not post a comment: the summary is in the job log.
 
 ```yaml
 name: Preview

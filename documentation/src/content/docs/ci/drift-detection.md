@@ -139,11 +139,11 @@ Reporting is best effort: it never changes the exit code nor the `--json` output
 
 ## Guard a deploy
 
-Drift detection is most useful right before `lps push`. A push from CI has no previous snapshot, so it overwrites wp-admin edits without warning. Run `lps diff --env production` first and fail the job on exit code `1` (the edit would be overwritten: `lps pull` it into the repository first), only warn on `2` (inconclusive), then keep a `lps diff` after the push to verify. See [GitHub Actions](/ci/github-actions/#guard-against-wp-admin-edits-before-a-deploy) for the full job.
+Drift detection is most useful right before `lps push`. A push from CI has no previous snapshot, so it overwrites wp-admin edits without warning. Run `lps diff --env production` first and fail the job on exit code `1` (the edit would be overwritten: `lps pull --env production` it into the repository first), also stop on `2` (inconclusive), then keep a `lps diff` after the push to verify. See [GitHub Actions](/ci/github-actions/#guard-against-wp-admin-edits-before-a-deploy) for the full job.
 
 ## Preview a pull request
 
-`lps diff --env production --json` on a pull request prints what a deploy would change, with no secret beyond `LOOPRESS_CONFIG`. See [GitHub Actions](/ci/github-actions/#preview-what-a-pull-request-will-change).
+`lps diff --env production --json` on a pull request previews tracked resource changes, with no secret beyond `LOOPRESS_CONFIG`. It excludes plugins declared in `loopress.json`: without a `composer.json`, run `lps plugin status --env production` to check plugin drift (floating versions can still update on push). See [GitHub Actions](/ci/github-actions/#preview-what-a-pull-request-will-change).
 
 ## Variations
 
