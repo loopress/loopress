@@ -74,6 +74,22 @@ describe('PushCommand.recordDeployment()', () => {
     )
   })
 
+  it('sends the subject line of the HEAD commit', async () => {
+    vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+    vi.mocked(execFileSync).mockImplementation(((_cmd: string, args: string[]) => {
+      if (args[0] === 'rev-parse') return 'abc123\n'
+      if (args[0] === 'log') return 'feat: add the order form\n'
+      return ''
+    }) as never)
+
+    await new TestPush([], {} as never).testRecordDeployment('success')
+
+    expect(got.post).toHaveBeenCalledWith(
+      `${API_URL}/deployments`,
+      expect.objectContaining({json: expect.objectContaining({commit: 'abc123', commitSubject: 'feat: add the order form'})}),
+    )
+  })
+
   it('flags a dirty working tree', async () => {
     vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
     vi.mocked(execFileSync).mockImplementation(((_cmd: string, args: string[]) => (args[0] === 'rev-parse' ? 'abc123\n' : ' M style.css\n')) as never)
@@ -94,6 +110,7 @@ describe('PushCommand.recordDeployment()', () => {
     const [, options] = vi.mocked(got.post).mock.calls[0] as unknown as [string, {json: Record<string, unknown>}]
     expect(options.json).not.toHaveProperty('commit')
     expect(options.json).not.toHaveProperty('dirty')
+    expect(options.json).not.toHaveProperty('commitSubject')
   })
 
   it('sends the plugins of loopress.json after a plugin:push', async () => {

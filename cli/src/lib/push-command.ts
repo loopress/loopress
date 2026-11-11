@@ -21,15 +21,17 @@ import {type ResourceStateProvider} from './resource-state.js'
 import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
 
-// The Git state the deployment record carries: the HEAD commit and whether the working tree has
-// uncommitted changes. Empty outside a Git repository (or without git), so nothing is sent then.
-function gitState(): {commit?: string; dirty?: boolean} {
+// The Git state the deployment record carries: the HEAD commit, its subject line and whether the
+// working tree has uncommitted changes. Empty outside a Git repository (or without git), so nothing is sent then.
+function gitState(): {commit?: string; commitSubject?: string; dirty?: boolean} {
   try {
     // eslint-disable-next-line sonarjs/no-os-command-from-path -- git is resolved from PATH like in every dev tool
     const git = (args: string[]) => execFileSync('git', args, {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000}).trim()
     const commit = git(['rev-parse', 'HEAD'])
     if (!commit) return {}
-    return {commit, dirty: git(['status', '--porcelain', '--untracked-files=normal']) !== ''}
+    // The api caps the subject at 255 characters and rejects the whole record above it.
+    const commitSubject = git(['log', '-1', '--format=%s']).slice(0, 255)
+    return {commit, ...(commitSubject && {commitSubject}), dirty: git(['status', '--porcelain', '--untracked-files=normal']) !== ''}
   } catch {
     return {}
   }
