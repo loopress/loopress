@@ -318,7 +318,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     useActiveEnv(makeEnv('production', 'https://acme.com', 'user:pass', STALE_DATE))
     vi.mocked(rotateAppPassword).mockResolvedValue(makeEnv('production', 'https://acme.com', 'user:new-pass'))
     await initWith([])
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('lps project export --env production'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("lps project export --env 'production'"))
   })
 
   it('does not rotate during --dry-run', async () => {

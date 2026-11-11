@@ -20,6 +20,10 @@ export default class Export extends LoopressCommand {
     const project = configManager.getProject(this.projectId)
     if (!project) this.error(`Project "${this.projectId}" not found.`)
 
+    if (!this.siteConfig.token) {
+      this.error(`The "${this.siteConfig.name}" environment has no credentials. Run \`lps project config\` to set them, then export again.`)
+    }
+
     const exported: LoopressConfig = {
       currentProject: {id: this.projectId},
       projects: {[this.projectId]: {...project, environments: {[this.siteConfig.name]: this.siteConfig}}},

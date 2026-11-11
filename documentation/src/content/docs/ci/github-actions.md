@@ -102,7 +102,7 @@ jobs:
           LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
 ```
 
-Store the secret with `lps project export --env production | gh secret set LOOPRESS_CONFIG`; see [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
+Store the secret with `cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"`; see [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
 
 ## Preview what a pull request will change
 

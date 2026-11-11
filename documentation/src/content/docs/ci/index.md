@@ -24,7 +24,7 @@ No token is required to push, locally, in CI, or to a real site. `LOOPRESS_TOKEN
 The ephemeral instance above is for tests. To deploy to a real site (staging, production), provide the project configuration as a CI secret and pick the environment per command with `--env`, instead of fabricating the active-environment state in the config file:
 
 1. Configure the project once on your machine (`lps project config`).
-2. Store the export of the environment as a CI secret named `LOOPRESS_CONFIG`: `lps project export --env production | gh secret set LOOPRESS_CONFIG` (GitLab: `lps project export --env production | glab variable set LOOPRESS_CONFIG --type file`). It holds that one environment only, not the other projects of your machine. Optionally set `LOOPRESS_TOKEN` for the cloud features.
+2. Store the export of the environment as a CI secret named `LOOPRESS_CONFIG`: `cfg=$(lps project export --env staging) && gh secret set LOOPRESS_CONFIG --body "$cfg"` (GitLab: `cfg=$(lps project export --env staging) && glab variable set LOOPRESS_CONFIG "$cfg" --type file --protected`). It holds that one environment only, not the other projects of your machine. Optionally set `LOOPRESS_TOKEN` for the cloud features.
 3. Target the environment explicitly in the pipeline:
 
 ```bash
@@ -36,7 +36,7 @@ lps push --env staging --yes
 
 ### Refreshing the secret
 
-An application password is rotated every 90 days: the next `lps` command on your machine after that rotates it and revokes the old one, so the copy in your CI secret then gets a 401. CI never rotates (its config is thrown away after each job). The CLI prints a reminder when your machine rotates; run the same `lps project export --env <name> | ...` command again to refresh the secret.
+An application password is rotated every 90 days: the next `lps` command on your machine after that rotates it and revokes the old one, so the copy in your CI secret then gets a 401. CI never rotates (its config is thrown away after each job). The CLI prints a reminder when your machine rotates; run the same export command again to refresh the secret (GitLab: `glab variable update LOOPRESS_CONFIG "$cfg" --type file`, with `cfg` captured from `lps project export --env <name>` first; creating the variable again fails).
 
 ## Supported platforms
 

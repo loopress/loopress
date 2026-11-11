@@ -39,8 +39,10 @@ deploy:
 `LOOPRESS_CONFIG` holds one environment's credentials only. Create it from your machine with the `glab` CLI, as a File-type variable:
 
 ```bash
-lps project export --env production | glab variable set LOOPRESS_CONFIG --type file
+cfg=$(lps project export --env production) && glab variable set LOOPRESS_CONFIG "$cfg" --type file --protected
 ```
+
+The variable is protected, so only jobs on protected branches and tags receive it: run the deploy jobs on a protected ref, never on a test branch. To refresh it after a rotation, use `glab variable update LOOPRESS_CONFIG "$cfg" --type file` (`set` only creates).
 
 The application password is rotated every 90 days on your machine, which revokes the stored copy: see [Refreshing the secret](/ci/#refreshing-the-secret).
 

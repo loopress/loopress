@@ -7,7 +7,7 @@ import Export from '../../../src/commands/project/export.js'
 import {configManager, ProjectConfigManager} from '../../../src/config/project-config.manager.js'
 import {type LoopressConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig} from '../../helpers/oclif.js'
-import {makeEnv} from '../../helpers/project-fixtures.js'
+import {makeEnv, withoutToken} from '../../helpers/project-fixtures.js'
 
 vi.mock('../../../src/utils/loopress-config.js', () => ({
   readLocalConfig: vi.fn().mockResolvedValue({projectId: 'acme'}),
@@ -19,7 +19,7 @@ const full: LoopressConfig = {
     acme: {
       addedAt: '2024-01-01T00:00:00.000Z',
       environments: {
-        local: makeEnv('local', 'https://acme.test'),
+        local: withoutToken(makeEnv('local', 'https://acme.test')),
         production: makeEnv('production', 'https://acme.com', 'admin:prod-secret'),
         staging: makeEnv('staging', 'https://staging.acme.com', 'admin:staging-secret'),
       },
@@ -85,6 +85,10 @@ describe('project export', () => {
 
   it('errors with the list of environments for an unknown one', async () => {
     await expect(exported(['--env', 'nope'])).rejects.toThrow(/Available: local, production, staging/)
+  })
+
+  it('refuses an environment without credentials', async () => {
+    await expect(exported(['--env', 'local'])).rejects.toThrow(/no credentials.*lps project config/)
   })
 
   it('requires --env', async () => {

@@ -41,8 +41,8 @@ If Loopress Full isn't active on the site yet, `project config` then offers to i
 `lps project export --env <name>` prints to stdout a `config.json` holding only the current project (from `loopress.json`) and that one environment: no other project, no telemetry setting. It has the same format as the real file, so a CI job restores it unchanged. Pipe it straight into your CI secret store:
 
 ```bash
-lps project export --env production | gh secret set LOOPRESS_CONFIG
-lps project export --env production | glab variable set LOOPRESS_CONFIG --type file
+cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"
+cfg=$(lps project export --env production) && glab variable set LOOPRESS_CONFIG "$cfg" --type file --protected
 ```
 
 The output is a credential: when stdout is a terminal, the command warns on stderr. An unknown environment, or no project, is an error that lists the available environments. The command is not exposed as an MCP tool. After `lps project rotate` (or an automatic rotation), the CI copy is revoked, export it again. See [CI/CD integration](/ci/#refreshing-the-secret).
