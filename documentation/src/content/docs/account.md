@@ -23,12 +23,12 @@ Both commands require being logged in.
 
 | Command | Description |
 |---------|-------------|
-| `lps project push` | Create a matching project and environment on your Loopress account for each one configured locally, then push the WordPress Application Password as that environment's credentials. Run it again after adding projects or environments: it only creates what's missing and always refreshes credentials. |
-| `lps project pull` | Fetch the projects and environments already on your account and add the ones not configured locally yet. Useful when setting up a new machine. |
+| `lps project link` | Create a matching project and environment on your Loopress account for each one configured locally, or link to the one already there, and remember the ids locally. Your WordPress Application Passwords never leave your machine. Run it again after adding projects or environments: it only creates what's missing. `lps project config` offers the same step when you are logged in. |
+| `lps project import` | Fetch the projects and environments already on your account and add the ones not configured locally yet. Useful when setting up a new machine. The account holds no Application Password, so run `lps project config` for each imported environment. |
 
 ## Deployment history
 
-When a token is available, each real push is reported to the console (target URL and success or failure), and `lps api push` reports the list of deployed routes. Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash, its subject line and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push.
+When a token is available, each real push is reported to the console (target URL and success or failure). Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash, its subject line and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push. The account matches the target URL against the environments of your projects: when none matches, the CLI prints a one-line warning and tells you to run `lps project link`. `lps diff` drift reports follow the same rule.
 
 A full `lps push` sends a single record, with command `push` and a `steps` list: each step (`acf:push`, `option:push`...) with its status, pushed, skipped or failed, in push order. When a step fails the record is sent with a failure status, ending at that step. A resource pushed alone (`lps acf push`) keeps its own record, without steps. The console is contacted once per `lps push`, with a 3-second timeout.
 

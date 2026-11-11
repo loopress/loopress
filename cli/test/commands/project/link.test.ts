@@ -1,7 +1,7 @@
 import {confirm} from '@inquirer/prompts'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Push from '../../../src/commands/project/push.js'
+import Link from '../../../src/commands/project/link.js'
 import {authManager} from '../../../src/config/auth.manager.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {ApiClient} from '../../../src/lib/api-client.js'
@@ -35,8 +35,8 @@ vi.mock('listr2', async () => {
   return createListrMock()
 })
 
-function make(): Push {
-  return new Push([], fakeOclifConfig)
+function make(): Link {
+  return new Link([], fakeOclifConfig)
 }
 
 // push.ts never reads `project.environments` directly, it calls the separately mocked
@@ -50,7 +50,7 @@ function linkedProject(id: string, name: string, apiProjectId: string, isCurrent
   return {...project(id, name, isCurrent), apiProjectId}
 }
 
-describe('project push', () => {
+describe('project link', () => {
   beforeEach(() => {
     resetListrInstances()
     interactive.value = true
@@ -84,7 +84,7 @@ describe('project push', () => {
     get.mockResolvedValue([{environments: [], id: 'api-project-1', name: 'Acme', slug: 'acme'}])
     const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
 
-    const cmd = new Push(['--yes'], fakeOclifConfig)
+    const cmd = new Link(['--yes'], fakeOclifConfig)
     silenceLogs(cmd)
     await cmd.run()
 
@@ -118,7 +118,6 @@ describe('project push', () => {
       {...makeListedEnv('production', 'https://acme.com'), token: 'admin:app-pass'},
     ])
     post.mockResolvedValueOnce({id: 'api-project-1'}).mockResolvedValueOnce({id: 'api-env-1'})
-    put.mockResolvedValueOnce(undefined)
     const setProjectApiId = vi.spyOn(configManager, 'setProjectApiId').mockImplementation(() => {})
     const setEnvironmentApiId = vi.spyOn(configManager, 'setEnvironmentApiId').mockImplementation(() => {})
 
@@ -133,16 +132,13 @@ describe('project push', () => {
       name: 'production',
       url: 'https://acme.com',
     })
-    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-1/credentials', {
-      password: 'app-pass',
-      username: 'admin',
-    })
+    expect(put).not.toHaveBeenCalled()
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'production', 'api-env-1')
-    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
+    expect(log).toHaveBeenCalledWith('\n✓ Linked 1 project, 1 environment to your Loopress account')
   })
 
-  it('reuses existing api ids and only pushes credentials when already pushed', async () => {
+  it('reuses existing api ids and sends nothing when already linked', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
@@ -155,29 +151,9 @@ describe('project push', () => {
     await cmd.run()
 
     expect(post).not.toHaveBeenCalled()
-    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-1/credentials', {
-      password: 'pass',
-      username: 'admin',
-    })
+    expect(put).not.toHaveBeenCalled()
   })
 
-  it('splits a password containing colons on the first colon only', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1', token: 'admin:xxxx:yyyy:zzzz'},
-    ])
-
-    const cmd = make()
-    silenceLogs(cmd)
-    await cmd.run()
-
-    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-1/credentials', {
-      password: 'xxxx:yyyy:zzzz',
-      username: 'admin',
-    })
-  })
 
   it('continues pushing other projects when one project fails to push', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
@@ -194,23 +170,9 @@ describe('project push', () => {
 
     expect(setProjectApiId).not.toHaveBeenCalledWith('id-acme', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-beta', 'api-project-2')
-    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 0 environments to your Loopress account')
+    expect(log).toHaveBeenCalledWith('\n✓ Linked 1 project, 0 environments to your Loopress account')
   })
 
-  it('does not push credentials when the environment has no token', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      withoutToken({...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1'}),
-    ])
-
-    const cmd = make()
-    silenceLogs(cmd)
-    await cmd.run()
-
-    expect(put).not.toHaveBeenCalled()
-  })
 
   it('offers to link when a project with the same slug already exists on the API, and links when confirmed', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([project('id-acme', 'Acme', true)])
@@ -229,7 +191,7 @@ describe('project push', () => {
     })
     expect(post).not.toHaveBeenCalledWith('projects', expect.anything())
     expect(setProjectApiId).toHaveBeenCalledWith('id-acme', 'api-project-1')
-    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 0 environments to your Loopress account')
+    expect(log).toHaveBeenCalledWith('\n✓ Linked 1 project, 0 environments to your Loopress account')
   })
 
   it('creates a new project when the user declines linking to an existing match', async () => {
@@ -267,10 +229,7 @@ describe('project push', () => {
 
     expect(post).not.toHaveBeenCalled()
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'production', 'api-env-1')
-    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-1/credentials', {
-      password: 'pass',
-      username: 'admin',
-    })
+    expect(put).not.toHaveBeenCalled()
   })
 
   it('falls back to an empty list and warns when fetching existing projects fails', async () => {
@@ -399,7 +358,7 @@ describe('project push', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pushed 2 projects, 2 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Linked 2 projects, 2 environments'))
   })
 
   it('continues applying other environments when one environment fails to push, and reports the failure output', async () => {
@@ -419,25 +378,10 @@ describe('project push', () => {
 
     expect(setEnvironmentApiId).toHaveBeenCalledTimes(1)
     expect(setEnvironmentApiId).toHaveBeenCalledWith('id-acme', 'staging', 'api-env-2')
-    expect(outputsOf(0)).toEqual(['Failed to push "production": quota exceeded', 'Created on the API'])
-    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
+    expect(outputsOf(0)).toEqual(['Failed to link "production": quota exceeded', 'Created on the API'])
+    expect(log).toHaveBeenCalledWith('\n✓ Linked 1 project, 1 environment to your Loopress account')
   })
 
-  it('warns with the project and environment name when pushing credentials fails', async () => {
-    vi.spyOn(configManager, 'listProjects').mockReturnValue([
-      linkedProject('id-acme', 'acme', 'api-project-1', true),
-    ])
-    vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {...makeListedEnv('production', 'https://acme.com'), apiEnvironmentId: 'api-env-1', token: 'admin:pass'},
-    ])
-    put.mockRejectedValueOnce(new Error('invalid credentials'))
-
-    const cmd = make()
-    const {warn} = silenceLogs(cmd)
-    await cmd.run()
-
-    expect(warn).toHaveBeenCalledWith('Failed to push "acme/production": invalid credentials')
-  })
 
   it('does not construct a project or environment Listr when everything is already pushed', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
@@ -452,7 +396,7 @@ describe('project push', () => {
     await cmd.run()
 
     expect(listrInstances).toHaveLength(0)
-    expect(log).toHaveBeenCalledWith('\n✓ Pushed 1 project, 1 environment to your Loopress account')
+    expect(log).toHaveBeenCalledWith('\n✓ Linked 1 project, 1 environment to your Loopress account')
   })
 
   it('throws and reports the failure when the API creates a project without returning an id', async () => {
@@ -464,7 +408,7 @@ describe('project push', () => {
     silenceLogs(cmd)
     await cmd.run()
 
-    expect(outputsOf(0)).toEqual(['Failed to push project "acme": No API project id resolved for "acme" (action: create)'])
+    expect(outputsOf(0)).toEqual(['Failed to link project "acme": No API project id resolved for "acme" (action: create)'])
   })
 
   it('throws and reports the failure when the API creates an environment without returning an id', async () => {
@@ -481,7 +425,7 @@ describe('project push', () => {
     await cmd.run()
 
     expect(outputsOf(0)).toEqual([
-      'Failed to push "production": No API environment id resolved for "production" (action: create)',
+      'Failed to link "production": No API environment id resolved for "production" (action: create)',
     ])
   })
 
@@ -552,7 +496,7 @@ describe('project push', () => {
     expect(put).not.toHaveBeenCalled()
   })
 
-  it('does not push credentials for an environment that failed to be created on the API', async () => {
+  it('never calls a credentials route, even for environments created on the API', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([
       linkedProject('id-acme', 'acme', 'api-project-1', true),
     ])
@@ -566,10 +510,6 @@ describe('project push', () => {
     silenceLogs(cmd)
     await cmd.run()
 
-    expect(put).toHaveBeenCalledTimes(1)
-    expect(put).toHaveBeenCalledWith('projects/api-project-1/environments/api-env-2/credentials', {
-      password: 'pass',
-      username: 'admin',
-    })
+    expect(put).not.toHaveBeenCalled()
   })
 })

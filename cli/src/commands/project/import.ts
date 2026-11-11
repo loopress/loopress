@@ -24,12 +24,12 @@ type ApiProject = {
   slug: string
 }
 
-export default class Pull extends Command {
-  static override description = 'Pull projects and environments from your Loopress account that are not configured locally yet'
-  static override examples = ['$ lps project pull']
+export default class Import extends Command {
+  static override description = 'Import projects and environments from your Loopress account that are not configured locally yet'
+  static override examples = ['$ lps project import']
 
   async run(): Promise<void> {
-    await this.parse(Pull)
+    await this.parse(Import)
 
     const token = authManager.getAuth()?.token
     if (!token) {
@@ -55,11 +55,11 @@ export default class Pull extends Command {
         await new Listr(
           newApiProjects.map((apiProject) => ({
             task: (_ctx, task) => {
-              this.pullProject(apiProject, task)
+              this.importProject(apiProject, task)
               projectCount++
               environmentCount += apiProject.environments.length
             },
-            title: `Pull project "${apiProject.name}" from the API`,
+            title: `Import project "${apiProject.name}" from the API`,
           })),
           {concurrent: false, exitOnError: false},
         ).run()
@@ -67,8 +67,12 @@ export default class Pull extends Command {
     }
 
     this.log(
-      `\n✓ Pulled ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} from your Loopress account`,
+      `\n✓ Imported ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} from your Loopress account`,
     )
+
+    if (environmentCount > 0) {
+      this.log('Imported environments hold no app password, the cloud stores none. Run `lps project config` for each one.')
+    }
   }
 
   private async fetchApiProjects(api: ApiClient): Promise<ApiProject[]> {
@@ -80,9 +84,9 @@ export default class Pull extends Command {
   }
 
   // Reuse a local project already linked to this API project instead of always minting a new
-  // one: otherwise every pull that can't "claim" an existing link (e.g. after the local config
+  // one: otherwise every import that can't "claim" an existing link (e.g. after the local config
   // was reset or desynced from the API) creates yet another duplicate entry.
-  private pullProject(apiProject: ApiProject, task?: {output: string}): void {
+  private importProject(apiProject: ApiProject, task?: {output: string}): void {
     const existing = configManager.findProjectByApiId(apiProject.id)
     const environments: Record<string, EnvironmentConfig> = {...existing?.environments}
 
@@ -104,6 +108,6 @@ export default class Pull extends Command {
     })
 
     const envCount = apiProject.environments.length
-    if (task) task.output = `Pulled with ${pluralize(envCount, 'environment')}`
+    if (task) task.output = `Imported with ${pluralize(envCount, 'environment')}`
   }
 }

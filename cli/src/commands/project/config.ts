@@ -1,6 +1,7 @@
 import {confirm, input, password as passwordPrompt, select} from '@inquirer/prompts'
 import {Command} from '@oclif/core'
 
+import {authManager} from '../../config/auth.manager.js'
 import {configManager} from '../../config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../lib/bootstrap-full-install.js'
 import {isInteractive} from '../../lib/interactive.js'
@@ -13,6 +14,7 @@ import {isLocalEnvironment, WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {pluralize} from '../../utils/pluralize.js'
+import Link from './link.js'
 
 const NEW_PROJECT = '__new__'
 const AUTH_BROWSER = 'browser'
@@ -98,6 +100,7 @@ export default class Config extends Command {
 
     const env: EnvironmentConfig = {
       addedAt: new Date().toISOString(),
+      ...(existingEnv?.apiEnvironmentId && {apiEnvironmentId: existingEnv.apiEnvironmentId}),
       name: envName,
       token,
       url,
@@ -117,6 +120,7 @@ export default class Config extends Command {
     this.log(`✓ "${projectName}/${envName}" configured`)
 
     await this.maybeBootstrapLoopressFull(env)
+    await this.maybeLink(projectId, envName)
   }
 
   private async maybeBootstrapLoopressFull(env: EnvironmentConfig): Promise<void> {
@@ -149,6 +153,24 @@ export default class Config extends Command {
           this.log(message)
         }),
       )
+    } catch (error) {
+      this.warn(errorMessage(error))
+    }
+  }
+
+  private async maybeLink(projectId: string, envName: string): Promise<void> {
+    if (!isInteractive() || !authManager.getAuth()?.token) return
+
+    const isLinked =
+      Boolean(configManager.getProject(projectId)?.apiProjectId) &&
+      Boolean(configManager.getEnvironment(projectId, envName)?.apiEnvironmentId)
+    if (isLinked) return
+
+    const isProceed = await confirm({default: true, message: 'Link it to your Loopress account?'})
+    if (!isProceed) return
+
+    try {
+      await new Link([], this.config).linkProjects(projectId)
     } catch (error) {
       this.warn(errorMessage(error))
     }

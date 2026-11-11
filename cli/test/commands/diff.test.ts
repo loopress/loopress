@@ -1,3 +1,4 @@
+import {ux} from '@oclif/core'
 import got from 'got'
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -416,6 +417,20 @@ describe('diff', () => {
         status: 'drift',
         url: 'https://staging.acme.com',
       })
+    })
+
+    it('warns with the link hint on a 404, and stays silent on a 500', async () => {
+      process.env.LOOPRESS_TOKEN = 'tok'
+      const warn = vi.spyOn(ux, 'warn').mockImplementation(() => {})
+      post.mockRejectedValueOnce(Object.assign(new Error('Not Found'), {response: {statusCode: 404}}))
+      await make([], baselineGet()).cmd.run()
+      expect(warn).toHaveBeenCalledOnce()
+      expect(warn.mock.calls[0]?.[0]).toContain('lps project link')
+
+      warn.mockClear()
+      post.mockRejectedValueOnce(Object.assign(new Error('boom'), {response: {statusCode: 500}}))
+      await make([], baselineGet()).cmd.run()
+      expect(warn).not.toHaveBeenCalled()
     })
 
     it('sends a clean report with no items', async () => {

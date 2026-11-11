@@ -20,6 +20,7 @@ import {errorMessage} from './narrow.js'
 import {type ResourceStateProvider} from './resource-state.js'
 import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
+import {warnIfUnlinked} from './unlinked-report.js'
 
 // The Git state the deployment record carries: the HEAD commit, its subject line and whether the
 // working tree has uncommitted changes. Empty outside a Git repository (or without git), so nothing is sent then.
@@ -66,8 +67,9 @@ export async function postDeployment(body: {command: string | undefined; plugins
         timeout: {request: 3000},
       }),
     )
-  } catch {
-    // non-blocking
+  } catch (error) {
+    // non-blocking, but an unlinked site is worth a hint
+    warnIfUnlinked(error, body.url)
   }
 }
 

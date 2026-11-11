@@ -13,6 +13,7 @@ import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type S
 import {hasExclusions, isExcluded, withoutExclusions} from './exclude.js'
 import {errorMessage} from './narrow.js'
 import {composerLocalState, composerRemoteState, getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
+import {warnIfUnlinked} from './unlinked-report.js'
 import {WpClient} from './wp-client.js'
 
 const c = ux.colorize
@@ -200,7 +201,8 @@ export abstract class DiffCommand extends LoopressCommand {
         json: {exitCode: process.exitCode ?? 0, items, status, url: this.siteConfig.url},
         timeout: {request: 3000},
       })
-    } catch {
+    } catch (error) {
+      warnIfUnlinked(error, this.siteConfig.url)
       // non-blocking: reporting must never change the diff's outcome
     }
   }

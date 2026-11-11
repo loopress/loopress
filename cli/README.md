@@ -104,9 +104,9 @@ report.
 * [`lps plugin push`](#lps-plugin-push)
 * [`lps plugin status`](#lps-plugin-status)
 * [`lps project config`](#lps-project-config)
+* [`lps project import`](#lps-project-import)
+* [`lps project link`](#lps-project-link)
 * [`lps project list`](#lps-project-list)
-* [`lps project pull`](#lps-project-pull)
-* [`lps project push`](#lps-project-push)
 * [`lps project remove`](#lps-project-remove)
 * [`lps project rotate`](#lps-project-rotate)
 * [`lps project switch`](#lps-project-switch)
@@ -1757,6 +1757,43 @@ EXAMPLES
 
 _See code: [src/commands/project/config.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/config.ts)_
 
+## `lps project import`
+
+Import projects and environments from your Loopress account that are not configured locally yet
+
+```
+USAGE
+  $ lps project import
+
+DESCRIPTION
+  Import projects and environments from your Loopress account that are not configured locally yet
+
+EXAMPLES
+  $ lps project import
+```
+
+_See code: [src/commands/project/import.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/import.ts)_
+
+## `lps project link`
+
+Create or link locally configured projects and environments on your Loopress account
+
+```
+USAGE
+  $ lps project link [-y]
+
+FLAGS
+  -y, --yes  Answer yes to confirmation prompts
+
+DESCRIPTION
+  Create or link locally configured projects and environments on your Loopress account
+
+EXAMPLES
+  $ lps project link
+```
+
+_See code: [src/commands/project/link.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/link.ts)_
+
 ## `lps project list`
 
 List configured WordPress projects
@@ -1776,43 +1813,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/project/list.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/list.ts)_
-
-## `lps project pull`
-
-Pull projects and environments from your Loopress account that are not configured locally yet
-
-```
-USAGE
-  $ lps project pull
-
-DESCRIPTION
-  Pull projects and environments from your Loopress account that are not configured locally yet
-
-EXAMPLES
-  $ lps project pull
-```
-
-_See code: [src/commands/project/pull.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/pull.ts)_
-
-## `lps project push`
-
-Push locally configured projects, environments and credentials to your Loopress account
-
-```
-USAGE
-  $ lps project push [-y]
-
-FLAGS
-  -y, --yes  Answer yes to confirmation prompts
-
-DESCRIPTION
-  Push locally configured projects, environments and credentials to your Loopress account
-
-EXAMPLES
-  $ lps project push
-```
-
-_See code: [src/commands/project/push.ts](https://github.com/loopress/loopress/blob/%40loopress%2Fcli%400.26.0/cli/src/commands/project/push.ts)_
 
 ## `lps project remove`
 

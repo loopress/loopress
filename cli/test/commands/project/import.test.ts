@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
-import Pull from '../../../src/commands/project/pull.js'
+import Import from '../../../src/commands/project/import.js'
 import {authManager} from '../../../src/config/auth.manager.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {ApiClient} from '../../../src/lib/api-client.js'
@@ -21,15 +21,15 @@ vi.mock('listr2', async () => {
   return createListrMock()
 })
 
-function make(): Pull {
-  return new Pull([], fakeOclifConfig)
+function make(): Import {
+  return new Import([], fakeOclifConfig)
 }
 
 function linkedProject(id: string, name: string, apiProjectId: string, isCurrent = false) {
   return {...makeListedProject(id, name, {}, isCurrent), apiProjectId}
 }
 
-describe('project pull', () => {
+describe('project import', () => {
   beforeEach(() => {
     resetListrInstances()
     vi.mocked(ApiClient).mockClear()
@@ -55,7 +55,7 @@ describe('project pull', () => {
     await expect(cmd.run()).rejects.toThrow('Could not fetch projects from the API: network down')
   })
 
-  it('pulls down a project that exists on the API but not locally', async () => {
+  it('imports a project that exists on the API but not locally', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([linkedProject('id-acme', 'acme', 'api-project-1', true)])
     get.mockResolvedValue([
       {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
@@ -90,7 +90,7 @@ describe('project pull', () => {
       },
       name: 'beta',
     })
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pulled 1 project, 1 environment'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Imported 1 project, 1 environment'))
   })
 
   it('reuses a local project already linked to the same API project instead of creating a duplicate', async () => {
@@ -139,7 +139,7 @@ describe('project pull', () => {
     })
   })
 
-  it('titles the pull Listr task with the API project name and reports the pulled environment count', async () => {
+  it('titles the import Listr task with the API project name and reports the imported environment count', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([linkedProject('id-acme', 'acme', 'api-project-1', true)])
     get.mockResolvedValue([
       {environments: [], id: 'api-project-1', name: 'acme', slug: 'acme'},
@@ -161,12 +161,12 @@ describe('project pull', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(titlesOf(0)).toEqual(['Pull project "beta" from the API'])
-    expect(outputsOf(0)).toEqual(['Pulled with 2 environments'])
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pulled 1 project, 2 environments'))
+    expect(titlesOf(0)).toEqual(['Import project "beta" from the API'])
+    expect(outputsOf(0)).toEqual(['Imported with 2 environments'])
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Imported 1 project, 2 environments'))
   })
 
-  it('pulls every API project when nothing is configured locally yet', async () => {
+  it('imports every API project when nothing is configured locally yet', async () => {
     get.mockResolvedValue([
       {
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -183,7 +183,7 @@ describe('project pull', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pulled 1 project, 0 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Imported 1 project, 0 environments'))
   })
 
   it('does not construct a Listr and reports zero when every API project is already linked locally', async () => {
@@ -194,6 +194,22 @@ describe('project pull', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Pulled 0 projects, 0 environments'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Imported 0 projects, 0 environments'))
+  })
+
+  it('reminds that imported environments need an app password, only when something was imported', async () => {
+    get.mockResolvedValue([{createdAt: 'x', environments: [{createdAt: 'x', id: 'e1', name: 'production', url: 'https://b.com'}], id: 'p1', name: 'beta', slug: 'beta'}])
+    vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
+    vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
+    const cmd = make()
+    const {log} = silenceLogs(cmd)
+    await cmd.run()
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('app password'))
+
+    get.mockResolvedValue([])
+    const empty = make()
+    const emptyLogs = silenceLogs(empty)
+    await empty.run()
+    expect(emptyLogs.log).not.toHaveBeenCalledWith(expect.stringContaining('app password'))
   })
 })
