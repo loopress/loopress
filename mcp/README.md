@@ -170,7 +170,7 @@ and `to` picks an older snapshot than the most recent one.
 
 These CLI commands have no tool, on purpose:
 
-- Interactive or credential commands: `init`, `login`, `logout`, `project config`, `project list`, `project switch`, `project rm`, `project rotate`, `project push`, `project pull`, `telemetry enable`, `telemetry disable`. They prompt, or handle credentials and cloud state, which the server never touches.
+- Interactive or credential commands: `init`, `login`, `logout`, `project config`, `project export`, `project list`, `project switch`, `project rm`, `project rotate`, `project push`, `project pull`, `telemetry enable`, `telemetry disable`. They prompt, or handle credentials and cloud state, which the server never touches.
 - Long-running or developer-only commands: `dev` (watch mode) and `sentry-test`.
 - `composer init`, a one-time scaffold best run by hand.
 - Per-resource `<resource> diff` commands, covered by the single `diff` tool and its `only` list.

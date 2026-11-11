@@ -36,6 +36,17 @@ The browser flow talks to your site directly, with no Loopress server in between
 
 If Loopress Full isn't active on the site yet, `project config` then offers to install it for you, after a confirmation prompt: it downloads the latest release, creates a temporary administrator account, uploads and activates the plugin through a headless local browser (Chrome, Edge or Chromium must be installed), then deletes the temporary account. The account is removed even if the install fails or you press Ctrl-C. If the process is killed outright or the network drops before that, Loopress Full removes the leftover account within the hour once it's active, and shows a notice in wp-admin until then. If the install stopped before Full was activated, the next `lps project config` run on the same site removes it, and `lps doctor` reports it until then. This step is independent of the authentication mode. If the automatic install can't complete (some managed hosts block file uploads via `DISALLOW_FILE_MODS`), the command falls back to instructions for a [manual upload](/wordpress-plugin/#installation).
 
+### Exporting an environment for CI
+
+`lps project export --env <name>` prints to stdout a `config.json` holding only the current project (from `loopress.json`) and that one environment: no other project, no telemetry setting. It has the same format as the real file, so a CI job restores it unchanged. Pipe it straight into your CI secret store:
+
+```bash
+lps project export --env production | gh secret set LOOPRESS_CONFIG
+lps project export --env production | glab variable set LOOPRESS_CONFIG --type file
+```
+
+The output is a credential: when stdout is a terminal, the command warns on stderr. An unknown environment, or no project, is an error that lists the available environments. The command is not exposed as an MCP tool. After `lps project rotate` (or an automatic rotation), the CI copy is revoked, export it again. See [CI/CD integration](/ci/#refreshing-the-secret).
+
 ### Where configuration lives
 
 | File | Scope | Holds |

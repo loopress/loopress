@@ -25,6 +25,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 | [`lps project list`](/concepts/#projects-and-environments) | List configured WordPress projects |
 | [`lps project switch`](/concepts/#targeting-an-environment) | Switch the active project |
 | [`lps project rm`](/concepts/#projects-and-environments) | Remove one or more WordPress projects or environments |
+| [`lps project export`](/concepts/#exporting-an-environment-for-ci) | Print a config holding one environment, to store as a CI secret |
 | [`lps project rotate`](/concepts/#projects-and-environments) | Rotate the WordPress Application Password of an environment |
 
 ## Every resource at once

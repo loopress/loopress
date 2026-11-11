@@ -21,5 +21,6 @@ export default class Rotate extends LoopressCommand {
     configManager.setEnvironment(this.projectId, name, rotated)
 
     this.log('✓ New application password created and verified, previous one revoked.')
+    this.logCiRefreshHint(name)
   }
 }

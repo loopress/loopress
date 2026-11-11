@@ -86,11 +86,23 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - run: npm install -g @loopress/cli
-      - run: lps push
+      - name: Restore site credentials
         env:
+          LOOPRESS_CONFIG: ${{ secrets.LOOPRESS_CONFIG }}
+        run: |
+          mkdir -p ~/.config/loopress
+          printf '%s' "$LOOPRESS_CONFIG" > ~/.config/loopress/config.json
+      - run: lps push --env production --yes
+        env:
+          # Optional: only for the cloud features (deployment record)
           LOOPRESS_TOKEN: ${{ secrets.LOOPRESS_TOKEN }}
 ```
+
+Store the secret with `lps project export --env production | gh secret set LOOPRESS_CONFIG`; see [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
 
 ## Preview what a pull request will change
 

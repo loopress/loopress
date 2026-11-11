@@ -101,7 +101,7 @@ jobs:
       - run: lps plugin status --env production
 ```
 
-The credentials come from a secret holding your `config.json`, the same setup as [deploying from CI](/ci/#deploying-to-a-real-environment). `lps diff` never writes anything, so the check itself can't break the site.
+The credentials come from a secret holding the output of `lps project export --env production` (`lps project export --env production | gh secret set LOOPRESS_CONFIG`), the same setup as [deploying from CI](/ci/#deploying-to-a-real-environment). `lps diff` never writes anything, so the check itself can't break the site.
 
 When it goes red, you have three honest options, and the diff tells you which one applies:
 
