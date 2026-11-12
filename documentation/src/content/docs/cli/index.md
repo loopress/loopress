@@ -72,7 +72,7 @@ Every `rm` also answers to `remove` (`lps app remove`, `lps option remove`...), 
 | Command | Description |
 |---------|-------------|
 | [`lps login` / `logout`](/account/#log-in) | Log in to or out of the Loopress console |
-| [`lps project push`](/account/#share-projects-between-machines) | Push local projects, environments and credentials to your Loopress account |
-| [`lps project pull`](/account/#share-projects-between-machines) | Pull projects and environments from your account that aren't configured locally yet |
+| [`lps project link`](/account/#share-projects-between-machines) | Create or link local projects and environments on your Loopress account |
+| [`lps project import`](/account/#share-projects-between-machines) | Import projects and environments from your account that aren't configured locally yet |
 
 Connecting an AI agent instead of a human? The [MCP server](/cli/mcp/) exposes these commands as tool calls.

@@ -35,8 +35,8 @@ export class ProjectConfigManager {
     }
   }
 
-  // Looks up a local project already linked to a given API project. Used by `project pull` to
-  // avoid minting a new local project every time it pulls an API project whose local link was
+  // Looks up a local project already linked to a given API project. Used by `project import` to
+  // avoid minting a new local project every time it imports an API project whose local link was
   // lost (e.g. after a reset or partial config corruption), which otherwise accumulates
   // duplicate entries.
   findProjectByApiId(apiProjectId: string): null | (ProjectConfig & {id: string}) {

@@ -45,25 +45,23 @@ type ProjectPlan = {
   project: ProjectConfig & {id: string}
 }
 
-export default class Push extends Command {
-  static override description = 'Push locally configured projects, environments and credentials to your Loopress account'
-  static override examples = ['$ lps project push']
+export default class Link extends Command {
+  static override description = 'Create or link locally configured projects and environments on your Loopress account'
+  static override examples = ['$ lps project link']
   static override flags = {
     ...LoopressCommand.yesFlag,
   }
 
   private yes = false
 
-  async run(): Promise<void> {
-    const {flags} = await this.parse(Push)
-    this.yes = flags.yes
-
+  // Also used by `lps project config` to link the project it just configured, alone.
+  async linkProjects(onlyProjectId?: string): Promise<void> {
     const token = authManager.getAuth()?.token
     if (!token) {
       this.error('Not logged in. Run `lps login` first.')
     }
 
-    const projects = configManager.listProjects()
+    const projects = configManager.listProjects().filter((project) => onlyProjectId === undefined || project.id === onlyProjectId)
     if (projects.length === 0) {
       this.log('No projects configured. Run `lps project config` first.')
       return
@@ -82,11 +80,16 @@ export default class Push extends Command {
     const envsNeedingWork = this.collectEnvsNeedingWork(projectPlans, envPlansByProject)
     environmentCount += await this.applyEnvironmentPlans(api, envsNeedingWork)
 
-    await this.pushAllCredentials(api, projectPlans, envPlansByProject)
-
     this.log(
-      `\n✓ Pushed ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} to your Loopress account`,
+      `\n✓ Linked ${pluralize(projectCount, 'project')}, ${pluralize(environmentCount, 'environment')} to your Loopress account`,
     )
+  }
+
+  async run(): Promise<void> {
+    const {flags} = await this.parse(Link)
+    this.yes = flags.yes
+
+    await this.linkProjects()
   }
 
   private async applyEnvironment(
@@ -111,7 +114,7 @@ export default class Push extends Command {
       configManager.setEnvironmentApiId(envPlan.projectId, envPlan.env.name, envPlan.apiEnvironmentId)
       if (task) task.output = envPlan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to push "${envPlan.env.name}": ${errorMessage(error)}`
+      const message = `Failed to link "${envPlan.env.name}": ${errorMessage(error)}`
       if (task) task.output = message
       throw error
     }
@@ -157,7 +160,7 @@ export default class Push extends Command {
       configManager.setProjectApiId(plan.project.id, plan.apiProjectId)
       if (task) task.output = plan.action === 'create' ? 'Created on the API' : 'Linked to the API'
     } catch (error) {
-      const message = `Failed to push project "${plan.project.name}": ${errorMessage(error)}`
+      const message = `Failed to link project "${plan.project.name}": ${errorMessage(error)}`
       if (task) task.output = message
       throw error
     }
@@ -303,40 +306,5 @@ export default class Push extends Command {
     }
 
     return {action: 'create', project}
-  }
-
-  private async pushAllCredentials(
-    api: ApiClient,
-    projectPlans: ProjectPlan[],
-    envPlansByProject: Map<string, EnvPlan[]>,
-  ): Promise<void> {
-    for (const plan of projectPlans) {
-      if (!plan.apiProjectId) continue
-
-      for (const envPlan of envPlansByProject.get(plan.project.id) ?? []) {
-        if (!envPlan.apiEnvironmentId || !envPlan.env.token) continue
-
-        try {
-          await this.pushCredentials(api, plan.apiProjectId, envPlan.apiEnvironmentId, envPlan.env)
-        } catch (error) {
-          this.warn(`Failed to push "${plan.project.name}/${envPlan.env.name}": ${errorMessage(error)}`)
-        }
-      }
-    }
-  }
-
-  private async pushCredentials(
-    api: ApiClient,
-    apiProjectId: string,
-    apiEnvironmentId: string,
-    env: EnvironmentConfig,
-  ): Promise<void> {
-    if (!env.token) return
-
-    const [username, ...rest] = env.token.split(':')
-    await api.put(`projects/${apiProjectId}/environments/${apiEnvironmentId}/credentials`, {
-      password: rest.join(':'),
-      username,
-    })
   }
 }

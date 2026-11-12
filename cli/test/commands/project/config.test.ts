@@ -2,6 +2,8 @@ import {confirm, input, password as passwordPrompt, select} from '@inquirer/prom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Config from '../../../src/commands/project/config.js'
+import Link from '../../../src/commands/project/link.js'
+import {authManager} from '../../../src/config/auth.manager.js'
 import {configManager} from '../../../src/config/project-config.manager.js'
 import {bootstrapLoopressFull} from '../../../src/lib/bootstrap-full-install.js'
 import {isLoopressFullActive} from '../../../src/lib/plugin-detection.js'
@@ -18,6 +20,12 @@ vi.mock('@inquirer/prompts', () => ({
   select: vi.fn(),
 }))
 
+const linkProjects = vi.hoisted(() => vi.fn())
+vi.mock('../../../src/commands/project/link.js', () => ({
+  default: vi.fn().mockImplementation(function (this: {linkProjects: typeof linkProjects}) {
+    this.linkProjects = linkProjects
+  }),
+}))
 vi.mock('../../../src/lib/wp-authorize-flow.js', () => ({authorizeWithBrowser: vi.fn()}))
 vi.mock('../../../src/lib/wp-site-diagnostic.js', () => ({diagnoseWpSite: vi.fn()}))
 vi.mock('../../../src/lib/plugin-detection.js', () => ({isLoopressFullActive: vi.fn()}))
@@ -65,6 +73,8 @@ describe('project config', () => {
     // about it; tests that do care override this per-case.
     vi.mocked(isLoopressFullActive).mockResolvedValue(true)
     vi.mocked(sweepTempAdmins).mockResolvedValue([])
+    linkProjects.mockReset().mockResolvedValue(undefined)
+    vi.spyOn(authManager, 'getAuth').mockReturnValue(null)
   })
 
   it('fails immediately with instructions in a non-interactive terminal', async () => {
@@ -679,6 +689,61 @@ describe('project config', () => {
 
       expect(warn).toHaveBeenCalledWith('Failed to remove the temporary admin account "lps-temp-abc"')
       expect(bootstrapLoopressFull).toHaveBeenCalled()
+    })
+  })
+
+  describe('linking to the Loopress account', () => {
+    const LINK = 'Link it to your Loopress account?'
+    const loggedIn = {email: 'a@b.com', savedAt: '2024-01-01', token: 'jwt'}
+
+    it('offers to link a project and environment not linked yet, and links only that project', async () => {
+      setUpNewProject()
+      vi.spyOn(authManager, 'getAuth').mockReturnValue(loggedIn)
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(callByMessage(confirm, LINK)).toMatchObject({default: true})
+      expect(Link).toHaveBeenCalled()
+      expect(linkProjects).toHaveBeenCalledWith('new-id')
+    })
+
+    it('does not link when declined', async () => {
+      setUpNewProject()
+      vi.spyOn(authManager, 'getAuth').mockReturnValue(loggedIn)
+      vi.mocked(confirm).mockResolvedValueOnce(false)
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(linkProjects).not.toHaveBeenCalled()
+    })
+
+    it('does not ask when logged out', async () => {
+      setUpNewProject()
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(confirm).not.toHaveBeenCalledWith(expect.objectContaining({message: LINK}))
+      expect(linkProjects).not.toHaveBeenCalled()
+    })
+
+    it('does not ask when the project and environment are already linked', async () => {
+      setUpNewProject()
+      vi.spyOn(authManager, 'getAuth').mockReturnValue(loggedIn)
+      vi.spyOn(configManager, 'getProject').mockReturnValue({addedAt: 'x', apiProjectId: 'p1', environments: {}, name: 'mon site'})
+      vi.spyOn(configManager, 'getEnvironment').mockReturnValueOnce(null).mockReturnValue({addedAt: 'x', apiEnvironmentId: 'e1', name: 'production', url: 'https://example.com'})
+
+      const cmd = make()
+      silenceLogs(cmd)
+      await cmd.run()
+
+      expect(confirm).not.toHaveBeenCalledWith(expect.objectContaining({message: LINK}))
     })
   })
 })

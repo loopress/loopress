@@ -59,7 +59,7 @@ export default defineConfig([
       // engines floor) lacks parts of ES2025 such as Promise.try and RegExp.escape.
       'unicorn/prefer-iterator-to-array': 'off',
       // Wants a `continue` inside a doubly-nested loop pulled into its own function, even when
-      // (as in project/push.ts) it unambiguously continues the innermost loop.
+      // (as in project/link.ts) it unambiguously continues the innermost loop.
       'unicorn/no-break-in-nested-loop': 'off',
       // xo bans the `null` type outright (fixWith: 'undefined'), but this codebase uses `null`
       // as its established "absent value" sentinel throughout (config fields, lookups, parsed

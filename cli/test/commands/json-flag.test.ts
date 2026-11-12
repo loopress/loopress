@@ -18,8 +18,8 @@ const NOT_WRAPPED_BY_MCP = new Set([
   'project/config',
   // Prints a credential: deliberately not an MCP tool, it would hand the app password to an agent.
   'project/export',
-  'project/pull',
-  'project/push',
+  'project/import',
+  'project/link',
   'project/rm',
   'project/rotate',
   'project/switch',

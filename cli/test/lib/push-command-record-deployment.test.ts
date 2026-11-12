@@ -1,3 +1,4 @@
+import {ux} from '@oclif/core'
 import got from 'got'
 import {execFileSync} from 'node:child_process'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -188,5 +189,29 @@ describe('PushCommand.reportPushToSite()', () => {
     command.id = 'acf:push'
 
     await expect(command.testReport(vi.fn().mockRejectedValue(new Error('404')))).resolves.toBeUndefined()
+  })
+
+  describe('when the account has no environment for the URL', () => {
+    it('warns with the link hint on a 404', async () => {
+      vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+      const warn = vi.spyOn(ux, 'warn').mockImplementation(() => {})
+      vi.mocked(got.post).mockRejectedValueOnce(Object.assign(new Error('Not Found'), {response: {statusCode: 404}}))
+
+      await new TestPush([], {} as never).testRecordDeployment('success')
+
+      expect(warn).toHaveBeenCalledOnce()
+      expect(warn.mock.calls[0]?.[0]).toContain('no environment matches https://acme.com')
+      expect(warn.mock.calls[0]?.[0]).toContain('lps project link')
+    })
+
+    it.each([[500], [undefined]])('stays silent on %s', async (statusCode) => {
+      vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
+      const warn = vi.spyOn(ux, 'warn').mockImplementation(() => {})
+      vi.mocked(got.post).mockRejectedValueOnce(Object.assign(new Error('boom'), statusCode ? {response: {statusCode}} : {}))
+
+      await new TestPush([], {} as never).testRecordDeployment('success')
+
+      expect(warn).not.toHaveBeenCalled()
+    })
   })
 })

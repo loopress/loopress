@@ -4,12 +4,9 @@ import {createHash} from 'node:crypto'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
-import {authManager} from '../config/auth.manager.js'
-import {type EnvironmentConfig} from '../types/config.js'
 import {firstTopLevelSideEffect, startsWithStrictTypes} from '../utils/php-top-level.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
-import {ApiClient} from './api-client.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
 import {isExcluded} from './exclude.js'
@@ -27,9 +24,6 @@ import {isApplicative404} from './wp-client.js'
 // they hit, so the whole body of each lives here as a factory, same shape as
 // `resourceDiffCommand` in diff-command.ts.
 export type PhpFilesResource = {
-  // api push also best-effort reports the route list to the Loopress cloud (US-18); hooks has
-  // no such step. Runs after the site is already updated, must never throw.
-  afterPush?: (context: {filenames: string[]; siteConfig: EnvironmentConfig}) => Promise<void>
   // 'api' | 'hook': the `lps <cliName> …` verb, used to build the examples.
   cliName: string
   dirKind: ResourceDirKind
@@ -259,7 +253,6 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       await this.writeAfterPushSnapshot(provider, path, beforeState)
 
       await this.recordSuccess()
-      await spec.afterPush?.({filenames: pushed, siteConfig: this.siteConfig})
       this.log(`All ${spec.label} pushed.`)
       return {pruned, pushed, status: 'success'}
     }
@@ -525,20 +518,6 @@ export function resourceRmCommand(spec: PhpFilesResource): CommandClass<RmFilesC
 }
 
 export const API_FILES_RESOURCE: PhpFilesResource = {
-  // Best-effort report of the current route list to the Loopress cloud, purely for console
-  // visibility (US-18): the routes are already live on WordPress by this point, so this can
-  // never block or fail the push, same reasoning as `recordDeployment` in PushCommand.
-  async afterPush({filenames, siteConfig}) {
-    const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token
-    const {apiEnvironmentId} = siteConfig
-    if (!token || !apiEnvironmentId) return
-
-    try {
-      await new ApiClient(token).put('api-routes', {environmentId: apiEnvironmentId, filenames})
-    } catch {
-      // non-blocking: reporting the route list must never interrupt the push flow
-    }
-  },
   cliName: 'api',
   dirKind: 'api',
   emptyListMessage: 'No API route files found',

@@ -150,8 +150,8 @@ test.describe('interactive-only and account commands without a terminal or a log
   })
 
   for (const command of [
-    ['project', 'pull'],
-    ['project', 'push'],
+    ['project', 'import'],
+    ['project', 'link'],
   ]) {
     test(`${command.join(' ')} asks to log in first`, async ({runCli}) => {
       const result = await runCli(command)
