@@ -12,10 +12,10 @@ import {parseInstalledPlugins, preferredCopy} from '../utils/plugins.js'
 import {pluralize} from '../utils/pluralize.js'
 import {parseInstalledThemes, type WpNativeTheme} from '../utils/themes.js'
 import {type ResourceState} from './diff-state.js'
-import {isRecord} from './narrow.js'
+import {errorMessage, isRecord} from './narrow.js'
 import {composerRemoteState, type ResourceStateProvider} from './resource-state.js'
 import {type RollbackDowngrades, type RollbackRestore} from './rollback-command.js'
-import {isLocalEnvironment, isNotFoundError, type WpClient} from './wp-client.js'
+import {isLocalEnvironment, isNotFoundError, isTimeoutError, type WpClient} from './wp-client.js'
 
 // One installed plugin or theme. `locked`: the version in the site's composer.lock, present only
 // for a package Loopress manages. `active`: plugins only, `theme version push` never switches the
@@ -159,9 +159,34 @@ function downgradesTo(current: Map<string, string>, target: Map<string, string>)
     .map(([name, version]) => `${name} ${current.get(name)} to ${version}`)
 }
 
+// The installed version counts too: a plugin updated in wp-admin since the push is newer than its lock.
 export const packageDowngrades: RollbackDowngrades = ({current, snapshot}) => {
-  const intent = restoreIntent(snapshot.beforeState, current)
-  return downgradesTo(currentLocked(current), new Map(Object.entries(intent)))
+  const target = new Map(Object.entries(restoreIntent(snapshot.beforeState, current)))
+  const installed = installedVersions(current)
+  const fromInstalled = new Set(downgradesTo(installed, target))
+  const fromLock = downgradesTo(currentLocked(current), target).filter((line) => !fromInstalled.has(line))
+  return [...fromInstalled, ...fromLock]
+}
+
+function installedVersions(current: ResourceState): Map<string, string> {
+  const versions = new Map<string, string>()
+  for (const [slug, value] of current) {
+    const parsed = entryOf(value)
+    if (parsed) versions.set(slug, parsed.version)
+  }
+
+  return versions
+}
+
+// The packages whose files the restore sync replaces or deletes: a managed one leaving the
+// intent or changing version, or one whose installed version is not the target.
+function packagesToReplace(current: ResourceState, intent: Record<string, string>): Set<string> {
+  const locked = currentLocked(current)
+  const installed = installedVersions(current)
+  return new Set([
+    ...[...locked].filter(([slug, version]) => intent[slug] !== version).map(([slug]) => slug),
+    ...Object.entries(intent).filter(([slug, version]) => locked.get(slug) !== version || installed.get(slug) !== version).map(([slug]) => slug),
+  ])
 }
 
 export const composerDowngrades: RollbackDowngrades = ({current, snapshot}) =>
@@ -183,17 +208,12 @@ async function sync(wp: WpClient, intent: SyncIntent, force: boolean, lock: null
   }
 }
 
-function sameMap(a: Map<string, string>, b: Record<string, string>): boolean {
-  const keys = Object.keys(b)
-  return a.size === keys.length && keys.every((key) => a.get(key) === b[key])
-}
-
 type RestoreContext = Parameters<RollbackRestore>[0]
 
 // Syncs `section` back to the snapshot, when its managed set differs from now. Returns whether
 // Composer ran.
 async function syncSection(context: RestoreContext, section: 'plugins' | 'themes', intent: Record<string, string>): Promise<boolean> {
-  if (sameMap(currentLocked(context.current), intent)) return false
+  if (packagesToReplace(context.current, intent).size === 0) return false
   context.log('Running Composer on the server, this can take a few minutes...')
   const response = await sync(context.wp, {[section]: intent}, context.force)
   if (response.output.trim()) context.log(response.output.trim())
@@ -230,17 +250,31 @@ export const restorePlugins: RollbackRestore = async (context) => {
   const {current, log, snapshot, warn, wp} = context
   const intent = restoreIntent(snapshot.beforeState, current)
   const locked = currentLocked(current)
+  const endangered = packagesToReplace(current, intent)
 
   // A plugin whose folder Composer is about to delete or replace is switched off first, so the
   // site does not fatal between the removal and the install (the same as `plugin push`).
   const installed = parseInstalledPlugins(await wp.get<WpNativePlugin[]>('wp/v2/plugins'))
-  const endangered = new Set([...locked].filter(([slug, version]) => intent[slug] !== version).map(([slug]) => slug))
-  const switchedOff = sameMap(locked, intent) ? [] : installed.filter((plugin) => plugin.active && endangered.has(plugin.slug))
-  for (const plugin of switchedOff) await setPluginStatus(wp, log, plugin, false)
-
+  const switchedOff: InstalledPlugin[] = []
   try {
+    for (const plugin of installed) {
+      if (!plugin.active || !endangered.has(plugin.slug)) continue
+      await setPluginStatus(wp, log, plugin, false)
+      switchedOff.push(plugin)
+    }
+
     await syncSection(context, 'plugins', intent)
   } catch (error) {
+    // A timed-out Composer run may still be swapping files on the server: activating now could
+    // fatal the site, so say which plugins to switch back on once it is done.
+    if (isTimeoutError(error)) {
+      throw new Error(
+        `${errorMessage(error)} The Composer run may still be in progress on the server. Once it is done, check \`lps plugin status\`` +
+          (switchedOff.length > 0 ? ` and activate ${switchedOff.map((plugin) => plugin.slug).join(', ')} if needed.` : '.'),
+        {cause: error},
+      )
+    }
+
     // The file swap never happened: put back the plugins switched off for it.
     await activateAll(wp, log, switchedOff)
     throw error
@@ -283,10 +317,20 @@ export const restoreThemes: RollbackRestore = async (context) => {
   // Uninstalling the theme WordPress renders leaves the site with no theme, a hard fatal: the
   // same refusal as `theme version push`, --force does not override it.
   const installed = parseInstalledThemes(await wp.get<WpNativeTheme[]>('wp/v2/themes'))
-  const active = installed.find((theme) => theme.active && currentLocked(current).has(theme.slug) && intent[theme.slug] === undefined)
+  const locked = currentLocked(current)
+  const active = installed.find((theme) => theme.active && locked.has(theme.slug) && intent[theme.slug] === undefined)
   if (active) {
     throw new Error(
       `Refusing to uninstall "${active.slug}": it is the site's active theme. Switch the site to another theme, then roll back again.`,
+    )
+  }
+
+  // A --force takeover of the active theme moves its folder away while WordPress renders it: the
+  // same refusal as the push.
+  const takenOver = installed.find((theme) => theme.active && !locked.has(theme.slug) && intent[theme.slug] !== undefined)
+  if (takenOver) {
+    throw new Error(
+      `Refusing to take over "${takenOver.slug}": it is the site's active theme, installed outside Loopress. Switch the site to another theme, then roll back again.`,
     )
   }
 

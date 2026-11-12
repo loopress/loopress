@@ -126,6 +126,34 @@ describe('lockfile rollbacks', () => {
     expect(forced.post).toHaveBeenCalledWith('loopress/v1/composer/sync', {force: true, intent: {plugins: {akismet: '5.2'}}, lock: null}, expect.anything())
   })
 
+  it('plugin: counts a version updated outside Composer as a downgrade', async () => {
+    const beforeState = new Map([['akismet', {active: true, locked: '5.3', version: '5.3'}]])
+    // The lock still says 5.3, but the plugin was updated to 6.0 outside Composer.
+    const afterState = new Map([['akismet', {active: true, locked: '5.3', version: '6.0'}]])
+    await writeSnapshot({afterState, beforeState, environment: 'staging', resource: 'plugin', rootDir})
+    const state = {lock: lock({'wpackagist-plugin/akismet': '5.3'}), plugins: [native('akismet', '6.0', true)]}
+    const wp = site(state, state)
+    const {cmd} = make(PluginRollback, wp)
+
+    await expect(cmd.run()).rejects.toThrow(/downgrades akismet 6.0 to 5.3/)
+    expect(wp.post).not.toHaveBeenCalled()
+  })
+
+  it('theme version: refuses to take over the active theme installed outside Loopress', async () => {
+    await writeSnapshot({
+      afterState: new Map([['astra', {version: '4.7'}]]),
+      beforeState: new Map([['astra', {locked: '4.6', version: '4.6'}]]),
+      environment: 'staging',
+      resource: 'theme-version',
+      rootDir,
+    })
+    const state = {lock: lock({}), themes: [{status: 'active', stylesheet: 'astra', version: '4.7'}]}
+    const wp = site(state, state)
+
+    await expect(make(ThemeVersionRollback, wp, ['--force']).cmd.run()).rejects.toThrow(/Refusing to take over "astra"/)
+    expect(wp.post).not.toHaveBeenCalled()
+  })
+
   it('theme version: reinstalls the removed theme and uninstalls the added one', async () => {
     const beforeState = new Map([['astra', {locked: '4.6', version: '4.6'}], ['twentytwentyfour', {version: '1.0'}]])
     const afterState = new Map([['kadence', {locked: '1.2', version: '1.2'}], ['twentytwentyfour', {version: '1.0'}]])

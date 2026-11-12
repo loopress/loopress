@@ -38,7 +38,7 @@ lps snippet rollback --dry-run  # show what would be restored
 
 Apps have no rollback: to go back, check out the previous version of your files in Git and push again.
 
-Plugins, theme versions and Composer go through the site's Composer: the rollback runs it again with the earlier versions, so a package the push installed is uninstalled and one it uninstalled is reinstalled. A rollback that downgrades a package warns, `--dry-run` included, and needs `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran.
+Plugins, theme versions and Composer go through the site's Composer: the rollback runs it again with the earlier versions, so a package the push installed is uninstalled and one it uninstalled is reinstalled. Plugins and theme versions go back to the exact versions of the snapshot. Composer puts back the earlier `composer.json`, constraints included, and resolves it again: a package can land on another version than the snapshot's `composer.lock`, the rollback lists those. A rollback that downgrades a package warns, `--dry-run` included, and needs `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran.
 
 ## Flags
 

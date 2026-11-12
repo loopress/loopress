@@ -149,7 +149,7 @@ lps plugin rollback             # restore the most recent snapshot
 lps plugin rollback --force     # needed when the rollback downgrades a plugin
 ```
 
-A rollback that downgrades a plugin warns, in `--dry-run` too, and refuses to run without `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran. A plugin installed by hand since the push is left alone. With a `composer.json`, `lps plugin push` pushes the whole file but its rollback restores the plugins only. `--list`, `--to`, `--yes` and the drift check work as for [every rollback](/rollback/).
+A rollback that downgrades a plugin warns, in `--dry-run` too, and refuses to run without `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran. A plugin installed by hand since the push is left alone. With a `composer.json`, `lps plugin push` pushes the whole file: `lps plugin rollback` restores the plugins only, `lps composer rollback` the whole file (the push saves both snapshots). `--list`, `--to`, `--yes` and the drift check work as for [every rollback](/rollback/).
 
 ### `lps plugin status`
 
