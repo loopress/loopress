@@ -752,7 +752,7 @@ describe('project config', () => {
       setUpNewProject()
       vi.spyOn(authManager, 'getAuth').mockReturnValue(loggedIn)
       vi.spyOn(configManager, 'getProject').mockReturnValue({addedAt: 'x', apiProjectId: 'p1', environments: {}, name: 'mon site'})
-      vi.spyOn(configManager, 'getEnvironment').mockReturnValueOnce(null).mockReturnValue({addedAt: 'x', apiEnvironmentId: 'e1', name: 'production', url: 'https://example.com'})
+      vi.spyOn(configManager, 'getEnvironment').mockReturnValueOnce(null).mockReturnValue({addedAt: 'x', apiEnvironmentId: 'e1', name: 'production', type: 'production', url: 'https://example.com'})
 
       const cmd = make()
       silenceLogs(cmd)
