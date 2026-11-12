@@ -62,6 +62,7 @@ export default class Pull extends LoopressCommand {
   }
 
   private failedCount = 0
+  // Stryker disable next-line BooleanLiteral: always overwritten from the flag at the top of run()
   private skipUnsupported = false
   // What --skip-unsupported held back: the target and why, for the final warning.
   private readonly unsupported: Array<{label: string; missing: MissingIntegration}> = []
@@ -124,6 +125,7 @@ export default class Pull extends LoopressCommand {
   // The site unreachable or the theme list refused: let the step run and report it itself.
   private async globalStylesSkipNote(): Promise<string | undefined> {
     try {
+      // Stryker disable next-line StringLiteral: 'pull' only differs from any other value for 'push'
       return await globalStylesSkipNote(this.wp, resolveResourceDir('themeStyles', this.localConfig), 'pull')
     } catch {
       return undefined

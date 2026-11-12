@@ -180,6 +180,36 @@ describe('option list', () => {
     expect(result).toEqual(names)
   })
 
+  it('counts the options and titles the columns, CORE only when shown', async () => {
+    const rows = [{autoload: 'yes', confirmed: false, core: true, guess: null, name: 'blogname', pluginName: null}]
+    const withCore = makeCmd([])
+    ;(withCore.cmd as unknown as ListWithWpClient).wpClient = {get: vi.fn().mockResolvedValueOnce(rows)}
+    await withCore.cmd.run()
+    const withoutCore = makeCmd(['--no-core'])
+    ;(withoutCore.cmd as unknown as ListWithWpClient).wpClient = {get: vi.fn().mockResolvedValueOnce([{...rows[0], core: false}])}
+    await withoutCore.cmd.run()
+
+    expect(withCore.logs.log).toHaveBeenCalledWith('Found 1 option:\n')
+    expect(rowCells(tableRows(withCore.logs)[0] ?? '')).toEqual(['NAME', 'AUTOLOAD', 'CORE', 'SOURCE?', 'PLUGIN'])
+    expect(rowCells(tableRows(withoutCore.logs)[0] ?? '')).toEqual(['NAME', 'AUTOLOAD', 'SOURCE?', 'PLUGIN'])
+  })
+
+  it('marks an unconfirmed guess with a question mark and a confirmed one without', async () => {
+    const {cmd, logs} = makeCmd([])
+    ;(cmd as unknown as ListWithWpClient).wpClient = {
+      get: vi.fn().mockResolvedValueOnce([
+        {autoload: 'no', confirmed: false, core: false, guess: 'seo', name: 'a_opt', pluginName: 'SEO'},
+        {autoload: 'no', confirmed: true, core: false, guess: 'forms', name: 'b_opt', pluginName: 'Forms'},
+      ]),
+    }
+
+    await cmd.run()
+
+    const [, a, b] = tableRows(logs)
+    expect(rowCells(a ?? '')).toEqual(['a_opt', 'no', '', 'seo?', 'SEO'])
+    expect(rowCells(b ?? '')).toEqual(['b_opt', 'no', '', 'forms', 'Forms'])
+  })
+
   describe('table width', () => {
     const option = {autoload: 'yes', confirmed: false, core: false, guess: null, name: 'blogname', pluginName: null}
     let previous: string | undefined

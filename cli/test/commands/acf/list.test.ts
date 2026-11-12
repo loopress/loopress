@@ -64,4 +64,24 @@ describe('acf list', () => {
 
     expect(get).toHaveBeenCalledTimes(4)
   })
+
+  it('falls back to a placeholder for an untitled object and a keyless one', async () => {
+    const {cmd, logs} = makeCmd(['--type', 'field-groups'])
+    const get = vi.fn().mockResolvedValueOnce([{title: 5}])
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('  (no key). (untitled)')
+  })
+
+  it('prints a blank line after each type and no "(none)" for a populated one', async () => {
+    const {cmd, logs} = makeCmd(['--type', 'field-groups', 'post-types'])
+    const get = vi.fn().mockResolvedValueOnce([{key: 'g', title: 'G'}]).mockResolvedValueOnce([])
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.log.mock.calls.map((call) => String(call[0]))).toEqual(['field-groups (1):', '  g. G', '', 'post-types (0):', '  (none)', ''])
+  })
 })

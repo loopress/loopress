@@ -102,4 +102,37 @@ describe('option add', () => {
 
     expect(existsSync(join(dir, 'blogname.json'))).toBe(false)
   })
+
+  it('logs where the option is tracked, flagging a readonly one', async () => {
+    const ordinary = makeCmd(['wpseo_titles', '--path', dir])
+    ordinary.internals.wpClient = {get: vi.fn().mockResolvedValueOnce({autoload: 'no', name: 'wpseo_titles', value: 1})}
+    const owned = makeCmd(['siteurl', '--path', dir])
+    owned.internals.wpClient = {get: vi.fn().mockResolvedValueOnce({autoload: 'yes', name: 'siteurl', value: 'x'})}
+
+    await ordinary.cmd.run()
+    await owned.cmd.run()
+
+    expect(ordinary.logs.log).toHaveBeenCalledWith(`Tracking "wpseo_titles" at ${join(dir, 'wpseo_titles.json')}`)
+    expect(owned.logs.log).toHaveBeenCalledWith(`Tracking "siteurl" (readonly: push will skip it, see the file to override) at ${join(dir, 'siteurl.json')}`)
+  })
+
+  it('names the file a dry run would write and the command to find names when not found', async () => {
+    const dry = makeCmd(['blogname', '--path', dir])
+    dry.internals.dryRun = true
+    dry.internals.wpClient = {get: vi.fn().mockResolvedValueOnce({autoload: 'yes', name: 'blogname', value: 'Hello'})}
+    const missing = makeCmd(['nope', '--path', dir])
+    missing.internals.wpClient = {get: vi.fn().mockRejectedValueOnce(notFound())}
+
+    await dry.cmd.run()
+
+    expect(dry.logs.log).toHaveBeenCalledWith(`[dry-run] Would track "blogname" at ${join(dir, 'blogname.json')}`)
+    await expect(missing.cmd.run()).rejects.toThrow('Option "nope" was not found on https://staging.acme.com. Run `lps option list` to see available names.')
+  })
+
+  it('rethrows a failure other than a 404', async () => {
+    const {cmd, internals} = makeCmd(['blogname', '--path', dir])
+    internals.wpClient = {get: vi.fn().mockRejectedValueOnce(new Error('Server Error', {cause: {response: {statusCode: 500}}}))}
+
+    await expect(cmd.run()).rejects.toThrow('Server Error')
+  })
 })
