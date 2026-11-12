@@ -38,11 +38,21 @@ function commandIds(dir: string): string[] {
   })
 }
 
-describe('--json support', () => {
-  const ids = commandIds(COMMANDS_DIR).filter((id) => !NOT_WRAPPED_BY_MCP.has(id))
+// Imported while the file is collected, not inside a test: module-level code then runs outside any
+// test, like with a static import. Imported inside a test, the module-level code of every command
+// would count as covered by this one test (Vitest 5.1 records runtime imports, so Stryker runs it),
+// and Stryker would test each of those static mutants against it alone, where none can be killed.
+const commands = await Promise.all(
+  commandIds(COMMANDS_DIR)
+    .filter((id) => !NOT_WRAPPED_BY_MCP.has(id))
+    .map(async (id) => {
+      const {default: command} = (await import(pathToFileURL(join(COMMANDS_DIR, `${id}.ts`)).href)) as {default: {enableJsonFlag?: boolean}}
+      return [id, command] as const
+    }),
+)
 
-  it.each(ids)('%s enables the --json flag', async (id) => {
-    const {default: command} = (await import(pathToFileURL(join(COMMANDS_DIR, `${id}.ts`)).href)) as {default: {enableJsonFlag?: boolean}}
+describe('--json support', () => {
+  it.each(commands)('%s enables the --json flag', (_id, command) => {
     expect(command.enableJsonFlag).toBe(true)
   })
 })
