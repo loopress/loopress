@@ -129,7 +129,7 @@ The directories are `theme/css/` and `theme/blocks/` by default, set `cssDir` an
 
 ## Commands
 
-Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies. Pages and templates have no `pull` and no `rollback`: the files in Git are the source of truth.
+Every command below also accepts the [common flags](/concepts/#common-flags): `--env`, `--json`, and `--yes` where it applies. Pages and templates have no `pull`: the files in Git are the source of truth.
 
 ### `lps page push`
 
@@ -157,7 +157,13 @@ List the pages managed by Loopress on WordPress, with their status and URL.
 
 ### `lps page diff`
 
-Show what differs (HTML, title, status) between `pages/` and WordPress. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only page`).
+Show what differs (HTML, title, status and the other header fields) between `pages/` and WordPress. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only page`).
+
+---
+
+### `lps page rollback`
+
+Put back the pages the last `lps page push` changed, as they were before it: HTML, title, status and header. A page that push created is not removed, the command lists it. See [Rollback](/rollback/) for `--list`, `--to` and `--dry-run`.
 
 ---
 
@@ -176,6 +182,14 @@ Show the child theme: active or not, its templates and parts, and those edited i
 ### `lps theme template diff`
 
 Show what differs between `theme/templates/` + `theme/parts/` and the child theme, Site Editor edits included. Also part of the aggregate [`lps diff`](/workflow/#lps-diff) (`--only template`, `--only part`).
+
+---
+
+### `lps theme template rollback`
+
+Put back the child theme the last `lps theme template push` replaced. Like the push, it mirrors: a template or part that push removed comes back, one it added is removed. See [Rollback](/rollback/) for `--list`, `--to` and `--dry-run`.
+
+The site only knows a hash of each CSS file, so the snapshot keeps the CSS bundle each push sent. The CSS before a push is restored when it is the bundle of the previous push from the same machine, or when the site had no CSS. Otherwise (the first CSS push from this machine, CSS pushed from somewhere else since), the rollback keeps the CSS that push sent, and says so. Activating the child theme (`activateChildTheme`) is not undone.
 
 Pages and templates are also part of [`lps push`, `lps diff`, and `lps dev`](/workflow/) (a saved file is pushed to your local environment right away).
 

@@ -103,6 +103,30 @@ test.describe('theme template sync (block theme)', () => {
     expect((JSON.parse(list.stdout) as {templates: string[]}).templates).toEqual(['single'])
   })
 
+  test('rollback puts back the child theme of the previous push: a template it removed, without the part it added', async ({
+    projectDir,
+    runCli,
+  }) => {
+    writeTemplate(projectDir, 'templates', 'single', paragraph('E2E rollback v1'))
+    const archive = writeTemplate(projectDir, 'templates', 'archive', paragraph('E2E rollback archive'))
+    expect((await runCli(['theme', 'template', 'push'])).exitCode).toBe(0)
+
+    rmSync(archive)
+    writeTemplate(projectDir, 'templates', 'single', paragraph('E2E rollback v2'))
+    writeTemplate(projectDir, 'parts', 'header', paragraph('E2E rollback header'))
+    expect((await runCli(['theme', 'template', 'push'])).exitCode).toBe(0)
+
+    const rollback = await runCli(['theme', 'template', 'rollback', '--yes'])
+    expect(rollback.exitCode, output(rollback)).toBe(0)
+
+    const list = JSON.parse((await runCli(['theme', 'template', 'list', '--json'])).stdout) as {parts: string[]; templates: string[]}
+    expect(list.templates.toSorted()).toEqual(['archive', 'single'])
+    expect(list.parts).toEqual([])
+    // The local files are v2 again: the site holds v1 of single.html.
+    const diff = await runCli(['diff', '--only', 'template'])
+    expect(diff.stdout).toContain('single')
+  })
+
   test('refuses every badly named file at once, before pushing anything', async ({projectDir, runCli}) => {
     writeTemplate(projectDir, 'templates', 'single', paragraph('E2E good'))
     writeTemplate(projectDir, 'templates', 'Bad Name', paragraph('E2E bad'))

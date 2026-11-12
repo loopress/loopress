@@ -18,7 +18,7 @@ type PushInternals = {
   run(): Promise<unknown>
   siteConfig: unknown
   warn: ReturnType<typeof vi.fn>
-  wpClient: {post?: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
+  wpClient: {get?: ReturnType<typeof vi.fn>; post?: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 const child = {active: true, customized: [], exists: true, parent: 'twentytwentyfive', parts: [], stylesheet: 'twentytwentyfive-loopress', templates: [], unknownBlocks: []}
@@ -31,7 +31,7 @@ describe('template push', () => {
     const {log} = silenceLogs(cmd)
     ;(cmd as unknown as {logSpy: typeof log}).logSpy = log
     const internals = cmd as unknown as PushInternals
-    internals.wpClient = {put}
+    internals.wpClient = {get: vi.fn().mockResolvedValue(child), put}
     internals.siteConfig = makeEnv('local')
     internals.recordSuccess = async () => {}
     internals.localConfig = {rootDir: dir}

@@ -11,9 +11,10 @@ import {compareStates, isEmptyDiff, type StateDiff} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
 import {errorMessage} from './narrow.js'
-import {getResourceStateProvider} from './resource-state.js'
+import {getResourceStateProvider, type ResourceStateProvider} from './resource-state.js'
 import {materializeSnapshot} from './rollback-materialize.js'
-import {listSnapshots, readSnapshot, recordToState, type SnapshotSummary} from './snapshot-store.js'
+import {listSnapshots, readSnapshot, recordToState, type Snapshot, type SnapshotSummary} from './snapshot-store.js'
+import {type WpClient} from './wp-client.js'
 
 const c = ux.colorize
 
@@ -52,9 +53,16 @@ function indentPatch(patch: string): string {
 // state and the state the original push expected to leave behind, and requires explicit
 // confirmation (the same interactive/`--yes` shape as guardProductionPush) when they differ.
 // `command` is the CLI topic when it isn't the resource key (e.g. `theme style` for theme-style).
+// A resource whose push can't take the snapshot back as a directory of files (pages push by
+// slug, the child theme in one PUT) passes `restore`, which writes `ids` (the snapshot's
+// `beforeState` entries to restore, every one when `mirror`) itself. `mirror`: the push mirrors
+// the project, so restoring also removes what the snapshot doesn't have. `provider` overrides
+// the RESOURCE_STATE_PROVIDERS lookup.
+export type RollbackRestore = (context: {ids: string[]; log: (message: string) => void; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
+
 export function resourceRollbackCommand(
   resource: string,
-  options: {command?: string; description: string; pathNoun: string},
+  options: {command?: string; description: string; mirror?: boolean; pathNoun: string; provider?: ResourceStateProvider; restore?: RollbackRestore},
 ): typeof LoopressCommand {
   const command = options.command ?? resource
   class ResourceRollback extends LoopressCommand {
@@ -80,7 +88,7 @@ export function resourceRollbackCommand(
 
     async run(): Promise<RollbackResult> {
       const {args, flags} = await this.parse(ResourceRollback)
-      const provider = getResourceStateProvider(resource)
+      const provider = options.provider ?? getResourceStateProvider(resource)
       const rootDir = resolve(process.cwd(), this.rootDir)
 
       if (flags.list) {
@@ -95,7 +103,8 @@ export function resourceRollbackCommand(
       try {
         snapshot = await readSnapshot(rootDir, resource, this.siteConfig.name, flags.to)
       } catch (error) {
-        this.error(errorMessage(error))
+        // snapshot-store names the command after the snapshot resource (`theme-style`).
+        this.error(errorMessage(error).split(`lps ${resource} `).join(`lps ${command} `))
       }
 
       await guardProductionPush({
@@ -141,7 +150,7 @@ export function resourceRollbackCommand(
       // `<resource> push` only creates and updates, it never deletes (see each resource's own
       // push command, e.g. option push's "upsert only, never deletes an untracked option"):
       // an item present now but absent from the snapshot stays present after "restoring" it.
-      if (restoreDiff.removed.length > 0) {
+      if (restoreDiff.removed.length > 0 && !options.mirror) {
         this.warn(
           `${pluralize(restoreDiff.removed.length, 'item')} present now but not in this snapshot will NOT be removed ` +
             `(${restoreDiff.removed.join(', ')}): restoring only creates and updates, the same as \`lps ${command} push\`. Remove ${restoreDiff.removed.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
@@ -158,6 +167,20 @@ export function resourceRollbackCommand(
       // through the delegated push's own validation, where a single unrelated failure would
       // fail the whole rollback.
       const idsToRestore = new Set([...restoreDiff.added, ...restoreDiff.changed.map((change) => change.id)])
+      if (options.restore) {
+        await options.restore({
+          ids: options.mirror ? Object.keys(snapshot.beforeState) : [...idsToRestore],
+          log: (message) => {
+            this.log(message)
+          },
+          snapshot,
+          warn,
+          wp: this.wp,
+        })
+        this.log(`Rolled back ${provider.title} to the snapshot from ${snapshot.createdAt}.`)
+        return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'success'}
+      }
+
       const stateToRestore = Object.fromEntries(Object.entries(snapshot.beforeState).filter(([id]) => idsToRestore.has(id)))
 
       const tmpDir = await mkdtemp(join(tmpdir(), `loopress-rollback-${resource}-`))
@@ -224,7 +247,7 @@ export function resourceRollbackCommand(
 
       if (snapshots.length === 0) {
         this.log(
-          `No snapshots found for "${resource}" on "${this.siteConfig.name}". A snapshot is written automatically by \`lps ${resource} push\`.`,
+          `No snapshots found for "${resource}" on "${this.siteConfig.name}". A snapshot is written automatically by \`lps ${command} push\`.`,
         )
         return
       }

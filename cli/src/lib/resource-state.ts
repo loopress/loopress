@@ -323,8 +323,18 @@ const blockProvider: ResourceStateProvider = {
 // Keyed by slug (the page's identity on both sides). `link` is server-derived and never
 // compared. A local problem (a `.php` in pages/, a bad header) fails the whole resource rather
 // than hiding that page, the same stop-everything stance as `page push`.
+// The header fields are compared too, so a rollback puts them back, but only when they differ
+// from the header's defaults: a page with the default header reads the same as in a snapshot
+// written before they were compared.
 function canonicalPage(page: Page): Record<string, unknown> {
-  return {html: page.html, status: page.status, title: page.title}
+  return {
+    ...(page.fullWidth && {fullWidth: true}),
+    ...(page.hideTitle && {hideTitle: true}),
+    html: page.html,
+    status: page.status,
+    ...(page.template && {template: page.template}),
+    title: page.title,
+  }
 }
 
 const pageProvider: ResourceStateProvider = {
@@ -347,8 +357,7 @@ const pageProvider: ResourceStateProvider = {
 // Both live in the Loopress child theme (ChildThemeController), one GET answers for both. A
 // template or part edited in the Site Editor gets `siteEditor: 'customized'` on the remote side
 // only, so it always shows as drift: its database copy is what the site renders, not the file.
-async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promise<ResourceState> {
-  const child = await wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
+function childThemeFiles(child: ChildTheme, kind: 'parts' | 'templates'): ResourceState {
   const files: Array<Part | Template> = child[kind]
   const state: ResourceState = new Map(files.map(({slug, ...rest}) => [slug, rest]))
   for (const entry of child.customized) {
@@ -360,6 +369,39 @@ async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promi
   }
 
   return state
+}
+
+async function childThemeState(wp: WpClient, kind: 'parts' | 'templates'): Promise<ResourceState> {
+  return childThemeFiles(await wp.get<ChildTheme>(CHILD_THEME_ENDPOINT), kind)
+}
+
+// The whole child theme, as `lps theme template push` writes it in one mirroring PUT: ids are
+// `templates/<slug>`, `parts/<slug>` and `css/<file>` (`css/style.css`, `css/blocks/core/button.css`).
+// The site only reports each CSS file's sha256, so that is the compared value: the CSS itself is
+// kept in the push's snapshot payload (commands/theme/template/push.ts). Not in
+// RESOURCE_STATE_PROVIDERS: `lps diff` already compares templates and parts on their own, and
+// nothing reads the CSS back from the local files to compare with.
+export function childThemeSnapshotState(child: ChildTheme): ResourceState {
+  const state: ResourceState = new Map()
+  for (const kind of ['templates', 'parts'] as const) {
+    for (const [slug, value] of childThemeFiles(child, kind)) state.set(`${kind}/${slug}`, value)
+  }
+
+  for (const [file, hash] of Object.entries(child.css ?? {})) state.set(`css/${file}`, hash)
+  // The child of the active theme: another parent activated since the push shows as drift, and
+  // the rollback refuses to write one theme's snapshot into another's child.
+  state.set('stylesheet', child.stylesheet)
+  return state
+}
+
+export const childThemeProvider: ResourceStateProvider = {
+  dirKind: 'template',
+  async local() {
+    throw new Error('The child theme is only compared on the site, see `lps diff --only template --only part`.')
+  },
+  remote: async (wp) => childThemeSnapshotState(await wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)),
+  resource: 'theme-template',
+  title: 'Child theme (templates, parts and CSS)',
 }
 
 const templateProvider: ResourceStateProvider = {
