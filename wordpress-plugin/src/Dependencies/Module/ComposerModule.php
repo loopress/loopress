@@ -36,6 +36,7 @@ final readonly class ComposerModule implements Module
         add_filter('loopress_admin_data', function (array $data): array {
             $data['autoloadError']   = $this->autoloadError;
             $data['fileModsAllowed'] = ComposerController::fileModsAllowed();
+            $data['composerWritable'] = ComposerController::composerWritable();
 
             return $data;
         });

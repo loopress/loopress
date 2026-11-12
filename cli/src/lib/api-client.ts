@@ -9,7 +9,7 @@ export const API_URL = process.env.LPS_API_URL ?? 'https://api.loopress.dev'
 type HttpMethod = 'get' | 'post' | 'put'
 
 /**
- * HTTP client for the Loopress cloud API (projects, environments, credentials).
+ * HTTP client for the Loopress cloud API (projects, environments).
  * Authenticated with the console token obtained via `lps login`.
  */
 export class ApiClient {

@@ -1,10 +1,10 @@
 ---
 title: Composer Admin UI
-description: Search, install and remove Composer packages from the WordPress admin panel.
+description: Search, install and remove Composer packages from the WordPress admin panel of a local or development site, and see them read-only everywhere else.
 edition: full
 ---
 
-The **Composer dependencies** card, on the **Dependencies** tab of the **Loopress** page, lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin, without SSH access.
+The **Composer dependencies** card, on the **Dependencies** tab of the **Loopress** page, lets you browse [Packagist](https://packagist.org/) and install PHP packages directly from your WordPress admin on a **local or development site**. On every other site it lists the installed packages read-only: dependencies change in your repository, see [Production sites and read-only mode](#production-sites-and-read-only-mode).
 
 ## Where packages are stored
 
@@ -39,20 +39,21 @@ The **Installed packages** list checks each installed package against Packagist.
 
 ## Production sites and read-only mode
 
-Changes made from the admin edit the site's own `composer.json`: run [`lps composer pull`](/composer/cli/) afterwards to bring them back into your repository.
+Installing, updating, removing and repairing from the admin change code with no commit behind it, so they answer only when the site's [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is `local` or `development`. WordPress reports `production` when the type is not set, so the safe side is the default. On any other site the admin lists the installed packages read-only, and the `composer/require`, `composer/remove` and `composer/repair` endpoints answer `403` ("change dependencies in the repo and run `lps composer push`"). Reading (versions, installed packages, outdated, audit) works everywhere, and [`lps composer push`](/composer/cli/) is unchanged. The environment is shown as a badge next to the page title.
 
-- Removing a package always asks for a confirmation. On a site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is `production` (WordPress's default), installing and updating ask too, and every confirmation names the production site. The environment is shown as a badge next to the page title.
+On a local or development site, changes made from the admin edit the site's own `composer.json`: run [`lps composer pull`](/composer/cli/) afterwards to bring them back into your repository. Removing a package asks for a confirmation.
+
 - When `DISALLOW_FILE_MODS` is set to `true` in `wp-config.php` (or the `file_mod_allowed` filter returns `false`), dependencies are read-only: the search field and every action are hidden, and every Composer endpoint that writes files answers `403`, including the one [`lps composer push`](/composer/cli/) uses. Change dependencies in your repository and deploy them another way.
 
 ## Repair
 
-The **Repair** action runs `composer update` against `wp-content/loopress/composer.json`. Use it when:
+On a local or development site, the **Repair** action runs `composer update` against `wp-content/loopress/composer.json`. Use it when:
 
 - The autoloader is missing after a server migration
 - The lockfile has drifted from `composer.json`
 - A previous install left the dependencies in an inconsistent state
 
-The autoload error banner at the top of the page appears automatically when Loopress Full detects a missing or broken autoloader, and runs Repair on its own. Under `DISALLOW_FILE_MODS` it only reports the problem.
+The autoload error banner at the top of the page appears automatically when Loopress Full detects a missing or broken autoloader, and runs Repair on its own on a local or development site. Anywhere else, and under `DISALLOW_FILE_MODS`, it only reports the problem: run `composer install` from your deployment.
 
 ## REST API
 

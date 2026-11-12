@@ -8,6 +8,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import Diff from '../../src/commands/diff.js'
 import {authManager} from '../../src/config/auth.manager.js'
 import {configManager} from '../../src/config/project-config.manager.js'
+import {isRecord} from '../../src/lib/narrow.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 import {fakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
@@ -76,7 +77,12 @@ function make(argv: string[], get: ReturnType<typeof vi.fn>, capabilities = make
   // ACF's normalize route, as a no-op: the files already hold what the site stores.
   const post = vi.fn(async (_path: string, body: {objects: unknown[]}) => body.objects)
   const answer = get as unknown as (path: string) => Promise<unknown>
-  get = vi.fn(async (path: string) => (path === 'loopress/v1/capabilities' ? capabilities : answer(path)))
+  get = vi.fn(async (path: string) => {
+    if (path === 'loopress/v1/capabilities') return capabilities
+    const reply = await answer(path)
+    // A site on the default namespace unless a test says otherwise.
+    return path === 'loopress/v1/api-namespace' && !(isRecord(reply) && 'namespace' in reply) ? {namespace: 'loopress-api/v1'} : reply
+  })
   ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, getAll: get, post}
   return {cmd, logs}
 }
@@ -129,6 +135,18 @@ describe('diff', () => {
     expect(process.exitCode).toBe(1)
   })
 
+  it('reports a namespace drift between the site and loopress.json defaults', async () => {
+    const baseline = baselineGet()
+    const get = vi.fn(async (path: string) => (path === 'loopress/v1/api-namespace' ? {namespace: 'old-api/v1'} : baseline(path)))
+    const {cmd} = make([], get)
+
+    const result = await cmd.run()
+
+    expect(result.drift).toBe(true)
+    expect(result.resources['api-namespace']?.changed.map((change) => change.id)).toEqual(['namespace'])
+    expect(process.exitCode).toBe(1)
+  })
+
   it('prints a tally line and renders the added item in its section', async () => {
     mkdirSync(join(dir, 'snippets'))
     writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
@@ -161,7 +179,7 @@ describe('diff', () => {
 
     expect(result.resources.acf?.changed.map((c) => c.id)).toEqual(['field-groups/group_1'])
     expect(result.resources.form?.removed).toEqual(['9'])
-    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('18 compared: 1 changed, 0 added, 1 removed'))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('19 compared: 1 changed, 0 added, 1 removed'))
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('~ field-groups/group_1'))
   })
 
@@ -187,7 +205,7 @@ describe('diff', () => {
     expect(result.resources.form?.added).toEqual([]) // the other resources still ran
     expect(process.exitCode).toBe(2) // 2 = inconclusive, distinct from 1 = drift
     // 16, not 17: the failed resource is excluded from "compared".
-    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('17 compared: 0 changed, 0 added, 0 removed'))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('18 compared: 0 changed, 0 added, 0 removed'))
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('inconclusive'))
   })
 

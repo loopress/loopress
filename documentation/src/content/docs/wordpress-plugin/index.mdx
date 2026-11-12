@@ -52,7 +52,7 @@ Loopress Full is not a paid upgrade. It is distributed outside WordPress.org bec
 | Plugin and theme lockfile (pin WordPress.org plugins and themes, install via Composer + WPackagist) | | ✓ |
 | `lps plugin` / `lps theme` `pull` / `add` (WordPress core routes, or `loopress.json` only) | ✓ | ✓ |
 | `lps plugin` / `lps theme` `push` / `status` | | ✓ |
-| Composer dependency management (Packagist search, install, remove, update) | | ✓ |
+| Composer dependency management (`lps composer push/pull`, Packagist search, install, remove, update on local and development sites) | | ✓ |
 | Security audit (known CVEs, abandoned packages) | | ✓ |
 | Platform diagnostics (PHP version mismatches) | | ✓ |
 | `lps composer push` / `pull` | | ✓ |
@@ -89,7 +89,7 @@ Everything in Loopress Light, plus:
 - **Block patterns**: groups of blocks as `patterns/<slug>.html` files with `lps pattern push`, referenced from pages, templates and parts so one change updates them all
 - **Single-page apps**: a pre-built Vue, React or Svelte bundle shipped with `lps app push` and mounted in any page with a shortcode
 - **Plugin and theme lockfile**: pin WordPress.org plugins and themes in `loopress.json` and install the identical set on every environment with `lps plugin push` / `lps theme version push`, via Composer and WPackagist
-- **Dependency management**: search, install, remove and update Composer packages from [Packagist](https://packagist.org/) in the admin, or sync `composer.json` with `lps composer push/pull`
+- **Dependency management**: sync `composer.json` with `lps composer push/pull`, and search, install, remove and update Composer packages from [Packagist](https://packagist.org/) in the admin of a local or development site (read-only everywhere else)
 - **Security audit**: surfaces known CVEs and abandoned packages among your installed dependencies
 - **Platform diagnostics**: catches PHP version mismatches before they cause a broken install
 - **Crash reporting**: opt-in banner to send Loopress's own errors to Sentry so bugs get fixed faster, no data from your theme, other plugins, or site visitors is included. The **Settings** tab lets you change your answer anytime, or reset all Loopress settings to default
@@ -145,7 +145,7 @@ Both editions add a **Loopress** page to the WordPress admin, with the site's en
 - **Overview** (the default): what was pushed to this site from your repository, see [Push history and drift](#push-history-and-drift). Above it, every issue the other tabs raise, so none waits for its tab to be opened: webserver configuration, Composer platform problems and security advisories, code files that failed to load, and Loopress declarations skipped because a theme or plugin registered the same slug first
 - **Config**: the configuration Loopress syncs, read-only: [ACF](/acf/) field groups, post types, taxonomies and options pages, [menus](/menus/), every [post type](/custom-post-types/) and [taxonomy](/taxonomies/) on the site with its source, registered [meta keys](/post-meta/), every [role](/roles/) with its number of users, and [forms](/forms/), each with the command that pulls it. A resource whose plugin isn't active says so (for example "ACF is not active").
 - **Code**: the code deployed with the CLI, read-only: [API routes](/api/admin-ui/) (with a gear to change their namespace), [hooks](/hooks/) with each cron's next run, and [single-page apps](/apps/) with a copyable shortcode
-- **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages, with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
+- **Dependencies**: the [Composer Admin UI](/composer/admin-ui/) to search, install and remove packages on a local or development site (read-only elsewhere), with the [security audit](/composer/audit/) and [platform diagnostics](/composer/diagnostics/) shown only when they find something
 - **Settings**: the [API routes namespace](/api/admin-ui/#route-namespace), the [console connection](/wordpress-plugin/connect-console/), crash reporting, anonymous usage statistics, and a reset of every Loopress setting
 
 Platform and webserver checks also appear in **Tools → Site Health**.

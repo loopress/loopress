@@ -24,7 +24,7 @@ export function DiagnosticsBanner() {
     // Quiet when healthy: the same checks are listed as passed in Tools > Site Health.
     if (!diagnostics.issues.length) return null;
 
-    const canFix = window.loopressData?.fileModsAllowed !== false;
+    const canFix = window.loopressData?.composerWritable !== false;
 
     return (
         <div style={{ marginBottom: 20 }}>

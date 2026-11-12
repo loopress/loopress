@@ -53,9 +53,14 @@ export default class Diff extends DiffCommand {
     const skipUnsupported = flags['skip-unsupported']
     const targets: DiffTarget[] = [
       ...(await Promise.all(
-        providers.map(async (provider) => {
-          const lacking = await this.siteMissing((capabilities) => missingIntegration(provider.dirKind, capabilities), sides)
-          return this.withSiteSkip(this.providerTarget(provider, sides), lacking, await this.projectUses(provider), skipUnsupported)
+        providers.flatMap((provider) => {
+          const targets = [this.providerTarget(provider, sides)]
+          // The namespace is the API module's own setting: it is skipped with it.
+          if (provider.resource === 'api') targets.push(this.namespaceTarget(sides))
+          return targets.map(async (target) => {
+            const lacking = await this.siteMissing((capabilities) => missingIntegration(provider.dirKind, capabilities), sides)
+            return this.withSiteSkip(target, lacking, await this.projectUses(provider), skipUnsupported)
+          })
         }),
       )),
       ...(selected.has('composer') ? [await this.composerSiteTarget(sides, skipUnsupported)] : []),

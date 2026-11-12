@@ -5,6 +5,7 @@ import {isDeepStrictEqual} from 'node:util'
 
 import {authManager} from '../config/auth.manager.js'
 import {configManager} from '../config/project-config.manager.js'
+import {localApiNamespace} from '../utils/api-namespace.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
@@ -17,6 +18,10 @@ import {warnIfUnlinked} from './unlinked-report.js'
 import {WpClient} from './wp-client.js'
 
 const c = ux.colorize
+
+async function remoteNamespaceState(wp: WpClient): Promise<ResourceState> {
+  return new Map([['namespace', (await wp.get<{namespace: string}>('loopress/v1/api-namespace')).namespace]])
+}
 
 export type ResourceDiffJson = {
   added: string[]
@@ -90,6 +95,17 @@ export abstract class DiffCommand extends LoopressCommand {
       resource: 'composer',
       right: againstWp ? async () => composerRemoteState(againstWp) : async () => composerLocalState(localRoot),
       title: 'Composer',
+    }
+  }
+
+  // The REST namespace of the API routes: loopress.json's api.namespace against the site's.
+  protected namespaceTarget(sides: DiffSides): DiffTarget {
+    const {againstWp} = sides
+    return {
+      left: async () => remoteNamespaceState(this.wp),
+      resource: 'api-namespace',
+      right: againstWp ? async () => remoteNamespaceState(againstWp) : async () => new Map([['namespace', localApiNamespace(this.localConfig)]]),
+      title: 'API namespace',
     }
   }
 
@@ -361,7 +377,9 @@ export function resourceDiffCommand(
     async run(): Promise<DiffJson> {
       const {args, flags} = await this.parse(ResourceDiff)
       const sides = this.resolveSides(flags.against)
-      return this.report([this.providerTarget(getResourceStateProvider(resource), sides, args.path)], sides)
+      const targets = [this.providerTarget(getResourceStateProvider(resource), sides, args.path)]
+      if (resource === 'api') targets.push(this.namespaceTarget(sides))
+      return this.report(targets, sides)
     }
   }
 

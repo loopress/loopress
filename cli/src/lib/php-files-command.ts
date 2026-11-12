@@ -4,6 +4,8 @@ import {createHash} from 'node:crypto'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
+import {apiNamespaceProblem, DEFAULT_API_NAMESPACE, localApiNamespace} from '../utils/api-namespace.js'
+import {writeLocalConfig} from '../utils/loopress-config.js'
 import {firstTopLevelSideEffect, startsWithStrictTypes} from '../utils/php-top-level.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '../utils/resource-dirs.js'
@@ -49,7 +51,12 @@ export type PhpFilesResource = {
   pullDescription: string
   pushDescription: string
   rmDescription: string
+  // api only: the REST namespace the routes register under lives in loopress.json (api.namespace),
+  // pushed before the routes and written back by pull.
+  syncsNamespace?: boolean
 }
+
+export const API_NAMESPACE_ENDPOINT = 'loopress/v1/api-namespace'
 
 type PhpFile = {
   content: string
@@ -162,6 +169,12 @@ export function phpFileProblems(spec: Pick<PhpFilesResource, 'filenamePattern' |
 // `revision` field back through the list endpoint for the CLI to consume. A filename absent from
 // `beforeState` (a new file, or `beforeState` itself unavailable, e.g. a dry run or a failed
 // remote read) has nothing to condition on: pushFile falls back to today's unconditional create.
+// Checked as written: an explicit null must not fall back to the default.
+function writtenNamespace(api: undefined | {namespace?: unknown}): unknown {
+  const written = api ?? {}
+  return 'namespace' in written ? written.namespace : DEFAULT_API_NAMESPACE
+}
+
 function expectedRevisionFor(beforeState: ResourceState | undefined, filename: string): string | undefined {
   const content = beforeState?.get(filename)
   return typeof content === 'string' ? createHash('sha256').update(content, 'utf8').digest('hex') : undefined
@@ -211,6 +224,12 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       const {url} = this.siteConfig
       const path = resolveResourceDir(spec.dirKind, this.localConfig, args.path)
 
+      if (spec.syncsNamespace) {
+        // Before any write: a bad namespace stops the push with nothing changed on the site.
+        const problem = apiNamespaceProblem(writtenNamespace(this.localConfig.api))
+        if (problem) this.error(`loopress.json: ${problem}`)
+      }
+
       this.log(`Pushing ${spec.label} to ${url}`)
       this.log(`${spec.pathLabel} path: ${path}`)
 
@@ -248,15 +267,27 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
       const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path) : []
 
+      // Routes register under the namespace, so it goes first.
+      const previousNamespace = spec.syncsNamespace ? await this.pushNamespace() : undefined
+
       if (this.dryRun) {
         await this.writeAfterPushSnapshot(provider, path, beforeState)
         return {changes: this.previewChanges, pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
       }
 
-      const {pruned, pushed} =
-        files.length === 0 && pruneList.length === 0
-          ? {pruned: [], pushed: []}
-          : await this.pushBatch(files, pruneList, beforeState)
+      let batch: {pruned: string[]; pushed: string[]}
+      try {
+        batch =
+          files.length === 0 && pruneList.length === 0
+            ? {pruned: [], pushed: []}
+            : await this.pushBatch(files, pruneList, beforeState)
+      } catch (error) {
+        // The routes did not land: do not leave them under a namespace they were never pushed with.
+        if (previousNamespace !== undefined) await this.restoreNamespace(previousNamespace)
+        throw error
+      }
+
+      const {pruned, pushed} = batch
 
       await this.writeAfterPushSnapshot(provider, path, beforeState)
 
@@ -318,6 +349,22 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       return {pruned: result.pruned, pushed: result.files.map((file) => file.filename)}
     }
 
+    // Returns the namespace to restore if the routes fail to push, undefined when nothing changed.
+    private async pushNamespace(): Promise<string | undefined> {
+      const wanted = localApiNamespace(this.localConfig)
+      const {namespace: current} = await this.wp.get<{namespace: string}>(API_NAMESPACE_ENDPOINT)
+      if (current === wanted) return undefined
+
+      if (this.dryRun) {
+        this.log(`Would change the API namespace from ${current} to ${wanted}: every route URL moves`)
+        return undefined
+      }
+
+      await this.wp.put(API_NAMESPACE_ENDPOINT, {namespace: wanted})
+      this.log(`API namespace changed from ${current} to ${wanted}`)
+      return current
+    }
+
     // Mirror of `pull`'s local orphan cleanup, aimed at the server: any file on WordPress with
     // no local counterpart is removed by default (api/ and hooks/ are owned by Loopress, the
     // repo is the reference), `--no-prune` opts out. Only production asks first: in a non-TTY
@@ -352,6 +399,15 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       }
 
       return orphans
+    }
+
+    private async restoreNamespace(previous: string): Promise<void> {
+      try {
+        await this.wp.put(API_NAMESPACE_ENDPOINT, {namespace: previous})
+        this.warn(`The routes were not pushed: API namespace restored to ${previous}`)
+      } catch {
+        this.warn(`The routes were not pushed and the API namespace could not be restored: it is still set by this push, run \`lps api push\` again or set it back to ${previous}`)
+      }
     }
 
     private validateFileLocally(file: PhpFile, task?: {output: string}): void {
@@ -421,9 +477,26 @@ export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFi
         },
       })
 
+      if (spec.syncsNamespace) await this.pullNamespace()
+
       if (this.dryRun) return {orphans, pulled, status: 'dry-run'}
 
       return {orphans, pulled, status: 'success'}
+    }
+
+    // The site's namespace goes into loopress.json (api.namespace), the one place it is changed.
+    private async pullNamespace(): Promise<void> {
+      const {namespace} = await this.wp.get<{namespace: string}>(API_NAMESPACE_ENDPOINT)
+      // An answer that is not a namespace (an older plugin) leaves loopress.json alone.
+      if (typeof namespace !== 'string' || namespace === localApiNamespace(this.localConfig)) return
+
+      if (this.dryRun) {
+        this.log(`[dry-run] Would set api.namespace to ${namespace} in loopress.json`)
+        return
+      }
+
+      await writeLocalConfig({...this.localConfig, api: {...this.localConfig.api, namespace}})
+      this.log(`Set api.namespace to ${namespace} in loopress.json`)
     }
   }
 
@@ -542,9 +615,10 @@ export const API_FILES_RESOURCE: PhpFilesResource = {
   orphanReason: 'whose route no longer exists on WordPress',
   pathLabel: 'API',
   pathNoun: 'api directory',
-  pullDescription: 'Pull custom API route files from WordPress into local files',
-  pushDescription: 'Push local custom API route files to WordPress',
+  pullDescription: 'Pull custom API route files, and their namespace, from WordPress into local files',
+  pushDescription: 'Push local custom API route files, and their namespace, to WordPress',
   rmDescription: 'Remove one custom API route file from WordPress',
+  syncsNamespace: true,
 }
 
 export const HOOK_FILES_RESOURCE: PhpFilesResource = {

@@ -33,7 +33,7 @@ const PANELS: Record<string, React.ReactNode> = {
     settings: <SettingsPanel />,
 };
 
-const { autoloadError, fileModsAllowed } = window.loopressData;
+const { autoloadError, composerWritable } = window.loopressData;
 
 function repairNotice(
     canRepair: boolean,
@@ -44,7 +44,7 @@ function repairNotice(
     if (!canRepair) {
         return {
             status: 'error',
-            message: `${autoloadError}. File modifications are disabled on this site, run composer install from your deployment instead.`,
+            message: `${autoloadError}. Dependencies cannot be repaired from wp-admin on this site, run composer install from your deployment instead.`,
         };
     }
     if (repairing) return { status: 'warning', message: 'Repairing dependencies...' };
@@ -56,8 +56,8 @@ function repairNotice(
 export default function App() {
     const queryClient = useQueryClient();
     const { activeTab, onSelect } = useHashTab(TAB_NAMES, 'overview');
-    // Repairing runs composer install: off limits under DISALLOW_FILE_MODS, the endpoint refuses.
-    const canRepair = fileModsAllowed !== false;
+    // Repairing runs composer install: the endpoint answers only on a local or development site.
+    const canRepair = composerWritable !== false;
 
     const {
         mutate: autoRepair,

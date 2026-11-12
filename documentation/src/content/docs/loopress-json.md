@@ -59,6 +59,12 @@ Each directory is relative to `rootDir`. The `path` argument of a command (`lps 
 | `blockCssDir` | `theme/blocks` | Per-block CSS (`<namespace>/<block>.css`), loaded only where the block renders | [`lps theme template`](/pages/#theme-css) |
 | `appDir` | `apps` | Single-page app bundles, one subdirectory per app | [`lps app`](/apps/cli/) |
 
+## API
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `api.namespace` | `loopress-api/v1` | REST namespace the [custom API routes](/api/routes/#the-route-namespace) register under. Lowercase letters, digits and hyphens, then a version segment (`acme/v1`); `loopress/v1` is reserved. Changing it moves every route URL. [`lps api push`](/api/cli/) sends it before the routes, `lps api pull` writes it, `lps api diff` and `lps diff` report a difference, `lps validate` checks it. |
+
 ## Plugins and themes
 
 | Field | Description |

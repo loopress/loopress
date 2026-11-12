@@ -1,58 +1,26 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TextControl, Button, Notice } from '@wordpress/components';
-import { apiFetch, ApiError } from '../api';
+import { useQuery } from '@tanstack/react-query';
+import { TextControl } from '@wordpress/components';
+import { apiFetch } from '../api';
 import type { ApiNamespace } from '../types';
 
 export function ApiNamespaceSettings() {
-    const queryClient = useQueryClient();
-
     const { data } = useQuery<ApiNamespace>({
         queryKey: ['api-namespace'],
         queryFn: () => apiFetch<ApiNamespace>('/api-namespace'),
     });
 
-    // null until the user types: the field then shows the saved namespace without copying
-    // server state into local state from an effect.
-    const [draft, setDraft] = useState<string | null>(null);
-    const value = draft ?? data?.namespace ?? '';
-
-    const { mutate: save, isPending, error } = useMutation({
-        mutationFn: (namespace: string) => apiFetch<ApiNamespace>('/api-namespace', {
-            method: 'PUT',
-            body: JSON.stringify({ namespace }),
-        }),
-        onSuccess: (result) => {
-            queryClient.setQueryData(['api-namespace'], result);
-            setDraft(null);
-        },
-    });
-
-    // Rendered twice: on the Settings tab, and in the gear popover of the API routes card, since
-    // changing it changes every route URL listed there.
+    // Read-only: the namespace is code configuration, so it lives in the repo (loopress.json)
+    // and `lps api push` sends it. Rendered twice: on the Settings tab, and in the gear popover of
+    // the API routes card, since changing it changes every route URL listed there.
     return (
         <div style={{ maxWidth: 480 }}>
             <TextControl
                 label="API routes namespace"
-                value={value}
-                disabled={!data || isPending}
-                onChange={setDraft}
-                help="REST namespace your api/ files register under, e.g. hello.php becomes {namespace}/hello. Changing this changes every route's URL."
+                value={data?.namespace ?? ''}
+                disabled
+                onChange={() => {}}
+                help={<>REST namespace your api/ files register under, e.g. hello.php becomes {'{namespace}'}/hello. Read-only here: change <code>api.namespace</code> in <code>loopress.json</code> and run <code>lps api push</code>. Changing it changes every route&apos;s URL.</>}
             />
-            {error instanceof ApiError && (
-                <Notice status="error" isDismissible={false}>
-                    {error.message}
-                </Notice>
-            )}
-            <Button
-                variant="secondary"
-                size="small"
-                disabled={!data || isPending || value === data?.namespace}
-                onClick={() => save(value)}
-                style={{ marginTop: 8 }}
-            >
-                Save
-            </Button>
         </div>
     );
 }

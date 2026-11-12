@@ -64,13 +64,21 @@ describe('DependencyManagement', () => {
         expect(screen.getByText('7.8.1')).toBeInTheDocument();
     });
 
-    test('drops the search and every action when file modifications are disallowed', () => {
-        window.loopressData = { ...window.loopressData, fileModsAllowed: false };
+    test('says deployment is the way when file modifications are disabled', () => {
+        window.loopressData = { ...window.loopressData, composerWritable: false, fileModsAllowed: false };
+        render(<DependencyManagement />, { wrapper: makeWrapper([]) });
+
+        expect(screen.getByText(/File modifications are disabled/i)).toBeInTheDocument();
+        expect(screen.queryByText(/lps composer push/i)).toBeNull();
+    });
+
+    test('drops the search and every action when composer is not writable', () => {
+        window.loopressData = { ...window.loopressData, composerWritable: false };
         render(<DependencyManagement />, {
             wrapper: makeWrapper([{ name: 'guzzlehttp/guzzle', version: '7.8.1' }]),
         });
 
-        expect(screen.getByText(/dependencies\s+are read-only here/i)).toBeInTheDocument();
+        expect(screen.getByText(/Dependencies are read-only here/i)).toBeInTheDocument();
         expect(screen.queryByLabelText(/search a composer package/i)).toBeNull();
         expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
         expect(screen.getByText('guzzlehttp/guzzle')).toBeInTheDocument();

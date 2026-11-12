@@ -302,6 +302,30 @@ describe('validateLocal', () => {
     expect(result.problems).toEqual([])
   })
 
+  it('accepts a valid api.namespace', async () => {
+    write('loopress.json', JSON.stringify({api: {namespace: 'my-api/v2'}}))
+
+    expect((await validateLocal(dir)).problems).toEqual([])
+  })
+
+  it('flags a malformed or reserved api.namespace', async () => {
+    for (const namespace of ['loopress/v1', 'My API']) {
+      write('loopress.json', JSON.stringify({api: {namespace}}))
+
+      const {problems} = await validateLocal(dir)
+
+      expect(problems).toContainEqual(expect.objectContaining({file: 'loopress.json', message: expect.stringContaining('api.namespace')}))
+    }
+  })
+
+  it('flags an unknown key under api and a null namespace', async () => {
+    write('loopress.json', JSON.stringify({api: {namesapce: 'my-api/v2'}}))
+    expect((await validateLocal(dir)).problems).toContainEqual(expect.objectContaining({message: expect.stringContaining('namesapce')}))
+
+    write('loopress.json', JSON.stringify({api: {namespace: null}}))
+    expect((await validateLocal(dir)).problems).toContainEqual(expect.objectContaining({message: expect.stringContaining('api.namespace')}))
+  })
+
   it('accepts a valid plugins object', async () => {
     write('loopress.json', JSON.stringify({plugins: {akismet: '5.3.3'}}))
 

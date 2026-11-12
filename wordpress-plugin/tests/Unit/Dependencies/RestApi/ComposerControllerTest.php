@@ -136,14 +136,54 @@ class ComposerControllerTest extends TestCase
     {
         Functions\when('current_user_can')->justReturn(true);
         Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+        Functions\when('wp_get_environment_type')->justReturn('local');
+
+        $callbacks = $this->permissionCallbacks();
+        foreach (['/composer/require', '/composer/remove', '/composer/repair', '/composer/fix-platform'] as $route) {
+            $this->assertTrue($callbacks[$route](), $route);
+        }
+    }
+
+    /** @return array<string, array{string}> */
+    public static function nonLocalEnvironments(): array
+    {
+        return ['production' => ['production'], 'staging' => ['staging'], 'unset defaults to production' => ['production']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonLocalEnvironments')]
+    public function test_require_remove_repair_are_refused_outside_local_environments(string $type): void
+    {
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+        Functions\when('wp_get_environment_type')->justReturn($type);
+        $callbacks = $this->permissionCallbacks();
+
+        foreach (['/composer/require', '/composer/remove', '/composer/repair', '/composer/fix-platform'] as $route) {
+            $result = $callbacks[$route]();
+            $this->assertInstanceOf(\WP_Error::class, $result, $route);
+            $this->assertSame('loopress_composer_local_only', $result->get_error_code());
+            $this->assertStringContainsString('lps composer push', $result->get_error_message());
+        }
+        // Reading and `lps composer push` (sync) keep working everywhere.
+        $this->assertTrue($callbacks['/composer/installed']());
+        $this->assertTrue($callbacks['/composer/sync']());
+    }
+
+    public function test_development_environment_may_change_dependencies(): void
+    {
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+        Functions\when('wp_get_environment_type')->justReturn('development');
 
         $this->assertTrue($this->permissionCallbacks()['/composer/require']());
+        $this->assertTrue(ComposerController::composerWritable());
     }
 
     public function test_file_writing_routes_still_require_manage_options(): void
     {
         Functions\when('current_user_can')->justReturn(false);
         Functions\when('wp_is_file_mod_allowed')->justReturn(true);
+        Functions\when('wp_get_environment_type')->justReturn('local');
 
         $this->assertFalse($this->permissionCallbacks()['/composer/require']());
     }

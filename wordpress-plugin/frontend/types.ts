@@ -169,6 +169,9 @@ declare global {
             // Full edition only (ComposerModule): false under DISALLOW_FILE_MODS, every Composer
             // route that writes files then refuses with a 403.
             fileModsAllowed?: boolean;
+            // Full edition only: true only on a local or development site (and file mods allowed),
+            // the only place require, remove, repair and fix-platform answer.
+            composerWritable?: boolean;
         };
     }
 }
