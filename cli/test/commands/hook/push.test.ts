@@ -338,7 +338,7 @@ describe('hook push', () => {
     it('refuses to prune, naming the path, when the local directory holds no PHP file', async () => {
       const {cmd, post} = make([dir])
 
-      await expect(cmd.run()).rejects.toThrow(new RegExp(`Refusing to prune: ${dir}`))
+      await expect(cmd.run()).rejects.toThrow(`Refusing to prune: ${dir}`)
       expect(post).not.toHaveBeenCalled()
     })
 
