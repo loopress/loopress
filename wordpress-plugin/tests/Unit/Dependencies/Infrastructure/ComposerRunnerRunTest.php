@@ -59,6 +59,7 @@ class ComposerRunnerRunTest extends TestCase
 
     public function test_the_process_environment_is_restored_and_the_lock_released_afterwards(): void
     {
+        $original = getenv('COMPOSER_HOME');
         putenv('COMPOSER_HOME=/before/composer'); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
         $home = getenv('HOME');
 
@@ -66,7 +67,7 @@ class ComposerRunnerRunTest extends TestCase
 
         $this->assertSame('/before/composer', getenv('COMPOSER_HOME'));
         $this->assertSame($home, getenv('HOME'));
-        putenv('COMPOSER_HOME'); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
+        putenv($original === false ? 'COMPOSER_HOME' : "COMPOSER_HOME={$original}"); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv
 
         // A second operation can take the lock again.
         $this->assertSame(0, $this->runner->run(['validate'], ['--no-check-publish' => true])['exit_code']);
