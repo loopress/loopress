@@ -6,6 +6,7 @@ import {join} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
+import {isEnvironmentType} from '../types/environment-type.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
@@ -74,6 +75,7 @@ export abstract class LoopressCommand extends Command {
   protected projectId!: string
   protected siteConfig!: EnvironmentConfig
   protected yes = false
+  private typeChecked = false
   private wpClient?: WpClient
 
   protected get rootDir(): string {
@@ -95,7 +97,13 @@ export abstract class LoopressCommand extends Command {
 
   // What the targeted site can do, read once per process (see lib/capabilities.ts).
   protected async capabilities(): Promise<SiteCapabilities> {
-    return getCapabilities(this.wp, this.siteConfig.name)
+    const capabilities = await getCapabilities(this.wp, this.siteConfig.name)
+    if (!this.typeChecked) {
+      this.typeChecked = true
+      this.warnOnEnvironmentTypeMismatch(capabilities)
+    }
+
+    return capabilities
   }
 
   override async init(): Promise<void> {
@@ -313,6 +321,15 @@ export abstract class LoopressCommand extends Command {
     this.error(unsupportedMessage(missing, this.siteConfig.name, declared))
   }
 
+  // Environments written before types existed have none: the production guard can't tell what they are.
+  private assertTyped(env: EnvironmentConfig): EnvironmentConfig {
+    if (!isEnvironmentType(env.type)) {
+      this.error(`Environment "${env.name}" has no type. Run \`lps project config\` to set it.`)
+    }
+
+    return env
+  }
+
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {
     const env = project.environments[envName]
     if (!env) {
@@ -321,7 +338,7 @@ export abstract class LoopressCommand extends Command {
       )
     }
 
-    return env
+    return this.assertTyped(env)
   }
 
   // Order: --env, then the project's default (see getDefaultEnvironment). The project comes from
@@ -350,6 +367,16 @@ export abstract class LoopressCommand extends Command {
       )
     }
 
-    return {env, projectId}
+    return {env: this.assertTyped(env), projectId}
+  }
+
+  // Warn only, never block: WordPress answers "production" unless WP_ENVIRONMENT_TYPE is set, so a
+  // local site configured as "local" usually disagrees.
+  private warnOnEnvironmentTypeMismatch({environmentType}: SiteCapabilities): void {
+    const reported = environmentType === 'development' ? 'local' : environmentType
+    if (reported === this.siteConfig.type) return
+    this.warn(
+      `"${this.siteConfig.name}" is configured as type "${this.siteConfig.type}", but the site reports "${environmentType}" (wp_get_environment_type()). Set WP_ENVIRONMENT_TYPE on the site, or fix the type with \`lps project config\`.`,
+    )
   }
 }

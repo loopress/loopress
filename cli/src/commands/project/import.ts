@@ -7,12 +7,14 @@ import {ApiClient} from '../../lib/api-client.js'
 import {errorMessage} from '../../lib/narrow.js'
 import {withoutSpinner} from '../../lib/spinner.js'
 import {type EnvironmentConfig} from '../../types/config.js'
+import {isEnvironmentType} from '../../types/environment-type.js'
 import {pluralize} from '../../utils/pluralize.js'
 
 type ApiEnvironment = {
   createdAt: string
   id: string
   name: string
+  type?: string
   url: string
 }
 
@@ -91,11 +93,15 @@ export default class Import extends Command {
     const environments: Record<string, EnvironmentConfig> = {...existing?.environments}
 
     for (const env of apiProject.environments) {
+      // The API's environment name is still one of the three types until it stores a type of its own.
+      const type = environments[env.name]?.type ?? [env.type, env.name].find((candidate) => isEnvironmentType(candidate))
+      if (!isEnvironmentType(type)) continue
       environments[env.name] = {
         ...environments[env.name],
         addedAt: environments[env.name]?.addedAt ?? env.createdAt,
         apiEnvironmentId: env.id,
         name: env.name,
+        type,
         url: env.url,
       }
     }

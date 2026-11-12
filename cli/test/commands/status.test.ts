@@ -57,6 +57,7 @@ describe('status', () => {
       configDir: '/fake/config',
       dataDir: '/fake/data',
       environment: 'production',
+      environmentType: 'production',
       project: 'acme (production)',
       url: 'https://acme.com',
     })

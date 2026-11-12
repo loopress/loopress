@@ -11,7 +11,7 @@ type Config = {projects: {e2e: {environments: Record<string, Record<string, stri
 function addEnvironment(homeDir: string, name: string, overrides: Record<string, string> = {}): void {
   const path = join(homeDir, '.config', 'loopress', 'config.json')
   const config = JSON.parse(readFileSync(path, 'utf8')) as Config
-  config.projects.e2e.environments[name] = {...config.projects.e2e.environments.local, name, ...overrides}
+  config.projects.e2e.environments[name] = {...config.projects.e2e.environments.local, name, type: name, ...overrides}
   writeFileSync(path, JSON.stringify(config, null, 2))
 }
 

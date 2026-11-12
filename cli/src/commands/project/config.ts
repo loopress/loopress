@@ -10,9 +10,10 @@ import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {sweepTempAdmins} from '../../lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
-import {isLocalEnvironment, WpClient} from '../../lib/wp-client.js'
+import {isLocalEnvironment, LOCAL_ENVIRONMENT_NAME, WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
+import {ENVIRONMENT_TYPES, type EnvironmentType} from '../../types/environment-type.js'
 import {pluralize} from '../../utils/pluralize.js'
 import Link from './link.js'
 
@@ -37,23 +38,19 @@ export default class Config extends Command {
 
     const {projectId, projectName} = await this.resolveProject()
 
-    const envChoice = await select({
-      choices: [
-        {name: 'local', value: 'local'},
-        {name: 'staging', value: 'staging'},
-        {name: 'production', value: 'production'},
-        {name: 'Custom…', value: '__custom__'},
-      ],
-      message: 'Environment',
+    const envType = await select<EnvironmentType>({
+      choices: ENVIRONMENT_TYPES.map((value) => ({name: value, value})),
+      message: 'Environment type',
     })
 
     const envName =
-      envChoice === '__custom__'
-        ? await input({
-            message: 'Environment name',
-            validate: (value) => (value.trim().length > 0 ? true : 'Name cannot be empty'),
-          })
-        : envChoice
+      (
+        await input({
+          default: envType,
+          message: 'Environment name',
+          validate: (value) => (value.trim().length > 0 ? true : 'Name cannot be empty'),
+        })
+      ).trim()
 
     const existingEnv = configManager.getEnvironment(projectId, envName)
 
@@ -82,8 +79,8 @@ export default class Config extends Command {
           return 'URL must start with http:// or https://'
         }
 
-        if (parsed.protocol === 'http:' && !isLocalEnvironment(envName)) {
-          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for the "local" environment (this one is "${envName}").`
+        if ((envType !== 'local' || !isLocalEnvironment(envName)) && parsed.protocol === 'http:') {
+          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment, of type "local" (this one is "${envName}", of type "${envType}").`
         }
 
         return true
@@ -103,6 +100,7 @@ export default class Config extends Command {
       ...(existingEnv?.apiEnvironmentId && {apiEnvironmentId: existingEnv.apiEnvironmentId}),
       name: envName,
       token,
+      type: envType,
       url,
     }
 

@@ -3,7 +3,7 @@ import {type EnvironmentConfig, type ProjectConfig} from '../../src/types/config
 // addedAt defaults to "now" (not a fixed past date) so fixture consumers don't incidentally
 // trip the app-password-staleness check in LoopressCommand; pass one explicitly to test that.
 export function makeEnv(name: string, url = 'https://example.com', token = 'user:pass', addedAt = new Date().toISOString()): EnvironmentConfig {
-  return {addedAt, name, token, url}
+  return {addedAt, name, token, type: name === 'production' || name === 'staging' ? name : 'local', url}
 }
 
 // A copy of `env` with no stored credentials, the way an environment reads before any token was saved.

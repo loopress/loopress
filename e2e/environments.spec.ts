@@ -7,7 +7,7 @@ import {expect, output, test} from './helpers/environment.js'
 // local-only config commands (project list/switch, telemetry), against the real config file the
 // CLI reads, not a mock.
 
-type Env = {addedAt: string; name: string; token: string; url: string}
+type Env = {addedAt: string; name: string; token: string; type?: string; url: string}
 type Config = {
   currentProject: {id: string}
   projects: Record<string, {addedAt?: string; environments: Record<string, Env>; name: string}>
@@ -26,7 +26,7 @@ function readConfig(homeDir: string): Config {
 function setEnvironments(homeDir: string, names: string[]): void {
   const config = readConfig(homeDir)
   const {local} = config.projects.e2e.environments
-  config.projects.e2e.environments = Object.fromEntries(names.map((name) => [name, {...local, name}]))
+  config.projects.e2e.environments = Object.fromEntries(names.map((name) => [name, {...local, name, type: name}]))
   writeFileSync(configPath(homeDir), JSON.stringify(config))
 }
 
@@ -54,6 +54,28 @@ test.describe('environment resolution', () => {
     expect(list.exitCode).not.toBe(0)
     expect(output(list)).toContain('Refusing to send credentials over plain HTTP for the "staging" environment')
     expect(output(list)).toContain('Plain HTTP is allowed only for the "local" environment')
+  })
+
+  test('an environment without a type is refused, with the way forward', async ({homeDir, runCli}) => {
+    const config = readConfig(homeDir)
+    delete config.projects.e2e.environments.local.type
+    writeFileSync(configPath(homeDir), JSON.stringify(config))
+
+    const list = await runCli(['cpt', 'list'])
+
+    expect(list.exitCode).not.toBe(0)
+    expect(output(list)).toContain('Environment "local" has no type. Run `lps project config` to set it.')
+  })
+
+  test('status reports the type, whatever the environment is called', async ({homeDir, runCli}) => {
+    const config = readConfig(homeDir)
+    const {local} = config.projects.e2e.environments
+    config.projects.e2e.environments = {live: {...local, name: 'live', type: 'production'}}
+    writeFileSync(configPath(homeDir), JSON.stringify(config))
+
+    const status = await runCli(['status', '--json'])
+
+    expect(JSON.parse(status.stdout)).toMatchObject({environment: 'live', environmentType: 'production'})
   })
 
   test('loopress.json pinning a project that is not configured fails clearly', async ({projectDir, runCli}) => {

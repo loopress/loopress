@@ -380,7 +380,7 @@ describe('diff', () => {
   })
 
   it('rejects --against an environment with no configured token', async () => {
-    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'staging2', token: '', url: 'https://x.com'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'staging2', type: 'staging', token: '', url: 'https://x.com'})
     const {cmd} = make(['--against', 'staging2'], baselineGet())
 
     await expect(cmd.run()).rejects.toThrow(/No credentials configured/)

@@ -116,6 +116,14 @@ describe('LoopressCommand.init', () => {
     expect(cmd2.resolvedDryRun).toBe(false)
   })
 
+  it('refuses an environment without a type', async () => {
+    const untyped = Object.fromEntries(Object.entries(makeEnv('production')).filter(([key]) => key !== 'type'))
+    vi.spyOn(configManager, 'getProject').mockReturnValue(makeListedProject('id-acme', 'acme', {production: untyped as unknown as EnvironmentConfig}, true))
+    vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(makeListedProject('id-acme', 'acme', {production: untyped as unknown as EnvironmentConfig}, true))
+
+    await expect(initWith([])).rejects.toThrow('Environment "production" has no type. Run `lps project config` to set it.')
+  })
+
   it('does not fall back to the global environment when loopress.json is broken', async () => {
     vi.mocked(readLocalConfig).mockRejectedValue(new Error('loopress.json is not valid JSON.'))
     const getCurrentProject = vi.spyOn(configManager, 'getCurrentProject')
@@ -228,6 +236,39 @@ describe('LoopressCommand.init', () => {
     )
 
     await expect(initWith([])).rejects.toThrow(/has no "local" environment, pass --env.*Available: production, staging/)
+  })
+})
+
+describe('LoopressCommand environment type check', () => {
+  async function warningsFor(configured: string, reported: string): Promise<string[]> {
+    useActiveEnv({...makeEnv('live'), type: configured as EnvironmentConfig['type']})
+    const cmd = new TestCommand([], fakeOclifConfig)
+    await cmd.init()
+    vi.spyOn(cmd.resolvedWp, 'get').mockResolvedValue(makeCapabilities({environmentType: reported}))
+    const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
+    await (cmd as unknown as {capabilities(): Promise<unknown>}).capabilities()
+    await (cmd as unknown as {capabilities(): Promise<unknown>}).capabilities()
+    return warn.mock.calls.map(([message]) => String(message))
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.mocked(readLocalConfig).mockResolvedValue({})
+  })
+
+  it('warns once when the site reports another type than the configured one', async () => {
+    const warnings = await warningsFor('local', 'production')
+
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('configured as type "local", but the site reports "production"')
+  })
+
+  it('counts "development" as local', async () => {
+    expect(await warningsFor('local', 'development')).toEqual([])
+  })
+
+  it('stays quiet when the types agree', async () => {
+    expect(await warningsFor('staging', 'staging')).toEqual([])
   })
 })
 

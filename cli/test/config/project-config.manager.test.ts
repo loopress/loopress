@@ -10,6 +10,7 @@ const makeEnv = (name: string, url = 'https://example.com'): EnvironmentConfig =
   addedAt: '2024-01-01T00:00:00.000Z',
   name,
   token: `user:secret`,
+  type: 'staging',
   url,
 })
 

@@ -32,7 +32,7 @@ lps doctor --env staging
 lps push --env staging --yes
 ```
 
-`--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment named `production` requires it in a non-interactive run.
+`--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment of type `production` (whatever its name) requires it in a non-interactive run.
 
 ### Refreshing the secret
 
