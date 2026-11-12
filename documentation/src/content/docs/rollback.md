@@ -32,8 +32,13 @@ lps snippet rollback --dry-run  # show what would be restored
 | [Dynamic Blocks](/dynamic-blocks/) | `lps block rollback` |
 | [Static pages](/pages/#lps-page-rollback) | `lps page rollback` |
 | [Templates, parts and theme CSS](/pages/#lps-theme-template-rollback) | `lps theme template rollback` |
+| [Plugins](/plugins/#lps-plugin-rollback) | `lps plugin rollback` |
+| [Theme versions](/themes/#lps-theme-version-rollback) | `lps theme version rollback` |
+| [Composer](/composer/cli/#lps-composer-rollback) | `lps composer rollback` |
 
-Plugins, themes, Composer and apps have no rollback: to go back, check out the previous version of your files in Git and push again. For plugins, keep in mind that a downgrade replaces files only, it does not undo database migrations.
+Apps have no rollback: to go back, check out the previous version of your files in Git and push again.
+
+Plugins, theme versions and Composer go through the site's Composer: the rollback runs it again with the earlier versions, so a package the push installed is uninstalled and one it uninstalled is reinstalled. A rollback that downgrades a package warns, `--dry-run` included, and needs `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran.
 
 ## Flags
 
@@ -43,6 +48,7 @@ Plugins, themes, Composer and apps have no rollback: to go back, check out the p
 | `--to <id>` | Restore this snapshot instead of the most recent one |
 | `--dry-run` / `-d` | Show what would be restored without changing anything |
 | `--yes` / `-y` | Roll back even if the environment changed since that push |
+| `--force` | Plugins, theme versions and Composer: roll back even when it downgrades a package |
 | `--env <name>` | Roll back this environment instead of the default one |
 
 ## Where snapshots live
@@ -55,7 +61,7 @@ A push run in CI therefore saves its snapshot on the runner, where it disappears
 
 1. **Drift check.** The CLI reads the environment and compares it with the state right after the push that saved the snapshot. If something changed since (an edit in wp-admin, another push), it shows the difference and asks before overwriting it. In CI, pass `--yes` to roll back anyway.
 2. **Targeted restore.** Only the objects that differ from the snapshot are written back, the rest is left alone.
-3. **No deletion.** An object that exists now but not in the snapshot (created after it) is **not** removed. The CLI warns about it, delete it yourself if needed. The exception is a resource whose push mirrors the project: `lps theme template rollback` writes the whole child theme back, so a template or part the push added is removed.
+3. **No deletion.** An object that exists now but not in the snapshot (created after it) is **not** removed. The CLI warns about it, delete it yourself if needed. The exception is a resource whose push mirrors the project: `lps theme template rollback` writes the whole child theme back, so a template or part the push added is removed. Plugins, theme versions and Composer are also an exception: the rollback puts back the whole installed set, so a package the push added is uninstalled (a plugin or theme installed by hand since is left alone).
 
 Your local files are not changed by a rollback. Run the resource's `pull` afterwards to bring them back in line with the site. Pages, templates and parts have no `pull`: check out the files of the snapshot's push in Git instead (`lps diff --only page`, `--only template`, `--only part` shows what still differs).
 

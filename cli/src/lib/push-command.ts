@@ -215,6 +215,25 @@ export abstract class PushCommand extends LoopressCommand {
     }
   }
 
+  // The remote state before a push whose resource has no local directory to check outside
+  // edits against (plugins, theme versions, Composer): only the read for its rollback snapshot,
+  // as best effort as captureBeforePushState's.
+  protected async readStateForSnapshot(provider: ResourceStateProvider): Promise<ResourceState | undefined> {
+    if (this.dryRun) return undefined
+    try {
+      return await provider.remote(
+        this.wp,
+        (message) => {
+          this.warn(message)
+        },
+        '',
+      )
+    } catch (error) {
+      this.warn(`Could not read remote state for a rollback snapshot: ${errorMessage(error)}`)
+      return undefined
+    }
+  }
+
   protected async recordDeployment(status: 'failure' | 'success'): Promise<void> {
     // Inside `lps push`, the steps only report the plugin inventory: the run posts one record.
     if (deploymentCollector) {

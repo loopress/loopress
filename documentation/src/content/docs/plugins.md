@@ -139,6 +139,18 @@ Plugins under `require-dev` are installed on the `local` environment only, never
 
 It also helps with a premium plugin you can't install from WordPress.org: put its free edition in `require-dev` (for example `wpackagist-plugin/easy-digital-downloads` while production runs EDD Pro). Not every premium feature can be tested that way, but the local site gets the plugin's core.
 
+### `lps plugin rollback`
+
+Every real `lps plugin push` saves a [snapshot](/rollback/) of the installed plugins (version, active state, managed by Loopress or not) before and after it runs. `lps plugin rollback` puts the most recent one back: it syncs Composer to the earlier versions, so a plugin the push installed is uninstalled and one it uninstalled is reinstalled, then it activates or deactivates each plugin as it was.
+
+```bash
+lps plugin rollback --dry-run   # what would change, and any downgrade
+lps plugin rollback             # restore the most recent snapshot
+lps plugin rollback --force     # needed when the rollback downgrades a plugin
+```
+
+A rollback that downgrades a plugin warns, in `--dry-run` too, and refuses to run without `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran. A plugin installed by hand since the push is left alone. With a `composer.json`, `lps plugin push` pushes the whole file but its rollback restores the plugins only. `--list`, `--to`, `--yes` and the drift check work as for [every rollback](/rollback/).
+
 ### `lps plugin status`
 
 Compare the site against `loopress.json` and exit non-zero on drift (usable in CI):
@@ -179,5 +191,5 @@ Updated 1 plugin(s) in loopress.json. Run `lps plugin push` to apply.
 ## Limits
 
 - **WordPress.org plugins only.** Premium plugins (ACF Pro, Gravity Forms, …) aren't on WPackagist, so Loopress can't install or version them. It does still see them on the site: `plugin pull` offers them like any other plugin (leave them unticked), `plugin status` marks them untracked, `--prune` deactivates any active plugin missing from `loopress.json` including premium ones, and `--force` replaces the files of a colliding folder. Keep premium plugins out of `loopress.json`.
-- **No rollback of database migrations.** A downgrade replaces files only.
+- **No rollback of database migrations.** A downgrade replaces files only, `lps plugin rollback` included.
 - **Multisite** plugin pinning is not supported yet.

@@ -122,6 +122,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `plugin_add` | No | Add a WordPress.org plugin to `loopress.json`, or change its pinned version, plus the plugins it requires (local file only) |
 | `plugin_push` | Yes | Install WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
+| `plugin_rollback` | Yes | Restore plugin versions and active state to the snapshot saved automatically before an earlier `plugin_push` (`list` shows what's available, `force` allows a downgrade) |
 | `plugin_status` | No | Compare the plugins on WordPress against `loopress.json` and report drift |
 | `plugin_audit` | No | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `plugin_outdated` | No | Compare `loopress.json` plugins to the latest WordPress.org versions (slug, current, latest, jump) |
@@ -129,6 +130,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `theme_add` | No | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_push` | Yes | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
+| `theme_version_rollback` | Yes | Restore theme versions to the snapshot saved automatically before an earlier `theme_version_push` (`list` shows what's available, `force` allows a downgrade) |
 | `theme_version_pull` | No | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_pull` | No | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
@@ -138,6 +140,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `theme_style_rollback` | Yes | Restore Global Styles to the snapshot saved automatically before an earlier `theme_style_push` (`list` shows what's available) |
 | `composer_push` | Yes | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | Pull `composer.json`/`composer.lock` from WordPress |
+| `composer_rollback` | Yes | Restore the site's `composer.json` to the snapshot saved automatically before an earlier `composer_push` and run Composer (`list` shows what's available, `force` allows a downgrade) |
 | `push` | Yes | Push every local resource to WordPress in one run, like `lps push`, or only some of them (`only`, `skip`). Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold. |
 | `pull` | No | Pull every resource from WordPress into local files in one run, like `lps pull`. On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
 | `promote` | Yes | Copy every tracked resource from one environment (`from`) to another (`to`), pulling then pushing, like `lps promote` |

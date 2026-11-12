@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {confirmUninstall} from '../../lib/interactive.js'
+import {pluginLockProvider} from '../../lib/lockfile-rollback.js'
 import {causeOf, isRecord} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isLocalEnvironment, isNotFoundError, parseBody, responseOf} from '../../lib/wp-client.js'
@@ -131,6 +132,7 @@ export default class Push extends PushCommand {
     }
 
     if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
+    const beforeState = await this.readStateForSnapshot(pluginLockProvider)
     const switchedOff = await this.deactivateEndangered(installed, diff, force)
     // Plugins switched off for the file swap come back on, unless loopress.json wants them inactive.
     const deactivated = switchedOff.filter(
@@ -164,6 +166,7 @@ export default class Push extends PushCommand {
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Plugins synced.')
     this.logStillInactive([...skippedActivations, ...newlyInstalled.filter((p) => !activateNew(p.slug))], fromComposer)
+    await this.writeAfterPushSnapshot(pluginLockProvider, '', beforeState)
     await this.recordSuccess()
 
     return this.result(diff, {

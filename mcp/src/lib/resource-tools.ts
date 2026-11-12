@@ -58,9 +58,14 @@ type ResourceToolsSpec = {
 // `resource` is the CLI topic, space-separated when nested (e.g. `theme style`).
 export function registerRollbackTool(
   server: McpServer,
-  {pathNoun, resource, toolName = resource}: {pathNoun: string; resource: string; toolName?: string},
+  {force, pathNoun, resource, timeoutMs, toolName = resource}: {force?: boolean; pathNoun?: string; resource: string; timeoutMs?: number; toolName?: string},
 ): void {
-  const pathArg = z.string().optional().describe(`Path to the ${pathNoun} (overrides project config)`)
+  // No pathNoun: the rollback reads no local directory (plugins, theme versions, Composer).
+  const pathArg: z.ZodRawShape = pathNoun ? {path: z.string().optional().describe(`Path to the ${pathNoun} (overrides project config)`)} : {}
+  // force: a rollback that reinstalls packages refuses a downgrade without it.
+  const forceArg: z.ZodRawShape = force
+    ? {force: z.boolean().optional().describe('Roll back even when it downgrades a package: a downgrade does not undo the database migrations the newer version ran')}
+    : {}
 
   server.registerTool(
     `${toolName}_rollback`,
@@ -75,12 +80,14 @@ export function registerRollbackTool(
         confirmToken: confirmTokenFlag,
         env: envFlag,
         list: z.boolean().optional().describe('List available snapshots instead of rolling back'),
-        path: pathArg,
+        ...pathArg,
+        ...forceArg,
         to: z.string().optional().describe('Roll back to this snapshot id instead of the most recent one (see list: true)'),
       },
     },
-    async ({confirmToken, env, list, path, to}) => {
+    async ({confirmToken, env, force: forced, list, path, to}: {confirmToken?: string; env?: string; force?: boolean; list?: boolean; path?: string; to?: string}) => {
       const args = buildArgs([...resource.split(' '), 'rollback'], {env, path})
+      if (forced) args.push('--force')
 
       if (list) {
         args.push('--list')
@@ -91,7 +98,10 @@ export function registerRollbackTool(
       // --yes: the confirmToken handshake below is the actual approval gate, same reasoning as
       // rm above.
       args.push('--yes')
-      return toCallToolResult(await runMutatingTool(`${toolName}_rollback`, args, confirmToken))
+      const result = timeoutMs === undefined
+        ? await runMutatingTool(`${toolName}_rollback`, args, confirmToken)
+        : await runMutatingTool(`${toolName}_rollback`, args, confirmToken, {timeoutMs})
+      return toCallToolResult(result)
     },
   )
 }

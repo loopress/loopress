@@ -133,6 +133,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `plugin_add` | No | `slug`, `version?` | Add a WordPress.org plugin to `loopress.json`, or change its pinned version, plus the plugins it requires (local file only) |
 | `plugin_push` | Yes | `env?`, `force?`, `prune?`, `activate?`, `confirmToken?` | Install WordPress.org plugins to match `loopress.json` (active state included), or push the whole `composer.json` when there is one, via Composer + WPackagist |
 | `plugin_pull` | No | `env?`, `plugins?` | Refresh the tracked plugins from WordPress into `loopress.json` (or `composer.json`), pinned to their live versions; other installed plugins are reported as `untracked` unless named in `plugins` |
+| `plugin_rollback` | Yes | `env?`, `list?`, `to?`, `force?`, `confirmToken?` | Restore plugin versions and active state to the snapshot saved automatically before an earlier `plugin_push` (`list` shows what's available, `force` allows a downgrade) |
 | `plugin_status` | No | `env?` | Compare the plugins on WordPress against `loopress.json` and report drift |
 | `plugin_audit` | No | none | Check `loopress.json` plugins for known vulnerabilities and health issues |
 | `plugin_outdated` | No | none | Compare `loopress.json` plugins to the latest WordPress.org versions |
@@ -140,6 +141,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `theme_add` | No | `slug`, `version?` | Add a WordPress.org theme to `loopress.json`, or change its pinned version (local file only) |
 | `theme_version_push` | Yes | `env?`, `force?`, `confirmToken?` | Install WordPress.org themes to match `loopress.json` (never switches the active theme) |
 | `theme_push` | Yes | `env?`, `force?`, `confirmToken?` | Push everything theme related: versions, then templates and parts (skipped without a template, part or CSS directory), then Global Styles (activates the Loopress child when `activateChildTheme` is true) |
+| `theme_version_rollback` | Yes | `env?`, `list?`, `to?`, `force?`, `confirmToken?` | Restore theme versions to the snapshot saved automatically before an earlier `theme_version_push` (`list` shows what's available, `force` allows a downgrade) |
 | `theme_version_pull` | No | `env?` | Pull installed themes from WordPress into `loopress.json`, pinned to their live versions |
 | `theme_pull` | No | `env?` | Pull everything theme related: versions, then Global Styles |
 | `theme_activate` | Yes | `stylesheet?`, `env?`, `confirmToken?` | Activate a theme, the Loopress child theme by default (a child without settings of its own starts from its parent's theme mods and Global Styles) |
@@ -149,6 +151,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `theme_style_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore Global Styles to the snapshot saved automatically before an earlier `theme_style_push` (`list` shows what's available) |
 | `composer_push` | Yes | `env?`, `force?`, `confirmToken?` | Push `composer.json` and run Composer on WordPress to resolve and install dependencies |
 | `composer_pull` | No | `env?` | Pull `composer.json`/`composer.lock` from WordPress |
+| `composer_rollback` | Yes | `env?`, `list?`, `to?`, `force?`, `confirmToken?` | Restore the site's `composer.json` to the snapshot saved automatically before an earlier `composer_push` and run Composer (`list` shows what's available, `force` allows a downgrade) |
 | `push` | Yes | `env?`, `only?`, `skip?`, `overwrite?`, `skipUnsupported?`, `confirmToken?` | Push every local resource to WordPress in one run (`lps push`), or only some of them (`only`, `skip`). Skips what the project does not use, and on Loopress Light what needs Full; refuses before pushing anything when the project uses something the site cannot hold, unless `skipUnsupported` skips it with a warning. |
 | `pull` | No | `env?`, `skipUnsupported?` | Pull every resource from WordPress into local files in one run (`lps pull`). On Loopress Light, Composer is always skipped and the Full-only resources the project does not use are skipped. |
 | `promote` | Yes | `from`, `to`, `overwrite?`, `skipUnsupported?`, `confirmToken?` | Copy every tracked resource from one environment to another, pulling from `from` then pushing to `to` (`lps promote`) |
@@ -219,7 +222,7 @@ Tool results set `isError: true` with a JSON payload `{"error": {"name", "messag
 
 | Name | Meaning |
 |------|---------|
-| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push` / `pull` / `promote` / `content_copy`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push`) |
+| `TIMEOUT` | The underlying `lps` command exceeded its timeout (120s by default, 600s for `push` / `pull` / `promote` / `content_copy`, 620s for `composer_push` / `plugin_push` / `theme_push` / `theme_version_push` and their `_rollback`) |
 | `ExecError` | The `lps` process failed for another reason than a timeout |
 | `INVALID_CONFIRM_TOKEN` | Unknown, already-used, or wrong-tool `confirmToken` |
 | `CONFIRM_TOKEN_EXPIRED` | `confirmToken` older than 5 minutes |
