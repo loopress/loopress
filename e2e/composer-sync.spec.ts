@@ -113,3 +113,44 @@ test(String.raw`a real composer push preserves the LoopressLib\ autoload entry t
 
   expect(parsed.autoload?.['psr-4']?.['LoopressLib\\']).toBe('lib/')
 })
+
+// `lps composer rollback` puts back the composer.json of the snapshot the last push saved and
+// runs Composer on it: the package that push removed comes back, the one it added goes away.
+// Packagist packages only, no WordPress.org download (see the scaffold test above).
+test('composer rollback undoes the last push, reinstalling what it removed and removing what it added', async ({
+  projectDir,
+  request,
+  runCli,
+  wp,
+}) => {
+  const installed = async () => {
+    const response = await request.get(`${wp.url}/wp-json/loopress/v1/composer/installed`, {
+      headers: {Authorization: `Basic ${Buffer.from(`${wp.username}:${wp.appPassword}`).toString('base64')}`},
+    })
+    expect(response.ok()).toBe(true)
+    return ((await response.json()) as Array<{name: string}>).map((pkg) => pkg.name)
+  }
+
+  const push = async (require: Record<string, string>) => {
+    writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({name: 'loopress/e2e-rollback', require}))
+    rmSync(join(projectDir, 'composer.lock'), {force: true})
+    const result = await runCli(['composer', 'push', '--yes'])
+    expect(result.exitCode, result.stderr).toBe(0)
+  }
+
+  await push({'psr/log': '^3.0'})
+  await push({'psr/container': '^2.0'})
+  expect(await installed()).toContain('psr/container')
+
+  const preview = await runCli(['composer', 'rollback', '--dry-run', '--json'])
+  expect(preview.exitCode, preview.stderr).toBe(0)
+  expect((JSON.parse(preview.stdout) as {status: string}).status).toBe('dry-run')
+
+  const rollback = await runCli(['composer', 'rollback', '--yes'])
+  expect(rollback.exitCode, `stdout:\n${rollback.stdout}\n\nstderr:\n${rollback.stderr}`).toBe(0)
+  expect(rollback.stdout).toContain('Rolled back')
+
+  const after = await installed()
+  expect(after).toContain('psr/log')
+  expect(after).not.toContain('psr/container')
+})

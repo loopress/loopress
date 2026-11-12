@@ -61,6 +61,21 @@ Run `lps composer pull` to update your local composer.json and composer.lock.
 
 ---
 
+### `lps composer rollback`
+
+Every real `lps composer push` saves a [snapshot](/rollback/) of the site's `composer.json` and `composer.lock`. `lps composer rollback` puts the earlier `composer.json` back and runs Composer on it, so a package the push added is uninstalled and one it removed is reinstalled.
+
+The server never installs from a lock the CLI sends (it would let a crafted lock download code from any host), so the earlier `composer.lock` is not replayed: Composer resolves the earlier `composer.json` again, and the rollback lists every package that resolved to another version than the snapshot's lock. Pin exact versions in `composer.json` when you need them back exactly.
+
+A rollback that downgrades a package warns, in `--dry-run` too, and needs `--force`: a downgrade does not undo the database migrations the newer version ran.
+
+```bash
+lps composer rollback --dry-run
+lps composer rollback --force
+```
+
+---
+
 ### `lps composer pull`
 
 Download `composer.json` from the WordPress server, plus `composer.lock` when the server has one, to your local directory.

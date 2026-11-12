@@ -68,6 +68,10 @@ The versions-only half of `pull` and `push`: `version pull` snapshots the instal
 
 `--force` allows downgrades and lets Loopress take over a theme installed by hand. The same limits as [plugins](/plugins/#limits) apply: WordPress.org themes only, no rollback of database migrations, no multisite.
 
+### `lps theme version rollback`
+
+Every real `lps theme version push` (and `lps theme push`) saves a [snapshot](/rollback/) of the installed themes. `lps theme version rollback` syncs Composer back to it: a theme the push installed is uninstalled, one it uninstalled is reinstalled, a re-pinned one goes back to its earlier version. It never switches the active theme, and refuses to uninstall it. A downgrade needs `--force`, with the same warning as [plugins](/plugins/#lps-plugin-rollback).
+
 If your repo has a `composer.json`, it is authoritative: `lps theme version pull` pins live versions into it as `wpackagist-theme/<slug>` entries (same rules as [plugins](/plugins/#lps-plugin-pull): constraints kept, themes not on WordPress.org skipped), and `lps theme version push` defers to [`lps composer push`](/composer/cli/).
 
 :::note

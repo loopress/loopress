@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -92,4 +92,6 @@ export function registerThemeTools(server: McpServer): void {
     },
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['theme', 'status'], {env})))),
   )
+
+  registerRollbackTool(server, {force: true, resource: 'theme version', timeoutMs: THEME_PUSH_TIMEOUT_MS, toolName: 'theme_version'})
 }

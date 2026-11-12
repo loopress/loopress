@@ -6,7 +6,7 @@ vi.mock('../../src/lib/mutating-tool.js', () => ({runMutatingTool}))
 vi.mock('../../src/lib/run-lps.js', () => ({runLps}))
 vi.mock('../../src/lib/tool-result.js', () => ({toCallToolResult: (x: unknown) => x, unwrap: (x: unknown) => x}))
 
-const {registerResourceTools} = await import('../../src/lib/resource-tools.js')
+const {registerResourceTools, registerRollbackTool} = await import('../../src/lib/resource-tools.js')
 
 type Handler = (input: Record<string, unknown>) => Promise<unknown>
 
@@ -120,5 +120,25 @@ describe('registerRollbackTool', () => {
     expect([...tools.keys()]).toEqual(['theme_style_rollback'])
     await tools.get('theme_style_rollback')!({})
     expect(runMutatingTool).toHaveBeenCalledWith('theme_style_rollback', ['theme', 'style', 'rollback', '--yes'], undefined)
+  })
+})
+
+describe('registerRollbackTool', () => {
+  beforeEach(() => {
+    runMutatingTool.mockClear()
+  })
+
+  it('forwards force and the Composer timeout, with no path, for a lockfile rollback', async () => {
+    const {server, tools} = fakeServer()
+    registerRollbackTool(server, {force: true, resource: 'theme version', timeoutMs: 620_000, toolName: 'theme_version'})
+
+    await tools.get('theme_version_rollback')!({env: 'prod', force: true})
+
+    expect(runMutatingTool).toHaveBeenCalledWith(
+      'theme_version_rollback',
+      ['theme', 'version', 'rollback', '--env', 'prod', '--force', '--yes'],
+      undefined,
+      {timeoutMs: 620_000},
+    )
   })
 })

@@ -3,7 +3,9 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {type ResourceState} from '../../lib/diff-state.js'
 import {confirmUninstall} from '../../lib/interactive.js'
+import {composerProvider, pluginLockProvider} from '../../lib/lockfile-rollback.js'
 import {causeOf, isRecord} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isLocalEnvironment, isNotFoundError, parseBody, responseOf} from '../../lib/wp-client.js'
@@ -131,6 +133,7 @@ export default class Push extends PushCommand {
     }
 
     if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
+    const snapshots = await this.statesBeforePush(fromComposer)
     const switchedOff = await this.deactivateEndangered(installed, diff, force)
     // Plugins switched off for the file swap come back on, unless loopress.json wants them inactive.
     const deactivated = switchedOff.filter(
@@ -164,6 +167,9 @@ export default class Push extends PushCommand {
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Plugins synced.')
     this.logStillInactive([...skippedActivations, ...newlyInstalled.filter((p) => !activateNew(p.slug))], fromComposer)
+    await this.writeAfterPushSnapshot(pluginLockProvider, '', snapshots.plugins)
+    // Undefined when not from a composer.json: writes nothing.
+    await this.writeAfterPushSnapshot(composerProvider, '', snapshots.composer)
     await this.recordSuccess()
 
     return this.result(diff, {
@@ -390,6 +396,15 @@ export default class Push extends PushCommand {
       pruned: opts.pruned,
       removed: opts.removed,
       status: opts.status,
+    }
+  }
+
+  // The rollback snapshots' before side. From a composer.json the whole file is pushed, themes
+  // and libraries too: a Composer snapshot lets `lps composer rollback` undo all of it.
+  private async statesBeforePush(fromComposer: boolean): Promise<{composer: ResourceState | undefined; plugins: ResourceState | undefined}> {
+    return {
+      composer: fromComposer ? await this.readStateForSnapshot(composerProvider) : undefined,
+      plugins: await this.readStateForSnapshot(pluginLockProvider),
     }
   }
 

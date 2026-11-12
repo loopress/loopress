@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerAddTool, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -122,4 +122,7 @@ export function registerPluginTools(server: McpServer): void {
       return toCallToolResult(unwrap(await runLps(args)))
     },
   )
+
+  // Restores versions and active state, uninstalls what the push added: it runs Composer like the push.
+  registerRollbackTool(server, {force: true, resource: 'plugin', timeoutMs: PLUGIN_PUSH_TIMEOUT_MS})
 }

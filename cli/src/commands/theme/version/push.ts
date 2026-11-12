@@ -3,6 +3,7 @@ import {existsSync} from 'node:fs'
 import {join} from 'node:path'
 
 import {confirmUninstall} from '../../../lib/interactive.js'
+import {themeLockProvider} from '../../../lib/lockfile-rollback.js'
 import {PushCommand} from '../../../lib/push-command.js'
 import {isNotFoundError} from '../../../lib/wp-client.js'
 import {isDowngrade, parseCollisions, SYNC_TIMEOUT_MS, type SyncResponse} from '../../../utils/plugin-sync.js'
@@ -85,9 +86,11 @@ export default class Push extends PushCommand {
 
     if (!(await confirmUninstall(diff.toRemove, this.yes))) this.error('Aborted.')
 
+    const beforeState = await this.readStateForSnapshot(themeLockProvider)
     const response = await this.sync(manifest, force)
     if (response.output.trim()) this.log(response.output.trim())
     this.log('Themes synced.')
+    await this.writeAfterPushSnapshot(themeLockProvider, '', beforeState)
     await this.recordSuccess()
 
     return result(diff, 'success', response.removed ?? diff.toRemove, force)

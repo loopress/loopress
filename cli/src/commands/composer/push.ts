@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {confirmUninstall} from '../../lib/interactive.js'
+import {composerProvider} from '../../lib/lockfile-rollback.js'
 import {errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
 import {isLocalEnvironment, isTimeoutError} from '../../lib/wp-client.js'
@@ -68,6 +69,7 @@ export default class ComposerPush extends PushCommand {
 
     if (!(await confirmUninstall(toRemove, this.yes))) this.error('Aborted.')
 
+    const beforeState = await this.readStateForSnapshot(composerProvider)
     this.log('Running Composer on the server, this can take a few minutes...')
 
     let response: SyncResponse
@@ -95,6 +97,7 @@ export default class ComposerPush extends PushCommand {
     const lockDrift = response.lockDrift ?? []
     this.reportLockDrift(lockDrift)
 
+    await this.writeAfterPushSnapshot(composerProvider, '', beforeState)
     await this.recordSuccess()
 
     return {hasLock, lockDrift, packageCount, status: 'success'}

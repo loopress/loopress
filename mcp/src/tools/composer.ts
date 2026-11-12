@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -37,4 +37,6 @@ export function registerComposerTools(server: McpServer): void {
     {description: 'Pull composer.json and composer.lock from WordPress into local files.', inputSchema: {env: envFlag}},
     async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs(['composer', 'pull'], {env})))),
   )
+
+  registerRollbackTool(server, {force: true, resource: 'composer', timeoutMs: COMPOSER_PUSH_TIMEOUT_MS})
 }

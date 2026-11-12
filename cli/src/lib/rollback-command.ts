@@ -7,7 +7,7 @@ import {join, resolve} from 'node:path'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
-import {compareStates, isEmptyDiff, type StateDiff} from './diff-state.js'
+import {compareStates, isEmptyDiff, type ResourceState, type StateDiff} from './diff-state.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
 import {errorMessage} from './narrow.js'
@@ -58,11 +58,18 @@ function indentPatch(patch: string): string {
 // `beforeState` entries to restore, every one when `mirror`) itself. `mirror`: the push mirrors
 // the project, so restoring also removes what the snapshot doesn't have. `provider` overrides
 // the RESOURCE_STATE_PROVIDERS lookup.
-export type RollbackRestore = (context: {ids: string[]; log: (message: string) => void; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
+// `current` is the state read for the drift check, `force` the `--force` flag of a resource with
+// `downgrades`.
+export type RollbackRestore = (context: {current: ResourceState; environment: string; force: boolean; ids: string[]; log: (message: string) => void; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
+
+// The versions a restore would downgrade (`akismet 5.3 to 5.2`), for a resource whose rollback
+// installs packages. A downgrade replaces files only, it does not undo the database migrations
+// the newer version ran: the rollback warns, in --dry-run too, and needs --force.
+export type RollbackDowngrades = (context: {current: ResourceState; snapshot: Snapshot}) => string[]
 
 export function resourceRollbackCommand(
   resource: string,
-  options: {command?: string; description: string; mirror?: boolean; pathNoun: string; provider?: ResourceStateProvider; restore?: RollbackRestore},
+  options: {command?: string; description: string; downgrades?: RollbackDowngrades; mirror?: boolean; pathNoun: string; provider?: ResourceStateProvider; restore?: RollbackRestore},
 ): typeof LoopressCommand {
   const command = options.command ?? resource
   class ResourceRollback extends LoopressCommand {
@@ -84,6 +91,9 @@ export function resourceRollbackCommand(
       ...LoopressCommand.yesFlag,
       list: Flags.boolean({description: 'List available snapshots instead of rolling back'}),
       to: Flags.string({description: 'Roll back to this snapshot id instead of the most recent one'}),
+      ...(options.downgrades && {
+        force: Flags.boolean({default: false, description: 'Roll back even when it downgrades a package (database migrations are not undone)'}),
+      }),
     }
 
     async run(): Promise<RollbackResult> {
@@ -157,6 +167,9 @@ export function resourceRollbackCommand(
         )
       }
 
+      const force = (flags as {force?: boolean}).force === true
+      this.guardDowngrades(options.downgrades?.({current: currentState, snapshot}) ?? [], force)
+
       if (this.dryRun) {
         return {drift: driftSummary, id: snapshot.id, restored: summarize(restoreDiff), status: 'dry-run'}
       }
@@ -169,6 +182,9 @@ export function resourceRollbackCommand(
       const idsToRestore = new Set([...restoreDiff.added, ...restoreDiff.changed.map((change) => change.id)])
       if (options.restore) {
         await options.restore({
+          current: currentState,
+          environment: this.siteConfig.name,
+          force,
           ids: options.mirror ? Object.keys(snapshot.beforeState) : [...idsToRestore],
           log: (message) => {
             this.log(message)
@@ -228,6 +244,15 @@ export function resourceRollbackCommand(
         message: 'The environment has changed since this snapshot was taken. Roll back anyway, overwriting those later changes?',
       })
       if (!proceed) this.error('Aborted.')
+    }
+
+    private guardDowngrades(downgrades: string[], force: boolean): void {
+      if (downgrades.length === 0) return
+      const message =
+        `This rollback downgrades ${downgrades.join(', ')}. A downgrade only replaces files, it does not undo ` +
+        'database migrations the newer version ran, which can break the site.'
+      if (!force && !this.dryRun) this.error(`${message} Re-run with --force to roll back anyway.`)
+      this.warn(message)
     }
 
     private renderDiff(heading: string, diff: StateDiff): void {

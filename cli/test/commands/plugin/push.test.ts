@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../src/commands/plugin/push.js'
 import {confirmUninstall} from '../../../src/lib/interactive.js'
+import {readSnapshot} from '../../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -257,6 +258,24 @@ describe('plugin push', () => {
       {force: false, intent: {plugins: {akismet: '5.3.3', woocommerce: '9.4.2'}}, lock: null},
       {timeoutMs: 600_000},
     )
+  })
+
+  it('saves the installed set before and after the push for `lps plugin rollback`', async () => {
+    const {cmd, get, post} = make({plugins: {akismet: '5.3.3'}})
+    get.mockImplementation(async (path: string) => {
+      const synced = post.mock.calls.length > 0
+      if (path === 'loopress/v1/composer/lock') {
+        return {composerLock: JSON.stringify({packages: synced ? [{name: 'wpackagist-plugin/akismet', version: '5.3.3'}] : []})}
+      }
+
+      return synced ? [native('akismet', '5.3.3')] : []
+    })
+
+    await cmd.run()
+
+    const snapshot = await readSnapshot(dir, 'plugin', 'production')
+    expect(snapshot.beforeState).toEqual({})
+    expect(snapshot.afterState).toEqual({akismet: {active: true, locked: '5.3.3', version: '5.3.3'}})
   })
 
   it('does not call the API on a dry run', async () => {
