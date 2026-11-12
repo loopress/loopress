@@ -193,15 +193,16 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     static override examples = [
       `$ lps ${spec.cliName} push`,
       `$ lps ${spec.cliName} push ./${RESOURCE_DIR_DEFAULTS[spec.dirKind]}`,
-      `$ lps ${spec.cliName} push --prune`,
+      `$ lps ${spec.cliName} push --no-prune`,
     ]
 
     static override flags = {
       ...PushCommand.dryRunFlag,
       ...PushCommand.yesFlag,
       prune: Flags.boolean({
-        default: false,
-        description: `Delete server-side ${spec.noun}s not present locally after pushing`,
+        allowNo: true,
+        default: true,
+        description: `Delete server-side ${spec.noun}s not present locally (default), --no-prune keeps them`,
       }),
     }
 
@@ -238,6 +239,13 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       // confirmation), but their removal itself happens inside the same atomic swap as the push
       // below, not as separate DELETE calls, so a mid-push failure can't remove server-side
       // files without also landing the new ones.
+      if (flags.prune && files.length === 0) {
+        this.error(
+          `Refusing to prune: ${path} is missing or holds no PHP file, so every ${spec.noun} on ${url} would be deleted. ` +
+            `Check the path, or pass --no-prune to push without deleting.`,
+        )
+      }
+
       const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path) : []
 
       if (this.dryRun) {
@@ -311,12 +319,12 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     }
 
     // Mirror of `pull`'s local orphan cleanup, aimed at the server: any file on WordPress with
-    // no local counterpart is a candidate for removal. Opt-in (`--prune`) because it removes
-    // code from a live site. In a non-TTY without `--yes` it refuses rather than prunes: a stray
-    // local path in CI must not silently wipe production routes, and unlike `pull`'s local
-    // deletions these are not recoverable from the repo. Only decides *which* filenames to
-    // prune; pushBatch() is what actually removes them, atomically alongside the push.
-    // A file excluded from this environment (loopress.json) is left alone, never pruned.
+    // no local counterpart is removed by default (api/ and hooks/ are owned by Loopress, the
+    // repo is the reference), `--no-prune` opts out. Only production asks first: in a non-TTY
+    // without `--yes` it refuses, a stray local path in CI must not silently wipe production
+    // routes. Only decides *which* filenames to prune; pushBatch() is what actually removes
+    // them, atomically alongside the push. A file excluded from this environment
+    // (loopress.json) is left alone, never pruned.
     private async resolvePruneList(localFilenames: Set<string>, path: string): Promise<string[]> {
       const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
       const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name) && !isExcluded(join(path, `${name}.php`)))
@@ -330,10 +338,10 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         return orphans
       }
 
-      if (!this.yes) {
+      if (!this.yes && this.siteConfig.name.toLowerCase() === 'production') {
         if (!isInteractive()) {
           const count = pluralize(orphans.length, `server-side ${spec.noun}`)
-          this.error(`--prune would delete ${count} but stdin is not a TTY. Re-run with --yes to confirm, or without --prune.`)
+          this.error(`Pushing would prune ${count} but stdin is not a TTY. Re-run with --yes to confirm, or with --no-prune.`)
         }
 
         const ok = await confirm({default: false, message: `Prune ${summary}?`})

@@ -82,7 +82,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 |------|-------------|
 | `--env <name>` | Target this environment instead of the default one (`local`, or the project's only environment). Accepted by every command that talks to WordPress. |
 | `--dry-run` / `-d` | Show what would happen without changing anything, see [dry runs](#dry-runs). |
-| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to `production`, `--prune`, removals, rollbacks. |
+| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to `production` (including the files `api push` and `hook push` delete there), `--prune`, removals, rollbacks. |
 | `--overwrite` | Push even over changes made on the site outside Loopress since your last push, see [changes made outside Loopress](#changes-made-outside-loopress). Not implied by `--yes`. |
 | `--json` | Print a structured result instead of formatted text, for scripts and the [MCP server](/cli/mcp/). |
 
@@ -102,7 +102,7 @@ When a file's id doesn't exist on the target site (a fresh install, another envi
 
 ### Push never deletes by default
 
-A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: `--prune` on [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) deletes server files absent locally, `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) or the [theme lockfile](/themes/) uninstalls it (never the active theme), [`lps theme template push`](/pages/#templates-and-parts) mirrors the project into the Loopress child theme (a template, part or CSS file deleted locally is removed from it), and the `remove` commands delete one object on purpose.
+A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) mirror the repo, they delete server files absent locally (they are listed first, `--no-prune` keeps them, and `--dry-run` shows them), `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) or the [theme lockfile](/themes/) uninstalls it (never the active theme), [`lps theme template push`](/pages/#templates-and-parts) mirrors the project into the Loopress child theme (a template, part or CSS file deleted locally is removed from it), and the `remove` commands delete one object on purpose.
 
 Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/).
 
@@ -127,7 +127,7 @@ A branch often carries a feature that isn't ready for production next to changes
 
 `*` matches within one directory, `**` across directories, `?` one character. A glob that names a directory (`apps/games`) covers everything inside it.
 
-Excluded means "leave alone", not "absent": an excluded file is never pushed, and never pruned or mirrored away either. `--prune` keeps a server file under an excluded path, and the child theme keeps the site's copy of an excluded template or part. Adding an exclude never deletes the feature from the environment.
+Excluded means "leave alone", not "absent": an excluded file is never pushed, and never pruned or mirrored away either. `api push` and `hook push` keep a server file under an excluded path, and the child theme keeps the site's copy of an excluded template or part. Adding an exclude never deletes the feature from the environment.
 
 - `lps push` (and each `lps <resource> push`), `lps diff` and `lps promote` honor it. `lps diff` lists excluded items in their own "held back" group, not as drift, and its exit code ignores them. A push names what it held back, `--dry-run` included.
 - `lps pull` and `lps dev` ignore it: the feature keeps flowing into your files and to `local`.

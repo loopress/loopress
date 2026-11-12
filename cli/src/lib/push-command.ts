@@ -295,7 +295,7 @@ export abstract class PushCommand extends LoopressCommand {
   // the local files that were pushed, is what keeps this correct for every resource's own
   // partial-push semantics: a readonly option skipped by `option push`, a snippet or form
   // that gets a server-assigned id on create, a theme-style push that only touches the
-  // active stylesheet, an API/hook push that leaves server-side files alone unless `--prune`.
+  // active stylesheet, an API/hook push that leaves server-side files alone only with `--no-prune`.
   // `lps <resource> rollback`'s drift check compares the environment's state at rollback time
   // against exactly this after-state, so it has to be what actually landed, not what was sent.
   protected async writeAfterPushSnapshot(provider: ResourceStateProvider, dir: string, beforeState: ResourceState | undefined): Promise<void> {

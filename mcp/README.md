@@ -62,12 +62,12 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `snippet_pull` | No | `env?`, `path?` | Pull snippets from WordPress into local files |
 | `snippet_list` | No | `env?` | List snippets currently on WordPress |
 | `snippet_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore snippets to the snapshot saved automatically before an earlier `snippet_push` (`list` shows what's available) |
-| `api_push` | Yes | `env?`, `path?`, `prune?`, `overwrite?`, `confirmToken?` | Push local custom API route files to WordPress (`prune` also deletes server-side files not present locally) |
+| `api_push` | Yes | `env?`, `path?`, `noPrune?`, `overwrite?`, `confirmToken?` | Push local custom API route files to WordPress (also deletes server-side files not present locally, `noPrune` keeps them) |
 | `api_pull` | No | `env?`, `path?` | Pull custom API route files from WordPress |
 | `api_list` | No | `env?` | List custom API route files currently on WordPress (flags each route `public`) |
 | `api_rm` | Yes | `env?`, `slug`, `confirmToken?` | Remove one custom API route file from WordPress |
 | `api_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore API route files to the snapshot saved automatically before an earlier `api_push` (`list` shows what's available) |
-| `hook_push` | Yes | `env?`, `path?`, `prune?`, `overwrite?`, `confirmToken?` | Push local hook files to WordPress (`prune` also deletes server-side files not present locally) |
+| `hook_push` | Yes | `env?`, `path?`, `noPrune?`, `overwrite?`, `confirmToken?` | Push local hook files to WordPress (also deletes server-side files not present locally, `noPrune` keeps them) |
 | `hook_pull` | No | `env?`, `path?` | Pull hook files from WordPress |
 | `hook_list` | No | `env?` | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | `env?`, `slug`, `confirmToken?` | Remove one hook file (action, filter, cron) from WordPress |

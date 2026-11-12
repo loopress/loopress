@@ -168,12 +168,12 @@ lps hook push [path]
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
-| `--prune` | After pushing, delete hook files on WordPress that have no local counterpart (confirmation prompt; needs `--yes` in a non-interactive shell) |
-| `--yes` / `-y` | Skip the `--prune` confirmation prompt |
+| `--no-prune` | Keep hook files on WordPress that have no local counterpart (by default push deletes them) |
+| `--yes` / `-y` | Skip the confirmation prompt when pushing to `production` (required in a non-interactive shell) |
 
 Each file must start with `declare(strict_types=1);` exactly once, and declare exactly one class with no code outside it, same validation as `lps api push` (syntax check, class-name collision detection). On push the plugin adds an `ABSPATH` guard itself, right after the `declare` line, so a file is never reachable directly over HTTP: don't write one, it would be rejected as code outside the class. Pulls strip it again. Each file is also capped at 512 KB, and the whole `hooks/` directory at 8 MB total; a file over either limit is skipped at load time (logged, and shown in the admin tab) rather than risking memory exhaustion for the request. Both limits are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters.
 
-Without `--prune`, pushing never removes a hook file from the server.
+Pushing mirrors the directory: a hook file on the server with no local counterpart is deleted in the same all-or-nothing request, and each one is listed (`Pruned: <name>`, also in `--dry-run` and `--json`). A file under a path the environment [excludes](/loopress-json/) is kept. The push refuses to prune, naming the path, when the local directory is missing or holds no `.php` file. On `production` it asks for confirmation first, and refuses in a non-interactive shell without `--yes`. [`lps hook rollback`](/rollback/) re-creates a pruned file. Pass `--no-prune` to keep the extra files.
 
 ---
 

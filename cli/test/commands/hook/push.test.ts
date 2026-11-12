@@ -302,24 +302,58 @@ describe('hook push', () => {
           {id: 'info', status: 'changed'},
           {id: 'new', status: 'created'},
         ],
-        pruned: [],
+        pruned: ['other'],
         pushed: ['hello', 'info', 'new'],
         status: 'dry-run',
       })
       expect(logs.log).toHaveBeenCalledWith('[dry-run] unchanged: hello')
     })
 
-    it('prunes server-side files not present locally as part of the same atomic batch when --prune is passed', async () => {
-      const {cmd, get, logs, post} = make([dir, '--prune'])
+    const validHook = '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n'
+
+    it('prunes server-side files not present locally by default, in the same atomic batch', async () => {
+      writeFileSync(join(dir, 'hello.php'), validHook)
+      const {cmd, get, logs, post} = make([dir])
       ;(cmd as unknown as {yes: boolean}).yes = true
       get.mockResolvedValue([{filename: 'stale'}])
-      post.mockResolvedValue({files: [], pruned: ['stale']})
+      post.mockResolvedValue({files: [{filename: 'hello'}], pruned: ['stale']})
 
       const result = await cmd.run()
 
       expect(post).toHaveBeenCalledWith('loopress/v1/hook-files/batch', expect.objectContaining({prune: ['stale']}))
       expect(result.pruned).toEqual(['stale'])
       expect(logs.log).toHaveBeenCalledWith('Pruned: stale')
+    })
+
+    it('keeps server-side files with --no-prune', async () => {
+      writeFileSync(join(dir, 'hello.php'), validHook)
+      const {cmd, get, post} = make([dir, '--no-prune'])
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalledWith('loopress/v1/hook-files/batch', expect.objectContaining({prune: []}))
+    })
+
+    it('refuses to prune, naming the path, when the local directory holds no PHP file', async () => {
+      const {cmd, post} = make([dir])
+
+      await expect(cmd.run()).rejects.toThrow(`Refusing to prune: ${dir}`)
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('refuses to prune when the local directory is missing', async () => {
+      const {cmd, post} = make([join(dir, 'missing')])
+
+      await expect(cmd.run()).rejects.toThrow(/Refusing to prune: .*missing is missing or holds no PHP file/)
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('does not refuse an empty directory with --no-prune', async () => {
+      const {cmd, post} = make([dir, '--no-prune'])
+
+      expect(await cmd.run()).toEqual({pruned: [], pushed: [], status: 'success'})
+      expect(post).not.toHaveBeenCalled()
     })
   })
 })

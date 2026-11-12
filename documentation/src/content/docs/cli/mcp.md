@@ -51,12 +51,12 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `snippet_pull` | No | Pull snippets from WordPress into local files |
 | `snippet_list` | No | List snippets currently on WordPress |
 | `snippet_rollback` | Yes | Restore snippets to the snapshot saved automatically before an earlier `snippet_push` (`list` shows what's available) |
-| `api_push` | Yes | Push local custom API route files to WordPress (`prune` also removes server-side files absent locally) |
+| `api_push` | Yes | Push local custom API route files to WordPress (also removes server-side files absent locally, `noPrune` keeps them) |
 | `api_pull` | No | Pull custom API route files from WordPress |
 | `api_list` | No | List custom API route files currently on WordPress (flags each route `public` when it needs no authentication) |
 | `api_rm` | Yes | Remove one custom API route file from WordPress |
 | `api_rollback` | Yes | Restore API route files to the snapshot saved automatically before an earlier `api_push` (`list` shows what's available) |
-| `hook_push` | Yes | Push local hook files to WordPress (`prune` also removes server-side files absent locally) |
+| `hook_push` | Yes | Push local hook files to WordPress (also removes server-side files absent locally, `noPrune` keeps them) |
 | `hook_pull` | No | Pull hook files from WordPress |
 | `hook_list` | No | List hook files (WordPress actions, filters, and cron jobs) currently on WordPress |
 | `hook_rm` | Yes | Remove one hook file (action, filter, cron) from WordPress |

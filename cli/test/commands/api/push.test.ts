@@ -400,7 +400,17 @@ describe('api push', () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      await expect(cmd.resolvePruneList(new Set(), 'api')).rejects.toThrow(/--prune would delete .* not a TTY/s)
+      await expect(cmd.resolvePruneList(new Set(), 'api')).rejects.toThrow(/would prune .* not a TTY.*--no-prune/s)
+    })
+
+    it('prunes without any prompt outside production, even in a non-TTY', async () => {
+      interactive.value = false
+      const {cmd, get} = makeResolvePruneList()
+      ;(cmd as unknown as {siteConfig: unknown}).siteConfig = makeEnv('staging', 'https://staging.acme.com')
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      expect(await cmd.resolvePruneList(new Set(), 'api')).toEqual(['stale'])
+      expect(confirm).not.toHaveBeenCalled()
     })
 
     it('lists the orphans without prompting when --yes is set', async () => {

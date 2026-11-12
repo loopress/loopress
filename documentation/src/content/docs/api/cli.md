@@ -76,21 +76,21 @@ lps api push [path]
 | Flag | Description |
 |------|-------------|
 | `--dry-run` / `-d` | Show what would be pushed without making any changes |
-| `--prune` | After pushing, delete route files on WordPress that have no local counterpart |
-| `--yes` / `-y` | Skip the `--prune` confirmation prompt (required when `--prune` runs in a non-interactive shell) |
+| `--no-prune` | Keep route files on WordPress that have no local counterpart (by default push deletes them) |
+| `--yes` / `-y` | Skip the confirmation prompt when pushing to `production` (required in a non-interactive shell) |
 
 What push does, and deliberately does not do:
 
 - **Files are validated before anything is written.** The CLI rejects filenames that aren't lowercase kebab-case with an explicit message, and the plugin rejects files with a malformed `declare(strict_types=1);` line, zero or more than one class declared, or a class name that collides with WordPress core, another active plugin, or another `api/` file. Invalid PHP syntax is also rejected (returning the parse error) when the server can run the check; where it's unavailable (no PHP CLI binary, `exec` disabled), the push succeeds and a broken file is instead caught later, when `RouteLoader` tries to load it. See [Writing Route Files](/api/routes/#anatomy-of-a-route-file) for the exact rules.
 - **All or nothing.** Every file is checked locally first, then the whole set goes to WordPress in one request, which stages every file and swaps them into place together. If any file is refused (a syntax error, a class collision, a file changed on the site since the push started), WordPress is left unchanged and the command says "Push failed, nothing was changed".
 - **Public routes are called out.** A pushed route that declares `#[Permission(public: true)]` gets a warning: it runs for anyone, with no authentication. The push still succeeds; see [the blast radius of a public route](/api/routes/#the-blast-radius-of-a-public-route).
-- **Without `--prune`, pushing never deletes a route on WordPress**, even if the local file is gone. `--prune` opts into removing routes absent locally: it lists them, asks for confirmation, then removes them in the same all-or-nothing request as the push. In a non-interactive shell it refuses unless `--yes` is also given, because, unlike `lps api pull`'s local cleanup, a pruned route on the server is not recoverable from your repo.
+- **The directory is mirrored.** A route file on WordPress with no local counterpart is deleted, in the same all-or-nothing request as the push, so a route removed from the repo stops being reachable. Each one is listed (`Pruned: <name>`, also in `--dry-run` and `--json`), and a file under a path the environment [excludes](/loopress-json/) is kept. The push refuses to prune, naming the path, when the local directory is missing or holds no `.php` file. On `production` it asks for confirmation first, and refuses in a non-interactive shell without `--yes`. [`lps api rollback`](/rollback/) re-creates a pruned route. Pass `--no-prune` to keep the extra routes.
 
 **Example:**
 
 ```bash
 lps api push ./api
-lps api push --prune        # also remove routes deleted locally
+lps api push --no-prune     # keep routes that are only on the site
 ```
 
 ---
