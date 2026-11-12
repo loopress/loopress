@@ -345,7 +345,7 @@ final class InfectionPatchworkBridge
      * this returns as the directory handle and later hands it to readdir()/closedir(). A bare
      * `true` there is a TypeError; an object makes Patchwork call dir_readdir() on it.
      */
-    public function dir_opendir($path, $options): self|false
+    public function dir_opendir($path, $options): self|false // NOSONAR streamWrapper API fixes this name and signature
     {
         $this->disable();
 
