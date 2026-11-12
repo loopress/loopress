@@ -40,7 +40,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', type: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -82,7 +82,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isDefault: true, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: true, name: 'production', type: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -96,7 +96,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', type: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -111,8 +111,8 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: false, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isDefault: false, name: 'staging', token: 't', url: 'https://staging.acme.test'},
-      {addedAt: '2024-01-01', isDefault: false, name: 'production', token: 't', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'staging', type: 'staging', token: 't', url: 'https://staging.acme.test'},
+      {addedAt: '2024-01-01', isDefault: false, name: 'production', type: 'production', token: 't', url: 'https://acme.test'},
     ])
     const {cmd, logs} = make()
 
@@ -144,7 +144,7 @@ describe('project list', () => {
       {addedAt: '2024-01-01', environments: {}, id: 'acme', isCurrent: true, name: 'Acme'},
     ])
     vi.spyOn(configManager, 'listEnvironments').mockReturnValue([
-      {addedAt: '2024-01-01', isDefault: true, name: 'production', token: 'super-secret-app-password', url: 'https://acme.test'},
+      {addedAt: '2024-01-01', isDefault: true, name: 'production', type: 'production', token: 'super-secret-app-password', url: 'https://acme.test'},
     ])
     const {cmd} = make()
 

@@ -27,40 +27,41 @@ export interface MutatingToolResult {
 // files, right before applying: if the command's own preview output hasn't changed, whatever it
 // inspects on the remote side hasn't moved either, and applying is safe; if it has, the confirm
 // is refused rather than silently overwriting whatever changed in between (see #232).
-// True when the lps args target an environment named "production", either via `--env production`
-// (resource push/rm/rollback) or as promote's destination positional (`promote <from> <to>`).
-function targetsProduction(args: string[]): boolean {
-  const isProduction = (value?: string): boolean => value?.toLowerCase() === 'production'
-
+// The environment a call names: `--env <name>` (resource push/rm/rollback) or promote's destination
+// positional (`promote <from> <to>`). Undefined when the call leaves it to the project's default.
+function namedEnvironment(args: string[]): string | undefined {
+  if (args[0] === 'promote') return args[2]
   const envIndex = args.indexOf('--env')
-  if (envIndex !== -1 && isProduction(args[envIndex + 1])) return true
-
-  // `promote <from> <to>`: the destination is the second positional after the command.
-  return args[0] === 'promote' && isProduction(args[2])
+  return envIndex === -1 ? undefined : args[envIndex + 1]
 }
 
 const PRODUCTION_BLOCKED: MutatingToolResult = {
   error: {
     message:
-      'Refusing to change the "production" environment from the MCP server: there is no human confirmation on this path. ' +
+      'Refusing to change an environment of type "production" from the MCP server: there is no human confirmation on this path. ' +
       'Run this command with the lps CLI, where production changes are confirmed interactively.',
     name: 'PRODUCTION_BLOCKED',
   },
   status: 'error',
 }
 
-// Without `--env`, lps targets the project's default environment ("local", or its only one),
-// which can be production. Resolve it now and pin it as `--env <name>`, so the production
-// refusal below also covers the implicit case (otherwise `--yes` on rm/rollback/prune would
-// reach production unconfirmed) and the confirmed call hits the environment that was previewed,
-// even if the configuration changes in between. promote names both environments, so it never needs this.
-async function pinTargetEnvironment(args: string[]): Promise<{args: string[]; ok: true} | {error: LpsError; ok: false}> {
-  if (args.includes('--env') || args[0] === 'promote') return {args, ok: true}
-
-  const status = await runLps<{environment?: string; note?: string}>(['status'])
+// Production is what the environment's configured type says, never what it is called: ask the CLI
+// (`lps status`) which environment this call would change and what type it has. Without `--env`,
+// lps targets the project's default environment ("local", or its only one), which can be production:
+// it is pinned as `--env <name>`, so the refusal also covers the implicit case (otherwise `--yes` on
+// rm/rollback/prune would reach production unconfirmed) and the confirmed call hits the environment
+// that was previewed, even if the configuration changes in between. promote names both environments,
+// so it never needs the pin.
+async function resolveTarget(
+  args: string[],
+): Promise<{args: string[]; isProduction: boolean; ok: true} | {error: LpsError; ok: false}> {
+  const named = namedEnvironment(args)
+  const status = await runLps<{environment?: string; environmentType?: string; note?: string}>(
+    named === undefined ? ['status'] : ['status', '--env', named],
+  )
   if (!status.ok) return status
 
-  const {environment, note} = status.data ?? {}
+  const {environment, environmentType, note} = status.data ?? {}
   if (!environment) {
     return {
       error: {
@@ -71,7 +72,19 @@ async function pinTargetEnvironment(args: string[]): Promise<{args: string[]; ok
     }
   }
 
-  return {args: [...args, '--env', environment], ok: true}
+  // Fail closed: an environment without a type might be production.
+  if (!environmentType) {
+    return {
+      error: {
+        message: `The environment "${environment}" has no type, so it can't be told apart from production. Run \`lps project config\` to set it.`,
+        name: 'UNRESOLVED_ENVIRONMENT',
+      },
+      ok: false,
+    }
+  }
+
+  const pinned = named !== undefined || args[0] === 'promote' ? args : [...args, '--env', environment]
+  return {args: pinned, isProduction: environmentType === 'production', ok: true}
 }
 
 export async function runMutatingTool(
@@ -80,19 +93,17 @@ export async function runMutatingTool(
   confirmToken?: string,
   options?: RunLpsOptions,
 ): Promise<MutatingToolResult> {
-  // Production is CLI-only. The confirmToken handshake protects against drift, not against an
-  // autonomous or prompt-injected agent replaying its own token, and `--yes` (which resource
+  // Production (an environment of type "production") is CLI-only. The confirmToken handshake
+  // protects against drift, not against an autonomous or prompt-injected agent replaying its own token, and `--yes` (which resource
   // rm/rollback/prune and promote pass) otherwise bypasses the CLI's production confirmation
   // entirely. Refuse any production-targeting mutation here so a human must run it via `lps`,
   // where the change is confirmed interactively. Non-production environments are unaffected.
-  if (targetsProduction(args)) return PRODUCTION_BLOCKED
-
   if (!confirmToken) {
-    const pinned = await pinTargetEnvironment(args)
-    if (!pinned.ok) return {error: pinned.error, status: 'error'}
+    const target = await resolveTarget(args)
+    if (!target.ok) return {error: target.error, status: 'error'}
+    if (target.isProduction) return PRODUCTION_BLOCKED
     // The token stores these pinned args, so the confirmed call needs no second check.
-    if (targetsProduction(pinned.args)) return PRODUCTION_BLOCKED
-    args = pinned.args
+    args = target.args
 
     const snapshotDir = await createSnapshot(process.cwd())
 

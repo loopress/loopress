@@ -100,7 +100,7 @@ describe('dev', () => {
 
   it('errors when none of the selected resource directories exist', async () => {
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
-    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', type: 'local', token: 'u:p', url: 'http://localhost'})
 
     const cmd = make()
     silenceLogs(cmd)
@@ -191,7 +191,7 @@ describe('dev', () => {
   it('starts watching once a project, a "local" environment, and a resource directory all exist', async () => {
     mkdirSync(join(dir, 'snippets'))
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
-    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', type: 'local', token: 'u:p', url: 'http://localhost'})
     const {emit, watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
 
@@ -231,7 +231,7 @@ describe('dev', () => {
     mkdirSync(join(dir, 'snippets'))
     mkdirSync(join(dir, 'pages'))
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
-    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', type: 'local', token: 'u:p', url: 'http://localhost'})
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {emit, watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
@@ -280,7 +280,7 @@ describe('dev', () => {
   ])('ignores %s: %s', async (path, ignored) => {
     mkdirSync(join(dir, 'snippets'))
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'acme'})
-    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', token: 'u:p', url: 'http://localhost'})
+    vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'local', type: 'local', token: 'u:p', url: 'http://localhost'})
     const {watcher} = fakeWatcher()
     watchMock.mockReturnValue(watcher)
     const cmd = make(['--only=snippet'])

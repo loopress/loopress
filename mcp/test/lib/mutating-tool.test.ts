@@ -12,6 +12,14 @@ const mockedRunLps = vi.mocked(runLps)
 const mockedCreateSnapshot = vi.mocked(createSnapshot)
 const mockedRemoveSnapshot = vi.mocked(removeSnapshot)
 
+type LpsReply = Awaited<ReturnType<typeof runLps>>
+
+// `lps status` answers which environment a call would change (see resolveTarget); every other
+// run takes the next reply queued by the test.
+let statusReply: LpsReply
+let queued: LpsReply[]
+const STAGING: LpsReply = {data: {environment: 'staging', environmentType: 'staging'}, ok: true}
+
 const SNAP = '/tmp/loopress-mcp-test-snapshot'
 
 type ToolHandler = (input: Record<string, unknown>) => Promise<{content: Array<{text: string}>; isError: boolean}>
@@ -30,36 +38,59 @@ function fakeServer() {
 
 describe('runMutatingTool', () => {
   beforeEach(() => {
-    mockedRunLps.mockReset()
+    statusReply = STAGING
+    queued = []
+    mockedRunLps.mockReset().mockImplementation(async (args) => (args[0] === 'status' ? statusReply : (queued.shift() ?? {data: {}, ok: true})))
     mockedRemoveSnapshot.mockReset()
     mockedCreateSnapshot.mockReset().mockResolvedValue(SNAP)
   })
 
   it('without a confirmToken, runs a --dry-run preview from a fresh snapshot and returns a token', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
+    queued.push({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
 
     const result = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'])
 
     expect(mockedCreateSnapshot).toHaveBeenCalledTimes(1)
-    expect(mockedRunLps).toHaveBeenCalledTimes(1)
+    expect(mockedRunLps).toHaveBeenCalledTimes(2)
     expect(mockedRunLps).toHaveBeenCalledWith(['snippet', 'push', '--env', 'staging', '--dry-run'], {cwd: SNAP})
     expect(result.status).toBe('preview')
     expect(result.preview).toEqual({pushed: ['a'], status: 'dry-run'})
     expect(result.confirmToken).toEqual(expect.any(String))
   })
 
-  it('refuses to target production via --env, touching nothing (no snapshot, no lps run)', async () => {
-    const result = await runMutatingTool('option_push', ['option', 'push', '--env', 'production'])
+  it('refuses an environment of type production, whatever its name, touching nothing', async () => {
+    statusReply = {data: {environment: 'live', environmentType: 'production'}, ok: true}
+
+    const result = await runMutatingTool('option_push', ['option', 'push', '--env', 'live'])
 
     expect(result.status).toBe('error')
     expect(result.error?.name).toBe('PRODUCTION_BLOCKED')
+    expect(mockedRunLps).toHaveBeenCalledOnce()
+    expect(mockedRunLps).toHaveBeenCalledWith(['status', '--env', 'live'])
     expect(mockedCreateSnapshot).not.toHaveBeenCalled()
-    expect(mockedRunLps).not.toHaveBeenCalled()
+  })
+
+  it('allows an environment named production when its type is not production', async () => {
+    statusReply = {data: {environment: 'production', environmentType: 'staging'}, ok: true}
+    queued.push({data: {status: 'dry-run'}, ok: true})
+
+    const result = await runMutatingTool('option_push', ['option', 'push', '--env', 'production'])
+
+    expect(result.status).toBe('preview')
+  })
+
+  it('refuses an environment with no type, as it might be production', async () => {
+    statusReply = {data: {environment: 'staging'}, ok: true}
+
+    const result = await runMutatingTool('option_push', ['option', 'push', '--env', 'staging'])
+
+    expect(result.error?.name).toBe('UNRESOLVED_ENVIRONMENT')
+    expect(result.error?.message).toContain('no type')
+    expect(mockedCreateSnapshot).not.toHaveBeenCalled()
   })
 
   it('without --env, pins the active environment from `lps status` into the previewed and applied args', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {environment: 'staging'}, ok: true})
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes'])
 
     expect(mockedRunLps).toHaveBeenNthCalledWith(1, ['status'])
@@ -68,16 +99,16 @@ describe('runMutatingTool', () => {
 
     // The confirmed call reuses the pinned args, so it needs no second status lookup and still
     // targets staging even if the active environment was switched in between.
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'success'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'success'}, ok: true})
     await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes'], preview.confirmToken)
 
     expect(mockedRunLps).toHaveBeenCalledTimes(4)
     expect(mockedRunLps).toHaveBeenLastCalledWith(['hook', 'rm', 'hello', '--yes', '--env', 'staging'], {cwd: SNAP})
   })
 
-  it('without --env, refuses when the active environment is production, touching nothing', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {environment: 'Production'}, ok: true})
+  it('without --env, refuses when the active environment is of type production, touching nothing', async () => {
+    statusReply = {data: {environment: 'live', environmentType: 'production'}, ok: true}
 
     const result = await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes'])
 
@@ -88,7 +119,7 @@ describe('runMutatingTool', () => {
   })
 
   it('without --env, refuses when no environment resolves, passing on the status note', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {note: 'No project configured.'}, ok: true})
+    statusReply = {data: {note: 'No project configured.'}, ok: true}
 
     const result = await runMutatingTool('snippet_push', ['snippet', 'push'])
 
@@ -99,7 +130,7 @@ describe('runMutatingTool', () => {
   })
 
   it('without --env, surfaces a failed status lookup as an error', async () => {
-    mockedRunLps.mockResolvedValueOnce({error: {message: 'boom', name: 'Error'}, ok: false})
+    statusReply = {error: {message: 'boom', name: 'Error'}, ok: false}
 
     const result = await runMutatingTool('snippet_push', ['snippet', 'push'])
 
@@ -107,25 +138,28 @@ describe('runMutatingTool', () => {
     expect(mockedCreateSnapshot).not.toHaveBeenCalled()
   })
 
-  it('refuses a promote whose destination is production (case-insensitive)', async () => {
-    const result = await runMutatingTool('promote', ['promote', 'staging', 'Production', '--yes'])
+  it('refuses a promote whose destination is of type production', async () => {
+    statusReply = {data: {environment: 'live', environmentType: 'production'}, ok: true}
+
+    const result = await runMutatingTool('promote', ['promote', 'staging', 'live', '--yes'])
 
     expect(result.status).toBe('error')
     expect(result.error?.name).toBe('PRODUCTION_BLOCKED')
-    expect(mockedRunLps).not.toHaveBeenCalled()
+    expect(mockedRunLps).toHaveBeenCalledOnce()
+    expect(mockedRunLps).toHaveBeenCalledWith(['status', '--env', 'live'])
   })
 
   it('allows a promote whose destination is not production', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
 
     const result = await runMutatingTool('promote', ['promote', 'production', 'staging', '--yes'])
 
     expect(result.status).toBe('preview')
-    expect(mockedRunLps).toHaveBeenCalled()
+    expect(mockedRunLps).toHaveBeenCalledWith(['status', '--env', 'staging'])
   })
 
   it('surfaces a preview failure as an error result, minting no token and dropping the snapshot', async () => {
-    mockedRunLps.mockResolvedValueOnce({error: {message: 'No credentials configured', name: 'Error'}, ok: false})
+    queued.push({error: {message: 'No credentials configured', name: 'Error'}, ok: false})
 
     const result = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'])
 
@@ -134,12 +168,12 @@ describe('runMutatingTool', () => {
   })
 
   it('applies from the snapshot captured at preview time, then removes it', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
+    queued.push({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('snippet_push', ['snippet', 'push', 'demo/snippets', '--env', 'staging'])
 
     // Revalidation re-runs the same dry-run; an unchanged environment reports the same preview.
-    mockedRunLps.mockResolvedValueOnce({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
-    mockedRunLps.mockResolvedValueOnce({data: {pushed: ['a'], status: 'success'}, ok: true})
+    queued.push({data: {pushed: ['a'], status: 'dry-run'}, ok: true})
+    queued.push({data: {pushed: ['a'], status: 'success'}, ok: true})
     const applied = await runMutatingTool('snippet_push', ['snippet', 'push', 'demo/snippets', '--env', 'staging'], preview.confirmToken)
 
     expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'demo/snippets', '--env', 'staging'], {cwd: SNAP})
@@ -148,15 +182,15 @@ describe('runMutatingTool', () => {
   })
 
   it('a file swapped between preview and confirm cannot change the push: apply reads the same frozen tree', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('api_push', ['api', 'push', '--env', 'staging'])
-    const previewCwd = mockedRunLps.mock.calls[0][1]?.cwd
+    const previewCwd = mockedRunLps.mock.calls[1][1]?.cwd
 
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'success'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'success'}, ok: true})
     await runMutatingTool('api_push', ['api', 'push', 'attacker-controlled-path'], preview.confirmToken)
-    const revalidationCwd = mockedRunLps.mock.calls[1][1]?.cwd
-    const applyCwd = mockedRunLps.mock.calls[2][1]?.cwd
+    const revalidationCwd = mockedRunLps.mock.calls[2][1]?.cwd
+    const applyCwd = mockedRunLps.mock.calls[3][1]?.cwd
 
     expect(previewCwd).toBe(SNAP)
     expect(revalidationCwd).toBe(SNAP)
@@ -167,13 +201,13 @@ describe('runMutatingTool', () => {
   it('forwards options (e.g. a longer timeoutMs) to the preview, revalidation, and apply calls', async () => {
     const options = {timeoutMs: 620_000}
 
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('composer_push', ['composer', 'push', '--env', 'staging'], undefined, options)
 
     expect(mockedRunLps).toHaveBeenLastCalledWith(['composer', 'push', '--env', 'staging', '--dry-run'], {cwd: SNAP, timeoutMs: 620_000})
 
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'success'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'success'}, ok: true})
     await runMutatingTool('composer_push', ['composer', 'push', '--env', 'staging'], preview.confirmToken, options)
 
     expect(mockedRunLps).toHaveBeenNthCalledWith(2, ['composer', 'push', '--env', 'staging', '--dry-run'], {cwd: SNAP, timeoutMs: 620_000})
@@ -189,12 +223,12 @@ describe('runMutatingTool', () => {
   })
 
   it('rejects the confirmed call and drops the snapshot when the remote state changed since the preview', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {drift: undefined, status: 'dry-run'}, ok: true})
+    queued.push({data: {drift: undefined, status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('snippet_rollback', ['snippet', 'rollback', '--env', 'staging', '--yes'])
 
     // Something else touched the environment between preview and confirm: the same dry-run now
     // reports drift it didn't report before.
-    mockedRunLps.mockResolvedValueOnce({
+    queued.push({
       data: {drift: {added: [], changed: ['9'], removed: []}, status: 'dry-run'},
       ok: true,
     })
@@ -203,19 +237,19 @@ describe('runMutatingTool', () => {
     expect(applied.status).toBe('error')
     expect(applied.error?.name).toBe('STALE_PREVIEW')
     // Never reached the real (non-dry-run) apply call.
-    expect(mockedRunLps).toHaveBeenCalledTimes(2)
+    expect(mockedRunLps).toHaveBeenCalledTimes(3)
     expect(mockedRemoveSnapshot).toHaveBeenCalledWith(SNAP)
   })
 
   it('surfaces a revalidation failure as an error result and drops the snapshot without applying', async () => {
-    mockedRunLps.mockResolvedValueOnce({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'])
 
-    mockedRunLps.mockResolvedValueOnce({error: {message: 'Site unreachable', name: 'Error'}, ok: false})
+    queued.push({error: {message: 'Site unreachable', name: 'Error'}, ok: false})
     const applied = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'], preview.confirmToken)
 
     expect(applied).toEqual({error: {message: 'Site unreachable', name: 'Error'}, status: 'error'})
-    expect(mockedRunLps).toHaveBeenCalledTimes(2)
+    expect(mockedRunLps).toHaveBeenCalledTimes(3)
     expect(mockedRemoveSnapshot).toHaveBeenCalledWith(SNAP)
   })
 
@@ -227,13 +261,13 @@ describe('runMutatingTool', () => {
     registerRollbackTool(server, {pathNoun: 'snippets directory', resource: 'snippet'})
     const snippetRollback = tools.get('snippet_rollback')!
 
-    mockedRunLps.mockResolvedValueOnce({data: {drift: undefined, status: 'dry-run'}, ok: true})
+    queued.push({data: {drift: undefined, status: 'dry-run'}, ok: true})
     const preview = await snippetRollback({env: 'staging'})
-    expect(mockedRunLps).toHaveBeenNthCalledWith(1, ['snippet', 'rollback', '--env', 'staging', '--yes', '--dry-run'], {cwd: SNAP})
+    expect(mockedRunLps).toHaveBeenNthCalledWith(2, ['snippet', 'rollback', '--env', 'staging', '--yes', '--dry-run'], {cwd: SNAP})
     const {confirmToken} = JSON.parse(preview.content[0].text) as {confirmToken: string}
 
     // Something else touched the environment between preview and confirm.
-    mockedRunLps.mockResolvedValueOnce({
+    queued.push({
       data: {drift: {added: [], changed: ['9'], removed: []}, status: 'dry-run'},
       ok: true,
     })
@@ -245,7 +279,7 @@ describe('runMutatingTool', () => {
       status: 'error',
     })
     // Two dry-runs only: the confirmed call never reached the real (non-dry-run) apply.
-    expect(mockedRunLps).toHaveBeenCalledTimes(2)
-    expect(mockedRunLps).toHaveBeenNthCalledWith(2, ['snippet', 'rollback', '--env', 'staging', '--yes', '--dry-run'], {cwd: SNAP})
+    expect(mockedRunLps).toHaveBeenCalledTimes(3)
+    expect(mockedRunLps).toHaveBeenNthCalledWith(3, ['snippet', 'rollback', '--env', 'staging', '--yes', '--dry-run'], {cwd: SNAP})
   })
 })

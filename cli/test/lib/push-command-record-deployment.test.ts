@@ -15,7 +15,7 @@ class TestPush extends PushCommand {
   async run(): Promise<void> {}
 
   async testRecordDeployment(status: 'failure' | 'success') {
-    this.siteConfig = {addedAt: '2024-01-01', name: 'production', url: 'https://acme.com'}
+    this.siteConfig = {addedAt: '2024-01-01', name: 'production', type: 'production', url: 'https://acme.com'}
     await this.recordDeployment(status)
   }
 }

@@ -91,7 +91,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
           e2e: {
             addedAt,
             environments: {
-              local: {addedAt, name: 'local', token: `${wp.username}:${wp.appPassword}`, url: wp.url},
+              local: {addedAt, name: 'local', token: `${wp.username}:${wp.appPassword}`, type: 'local', url: wp.url},
             },
             name: 'e2e',
           },

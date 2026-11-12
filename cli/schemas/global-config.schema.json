@@ -75,7 +75,7 @@
       "title": "EnvironmentConfig",
       "type": "object",
       "additionalProperties": false,
-      "required": ["addedAt", "name", "url"],
+      "required": ["addedAt", "name", "type", "url"],
       "properties": {
         "addedAt": {
           "type": "string",
@@ -87,7 +87,12 @@
         },
         "name": {
           "type": "string",
-          "description": "Environment name (e.g. \"production\", \"staging\")."
+          "description": "Environment name, free text: what `--env` takes. Defaults to the type."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["local", "staging", "production"],
+          "description": "What the environment is, WordPress's own vocabulary (`wp_get_environment_type()`). Drives the production guard, not the name."
         },
         "token": {
           "type": "string",

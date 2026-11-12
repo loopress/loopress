@@ -192,7 +192,7 @@ Every mutating tool (anything that reaches a real WordPress site) requires two c
    args and local files captured at preview time, not whatever the second call resends or whatever
    is on disk by then, so those two inputs can never drift from what was previewed.
 
-Mutating tools never touch an environment named `production` (`PRODUCTION_BLOCKED`): run those
+Mutating tools never touch an environment of type `production` (`PRODUCTION_BLOCKED`): run those
 changes with `lps`, where they are confirmed interactively. When `env` is omitted, the preview call
 first resolves the default environment (`lps status`) and pins it as `--env <name>`, so the
 production refusal also covers an implicit target, and the confirmed call applies to the

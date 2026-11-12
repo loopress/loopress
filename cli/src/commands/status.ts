@@ -2,6 +2,7 @@ import {Command, Flags, ux} from '@oclif/core'
 
 import {configManager} from '../config/project-config.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
+import {isEnvironmentType} from '../types/environment-type.js'
 import {readLocalConfig} from '../utils/loopress-config.js'
 
 const c = ux.colorize
@@ -11,6 +12,8 @@ type StatusInfo = {
   // pin a mutating call to the environment it previewed (and to refuse production).
   environment?: string
   environments?: string[]
+  // Type of that environment (local | staging | production), absent when the config predates types.
+  environmentType?: string
   note?: string
   project?: string
   url?: string
@@ -45,7 +48,7 @@ export default class Status extends Command {
   private logTarget(label: string, env: EnvironmentConfig): StatusInfo {
     this.log(`Project:  ${label}`)
     this.log(`URL:      ${env.url}`)
-    return {environment: env.name, project: label, url: env.url}
+    return {environment: env.name, ...(isEnvironmentType(env.type) && {environmentType: env.type}), project: label, url: env.url}
   }
 
   // Mirrors base.ts:resolveEnvironment, reporting instead of failing where it can.

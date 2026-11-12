@@ -7,7 +7,7 @@ This page covers the rules every `lps` command shares. Each feature page then on
 
 ## Projects and environments
 
-A **project** is one WordPress site you manage, and an **environment** is one installation of it: `production`, `staging`, `local`, or any name you choose. Each environment has its own URL and its own Application Password.
+A **project** is one WordPress site you manage, and an **environment** is one installation of it: your local copy, a staging site, production. Each environment has a **type** (`local`, `staging` or `production`, WordPress's own vocabulary, see `wp_get_environment_type()`), a **name** you choose (what `--env` takes), its own URL and its own Application Password. The type, never the name, decides how careful Loopress is: an environment of type `production` asks for confirmation before a push, whatever it is called (`live`, `prod`...).
 
 ```bash
 lps project config          # Add or update a project/environment
@@ -24,7 +24,8 @@ lps project rotate          # Rotate the Application Password of the active (or 
 | Prompt | Description |
 |--------|-------------|
 | Project name | Any name not already used (e.g. `My Site`). The project id commands use is derived from it (`my-site`) |
-| Environment | `local` (the default target), `staging`, `production`, or a custom name |
+| Environment type | `local`, `staging` or `production`. Drives the production confirmation, and allows plain HTTP for `local` only |
+| Environment name | Free text, what `--env` takes. Defaults to the type. The default target is the environment named `local` |
 | WordPress URL | Full URL including scheme (`https://example.com`) |
 | How to authenticate | **Authorize in my browser (recommended)** or **Enter credentials manually** |
 
@@ -54,6 +55,8 @@ The output is a credential: when stdout is a terminal, the command warns on stde
 | `$XDG_CONFIG_HOME/loopress/config.json` (or `~/.config/loopress/config.json`) | Your machine | Projects, environments, URLs and Application Passwords, plus the active project |
 | [`loopress.json`](/loopress-json/) | Your repository | Which project the repository belongs to, where each kind of file lives, pinned plugins and themes |
 
+An environment saved before types existed has none: commands refuse it with "run `lps project config`" until you set one. After reading what the Loopress plugin reports, the CLI also warns when the site's `wp_get_environment_type()` disagrees with the configured type (`development` counts as `local`). A local site that never set `WP_ENVIRONMENT_TYPE` reports `production`, set it in `wp-config.php` to silence the warning. It is only a warning, nothing is blocked.
+
 Credentials never go in the repository. To share projects between machines, see [Loopress Account](/account/).
 
 ### Targeting an environment
@@ -82,7 +85,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 |------|-------------|
 | `--env <name>` | Target this environment instead of the default one (`local`, or the project's only environment). Accepted by every command that talks to WordPress. |
 | `--dry-run` / `-d` | Show what would happen without changing anything, see [dry runs](#dry-runs). |
-| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to `production` (including the files `api push` and `hook push` delete there), `--prune`, removals, rollbacks. |
+| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to an environment of type `production` (including the files `api push` and `hook push` delete there), `--prune`, removals, rollbacks. |
 | `--overwrite` | Push even over changes made on the site outside Loopress since your last push, see [changes made outside Loopress](#changes-made-outside-loopress). Not implied by `--yes`. |
 | `--json` | Print a structured result instead of formatted text, for scripts and the [MCP server](/cli/mcp/). |
 
@@ -193,7 +196,7 @@ Without a TTY, or when the `CI` environment variable is set, the CLI never hangs
 
 - Confirmations take their default answer and log it. Pass `--yes` (`-y`) to answer yes explicitly.
 - Commands that require interactive input (`lps init`, `lps project config`) fail immediately with instructions. Configure projects on your machine and commit `loopress.json`; in CI, target environments with `--env`.
-- Pushing to an environment named `production` asks for confirmation in a terminal, and requires `--yes` in CI:
+- Pushing to an environment of type `production` (whatever its name) asks for confirmation in a terminal, and requires `--yes` in CI:
 
 ```bash
 lps snippet push --env production --yes

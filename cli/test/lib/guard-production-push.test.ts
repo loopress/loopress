@@ -10,7 +10,7 @@ vi.mock('../../src/lib/interactive.js', () => ({isInteractive: () => interactive
 
 class Refused extends Error {}
 
-function run(options: {dryRun?: boolean; name?: string; yes?: boolean}) {
+function run(options: {dryRun?: boolean; name?: string; type?: string; yes?: boolean}) {
   let refusals = 0
   const onRefuse = (): void => {
     refusals += 1
@@ -23,7 +23,7 @@ function run(options: {dryRun?: boolean; name?: string; yes?: boolean}) {
     dryRun: options.dryRun ?? false,
     error,
     onRefuse,
-    siteConfig: {name: options.name ?? 'production', url: 'https://acme.com'},
+    siteConfig: {name: options.name ?? 'production', type: options.type ?? 'production', url: 'https://acme.com'},
     yes: options.yes ?? false,
   })
   return {done, refusals: () => refusals}
@@ -36,7 +36,8 @@ describe('guardProductionPush', () => {
   })
 
   it.each([
-    ['a non-production environment', {name: 'staging'}],
+    ['a non-production environment', {name: 'staging', type: 'staging'}],
+    ['an environment named production but of another type', {name: 'production', type: 'staging'}],
     ['a dry run', {dryRun: true}],
     ['--yes', {yes: true}],
   ])('lets %s through without asking', async (_label, options) => {
@@ -48,8 +49,16 @@ describe('guardProductionPush', () => {
     expect(refusals()).toBe(0)
   })
 
-  it('matches "production" case-insensitively', async () => {
-    const {done} = run({name: 'Production'})
+  it('names the environment when it is not called production', async () => {
+    interactive.value = true
+    vi.mocked(confirm).mockResolvedValueOnce(true)
+    await run({name: 'live'}).done
+
+    expect(confirm).toHaveBeenCalledWith({default: true, message: 'Push to live (production) (https://acme.com)?'})
+  })
+
+  it('guards a production environment whatever its name', async () => {
+    const {done} = run({name: 'live'})
 
     await expect(done).rejects.toThrow(Refused)
   })
@@ -58,7 +67,7 @@ describe('guardProductionPush', () => {
     const {done, refusals} = run({})
 
     await expect(done).rejects.toThrow(
-      'Target environment is "production". Pass --yes to confirm the push in a non-interactive run.',
+      'Target environment "production" is of type "production". Pass --yes to confirm the push in a non-interactive run.',
     )
     expect(refusals()).toBe(1)
     expect(confirm).not.toHaveBeenCalled()
@@ -90,7 +99,7 @@ describe('guardProductionPush', () => {
         error(message) {
           throw new Refused(message)
         },
-        siteConfig: {name: 'production', url: 'https://acme.com'},
+        siteConfig: {name: 'production', type: 'production', url: 'https://acme.com'},
         yes: false,
       }),
     ).rejects.toThrow(Refused)

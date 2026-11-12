@@ -53,6 +53,7 @@ function setUpNewProject(): void {
   vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
   vi.mocked(input)
     .mockResolvedValueOnce('mon site')
+    .mockResolvedValueOnce('production')
     .mockResolvedValueOnce('https://example.com')
     .mockResolvedValueOnce('admin')
   vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -97,6 +98,7 @@ describe('project config', () => {
 
     vi.mocked(input)
       .mockResolvedValueOnce('  mon site  ') // project name (untrimmed)
+      .mockResolvedValueOnce('production') // environment name
       .mockResolvedValueOnce('https://example.com') // url
       .mockResolvedValueOnce('admin') // username
     vi.mocked(select)
@@ -115,6 +117,7 @@ describe('project config', () => {
           addedAt: expect.any(String),
           name: 'production',
           token: 'admin:secret',
+          type: 'production',
           url: 'https://example.com',
         },
       },
@@ -132,7 +135,7 @@ describe('project config', () => {
     const setEnvironment = vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('staging').mockResolvedValueOnce('manual')
-    vi.mocked(input).mockResolvedValueOnce('https://staging.acme.com').mockResolvedValueOnce('admin')
+    vi.mocked(input).mockResolvedValueOnce('staging').mockResolvedValueOnce('https://staging.acme.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
@@ -144,6 +147,7 @@ describe('project config', () => {
       addedAt: expect.any(String),
       name: 'staging',
       token: 'admin:secret',
+      type: 'staging',
       url: 'https://staging.acme.com',
     })
     expect(log).toHaveBeenCalledWith('✓ "acme/staging" configured')
@@ -157,6 +161,7 @@ describe('project config', () => {
     const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('production')
+    vi.mocked(input).mockResolvedValueOnce('production')
     vi.mocked(confirm).mockResolvedValueOnce(false)
 
     const cmd = make()
@@ -164,7 +169,7 @@ describe('project config', () => {
     await cmd.run()
 
     expect(log).toHaveBeenCalledWith('Aborted.')
-    expect(input).not.toHaveBeenCalled()
+    expect(input).toHaveBeenCalledOnce() // the name, nothing about the site
     expect(setEnvironment).not.toHaveBeenCalled()
     expect(setProject).not.toHaveBeenCalled()
   })
@@ -181,7 +186,7 @@ describe('project config', () => {
       .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('manual')
     vi.mocked(confirm).mockResolvedValueOnce(true)
-    vi.mocked(input).mockResolvedValueOnce('https://new-url.acme.com').mockResolvedValueOnce('admin')
+    vi.mocked(input).mockResolvedValueOnce('production').mockResolvedValueOnce('https://new-url.acme.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
@@ -195,14 +200,14 @@ describe('project config', () => {
     )
   })
 
-  it('prompts for a custom environment name when "Custom…" is chosen', async () => {
+  it('lets the name differ from the type', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('__custom__').mockResolvedValueOnce('manual')
+    vi.mocked(select).mockResolvedValueOnce('staging').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('qa')
@@ -211,10 +216,10 @@ describe('project config', () => {
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
-    silenceLogs(cmd)
+    const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(callByMessage(input, 'Environment name')).toBeDefined()
+    expect(log).toHaveBeenCalledWith('✓ "mon site/qa" configured')
   })
 
   it('rejects a duplicate (case-insensitive) or empty project name when creating a new project', async () => {
@@ -230,6 +235,7 @@ describe('project config', () => {
       .mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('beta')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -246,7 +252,7 @@ describe('project config', () => {
     expect(validate('beta')).toBe(true)
   })
 
-  it('prompts for the environment choice with the expected options', async () => {
+  it('asks the environment type, then its name defaulting to the type', async () => {
     vi.spyOn(configManager, 'listProjects').mockReturnValue([])
     vi.spyOn(configManager, 'createProjectId').mockReturnValue('new-id')
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue(null)
@@ -256,6 +262,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -269,10 +276,10 @@ describe('project config', () => {
         {name: 'local', value: 'local'},
         {name: 'staging', value: 'staging'},
         {name: 'production', value: 'production'},
-        {name: 'Custom…', value: '__custom__'},
       ],
-      message: 'Environment',
+      message: 'Environment type',
     })
+    expect(input).toHaveBeenCalledWith(expect.objectContaining({default: 'production', message: 'Environment name'}))
   })
 
   it('rejects an empty custom environment name', async () => {
@@ -282,7 +289,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
-    vi.mocked(select).mockResolvedValueOnce('__custom__').mockResolvedValueOnce('manual')
+    vi.mocked(select).mockResolvedValueOnce('staging').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
       .mockResolvedValueOnce('qa')
@@ -306,6 +313,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'setEnvironment').mockImplementation(() => {})
 
     vi.mocked(select).mockResolvedValueOnce('id-acme').mockResolvedValueOnce('production')
+    vi.mocked(input).mockResolvedValueOnce('production')
     vi.mocked(confirm).mockResolvedValueOnce(false)
 
     const cmd = make()
@@ -326,6 +334,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -350,6 +359,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('local').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('local')
       .mockResolvedValueOnce('http://my-site.local')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -373,6 +383,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -405,6 +416,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -428,7 +440,7 @@ describe('project config', () => {
       .mockResolvedValueOnce('id-beta')
       .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('manual')
-    vi.mocked(input).mockResolvedValueOnce('https://beta.com').mockResolvedValueOnce('admin')
+    vi.mocked(input).mockResolvedValueOnce('production').mockResolvedValueOnce('https://beta.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
@@ -457,6 +469,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -479,7 +492,7 @@ describe('project config', () => {
     vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('manual')
-    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('https://example.com').mockResolvedValueOnce('admin')
+    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('production').mockResolvedValueOnce('https://example.com').mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
 
     const cmd = make()
@@ -503,7 +516,7 @@ describe('project config', () => {
     const setProject = vi.spyOn(configManager, 'setProject').mockImplementation(() => {})
 
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
-    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('https://example.com')
+    vi.mocked(input).mockResolvedValueOnce('mon site').mockResolvedValueOnce('production').mockResolvedValueOnce('https://example.com')
     vi.mocked(diagnoseWpSite).mockResolvedValueOnce({ok: true})
     vi.mocked(authorizeWithBrowser).mockResolvedValueOnce({password: 'app-pass-1234', userLogin: 'admin'})
 
@@ -533,6 +546,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')
@@ -566,6 +580,7 @@ describe('project config', () => {
     vi.mocked(select).mockResolvedValueOnce('production').mockResolvedValueOnce('browser')
     vi.mocked(input)
       .mockResolvedValueOnce('mon site')
+      .mockResolvedValueOnce('production')
       .mockResolvedValueOnce('https://example.com')
       .mockResolvedValueOnce('admin')
     vi.mocked(passwordPrompt).mockResolvedValueOnce('secret')

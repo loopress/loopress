@@ -10,7 +10,7 @@ import {restDelete, restPut, uniqueSlug} from './helpers/rest.js'
 
 type Config = {
   currentProject: {id: string}
-  projects: Record<string, {environments: Record<string, {addedAt: string; name: string; token: string; url: string}>; name: string}>
+  projects: Record<string, {environments: Record<string, {addedAt: string; name: string; token: string; type: string; url: string}>; name: string}>
 }
 
 function configPath(homeDir: string): string {
@@ -22,7 +22,7 @@ function configPath(homeDir: string): string {
 function addEnvironment(homeDir: string, name: string): void {
   const config = JSON.parse(readFileSync(configPath(homeDir), 'utf8')) as Config
   const local = config.projects.e2e.environments.local
-  config.projects.e2e.environments[name] = {...local, name}
+  config.projects.e2e.environments[name] = {...local, name, type: name}
   writeFileSync(configPath(homeDir), JSON.stringify(config, null, 2))
 }
 

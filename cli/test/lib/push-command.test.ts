@@ -21,8 +21,8 @@ vi.mock('../../src/lib/interactive.js', () => ({
   isInteractive: () => interactive.value,
 }))
 
-const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', url: 'https://example.com'}
-const PRODUCTION: EnvironmentConfig = {addedAt: '2024-01-01', name: 'production', url: 'https://acme.com'}
+const SITE: EnvironmentConfig = {addedAt: '2024-01-01', name: 'test', type: 'staging', url: 'https://example.com'}
+const PRODUCTION: EnvironmentConfig = {addedAt: '2024-01-01', name: 'production', type: 'production', url: 'https://acme.com'}
 
 class TestPush extends PushCommand {
   calls: Array<'failure' | 'success'> = []
