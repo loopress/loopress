@@ -169,6 +169,12 @@ export function phpFileProblems(spec: Pick<PhpFilesResource, 'filenamePattern' |
 // `revision` field back through the list endpoint for the CLI to consume. A filename absent from
 // `beforeState` (a new file, or `beforeState` itself unavailable, e.g. a dry run or a failed
 // remote read) has nothing to condition on: pushFile falls back to today's unconditional create.
+// Checked as written: an explicit null must not fall back to the default.
+function writtenNamespace(api: undefined | {namespace?: unknown}): unknown {
+  const written = api ?? {}
+  return 'namespace' in written ? written.namespace : DEFAULT_API_NAMESPACE
+}
+
 function expectedRevisionFor(beforeState: ResourceState | undefined, filename: string): string | undefined {
   const content = beforeState?.get(filename)
   return typeof content === 'string' ? createHash('sha256').update(content, 'utf8').digest('hex') : undefined
@@ -220,9 +226,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
       if (spec.syncsNamespace) {
         // Before any write: a bad namespace stops the push with nothing changed on the site.
-        // Checked as written: an explicit null must not fall back to the default.
-        const api = this.localConfig.api ?? {}
-        const problem = apiNamespaceProblem('namespace' in api ? api.namespace : DEFAULT_API_NAMESPACE)
+        const problem = apiNamespaceProblem(writtenNamespace(this.localConfig.api))
         if (problem) this.error(`loopress.json: ${problem}`)
       }
 
