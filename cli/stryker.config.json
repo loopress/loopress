@@ -10,5 +10,5 @@
   "mutate": ["src/**/*.ts", "!src/**/*.generated.ts"],
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
-  "thresholds": {"break": 50}
+  "thresholds": {"break": 80, "high": 90, "low": 85}
 }

@@ -88,6 +88,7 @@ export default class Push extends LoopressCommand {
     overwrite: PushCommand.baseFlags.overwrite,
   }
 
+  // Stryker disable next-line BooleanLiteral: always overwritten from the flag at the top of run()
   private skipUnsupported = false
   // What --skip-unsupported held back, for the final warning.
   private readonly unsupported: string[] = []

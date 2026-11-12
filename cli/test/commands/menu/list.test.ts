@@ -96,4 +96,29 @@ describe('menu list', () => {
       menus: [{items: [], name: 'Main', slug: 'main', warnings: []}],
     })
   })
+
+  it('lists the locations header and says when the theme registers none', async () => {
+    const {cmd, logs} = makeCmd()
+    const get = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce({})
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('locations:')
+    expect(logs.log).toHaveBeenCalledWith('  (none registered by the active theme)')
+  })
+
+  it('does not print the empty-state lines when menus and locations exist', async () => {
+    const {cmd, logs} = makeCmd()
+    const menu = {items: [], name: 'Main', slug: 'main', warnings: []}
+    const get = vi.fn().mockResolvedValueOnce([menu]).mockResolvedValueOnce({primary: 'main'})
+    ;(cmd as unknown as ListWithWpClient).wpClient = {get}
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('main (Main): 0 item(s)')
+    expect(logs.log).toHaveBeenCalledWith('  primary: main')
+    expect(logs.log).not.toHaveBeenCalledWith('(no menus)')
+    expect(logs.log).not.toHaveBeenCalledWith('  (none registered by the active theme)')
+  })
 })

@@ -111,4 +111,75 @@ describe('option remove', () => {
     expect(result).toMatchObject({deletedRemote: false, status: 'success'})
     expect(logs.log).toHaveBeenCalledWith('"blogname" was already absent on https://staging.acme.com; untracked it locally')
   })
+  it('logs what a dry run would do, with and without the remote delete', async () => {
+    const full = makeCmd(['blogname', '--path', dir], {dryRun: true})
+    const localOnly = makeCmd(['blogname', '--path', dir, '--local-only'], {dryRun: true})
+
+    expect(await full.cmd.run()).toEqual({deletedRemote: false, name: 'blogname', status: 'dry-run'})
+    await localOnly.cmd.run()
+
+    expect(full.logs.log).toHaveBeenCalledWith('[dry-run] Would untrack "blogname" locally and delete it from https://staging.acme.com')
+    expect(localOnly.logs.log).toHaveBeenCalledWith('[dry-run] Would untrack "blogname" locally')
+  })
+
+  it('--local-only logs that the site was left untouched and tolerates a missing local file', async () => {
+    const {cmd, logs} = makeCmd(['blogname', '--path', dir, '--local-only'])
+
+    const result = await cmd.run()
+
+    expect(result).toEqual({deletedRemote: false, name: 'blogname', status: 'success'})
+    expect(logs.log).toHaveBeenCalledWith('Untracked "blogname" locally (left untouched on https://staging.acme.com)')
+  })
+
+  it('logs the removal and tolerates a missing local file after the remote delete', async () => {
+    const {cmd, del, logs} = makeCmd(['blogname', '--path', dir])
+
+    const result = await cmd.run()
+
+    expect(del).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({deletedRemote: true, name: 'blogname', status: 'success'})
+    expect(logs.log).toHaveBeenCalledWith('Removed "blogname" from https://staging.acme.com and untracked it locally')
+  })
+
+  it('deletes a production option once --yes is passed, without prompting', async () => {
+    interactive.value = true
+    const {cmd, del} = makeCmd(['blogname', '--path', dir], {env: makeEnv('production', 'https://acme.com'), yes: true})
+
+    const result = await cmd.run()
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(del).toHaveBeenCalledWith('loopress/v1/options/blogname')
+    expect(result).toMatchObject({deletedRemote: true, status: 'success'})
+  })
+
+  it('asks for a confirmation naming the option and the site, and logs the abort', async () => {
+    interactive.value = true
+    vi.mocked(confirm).mockResolvedValueOnce(false)
+    const {cmd, logs} = makeCmd(['blogname', '--path', dir])
+
+    await cmd.run()
+
+    expect(confirm).toHaveBeenCalledWith({default: false, message: 'Delete option "blogname" from https://staging.acme.com? (local tracking also stops)'})
+    expect(logs.log).toHaveBeenCalledWith('Aborted.')
+  })
+
+  it('deletes once the interactive confirmation is accepted', async () => {
+    interactive.value = true
+    vi.mocked(confirm).mockResolvedValueOnce(true)
+    const {cmd, del} = makeCmd(['blogname', '--path', dir])
+
+    const result = await cmd.run()
+
+    expect(del).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({status: 'success'})
+  })
+
+  it('rethrows a delete failure other than a 404 and keeps the local file', async () => {
+    writeFileSync(join(dir, 'blogname.json'), '{}')
+    const {cmd, del} = makeCmd(['blogname', '--path', dir])
+    del.mockRejectedValueOnce(new Error('Server Error', {cause: {response: {statusCode: 500}}}))
+
+    await expect(cmd.run()).rejects.toThrow('Server Error')
+    expect(existsSync(join(dir, 'blogname.json'))).toBe(true)
+  })
 })

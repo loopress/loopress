@@ -533,6 +533,103 @@ describe('push', () => {
     await expect(cmd.run()).rejects.toThrow(/^snippets failed to push: bang\.$/)
   })
 
+  it('announces each resource, confirms what pushed and says what it skipped', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('\n→ Pushing post types...')
+    expect(logs.log).toHaveBeenCalledWith('✓ post types pushed')
+    expect(logs.log).toHaveBeenCalledWith('\n→ composer: not configured, skipped')
+    expect(logs.warn).not.toHaveBeenCalled()
+  })
+
+  it('says a dry run would push instead of claiming it pushed', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({dryRun: true})
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('✓ post types would push')
+    expect(logs.log).not.toHaveBeenCalledWith('✓ post types pushed')
+  })
+
+  it('does not list the resources it skipped among those not attempted', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('boom'))
+    const {cmd} = make({argv: ['--skip', 'taxonomy']})
+
+    await expect(cmd.run()).rejects.toThrow(/^post types failed to push: boom\. Not attempted: post meta, /)
+  })
+
+  it('warns with the held back resources before stopping on a failure under --skip-unsupported', async () => {
+    mkdirSync(join(projectDir, 'snippets'), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom'))
+    const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+    await expect(cmd.run()).rejects.toThrow('plugins failed to push: boom.')
+
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: /))
+  })
+
+  it('words the closing line for a dry run, narrowed or not', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const full = make({dryRun: true})
+    const narrowed = make({argv: ['--only', 'page'], dryRun: true})
+
+    await full.cmd.run()
+    await narrowed.cmd.run()
+
+    expect(full.logs.log).toHaveBeenCalledWith('\nEvery resource would push.')
+    expect(narrowed.logs.log).toHaveBeenCalledWith('\nEvery selected resource would push, the others are skipped.')
+  })
+
+  it('tells why each resource was skipped: not selected, or not used by the project', async () => {
+    rmSync(join(projectDir, 'options'), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--skip', 'taxonomy']})
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('\n→ taxonomies: not selected, skipped')
+    expect(logs.log).toHaveBeenCalledWith('\n→ options: not configured, skipped')
+  })
+
+  it('skips a Full-only resource the project does not use on Light, with the reason', async () => {
+    for (const dir of ['acf', 'api', 'blocks', 'forms', 'hooks', 'pages', 'patterns', 'snippets', 'theme']) rmSync(join(projectDir, dir), {recursive: true})
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({capabilities: makeLightCapabilities(), localConfig: {}})
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\n→ hooks: hooks need Loopress Full.*, skipped$/))
+  })
+
+  it('treats an unreadable composer.json as declaring no plugin', async () => {
+    writeFileSync(join(projectDir, 'composer.json'), '{not json')
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('\n→ plugins: not configured, skipped')
+  })
+
+  it('puts each blocked resource on its own indented line', async () => {
+    const {cmd} = make({capabilities: makeLightCapabilities()})
+
+    await expect(cmd.run()).rejects.toThrow(/^Nothing was pushed, the project uses what this site can't hold:\n {2}plugins: .*\n {2}\S.*: .*Install Loopress Full/)
+  })
+
+  it('puts each resource held back by --skip-unsupported on its own indented line', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {acf: false, form: false}})})
+
+    await cmd.run()
+
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/can't hold them:\n {2}\S.*\n {2}\S.*\nResources that depend on them/)
+  })
+
   describe('production guard', () => {
     it('asks once before pushing anything, in a TTY', async () => {
       interactive.value = true

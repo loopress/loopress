@@ -109,6 +109,23 @@ describe('push deployment record', () => {
     expect(json.steps.map((step) => step.command)).not.toContain('snippet:push')
   })
 
+  it('names every step of the record by its command, and posts nothing on a dry run', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const live = make()
+    await live.run()
+
+    const {json} = (vi.mocked(got.post).mock.calls[0] as unknown as [string, {json: {steps: Array<{command: string}>}}])[1]
+    expect(json.steps.map((step) => step.command)).toEqual(expect.arrayContaining(['plugin:push', 'cpt:push', 'option:push']))
+    expect(json.steps.every((step) => step.command.endsWith(':push'))).toBe(true)
+    vi.mocked(got.post).mockClear()
+
+    const dry = make()
+    ;(dry as unknown as {dryRun: boolean}).dryRun = true
+    await dry.run()
+
+    expect(got.post).not.toHaveBeenCalled()
+  })
+
   it('keeps a record of its own for a step run alone, without steps', async () => {
     await new Step([], fakeOclifConfig).record('success')
 

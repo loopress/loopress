@@ -160,6 +160,15 @@ describe('pull', () => {
       expect(logs.log).toHaveBeenCalledWith('\n→ Global Styles: the active theme "storefront" is a classic theme, skipped')
       expect(result.results).toContainEqual({label: 'Global Styles', status: 'skipped'})
     })
+
+    it('lets the step run and report it when the theme list cannot be read', async () => {
+      const {cmd} = make()
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get: vi.fn().mockRejectedValue(new Error('down'))}
+
+      await cmd.run()
+
+      expect(fakeOclifConfig.runCommand).toHaveBeenCalledWith('theme:style:pull', ['--env', 'staging'])
+    })
   })
 
   it('continues past a failed resource and still pulls the rest', async () => {
@@ -171,6 +180,53 @@ describe('pull', () => {
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(ALL_COMMAND_IDS.length)
     expect(logs.log).toHaveBeenCalledWith('✗ composer failed: boom')
     expect(logs.log).toHaveBeenCalledWith('✓ plugins pulled')
+  })
+
+  it('announces each resource before pulling it and never warns on a clean run', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make()
+
+    await cmd.run()
+
+    expect(logs.log).toHaveBeenCalledWith('\n→ Pulling composer...')
+    expect(logs.log).toHaveBeenCalledWith('\n→ Pulling options...')
+    expect(logs.warn).not.toHaveBeenCalled()
+  })
+
+  it('records the failure reason of a resource in the --json result and in the thrown message', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({})
+    const {cmd} = make()
+
+    await expect(cmd.run()).rejects.toThrow('1 resource failed to pull. composer: boom')
+  })
+
+  it('logs the reason when a resource the project uses cannot be pulled from the site', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'snippets'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+    await expect(cmd.run()).rejects.toThrow()
+
+    expect(logs.log).toHaveBeenCalledWith('\n✗ snippets failed: no supported snippet plugin is active on staging')
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('warns exactly once with the skipped resources and what to declare', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'snippets'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
+
+    await cmd.run()
+
+    expect(logs.warn).toHaveBeenCalledTimes(1)
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: no supported snippet plugin is active on staging\./)
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
   })
 
   it('skips, without asking the site, a resource whose plugin it lacks when the project does not use it', async () => {
@@ -214,6 +270,28 @@ describe('pull', () => {
     expect(result.results).toContainEqual({label: 'snippets', reason: 'no supported snippet plugin is active on staging', status: 'skipped'})
     expect(logs.log).toHaveBeenCalledWith('\n→ snippets: no supported snippet plugin is active, skipped (--skip-unsupported)')
     expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('snippets: no supported snippet plugin is active on staging. Declare code-snippets'))
+    vi.mocked(process.cwd).mockRestore()
+    rmSync(dir, {force: true, recursive: true})
+  })
+
+  it('joins every failure reason in the thrown message', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('one')).mockRejectedValueOnce(new Error('two')).mockResolvedValue({})
+    const {cmd} = make()
+
+    await expect(cmd.run()).rejects.toThrow('2 resources failed to pull. composer: one; plugins: two')
+  })
+
+  it('lists each skipped resource on its own line in the --skip-unsupported warning', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
+    mkdirSync(join(dir, 'snippets'))
+    mkdirSync(join(dir, 'forms'))
+    vi.spyOn(process, 'cwd').mockReturnValue(dir)
+    vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+    const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {form: false, snippets: false}})})
+
+    await cmd.run()
+
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/\n {2}forms: .*\n {2}snippets: /)
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })
