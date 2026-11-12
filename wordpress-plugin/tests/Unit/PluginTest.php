@@ -68,7 +68,7 @@ class PluginTest extends TestCase
 
     public function test_every_feature_resolves_and_boots_and_hooks_into_wordpress(): void
     {
-        new Plugin();
+        $this->assertInstanceOf(Plugin::class, new Plugin());
 
         $this->assertNotFalse(has_action('rest_api_init'));
         $this->assertNotFalse(has_action('admin_menu'));
@@ -78,7 +78,7 @@ class PluginTest extends TestCase
     {
         $this->captureRoutes();
         $this->recordActions('rest_api_init');
-        new Plugin();
+        $this->assertInstanceOf(Plugin::class, new Plugin());
 
         $this->fireAction('rest_api_init');
 
