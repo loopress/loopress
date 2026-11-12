@@ -338,8 +338,14 @@ final class InfectionPatchworkBridge
     /**
      * @param string $path
      * @param int $options
+     * @return self|false
+     *
+     * Returns the wrapper itself rather than `true` on success: PHP only reads the truthiness,
+     * but Patchwork (stacked on top, this class being its "other wrapper") stores whatever
+     * this returns as the directory handle and later hands it to readdir()/closedir(). A bare
+     * `true` there is a TypeError; an object makes Patchwork call dir_readdir() on it.
      */
-    public function dir_opendir($path, $options): bool
+    public function dir_opendir($path, $options): self|false
     {
         $this->disable();
 
@@ -349,7 +355,7 @@ final class InfectionPatchworkBridge
             self::enable();
         }
 
-        return $this->dir !== false;
+        return $this->dir !== false ? $this : false;
     }
 
     public function dir_readdir(): string|false

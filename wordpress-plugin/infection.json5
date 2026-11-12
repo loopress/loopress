@@ -1,13 +1,17 @@
 {
-    // Baseline: `composer run mutation`, ~2140 mutants over src/, Covered Code MSI ~82%
-    // (varies a point or two per run: test order and thread count affect which mutants
-    // escape). Before 2026-09-08 the reported figure was ~15-34%, almost all of it an
+    // Baseline: `composer run mutation`, ~6840 mutants over src/, Covered Code MSI ~74%
+    // (2026-11-12, 2 threads, 28 min on a 2 core machine: 5053 killed, 1770 escaped, 5 errors,
+    // 8 timeouts). It varies a point or two per run: test order and thread count affect which
+    // mutants escape. Before 2026-09-08 the reported figure was ~15-34%, almost all of it an
     // artefact: brain/monkey pulls in Patchwork, whose `file://` stream wrapper shadows
     // Infection's mutant-substitution wrapper, so every mutant covered only by a
     // Monkey-using test "escaped" no matter how strong the test was. tests/bootstrap.php
     // now installs InfectionPatchworkBridge under a mutation run to keep the mutant
-    // visible; the number above is the real one. Not a gate yet, the CI job only
-    // publishes the report; raising it further is ongoing work.
+    // visible. Until 2026-11-12 the bridge also broke directory reads under Patchwork
+    // (readdir() TypeError), so ~1200 mutants of the 6 files whose tests touch a real
+    // directory ended in errors and the ~82% figure ignored them; they are measured now,
+    // hence the drop. Not a gate yet, the CI job only publishes the report; raising it
+    // further is ongoing work.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
