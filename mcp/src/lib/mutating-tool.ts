@@ -140,6 +140,14 @@ export async function runMutatingTool(
     }
   }
 
+  // The token keeps the arguments, not the environment type: resolve the target again so an
+  // environment retyped to production since the preview is refused.
+  const target = await resolveTarget(consumed.args)
+  if (!target.ok || target.isProduction) {
+    removeSnapshot(consumed.snapshotDir)
+    return target.ok ? PRODUCTION_BLOCKED : {error: target.error, status: 'error'}
+  }
+
   const result = await runLps(consumed.args, {...options, cwd: consumed.snapshotDir})
   removeSnapshot(consumed.snapshotDir)
   if (!result.ok) return {error: result.error, status: 'error'}

@@ -97,13 +97,13 @@ describe('runMutatingTool', () => {
     expect(mockedRunLps).toHaveBeenNthCalledWith(2, ['hook', 'rm', 'hello', '--yes', '--env', 'staging', '--dry-run'], {cwd: SNAP})
     expect(preview.status).toBe('preview')
 
-    // The confirmed call reuses the pinned args, so it needs no second status lookup and still
+    // The confirmed call reuses the pinned args and still
     // targets staging even if the active environment was switched in between.
     queued.push({data: {status: 'dry-run'}, ok: true})
     queued.push({data: {status: 'success'}, ok: true})
     await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes'], preview.confirmToken)
 
-    expect(mockedRunLps).toHaveBeenCalledTimes(4)
+    expect(mockedRunLps).toHaveBeenCalledTimes(5)
     expect(mockedRunLps).toHaveBeenLastCalledWith(['hook', 'rm', 'hello', '--yes', '--env', 'staging'], {cwd: SNAP})
   })
 
@@ -181,6 +181,19 @@ describe('runMutatingTool', () => {
     expect(applied).toEqual({result: {pushed: ['a'], status: 'success'}, status: 'applied'})
   })
 
+  it('refuses a confirmed call when the environment became production since the preview', async () => {
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    const preview = await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes', '--env', 'staging'])
+
+    statusReply = {data: {environment: 'staging', environmentType: 'production'}, ok: true}
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    const applied = await runMutatingTool('hook_rm', ['hook', 'rm', 'hello', '--yes', '--env', 'staging'], preview.confirmToken)
+
+    expect(applied.status).toBe('error')
+    expect(mockedRunLps).not.toHaveBeenCalledWith(['hook', 'rm', 'hello', '--yes', '--env', 'staging'], {cwd: SNAP})
+    expect(mockedRemoveSnapshot).toHaveBeenCalledWith(SNAP)
+  })
+
   it('a file swapped between preview and confirm cannot change the push: apply reads the same frozen tree', async () => {
     queued.push({data: {status: 'dry-run'}, ok: true})
     const preview = await runMutatingTool('api_push', ['api', 'push', '--env', 'staging'])
@@ -190,7 +203,7 @@ describe('runMutatingTool', () => {
     queued.push({data: {status: 'success'}, ok: true})
     await runMutatingTool('api_push', ['api', 'push', 'attacker-controlled-path'], preview.confirmToken)
     const revalidationCwd = mockedRunLps.mock.calls[2][1]?.cwd
-    const applyCwd = mockedRunLps.mock.calls[3][1]?.cwd
+    const applyCwd = mockedRunLps.mock.calls[4][1]?.cwd
 
     expect(previewCwd).toBe(SNAP)
     expect(revalidationCwd).toBe(SNAP)

@@ -10,7 +10,7 @@ import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {sweepTempAdmins} from '../../lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
-import {WpClient} from '../../lib/wp-client.js'
+import {isLocalEnvironment, LOCAL_ENVIRONMENT_NAME, WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {ENVIRONMENT_TYPES, type EnvironmentType} from '../../types/environment-type.js'
@@ -79,8 +79,8 @@ export default class Config extends Command {
           return 'URL must start with http:// or https://'
         }
 
-        if (envType !== 'local' && parsed.protocol === 'http:') {
-          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for an environment of type "local" (this one is "${envType}").`
+        if ((envType !== 'local' || !isLocalEnvironment(envName)) && parsed.protocol === 'http:') {
+          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment, of type "local" (this one is "${envName}", of type "${envType}").`
         }
 
         return true
