@@ -27,12 +27,24 @@ deploy:
 | `LOOPRESS_ENV` | Environment name for deploy jobs (`--env`) | `staging` |
 | `LOOPRESS_CONFIG` | File-type CI/CD variable, required by deploy jobs: the output of `lps project export --env <name>` (see below) | |
 | `LOOPRESS_TOKEN` | Optional Loopress cloud token | |
+| `LOOPRESS_SKIP_DRIFT_GUARD` | Set to `1` to skip the pre-deploy drift guard for one run | |
 
 ## Available templates
 
 `.loopress-test` boots WordPress and runs `lps push`. Triggers on branches and merge requests.
 
-`.loopress-deploy` deploys to a real site: it restores `LOOPRESS_CONFIG`, runs `lps push --env "$LOOPRESS_ENV" --yes`, then `lps diff --env "$LOOPRESS_ENV"` to verify the result. No token is required; set `LOOPRESS_TOKEN` in your project CI settings only for the optional cloud features.
+`.loopress-deploy` deploys to a real site: it restores `LOOPRESS_CONFIG`, runs a drift guard, then `lps push --env "$LOOPRESS_ENV" --yes`, then `lps diff --env "$LOOPRESS_ENV"` to verify the result. It runs in a `resource_group` per environment, so two pipelines never deploy to the same environment at once. No token is required; set `LOOPRESS_TOKEN` in your project CI settings only for the optional cloud features.
+
+The guard fails the job when the deploy would overwrite an edit made on the site outside the repo. It compares the site with the previous commit (`$CI_COMMIT_BEFORE_SHA`) and with the commit being deployed, and blocks only on ids that differ from both: `lps pull` them into the repo, then deploy again. It is skipped with a warning when there is no previous commit. After a failed or skipped deploy it can raise a false alarm: set the CI variable `LOOPRESS_SKIP_DRIFT_GUARD=1` to skip it for one run.
+
+`.loopress-preview` runs on merge requests and prints `lps diff --env "$LOOPRESS_ENV" --json`, what the change would do to the environment. It never fails the pipeline, posts no comment, and needs only `LOOPRESS_CONFIG`:
+
+```yaml
+preview:
+  extends: .loopress-preview
+  variables:
+    LOOPRESS_ENV: "production"
+```
 
 ## Storing the credentials
 

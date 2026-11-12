@@ -104,6 +104,53 @@ jobs:
 
 Store the secret with `cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"`; see [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
 
+## Guard against overwriting a wp-admin edit
+
+A push from CI has no previous snapshot, so `lps push` cannot notice an edit made on the site since the last deploy. Run the drift guard before the push: it compares the site with the previous commit (what the last deploy pushed, checked out in a temporary `git worktree`) and with the commit being deployed, and fails only on ids that differ from both. The message names them: run `lps pull --env production`, commit, and deploy again.
+
+- No previous commit (first push, new branch) or one that cannot be fetched: the guard is skipped with a warning. An inconclusive comparison only warns.
+- It assumes the previous commit was deployed. After a failed or skipped deploy it can raise a false alarm: set the variable `LOOPRESS_SKIP_DRIFT_GUARD=1` to skip it for one run.
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: loopress-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g @loopress/cli
+      - name: Restore site credentials
+        env:
+          LOOPRESS_CONFIG: ${{ secrets.LOOPRESS_CONFIG }}
+        run: |
+          mkdir -p ~/.config/loopress
+          printf '%s' "$LOOPRESS_CONFIG" > ~/.config/loopress/config.json
+      - name: Drift guard
+        env:
+          LOOPRESS_SKIP_DRIFT_GUARD: ${{ vars.LOOPRESS_SKIP_DRIFT_GUARD }}
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/loopress/setup-ci/v1/scripts/drift-guard.sh -o /tmp/drift-guard.sh
+          bash /tmp/drift-guard.sh production "${{ github.event.before }}"
+      - run: lps push --env production --yes
+      - run: lps diff --env production
+```
+
+`fetch-depth: 0` gives the guard the previous commit (`github.event.before`), and `concurrency` keeps two runs from deploying to the same environment at once, so the guard of the second run sees the first deploy.
+
 ## Preview what a pull request will change
 
 On a pull request, `lps diff` previews tracked resource changes on an environment, so a reviewer sees more than file diffs. The preview excludes plugins declared in `loopress.json`; see [Drift detection](/ci/drift-detection/#preview-a-pull-request). The job needs no secret beyond `LOOPRESS_CONFIG`, and it does not post a comment: the summary is in the job log.
