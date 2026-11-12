@@ -28,13 +28,22 @@ describe('api namespace', () => {
   beforeEach(() => writeLocalConfig.mockReset())
 
   describe('push', () => {
-    const run = async (cmd: PushCommand) => (cmd as unknown as {pushNamespace(): Promise<void>}).pushNamespace()
+    const run = async (cmd: PushCommand) => (cmd as unknown as {pushNamespace(): Promise<string | undefined>}).pushNamespace()
 
     it('sends the configured namespace when the site differs', async () => {
       const cmd = new Push([], fakeOclifConfig)
       const {wp} = setup(cmd, 'loopress-api/v1', {api: {namespace: 'my-api/v2'}})
       await run(cmd)
       expect(wp.put).toHaveBeenCalledWith('loopress/v1/api-namespace', {namespace: 'my-api/v2'})
+    })
+
+    it('returns the previous namespace so a failed batch can restore it', async () => {
+      const cmd = new Push([], fakeOclifConfig)
+      const {wp} = setup(cmd, 'old-api/v1', {api: {namespace: 'my-api/v2'}})
+      expect(await run(cmd)).toBe('old-api/v1')
+
+      await (cmd as unknown as {restoreNamespace(previous: string): Promise<void>}).restoreNamespace('old-api/v1')
+      expect(wp.put).toHaveBeenLastCalledWith('loopress/v1/api-namespace', {namespace: 'old-api/v1'})
     })
 
     it('sends nothing when the site already uses it', async () => {
@@ -60,7 +69,7 @@ describe('api namespace', () => {
     })
 
     it('refuses an invalid namespace before any request', async () => {
-      for (const namespace of ['loopress/v1', 'Bad Name']) {
+      for (const namespace of ['loopress/v1', 'Bad Name', null]) {
         const cmd = new Push([], fakeOclifConfig)
         const {wp} = setup(cmd, 'loopress-api/v1', {api: {namespace}})
         await expect(cmd.run()).rejects.toThrow(/api\.namespace/)

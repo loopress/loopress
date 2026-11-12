@@ -279,6 +279,11 @@ function checkApiConfig(api: unknown, problems: Problem[]): void {
     return
   }
 
+  const unknown = Object.keys(api).filter((key) => key !== 'namespace')
+  if (unknown.length > 0) {
+    problems.push({file: 'loopress.json', message: `"api" has unknown ${unknown.length === 1 ? 'key' : 'keys'}: ${unknown.join(', ')} (only "namespace" is supported)`})
+  }
+
   if (api.namespace === undefined) return
   const message = apiNamespaceProblem(api.namespace)
   if (message) problems.push({file: 'loopress.json', message})

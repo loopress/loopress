@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname, join, relative, sep} from 'node:path'
 
-import {apiNamespaceProblem, localApiNamespace} from '../utils/api-namespace.js'
+import {apiNamespaceProblem, DEFAULT_API_NAMESPACE, localApiNamespace} from '../utils/api-namespace.js'
 import {writeLocalConfig} from '../utils/loopress-config.js'
 import {firstTopLevelSideEffect, startsWithStrictTypes} from '../utils/php-top-level.js'
 import {pluralize} from '../utils/pluralize.js'
@@ -220,7 +220,9 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
       if (spec.syncsNamespace) {
         // Before any write: a bad namespace stops the push with nothing changed on the site.
-        const problem = apiNamespaceProblem(localApiNamespace(this.localConfig))
+        // Checked as written: an explicit null must not fall back to the default.
+        const api = this.localConfig.api ?? {}
+        const problem = apiNamespaceProblem('namespace' in api ? api.namespace : DEFAULT_API_NAMESPACE)
         if (problem) this.error(`loopress.json: ${problem}`)
       }
 
@@ -262,17 +264,26 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path) : []
 
       // Routes register under the namespace, so it goes first.
-      if (spec.syncsNamespace) await this.pushNamespace()
+      const previousNamespace = spec.syncsNamespace ? await this.pushNamespace() : undefined
 
       if (this.dryRun) {
         await this.writeAfterPushSnapshot(provider, path, beforeState)
         return {changes: this.previewChanges, pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
       }
 
-      const {pruned, pushed} =
-        files.length === 0 && pruneList.length === 0
-          ? {pruned: [], pushed: []}
-          : await this.pushBatch(files, pruneList, beforeState)
+      let batch: {pruned: string[]; pushed: string[]}
+      try {
+        batch =
+          files.length === 0 && pruneList.length === 0
+            ? {pruned: [], pushed: []}
+            : await this.pushBatch(files, pruneList, beforeState)
+      } catch (error) {
+        // The routes did not land: do not leave them under a namespace they were never pushed with.
+        if (previousNamespace !== undefined) await this.restoreNamespace(previousNamespace)
+        throw error
+      }
+
+      const {pruned, pushed} = batch
 
       await this.writeAfterPushSnapshot(provider, path, beforeState)
 
@@ -334,18 +345,20 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       return {pruned: result.pruned, pushed: result.files.map((file) => file.filename)}
     }
 
-    private async pushNamespace(): Promise<void> {
+    // Returns the namespace to restore if the routes fail to push, undefined when nothing changed.
+    private async pushNamespace(): Promise<string | undefined> {
       const wanted = localApiNamespace(this.localConfig)
       const {namespace: current} = await this.wp.get<{namespace: string}>(API_NAMESPACE_ENDPOINT)
-      if (current === wanted) return
+      if (current === wanted) return undefined
 
       if (this.dryRun) {
         this.log(`Would change the API namespace from ${current} to ${wanted}: every route URL moves`)
-        return
+        return undefined
       }
 
       await this.wp.put(API_NAMESPACE_ENDPOINT, {namespace: wanted})
       this.log(`API namespace changed from ${current} to ${wanted}`)
+      return current
     }
 
     // Mirror of `pull`'s local orphan cleanup, aimed at the server: any file on WordPress with
@@ -382,6 +395,15 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       }
 
       return orphans
+    }
+
+    private async restoreNamespace(previous: string): Promise<void> {
+      try {
+        await this.wp.put(API_NAMESPACE_ENDPOINT, {namespace: previous})
+        this.warn(`The routes were not pushed: API namespace restored to ${previous}`)
+      } catch {
+        this.warn(`The routes were not pushed and the API namespace could not be restored: it is still set by this push, run \`lps api push\` again or set it back to ${previous}`)
+      }
     }
 
     private validateFileLocally(file: PhpFile, task?: {output: string}): void {

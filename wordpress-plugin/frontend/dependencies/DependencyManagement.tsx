@@ -50,8 +50,11 @@ export function DependencyManagement() {
             {readOnly && (
                 <div style={{ marginBottom: 20 }}>
                     <Notice status="info" isDismissible={false}>
-                        Dependencies are read-only here: change them in the repo and run <code>lps composer push</code>.
-                        wp-admin can only change them on a local or development site.
+                        {window.loopressData?.fileModsAllowed === false ? (
+                            <>File modifications are disabled on this site (<code>DISALLOW_FILE_MODS</code>), so dependencies are read-only here. Change them in your repository and deploy.</>
+                        ) : (
+                            <>Dependencies are read-only here: change them in the repo and run <code>lps composer push</code>. wp-admin can only change them on a local or development site.</>
+                        )}
                     </Notice>
                 </div>
             )}

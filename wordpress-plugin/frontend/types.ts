@@ -170,7 +170,7 @@ declare global {
             // route that writes files then refuses with a 403.
             fileModsAllowed?: boolean;
             // Full edition only: true only on a local or development site (and file mods allowed),
-            // the only place require, remove and repair answer.
+            // the only place require, remove, repair and fix-platform answer.
             composerWritable?: boolean;
         };
     }

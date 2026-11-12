@@ -139,7 +139,7 @@ class ComposerControllerTest extends TestCase
         Functions\when('wp_get_environment_type')->justReturn('local');
 
         $callbacks = $this->permissionCallbacks();
-        foreach (['/composer/require', '/composer/remove', '/composer/repair'] as $route) {
+        foreach (['/composer/require', '/composer/remove', '/composer/repair', '/composer/fix-platform'] as $route) {
             $this->assertTrue($callbacks[$route](), $route);
         }
     }
@@ -158,7 +158,7 @@ class ComposerControllerTest extends TestCase
         Functions\when('wp_get_environment_type')->justReturn($type);
         $callbacks = $this->permissionCallbacks();
 
-        foreach (['/composer/require', '/composer/remove', '/composer/repair'] as $route) {
+        foreach (['/composer/require', '/composer/remove', '/composer/repair', '/composer/fix-platform'] as $route) {
             $result = $callbacks[$route]();
             $this->assertInstanceOf(\WP_Error::class, $result, $route);
             $this->assertSame('loopress_composer_local_only', $result->get_error_code());

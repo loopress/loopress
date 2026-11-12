@@ -64,6 +64,14 @@ describe('DependencyManagement', () => {
         expect(screen.getByText('7.8.1')).toBeInTheDocument();
     });
 
+    test('says deployment is the way when file modifications are disabled', () => {
+        window.loopressData = { ...window.loopressData, composerWritable: false, fileModsAllowed: false };
+        render(<DependencyManagement />, { wrapper: makeWrapper([]) });
+
+        expect(screen.getByText(/File modifications are disabled/i)).toBeInTheDocument();
+        expect(screen.queryByText(/lps composer push/i)).toBeNull();
+    });
+
     test('drops the search and every action when composer is not writable', () => {
         window.loopressData = { ...window.loopressData, composerWritable: false };
         render(<DependencyManagement />, {

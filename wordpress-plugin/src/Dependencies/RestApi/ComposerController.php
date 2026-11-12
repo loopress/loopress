@@ -91,7 +91,7 @@ final class ComposerController
         register_rest_route('loopress/v1', '/composer/fix-platform', [
             'methods'             => 'POST',
             'callback'            => [$this, 'fix_platform'],
-            'permission_callback' => $this->fileModsPermissionCallback(),
+            'permission_callback' => $this->localOnlyPermissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/json', [

@@ -318,6 +318,14 @@ describe('validateLocal', () => {
     }
   })
 
+  it('flags an unknown key under api and a null namespace', async () => {
+    write('loopress.json', JSON.stringify({api: {namesapce: 'my-api/v2'}}))
+    expect((await validateLocal(dir)).problems).toContainEqual(expect.objectContaining({message: expect.stringContaining('namesapce')}))
+
+    write('loopress.json', JSON.stringify({api: {namespace: null}}))
+    expect((await validateLocal(dir)).problems).toContainEqual(expect.objectContaining({message: expect.stringContaining('api.namespace')}))
+  })
+
   it('accepts a valid plugins object', async () => {
     write('loopress.json', JSON.stringify({plugins: {akismet: '5.3.3'}}))
 
