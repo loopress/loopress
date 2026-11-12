@@ -4,6 +4,7 @@ import {z} from 'zod'
 
 import {configManager} from '../config/project-config.manager.js'
 import {pinProblem} from '../types/plugin.js'
+import {apiNamespaceProblem} from '../utils/api-namespace.js'
 import {readLocalBlocks} from '../utils/block-format.js'
 import {COMPOSER_JSON} from '../utils/composer.js'
 import {CPT_SPEC, declaredFileChecker, META_SPEC, PATTERN_SPEC, ROLE_SPEC, TAXONOMY_SPEC} from '../utils/declared-type-format.js'
@@ -271,6 +272,18 @@ async function checkJsonDir(dir: string, problems: Problem[], shape?: (raw: stri
   return checked
 }
 
+function checkApiConfig(api: unknown, problems: Problem[]): void {
+  if (api === undefined) return
+  if (!isRecord(api) || Array.isArray(api)) {
+    problems.push({file: 'loopress.json', message: '"api" must be an object like {"namespace": "loopress-api/v1"}'})
+    return
+  }
+
+  if (api.namespace === undefined) return
+  const message = apiNamespaceProblem(api.namespace)
+  if (message) problems.push({file: 'loopress.json', message})
+}
+
 function checkLoopressJson(localConfig: Record<string, unknown>, problems: Problem[]): void {
   const {projectId} = localConfig
   if (typeof projectId === 'string') {
@@ -284,6 +297,8 @@ function checkLoopressJson(localConfig: Record<string, unknown>, problems: Probl
       problems.push({file: 'loopress.json', message: `project "${project.name}" has no environments configured`})
     }
   }
+
+  checkApiConfig(localConfig.api, problems)
 
   const {plugins} = localConfig as {plugins?: unknown}
   if (plugins === undefined) return

@@ -1,6 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
@@ -18,33 +17,17 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('ApiNamespaceSettings', () => {
-    test('shows the saved namespace, saves an edit, then reflects what the server stored', async () => {
-        apiFetchMock.mockImplementation(async (path: string, options?: RequestInit) => {
-            if (!options) return { namespace: 'site/v1' };
-            // The server normalizes the value, the field must show its answer after saving.
-            return { namespace: JSON.parse(options.body as string).namespace.toLowerCase() };
-        });
+    test('shows the namespace read-only, says where to change it and never writes', async () => {
+        apiFetchMock.mockResolvedValue({ namespace: 'site/v1' });
 
         render(<ApiNamespaceSettings />, { wrapper });
 
         const input = await screen.findByLabelText(/API routes namespace/i);
         await waitFor(() => expect(input).toHaveValue('site/v1'));
-        const save = screen.getByRole('button', { name: 'Save' });
-        expect(save).toBeDisabled();
-
-        const user = userEvent.setup();
-        await user.clear(input);
-        await user.type(input, 'Shop/V2');
-        expect(save).toBeEnabled();
-        await user.click(save);
-
-        await waitFor(() => {
-            expect(apiFetchMock).toHaveBeenCalledWith('/api-namespace', {
-                method: 'PUT',
-                body: JSON.stringify({ namespace: 'Shop/V2' }),
-            });
-        });
-        await waitFor(() => expect(input).toHaveValue('shop/v2'));
-        expect(save).toBeDisabled();
+        expect(input).toBeDisabled();
+        expect(screen.getByText('loopress.json')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+        expect(apiFetchMock).toHaveBeenCalledTimes(1);
+        expect(apiFetchMock).toHaveBeenCalledWith('/api-namespace');
     });
 });

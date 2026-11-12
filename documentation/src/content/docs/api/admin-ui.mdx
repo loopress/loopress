@@ -28,9 +28,9 @@ The section is read-only, like the [hooks](/hooks/) and [single-page apps](/apps
 
 ## Route namespace
 
-The namespace setting, on the **Settings** tab and behind the gear in the **API routes** card header, holds the namespace your routes register under, `loopress-api/v1` by default. It accepts lowercase letters, digits, and hyphens followed by a version segment (e.g. `acme/v1`); `loopress/v1` is rejected because it's reserved for Loopress's own management endpoints. Changing it changes every route's URL immediately, with no redirect from the old one, see [the namespace rules](/api/routes/#the-route-namespace).
+The namespace setting, on the **Settings** tab and behind the gear in the **API routes** card header, shows the namespace your routes register under, `loopress-api/v1` by default, read-only: it is set by `api.namespace` in [`loopress.json`](/loopress-json/#api) and sent by `lps api push` (`lps api pull` writes it back, `lps api diff` reports a difference). It accepts lowercase letters, digits, and hyphens followed by a version segment (e.g. `acme/v1`); `loopress/v1` is rejected because it's reserved for Loopress's own management endpoints. Changing it changes every route's URL immediately, with no redirect from the old one, see [the namespace rules](/api/routes/#the-route-namespace).
 
-The field reads and writes `loopress/v1/api-namespace`:
+The field reads `loopress/v1/api-namespace`, which the CLI also writes:
 
 ```http
 GET /wp-json/loopress/v1/api-namespace

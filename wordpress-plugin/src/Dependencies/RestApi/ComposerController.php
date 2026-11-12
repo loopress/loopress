@@ -33,7 +33,7 @@ final class ComposerController
         register_rest_route('loopress/v1', '/composer/require', [
             'methods'             => 'POST',
             'callback'            => [$this, 'require_package'],
-            'permission_callback' => $this->fileModsPermissionCallback(),
+            'permission_callback' => $this->localOnlyPermissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
                 'version' => $this->versionArg(required: false, defaultVersion: '*'),
@@ -43,7 +43,7 @@ final class ComposerController
         register_rest_route('loopress/v1', '/composer/remove', [
             'methods'             => 'POST',
             'callback'            => [$this, 'remove_package'],
-            'permission_callback' => $this->fileModsPermissionCallback(),
+            'permission_callback' => $this->localOnlyPermissionCallback(),
             'args'                => [
                 'package' => $this->packageArg(required: true),
             ],
@@ -67,7 +67,7 @@ final class ComposerController
         register_rest_route('loopress/v1', '/composer/repair', [
             'methods'             => 'POST',
             'callback'            => [$this, 'repair'],
-            'permission_callback' => $this->fileModsPermissionCallback(),
+            'permission_callback' => $this->localOnlyPermissionCallback(),
         ]);
 
         register_rest_route('loopress/v1', '/composer/diagnostics', [
@@ -331,6 +331,37 @@ final class ComposerController
     public static function fileModsAllowed(): bool
     {
         return wp_is_file_mod_allowed('loopress_composer');
+    }
+
+    // Changing dependencies from wp-admin (require, remove, repair) is a code change with no
+    // commit behind it, so it is a local development convenience only. WordPress reports
+    // "production" when the type is unset, which makes the safe side the default.
+    public static function composerWritable(): bool
+    {
+        return self::fileModsAllowed() && in_array(wp_get_environment_type(), ['local', 'development'], true);
+    }
+
+    /** @return callable(): (bool|WP_Error) */
+    private function localOnlyPermissionCallback(): callable
+    {
+        $fileMods = $this->fileModsPermissionCallback();
+
+        return static function () use ($fileMods): bool|WP_Error {
+            $allowed = $fileMods();
+            if ($allowed !== true) {
+                return $allowed;
+            }
+
+            if (!in_array(wp_get_environment_type(), ['local', 'development'], true)) {
+                return new WP_Error(
+                    'loopress_composer_local_only',
+                    'Dependencies cannot be changed from wp-admin on this site: change them in the repo and run `lps composer push`.',
+                    ['status' => 403],
+                );
+            }
+
+            return true;
+        };
     }
 
     /** @return callable(): (bool|WP_Error) */

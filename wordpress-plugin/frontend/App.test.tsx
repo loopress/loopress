@@ -50,6 +50,7 @@ function renderApp(autoloadError: string | null, overrides: Partial<Window['loop
         restUrl: 'http://localhost/wp-json/',
         siteUrl: 'http://localhost',
         fileModsAllowed: true,
+        composerWritable: true,
         ...overrides,
     };
 
@@ -243,10 +244,10 @@ describe('App', () => {
         expect(await screen.findByRole('tab', { name: 'Code', selected: true })).toBeInTheDocument();
     });
 
-    test('does not auto-repair, and says why, when file modifications are disallowed', async () => {
-        await renderApp('vendor/autoload.php is corrupted', { fileModsAllowed: false });
+    test('does not auto-repair, and says why, when composer is not writable', async () => {
+        await renderApp('vendor/autoload.php is corrupted', { composerWritable: false });
 
-        expect(await screen.findByText(/File modifications are disabled on this site, run composer install/i)).toBeInTheDocument();
+        expect(await screen.findByText(/Dependencies cannot be repaired from wp-admin on this site, run composer install/i)).toBeInTheDocument();
         expect(apiFetchMock).not.toHaveBeenCalledWith('/composer/repair', expect.anything());
         expect(screen.queryByLabelText('Search a Composer package')).toBeNull();
     });

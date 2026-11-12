@@ -345,10 +345,20 @@ Routes register under the `loopress-api/v1` namespace by default:
 /wp-json/loopress-api/v1/{filename}
 ```
 
-The namespace is configurable from the plugin's **Settings** tab (see [Admin UI](/api/admin-ui/#route-namespace)). The rules:
+The namespace is configured in the repo, with `api.namespace` in [`loopress.json`](/loopress-json/#api):
+
+```json
+{
+  "api": {
+    "namespace": "acme/v1"
+  }
+}
+```
+
+`lps api push` sends it before the routes, `lps api pull` writes the site's value back, `lps api diff` and `lps diff` report a difference, and `lps validate` checks the format. The plugin's **Settings** tab only shows it (see [Admin UI](/api/admin-ui/#route-namespace)). The rules:
 
 - Format: lowercase letters, digits, and hyphens, followed by a version segment, e.g. `acme/v1` or `my-agency/v2`. Anything else is rejected.
-- `loopress/v1` is reserved for Loopress's own management endpoints and cannot be chosen.
+- `loopress/v1` is reserved for Loopress's own management endpoints and cannot be chosen. `lps api push` refuses it, and a malformed value, before writing anything.
 - Changing it changes every route's URL on the next request, with no redirect from the old URL. Update your consumers first.
 
 ## Using your own Composer dependencies

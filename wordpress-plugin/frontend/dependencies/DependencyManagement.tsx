@@ -14,8 +14,9 @@ import type { ComposerResult } from '../types';
 export function DependencyManagement() {
     const queryClient = useQueryClient();
     const [installedName, setInstalledName] = useState('');
-    // DISALLOW_FILE_MODS: the server refuses every Composer change, so don't offer any.
-    const readOnly = window.loopressData?.fileModsAllowed === false;
+    // Outside a local or development site (or under DISALLOW_FILE_MODS) the server refuses every
+    // Composer change from wp-admin, so don't offer any.
+    const readOnly = window.loopressData?.composerWritable === false;
 
     const {
         mutate: installPackage,
@@ -49,8 +50,8 @@ export function DependencyManagement() {
             {readOnly && (
                 <div style={{ marginBottom: 20 }}>
                     <Notice status="info" isDismissible={false}>
-                        File modifications are disabled on this site (<code>DISALLOW_FILE_MODS</code>), so dependencies
-                        are read-only here. Change them in your repository and deploy.
+                        Dependencies are read-only here: change them in the repo and run <code>lps composer push</code>.
+                        wp-admin can only change them on a local or development site.
                     </Notice>
                 </div>
             )}
