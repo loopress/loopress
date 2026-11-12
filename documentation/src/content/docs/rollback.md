@@ -57,7 +57,7 @@ A push run in CI therefore saves its snapshot on the runner, where it disappears
 2. **Targeted restore.** Only the objects that differ from the snapshot are written back, the rest is left alone.
 3. **No deletion.** An object that exists now but not in the snapshot (created after it) is **not** removed. The CLI warns about it, delete it yourself if needed. The exception is a resource whose push mirrors the project: `lps theme template rollback` writes the whole child theme back, so a template or part the push added is removed.
 
-Your local files are not changed by a rollback. Run the resource's `pull` afterwards to bring them back in line with the site.
+Your local files are not changed by a rollback. Run the resource's `pull` afterwards to bring them back in line with the site. Pages, templates and parts have no `pull`: check out the files of the snapshot's push in Git instead (`lps diff --only page`, `--only template`, `--only part` shows what still differs).
 
 ## From an AI agent
 

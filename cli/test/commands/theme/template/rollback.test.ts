@@ -111,6 +111,22 @@ describe('theme template rollback', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^The theme CSS is not restored/))
   })
 
+  it("refuses to write one theme's snapshot into the child of another parent activated since", async () => {
+    const site: Site = {css: {}, parts: [], templates: []}
+    const wp = fakeSite(site)
+    write('theme/templates/single.html', '<p>single</p>')
+    await push(wp)
+    const other = {active: true, customized: [], exists: true, parent: 'tt4', parts: [], stylesheet: 'tt4-loopress', templates: []}
+    wp.get.mockResolvedValue(other as never)
+    wp.put.mockClear()
+
+    const cmd = command(ConcreteRollback, ['--yes'], wp)
+    Object.assign(cmd, {yes: true})
+
+    await expect(cmd.run()).rejects.toThrow(/snapshot is of tt5-loopress, the child theme of the active theme is now tt4-loopress/)
+    expect(wp.put).not.toHaveBeenCalled()
+  })
+
   it('changes nothing on a dry run', async () => {
     const site: Site = {css: {}, parts: [], templates: []}
     const wp = fakeSite(site)

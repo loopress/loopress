@@ -388,6 +388,9 @@ export function childThemeSnapshotState(child: ChildTheme): ResourceState {
   }
 
   for (const [file, hash] of Object.entries(child.css ?? {})) state.set(`css/${file}`, hash)
+  // The child of the active theme: another parent activated since the push shows as drift, and
+  // the rollback refuses to write one theme's snapshot into another's child.
+  state.set('stylesheet', child.stylesheet)
   return state
 }
 
