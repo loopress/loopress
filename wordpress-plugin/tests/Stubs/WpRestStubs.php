@@ -76,6 +76,12 @@ if (!class_exists('WP_REST_Response')) {
             $this->headers[$name] = $value;
         }
 
+        /** @return array<string, string> */
+        public function get_headers(): array
+        {
+            return $this->headers;
+        }
+
         public function get_data(): mixed
         {
             return $this->data;

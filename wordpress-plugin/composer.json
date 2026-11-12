@@ -55,6 +55,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "coverage": "php -d pcov.enabled=1 -d pcov.directory=src vendor/bin/phpunit --coverage-text --coverage-clover build/coverage/clover.xml",
         "analyse": "phpstan analyse --memory-limit=1G",
         "psalm": "./vendor/bin/psalm --no-cache",
         "psalm:taint": "./vendor/bin/psalm --no-cache --taint-analysis --use-baseline=psalm-taint-baseline.xml",
