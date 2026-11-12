@@ -79,8 +79,10 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `block_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore dynamic blocks to the snapshot saved automatically before an earlier `block_push` (`list` shows what's available) |
 | `page_push` | Yes | `env?`, `slug?`, `overwrite?`, `confirmToken?` | Push local static HTML pages (`pages/<slug>.html`) to WordPress, or only `slug` |
 | `page_list` | No | `env?` | List the static pages managed by Loopress on WordPress (slug, status, URL) |
+| `page_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore static pages to the snapshot saved automatically before an earlier `page_push` (`list` shows what's available) |
 | `theme_template_push` | Yes | `env?`, `confirmToken?` | Push local block templates (`theme/templates/<slug>.html`), parts (`theme/parts/<slug>.html`) and theme CSS (`theme/css/`, `theme/blocks/`) as the files of the Loopress child theme |
 | `theme_template_list` | No | `env?` | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
+| `theme_template_rollback` | Yes | `env?`, `path?`, `list?`, `to?`, `confirmToken?` | Restore the Loopress child theme (templates, parts, theme CSS) to the snapshot saved automatically before an earlier `theme_template_push`, removing what that push added (`list` shows what's available) |
 | `app_push` | Yes | `env?`, `name?`, `noBuild?`, `confirmToken?` | Build (package.json `build` script) and push single-page app bundles (`apps/<name>/dist/`) to WordPress |
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |

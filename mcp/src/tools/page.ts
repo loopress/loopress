@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {CHANGES_SUFFIX, confirmTokenFlag, envFlag, overwriteFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -77,6 +77,9 @@ export function registerPageTools(server: McpServer): void {
       {description: descriptions.list, inputSchema: {env: envFlag}},
       async ({env}) => toCallToolResult(unwrap(await runLps(buildArgs([...command, 'list'], {env})))),
     )
-
   }
+
+  registerRollbackTool(server, {pathNoun: 'pages directory', resource: 'page'})
+  // Mirrors the snapshot like the push: a template or part that push added is removed.
+  registerRollbackTool(server, {pathNoun: 'templates directory', resource: 'theme template', toolName: 'theme_template'})
 }

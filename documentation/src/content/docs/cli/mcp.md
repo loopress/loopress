@@ -68,8 +68,10 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `block_rollback` | Yes | Restore dynamic blocks to the snapshot saved automatically before an earlier `block_push` (`list` shows what's available) |
 | `page_push` | Yes | Push local static HTML pages to WordPress, or only one (`slug`) |
 | `page_list` | No | List the static pages managed by Loopress on WordPress |
+| `page_rollback` | Yes | Restore static pages to the snapshot saved automatically before an earlier `page_push` (`list` shows what's available) |
 | `theme_template_push` | Yes | Push local block templates, parts and theme CSS as the files of the Loopress child theme |
 | `theme_template_list` | No | Show the Loopress child theme: active or not, its templates and parts, and Site Editor edits |
+| `theme_template_rollback` | Yes | Restore the Loopress child theme to the snapshot saved automatically before an earlier `theme_template_push`, removing what that push added (`list` shows what's available) |
 | `app_push` | Yes | Build and push single-page app bundles to WordPress |
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |

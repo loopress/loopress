@@ -19,6 +19,9 @@ const SNAPSHOT = z.object({
   beforeState: z.record(z.string(), z.unknown()),
   createdAt: z.string(),
   environment: z.string(),
+  // What the push sent that the site can't give back, for a resource whose state is only
+  // hashes there (the theme CSS, see commands/theme/template/push.ts).
+  payload: z.record(z.string(), z.unknown()).optional(),
   resource: z.string(),
 })
 
@@ -80,11 +83,12 @@ export async function writeSnapshot(options: {
   afterState: ResourceState
   beforeState: ResourceState
   environment: string
+  payload?: Record<string, unknown>
   resource: string
   retain?: number
   rootDir: string
 }): Promise<string> {
-  const {afterState, beforeState, environment, resource, retain = SNAPSHOT_RETENTION, rootDir} = options
+  const {afterState, beforeState, environment, payload, resource, retain = SNAPSHOT_RETENTION, rootDir} = options
   const dir = snapshotsDir(rootDir, resource, environment)
   await mkdir(dir, {recursive: true})
   await ignoreCacheDirInGit(rootDir)
@@ -94,6 +98,7 @@ export async function writeSnapshot(options: {
     beforeState: stateToRecord(beforeState),
     createdAt: new Date().toISOString(),
     environment,
+    ...(payload && {payload}),
     resource,
   }
   const content = JSON.stringify(snapshot, null, 2) + '\n'

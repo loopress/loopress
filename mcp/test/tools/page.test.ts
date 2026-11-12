@@ -27,8 +27,21 @@ describe('registerPageTools', () => {
     runLps.mockClear()
   })
 
-  it('registers push and list for pages and templates', () => {
-    expect([...register().keys()].sort()).toEqual(['page_list', 'page_push', 'theme_template_list', 'theme_template_push'])
+  it('registers push, list and rollback for pages and templates', () => {
+    expect([...register().keys()].sort()).toEqual([
+      'page_list',
+      'page_push',
+      'page_rollback',
+      'theme_template_list',
+      'theme_template_push',
+      'theme_template_rollback',
+    ])
+  })
+
+  it('theme_template_rollback runs the nested rollback command through the confirm handshake', async () => {
+    await register().get('theme_template_rollback')!.handler({env: 'staging'})
+
+    expect(runMutatingTool).toHaveBeenCalledWith('theme_template_rollback', ['theme', 'template', 'rollback', '--env', 'staging', '--yes'], undefined)
   })
 
   it('theme_template_push and theme_template_list run the template commands', async () => {

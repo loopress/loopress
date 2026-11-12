@@ -220,3 +220,24 @@ test("runs shortcodes in the page, including one that nests the_content", async 
 		await runCli(["hook", "rm", hookSlug, "--yes"]);
 	}
 });
+
+test("rollback restores the page the last push changed, its content, status and header", async ({ page, projectDir, runCli, wp }) => {
+	writePage(projectDir, slug, `<!--\ntitle: E2E ${slug}\nstatus: publish\nhide-title: true\n-->\n<p id="e2e-rollback">version one</p>\n`);
+	expect((await runCli(["page", "push", slug])).exitCode).toBe(0);
+
+	writePage(projectDir, slug, `<!--\ntitle: E2E ${slug}\nstatus: draft\n-->\n<p id="e2e-rollback">version two</p>\n`);
+	expect((await runCli(["page", "push", slug])).exitCode).toBe(0);
+
+	const rollback = await runCli(["page", "rollback", "--yes"]);
+	expect(rollback.exitCode, rollback.stderr).toBe(0);
+
+	// Published again (a draft would 404), with the first version's content.
+	await page.goto(`${wp.url}/${slug}/`);
+	await expect(page.locator("#e2e-rollback")).toHaveText("version one");
+	const list = JSON.parse((await runCli(["page", "list", "--json"])).stdout) as Array<{ slug: string; status: string }>;
+	expect(list.find((entry) => entry.slug === slug)?.status).toBe("publish");
+	// hide-title came back too: the page is in sync with a local file that sets it.
+	writePage(projectDir, slug, `<!--\ntitle: E2E ${slug}\nstatus: publish\nhide-title: true\n-->\n<p id="e2e-rollback">version one</p>\n`);
+	const diff = await runCli(["diff", "--only", "page"]);
+	expect(diff.stdout).not.toContain(slug);
+});

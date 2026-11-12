@@ -43,7 +43,7 @@ type ResourceToolsSpec = {
   // api and hooks only: `push` deletes server-side files with no local counterpart unless `--no-prune`.
   supportsPrune?: boolean
   // Every resource-state-backed resource (see cli's resource-state.ts) gets a `<resource>_rollback`
-  // tool mirroring `lps <resource> rollback`; app/plugin/theme/composer don't have one (no
+  // tool mirroring `lps <resource> rollback`; app/plugin/theme version/composer don't have one (no
   // `lps <resource> push` snapshot to roll back to).
   supportsRollback?: boolean
   // A `<resource>_rm` tool removes one file: api, hooks and the declared types (cpt, taxonomy,

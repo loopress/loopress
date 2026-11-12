@@ -1,11 +1,13 @@
-import {createHash} from 'node:crypto'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {activateTheme} from '../../../lib/capabilities.js'
+import {CHILD_THEME_RESOURCE, cssBeforePush, cssHashState} from '../../../lib/child-theme-snapshot.js'
 import {type ResourceState} from '../../../lib/diff-state.js'
 import {hasExclusions, isExcluded} from '../../../lib/exclude.js'
 import {errorMessage} from '../../../lib/narrow.js'
 import {logChanges, type PushChange, pushChanges, PushCommand} from '../../../lib/push-command.js'
+import {childThemeSnapshotState} from '../../../lib/resource-state.js'
+import {readSnapshot, writeSnapshot} from '../../../lib/snapshot-store.js'
 import {formatPageProblems} from '../../../utils/page-format.js'
 import {pluralize} from '../../../utils/pluralize.js'
 import {projectHasChildThemeFiles, resolveResourceDir} from '../../../utils/resource-dirs.js'
@@ -94,7 +96,9 @@ export default class Push extends PushCommand {
       return {...names, changes, status: 'dry-run'}
     }
 
+    const before = await this.childThemeBeforePush()
     const child = await this.wp.put<ChildTheme>(CHILD_THEME_ENDPOINT, {...css, parts: [...parts, ...kept.parts], templates: [...templates, ...kept.templates]})
+    await this.writeChildThemeSnapshot(before, child, css)
     await this.recordSuccess()
     this.log(`Child theme ${child.stylesheet} written.`)
 
@@ -138,6 +142,17 @@ export default class Push extends PushCommand {
     }
   }
 
+  // The child theme right before the push, for its rollback snapshot. Best effort, like
+  // captureBeforePushState: a failed read never blocks the push, it only leaves no restore point.
+  private async childThemeBeforePush(): Promise<ChildTheme | undefined> {
+    try {
+      return await this.wp.get<ChildTheme>(CHILD_THEME_ENDPOINT)
+    } catch (error) {
+      this.warn(`Could not read the child theme for a rollback snapshot: ${errorMessage(error)}`)
+      return undefined
+    }
+  }
+
   // The site's templates and parts under an excluded path the project doesn't push. Refuses when
   // the site can't be read: pushing blind would remove them.
   private async keptFromSite(templatesPath: string, partsPath: string, templates: Template[], parts: Part[]): Promise<{parts: Part[]; templates: Template[]}> {
@@ -161,8 +176,7 @@ export default class Push extends PushCommand {
   ): Promise<NonNullable<PushResult['changes']>> {
     const child = await this.readChildTheme()
 
-    const localCss: ResourceState = new Map(css.blocks.map((block) => [`blocks/${block.name}.css`, sha256(block.css)]))
-    if (css.style !== '') localCss.set('style.css', sha256(css.style))
+    const localCss: ResourceState = new Map([...cssHashState(css)].map(([id, hash]) => [id.slice('css/'.length), hash]))
     const cssChanges: CssChange[] = child.css
       ? pushChanges(localCss, new Map(Object.entries(child.css)), {mirror: true})
       : [...localCss.keys()].toSorted((a, b) => a.localeCompare(b)).map((id) => ({id, status: 'unknown'}))
@@ -181,6 +195,37 @@ export default class Push extends PushCommand {
       this.error(`The site would refuse this push: ${errorMessage(error)}`)
     }
   }
+
+  // `lps theme template rollback`'s restore point. The site only reports hashes of the CSS, so the
+  // snapshot keeps the bundle this push sent (`afterCss`) and, when it can be told, the one the
+  // site had before (`beforeCss`, the previous push's bundle, see cssBeforePush).
+  private async writeChildThemeSnapshot(before: ChildTheme | undefined, after: ChildTheme, css: ThemeCss): Promise<void> {
+    if (!before) return
+
+    try {
+      const rootDir = resolve(process.cwd(), this.rootDir)
+      const environment = this.siteConfig.name
+      const beforeState = childThemeSnapshotState(before)
+      let previous
+      try {
+        previous = await readSnapshot(rootDir, CHILD_THEME_RESOURCE, environment)
+      } catch {
+        // No earlier snapshot: the CSS before this push is only known when the site has none.
+      }
+
+      const beforeCss = cssBeforePush(beforeState, before.css !== undefined, previous)
+      await writeSnapshot({
+        afterState: childThemeSnapshotState(after),
+        beforeState,
+        environment,
+        payload: {afterCss: css, ...(beforeCss && {beforeCss})},
+        resource: CHILD_THEME_RESOURCE,
+        rootDir,
+      })
+    } catch (error) {
+      this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
+    }
+  }
 }
 
 function bySlug(files: Array<Part | Template>): ResourceState {
@@ -190,8 +235,4 @@ function bySlug(files: Array<Part | Template>): ResourceState {
 function withoutKept(changes: PushChange[], kept: Array<Part | Template>): PushChange[] {
   const slugs = new Set(kept.map((file) => file.slug))
   return changes.filter((change) => !slugs.has(change.id))
-}
-
-function sha256(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex')
 }
