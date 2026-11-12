@@ -72,13 +72,13 @@ describe('registerResourceTools', () => {
     expect(rmDef.def.inputSchema.slug!.safeParse('hello').success).toBe(true)
   })
 
-  it('api_push appends --prune --yes only when prune is true', async () => {
+  it('api_push appends --no-prune only when noPrune is true', async () => {
     const tools = register({supportsPrune: true})
 
-    await tools.get('api_push')!({prune: true})
-    expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push', '--prune', '--yes'], undefined)
+    await tools.get('api_push')!({noPrune: true})
+    expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push', '--no-prune'], undefined)
 
-    await tools.get('api_push')!({prune: false})
+    await tools.get('api_push')!({noPrune: false})
     expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push'], undefined)
   })
 
