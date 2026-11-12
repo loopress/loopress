@@ -101,7 +101,7 @@ Unlike `lps pull`, the push stops at the first resource that fails and lists the
 
 Files the environment excludes in `loopress.json` are left alone on it, never pushed, pruned or mirrored away, and the push lists them as held back, see [holding a feature back](/concepts/#holding-a-feature-back-from-an-environment).
 
-Like every push, it never deletes what you don't have locally unless asked ([push never deletes by default](/concepts/#push-never-deletes-by-default)), asks for confirmation when the target is named `production` (`--yes` in CI), and saves snapshots that [`rollback`](/rollback/) can restore, for the resources that support it. Run `lps diff` or `lps push --dry-run` first to see what will change.
+Like every push, it never deletes what you don't have locally unless asked (except `api/` and `hooks/`, which mirror the repo) ([push never deletes by default](/concepts/#push-never-deletes-by-default)), asks for confirmation when the target is named `production` (`--yes` in CI), and saves snapshots that [`rollback`](/rollback/) can restore, for the resources that support it. Run `lps diff` or `lps push --dry-run` first to see what will change.
 
 ## `lps diff`
 

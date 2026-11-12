@@ -175,6 +175,9 @@ export function resourceRollbackCommand(
           this.siteConfig.name,
           '--yes',
           '--overwrite',
+          // api and hook pushes mirror the repo by default: this temp dir only holds the files to
+          // restore, so pruning would delete every other file on the site.
+          ...(resource === 'api' || resource === 'hook' ? ['--no-prune'] : []),
         ])
       } finally {
         // A cleanup failure here must never hide a real error from the push above: warn about

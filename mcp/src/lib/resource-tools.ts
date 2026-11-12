@@ -40,7 +40,7 @@ type ResourceToolsSpec = {
   pathNoun: string
   // CLI topic and tool-name prefix: 'form' -> `lps form pull` and the `form_pull` tool.
   resource: string
-  // api and hooks only: `push --prune` deletes server-side files with no local counterpart.
+  // api and hooks only: `push` deletes server-side files with no local counterpart unless `--no-prune`.
   supportsPrune?: boolean
   // Every resource-state-backed resource (see cli's resource-state.ts) gets a `<resource>_rollback`
   // tool mirroring `lps <resource> rollback`; app/plugin/theme/composer don't have one (no
@@ -89,7 +89,7 @@ export function registerRollbackTool(
 
       if (to) args.push('--to', to)
       // --yes: the confirmToken handshake below is the actual approval gate, same reasoning as
-      // prune/rm above.
+      // rm above.
       args.push('--yes')
       return toCallToolResult(await runMutatingTool(`${toolName}_rollback`, args, confirmToken))
     },
@@ -141,16 +141,15 @@ export function registerResourceTools(
         inputSchema: {
           confirmToken: confirmTokenFlag,
           env: envFlag,
+          noPrune: z.boolean().optional().describe(`Keep server-side ${resource} files not present locally (by default they are deleted)`),
           overwrite: overwriteFlag,
           path: pathArg,
-          prune: z.boolean().optional().describe(`After pushing, delete server-side ${resource} files not present locally`),
         },
       },
-      async ({confirmToken, env, overwrite, path, prune}) => {
+      async ({confirmToken, env, noPrune, overwrite, path}) => {
         const args = buildArgs([resource, 'push'], {env, overwrite, path})
-        // --yes: prune refuses to delete server-side files in a non-TTY (which the MCP server
-        // always is) without it. The confirmToken handshake is the actual approval gate.
-        if (prune) args.push('--prune', '--yes')
+        // Production is refused upstream (CLI only), so no --yes is needed: other environments prune without a prompt.
+        if (noPrune) args.push('--no-prune')
         return toCallToolResult(await runMutatingTool(`${resource}_push`, args, confirmToken))
       },
     )
@@ -195,7 +194,7 @@ export function registerResourceTools(
         },
       },
       async ({confirmToken, env, slug}) => {
-        // --yes for the same reason as prune above; the handshake is the approval gate.
+        // --yes: rm refuses in a non-TTY without it; the handshake is the approval gate.
         const args = [...buildArgs([resource, 'rm', slug], {env}), '--yes']
         return toCallToolResult(await runMutatingTool(`${resource}_rm`, args, confirmToken))
       },

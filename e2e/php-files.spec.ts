@@ -3,7 +3,7 @@ import {join} from 'node:path'
 
 import {expect, output, test} from './helpers/environment.js'
 
-// rm, diff, rollback and --prune for the two PHP-file resources (api/, hooks/), which share one
+// rm, diff, rollback and the default prune for the two PHP-file resources (api/, hooks/), which share one
 // command implementation (php-files-command.ts). Push/pull and syntax checks live in
 // api-routes-sync.spec.ts and hook-push.spec.ts. Every class name is unique per run: a hooks/ file
 // is require()d on every request, and a reused name could hit a stale OPcache copy.
@@ -131,30 +131,60 @@ for (const kind of ['api', 'hook'] as const) {
       await runCli([kind, 'rm', filename, '--yes'])
     })
 
-    test('push --prune previews the server files absent locally, and refuses to delete them without --yes', async ({
+    test('push prunes the server files absent locally by default: listed in --dry-run, kept with --no-prune, restored by rollback', async ({
       projectDir,
       runCli,
     }) => {
       const stamp = stampOf()
       const gone = `e2e-prune-gone-${stamp}`
       const kept = `e2e-prune-kept-${stamp}`
-      const goneFile = writeFile(projectDir, kind, gone, source(kind, `${stamp}1`, 'one'))
+      const goneSource = source(kind, `${stamp}1`, 'one')
+      const goneFile = writeFile(projectDir, kind, gone, goneSource)
       writeFile(projectDir, kind, kept, source(kind, `${stamp}2`, 'one'))
       expect((await runCli([kind, 'push'])).exitCode).toBe(0)
       rmSync(goneFile)
 
-      const dryRun = await runCli([kind, 'push', '--prune', '--dry-run'])
+      const dryRun = await runCli([kind, 'push', '--dry-run'])
       expect(dryRun.exitCode, output(dryRun)).toBe(0)
       expect(output(dryRun)).toContain('[dry-run] Would prune')
       expect(output(dryRun)).toContain(gone)
-
-      const unconfirmed = await runCli([kind, 'push', '--prune'])
-      expect(unconfirmed.exitCode).not.toBe(0)
-      expect(output(unconfirmed)).toContain('Re-run with --yes to confirm, or without --prune.')
       expect((await runCli([kind, 'list'])).stdout).toContain(gone)
+
+      const noPrune = await runCli([kind, 'push', '--no-prune'])
+      expect(noPrune.exitCode, output(noPrune)).toBe(0)
+      expect((await runCli([kind, 'list'])).stdout).toContain(gone)
+
+      const pruned = await runCli([kind, 'push'])
+      expect(pruned.exitCode, output(pruned)).toBe(0)
+      expect(output(pruned)).toContain(`Pruned: ${gone}`)
+      const listed = (await runCli([kind, 'list'])).stdout
+      expect(listed).not.toContain(gone)
+      expect(listed).toContain(kept)
+
+      const rollback = await runCli([kind, 'rollback', '--yes'])
+      expect(rollback.exitCode, output(rollback)).toBe(0)
+      const restored = (await runCli([kind, 'list'])).stdout
+      expect(restored).toContain(gone)
+      expect(restored).toContain(kept)
 
       await runCli([kind, 'rm', gone, '--yes'])
       await runCli([kind, 'rm', kept, '--yes'])
+    })
+
+    test('push refuses to prune when the local directory holds no PHP file, naming the path', async ({projectDir, runCli}) => {
+      const stamp = stampOf()
+      const filename = `e2e-prune-empty-${stamp}`
+      const file = writeFile(projectDir, kind, filename, source(kind, stamp, 'one'))
+      expect((await runCli([kind, 'push'])).exitCode).toBe(0)
+      rmSync(file)
+
+      const refused = await runCli([kind, 'push'])
+      expect(refused.exitCode).not.toBe(0)
+      expect(output(refused)).toContain('Refusing to prune')
+      expect(output(refused)).toContain(DIR[kind])
+      expect((await runCli([kind, 'list'])).stdout).toContain(filename)
+
+      await runCli([kind, 'rm', filename, '--yes'])
     })
   })
 }
