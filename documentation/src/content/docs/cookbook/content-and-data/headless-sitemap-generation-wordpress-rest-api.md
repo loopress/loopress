@@ -47,8 +47,30 @@ class SitemapData
     public function get(WP_REST_Request $request): array|WP_Error
     {
         $baseUrl = rtrim((string) get_option('headless_frontend_url'), '/');
-        if (wp_http_validate_url($baseUrl) === false) {
+        // Syntax and scheme only: the route never requests this URL, so no DNS lookup is wanted.
+        $parts = wp_parse_url($baseUrl);
+        if (!is_array($parts) || !in_array($parts['scheme'] ?? '', ['http', 'https'], true) || empty($parts['host'])) {
             return new WP_Error('no_frontend_url', 'Set the headless_frontend_url option first.', ['status' => 500]);
+        }
+
+        $posts = get_posts([
+            'post_type'              => ['post', 'page'],
+            'post_status'            => 'publish',
+            // One more than the cap, to tell a full sitemap from a truncated one.
+            'posts_per_page'         => self::MAX_URLS + 1,
+            'orderby'                => 'modified',
+            'no_found_rows'          => true,
+            'update_post_term_cache' => false,
+            'update_post_meta_cache' => false,
+        ]);
+
+        if (count($posts) > self::MAX_URLS) {
+            return new WP_Error('too_many_urls', 'More than 50,000 published posts and pages: paginate on the frontend side.', ['status' => 500]);
+        }
+
+        // The library throws on finalize() when no URL was added.
+        if ($posts === []) {
+            return ['xml' => '', 'urls' => 0];
         }
 
         // The library only writes to disk: give it a directory of its own, removed afterwards.
@@ -63,28 +85,18 @@ class SitemapData
             $generator = new SitemapGenerator($config);
             $generator->setSitemapFilename('headless-sitemap.xml');
 
-            $ids = get_posts([
-                'post_type'              => ['post', 'page'],
-                'post_status'            => 'publish',
-                'posts_per_page'         => self::MAX_URLS,
-                'fields'                 => 'ids',
-                'orderby'                => 'modified',
-                'no_found_rows'          => true,
-                'update_post_term_cache' => false,
-                'update_post_meta_cache' => false,
-            ]);
-
-            foreach ($ids as $id) {
+            // Full post objects: one query, so get_permalink() does not load each post again.
+            foreach ($posts as $post) {
                 // The path only: the front end serves the same permalinks on its own domain.
-                $path     = wp_make_link_relative(get_permalink($id));
-                $modified = new DateTime((string) get_post_modified_time('c', true, $id));
-                $generator->addURL($path, $modified, 'weekly', get_post_type($id) === 'page' ? 0.9 : 0.8);
+                $path     = wp_make_link_relative(get_permalink($post));
+                $modified = new DateTime((string) get_post_modified_time('c', true, $post));
+                $generator->addURL($path, $modified, 'weekly', $post->post_type === 'page' ? 0.9 : 0.8);
             }
 
             $generator->flush();
             $generator->finalize();
 
-            return ['xml' => (string) file_get_contents($dir . '/headless-sitemap.xml'), 'urls' => count($ids)];
+            return ['xml' => (string) file_get_contents($dir . '/headless-sitemap.xml'), 'urls' => count($posts)];
         } finally {
             array_map('unlink', glob($dir . '/*') ?: []);
             rmdir($dir);
@@ -105,10 +117,11 @@ The library only writes to disk, there is no in-memory output, so the route give
 
 Two things the route assumes about your frontend:
 
-- **Same permalinks.** It sends `wp_make_link_relative(get_permalink($id))` appended to the frontend URL, so the frontend must serve posts and pages at the paths WordPress gives them (`/first-post/`, with pretty permalinks on). If your routes differ, map the path here.
+- **Same permalinks.** It sends `wp_make_link_relative(get_permalink($post))` appended to the frontend URL, so the frontend must serve posts and pages at the paths WordPress gives them (`/first-post/`, with pretty permalinks on). If your routes differ, map the path here.
+- **The home page is yours to add.** Only posts and pages are listed. A static front page is a page and appears already, but with the default latest-posts home nothing maps to `/`, so the frontend adds its home URL when it writes the file, once.
 - **Posts and pages only.** Add a custom post type to `post_type`, or loop over [custom post types](/custom-post-types/) and [taxonomies](/taxonomies/) archives the same way.
 
-Past 50,000 URLs the library would split the output into several files and an index. The route stops at 50,000 so a single file is always enough, which fits most sites. A larger one should paginate and write an index on the frontend side.
+Past 50,000 URLs the library would split the output into several files and an index. The route refuses to answer past 50,000 (an error, never a silently shortened sitemap) so a single file is always enough, which fits most sites. A larger one should paginate and write an index on the frontend side.
 
 ## Now call it
 
@@ -119,12 +132,12 @@ curl https://your-site.com/wp-json/loopress-api/v1/sitemap-data \
   -H "x-build-secret: <secret>"
 ```
 
-With a published post, a page and a draft on a test site, the real answer (shortened) lists the two published entries and never the draft:
+With a published post, a page and a draft on a test site, the real answer (shortened) lists the two published entries and never the draft. A site with no published post or page gets `"xml": ""` and `"urls": 0`:
 
 ```json
 {
   "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" ...>\n <url>\n  <loc>https://www.example.com/cafe-menu/</loc>\n  <lastmod>2026-11-13T10:08:47+00:00</lastmod>\n  <changefreq>weekly</changefreq>\n  <priority>0.9</priority>\n </url>\n ...</urlset>\n",
-  "urls": 4
+  "urls": 2
 }
 ```
 
