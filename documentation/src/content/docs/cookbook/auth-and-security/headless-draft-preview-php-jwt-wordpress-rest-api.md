@@ -29,7 +29,7 @@ class PreviewLink
 {
     public function post(WP_REST_Request $request): array|WP_Error
     {
-        $postId = (int) $request->get_param('post_id');
+        $postId = (int) $request->get_url_params()['post_id'];
 
         if (get_post($postId) === null) {
             return new WP_Error('not_found', 'No post with that id.', ['status' => 404]);
@@ -57,7 +57,7 @@ class PreviewLink
 
     public function permission(WP_REST_Request $request): bool
     {
-        return current_user_can('edit_post', (int) $request->get_param('post_id'));
+        return current_user_can('edit_post', (int) $request->get_url_params()['post_id']);
     }
 }
 ```
@@ -85,7 +85,7 @@ class Preview
             return new WP_Error('no_secret', 'Preview is not configured.', ['status' => 500]);
         }
 
-        $postId = (int) $request->get_param('post_id');
+        $postId = (int) $request->get_url_params()['post_id'];
 
         try {
             $claims = JWT::decode((string) $request->get_param('token'), new Key($secret, 'HS256'));
@@ -117,8 +117,10 @@ class Preview
 ```bash
 composer require firebase/php-jwt
 lps composer push
-lps api push
+lps api push --no-prune
 ```
+
+`--no-prune` keeps the routes already on the site that are not in your local `api/` directory, a push otherwise [deletes them](/api/cli/). Drop it once `api/` mirrors the whole site.
 
 The signing key is a site secret, never a line of the repo. Define `PREVIEW_JWT_SECRET` in `wp-config.php`, or set the `preview_jwt_secret` option:
 
@@ -140,7 +142,7 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/preview-link/5 \
 ```
 
 ```json
-{"token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjQ4OCwiYXVkIjoiZHJhZnQtcHJldmlldyIsImV4cCI6MTc5MDM3MjY4NH0.aIxWJBrBGQe_WR3hs4VCeeiXB_TWEIjDJ3gzvt8K7pQ","expires_in":900}
+{"token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjUsImF1ZCI6ImRyYWZ0LXByZXZpZXciLCJleHAiOjE3OTAzNzI2ODR9.aIxWJBrBGQe_WR3hs4VCeeiXB_TWEIjDJ3gzvt8K7pQ","expires_in":900}
 ```
 
 The frontend side, with no credentials at all:
@@ -153,7 +155,7 @@ curl "https://your-site.com/wp-json/loopress-api/v1/preview/5?token=eyJ0eXAiOi..
 {"id":5,"status":"draft","title":"Our autumn roadmap","content":"<h2>What ships next</h2>\n<p>A faster editor.</p>\n"}
 ```
 
-A token with one character changed, one past its 15 minutes, signed with another key, or issued for a different post, answers `401 invalid_token`. Asking for a token without being logged in answers `401`, and as a user who cannot edit that post `403`, both `rest_forbidden`. The frontend's preview page (`/preview?token=...` in Next.js or Astro) just forwards the query parameter and renders the result with the same components as a published post.
+A token with one character changed, one past its 15 minutes, signed with another key, or issued for a different post, answers `401 invalid_token`. Asking for a token without being logged in answers `401`, and as a user who cannot edit that post `403`, both `rest_forbidden`. The frontend's preview page (`/preview?id=5&token=...` in Next.js or Astro) forwards both query parameters, the post id into the path and the token as the `token` query parameter, and renders the result with the same components as a published post.
 
 ## Permission
 
