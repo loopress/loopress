@@ -233,7 +233,7 @@ export default defineConfig({
 				},
 			],
 		}),
-		sitemap(),
+		sitemap({ lastmod: new Date() }),
 		indexnow({
 			key: "e542ad40487f4c508ef8ce9fb107f5e4",
 			enabled: true,
