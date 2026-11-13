@@ -124,10 +124,16 @@ class UpcomingEvents
             return new WP_Error('invalid_per_page', 'per_page must be a whole number.', ['status' => 400]);
         }
 
+        $page = $request->get_param('page') ?? '1';
+        if (!is_string($page) || !ctype_digit($page) || (int) $page < 1) {
+            return new WP_Error('invalid_page', 'page must be a whole number, 1 or more.', ['status' => 400]);
+        }
+
         $query = [
             'post_type'      => 'event',
             'post_status'    => 'publish',
             'posts_per_page' => max(1, min(self::MAX_PER_PAGE, (int) $perPage)),
+            'paged'          => (int) $page,
             'no_found_rows'  => true,
             'meta_query'     => [
                 // Still on: an event already started but not finished stays in the list.
@@ -180,10 +186,11 @@ class UpcomingEvents
         ];
     }
 
-    // "2026-12-05 19:30:00" in the site's timezone to "2026-12-05T19:30:00+01:00".
+    // "2026-12-05 19:30:00" in the site's timezone to "2026-12-05T19:30:00+01:00". An empty or
+    // malformed value gives null, never a made-up date.
     private function isoDate(mixed $value): ?string
     {
-        $date = is_string($value) ? date_create_immutable($value, wp_timezone()) : false;
+        $date = is_string($value) ? DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $value, wp_timezone()) : false;
 
         return $date === false ? null : $date->format(DATE_ATOM);
     }
@@ -195,7 +202,8 @@ What it does, and why:
 - **"Upcoming" means not ended yet.** The filter is on `end_date`, so a festival that started yesterday and ends tomorrow is still listed. Sorting is on `start_date`, through the named `starts` clause of the `meta_query`, with the post id as a tie-breaker.
 - **`current_time('mysql')`** is "now" in the site's timezone, the same timezone the dates are stored in.
 - **`permission()` returns `true`**: published events are public, and a front end calls the route without an account. Only `publish` events are queried, so a draft never leaks.
-- **Inputs are checked**: `per_page` must be a whole number and is clamped to 1 to 50, `type` must be an existing `event-type` slug. Anything else answers `400`.
+- **Inputs are checked**: `per_page` must be a whole number and is clamped to 1 to 50, `page` (for the events after the first `per_page`) a whole number from 1, `type` an existing `event-type` slug. Anything else answers `400`.
+- **A date that is empty or not in the `Y-m-d H:i:s` format comes back as `null`**, never as a made-up date.
 - **`Cache-Control: public, max-age=300`** lets a CDN or the browser keep the list for five minutes.
 
 ## Push it, in order
@@ -215,7 +223,7 @@ lps push
 
 ## Try it
 
-Events and terms are content: a fresh site has none, and the route answers `[]`. Create a few with WP-CLI, one past and two future:
+Events and terms are content: a fresh site has none, and the route answers `[]`. Create a few with WP-CLI, one past and two future. The dates below are the ones of the run shown further down: pick dates after today for the two future events.
 
 ```bash
 wp term create event-type Concert --slug=concert
@@ -260,7 +268,7 @@ curl https://example.com/wp-json/loopress-api/v1/events/upcoming
 ]
 ```
 
-`?type=workshop` keeps only the workshop, `?per_page=1` only the next event. An unknown type or a `per_page` that is not a number is refused:
+`?type=workshop` keeps only the workshop, `?per_page=1` only the next event, `?per_page=1&page=2` the one after it. An unknown type or a `per_page` that is not a number is refused:
 
 ```bash
 curl "https://example.com/wp-json/loopress-api/v1/events/upcoming?type=nope"
