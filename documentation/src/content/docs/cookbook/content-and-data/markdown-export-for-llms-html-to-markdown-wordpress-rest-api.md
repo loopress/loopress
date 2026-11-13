@@ -23,15 +23,17 @@ use Loopress\Api\Attribute\Permission;
 #[Permission(public: true)]
 class PostMarkdown
 {
-    public function get(WP_REST_Request $request): void
+    public function get(WP_REST_Request $request): WP_Error|null
     {
         $post = get_post((int) $request->get_param('post_id'));
 
-        if ($post === null || $post->post_status !== 'publish' || post_password_required($post)) {
-            status_header(404);
-            header('Content-Type: application/json; charset=utf-8');
-            echo wp_json_encode(['code' => 'not_found', 'message' => 'No published post with that id.']);
-            exit;
+        if (
+            $post === null
+            || $post->post_status !== 'publish'
+            || !is_post_type_viewable($post->post_type)
+            || post_password_required($post)
+        ) {
+            return new WP_Error('not_found', 'No published post with that id.', ['status' => 404]);
         }
 
         $html = apply_filters('the_content', $post->post_content);
@@ -89,11 +91,11 @@ That's a real Gutenberg post (heading, paragraph, list and code blocks), convert
 
 ## Permission
 
-The route is [public on purpose](/api/routes/#authentication-and-permissions): an AI crawler or an assistant fetching a page has no WordPress account. It only ever returns what's already public, published posts without a password, the same text the site shows any visitor. The `post_status` and `post_password_required()` checks are what make that true, don't remove them to "also support drafts": a draft served here would be readable by anyone who guesses its id. For drafts, see [signed draft previews](/cookbook/auth-and-security/headless-draft-preview-php-jwt-wordpress-rest-api/).
+The route is [public on purpose](/api/routes/#authentication-and-permissions): an AI crawler or an assistant fetching a page has no WordPress account. It only ever returns what's already public, published posts of a publicly viewable post type, without a password, the same text the site shows any visitor. The `post_status`, `is_post_type_viewable()` and `post_password_required()` checks are what make that true, don't remove them to "also support drafts": a draft served here would be readable by anyone who guesses its id. For drafts, see [signed draft previews](/cookbook/auth-and-security/headless-draft-preview-php-jwt-wordpress-rest-api/).
 
 ## A missing package is scoped to this route
 
-Without `league/html-to-markdown` installed, `HtmlConverter` is an undefined class, an ordinary PHP error on this one request. Loopress only [catches and logs](/api/routes/#failure-isolation) a corrupted or missing `vendor/autoload.php` itself, not a single package missing from an otherwise intact one, install it through [Composer dependency management](/composer/) before pushing this route.
+Without `league/html-to-markdown` installed, `HtmlConverter` is an undefined class, a PHP `Error` thrown inside `get()`. Loopress [catches it](/api/routes/#failure-isolation), logs a `Loopress api/:` line and answers that request with a 500, the other routes keep working. Install the package through [Composer dependency management](/composer/) before pushing this route.
 
 ## What this opens up
 

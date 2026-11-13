@@ -383,7 +383,7 @@ class Webhook
 }
 ```
 
-A corrupted or missing `wp-content/loopress/vendor/autoload.php` is caught and logged once, before any route file loads, the rest of the routes still register normally. A single package missing from an otherwise intact `vendor/` isn't caught by Loopress: it surfaces as an ordinary PHP error on that request, the same as calling any undefined class anywhere else in PHP. WordPress serves each request in its own process, so the error stays confined to the one route that hit it, but unlike the failures in [Failure isolation](#failure-isolation) below, it produces no `Loopress api/:` log line and no entry in the **API Routes** admin tab.
+A corrupted or missing `wp-content/loopress/vendor/autoload.php` is caught and logged once, before any route file loads, the rest of the routes still register normally. A single package missing from an otherwise intact `vendor/` isn't caught at boot: the route registers, and the `Error` thrown by the undefined class when `get()` runs is caught by the same dispatch-time guard as any other exception in a verb method (see [Failure isolation](#failure-isolation) below). It is logged as a `Loopress api/:` line and that request answers with a 500.
 
 ### Sharing code between route files (and snippets)
 
