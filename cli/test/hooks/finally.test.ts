@@ -30,7 +30,7 @@ describe('finally hook', () => {
     sentry.captureException.mockReset()
     sentry.flush.mockReset().mockResolvedValue(true)
     sentry.init.mockReset()
-    vi.spyOn(configManager, 'isTelemetryDisabled').mockReturnValue(false)
+    vi.spyOn(configManager, 'getTelemetryConsent').mockReturnValue(true)
     vi.stubEnv('LOOPRESS_TELEMETRY_DISABLED', '')
     vi.stubEnv('SENTRY_ENVIRONMENT', 'test-env')
   })
@@ -46,7 +46,15 @@ describe('finally hook', () => {
   })
 
   it('does nothing when telemetry is disabled, even on an error', async () => {
-    vi.mocked(configManager.isTelemetryDisabled).mockReturnValue(true)
+    vi.mocked(configManager.getTelemetryConsent).mockReturnValue(false)
+
+    await runHook({error: new Error('boom')}).done
+
+    expect(sentry.init).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing while the user was never asked', async () => {
+    vi.mocked(configManager.getTelemetryConsent).mockReturnValue(null)
 
     await runHook({error: new Error('boom')}).done
 
@@ -114,7 +122,7 @@ describe('finally hook', () => {
     })
 
     it('is dropped deeper in the chain, the wrapping causes stay', async () => {
-      vi.mocked(configManager.isTelemetryDisabled).mockReturnValue(true)
+      vi.mocked(configManager.getTelemetryConsent).mockReturnValue(false)
       const request = new Error('Request failed (409) on https://site: nope', {cause: gotError()})
       const error = new Error('Failed to remove the temporary admin account', {cause: request})
 
@@ -125,7 +133,7 @@ describe('finally hook', () => {
     })
 
     it('stays with DEBUG, and any other cause always stays', async () => {
-      vi.mocked(configManager.isTelemetryDisabled).mockReturnValue(true)
+      vi.mocked(configManager.getTelemetryConsent).mockReturnValue(false)
       const plain = new Error('install failed', {cause: new Error('zip missing')})
       await runHook({error: plain}).done
       expect(plain.cause).toEqual(new Error('zip missing'))

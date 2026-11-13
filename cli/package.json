@@ -91,7 +91,8 @@
     "helpClass": "./dist/help.js",
     "hooks": {
       "finally": "./dist/hooks/finally.js",
-      "init": "./dist/hooks/init.js"
+      "init": "./dist/hooks/init.js",
+      "prerun": "./dist/hooks/prerun.js"
     },
     "plugins": [
       "@oclif/plugin-help",

@@ -480,20 +480,20 @@ describe('ProjectConfigManager', () => {
     })
   })
 
-  describe('isTelemetryDisabled / setTelemetryDisabled', () => {
-    it('is false by default', () => {
-      expect(manager.isTelemetryDisabled()).toBe(false)
+  describe('getTelemetryConsent / setTelemetryDisabled', () => {
+    it('is null until the user answered', () => {
+      expect(manager.getTelemetryConsent()).toBeNull()
     })
 
     it('persists the disabled preference', () => {
       manager.setTelemetryDisabled(true)
-      expect(manager.isTelemetryDisabled()).toBe(true)
+      expect(manager.getTelemetryConsent()).toBe(false)
     })
 
     it('persists re-enabling after being disabled', () => {
       manager.setTelemetryDisabled(true)
       manager.setTelemetryDisabled(false)
-      expect(manager.isTelemetryDisabled()).toBe(false)
+      expect(manager.getTelemetryConsent()).toBe(true)
     })
   })
 

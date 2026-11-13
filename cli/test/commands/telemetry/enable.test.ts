@@ -9,6 +9,14 @@ describe('telemetry enable', () => {
     configManager.setTelemetryDisabled(false)
   })
 
+  it('enables telemetry from the never asked state', async () => {
+    const cmd = new TelemetryEnable([], fakeOclifConfig)
+    silenceLogs(cmd)
+    await cmd.run()
+
+    expect(configManager.getTelemetryConsent()).toBe(true)
+  })
+
   it('enables telemetry and reports it', async () => {
     configManager.setTelemetryDisabled(true)
 
@@ -16,11 +24,12 @@ describe('telemetry enable', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(configManager.isTelemetryDisabled()).toBe(false)
+    expect(configManager.getTelemetryConsent()).toBe(true)
     expect(log).toHaveBeenCalledWith('Error reporting enabled.')
   })
 
   it('is a no-op when already enabled', async () => {
+    configManager.setTelemetryDisabled(false)
     const cmd = new TelemetryEnable([], fakeOclifConfig)
     const {log} = silenceLogs(cmd)
     await cmd.run()

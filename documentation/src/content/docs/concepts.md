@@ -209,14 +209,16 @@ See [CI/CD Integration](/ci/) for complete pipelines.
 
 ## Error reporting
 
-Loopress sends crash reports to Sentry so bugs can be found and fixed. A crash report includes the command name, its flags and arguments as typed, your Node.js version, and OS. WordPress credentials are never included.
+Crash reporting is opt-in: nothing is sent until you say yes. The first time you run a command in an interactive terminal, the CLI asks once (the default is no) and remembers your answer. In a non-interactive shell or in CI it never asks, and sends nothing until you have opted in.
+
+If you say yes, a crash report to Sentry includes the command name, the names of its flags (never their values or the arguments you typed), your Node.js version, and OS, and the error message with site URLs removed. WordPress credentials are never included.
 
 ```bash
-lps telemetry disable   # Persists across all future commands
-lps telemetry enable    # Re-enable
+lps telemetry enable    # Opt in
+lps telemetry disable   # Opt out, persists across all future commands
 ```
 
-Or set `LOOPRESS_TELEMETRY_DISABLED=1` to override the persisted preference for a single run, useful in CI.
+Set `LOOPRESS_TELEMETRY_DISABLED=1` to override a persisted yes for a single run, useful in CI.
 
 ## Troubleshooting
 

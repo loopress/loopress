@@ -77,13 +77,15 @@ export class ProjectConfigManager {
     return project.environments[envName] ?? null
   }
 
+  // null: never asked. true: the user said yes. false: the user said no.
+  getTelemetryConsent(): boolean | null {
+    const telemetry = this.readConfig().telemetry
+    return telemetry ? !telemetry.disabled : null
+  }
+
   getProject(id: string): null | ProjectConfig {
     const config = this.readConfig()
     return config.projects[id] ?? null
-  }
-
-  isTelemetryDisabled(): boolean {
-    return this.readConfig().telemetry?.disabled ?? false
   }
 
   listEnvironments(projectId: string): Array<EnvironmentConfig & {isDefault: boolean}> {

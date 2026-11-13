@@ -7,7 +7,7 @@ export default class TelemetryDisable extends Command {
   static override examples = ['$ lps telemetry disable']
 
   async run(): Promise<void> {
-    if (configManager.isTelemetryDisabled()) {
+    if (configManager.getTelemetryConsent() === false) {
       this.log('Error reporting is already disabled.')
       return
     }

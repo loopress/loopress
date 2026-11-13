@@ -28,11 +28,11 @@ class UsageStatsControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_get_consent_defaults_to_enabled(): void
+    public function test_get_consent_defaults_to_disabled(): void
     {
         Functions\when('get_option')->alias(static fn(string $name, mixed $fallback = false): mixed => $fallback);
 
-        $this->assertSame(['enabled' => true], $this->controller->get_consent()->get_data());
+        $this->assertSame(['enabled' => false], $this->controller->get_consent()->get_data());
     }
 
     public function test_get_consent_reports_an_opt_out(): void
@@ -53,12 +53,12 @@ class UsageStatsControllerTest extends TestCase
         $this->assertSame(200, $response->status);
     }
 
-    public function test_update_consent_fails_when_the_opt_out_did_not_persist(): void
+    public function test_update_consent_fails_when_the_opt_in_did_not_persist(): void
     {
         Functions\when('update_option')->justReturn(false);
         Functions\when('get_option')->alias(static fn(string $name, mixed $fallback = false): mixed => $fallback);
 
-        $response = $this->controller->update_consent(RestRequest::with(['enabled' => false]));
+        $response = $this->controller->update_consent(RestRequest::with(['enabled' => true]));
 
         $this->assertSame(500, $response->status);
     }
