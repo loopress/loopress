@@ -74,7 +74,7 @@ On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder
 - **Content-hashed filenames.** Vite and webpack do this by default (`index-9a597e0d.js`). It is what makes a new deploy bust every cache; the enqueue version is also set to the build id.
 - **Static assets only.** `.php` and other server-executable files are rejected on push: the bundle is served straight off `wp-content/`.
 - **Per-file size limit.** A single file over 8 MB is rejected (raise it with the `loopress_app_max_asset_bytes` filter). A typical search-page bundle is 1 to 3 MB total and well under this.
-- **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed. There is no rollback or version history.
+- **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed. [`lps app rollback`](/apps/cli/#lps-app-rollback) puts back the build before the last push from your machine.
 - **One deploy at a time per app.** Concurrent `lps app push` (or a push racing a `lps app rm`) for the *same* app are not serialized: the asset cleanup and the state write are separate steps. Deploys of different apps are independent. Run one push per app at a time, which is the normal case for a CI pipeline.
 - **Not part of `lps push`.** Apps have their own build step, so the aggregate `lps push` / `lps pull` / `lps promote` commands leave them alone. Deploy with `lps app push`.
 

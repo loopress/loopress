@@ -107,3 +107,42 @@ test("re-pushing only uploads the files whose content changed", async ({projectD
 
 	await runCli(["app", "remove", name, "--yes"]);
 });
+
+test("rollback puts back the build of the previous push: a file it changed, one it removed, without the one it added", async ({
+	projectDir,
+	request,
+	runCli,
+	wp,
+}) => {
+	const name = `e2e-rollback-${Date.now()}`;
+	const dist = join(projectDir, "apps", name, "dist", "assets");
+	scaffoldApp(projectDir, name, "export const v = 1");
+	writeFileSync(join(dist, "chunk-old.js"), "export const old = 1");
+	expect((await runCli(["app", "push", name])).exitCode).toBe(0);
+
+	const manifestOf = async () => {
+		const response = await request.get(`${wp.url}/wp-json/loopress/v1/apps/${name}/manifest`, {
+			headers: {Authorization: authHeader(wp)},
+		});
+		return (await response.json()) as {buildId: string; files: Array<{path: string}>};
+	};
+
+	const before = await manifestOf();
+
+	writeFileSync(join(dist, "index-abc.js"), "export const v = 2");
+	rmSync(join(dist, "chunk-old.js"));
+	writeFileSync(join(dist, "chunk-new.js"), "export const added = 1");
+	expect((await runCli(["app", "push", name])).exitCode).toBe(0);
+	expect((await manifestOf()).buildId).not.toBe(before.buildId);
+
+	const rollback = await runCli(["app", "rollback", "--yes"]);
+	expect(rollback.exitCode, rollback.stderr).toBe(0);
+
+	const after = await manifestOf();
+	expect(after.buildId).toBe(before.buildId);
+	expect(after.files.map((file) => file.path).toSorted()).toEqual(before.files.map((file) => file.path).toSorted());
+	const asset = await request.get(`${wp.url}/wp-content/loopress/apps/${name}/assets/index-abc.js`);
+	expect(await asset.text()).toContain("export const v = 1");
+
+	await runCli(["app", "remove", name, "--yes"]);
+});

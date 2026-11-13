@@ -3,7 +3,7 @@ import {z} from 'zod'
 
 import {buildArgs} from '../lib/build-args.js'
 import {runMutatingTool} from '../lib/mutating-tool.js'
-import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX} from '../lib/resource-tools.js'
+import {confirmTokenFlag, envFlag, PREVIEW_SUFFIX, registerRollbackTool} from '../lib/resource-tools.js'
 import {runLps} from '../lib/run-lps.js'
 import {toCallToolResult, unwrap} from '../lib/tool-result.js'
 
@@ -49,4 +49,6 @@ export function registerAppTools(server: McpServer): void {
     async ({confirmToken, env, name}) =>
       toCallToolResult(await runMutatingTool('app_rm', buildArgs(['app', 'rm', name], {env}), confirmToken)),
   )
+
+  registerRollbackTool(server, {resource: 'app'})
 }
