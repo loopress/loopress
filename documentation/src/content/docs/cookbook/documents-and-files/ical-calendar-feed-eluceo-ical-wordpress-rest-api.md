@@ -1,11 +1,10 @@
 ---
-title: A Subscribable iCal Feed of WordPress Events with eluceo/ical
-description: A Custom API Route that serves a site's events as a live .ics calendar feed, using eluceo/ical, so visitors subscribe once in Google Calendar or Apple Calendar instead of copying dates by hand.
+title: iCal Calendar Feed for WordPress Events with eluceo/ical
+description: Serve your WordPress events as a live .ics calendar feed with eluceo/ical and a Custom API Route, so visitors subscribe once in Google or Apple Calendar.
 kind: route
-draft: true
 ---
 
-A site lists upcoming events, one `event` post each, with a start, an end and a location stored as post meta. Visitors want them in their own calendar. An "Add to calendar" button per event covers one event at a time, and it goes stale the moment an event moves. A calendar feed covers all of them: the visitor subscribes to one URL once, and their calendar app fetches it again on its own schedule, so a rescheduled meetup shows up at its new time without anyone doing anything.
+A site lists its events, one `event` post each, with a start date, an end date and a venue stored as post meta: the `event` post type and the `start_date`, `end_date` and `venue` fields built in [the events catalog recipe](/cookbook/site-as-code/upcoming-events-custom-post-type-wordpress-rest-api/). Visitors want them in their own calendar. An "Add to calendar" button per event covers one event at a time, and it goes stale the moment an event moves. A calendar feed covers all of them: the visitor subscribes to one URL once, and their calendar app fetches it again on its own schedule, so a rescheduled meetup shows up at its new time without anyone doing anything.
 
 ## Why this needs a package
 
@@ -37,24 +36,31 @@ class EventsCalendar
         $events = [];
 
         foreach (get_posts(['post_type' => 'event', 'post_status' => 'publish', 'numberposts' => 100]) as $post) {
-            $start = get_post_meta($post->ID, 'event_start', true);
-            $end   = get_post_meta($post->ID, 'event_end', true);
+            $start = get_post_meta($post->ID, 'start_date', true);
+            $end   = get_post_meta($post->ID, 'end_date', true);
 
             if ($start === '' || $end === '') {
                 continue;
             }
 
+            try {
+                $startDate = new DateTimeImmutable($start, wp_timezone());
+                $endDate   = new DateTimeImmutable($end, wp_timezone());
+            } catch (Exception $e) {
+                continue;
+            }
+
             $event = (new Event(new UniqueIdentifier('event-' . $post->ID . '@' . wp_parse_url(home_url(), PHP_URL_HOST))))
-                ->setSummary(get_the_title($post))
+                ->setSummary(html_entity_decode(get_the_title($post), ENT_QUOTES, 'UTF-8'))
                 ->setUrl(new Uri(get_permalink($post)))
                 ->setOccurrence(new TimeSpan(
-                    new DateTime((new DateTimeImmutable($start, wp_timezone()))->setTimezone($utc), true),
-                    new DateTime((new DateTimeImmutable($end, wp_timezone()))->setTimezone($utc), true),
+                    new DateTime($startDate->setTimezone($utc), true),
+                    new DateTime($endDate->setTimezone($utc), true),
                 ));
 
-            $location = get_post_meta($post->ID, 'event_location', true);
-            if ($location !== '') {
-                $event->setLocation(new Location($location));
+            $venue = get_post_meta($post->ID, 'venue', true);
+            if ($venue !== '') {
+                $event->setLocation(new Location($venue));
             }
 
             $events[] = $event;
@@ -70,16 +76,26 @@ class EventsCalendar
 }
 ```
 
-```bash
-composer require eluceo/ical
-lps composer push
+```json title="composer.json"
+{
+  "require": {
+    "eluceo/ical": "2.14.0"
+  }
+}
 ```
 
-The meta keys (`event_start`, `event_end`, `event_location`) are this example's own. An events plugin or an ACF field group stores the same information under its own keys, only the three `get_post_meta()` calls change.
+```bash
+lps composer push && lps cpt push && lps meta push && lps api push
+```
+
+The pushes after `composer` are the events catalog's own: the [post type](/custom-post-types/) and its [meta](/post-meta/) must exist before the route reads them. `eluceo/ical` is pinned to `2.14.0`: 2.15 needs PHP 8.3 and 2.16 needs PHP 8.4, while 2.14 runs on PHP 8.2 with the same API. If your events live under other meta keys (an events plugin, an ACF field group), only the three `get_post_meta()` calls change.
 
 A few choices worth knowing about:
 
-- **Times are converted to UTC.** The meta values are read in the site's own time zone (`wp_timezone()`, from Settings > General), then written as UTC (`DTSTART:20261015T163000Z`). A `TZID=Europe/Paris` value would also be valid, but only alongside a `VTIMEZONE` block describing that zone's rules, which some calendar apps require and this route would then have to generate. UTC needs no such block, and every calendar app displays it in the viewer's own local time.
+- **The feed holds the 100 most recently published events.** `get_posts()` sorts by publish date, newest first, so once more than 100 newer `event` posts exist, an older upcoming event drops out of the feed without any error. Events with an empty date count toward the 100 before they are skipped. Raise `numberposts` or paginate the query if your site has more.
+- **An event with an unreadable date is skipped.** The meta values are free text, so a value such as `not a date` would make `DateTimeImmutable` throw and break the feed for every subscriber. The route catches that and leaves the event out.
+- **The title is decoded.** `get_the_title()` runs WordPress's typographic filters, so a title written with straight quotes comes back as `&#8220;live&#8221;`. An `.ics` file is plain text, not HTML, so `html_entity_decode()` turns those back into real characters before the package escapes them.
+- **Times are converted to UTC.** The meta values are read in the site's own time zone (`wp_timezone()`, from Settings > General), then written as UTC (`DTSTART:20261215T163000Z`). A `TZID=Europe/Paris` value would also be valid, but only alongside a `VTIMEZONE` block describing that zone's rules, which some calendar apps require and this route would then have to generate. UTC needs no such block, and every calendar app displays it in the viewer's own local time.
 - **The `UID` is derived from the post id and the site's host**, so it never changes for a given event. That's what lets a calendar app recognize a rescheduled event as the same event, moved, instead of a new one next to a stale copy.
 - **The route answers raw bytes, not JSON.** A void verb method that sets its own headers and calls `exit` is how a route [streams a file instead of JSON](/api/routes/#streaming-a-file-instead-of-json). Calendar apps never send an `Accept` header WordPress could use, they expect `text/calendar` straight away.
 
@@ -91,26 +107,26 @@ curl -i https://your-site.com/wp-json/loopress-api/v1/events-calendar
 
 ```text
 HTTP/1.1 200 OK
-Content-Type: text/calendar; charset=utf-8
 Content-Disposition: inline; filename="events.ics"
+Content-Type: text/calendar; charset=utf-8
 
 BEGIN:VCALENDAR
 PRODID:-//eluceo/ical//2.0/EN
 VERSION:2.0
 CALSCALE:GREGORIAN
 BEGIN:VEVENT
-UID:event-487@your-site.com
-DTSTAMP:20260925T212944Z
+UID:event-16@your-site.com
+DTSTAMP:20261113T171015Z
 SUMMARY:Headless Meetup #4
-URL:https://your-site.com/event/headless-meetup-4/
-DTSTART:20261015T163000Z
-DTEND:20261015T190000Z
+URL:https://your-site.com/events/headless-meetup-4/
+DTSTART:20261215T163000Z
+DTEND:20261215T190000Z
 LOCATION:La Cordée\, Lyon
 END:VEVENT
 END:VCALENDAR
 ```
 
-Note the escaped comma in `LOCATION`, one of the details the package handles for you. In Google Calendar, "Other calendars > From URL" takes the same address. On Apple devices, the same URL with `webcal://` instead of `https://` opens the subscription dialog directly, which makes a good link for a "Subscribe" button on the events page.
+Lines end with CRLF, as RFC 5545 requires, and a long title is folded at 75 octets. Note the escaped comma in `LOCATION`, one of the details the package handles for you. In Google Calendar, "Other calendars > From URL" takes the same address. On Apple devices, the same URL with `webcal://` instead of `https://` opens the subscription dialog directly, which makes a good link for a "Subscribe" button on the events page.
 
 ## Permission
 
@@ -122,4 +138,4 @@ Without `eluceo/ical` installed, `Calendar` and `CalendarFactory` are undefined 
 
 ## What this opens up
 
-The same shape serves any schedule that already lives in WordPress: a venue's opening hours as recurring events, a course's session dates, a team's on-call rota kept as a custom post type. It pairs naturally with [ticket QR codes](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/): one route puts the event in the attendee's calendar, the other gets them through the door.
+Rescheduling an event changes its `DTSTART` and `DTEND` and keeps its `UID`, so a subscribed calendar moves the event instead of duplicating it. The same shape serves any schedule that already lives in WordPress: a venue's opening hours as recurring events, a course's session dates, a team's on-call rota kept as a custom post type. It pairs naturally with [ticket QR codes](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/): one route puts the event in the attendee's calendar, the other gets them through the door.
