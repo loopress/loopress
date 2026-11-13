@@ -212,6 +212,10 @@ export default defineConfig({
 									label: "Third-Party Integrations",
 									items: [{ autogenerate: { directory: "cookbook/third-party-integrations" } }],
 								},
+								{
+									label: "Site as Code",
+									items: [{ autogenerate: { directory: "cookbook/site-as-code" } }],
+								},
 							],
 						},
 					],
