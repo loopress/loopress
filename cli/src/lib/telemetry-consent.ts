@@ -11,7 +11,7 @@ function isInteractive(): boolean {
 
 // Asks once, the first time an interactive command runs. Non-interactive shells and CI never
 // ask, and while the answer is unset nothing is sent (see isTelemetryDisabled). Ctrl+C leaves it
-// unset, so the question comes back next time.
+// unset and rethrows, so the question comes back next time.
 export async function askTelemetryConsent(): Promise<void> {
   if (process.env.LOOPRESS_TELEMETRY_DISABLED === '1') return
   if (configManager.getTelemetryConsent() !== null || !isInteractive()) return
@@ -19,7 +19,9 @@ export async function askTelemetryConsent(): Promise<void> {
   try {
     const answer = await confirm({default: false, message: QUESTION})
     configManager.setTelemetryDisabled(!answer)
-  } catch {
-    // Prompt aborted: stay undecided.
+  } catch (error) {
+    // Ctrl+C cancels the command too: stay undecided and let the caller exit.
+    if (error instanceof Error && error.name === 'ExitPromptError') throw error
+    // Any other prompt failure: stay undecided, the command carries on.
   }
 }

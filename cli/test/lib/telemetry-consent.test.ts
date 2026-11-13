@@ -64,9 +64,21 @@ describe('askTelemetryConsent', () => {
     expect(prompts.confirm).not.toHaveBeenCalled()
   })
 
-  it('stays undecided when the prompt is aborted', async () => {
-    prompts.confirm.mockRejectedValue(new Error('aborted'))
+  it('stays undecided when the prompt fails for another reason', async () => {
+    prompts.confirm.mockRejectedValue(new Error('broken tty'))
     await askTelemetryConsent()
+
+    expect(configManager.setTelemetryDisabled).not.toHaveBeenCalled()
+  })
+
+  it('rethrows Ctrl+C and stays undecided', async () => {
+    class ExitPromptError extends Error {
+      override name = 'ExitPromptError'
+    }
+    const abort = new ExitPromptError('User force closed the prompt')
+    prompts.confirm.mockRejectedValue(abort)
+
+    await expect(askTelemetryConsent()).rejects.toBe(abort)
 
     expect(configManager.setTelemetryDisabled).not.toHaveBeenCalled()
   })
