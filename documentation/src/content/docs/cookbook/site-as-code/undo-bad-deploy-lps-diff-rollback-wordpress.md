@@ -60,7 +60,7 @@ Pushed: menus/menu-locations.json
 All nav menus pushed.
 ```
 
-Before writing anything, every real push saves a snapshot of what it is about to replace, in `.loopress/snapshots/` on the machine that ran it. Two things use that snapshot: the outside-edit check in step 3, and the rollback in step 5.
+Before writing anything, a real push records the state it is about to replace. After the writes, it saves that state as a snapshot in `.loopress/snapshots/` on the machine that ran it. If the save fails, the push still succeeds and prints a warning, but no new snapshot is written: check for that warning before you rely on rollback. Two things use that snapshot: the outside-edit check in step 3, and the rollback in step 5.
 
 ## 2. Someone edits the same menu in wp-admin
 
@@ -87,7 +87,7 @@ Menus
 Drift detected.
 ```
 
-A line starting with `-` is on the site and not in your files. The command exits `1` on drift, so the same check can fail a CI job. You do not have to run it first, though: the push itself refuses.
+A line starting with `-` is on the site and not in your files. The command exits `1` when the site and your files differ. You do not have to run it first, though: the push itself refuses.
 
 ```bash
 lps menu push
@@ -204,7 +204,7 @@ Your local files are not changed by a rollback. Fix `menus/main.json` in Git (`g
 - **If the site changed after the push you are undoing**, the rollback shows the difference and stops: pass `--yes` to roll back anyway. Nothing is overwritten by surprise, in either direction.
 - **A rollback creates and updates, it does not delete.** An object created by the push you undo stays, and the command warns about it. Remove it by hand if it should go.
 - **Snapshots live on the machine that pushed**, in a folder Git ignores, and the last 10 are kept. A push run in CI saves its snapshot on the runner and loses it with the job: to undo a CI deploy, revert the commit and let the pipeline push again.
-- **Run `lps diff` in CI** before the deploy job: it exits `1` on drift, so a pipeline can stop when the site no longer matches the repository. For all resources at once, drop `--only menu`, see [`lps diff`](/workflow/#lps-diff).
+- **`lps diff` in CI** exits `1` whenever the site and your files differ, including for the change you are about to deploy, so it cannot be an unconditional gate before the deploy job: it would block every normal deploy. It tells you the two sides differ, not who changed what. Use it on a schedule against the deployed branch to spot outside edits, where there should be no pending change. For all resources at once, drop `--only menu`, see [`lps diff`](/workflow/#lps-diff).
 - **Every resource has its own rollback.** An ACF field group that broke a form is `lps acf rollback`, a bad role is `lps role rollback`. A deploy that pushed three resources is undone with three commands, see [Rollback and Snapshots](/rollback/).
 
 The role from the [client editor recipe](/cookbook/site-as-code/client-editor-role-wordpress/) keeps clients from breaking the deployed code in the first place, this recipe is for the day something breaks anyway.
