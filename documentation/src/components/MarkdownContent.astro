@@ -37,6 +37,14 @@ const cookbookKindCopy = {
 		refHref: "/api/routes/",
 		refLabel: "Writing Route Files",
 	},
+	site: {
+		singular: "Site as Code recipe",
+		noun: "Site as Code recipes",
+		dir: "",
+		cmd: "lps push",
+		refHref: "/workflow/#lps-push",
+		refLabel: "lps push",
+	},
 } as const;
 const cookbookKind = cookbookKindCopy[kind ?? "route"];
 
@@ -47,6 +55,7 @@ const cookbookCategoryLabels: Record<string, string> = {
 	"search-and-data-services": "Search & Data Services",
 	"auth-and-security": "Auth & Security",
 	"third-party-integrations": "Third-Party Integrations",
+	"site-as-code": "Site as Code",
 };
 
 let cookbookGroups: {
@@ -119,7 +128,18 @@ if (isCookbookIndex) {
 	)
 }
 {
-	isCookbookRecipe && (
+	isCookbookRecipe && kind === "site" && (
+		<Aside type="note">
+			This is a {cookbookKind.singular}: several Loopress resources, plain JSON and PHP files in
+			your repository, each in its own directory, deployed in order with{" "}
+			<code>{cookbookKind.cmd}</code>.{" "}
+			New to Loopress? <a href="/getting-started/">Getting Started</a> covers installing the CLI and
+			connecting it to your site.
+		</Aside>
+	)
+}
+{
+	isCookbookRecipe && kind !== "site" && (
 		<Aside type="note">
 			This is a Loopress <a href={cookbookKind.refHref}>{cookbookKind.singular}</a>, a{" "}
 			{kind === "app" ? "pre-built bundle" : "plain PHP file"} in <code>{cookbookKind.dir}</code>{" "}
@@ -155,7 +175,24 @@ if (isCookbookIndex) {
 	)
 }
 {
-	isCookbookRecipe && (
+	isCookbookRecipe && kind === "site" && (
+		<div class="cookbook-cta not-content">
+			<hr />
+			<p>
+				Loopress Full, a free WordPress plugin and CLI, deploys every resource in this recipe from
+				version-controlled files instead of settings clicked through wp-admin.
+			</p>
+			<p>
+				<a href="/getting-started/">Getting Started</a> walks through connecting it to your site in
+				under a minute.{" "}
+				<a href={cookbookKind.refHref}><code>{cookbookKind.refLabel}</code></a> covers pushing every
+				resource of a project in one run.
+			</p>
+		</div>
+	)
+}
+{
+	isCookbookRecipe && kind !== "site" && (
 		<div class="cookbook-cta not-content">
 			<hr />
 			<p>

@@ -20,8 +20,10 @@ export const collections = {
 					// and Loopress Full). `full`: Loopress Full only.
 					edition: z.enum(['light', 'full']).optional(),
 					// Cookbook recipes only: which Loopress mechanism the recipe is built on, drives
-					// the closing CTA that MarkdownContent.astro appends automatically.
-					kind: z.enum(['route', 'snippet', 'app']).optional(),
+					// the closing CTA that MarkdownContent.astro appends automatically. `site`: a recipe
+					// built from several Loopress resources (post types, taxonomies, routes...) rather
+					// than one Composer package.
+					kind: z.enum(['route', 'snippet', 'app', 'site']).optional(),
 					// Cookbook recipes only: the matching video on the Loopress YouTube channel,
 					// embedded above the recipe by MarkdownContent.astro.
 					youtubeId: z.string().optional(),
