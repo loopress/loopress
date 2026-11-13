@@ -276,3 +276,5 @@ curl "https://example.com/wp-json/loopress-api/v1/events/upcoming?type=nope"
 ```
 
 The same events are also readable and writable through the core endpoint, `/wp/v2/event`, with their `meta` and `event-type`: that is how an import script or a test creates them.
+
+To let visitors put these events in their own calendar app, the same `event` posts can be served as a subscribable feed: see [an iCal feed of WordPress events with eluceo/ical](/cookbook/documents-and-files/ical-calendar-feed-eluceo-ical-wordpress-rest-api/).
