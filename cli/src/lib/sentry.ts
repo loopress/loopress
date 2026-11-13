@@ -7,11 +7,12 @@ import {configManager} from '../config/project-config.manager.js'
 // DSNs are write-only and safe to embed in a distributed CLI, see https://docs.sentry.io/product/security/#can-i-make-my-sentry-dsn-private
 export const SENTRY_DSN = 'https://a08dd56bfffc2a45d5b8f665e4cb8b7d@o4511586904309760.ingest.de.sentry.io/4511673275973712'
 
-// The env var takes priority so CI/ephemeral environments can opt out for a single run
-// without touching the persistent preference in the global config.json.
+// Opt-in: nothing is sent until the user has said yes (`lps telemetry enable`, or the one-time
+// question, see telemetry-consent.ts). The env var takes priority so CI/ephemeral environments
+// can opt out for a single run without touching the persistent preference in config.json.
 export function isTelemetryDisabled(): boolean {
   if (process.env.LOOPRESS_TELEMETRY_DISABLED === '1') return true
-  return configManager.isTelemetryDisabled()
+  return configManager.getTelemetryConsent() !== true
 }
 
 export function resolveEnvironment(): string {

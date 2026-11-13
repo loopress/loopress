@@ -31,7 +31,7 @@ export function UsageStatsSettings() {
                 checked={data?.enabled ?? false}
                 disabled={!data || isPending}
                 onChange={(enabled: boolean) => setEnabled(enabled)}
-                help="On by default. Twice a day at most, Loopress sends a random site identifier, the Loopress, WordPress and PHP versions, the site language, its timezone and its environment type (production, staging...). Never your site URL, email, content or plugin list."
+                help="Off until you turn it on. Twice a day at most, Loopress sends a random site identifier, the Loopress, WordPress and PHP versions, the site language, its timezone and its environment type (production, staging...). Never your site URL, email, content or plugin list."
             />
         </div>
     );

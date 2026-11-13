@@ -22,6 +22,8 @@ class UsagePingTest extends TestCase
     {
         parent::setUp();
         Monkey\setUp();
+        // Opted in: the ping is off until an admin answers yes.
+        $this->options[UsageStats::OPTION] = 1;
         Functions\when('get_option')->alias(fn(string $name, mixed $fallback = false): mixed => $this->options[$name] ?? $fallback);
         Functions\when('update_option')->alias(function (string $name, mixed $value): bool {
             $this->options[$name] = $value;
@@ -116,8 +118,18 @@ class UsagePingTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function test_send_is_enabled_by_default(): void
+    public function test_send_is_disabled_by_default(): void
     {
-        $this->assertTrue(UsageStats::isEnabled());
+        unset($this->options[UsageStats::OPTION]);
+        $this->assertFalse(UsageStats::isEnabled());
+    }
+
+    public function test_send_does_nothing_while_the_option_is_unset(): void
+    {
+        unset($this->options[UsageStats::OPTION]);
+        Functions\expect('wp_remote_post')->never();
+
+        (new UsagePing(false))->send();
+        $this->addToAssertionCount(1);
     }
 }

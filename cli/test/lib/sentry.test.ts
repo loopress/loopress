@@ -19,7 +19,13 @@ describe('sentry', () => {
   })
 
   describe('isTelemetryDisabled', () => {
-    it('is false by default', () => {
+    it('is true until the user said yes', () => {
+      configManager.setTelemetryDisabled(true)
+      expect(isTelemetryDisabled()).toBe(true)
+    })
+
+    it('is false once the user said yes', () => {
+      configManager.setTelemetryDisabled(false)
       expect(isTelemetryDisabled()).toBe(false)
     })
 

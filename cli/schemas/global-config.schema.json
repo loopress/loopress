@@ -17,7 +17,7 @@
       "additionalProperties": {"$ref": "#/definitions/ProjectConfig"}
     },
     "telemetry": {
-      "description": "User preferences for error reporting, set via `lps telemetry disable`/`lps telemetry enable`.",
+      "description": "User choice about error reporting, absent until asked (nothing is sent before a yes), set via `lps telemetry disable`/`lps telemetry enable`.",
       "$ref": "#/definitions/TelemetryConfig"
     }
   },
@@ -67,7 +67,7 @@
       "properties": {
         "disabled": {
           "type": "boolean",
-          "description": "Whether error reporting to Sentry is disabled."
+          "description": "true when the user declined error reporting to Sentry, false when they accepted."
         }
       }
     },

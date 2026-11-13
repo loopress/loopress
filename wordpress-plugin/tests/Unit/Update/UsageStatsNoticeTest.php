@@ -49,7 +49,7 @@ class UsageStatsNoticeTest extends TestCase
 
     public function test_render_asks_while_undecided(): void
     {
-        $this->expectOutputRegex('/loopress_usage_stats=1.*Keep it on.*loopress_usage_stats=0.*Turn it off/');
+        $this->expectOutputRegex('/loopress_usage_stats=1.*Turn on.*loopress_usage_stats=0.*No thanks/');
 
         $this->notice->render();
     }

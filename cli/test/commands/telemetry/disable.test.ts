@@ -14,7 +14,7 @@ describe('telemetry disable', () => {
     const {log} = silenceLogs(cmd)
     await cmd.run()
 
-    expect(configManager.isTelemetryDisabled()).toBe(true)
+    expect(configManager.getTelemetryConsent()).toBe(false)
     expect(log).toHaveBeenCalledWith('Error reporting disabled.')
   })
 

@@ -9,7 +9,7 @@ use Loopress\Update\UsageStats;
 use WP_REST_Request;
 use WP_REST_Response;
 
-/** Same shape as SentryConsentController, minus the "never decided" null state. */
+/** Same shape as SentryConsentController, minus the "never decided" null state (absent counts as off). */
 final class UsageStatsController
 {
     use RequiresManageOptionsCapability;
@@ -45,11 +45,11 @@ final class UsageStatsController
     {
         $enabled = (bool) $request->get_param('enabled');
         // Stored as 0/1, not a bool: update_option($name, false) on an option that doesn't exist
-        // yet is a silent no-op (get_option() already returns false for it), so the very first
-        // opt-out would never persist and isEnabled() would keep its "absent = on" default.
+        // yet is a silent no-op (get_option() already returns false for it), so a first answer of "no"
+        // would never persist and the notice would keep asking.
         update_option(UsageStats::OPTION, (int) $enabled);
         // Read back rather than trust update_option()'s return: it is also false for an unchanged
-        // value. A failed opt-out must not show as saved while pings keep going out.
+        // value. A failed save must not show as saved.
         if (UsageStats::isEnabled() !== $enabled) {
             return new WP_REST_Response(['error' => 'Could not save the usage statistics preference.'], 500);
         }

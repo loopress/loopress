@@ -8,7 +8,7 @@ use Loopress\Infrastructure\Narrow;
 use Loopress\Update\UsageStats;
 
 /**
- * Anonymous "this site is active" ping, see obsidian/Product/Analytics.md. Triggered by
+ * Opt-in anonymous "this site is active" ping, see obsidian/Product/Analytics.md. Triggered by
  * GithubReleaseChecker on a cache miss only, so at most twice a day per site, and only in
  * Loopress Full: src/Update/ is stripped from the Light build, which must never phone home.
  *
