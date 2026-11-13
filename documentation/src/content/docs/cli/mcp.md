@@ -76,6 +76,7 @@ When an agent connects, the server tells it what a Loopress project is and links
 | `app_pull` | No | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | List single-page apps currently deployed to WordPress |
 | `app_rm` | Yes | Remove a single-page app from WordPress |
+| `app_rollback` | Yes | Restore app builds to the snapshot saved before an earlier `app_push` |
 | `acf_push` | Yes | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | List ACF objects currently on WordPress |

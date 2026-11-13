@@ -1,7 +1,7 @@
 import {Args, Flags} from '@oclif/core'
 import {existsSync} from 'node:fs'
 import {readdir, readFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {buildApp} from '../../lib/app-build.js'
 import {
@@ -11,9 +11,12 @@ import {
   diffFiles,
   loadAppManifest,
 } from '../../lib/app-manifest.js'
+import {APP_RESOURCE, APP_SNAPSHOT_MAX_BYTES, type AppBundles, appSnapshotPayload, appsState, readBundle} from '../../lib/app-snapshot.js'
+import {type ResourceState} from '../../lib/diff-state.js'
 import {withoutExcluded} from '../../lib/exclude.js'
 import {errorCode, errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {writeSnapshot} from '../../lib/snapshot-store.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -50,6 +53,8 @@ export default class Push extends PushCommand {
   }
 
   private build = true
+  // What this push sent, for `lps app rollback` (see writeAppSnapshot).
+  private pushedBundles: AppBundles = {}
 
   async run(): Promise<PushResult> {
     const {args, flags} = await this.parse(Push)
@@ -64,6 +69,7 @@ export default class Push extends PushCommand {
     this.log(`Found ${pluralize(dirNames.length, 'app')} to push`)
 
     const pushed: PushedApp[] = []
+    const beforeState = this.dryRun ? undefined : await this.readBeforeState()
 
     await this.runPushTasks(
       dirNames,
@@ -73,6 +79,8 @@ export default class Push extends PushCommand {
         if (result) pushed.push(result)
       },
     )
+
+    if (beforeState) await this.writeAppSnapshot(beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'app')} failed to push.`)
@@ -118,6 +126,14 @@ export default class Push extends PushCommand {
     return names
   }
 
+  private async keepBundle(distDir: string, manifest: AppManifest): Promise<void> {
+    try {
+      this.pushedBundles[manifest.name] = {after: await readBundle(distDir, manifest)}
+    } catch (error) {
+      this.warn(`${manifest.name}: could not keep a copy of the bundle for \`lps app rollback\`: ${errorMessage(error)}`)
+    }
+  }
+
   private async pushApp(appDir: string, dirName: string, task?: {output: string}): Promise<PushedApp | undefined> {
     let manifest: AppManifest
     let distDir: string
@@ -161,6 +177,7 @@ export default class Push extends PushCommand {
     }
 
     this.warnIfCrossOriginIgnored(manifest, committed)
+    await this.keepBundle(distDir, manifest)
 
     if (task) {
       task.output =
@@ -170,6 +187,17 @@ export default class Push extends PushCommand {
     }
 
     return {buildId: manifest.buildId, name: manifest.name, uploaded: changed.length}
+  }
+
+  // The apps on the site before this push, the state `lps app rollback` restores. A site that
+  // cannot list them only costs the snapshot, never the push.
+  private async readBeforeState(): Promise<ResourceState | undefined> {
+    try {
+      return await appsState(this.wp)
+    } catch (error) {
+      this.warn(`Could not read the apps on the site, this push saves no rollback snapshot: ${errorMessage(error)}`)
+      return undefined
+    }
   }
 
   private async remoteFiles(name: string): Promise<AppFile[]> {
@@ -198,6 +226,31 @@ export default class Push extends PushCommand {
       this.warn(
         `${manifest.name}: crossOrigin "${manifest.crossOrigin}" was not applied: either the Loopress plugin on this site is too old (update it, then push again) or wp-content/loopress/apps/${manifest.name}/.htaccess is managed by hand and was left untouched.`,
       )
+    }
+  }
+
+  // `lps app rollback`'s restore point. The site cannot give a bundle back (a commit overwrites
+  // same-path files), so the snapshot keeps the bundles this push sent and, when an earlier
+  // snapshot has it, the one the site had before (see appSnapshotPayload).
+  private async writeAppSnapshot(beforeState: ResourceState): Promise<void> {
+    if (Object.keys(this.pushedBundles).length === 0) return
+
+    try {
+      const rootDir = resolve(process.cwd(), this.rootDir)
+      const environment = this.siteConfig.name
+      const {bytes, payload} = await appSnapshotPayload({beforeState, environment, pushed: this.pushedBundles, rootDir})
+      if (!payload) {
+        const mb = (size: number) => `${(size / 1024 / 1024).toFixed(1)} MB`
+        this.warn(
+          `No rollback snapshot saved for this push: its bundles take ${mb(bytes)}, above the ${mb(APP_SNAPSHOT_MAX_BYTES)} a snapshot keeps. ` +
+            'Undo it by checking out the previous build in Git and pushing again.',
+        )
+        return
+      }
+
+      await writeSnapshot({afterState: await appsState(this.wp), beforeState, environment, payload, resource: APP_RESOURCE, rootDir})
+    } catch (error) {
+      this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
     }
   }
 }
