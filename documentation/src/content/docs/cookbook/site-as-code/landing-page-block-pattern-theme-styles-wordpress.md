@@ -14,6 +14,8 @@ This recipe ships the whole page as files, with no page builder and no plugin be
 
 It needs a block theme as the active theme (the examples use Twenty Twenty-Five), the one the Site Editor's **Styles** screen works on.
 
+Configure the target environment with `lps project config` before you run the commands below. The site URL and Application Password are stored on your machine, not in `loopress.json`. See [Concepts](/concepts/).
+
 ## The project
 
 ```
@@ -29,7 +31,7 @@ landing-site/
 
 ## The colors and fonts
 
-Global Styles hold what the brand decides once: a palette and font stacks. The file is named after the active theme (run [`lps theme style pull`](/theme-styles/#lps-theme-style-pull) once to get the right name) and has the same shape as the `settings` and `styles` of a `theme.json`.
+Global Styles hold what the brand decides once: a palette and font stacks. The file is named after the active theme (run [`lps theme style pull`](/theme-styles/#lps-theme-style-pull) once to get the right name) and has the same shape as the `settings` and `styles` of a `theme.json`. The push replaces the theme's `settings` and `styles` for the whole site, not only this page: merge the entries below into the pulled file instead of replacing it, so existing customizations are kept.
 
 ```json title="theme/twentytwentyfive-global-styles.json"
 {
@@ -84,7 +86,7 @@ keywords: hero, landing
 
 <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
 <div class="wp-block-buttons"><!-- wp:button {"backgroundColor":"accent","textColor":"paper"} -->
-<div class="wp-block-button"><a class="wp-block-button__link has-paper-color has-accent-background-color has-text-color has-background wp-element-button" href="#pricing">See the plans</a></div>
+<div class="wp-block-button"><a class="wp-block-button__link has-paper-color has-accent-background-color has-text-color has-background wp-element-button" href="#pricing">See what is included</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons --></div>
 <!-- /wp:group -->
@@ -138,7 +140,7 @@ Pushed: theme/twentytwentyfive-global-styles.json
 All pages pushed.
 ```
 
-The page is at `/landing/`, on the desktop and on a phone:
+The page is at the URL the push reports (`/landing/` with pretty permalinks, a `?page_id=` URL with Plain ones; `lps page list` shows it), on the desktop and on a phone:
 
 ![The landing page at 1440 pixels wide: a navy hero with a serif headline and a red button, then a list.](https://raw.githubusercontent.com/loopress/demo/master/landing-page-block-pattern-theme-styles-wordpress/screenshots/landing-1440.png)
 
