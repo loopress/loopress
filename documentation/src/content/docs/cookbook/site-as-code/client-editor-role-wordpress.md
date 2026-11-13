@@ -6,7 +6,7 @@ kind: site
 
 You hand a site over to a client. They need to publish news, fix a typo on the opening hours page and upload photos. They do not need the Plugins screen, and one wrong click there (deactivating the cache plugin, updating a plugin on a Friday evening) breaks something you deployed from code. WordPress's built-in **Editor** role is close but not enough: it cannot manage plugins, but it also carries powers a client rarely needs (links, private content, raw HTML), and the usual fix when you want something tighter is a role editor plugin whose settings live in the database, invisible to Git and different on every environment.
 
-This recipe declares the role as one file in your repository, no plugin and no Composer package:
+This recipe declares the role as one file in your repository, with the Loopress plugin as the only plugin and no Composer package:
 
 - a `client-editor` [role](/roles/) that writes and publishes posts and pages, uploads media and moderates comments;
 - an explicit `false` for every capability that changes what is deployed: plugins, themes, theme options and settings.
