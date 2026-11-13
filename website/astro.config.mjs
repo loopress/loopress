@@ -58,7 +58,7 @@ export default defineConfig({
     loopressFavicon(),
     devOnlyRoutes(),
     react(),
-    sitemap(),
+    sitemap({ lastmod: new Date() }),
     indexnow({
       key: "3fae972a4f0945b29ae38c454a9f4e81",
       enabled: true,
