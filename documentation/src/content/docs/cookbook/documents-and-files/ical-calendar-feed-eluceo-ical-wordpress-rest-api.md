@@ -43,12 +43,19 @@ class EventsCalendar
                 continue;
             }
 
+            try {
+                $startDate = new DateTimeImmutable($start, wp_timezone());
+                $endDate   = new DateTimeImmutable($end, wp_timezone());
+            } catch (Exception $e) {
+                continue;
+            }
+
             $event = (new Event(new UniqueIdentifier('event-' . $post->ID . '@' . wp_parse_url(home_url(), PHP_URL_HOST))))
                 ->setSummary(html_entity_decode(get_the_title($post), ENT_QUOTES, 'UTF-8'))
                 ->setUrl(new Uri(get_permalink($post)))
                 ->setOccurrence(new TimeSpan(
-                    new DateTime((new DateTimeImmutable($start, wp_timezone()))->setTimezone($utc), true),
-                    new DateTime((new DateTimeImmutable($end, wp_timezone()))->setTimezone($utc), true),
+                    new DateTime($startDate->setTimezone($utc), true),
+                    new DateTime($endDate->setTimezone($utc), true),
                 ));
 
             $venue = get_post_meta($post->ID, 'venue', true);
@@ -85,6 +92,8 @@ The pushes after `composer` are the events catalog's own: the [post type](/custo
 
 A few choices worth knowing about:
 
+- **The feed holds the 100 most recently published events.** `get_posts()` sorts by publish date, newest first, so once more than 100 newer `event` posts exist, an older upcoming event drops out of the feed without any error. Events with an empty date count toward the 100 before they are skipped. Raise `numberposts` or paginate the query if your site has more.
+- **An event with an unreadable date is skipped.** The meta values are free text, so a value such as `not a date` would make `DateTimeImmutable` throw and break the feed for every subscriber. The route catches that and leaves the event out.
 - **The title is decoded.** `get_the_title()` runs WordPress's typographic filters, so a title written with straight quotes comes back as `&#8220;live&#8221;`. An `.ics` file is plain text, not HTML, so `html_entity_decode()` turns those back into real characters before the package escapes them.
 - **Times are converted to UTC.** The meta values are read in the site's own time zone (`wp_timezone()`, from Settings > General), then written as UTC (`DTSTART:20261215T163000Z`). A `TZID=Europe/Paris` value would also be valid, but only alongside a `VTIMEZONE` block describing that zone's rules, which some calendar apps require and this route would then have to generate. UTC needs no such block, and every calendar app displays it in the viewer's own local time.
 - **The `UID` is derived from the post id and the site's host**, so it never changes for a given event. That's what lets a calendar app recognize a rescheduled event as the same event, moved, instead of a new one next to a stale copy.
