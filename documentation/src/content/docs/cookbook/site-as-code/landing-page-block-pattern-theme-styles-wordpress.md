@@ -140,9 +140,9 @@ All pages pushed.
 
 The page is at `/landing/`, on the desktop and on a phone:
 
-![The landing page at 1440 pixels wide: a navy hero with a serif headline and a red button, then a list.](https://raw.githubusercontent.com/loopress/demo/main/landing-page-block-pattern-theme-styles-wordpress/screenshots/landing-1440.png)
+![The landing page at 1440 pixels wide: a navy hero with a serif headline and a red button, then a list.](https://raw.githubusercontent.com/loopress/demo/master/landing-page-block-pattern-theme-styles-wordpress/screenshots/landing-1440.png)
 
-![The same page at 360 pixels wide.](https://raw.githubusercontent.com/loopress/demo/main/landing-page-block-pattern-theme-styles-wordpress/screenshots/landing-360.png)
+![The same page at 360 pixels wide.](https://raw.githubusercontent.com/loopress/demo/master/landing-page-block-pattern-theme-styles-wordpress/screenshots/landing-360.png)
 
 ## Changing one part
 
