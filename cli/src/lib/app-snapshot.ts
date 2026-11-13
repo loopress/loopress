@@ -125,10 +125,9 @@ function filesOf(value: unknown): Array<{path: string; sha256: string}> {
   return parsed.success ? parsed.data.files : []
 }
 
-// Puts back each app's previous build: uploads the files whose hash differs from the site's
-// current build, then commits the previous manifest (the site then removes what that build does
+// Puts back each app's previous build: uploads every file of it, then commits the previous manifest (the site then removes what that build does
 // not have, keeping one generation of grace). An app the snapshot has no copy of is reported.
-export const restoreApps: RollbackRestore = async ({current, ids, log, snapshot, wp}) => {
+export const restoreApps: RollbackRestore = async ({ids, log, snapshot, wp}) => {
   const parsed = APP_BUNDLES.safeParse(snapshot.payload?.bundles)
   const bundles = parsed.success ? parsed.data : {}
   const missing: string[] = []
@@ -143,9 +142,10 @@ export const restoreApps: RollbackRestore = async ({current, ids, log, snapshot,
       continue
     }
 
-    const live = new Map(filesOf(current.get(name)).map((file) => [file.path, file.sha256]))
-    const changed = filesOf(manifest).filter((file) => live.get(file.path) !== file.sha256)
-    for (const file of changed) {
+    // Every file, not only those the committed manifest lists with another hash: a push that
+    // failed before its commit can leave other bytes on disk under a committed path.
+    const files = filesOf(manifest)
+    for (const file of files) {
       const content = bundle.files[file.path]
       if (content === undefined) throw new Error(`${name}: the snapshot has no copy of ${file.path}.`)
       await wp.put(`loopress/v1/apps/${name}/assets`, {content, encoding: 'base64', path: file.path})
@@ -153,7 +153,7 @@ export const restoreApps: RollbackRestore = async ({current, ids, log, snapshot,
 
     const {crossOrigin, ...rest} = manifest
     await wp.post(`loopress/v1/apps/${name}/commit`, {...rest, ...(typeof crossOrigin === 'string' && {crossOrigin}), name})
-    log(`${name}: uploaded ${pluralize(changed.length, 'file')}, committed build ${buildId}`)
+    log(`${name}: uploaded ${pluralize(files.length, 'file')}, committed build ${buildId}`)
   }
 
   if (missing.length > 0) {

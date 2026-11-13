@@ -61,7 +61,7 @@ Every real push also saves a [snapshot](/rollback/) for `lps app rollback`, with
 
 ### `lps app rollback`
 
-Put back the builds the last `lps app push` replaced: the CLI uploads the files of the previous build that differ from the site, then commits it, so a file the push changed or removed comes back and one it added is dropped (kept for one more generation, like every deploy). See [Rollback](/rollback/) for `--list`, `--to` and `--dry-run`.
+Put back the builds the last `lps app push` replaced: the CLI uploads the files of the previous build, then commits it, so a file the push changed or removed comes back and one it added leaves the build (it stays on disk for one more generation, like every replaced file on a deploy). See [Rollback](/rollback/) for `--list`, `--to` and `--dry-run`.
 
 ```bash
 lps app rollback
