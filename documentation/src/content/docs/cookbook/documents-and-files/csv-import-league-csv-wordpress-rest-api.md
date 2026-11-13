@@ -81,8 +81,12 @@ class ImportProducts
 
         try {
             $reader = Reader::fromString($csv);
+            // Disable the legacy backslash escape: RFC 4180 CSV only escapes a quote by doubling it.
+            $reader->setEscape('');
             $reader->setHeaderOffset(0);
             $header = $reader->getHeader();
+            // Counting reads the records, so a duplicate header throws here, not later.
+            $total = count($reader);
         } catch (Throwable) {
             return new WP_Error('invalid_csv', 'The csv could not be parsed.', ['status' => 400]);
         }
@@ -92,20 +96,22 @@ class ImportProducts
         }
 
         // Refuse before creating anything: a file over the cap must not be half imported.
-        if (count($reader) > self::MAX_ROWS) {
+        if ($total > self::MAX_ROWS) {
             return new WP_Error('too_many_rows', 'At most ' . self::MAX_ROWS . ' rows per import.', ['status' => 413]);
         }
 
         $created = [];
         $errors  = [];
 
-        foreach ($reader->getRecords() as $offset => $record) {
+        $row = 0;
+        foreach ($reader->getRecords() as $record) {
+            $row++;
             $sku   = trim((string) ($record['sku'] ?? ''));
             $name  = trim((string) ($record['name'] ?? ''));
             $price = trim((string) ($record['price'] ?? ''));
 
             if ($sku === '' || !is_numeric($price) || (float) $price < 0) {
-                $errors[] = "row {$offset}: missing sku or invalid price";
+                $errors[] = "row {$row}: missing sku or invalid price";
                 continue;
             }
 
@@ -118,19 +124,20 @@ class ImportProducts
                 'posts_per_page' => 1,
             ]);
             if ($existing !== []) {
-                $errors[] = "row {$offset}: sku {$sku} already exists";
+                $errors[] = "row {$row}: sku {$sku} already exists";
                 continue;
             }
 
-            $id = wp_insert_post([
+            // wp_slash(): WordPress unslashes post fields and meta, so a backslash would be lost.
+            $id = wp_insert_post(wp_slash([
                 'post_type'   => 'catalog-product',
                 'post_status' => 'draft',
                 'post_title'  => $name !== '' ? $name : $sku,
                 'meta_input'  => ['_sku' => $sku, '_price' => $price],
-            ], true);
+            ]), true);
 
             if (is_wp_error($id)) {
-                $errors[] = "row {$offset}: {$id->get_error_message()}";
+                $errors[] = "row {$row}: {$id->get_error_message()}";
                 continue;
             }
             $created[] = $id;
@@ -157,7 +164,7 @@ lps cpt push
 lps api push
 ```
 
-The route reports per-row errors instead of failing the whole import on the first bad row, one malformed price in a two-hundred-row file shouldn't cost the other one hundred ninety-nine, and the `errors` array is exactly what tells whoever ran the import which rows to go fix in the source file. Rows are numbered by their position after the header, so `row 3` is the third product in the file. The SKU is the key: importing the same file twice creates nothing the second time.
+The route reports per-row errors instead of failing the whole import on the first bad row, one malformed price in a two-hundred-row file shouldn't cost the other one hundred ninety-nine, and the `errors` array is exactly what tells whoever ran the import which rows to go fix in the source file. Rows are numbered by their position after the header, counting only the records the reader returns (blank lines are skipped), so `row 3` is the third product in the file. The SKU is the key: importing the same file twice creates nothing the second time. The lookup and the insert are not atomic, so two imports of the same new SKU running at the same instant could both create it. Run one import at a time, or enforce SKU uniqueness in storage if several people import concurrently.
 
 This recipe stores a plain `_sku` and `_price` on a simple post type. If your catalog is WooCommerce, create the products with `WC_Product_Simple` instead of `wp_insert_post()`: it sets the regular price, keeps WooCommerce's lookup tables in sync and refuses duplicate SKUs itself.
 
