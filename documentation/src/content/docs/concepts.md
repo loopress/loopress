@@ -107,7 +107,7 @@ When a file's id doesn't exist on the target site (a fresh install, another envi
 
 A `push` creates and updates, it doesn't remove what you don't have locally. The exceptions are explicit: [`lps api push`](/api/cli/#lps-api-push) and [`lps hook push`](/hooks/#lps-hook-push) mirror the repo, they delete server files absent locally (they are listed first, `--no-prune` keeps them, and `--dry-run` shows them), `--prune` on [`lps plugin push`](/plugins/#lps-plugin-push) deactivates untracked plugins, removing an entry from the [plugin lockfile](/plugins/#the-lockfile) or the [theme lockfile](/themes/) uninstalls it (never the active theme), [`lps theme template push`](/pages/#templates-and-parts) mirrors the project into the Loopress child theme (a template, part or CSS file deleted locally is removed from it), and the `remove` commands delete one object on purpose.
 
-Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/). Static pages, templates and apps are not covered yet: see [which resources support it](/rollback/#which-resources-support-it).
+Every real push also saves a snapshot of what it replaced, so you can undo it with [`rollback`](/rollback/): see [which resources support it](/rollback/#which-resources-support-it).
 
 ### Holding a feature back from an environment
 

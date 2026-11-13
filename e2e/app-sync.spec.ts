@@ -107,3 +107,43 @@ test("re-pushing only uploads the files whose content changed", async ({projectD
 
 	await runCli(["app", "remove", name, "--yes"]);
 });
+
+test("rollback restores the build the last push replaced and removes the app it created", async ({projectDir, request, runCli, wp}) => {
+	const name = `e2e-rollback-${Date.now()}`;
+	const created = `${name}-new`;
+	scaffoldApp(projectDir, name, "export const v = 1");
+	expect((await runCli(["app", "push", name])).exitCode).toBe(0);
+
+	// The second build renames the chunk (index-abc.js leaves the manifest), overwrites
+	// index.html, and the same push creates a second app.
+	rmSync(join(projectDir, "apps", name, "dist"), {force: true, recursive: true});
+	mkdirSync(join(projectDir, "apps", name, "dist", "assets"), {recursive: true});
+	writeFileSync(join(projectDir, "apps", name, "dist", "assets", "index-def.js"), "export const v = 2");
+	writeFileSync(
+		join(projectDir, "apps", name, "dist", "index.html"),
+		'<!doctype html><html><head><script type="module" src="/assets/index-def.js"></script></head><body></body></html>\n',
+	);
+	scaffoldApp(projectDir, created, "export const v = 3");
+	const second = await runCli(["app", "push"]);
+	expect(second.exitCode, second.stderr).toBe(0);
+
+	const rollback = await runCli(["app", "rollback", "--yes", "--json"]);
+	expect(rollback.exitCode, rollback.stderr).toBe(0);
+	const result = JSON.parse(rollback.stdout) as {restored: {changed: string[]; removed: string[]}; status: string};
+	expect(result.status).toBe("success");
+	expect(result.restored.changed).toContain(name);
+	expect(result.restored.removed).toContain(created);
+
+	const manifest = await request.get(`${wp.url}/wp-json/loopress/v1/apps/${name}/manifest`, {
+		headers: {Authorization: authHeader(wp)},
+	});
+	const files = ((await manifest.json()) as {files: Array<{path: string}>}).files.map((file) => file.path).sort();
+	expect(files).toEqual(["assets/index-abc.css", "assets/index-abc.js", "index.html"]);
+	const html = await request.get(`${wp.url}/wp-content/loopress/apps/${name}/index.html`);
+	expect(await html.text()).toContain("index-abc.js");
+	const asset = await request.get(`${wp.url}/wp-content/loopress/apps/${name}/assets/index-abc.js`);
+	expect(await asset.text()).toContain("export const v = 1");
+	expect((await runCli(["app", "list"])).stdout).not.toContain(created);
+
+	await runCli(["app", "remove", name, "--yes"]);
+});

@@ -57,6 +57,8 @@ lps app push [name]
 
 Pushing never deletes anything on WordPress. A build that fails to upload or commit leaves the previous build serving.
 
+A real push also saves a [rollback snapshot](/rollback/) with a copy of the files, see `lps app rollback` below.
+
 ### `lps app pull`
 
 Download every committed app into `apps/<name>/dist/`, writing a `loopress.app.json` alongside. When the app already has a `loopress.app.json`, its files go into its `assetsDir` and its local-only settings (`assetsDir`, `entry`) are kept: only `name`, `mountSelector`, `routing` and `crossOrigin` are refreshed from the site.
@@ -114,6 +116,16 @@ lps app rm <name>
 | `--dry-run` / `-d` | Report what would be deleted without touching the site |
 | `--yes` / `-y` | Skip the confirmation prompt (and the extra one shown for a `production` environment) |
 | `--json` | Print the result as JSON (`{ name, deleted, status }`) |
+
+### `lps app rollback`
+
+Restore the apps to the snapshot saved before an earlier `lps app push`: each app goes back to the build it had, from the copy of its files the snapshot keeps, and an app the push created is removed. It takes the same flags as every [rollback](/rollback/#flags) (`--list`, `--to`, `--dry-run`, `--yes`, `--env`).
+
+```bash
+lps app rollback
+```
+
+An app whose bundle (with the build it replaces) is over 20 MB gets no copy of its files in the snapshot: the push warns, and a rollback that needs them refuses before changing anything.
 
 ## File format
 

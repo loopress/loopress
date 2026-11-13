@@ -87,6 +87,7 @@ On connect it sends the agent `instructions` (`src/instructions.ts`): what a Loo
 | `app_pull` | No | `env?`, `path?` | Pull single-page app bundles from WordPress into local files |
 | `app_list` | No | `env?` | List single-page apps currently deployed to WordPress |
 | `app_rm` | Yes | `env?`, `name`, `confirmToken?` | Remove a single-page app from WordPress |
+| `app_rollback` | Yes | `env?`, `list?`, `to?`, `confirmToken?` | Restore the apps to the snapshot saved automatically before an earlier `app_push`, removing an app that push created (`list` shows what's available) |
 | `acf_push` | Yes | `env?`, `path?`, `type?`, `overwrite?`, `confirmToken?` | Push local ACF field groups, post types, taxonomies and options pages to WordPress |
 | `acf_pull` | No | `env?`, `path?`, `type?` | Pull ACF objects from WordPress into local files |
 | `acf_list` | No | `env?`, `type?` | List ACF objects currently on WordPress |

@@ -1,7 +1,8 @@
 import {Args, Flags} from '@oclif/core'
+import {Buffer} from 'node:buffer'
 import {existsSync} from 'node:fs'
 import {readdir, readFile} from 'node:fs/promises'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {buildApp} from '../../lib/app-build.js'
 import {
@@ -11,9 +12,12 @@ import {
   diffFiles,
   loadAppManifest,
 } from '../../lib/app-manifest.js'
+import {APP_RESOURCE, APP_SNAPSHOT_MAX_BYTES, appProvider, manifestFiles, sha256, snapshotBlobs} from '../../lib/app-snapshot.js'
+import {type ResourceState} from '../../lib/diff-state.js'
 import {withoutExcluded} from '../../lib/exclude.js'
 import {errorCode, errorMessage} from '../../lib/narrow.js'
 import {PushCommand} from '../../lib/push-command.js'
+import {readSnapshot} from '../../lib/snapshot-store.js'
 import {isNotFoundError} from '../../lib/wp-client.js'
 import {pluralize} from '../../utils/pluralize.js'
 
@@ -49,7 +53,12 @@ export default class Push extends PushCommand {
     ...PushCommand.yesFlag,
   }
 
+  // The site's apps before this push, and the file content its rollback snapshot keeps (see
+  // keepForSnapshot). Unset on a dry run, or when the site could not be read.
+  private beforeState: ResourceState | undefined
+  private readonly blobs: Record<string, string> = {}
   private build = true
+  private previousBlobs: Record<string, string> = {}
 
   async run(): Promise<PushResult> {
     const {args, flags} = await this.parse(Push)
@@ -64,6 +73,7 @@ export default class Push extends PushCommand {
     this.log(`Found ${pluralize(dirNames.length, 'app')} to push`)
 
     const pushed: PushedApp[] = []
+    await this.prepareSnapshot()
 
     await this.runPushTasks(
       dirNames,
@@ -73,6 +83,9 @@ export default class Push extends PushCommand {
         if (result) pushed.push(result)
       },
     )
+
+    // Before the failure check: a push that failed halfway can be rolled back too.
+    await this.writeAfterPushSnapshot(appProvider, '', this.beforeState, {blobs: this.blobs})
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'app')} failed to push.`)
@@ -118,6 +131,52 @@ export default class Push extends PushCommand {
     return names
   }
 
+  // The files a rollback needs: the bundle this push sends, and the files of the build it replaces
+  // that it does not send again, from the previous snapshot or read from the site before the
+  // upload overwrites them. Over the size cap, the app's files are left out, the push goes on.
+  private async keepForSnapshot(manifest: AppManifest, distDir: string): Promise<void> {
+    if (!this.beforeState) return
+    const sent = new Set(manifest.files.map((file) => file.sha256))
+    const replaced = manifestFiles(this.beforeState.get(manifest.name)).filter((file) => !sent.has(file.sha256))
+    const bytes = [...manifest.files, ...replaced].reduce((sum, file) => sum + file.size, 0)
+    if (bytes > APP_SNAPSHOT_MAX_BYTES) {
+      this.warn(
+        `${manifest.name}: the rollback snapshot keeps no copy of this bundle, ${megabytes(bytes)} is above the ${megabytes(APP_SNAPSHOT_MAX_BYTES)} cap. ` +
+          '`lps app rollback` cannot restore this app to before this push: check out the previous build in Git and push it instead.',
+      )
+      return
+    }
+
+    const blobs: Record<string, string> = {}
+    for (const file of manifest.files) {
+      blobs[file.sha256] = (await readFile(join(distDir, file.path))).toString('base64')
+    }
+
+    for (const file of replaced) {
+      try {
+        blobs[file.sha256] = this.previousBlobs[file.sha256] ?? (await this.siteAsset(manifest.name, file))
+      } catch (error) {
+        this.warn(`${manifest.name}: the rollback snapshot keeps no copy of the build this push replaces: ${errorMessage(error)}`)
+        break
+      }
+    }
+
+    Object.assign(this.blobs, blobs)
+  }
+
+  // The site's apps before the push, and the files the previous snapshot kept, which spare
+  // reading them back from the site.
+  private async prepareSnapshot(): Promise<void> {
+    this.beforeState = await this.readStateForSnapshot(appProvider)
+    if (!this.beforeState) return
+    try {
+      const previous = await readSnapshot(resolve(process.cwd(), this.rootDir), APP_RESOURCE, this.siteConfig.name)
+      this.previousBlobs = snapshotBlobs(previous)
+    } catch {
+      // No earlier snapshot from this machine.
+    }
+  }
+
   private async pushApp(appDir: string, dirName: string, task?: {output: string}): Promise<PushedApp | undefined> {
     let manifest: AppManifest
     let distDir: string
@@ -147,6 +206,8 @@ export default class Push extends PushCommand {
 
       return undefined
     }
+
+    await this.keepForSnapshot(manifest, distDir)
 
     for (const [index, file] of changed.entries()) {
       if (task) task.output = `${manifest.name}: uploading ${file.path} (${index + 1}/${changed.length})`
@@ -182,6 +243,12 @@ export default class Push extends PushCommand {
     }
   }
 
+  private async siteAsset(name: string, file: AppFile): Promise<string> {
+    const {content} = await this.wp.get<{content: string}>(`loopress/v1/apps/${name}/asset?path=${encodeURIComponent(file.path)}`)
+    if (sha256(Buffer.from(content, 'base64')) !== file.sha256) throw new Error(`${file.path} on the site does not match its manifest`)
+    return content
+  }
+
   private async uploadAsset(name: string, distDir: string, file: AppFile): Promise<void> {
     const content = (await readFile(join(distDir, file.path))).toString('base64')
     try {
@@ -200,4 +267,8 @@ export default class Push extends PushCommand {
       )
     }
   }
+}
+
+function megabytes(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }

@@ -74,9 +74,23 @@ On the next `lps app push`, the plugin writes an `.htaccess` in the app's folder
 - **Content-hashed filenames.** Vite and webpack do this by default (`index-9a597e0d.js`). It is what makes a new deploy bust every cache; the enqueue version is also set to the build id.
 - **Static assets only.** `.php` and other server-executable files are rejected on push: the bundle is served straight off `wp-content/`.
 - **Per-file size limit.** A single file over 8 MB is rejected (raise it with the `loopress_app_max_asset_bytes` filter). A typical search-page bundle is 1 to 3 MB total and well under this.
-- **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed. There is no rollback or version history.
+- **One generation of grace.** On deploy, files from the immediately previous build are kept so a visitor mid-session does not 404 on a lazy chunk. Older builds are removed: to go back further, see [rollback](#rollback).
 - **One deploy at a time per app.** Concurrent `lps app push` (or a push racing a `lps app rm`) for the *same* app are not serialized: the asset cleanup and the state write are separate steps. Deploys of different apps are independent. Run one push per app at a time, which is the normal case for a CI pipeline.
 - **Not part of `lps push`.** Apps have their own build step, so the aggregate `lps push` / `lps pull` / `lps promote` commands leave them alone. Deploy with `lps app push`.
+
+## Rollback
+
+Every real `lps app push` saves a [snapshot](/rollback/) on your machine, and `lps app rollback` puts the apps back as they were before that push:
+
+```bash
+lps app rollback            # undo the most recent app push
+lps app rollback --dry-run  # show which apps it would restore or remove
+lps app rollback --list     # list the available snapshots
+```
+
+- **Each app goes back to its earlier build.** The site keeps no older build to restore from, so the snapshot holds a copy of the files: the bundle that push sent and the files of the build it replaced (read from the site before the upload overwrites them). The rollback uploads the files that differ, then commits the earlier build.
+- **An app the push created is removed**, the same as `lps app rm`.
+- **Size cap.** An app whose bundle, with the build it replaces, is over 20 MB gets no copy in the snapshot: the push warns and still succeeds, and a rollback that needs those files refuses before changing anything. Check out the previous build in Git and push it instead.
 
 ## Talking to WordPress from the app
 

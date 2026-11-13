@@ -317,7 +317,13 @@ export abstract class PushCommand extends LoopressCommand {
   // active stylesheet, an API/hook push that leaves server-side files alone only with `--no-prune`.
   // `lps <resource> rollback`'s drift check compares the environment's state at rollback time
   // against exactly this after-state, so it has to be what actually landed, not what was sent.
-  protected async writeAfterPushSnapshot(provider: ResourceStateProvider, dir: string, beforeState: ResourceState | undefined): Promise<void> {
+  // `payload`: what the push sent that the site can't give back (an app's files).
+  protected async writeAfterPushSnapshot(
+    provider: ResourceStateProvider,
+    dir: string,
+    beforeState: ResourceState | undefined,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
     if (!beforeState || this.dryRun) return
 
     try {
@@ -332,6 +338,7 @@ export abstract class PushCommand extends LoopressCommand {
         afterState,
         beforeState,
         environment: this.siteConfig.name,
+        ...(payload && {payload}),
         resource: provider.resource,
         rootDir: resolve(process.cwd(), this.rootDir),
       })
