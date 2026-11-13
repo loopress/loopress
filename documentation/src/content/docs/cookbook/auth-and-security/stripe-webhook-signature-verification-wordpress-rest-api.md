@@ -52,8 +52,16 @@ class StripeWebhook
             return ['ok' => false];
         }
 
-        if ($this->event->type === 'checkout.session.completed') {
-            $orderId = (int) ($this->event->data->object->metadata->order_id ?? 0);
+        $type = $this->event->type;
+        $session = $this->event->data->object;
+
+        // A delayed payment method completes the session before the money arrives:
+        // only mark the order paid once Stripe says so.
+        $paid = ($type === 'checkout.session.completed' && ($session->payment_status ?? '') === 'paid')
+            || $type === 'checkout.session.async_payment_succeeded';
+
+        if ($paid) {
+            $orderId = (int) ($session->metadata->order_id ?? 0);
 
             if ($orderId > 0 && get_post($orderId) !== null) {
                 update_post_meta($orderId, '_payment_status', 'paid');
@@ -73,7 +81,7 @@ lps composer push
 lps api push
 ```
 
-The signing secret is a site secret, never committed. Either define `STRIPE_WEBHOOK_SECRET` in `wp-config.php`, or store it in an option:
+The signing secret is a site secret, never committed. Either define `STRIPE_WEBHOOK_SECRET` in `wp-config.php`, or store it in an option. When the constant is defined it wins and the option is ignored:
 
 ```bash
 wp option update stripe_webhook_secret whsec_...
@@ -84,14 +92,14 @@ Some details are worth knowing:
 - `Webhook::constructEvent()` does the signature check and the JSON decode in one call and returns a typed `Event`. It reads the raw body from `$request->get_body()`: verifying a body that was decoded and re-encoded would never match.
 - Storing the event on `$this->event` in `permission()` and reading it in `post()` works because both run on the same object within one request.
 - The empty-secret check is not decoration. An HMAC with an empty key is perfectly computable, so without it a site that forgot to set the secret would accept payloads that anyone signed with an empty key.
-- `post()` only writes when the order exists, so a test event (which carries no `order_id`) changes nothing.
+- `post()` marks an order paid only when the session's `payment_status` is `paid`, or on `checkout.session.async_payment_succeeded` for delayed payment methods. Subscribe the endpoint to both events. It also only writes when the order exists, so a test event (which carries no `order_id`) changes nothing.
 
 ## Now call it
 
-Stripe's webhook sender is the only caller that can produce a signature the route accepts with your real secret, but you can sign a payload yourself with the same scheme and a test secret. With the option set to `whsec_test_secret`:
+Stripe's webhook sender is the only caller that can produce a signature the route accepts with your real secret, but you can sign a payload yourself with the same scheme and a test secret. A secret everyone can read lets anyone forge a paid order, so do this on a local or otherwise isolated site, never on a public production site, and restore the real secret right after. Create a test order first and use its ID in place of `5`. With the active secret (the `STRIPE_WEBHOOK_SECRET` constant if you defined it, the `stripe_webhook_secret` option otherwise) set to `whsec_test_secret`:
 
 ```bash
-BODY='{"id":"evt_1","object":"event","type":"checkout.session.completed","data":{"object":{"metadata":{"order_id":"5"}}}}'
+BODY='{"id":"evt_1","object":"event","type":"checkout.session.completed","data":{"object":{"payment_status":"paid","metadata":{"order_id":"5"}}}}'
 TS=$(date +%s)
 SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac whsec_test_secret | sed 's/.* //')
 
@@ -105,7 +113,7 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/stripe-webhook \
 {"ok":true,"type":"checkout.session.completed"}
 ```
 
-Order 5 now has `_payment_status` set to `paid`. Each of these is refused with the standard `rest_forbidden` answer, and never reaches `post()`:
+Check the order's metadata (`wp post meta get 5 _payment_status`): it is now `paid`. Each of these is refused with the standard `rest_forbidden` answer, and never reaches `post()`:
 
 - a signature computed with another secret,
 - the same signature with one character of the body changed,
@@ -121,7 +129,8 @@ To test with a real Stripe account instead, the [Stripe CLI](https://docs.stripe
 
 ```bash
 stripe listen --forward-to https://your-site.com/wp-json/loopress-api/v1/stripe-webhook
-# prints a whsec_... signing secret: store it as stripe_webhook_secret
+# prints a whsec_... signing secret: store it in the active source,
+# the STRIPE_WEBHOOK_SECRET constant if defined, else the stripe_webhook_secret option
 stripe trigger checkout.session.completed
 ```
 
