@@ -20,14 +20,16 @@ declare(strict_types=1);
 
 use Dompdf\Dompdf;
 
-class PostPdf
+final class PostPdf_PostId
 {
     public function get(WP_REST_Request $request): void
     {
         $postId = (int) $request->get_param('post_id');
         $post   = get_post($postId);
 
-        if ($post === null || $post->post_status !== 'publish') {
+        // Same answer for every post a visitor could not read on the site itself: missing,
+        // draft, private, password-protected, or a post type with no public page.
+        if ($postId < 1 || $post === null || ! is_post_publicly_viewable($post) || post_password_required($post)) {
             wp_die(esc_html('No published post with that id.'), '', ['response' => 404]);
         }
 
@@ -87,7 +89,7 @@ That writes an actual `my-post.pdf` to disk, `-o` instead of letting curl dump r
 
 ## Permission
 
-A published post is exactly as public as the post itself already is through the theme, so this route stays open. The `post_status !== 'publish'` check does double duty, it's the not-found guard, and it's what keeps a draft or a private post from being exportable through this route just because someone guesses its ID.
+A post a visitor can read on the site is as public as the PDF of it, so this route stays open. The guard in `get()` does double duty, it's the not-found guard, and it's what keeps a post the caller could not read from being exportable just because someone guesses its ID. A status check alone is not enough: a password-protected post has the `publish` status, and its body would end up in the PDF for anyone. `is_post_publicly_viewable()` refuses drafts, private posts and post types with no public page, `post_password_required()` refuses a protected post, and all of them, plus an unknown or non-numeric ID, answer the same 404.
 
 ## If dompdf isn't installed
 
