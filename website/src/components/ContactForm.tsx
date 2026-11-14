@@ -40,7 +40,7 @@ export default function ContactForm({
   async function onSubmit(values: ContactFormValues) {
     setStatus("idle");
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch("/api/contact/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

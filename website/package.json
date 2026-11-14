@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "check:canonical": "node scripts/check-canonical.mjs",
     "preview": "astro preview",
     "lint": "eslint .",
     "format": "prettier --write ."
