@@ -77,10 +77,11 @@ The hook reads its credentials from two options, `algolia_app_id` and `algolia_w
 
 ```bash
 wp option update algolia_app_id YOUR_APP_ID
-wp option update algolia_write_key YOUR_WRITE_KEY
+read -rs ALGOLIA_WRITE_KEY
+printf '%s' "$ALGOLIA_WRITE_KEY" | wp option update algolia_write_key
 ```
 
-Save a published product in wp-admin (new or edited) and the hook sends its record to the `products` index during that same save, no cron, no manual re-sync. `saveObject()` returns once Algolia has accepted the record, Algolia indexes it asynchronously right after. A draft or private product is skipped by the `publish` check. A deleted or unpublished product isn't cleaned up here, that's `woocommerce_trash_product` calling `$client->deleteObject('products', (string) $productId)`, the same shape, left out to keep this one focused on the indexing half.
+Save a published product in wp-admin (new or edited) and the hook sends its record to the `products` index during that same save, no cron, no manual re-sync. `saveObject()` returns once Algolia has accepted the record, Algolia indexes it asynchronously right after. A draft or private product is skipped by the `publish` check. A deleted product isn't cleaned up here, that's `woocommerce_trash_product` calling `$client->deleteObject('products', (string) $productId)`, the same shape, left out to keep this one focused on the indexing half. An unpublished product isn't cleaned up here either: moving a product to draft or private doesn't fire `woocommerce_trash_product`, so its previously indexed record remains.
 
 ## Query it back from a React app
 
@@ -244,6 +245,8 @@ Algolia issues more than one API key, and each of these two files needs a differ
 ## A missing package, or an unreachable Algolia
 
 A hook has a simpler failure story than a route: no separate autoload-isolation layer to reason about, just [whether the method throws](/hooks/#action-and-filter). If `algolia/algoliasearch-client-php` isn't installed, `SearchClient::create()` throws (an undefined class), same as if the package were there but Algolia was unreachable or the key was wrong and `saveObject()` threw its own exception, either way it's already caught and logged for you (in the PHP error log, as `Loopress hooks/: hooks/algolia-index.php: onCreate() threw during a action callback: ...`), the `#[Action]` simply doesn't run, a product save never fatals over it. The same happens if the two options above aren't set yet: the client throws ``appId` is missing` and the product still saves. On the app's side, a bad Search key or an unreachable Algolia surfaces as `client.searchSingleIndex()` rejecting, worth wrapping in the usual React error boundary or a fallback empty state rather than an unhandled promise rejection.
+
+A product whose index update failed is not retried. After the credentials are fixed or Algolia is reachable again, re-save each affected published product in wp-admin to index it.
 
 ## What this opens up
 
