@@ -41,7 +41,7 @@ lps cpt push
 lps meta push
 ```
 
-Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key gives it a type WordPress enforces, nothing more: the value stays content. The key starts with an underscore, so WordPress treats it as protected meta and refuses to write it over REST, which is what you want for an access rule: set it from PHP with `update_post_meta()`, or by hand with `wp post meta update <ticket_id> _customer_id <user_id>`.
+Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key documents an integer type, but WordPress does not check that type on `update_post_meta()` or `wp post meta update`, so validate the buyer id as an integer before writing it. The value stays content. The key starts with an underscore, so WordPress treats it as protected meta and refuses to write it over REST, which is what you want for an access rule: set it from PHP with `update_post_meta()`, or by hand with `wp post meta update <ticket_id> _customer_id <user_id>`.
 
 ## Why this needs a package
 
@@ -119,7 +119,7 @@ public function permission(WP_REST_Request $request): bool
 
     $ticketId = (int) $request->get_param('ticket_id');
     return is_user_logged_in()
-        && (int) get_post_meta($ticketId, '_customer_id', true) === get_current_user_id();
+        && (string) get_post_meta($ticketId, '_customer_id', true) === (string) get_current_user_id();
 }
 ```
 
