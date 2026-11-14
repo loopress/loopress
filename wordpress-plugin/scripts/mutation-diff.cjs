@@ -30,7 +30,7 @@ console.log(`Mutating ${files.length} changed file(s) since ${base}:\n  ${files.
 
 const result = spawnSync(
   'vendor/bin/infection',
-  ['--threads=4', '--show-mutations', `--filter=${files.join(',')}`],
+  ['--threads=4', '--show-mutations', `--filter=${files.join(',')}`], // NOSONAR: dev script, local vendor binary
   { stdio: 'inherit' },
-) // NOSONAR: dev script, local vendor binary, files come from git
+)
 process.exit(result.status ?? 1)
