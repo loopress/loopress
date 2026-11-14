@@ -1,0 +1,84 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/getting-started/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/acf",
+      "destination": "/acf/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/seo",
+      "destination": "/options/",
+      "permanent": true
+    },
+    {
+      "source": "/seo",
+      "destination": "/options/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/forms",
+      "destination": "/forms/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/plugins",
+      "destination": "/plugins/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/snippets",
+      "destination": "/snippets/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/composer",
+      "destination": "/composer/cli/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/api",
+      "destination": "/api/cli/",
+      "permanent": true
+    },
+    {
+      "source": "/cli/getting-started",
+      "destination": "/getting-started/",
+      "permanent": true
+    },
+    {
+      "source": "/wordpress-plugin/dependencies",
+      "destination": "/composer/admin-ui/",
+      "permanent": true
+    },
+    {
+      "source": "/wordpress-plugin/audit",
+      "destination": "/composer/audit/",
+      "permanent": true
+    },
+    {
+      "source": "/wordpress-plugin/diagnostics",
+      "destination": "/composer/diagnostics/",
+      "permanent": true
+    },
+    {
+      "source": "/wordpress-plugin/code-snippets",
+      "destination": "/composer/using-in-snippets/",
+      "permanent": true
+    },
+    {
+      "source": "/wordpress-plugin/api",
+      "destination": "/api/admin-ui/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/composer-packages-inside-custom-api-routes",
+      "destination": "/blog/composer-packages-wordpress-rest-api-route/",
+      "permanent": true
+    }
+  ]
+}

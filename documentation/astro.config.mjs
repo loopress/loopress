@@ -34,30 +34,6 @@ function loopressFavicon() {
 // https://astro.build/config
 export default defineConfig({
 	site: "https://docs.loopress.dev",
-	redirects: {
-		"/": "/getting-started",
-		// Functional re-cut of the docs: technical CLI/WordPress Plugin split replaced by
-		// one page/section per feature. Old URLs kept alive for bookmarks and backlinks.
-		"/cli/acf": "/acf",
-		"/cli/seo": "/options",
-		// The SEO module was removed: its only configuration part is one option row.
-		"/seo": "/options",
-		"/cli/forms": "/forms",
-		"/cli/plugins": "/plugins",
-		"/cli/snippets": "/snippets",
-		"/cli/composer": "/composer/cli",
-		"/cli/api": "/api/cli",
-		"/wordpress-plugin/dependencies": "/composer/admin-ui",
-		"/wordpress-plugin/audit": "/composer/audit",
-		"/wordpress-plugin/diagnostics": "/composer/diagnostics",
-		"/wordpress-plugin/code-snippets": "/composer/using-in-snippets",
-		"/wordpress-plugin/api": "/api/admin-ui",
-		// Blog post retitled for SEO (WordPress REST API terminology over Loopress jargon).
-		"/blog/composer-packages-inside-custom-api-routes": "/blog/composer-packages-wordpress-rest-api-route",
-		// The CLI setup guide was split: installation into Getting Started, shared rules into Concepts.
-		// Old links mostly come from readers looking to install, Getting Started links on to Concepts.
-		"/cli/getting-started": "/getting-started",
-	},
 	integrations: [
 		loopressFavicon(),
 		starlight({
@@ -237,7 +213,11 @@ export default defineConfig({
 				},
 			],
 		}),
-		sitemap({ lastmod: new Date() }),
+		sitemap({
+			lastmod: new Date(),
+			// Thin listing pages: blog tags, authors and pagination (also noindex in Head.astro).
+			filter: (page) => !/\/blog\/((tags|authors)\/|\d+\/?$)/.test(page),
+		}),
 		indexnow({
 			key: "e542ad40487f4c508ef8ce9fb107f5e4",
 			enabled: true,
