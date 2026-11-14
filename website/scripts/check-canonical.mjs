@@ -23,9 +23,20 @@ function findTag(html, name, test) {
   return undefined;
 }
 
+// Repeat until stable so removing a comment cannot assemble a new one, then drop any unterminated opener.
+function stripComments(input) {
+  let html = input;
+  let previous;
+  do {
+    previous = html;
+    html = html.replace(/<!--[\s\S]*?-->/g, "");
+  } while (html !== previous);
+  return html.replaceAll("<!--", "");
+}
+
 const errors = [];
 for (const file of pages) {
-  const html = readFileSync(join(root, file), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const html = stripComments(readFileSync(join(root, file), "utf8"));
   const canonical = findTag(html, "link", (a) => a.rel === "canonical")?.href;
   const ogUrl = findTag(html, "meta", (a) => a.property === "og:url")?.content;
   const route = "/" + relative(".", file).replace(/index\.html$/, "");
