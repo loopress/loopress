@@ -63,6 +63,7 @@
         "cs:fix": "phpcbf",
         "rector:check": "rector process --dry-run",
         "mutation": "infection --threads=4",
+        "mutation:diff": "node scripts/mutation-diff.cjs",
         "deptrac": "deptrac analyse -c depfile.yaml --no-interaction",
         "check": [
             "@test",
