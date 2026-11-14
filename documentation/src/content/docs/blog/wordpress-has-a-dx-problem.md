@@ -72,4 +72,9 @@ WordPress stays WordPress. Your clients can still use it the way they love. You 
 
 ## What's next
 
-The rest of this blog will cover specific workflows in detail: version-controlling Code Snippets with Git, installing Composer packages without SSH, syncing menus and styles between environments, and managing multiple client sites as code. Those posts are coming soon; this one lays the groundwork for why they matter.
+Specific workflows are covered in other posts:
+
+- [Version Control Your WordPress Code Snippets](/blog/version-control-wordpress-code-snippets/)
+- [Installing Composer Packages in WordPress Without SSH](/blog/wordpress-composer-without-ssh/)
+- [Your WordPress Hooks Belong in Git, Not functions.php](/blog/wordpress-hooks-in-git/)
+- [Ship a Custom WordPress Endpoint Without Writing a Plugin](/blog/custom-wordpress-endpoint-without-writing-a-plugin/)
