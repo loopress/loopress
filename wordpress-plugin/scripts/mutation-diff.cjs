@@ -3,20 +3,23 @@
 // (here `loopress/`, the plugin is a subdirectory) and crashes on them, `--filter` takes paths
 // relative to the plugin directory, which `git diff --relative` prints.
 // Usage: composer run mutation:diff [-- <base-ref>]
-const { execFileSync, spawnSync } = require('child_process')
+const { execFileSync, spawnSync } = require('node:child_process')
 
 const base = process.argv[2] || 'origin/main'
-if (!/^[\w][\w./~^-]*$/.test(base)) {
+if (!/^\w[\w./~^-]*$/.test(base)) {
   console.error(`Invalid base ref: ${base}`)
   process.exit(1)
 }
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim()
 
-const mergeBase = git('merge-base', base, 'HEAD')
-const files = git('diff', '--relative', '--name-only', '--diff-filter=d', mergeBase, '--', 'src')
-  .split('\n')
-  .filter((file) => file.endsWith('.php'))
+const mergeBase = git('merge-base', '--end-of-options', base, 'HEAD')
+const tracked = git('diff', '--relative', '--name-only', '--diff-filter=d', mergeBase, '--', 'src')
+// A new file nobody has staged yet is not in `git diff`.
+const untracked = git('ls-files', '--others', '--exclude-standard', '--', 'src')
+const files = [...new Set(`${tracked}\n${untracked}`.split('\n'))].filter((file) =>
+  file.endsWith('.php'),
+)
 
 if (files.length === 0) {
   console.log('No changed PHP file under src/, nothing to mutate.')
