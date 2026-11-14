@@ -216,7 +216,7 @@ export default defineConfig({
 		sitemap({
 			lastmod: new Date(),
 			// Thin listing pages: blog tags, authors and pagination (also noindex in Head.astro).
-			filter: (page) => !/\/blog\/(tags|authors|\d+)\//.test(page),
+			filter: (page) => !/\/blog\/((tags|authors)\/|\d+\/?$)/.test(page),
 		}),
 		indexnow({
 			key: "e542ad40487f4c508ef8ce9fb107f5e4",

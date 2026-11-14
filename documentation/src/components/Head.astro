@@ -9,7 +9,7 @@ const ogAlt = "Loopress: version control for WordPress configuration and code";
 // Thin blog listings (tags, authors, pagination) stay out of the index; they are also
 // filtered from the sitemap in astro.config.mjs.
 const path = Astro.url.pathname;
-const isThinBlogListing = /^\/blog\/(tags|authors|\d+)\//.test(path);
+const isThinBlogListing = /^\/blog\/((tags|authors)\/|\d+\/?$)/.test(path);
 const isBlogIndex = path === "/blog/" || path === "/blog";
 ---
 
