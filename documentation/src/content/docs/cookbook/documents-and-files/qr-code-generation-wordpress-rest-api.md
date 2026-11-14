@@ -1,6 +1,6 @@
 ---
-title: Generating a Ticket QR Code from a WordPress Route with Endroid QR Code
-description: A Custom API Route that renders a scannable QR code for an event ticket on request, using endroid/qr-code, instead of generating and storing an image file per ticket sold.
+title: Ticket QR Code Generation in a WordPress REST API Route
+description: A Custom API Route renders a scannable QR code for an event ticket on request with endroid/qr-code, so no image file is stored per ticket sold or goes stale.
 kind: route
 ---
 
@@ -12,7 +12,12 @@ Tickets are declared as data, not PHP: one [`cpt/`](/custom-post-types/) file fo
 
 ```json title="cpt/ticket.json"
 {
-  "labels": { "name": "Tickets", "singular_name": "Ticket" },
+  "labels": {
+    "name": "Tickets",
+    "singular_name": "Ticket",
+    "add_new_item": "Add Ticket",
+    "search_items": "Search Tickets"
+  },
   "public": false,
   "show_ui": true,
   "show_in_rest": true,
@@ -23,7 +28,11 @@ Tickets are declared as data, not PHP: one [`cpt/`](/custom-post-types/) file fo
 
 ```json title="meta/ticket.json"
 {
-  "_customer_id": { "type": "integer", "single": true }
+  "_customer_id": {
+    "type": "integer",
+    "single": true,
+    "description": "The buyer's user id: api/ticket-qr/[ticket_id].php only answers them, or an admin."
+  }
 }
 ```
 
@@ -32,7 +41,7 @@ lps cpt push
 lps meta push
 ```
 
-Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key gives it a type WordPress enforces, nothing more: the value stays content.
+Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key gives it a type WordPress enforces, nothing more: the value stays content. The key starts with an underscore, so WordPress treats it as protected meta and refuses to write it over REST, which is what you want for an access rule: set it from PHP with `update_post_meta()`, or by hand with `wp post meta update <ticket_id> _customer_id <user_id>`.
 
 ## Why this needs a package
 
@@ -70,12 +79,9 @@ class TicketQr
 
         $result = $builder->build();
 
-        $response = new WP_REST_Response([
+        return new WP_REST_Response([
             'data_uri' => 'data:image/png;base64,' . base64_encode($result->getString()),
         ]);
-        $response->header('Cache-Control', 'private, max-age=3600');
-
-        return $response;
     }
 }
 ```
@@ -116,6 +122,18 @@ public function permission(WP_REST_Request $request): bool
         && (int) get_post_meta($ticketId, '_customer_id', true) === get_current_user_id();
 }
 ```
+
+Checked against a real site, with a ticket whose `_customer_id` is a subscriber:
+
+| Caller | Answer |
+|---|---|
+| The buyer | `200`, a PNG data URI |
+| An admin | `200`, the same data URI |
+| Another logged-in user | `403` |
+| Anonymous | `401` |
+| An admin, with an id that is no ticket (missing, a regular post, `abc`) | `404 not_found` |
+
+A non-admin asking for a ticket that does not exist gets the `403`, not the `404`: `permission()` runs first, so the route never confirms which ticket ids exist.
 
 ## Showing it to the buyer
 
