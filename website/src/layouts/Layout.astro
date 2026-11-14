@@ -22,7 +22,10 @@ const {
   structuredData,
 } = Astro.props;
 
-const ogUrl = canonical ?? Astro.url.href;
+// One canonical form for every page: the absolute URL with a trailing slash, same as the sitemap.
+const pathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const canonicalUrl = canonical ?? new URL(pathname, Astro.site ?? Astro.url).href;
+const ogUrl = canonicalUrl;
 const ogImageUrl = new URL(ogImage, Astro.site ?? Astro.url).href;
 
 const orgSchema = {
@@ -75,7 +78,7 @@ const orgSchema = {
     <meta name="twitter:title" content={ogTitle} />
     <meta name="twitter:description" content={ogDescription} />
     <meta name="twitter:image" content={ogImageUrl} />
-    {canonical && <link rel="canonical" href={canonical} />}
+    <link rel="canonical" href={canonicalUrl} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

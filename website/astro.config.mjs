@@ -66,6 +66,7 @@ export default defineConfig({
   ],
   adapter: vercel(),
   output: "server",
+  trailingSlash: "always",
   server: {
     port: 5432,
   },
