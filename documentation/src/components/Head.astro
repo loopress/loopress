@@ -6,6 +6,11 @@ import Analytics from "@vercel/analytics/astro";
 // `summary_large_image` but no image, so shared links would show a bare card.
 const ogImage = new URL("/og-image.png", Astro.site ?? Astro.url).href;
 const ogAlt = "Loopress: version control for WordPress configuration and code";
+// Thin blog listings (tags, authors, pagination) stay out of the index; they are also
+// filtered from the sitemap in astro.config.mjs.
+const path = Astro.url.pathname;
+const isThinBlogListing = /^\/blog\/(tags|authors|\d+)\//.test(path);
+const isBlogIndex = path === "/blog/" || path === "/blog";
 ---
 
 <Default {...Astro.props} />
@@ -15,4 +20,13 @@ const ogAlt = "Loopress: version control for WordPress configuration and code";
 <meta property="og:image:alt" content={ogAlt} />
 <meta name="twitter:image" content={ogImage} />
 <meta name="twitter:image:alt" content={ogAlt} />
+{isThinBlogListing && <meta name="robots" content="noindex, follow" />}
+{
+	isBlogIndex && (
+		<meta
+			name="description"
+			content="Articles on versioning WordPress configuration and code with Git: custom REST API routes, Composer, hooks, snippets and deployment workflows."
+		/>
+	)
+}
 <Analytics />
