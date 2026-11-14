@@ -24,6 +24,9 @@ use GraphQL\GraphQL;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
+use GraphQL\Validator\DocumentValidator;
+use GraphQL\Validator\Rules\QueryComplexity;
+use GraphQL\Validator\Rules\QueryDepth;
 
 class GraphqlRoute
 {
@@ -46,7 +49,13 @@ class GraphqlRoute
                     'args'    => ['id' => Type::nonNull(Type::id())],
                     'resolve' => static function ($root, array $args): ?array {
                         $post = get_post((int) $args['id']);
-                        if ($post === null || $post->post_type !== 'product') {
+                        // Public route: only what the caller may read on the site.
+                        if (
+                            $post === null
+                            || $post->post_type !== 'product'
+                            || ($post->post_status !== 'publish' && !current_user_can('read_post', $post->ID))
+                            || post_password_required($post)
+                        ) {
                             return null;
                         }
 
@@ -59,6 +68,10 @@ class GraphqlRoute
                 ],
             ],
         ]);
+
+        // Reject deeply nested or expensive queries before they run.
+        DocumentValidator::addRule(new QueryDepth(15));
+        DocumentValidator::addRule(new QueryComplexity(100));
 
         $schema = new Schema(['query' => $queryType]);
         $body   = $request->get_json_params() ?? [];
@@ -97,7 +110,9 @@ curl -X POST https://your-site.com/wp-json/loopress-api/v1/graphql \
 
 ## Permission, and a caveat specific to GraphQL
 
-A REST route has a fixed response shape, whatever `get()` returns. A GraphQL route doesn't, the client's query determines what gets resolved and returned, which is the entire point, but it also means a public GraphQL endpoint accepts query shapes you didn't specifically design for, not just the one field you tested. `webonyx/graphql-php` has [documented rules](https://webonyx.github.io/graphql-php/security/) for this, `QueryComplexity` and `QueryDepth`, registered globally through `DocumentValidator::addRule()`, worth adding before this route is public, not treated as an afterthought once it already is.
+A REST route has a fixed response shape, whatever `get()` returns. A GraphQL route doesn't, the client's query determines what gets resolved and returned, which is the entire point, but it also means a public GraphQL endpoint accepts query shapes you didn't specifically design for, not just the one field you tested. `webonyx/graphql-php` has [documented rules](https://webonyx.github.io/graphql-php/security/) for this, `QueryComplexity` and `QueryDepth`, registered globally through `DocumentValidator::addRule()`, which the route above does. A query that repeats a field 60 times under aliases is refused with `Max query complexity should be 100 but got 120.`, before any resolver runs. The depth cap stays at 15 because GraphiQL's own introspection query is 13 levels deep: a lower cap breaks the explorer below.
+
+The resolver has a second job on a public route: `get_post()` returns any post whatever its status, so it checks that the caller can read it. A published post is public, a draft or private post is only returned to a logged-in user who can read it, and a password-protected post resolves to `null` for everyone. Without that check, anyone who guesses an ID reads your drafts.
 
 ```php
 public function permission(): bool
