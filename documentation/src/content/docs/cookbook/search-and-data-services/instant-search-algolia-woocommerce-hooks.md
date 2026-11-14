@@ -1,6 +1,6 @@
 ---
 title: Typo-Tolerant Instant Search in WooCommerce with Algolia
-description: Index a WooCommerce catalog into Algolia with a Hook, then query it straight from a React single-page app using algolia/algoliasearch-client-php and the official Algolia JS client.
+description: Index a WooCommerce catalog into Algolia with a Hook, then replace the native search box with a typo-tolerant React app using the Algolia PHP and JS clients.
 kind: app
 youtubeId: vRuUAiyXhew
 ---
@@ -73,7 +73,14 @@ lps composer push
 lps hook push
 ```
 
-Save a product in wp-admin (new or edited) and it's in the `products` index before the page even finishes loading, no cron, no manual re-sync. A deleted or unpublished product isn't cleaned up here, that's `woocommerce_trash_product` calling `$client->deleteObject('products', (string) $productId)`, the same shape, left out to keep this one focused on the indexing half.
+The hook reads its credentials from two options, `algolia_app_id` and `algolia_write_key`, which live on the site and never in the repo. Set them once:
+
+```bash
+wp option update algolia_app_id YOUR_APP_ID
+wp option update algolia_write_key YOUR_WRITE_KEY
+```
+
+Save a published product in wp-admin (new or edited) and the hook sends its record to the `products` index during that same save, no cron, no manual re-sync. `saveObject()` returns once Algolia has accepted the record, Algolia indexes it asynchronously right after. A draft or private product is skipped by the `publish` check. A deleted or unpublished product isn't cleaned up here, that's `woocommerce_trash_product` calling `$client->deleteObject('products', (string) $productId)`, the same shape, left out to keep this one focused on the indexing half.
 
 ## Query it back from a React app
 
@@ -205,7 +212,7 @@ Then drop it on any page with the built-in Shortcode block: `[loopress_app name=
 
 ## Or replace a search box that's already there
 
-Dropping the shortcode on a page works, but a storefront usually already has a search box, in the header, in a sidebar widget, wherever the theme puts it. Rather than adding a second one, a second [Hook](/hooks/) can swap the existing one out, using `#[Filter]` instead of `#[Action]`: WooCommerce's own product search box is built by `get_product_search_form()`, and every theme and widget that renders one routes through the `get_product_search_form` filter to do it:
+Dropping the shortcode on a page works, but a storefront usually already has a search box, in the header, in a sidebar widget, wherever the theme puts it. Rather than adding a second one, a second [Hook](/hooks/) can swap the existing one out, using `#[Filter]` instead of `#[Action]`: WooCommerce's own product search box is built by `get_product_search_form()`, and the Product Search widget and classic themes that render one route through the `get_product_search_form` filter to do it (a block theme's own Search block does not, it never calls that function, so there the filter has nothing to swap):
 
 ```php title="hooks/replace-header-search.php"
 <?php
@@ -236,7 +243,7 @@ Algolia issues more than one API key, and each of these two files needs a differ
 
 ## A missing package, or an unreachable Algolia
 
-A hook has a simpler failure story than a route: no separate autoload-isolation layer to reason about, just [whether the method throws](/hooks/#action-and-filter). If `algolia/algoliasearch-client-php` isn't installed, `SearchClient::create()` throws (an undefined class), same as if the package were there but Algolia was unreachable or the key was wrong and `saveObject()` threw its own exception, either way it's already caught and logged for you, the `#[Action]` simply doesn't run, a product save never fatals over it. On the app's side, a bad Search key or an unreachable Algolia surfaces as `client.searchSingleIndex()` rejecting, worth wrapping in the usual React error boundary or a fallback empty state rather than an unhandled promise rejection.
+A hook has a simpler failure story than a route: no separate autoload-isolation layer to reason about, just [whether the method throws](/hooks/#action-and-filter). If `algolia/algoliasearch-client-php` isn't installed, `SearchClient::create()` throws (an undefined class), same as if the package were there but Algolia was unreachable or the key was wrong and `saveObject()` threw its own exception, either way it's already caught and logged for you (in the PHP error log, as `Loopress hooks/: hooks/algolia-index.php: onCreate() threw during a action callback: ...`), the `#[Action]` simply doesn't run, a product save never fatals over it. The same happens if the two options above aren't set yet: the client throws ``appId` is missing` and the product still saves. On the app's side, a bad Search key or an unreachable Algolia surfaces as `client.searchSingleIndex()` rejecting, worth wrapping in the usual React error boundary or a fallback empty state rather than an unhandled promise rejection.
 
 ## What this opens up
 
