@@ -54,7 +54,7 @@ class GraphqlRoute
                             $post === null
                             || $post->post_type !== 'product'
                             || ($post->post_status !== 'publish' && !current_user_can('read_post', $post->ID))
-                            || post_password_required($post)
+                            || $post->post_password !== ''
                         ) {
                             return null;
                         }
