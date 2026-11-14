@@ -29,8 +29,8 @@ if (files.length === 0) {
 console.log(`Mutating ${files.length} changed file(s) since ${base}:\n  ${files.join('\n  ')}`)
 
 const result = spawnSync(
-  'vendor/bin/infection',
-  ['--threads=4', '--show-mutations', `--filter=${files.join(',')}`], // NOSONAR: dev script, local vendor binary
+  'vendor/bin/infection', // NOSONAR: dev script, local vendor binary
+  ['--threads=4', '--show-mutations', `--filter=${files.join(',')}`],
   { stdio: 'inherit' },
 )
 process.exit(result.status ?? 1)
