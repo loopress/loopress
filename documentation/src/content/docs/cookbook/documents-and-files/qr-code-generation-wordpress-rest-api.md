@@ -1,10 +1,47 @@
 ---
-title: Generating a Ticket QR Code from a WordPress Route with Endroid QR Code
-description: A Custom API Route that renders a scannable QR code for an event ticket on request, using endroid/qr-code, instead of generating and storing an image file per ticket sold.
+title: Ticket QR Code Generation in a WordPress REST API Route
+description: A Custom API Route renders a scannable QR code for an event ticket on request with endroid/qr-code, so no image file is stored per ticket sold or goes stale.
 kind: route
 ---
 
 A site sells event tickets, one `ticket` custom post per purchase. Each ticket needs a QR code a scanner at the door reads to verify it, encoding a URL like `/verify-ticket/?ticket=482`. The tempting approach is generating a PNG at purchase time and storing it as an attachment, which works until the verification URL scheme changes, a domain migration, an added query parameter, and every previously generated image now encodes a dead link. Generating the QR code from the ticket's current data on every request instead means there's nothing to regenerate, the image is never stale because it's never stored.
+
+## The ticket post type
+
+Tickets are declared as data, not PHP: one [`cpt/`](/custom-post-types/) file for the post type, and one [`meta/`](/post-meta/) file for the key the route's permission check reads, the buyer's user id.
+
+```json title="cpt/ticket.json"
+{
+  "labels": {
+    "name": "Tickets",
+    "singular_name": "Ticket",
+    "add_new_item": "Add Ticket",
+    "search_items": "Search Tickets"
+  },
+  "public": false,
+  "show_ui": true,
+  "show_in_rest": true,
+  "menu_icon": "dashicons-tickets-alt",
+  "supports": ["title"]
+}
+```
+
+```json title="meta/ticket.json"
+{
+  "_customer_id": {
+    "type": "integer",
+    "single": true,
+    "description": "The buyer's user id: api/ticket-qr/[ticket_id].php only answers them, or an admin."
+  }
+}
+```
+
+```bash
+lps cpt push
+lps meta push
+```
+
+Whatever records a sale (a checkout, a form, an import) sets `_customer_id` on the ticket it creates. Declaring the key documents an integer type, but WordPress does not check that type on `update_post_meta()` or `wp post meta update`, so validate the buyer id as an integer before writing it. The value stays content. The key starts with an underscore, so WordPress treats it as protected meta and refuses to write it over REST, which is what you want for an access rule: set it from PHP with `update_post_meta()`, or by hand with `wp post meta update <ticket_id> _customer_id <user_id>`.
 
 ## Why this needs a package
 
@@ -42,12 +79,9 @@ class TicketQr
 
         $result = $builder->build();
 
-        $response = new WP_REST_Response([
+        return new WP_REST_Response([
             'data_uri' => 'data:image/png;base64,' . base64_encode($result->getString()),
         ]);
-        $response->header('Cache-Control', 'private, max-age=3600');
-
-        return $response;
     }
 }
 ```
@@ -85,9 +119,21 @@ public function permission(WP_REST_Request $request): bool
 
     $ticketId = (int) $request->get_param('ticket_id');
     return is_user_logged_in()
-        && (int) get_post_meta($ticketId, '_customer_id', true) === get_current_user_id();
+        && (string) get_post_meta($ticketId, '_customer_id', true) === (string) get_current_user_id();
 }
 ```
+
+Checked against a real site, with a ticket whose `_customer_id` is a subscriber:
+
+| Caller | Answer |
+|---|---|
+| The buyer | `200`, a PNG data URI |
+| An admin | `200`, the same data URI |
+| Another logged-in user | `403` |
+| Anonymous | `401` |
+| An admin, with an id that is no ticket (missing, a regular post, `abc`) | `404 not_found` |
+
+A non-admin asking for a ticket that does not exist gets the `403`, not the `404`: `permission()` runs first, so the route never confirms which ticket ids exist.
 
 ## Showing it to the buyer
 
