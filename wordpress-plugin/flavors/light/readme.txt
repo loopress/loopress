@@ -1,6 +1,6 @@
 === Loopress Light ===
 Contributors: jeansmaug
-Tags: acf, advanced custom fields, menus, sync, git, wp-cli alternative, configuration
+Tags: acf, advanced custom fields, git, wp-cli alternative, configuration
 Requires at least: 6.2
 Tested up to: 7.1
 Stable tag: 2026.9.0
