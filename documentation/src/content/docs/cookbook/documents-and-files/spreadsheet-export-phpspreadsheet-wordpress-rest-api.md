@@ -1,6 +1,6 @@
 ---
 title: Exporting WooCommerce Orders to XLSX with PhpSpreadsheet
-description: A Custom API Route that turns a WooCommerce orders query into a downloadable Excel file, using PhpSpreadsheet, for the client who just wants "the numbers in a spreadsheet."
+description: A Custom API Route that exports completed WooCommerce orders to a downloadable Excel .xlsx file with PhpSpreadsheet, for the client who wants the numbers.
 kind: route
 youtubeId: spDsmvUnBHM
 ---
@@ -57,6 +57,12 @@ class OrdersExport
         (new Xlsx($spreadsheet))->save('php://output');
         exit;
     }
+
+    // Unfiltered order and customer data: stays on the closed default, stated explicitly.
+    public function permission(WP_REST_Request $request): bool
+    {
+        return current_user_can('manage_options');
+    }
 }
 ```
 
@@ -69,6 +75,26 @@ lps composer push
 
 `limit => -1` matches the "every completed order" goal here, but it also means loading every one into memory as a `WC_Order` object before the spreadsheet is even built. Fine for hundreds of orders, a store with a genuinely large order history should narrow this with a date range (`wc_get_orders()` accepts `date_created` the same way it accepts `status`) or paginate, neither shown here to keep the example focused.
 
+## Push it
+
+The project has a `composer.json` with both the library and WooCommerce itself, which WPackagist serves like any other plugin:
+
+```json title="composer.json"
+{
+  "require": {
+    "phpoffice/phpspreadsheet": "^5.9",
+    "wpackagist-plugin/woocommerce": "*"
+  }
+}
+```
+
+```bash
+lps plugin push --activate
+lps api push
+```
+
+With a `composer.json`, [`lps plugin push`](/plugins/#with-a-composerjson) runs Composer on the server for the whole file (the library and the plugin) and `--activate` switches WooCommerce on. Without the flag the plugin is installed but stays inactive, and the route has no `wc_get_orders()` to call. If WooCommerce is already installed on the site outside Loopress, the push stops and asks for `--force`, since it would replace the plugin's files with the WPackagist build.
+
 ## Now call it
 
 ```bash
@@ -77,7 +103,7 @@ curl https://your-site.com/wp-json/loopress-api/v1/orders-export \
   -o orders.xlsx
 ```
 
-That writes an actual `orders.xlsx` to disk, `-o` instead of letting curl dump raw spreadsheet bytes to the terminal.
+That writes an actual `orders.xlsx` to disk, `-o` instead of letting curl dump raw spreadsheet bytes to the terminal. The response is `200` with `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, and the file is a ZIP (it starts with `PK`) with one header row plus one row per completed order, the total stored as a number. A user without `manage_options` gets a `403` and an anonymous caller a `401`, both `rest_forbidden`.
 
 ## Permission
 
