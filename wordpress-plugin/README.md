@@ -46,3 +46,17 @@ composer run check   # test, analyse, psalm, cs, rector:check, deptrac
 
 `mutation` (Infection) is intentionally excluded: it is slow and report-only in CI,
 not meant for a fast pre-push check.
+
+### Mutation testing on a change
+
+`composer run mutation` mutates all of `src/` and takes 20 to 40 minutes. To check only what
+a branch touched, run:
+
+```bash
+composer run mutation:diff              # src/ files changed since origin/main (and uncommitted ones)
+composer run mutation:diff -- <ref>     # against another base ref
+```
+
+It mutates the whole changed files (not only the changed lines, because Infection's
+`--git-diff-lines` cannot resolve paths when the git root is the parent of the plugin
+directory), so it takes a minute or two. It exits cleanly when no `src/` file changed.
