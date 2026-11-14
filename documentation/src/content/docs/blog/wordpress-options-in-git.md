@@ -2,7 +2,6 @@
 title: The wp_options Rows Your Site Depends On Belong in Git
 description: Plugin settings, the front page, the date format. The wp_options rows that shape a WordPress site are invisible to Git. Loopress lets you track the ones that matter, one by one, and refuses the ones that shouldn't travel.
 date: 2026-10-22
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

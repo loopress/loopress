@@ -2,7 +2,6 @@
 title: Why WordPress Menus Break When You Move Them Between Sites
 description: A WordPress menu item points at a post id, and ids never match between staging and production. Loopress syncs menus by slug instead, so a menu built on staging arrives on production pointing at the right pages.
 date: 2026-10-15
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:
