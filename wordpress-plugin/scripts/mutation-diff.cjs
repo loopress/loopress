@@ -11,7 +11,7 @@ if (!/^\w[\w./~^-]*$/.test(base)) {
   process.exit(1)
 }
 
-const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim()
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim() // NOSONAR: dev script, git from PATH, `base` is validated above
 
 const mergeBase = git('merge-base', '--end-of-options', base, 'HEAD')
 const tracked = git('diff', '--relative', '--name-only', '--diff-filter=d', mergeBase, '--', 'src')
@@ -32,5 +32,5 @@ const result = spawnSync(
   'vendor/bin/infection',
   ['--threads=4', '--show-mutations', `--filter=${files.join(',')}`],
   { stdio: 'inherit' },
-)
+) // NOSONAR: dev script, local vendor binary, files come from git
 process.exit(result.status ?? 1)
