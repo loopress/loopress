@@ -7,7 +7,7 @@ import { z } from 'astro/zod';
 export const collections = {
 	docs: defineCollection({
 		loader: docsLoader(),
-		schema: docsSchema({
+		schema: (context) => docsSchema({
 			extend: (context) =>
 				blogSchema(context).extend({
 					// The Loopress CLI and WordPress plugin versions current when a blog post was
@@ -28,6 +28,13 @@ export const collections = {
 					// embedded above the recipe by MarkdownContent.astro.
 					youtubeId: z.string().optional(),
 				}),
+		})(context).transform((data) => {
+			// Blog posts publish by date, not by hand: a post is published when its `date` is
+			// today or earlier at build time, whatever `draft` says, and excluded (page, sitemap,
+			// RSS, llms*.txt, tag pages) otherwise. Only blog posts have a `date`. A daily
+			// rebuild publishes future posts on their date.
+			if (data.date) return { ...data, draft: data.date.getTime() > Date.now() };
+			return data;
 		}),
 	}),
 };

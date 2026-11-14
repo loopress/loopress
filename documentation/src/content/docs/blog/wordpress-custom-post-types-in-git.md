@@ -2,7 +2,6 @@
 title: Your WordPress Custom Post Types Belong in Git, Too
 description: A custom post type is a schema, not content. Two ways to keep one version-controlled and deployed with the Loopress CLI, ACF's JSON export or register_post_type() in a hook file, and how to pick between them.
 date: 2026-09-26
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

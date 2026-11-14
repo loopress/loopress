@@ -2,7 +2,6 @@
 title: Syncing WordPress Configuration Between Environments Without a Database Dump
 description: Moving a menu or a plugin setting from staging to production shouldn't mean overwriting production's database. Loopress copies configuration between environments as files, and leaves the content alone.
 date: 2026-12-03
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

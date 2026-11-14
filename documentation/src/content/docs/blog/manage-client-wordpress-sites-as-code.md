@@ -2,7 +2,6 @@
 title: Managing Twenty Client WordPress Sites as Code
 description: Agencies running dozens of WordPress sites need to know what each one runs and change it without logging into twenty admin panels. One repository per client, one loopress.json per repository, and a for loop.
 date: 2026-12-10
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

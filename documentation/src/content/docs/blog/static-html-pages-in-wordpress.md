@@ -2,7 +2,6 @@
 title: A Hand-Written HTML Page in WordPress, Without Fighting the Block Editor
 description: Some pages are better written as HTML than assembled in Gutenberg. Loopress pushes a plain .html file from your repo as a real WordPress page, rendered by your theme, and locks it in wp-admin so Git stays the source of truth.
 date: 2026-11-05
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

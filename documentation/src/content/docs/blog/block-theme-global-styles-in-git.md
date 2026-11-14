@@ -2,7 +2,6 @@
 title: Your Block Theme's Global Styles Aren't in theme.json, and That's a Problem
 description: Colors and fonts picked in the Site Editor's Styles screen live in the database, not in your theme's theme.json. Loopress pulls them into a JSON file you can review, diff, and push to every environment.
 date: 2026-10-29
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

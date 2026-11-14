@@ -2,7 +2,6 @@
 title: Undoing a Bad WordPress Deploy Without Restoring a Backup
 description: A backup restore rolls back everything, including the orders and comments that arrived since. Loopress snapshots each resource before every push, so you can undo just the change that broke the site.
 date: 2026-10-01
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

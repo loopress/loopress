@@ -2,7 +2,6 @@
 title: What Changed on Production Last Tuesday? Catching WordPress Config Drift
 description: WordPress configuration changes through admin screens nobody reviews. lps diff compares your Git repo with a live site, or two sites with each other, and exits non-zero on drift, so a scheduled CI job can tell you before a client does.
 date: 2026-10-08
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

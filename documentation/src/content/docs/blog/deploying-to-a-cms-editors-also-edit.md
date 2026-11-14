@@ -2,7 +2,6 @@
 title: Deploying to a CMS Your Editors Are Editing at the Same Time
 description: A WordPress deploy races against every admin screen on the site. How Loopress refuses to overwrite a change it hasn't seen, and why a push of ten route files now lands all at once or not at all.
 date: 2026-11-26
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

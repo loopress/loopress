@@ -2,7 +2,6 @@
 title: A Lockfile for WordPress Plugins, So Staging and Production Run the Same Versions
 description: Knowing WooCommerce is installed isn't a spec. Pin exact WordPress.org plugin versions in loopress.json and Loopress installs the identical set on every environment through Composer and WPackagist, without SSH.
 date: 2026-11-19
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:

@@ -2,7 +2,6 @@
 title: Letting an AI Agent Deploy to WordPress, Without Handing It the Keys
 description: The Loopress MCP server lets Claude Code or any MCP client pull and push WordPress configuration. Every change goes through a preview-then-confirm handshake the agent can't skip, and nothing the agent does bypasses Git.
 date: 2026-11-12
-draft: true
 cliVersion: 0.26.0
 wordpressPluginVersion: 2026.11.0
 authors:
