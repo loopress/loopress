@@ -1,5 +1,12 @@
 # @loopress/cli
 
+## 0.37.0
+
+### Minor Changes
+
+- 04337d0: `lps app push` now saves a rollback snapshot with a copy of the bundles it sent, and `lps app rollback` puts back the builds the last push replaced: it uploads the files of the previous build, then commits it. A push whose bundles are above 25 MB saves no snapshot and says so. The MCP server gets `app_rollback`.
+- 297cecb: Crash reporting is now opt-in. The CLI asks once, in the first interactive command (default no), and sends nothing until you say yes. Non-interactive shells and CI never ask and never send until you have run `lps telemetry enable`.
+
 ## 0.36.0
 
 ### Minor Changes
