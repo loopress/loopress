@@ -1,6 +1,6 @@
 === Loopress Light ===
 Contributors: jeansmaug
-Tags: acf, advanced custom fields, menus, sync, git
+Tags: acf, advanced custom fields, menus, sync, git, wp-cli alternative, configuration
 Requires at least: 6.2
 Tested up to: 7.1
 Stable tag: 2026.9.0
@@ -29,6 +29,8 @@ Features:
 * REST API restricted to administrators, authenticated with WordPress application passwords
 
 Need hooks, custom API routes, single-page apps, static pages, block templates, code snippets or Composer dependency management too? [Loopress Full](https://docs.loopress.dev/wordpress-plugin/) is the full edition, free of charge, downloaded directly from loopress.dev instead of wordpress.org (see FAQ for why).
+
+Full documentation and examples: https://loopress.dev/light/
 
 == Installation ==
 
