@@ -2,8 +2,9 @@
 // and to its sitemap <loc>, all with a trailing slash.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("../.vercel/output/static", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../.vercel/output/static", import.meta.url));
 const sitemap = readFileSync(join(root, "sitemap-0.xml"), "utf8");
 const locs = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]));
 
@@ -11,11 +12,22 @@ const pages = readdirSync(root, { recursive: true })
   .map(String)
   .filter((f) => f.endsWith("index.html") && !f.startsWith("_astro"));
 
+// Attributes of the first real <tag> matching `test`, ignoring HTML comments.
+function findTag(html, name, test) {
+  for (const [tag] of html.matchAll(new RegExp(`<${name}\\s[^>]*>`, "gi"))) {
+    const attrs = Object.fromEntries(
+      [...tag.matchAll(/([a-zA-Z:-]+)\s*=\s*"([^"]*)"/g)].map((m) => [m[1].toLowerCase(), m[2]]),
+    );
+    if (test(attrs)) return attrs;
+  }
+  return undefined;
+}
+
 const errors = [];
 for (const file of pages) {
-  const html = readFileSync(join(root, file), "utf8");
-  const canonical = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
-  const ogUrl = html.match(/property="og:url" content="([^"]*)"/)?.[1];
+  const html = readFileSync(join(root, file), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const canonical = findTag(html, "link", (a) => a.rel === "canonical")?.href;
+  const ogUrl = findTag(html, "meta", (a) => a.property === "og:url")?.content;
   const route = "/" + relative(".", file).replace(/index\.html$/, "");
   const expected = `https://loopress.dev${route}`;
   if (canonical !== expected) errors.push(`${file}: canonical ${canonical} != ${expected}`);
