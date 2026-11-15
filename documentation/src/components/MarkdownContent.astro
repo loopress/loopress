@@ -211,6 +211,20 @@ if (isCookbookIndex) {
 	)
 }
 {
+	isBlogPost && (
+		<div class="cookbook-cta not-content">
+			<hr />
+			<p>
+				Loopress keeps a WordPress site's configuration and code in Git: pull it, review it, push it
+				back, and undo it if it goes wrong. <a href="https://loopress.dev/">See the whole loop</a>.
+			</p>
+			<p>
+				<a href="/getting-started/">Get started</a> in under a minute with the free CLI and plugin.
+			</p>
+		</div>
+	)
+}
+{
 	isCookbookIndex &&
 		cookbookGroups.map((group) => (
 			<div class="cookbook-index not-content">

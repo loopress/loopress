@@ -212,3 +212,8 @@ Without `league/csv` installed, `Reader` is an undefined class, an ordinary PHP 
 ## What this opens up
 
 The same reader handles any recurring data drop, a supplier's inventory feed, a bank's transaction export, anything that arrives as "here's a spreadsheet" on some regular cadence. It's also a narrow enough file, one parse, one validation branch, one insert, that it's a reasonable one to have an AI coding assistant draft, with the per-row error handling being exactly the kind of behavior worth testing against a real, messy sample file rather than trusting a first pass on.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [Composer packages](/composer/)

@@ -139,3 +139,8 @@ Without `eluceo/ical` installed, `Calendar` and `CalendarFactory` are undefined 
 ## What this opens up
 
 Rescheduling an event changes its `DTSTART` and `DTEND` and keeps its `UID`, so a subscribed calendar moves the event instead of duplicating it. The same shape serves any schedule that already lives in WordPress: a venue's opening hours as recurring events, a course's session dates, a team's on-call rota kept as a custom post type. It pairs naturally with [ticket QR codes](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/): one route puts the event in the attendee's calendar, the other gets them through the door.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [Composer packages](/composer/)

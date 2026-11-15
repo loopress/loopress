@@ -447,3 +447,19 @@ Pushed files are stored in `wp-content/loopress/api/`, one `{filename}.php` per 
 - **Removal goes through the product.** Because these files sit outside the plugin directory, deactivating the plugin does not delete them. Use [`lps api rm <slug>`](/api/cli/#lps-api-rm) to remove one, or [`lps api push --prune`](/api/cli/#lps-api-push) to remove every route absent locally. Uninstalling the plugin (deleting it, not just deactivating) removes the whole `wp-content/loopress/` tree, route files included.
 
 You never need to touch this directory: the CLI is the only intended writer, and [`lps api pull`](/api/cli/) reconstructs your local directory from it at any time.
+
+## Related
+
+- [Composer Packages in a WordPress REST API Route](/blog/composer-packages-wordpress-rest-api-route/)
+- [Ship a Custom WordPress Endpoint Without Writing a Plugin](/blog/custom-wordpress-endpoint-without-writing-a-plugin/)
+- [When a WordPress REST Route Shouldn't Return JSON](/blog/wordpress-rest-api-route-without-json/)
+- [Query ACF Fields with GraphQL, in Your Own API Route](/cookbook/search-and-data-services/graphql-wordpress-rest-api-route/)
+- [Verify Stripe Webhook Signatures in a WordPress REST Route](/cookbook/auth-and-security/stripe-webhook-signature-verification-wordpress-rest-api/)
+- [Serve WordPress Posts as Markdown for LLMs and AI Search](/cookbook/content-and-data/markdown-export-for-llms-html-to-markdown-wordpress-rest-api/)
+- [Import a CSV into WordPress with a REST Route and League CSV](/cookbook/documents-and-files/csv-import-league-csv-wordpress-rest-api/)
+- [Rendering a WordPress Post as a Downloadable PDF](/cookbook/documents-and-files/post-to-pdf-dompdf-wordpress-rest-api/)
+- [Exporting WooCommerce Orders to XLSX with PhpSpreadsheet](/cookbook/documents-and-files/spreadsheet-export-phpspreadsheet-wordpress-rest-api/)
+- [Headless WordPress Draft Preview with Signed JWT Links](/cookbook/auth-and-security/headless-draft-preview-php-jwt-wordpress-rest-api/)
+- [Headless WordPress Sitemap for a Next.js or Astro Frontend](/cookbook/content-and-data/headless-sitemap-generation-wordpress-rest-api/)
+- [iCal Calendar Feed for WordPress Events with eluceo/ical](/cookbook/documents-and-files/ical-calendar-feed-eluceo-ical-wordpress-rest-api/)
+- [Ticket QR Code Generation in a WordPress REST API Route](/cookbook/documents-and-files/qr-code-generation-wordpress-rest-api/)

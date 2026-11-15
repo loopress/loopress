@@ -208,3 +208,7 @@ Your local files are not changed by a rollback. Fix `menus/main.json` in Git (`g
 - **Every resource has its own rollback.** An ACF field group that broke a form is `lps acf rollback`, a bad role is `lps role rollback`. A deploy that pushed three resources is undone with three commands, see [Rollback and Snapshots](/rollback/).
 
 The role from the [client editor recipe](/cookbook/site-as-code/client-editor-role-wordpress/) keeps clients from breaking the deployed code in the first place, this recipe is for the day something breaks anyway.
+
+## Related docs
+
+- [Rollback](/rollback/)

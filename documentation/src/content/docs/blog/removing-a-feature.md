@@ -78,3 +78,7 @@ The modules built around the removal all come from WordPress core: post types, t
 ---
 
 Tracking SEO plugin settings is covered in the [Options reference](/options/#seo-plugin-settings).
+
+## Related docs
+
+- [The push and pull workflow](/workflow/)

@@ -76,3 +76,8 @@ npm install -g @loopress/cli
 ```
 
 [Composer dependency management](/composer/) covers installing and auditing packages from the admin. [Writing Route Files](/api/routes/) covers everything a route can do beyond this: authentication, CORS, the security model.
+
+## Related docs
+
+- [Composer packages](/composer/)
+- [Writing route files](/api/routes/)

@@ -71,3 +71,7 @@ If you only need snippet sync, Loopress Light is a free wordpress.org install, s
 ## Thanks
 
 Credit where it's due: the wordpress.org plugins review team answered our question directly and quickly, before we'd submitted anything. That single clear answer, citing the exact guideline, saved us from finding out the hard way through a full submission and rejection cycle. Loopress Light is in review now, built around that answer from the start.
+
+## Related docs
+
+- [Composer packages](/composer/)

@@ -99,3 +99,8 @@ The shortcode exposes a small config object on the page, named `loopressApp_<nam
 ## Pages
 
 - [CLI](/apps/cli/): the `lps app pull/push/list/rm` commands
+
+## Related
+
+- [Embed a React App in a WordPress Page With One Shortcode](/blog/embed-react-app-wordpress-shortcode/)
+- [Typo-Tolerant Instant Search in WooCommerce with Algolia](/cookbook/search-and-data-services/instant-search-algolia-woocommerce-hooks/)

@@ -241,3 +241,8 @@ lps hook rm <filename>
 |------|-------------|
 | `--yes` / `-y` | Skip the confirmation prompt (required in a non-interactive shell) |
 | `--dry-run` / `-d` | Show what would be removed without deleting anything |
+
+## Related
+
+- [Your WordPress Hooks Belong in Git, Not functions.php](/blog/wordpress-hooks-in-git/)
+- [Typo-Tolerant Instant Search in WooCommerce with Algolia](/cookbook/search-and-data-services/instant-search-algolia-woocommerce-hooks/)

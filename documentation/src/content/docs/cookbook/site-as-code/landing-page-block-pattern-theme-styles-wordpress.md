@@ -151,3 +151,8 @@ The page is at the URL the push reports (`/landing/` with pretty permalinks, a `
 The three files are independent, which is the point. Change the headline in `patterns/hero.html` and run `lps pattern push` alone: the page shows the new headline on the next request, without being pushed again. Change `brand` in the palette and run `lps theme style push`: the hero, and every other block that uses the color, follows.
 
 Once pushed, the page is locked in wp-admin (see [Static Pages](/pages/#in-wp-admin)), so an editor cannot quietly change it: the change goes through a pull request, like the rest of the site.
+
+## Related docs
+
+- [Block patterns](/block-patterns/)
+- [Theme styles](/theme-styles/)

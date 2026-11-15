@@ -144,3 +144,7 @@ acf/
 ```
 
 Files round-trip ACF's own export format untouched, the CLI only reads the `key` field to name the file and identify the object on push.
+
+## Related
+
+- [Query ACF Fields with GraphQL, in Your Own API Route](/cookbook/search-and-data-services/graphql-wordpress-rest-api-route/)

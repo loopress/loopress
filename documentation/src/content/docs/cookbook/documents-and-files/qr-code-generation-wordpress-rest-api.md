@@ -165,3 +165,8 @@ Without `endroid/qr-code` installed, `Builder` and `PngWriter` are undefined cla
 ## What this opens up
 
 The same shape covers a Wi-Fi credential QR code for a venue, a link to a product page printed on packaging, anything where the encoded content is derived from live WordPress data rather than fixed at creation time. It's also a small enough contract, one lookup, one QR build, one permission check, that it's realistic to have an AI coding assistant draft it in a single pass and review the actual diff rather than the idea of it.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [Composer packages](/composer/)

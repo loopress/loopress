@@ -251,3 +251,8 @@ A product whose index update failed is not retried. After the credentials are fi
 ## What this opens up
 
 `category` above isn't hypothetical, it's what makes faceted filtering possible: the app passes `facetFilters: ["category:Footwear"]` alongside or instead of a text query, as long as the index's `attributesForFaceting` lists `category`. The hook's `index()` method is a natural place to add more attributes the same way, a stock flag, a price bracket, once the app needs to filter on them, not just full-text match. Querying Algolia straight from the browser keeps this integration to two files, a hook and an app, no backend proxy to write or deploy. If a search UI ever needs to merge in WordPress-specific data the frontend shouldn't compute itself, a customer's own pricing, a stock check, restricting results by post status, a [Custom API Route](/api/routes/) sitting between the app and Algolia is the natural place for that, same Search-key-to-Write-key split, just one more hop.
+
+## Related docs
+
+- [Single-Page Apps](/apps/)
+- [Hooks](/hooks/)

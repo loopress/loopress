@@ -171,3 +171,7 @@ Pick one per post type: two sources registering the same slug is exactly the con
 :::note
 Out of scope for now: importing post types from CPT UI, and syncing the posts themselves. Taxonomies have their own page: [Taxonomies](/taxonomies/).
 :::
+
+## Related
+
+- [Upcoming Events in WordPress: Custom Post Type and REST API](/cookbook/site-as-code/upcoming-events-custom-post-type-wordpress-rest-api/)

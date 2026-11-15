@@ -94,3 +94,7 @@ If you also need snippet sync, WPForms sync, version-controlled REST API routes,
 ## Thanks
 
 The review team was direct at every step, including the ones where the answer was no, and the citations were specific enough to act on each time. Answering the ACF question before a full resubmission is the part we are most grateful for. It turned a blind rebuild-and-hope into a scoped piece of work.
+
+## Related docs
+
+- [The WordPress plugin](/wordpress-plugin/)

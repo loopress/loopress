@@ -86,3 +86,7 @@ A role with the same slug already saved on the site, created by hand or by a plu
 ## In wp-admin
 
 The **Config** tab of the Loopress admin page lists every role on the site, read-only: name, slug, source and number of users.
+
+## Related
+
+- [WordPress Client Editor Role in Git: Safe Custom Role](/cookbook/site-as-code/client-editor-role-wordpress/)

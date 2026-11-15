@@ -224,3 +224,7 @@ lps app push search --env production --yes
 ---
 
 If you have a front-end app that belongs inside a WordPress page instead of bolted on beside it, the next step is `apps/<name>/dist` and `lps app push`.
+
+## Related docs
+
+- [Single-Page Apps](/apps/)

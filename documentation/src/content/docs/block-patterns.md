@@ -95,3 +95,7 @@ The file name is the pattern's slug, registered as `loopress/<slug>`: 1 to 100 l
 An unknown header key is refused, so a typo never goes unnoticed. `lps validate` checks every file before you push.
 
 Synced patterns (WordPress's `wp_block` posts, formerly "reusable blocks") are out of scope: in a static page, a referenced pattern already updates everywhere.
+
+## Related
+
+- [WordPress Landing Page in Git: Pattern and Theme Styles](/cookbook/site-as-code/landing-page-block-pattern-theme-styles-wordpress/)

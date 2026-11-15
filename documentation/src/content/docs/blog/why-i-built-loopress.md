@@ -42,3 +42,7 @@ The goal was to bring the same idea I took away from Terraform into WordPress: y
 Still building. If any of this sounds familiar, I built it for you.
 
 → [Get started with the plugin](/wordpress-plugin/) or [the CLI](/cli/)
+
+## Related docs
+
+- [Concepts](/concepts/)

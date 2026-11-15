@@ -124,3 +124,7 @@ npm install -g @loopress/cli
 ```
 
 Custom API routes and Composer dependency management are [Loopress Full](/wordpress-plugin/) features, free. [Writing Route Files](/api/routes/) covers the rest: dynamic segments, verbs, permissions, CORS.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

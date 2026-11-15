@@ -12,6 +12,16 @@ export function getStaticPaths() {
 }
 
 const { a } = Astro.props as { a: Alternative };
+
+// The docs page that covers the Loopress side of each comparison.
+const docs: Record<string, [label: string, href: string]> = {
+  "acf-local-json": ["ACF field groups in Git", "https://docs.loopress.dev/acf/"],
+  "wp-staging": ["The push and pull workflow", "https://docs.loopress.dev/workflow/"],
+  "wp-migrate": ["The push and pull workflow", "https://docs.loopress.dev/workflow/"],
+  bedrock: ["Composer packages", "https://docs.loopress.dev/composer/"],
+  versionpress: ["Rolling back a deploy", "https://docs.loopress.dev/rollback/"],
+};
+const doc = docs[a.slug];
 ---
 
 <DocPage title={`${a.heading.replace(/\.$/, "")} - Loopress`} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide>
@@ -61,6 +71,10 @@ const { a } = Astro.props as { a: Alternative };
     </>
   )}
 
+  {doc && (
+    <p class="doc">Related docs: <a href={doc[1]}>{doc[0]}</a>.</p>
+  )}
+
   <p class="others">
     <a href="/vs">All comparisons</a> ·{" "}
     {alternatives.filter((o) => o.slug !== a.slug).map((o, i) => (
@@ -87,7 +101,8 @@ const { a } = Astro.props as { a: Alternative };
   .picks { display: grid; gap: 0 3rem; }
   @media (min-width: 768px) { .picks { grid-template-columns: 1fr 1fr; } }
 
-  .others { margin-top: 4rem; font-size: 0.95rem; }
+  .doc { margin-top: 2rem; font-size: 0.95rem; }
+  .others { margin-top: 1.5rem; font-size: 0.95rem; }
   @media (max-width: 640px) {
     .vs thead { display: none; }
     .vs tr { display: block; padding-block: 0.75rem; border-bottom: 1px solid color-mix(in oklch, currentColor 15%, transparent); }

@@ -179,3 +179,7 @@ snippets/
 | `insertMethod` | `auto` (the default) or `shortcode`. |
 | `priority` | Execution priority, lower runs earlier. `10` by default. |
 | `shortcodeAttributes` | Attribute names the snippet's shortcode accepts, when `insertMethod` is `shortcode`. |
+
+## Related
+
+- [Version Control Your WordPress Code Snippets](/blog/version-control-wordpress-code-snippets/)

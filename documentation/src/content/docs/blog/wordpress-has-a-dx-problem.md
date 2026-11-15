@@ -78,3 +78,7 @@ Specific workflows are covered in other posts:
 - [Installing Composer Packages in WordPress Without SSH](/blog/wordpress-composer-without-ssh/)
 - [Your WordPress Hooks Belong in Git, Not functions.php](/blog/wordpress-hooks-in-git/)
 - [Ship a Custom WordPress Endpoint Without Writing a Plugin](/blog/custom-wordpress-endpoint-without-writing-a-plugin/)
+
+## Related docs
+
+- [Concepts](/concepts/)
