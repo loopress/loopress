@@ -154,3 +154,7 @@ WordPress core's sitemap is a fine default for a site WordPress renders itself. 
 ## A missing package fails the one request, not the site
 
 Without `icamys/php-sitemap-generator` installed, `SitemapGenerator` is an undefined class, an ordinary PHP error scoped to this request. Loopress only [catches and logs](/api/routes/#failure-isolation) a corrupted or missing `vendor/autoload.php` itself, not a single package missing from an otherwise intact one, so install it through [Composer dependency management](/composer/) before pushing the route. See [Custom API routes](/api/routes/) for how routes and `permission()` work.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

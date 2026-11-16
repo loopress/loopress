@@ -106,3 +106,7 @@ The aggregate [`lps push` and `lps pull`](/workflow/#what-each-command-covers) i
 :::note
 Multiple named style variations (WordPress 6.6+) are not supported yet, only the single active style set is synced.
 :::
+
+## Related
+
+- [WordPress Landing Page in Git: Pattern and Theme Styles](/cookbook/site-as-code/landing-page-block-pattern-theme-styles-wordpress/)

@@ -223,3 +223,8 @@ Set `LOOPRESS_TELEMETRY_DISABLED=1` to override a persisted yes for a single run
 ## Troubleshooting
 
 When a command fails and the cause is unclear, run [`lps doctor`](/cli/doctor/): it checks that the site is reachable, the plugin installed, and the credentials valid, each with a corrective action. If authentication fails with a `401`, see [Application Passwords](/application-passwords/).
+
+## Related
+
+- [Why I Built Loopress](/blog/why-i-built-loopress/)
+- [WordPress Has a DX Problem, and Developers Are Paying for It](/blog/wordpress-has-a-dx-problem/)

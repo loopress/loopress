@@ -205,3 +205,7 @@ lps dev --skip=plugin
 Watched resources: `snippet`, `template`, `part`, `css`, `block`, `page`, `api`, `hook`, `plugin`.
 
 `lps dev` always targets the environment named `local`, never any other: add one with `lps project config` first. To push to another environment, run the feature's `push` command with `--env`.
+
+## Related
+
+- [I Deleted 5,000 Lines of a Feature That Worked](/blog/removing-a-feature/)

@@ -147,3 +147,7 @@ Without `stripe/stripe-php` installed, `Webhook::constructEvent()` is an undefin
 ## What this opens up
 
 The same shape covers any provider with an SDK that already verifies its own signatures: GitHub, Shopify, a payment provider other than Stripe. The file has a narrow contract, one `permission()` and one verb method, so a first draft from an AI coding assistant is something you can review line by line.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

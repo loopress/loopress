@@ -170,3 +170,7 @@ Without `firebase/php-jwt` installed, `JWT` and `Key` are undefined classes, an 
 ## What this opens up
 
 The same signed-link shape covers anything that should be reachable without an account but not by everyone: a one-time download of a private file, an unsubscribe link, a "confirm your email" step for a headless signup form. The claims change, the two-route structure doesn't.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

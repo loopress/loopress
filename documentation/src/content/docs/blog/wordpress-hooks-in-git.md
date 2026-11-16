@@ -169,3 +169,7 @@ npm install -g @loopress/cli
 ```
 
 The [documentation](https://docs.loopress.dev/hooks/) covers the full attribute reference, the cron scheduling model, and the push validation rules.
+
+## Related docs
+
+- [Hooks](/hooks/)

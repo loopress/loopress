@@ -150,3 +150,7 @@ npm install -g @loopress/cli
 ```
 
 The [documentation](https://docs.loopress.dev/api/) covers the complete file reference: request handling, response types, authentication, CORS, namespaces, and the security model.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

@@ -123,3 +123,8 @@ If `phpoffice/phpspreadsheet` isn't installed, `new Spreadsheet()` is an undefin
 ## What this opens up
 
 Same shape, different query: product catalogs, subscriber lists, form submissions, anything a stakeholder wants "in Excel" instead of in the admin. It's also a narrow enough file, one query, one loop, one writer call, that handing it to an AI coding assistant to draft is a reasonable single-pass task, the contract (query the data, write it to the sheet, stream the file) leaves little room to wander.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [Composer packages](/composer/)

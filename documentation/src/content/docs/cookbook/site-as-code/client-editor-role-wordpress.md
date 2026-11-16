@@ -124,3 +124,7 @@ In wp-admin, `post-new.php` and `upload.php` open, while `plugins.php`, `plugin-
 - **Rollback.** A bad push of the role is undone with `lps role rollback`, see [Rollback and Snapshots](/rollback/).
 
 To see how the rest of a site is declared the same way, start with the [events catalog](/cookbook/site-as-code/upcoming-events-custom-post-type-wordpress-rest-api/).
+
+## Related docs
+
+- [Roles](/roles/)

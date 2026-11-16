@@ -186,3 +186,8 @@ Same raw-output bypass as the PDF and spreadsheet recipes: a route can hand back
 ## What this opens up
 
 The same file grows by adding fields and types, not by adding endpoints, a `relatedProducts` field on `Product` is a resolver, not a new route. It's also narrow enough as a starting point, one file, one schema, one dispatch method, that drafting the first version of it with an AI coding assistant and reviewing the resolvers yourself is a reasonable way to get it written.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [ACF field groups](/acf/)

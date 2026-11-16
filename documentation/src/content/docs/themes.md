@@ -77,3 +77,7 @@ If your repo has a `composer.json`, it is authoritative: `lps theme version pull
 :::note
 The aggregate [`lps push`](/workflow/#what-each-command-covers) includes templates and parts and, once the project tracks them, [Global Styles](/theme-styles/). `lps pull` includes Global Styles too. Theme versions stay out of both, and so of `lps promote`: run `lps theme push` / `lps theme pull` explicitly.
 :::
+
+## Related
+
+- [Astra vs Twenty Twenty-Five: 34% Fewer Queries on a Real Site](/blog/astra-to-twenty-twenty-five-performance/)

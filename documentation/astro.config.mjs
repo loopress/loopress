@@ -291,6 +291,11 @@ export default defineConfig({
 			],
 			social: [
 				{
+					icon: "external",
+					label: "loopress.dev",
+					href: "https://loopress.dev/",
+				},
+				{
 					icon: "github",
 					label: "GitHub",
 					href: "https://github.com/loopress",

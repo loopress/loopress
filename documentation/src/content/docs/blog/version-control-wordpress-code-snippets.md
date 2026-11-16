@@ -129,3 +129,7 @@ Loopress syncs snippets by ID (stored in the `.json` sidecar). If you pull first
 ---
 
 If this resonates, the next step is `lps project config` and adding `snippets/` to your project's Git repository. From there, every snippet change is a commit.
+
+## Related docs
+
+- [Snippets](/snippets/)

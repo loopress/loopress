@@ -102,3 +102,7 @@ Without `league/html-to-markdown` installed, `HtmlConverter` is an undefined cla
 The [`llms.txt`](https://llmstxt.org/) convention expects two things: a `/llms.txt` file at the site root listing the pages worth reading, and a Markdown version of each page, usually at the page's own URL with `.md` appended. This recipe covers the second half, at `/wp-json/loopress-api/v1/markdown/<id>`, which you link from `llms.txt` rather than serving at the `.md` URL. A plain `/llms.txt` at the root and `.md` URLs next to each permalink need a rewrite rule, which a Custom API Route does not provide. If you want the index, add a second route, `api/llms.php`, that lists published posts with their title and Markdown URL, and link it from your `llms.txt`. The recipe stays on one route because the conversion is the part that needs a package.
 
 With one Markdown URL per post, that index is a second small route listing them. The same conversion feeds a RAG pipeline's ingestion step, a newsletter tool that wants Markdown, or a migration away from WordPress entirely. It's the reverse of [rendering Markdown with CommonMark](/cookbook/content-and-data/markdown-rendering-commonmark-wordpress-rest-api/), which turns Markdown written elsewhere into HTML for WordPress.
+
+## Related docs
+
+- [Writing route files](/api/routes/)

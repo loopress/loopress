@@ -98,3 +98,8 @@ Without `dompdf/dompdf` installed, `Dompdf` is an undefined class, an ordinary P
 ## What this opens up
 
 The same shape covers any post type with a "download" or "print" need, documentation pages, recipe posts, long-form guides, a portfolio piece. It's also a narrow file, one lookup, one HTML template, one render call, that's a reasonable one to have an AI coding assistant draft, the choice of what to include in the printed layout, a featured image, an author byline, category tags, being exactly the kind of decision worth making deliberately rather than trusting a first pass on.
+
+## Related docs
+
+- [Writing route files](/api/routes/)
+- [Composer packages](/composer/)
