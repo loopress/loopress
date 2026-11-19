@@ -28,7 +28,7 @@ export async function authorizeWithBrowser(siteUrl: string, log: (message: strin
         reject_url: `${callbackUrl}&cancelled=1`,
         success_url: callbackUrl,
       })
-      return `${siteUrl}/wp-admin/authorize-application.php?${params}`
+      return `${siteUrl}/wp-admin/authorize-application.php?${params.toString()}`
     },
     callbackHost: '127.0.0.1',
     handleRequest(url, {resolveWithPage, rejectWithPage, respondBadRequest}) {

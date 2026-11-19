@@ -72,7 +72,7 @@ export default class Link extends Command {
     const {envPlansByProject, projectPlans} = await this.planAll(projects, apiProjects)
 
     let projectCount = projectPlans.filter((plan) => plan.action === 'synced').length
-    let environmentCount = [...envPlansByProject.values()].flat().filter((plan) => plan.action === 'synced').length
+    let environmentCount = envPlansByProject.values().reduce((count, plans) => count + plans.filter((plan) => plan.action === 'synced').length, 0)
 
     const projectsNeedingWork = projectPlans.filter((plan) => plan.action !== 'synced')
     projectCount += await this.applyProjectPlans(api, projectsNeedingWork)

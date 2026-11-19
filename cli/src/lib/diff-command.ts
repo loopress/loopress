@@ -256,13 +256,13 @@ export abstract class DiffCommand extends LoopressCommand {
       const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])
       // Whole items: only in the unfiltered local files, or only on the site under an excluded path.
       const heldBackItems = [
-        ...(fullState ? [...fullState.keys()].filter((id) => !rightState.has(id)) : []),
-        ...[...leftState.keys()].filter((id) => !rightState.has(id) && !fullState?.has(id) && target.isHeldBack?.(id) === true),
+        ...(fullState ? fullState.keys().filter((id) => !rightState.has(id)).toArray() : []),
+        ...leftState.keys().filter((id) => !rightState.has(id) && !fullState?.has(id) && target.isHeldBack?.(id) === true),
       ]
       for (const id of heldBackItems) leftState.delete(id)
       // An item an excluded file is part of (a block's view.js): compared with the site's copy of
       // that file, held back when the local one differs.
-      const heldBackFiles = fullState ? [...rightState.keys()].filter((id) => fullState.has(id) && !isDeepStrictEqual(fullState.get(id), rightState.get(id))) : []
+      const heldBackFiles = fullState ? rightState.keys().filter((id) => fullState.has(id) && !isDeepStrictEqual(fullState.get(id), rightState.get(id))).toArray() : []
       const heldBack = [...heldBackItems, ...heldBackFiles].toSorted((a, b) => a.localeCompare(b))
       const stateDiff = compareStates(leftState, rightState, {left: sides.leftLabel, right: sides.rightLabel})
       return {

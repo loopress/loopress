@@ -117,7 +117,7 @@ describe('resource-state providers', () => {
 
       const state = await snippetProvider.local(dir, noWarn)
 
-      expect([...state.keys()]).toEqual(['local:draft.php'])
+      expect(state.keys().toArray()).toEqual(['local:draft.php'])
     })
 
     it('propagates a non-ENOENT error from loadSnippets instead of swallowing it', async () => {
@@ -232,7 +232,7 @@ describe('resource-state providers', () => {
 
       const state = await formProvider.local(dir, noWarn)
 
-      expect([...state.keys()]).toEqual(['local:draft'])
+      expect(state.keys().toArray()).toEqual(['local:draft'])
     })
 
     it('drops a remote form with no id instead of keying it "undefined"', async () => {
@@ -240,7 +240,7 @@ describe('resource-state providers', () => {
 
       const state = await formProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()]).toEqual([])
+      expect(state.keys().toArray()).toEqual([])
     })
   })
 
@@ -254,7 +254,7 @@ describe('resource-state providers', () => {
 
       const state = await acfProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()]).toEqual(['field-groups/group_1'])
+      expect(state.keys().toArray()).toEqual(['field-groups/group_1'])
 
       const diff = compareStates(state, await acfProvider.local(dir, noWarn), labels)
       expect(isEmptyDiff(diff)).toBe(true)
@@ -275,11 +275,11 @@ describe('resource-state providers', () => {
       writeFileSync(join(dir, 'field-groups', 'x.json'), JSON.stringify({title: 'No key'}))
 
       const localState = await acfProvider.local(dir, noWarn)
-      expect([...localState.keys()]).toEqual([])
+      expect(localState.keys().toArray()).toEqual([])
 
       const remote = fakeWp({'loopress/v1/acf/field-groups': [{title: 'No key either'}]})
       const remoteState = await acfProvider.remote(remote, noWarn, dir)
-      expect([...remoteState.keys()]).toEqual([])
+      expect(remoteState.keys().toArray()).toEqual([])
     })
 
     // A hand- or agent-written field leaves out the defaults the site stores for it.
@@ -319,7 +319,7 @@ describe('resource-state providers', () => {
         warnings.push(message)
       })
 
-      expect([...state.keys()]).toEqual(['field-groups/group_1'])
+      expect(state.keys().toArray()).toEqual(['field-groups/group_1'])
       expect(warnings).toHaveLength(3)
     })
   })
@@ -382,7 +382,7 @@ describe('resource-state providers', () => {
 
       const state = await menuProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()].toSorted((a, b) => a.localeCompare(b))).toEqual(['menu-locations', 'menu/main'])
+      expect(state.keys().toArray().toSorted((a, b) => a.localeCompare(b))).toEqual(['menu-locations', 'menu/main'])
       expect(state.get('menu-locations')).toEqual({primary: 'main'})
 
       const diff = compareStates(state, await menuProvider.local(dir, noWarn), labels)
@@ -410,7 +410,7 @@ describe('resource-state providers', () => {
 
       const state = await menuProvider.remote(remote, noWarn, dir)
 
-      expect([...state.keys()]).toEqual(['menu-locations'])
+      expect(state.keys().toArray()).toEqual(['menu-locations'])
     })
 
     it('falls back to a "local:" key for a local menu file with no, or an empty, slug', async () => {
@@ -419,7 +419,7 @@ describe('resource-state providers', () => {
 
       const state = await menuProvider.local(dir, noWarn)
 
-      expect([...state.keys()]).toEqual(expect.arrayContaining(['menu/local:draft', 'menu/local:blank']))
+      expect(state.keys().toArray()).toEqual(expect.arrayContaining(['menu/local:draft', 'menu/local:blank']))
     })
 
     it('reads menu-locations.json as its own fixed "menu-locations" entry, separate from any menu', async () => {
@@ -490,7 +490,7 @@ describe('resource-state providers', () => {
 
       const state = await themeStylesProvider.local(dir, noWarn)
 
-      expect([...state.keys()]).toEqual(['twentytwentyfour'])
+      expect(state.keys().toArray()).toEqual(['twentytwentyfour'])
     })
 
     it('flags a real styles change', async () => {
@@ -640,7 +640,7 @@ describe('composer state', () => {
 
     const state = await composerRemoteState(wp)
 
-    expect([...state.keys()]).toEqual(['composer.json'])
+    expect(state.keys().toArray()).toEqual(['composer.json'])
   })
 
   it('propagates a non-404 error fetching composer.lock', async () => {
