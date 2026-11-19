@@ -1,6 +1,6 @@
 ---
 title: Composer Packages in a WordPress REST API Route
-description: Composer packages installed with Loopress are autoloaded in any custom WordPress REST API route, so you can use them with no wiring.
+description: Composer packages installed with Loopress are autoloaded in Loopress Custom API Routes, so route files can use them with no wiring.
 date: 2026-08-03
 draft: false
 cliVersion: 0.20.1

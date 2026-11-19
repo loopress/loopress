@@ -1,5 +1,5 @@
 // Build assertion: every indexable page has a title of 30 to 65 chars, a description of 110 to 165
-// chars, and neither is shared with another page. Usage: node scripts/check-seo-meta.mjs <build dir>
+// chars, and neither is shared with another page. Usage: node ../scripts/check-seo-meta.mjs <build dir>
 // [--max-only]. With --max-only the minimums are not enforced (the docs reference pages are short
 // on purpose), only the maximums and the duplicates.
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -23,14 +23,9 @@ function* htmlFiles(d) {
 	}
 }
 
-const decode = (s) =>
-	s
-		.replaceAll("&lt;", "<")
-		.replaceAll("&gt;", ">")
-		.replaceAll("&quot;", '"')
-		.replaceAll("&#39;", "'")
-		.replaceAll("&#x27;", "'")
-		.replaceAll("&amp;", "&");
+// Decode the entities in one pass so "&amp;quot;" stays "&quot;".
+const ENTITIES = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&#x27;": "'", "&amp;": "&" };
+const decode = (s) => s.replace(/&(?:lt|gt|quot|amp|#39|#x27);/g, (e) => ENTITIES[e]);
 const meta = (html, re) => {
 	const m = html.match(re);
 	return m ? decode(m[1]).trim() : "";
