@@ -1,6 +1,6 @@
 // Build assertion: every JSON-LD block on every page parses. With --docs, every indexable page
-// also has a BreadcrumbList; without it (the website), /faq has a FAQPage with one Question per
-// question rendered on the page. Usage: node ../scripts/check-structured-data.mjs <build dir> [--docs]
+// also has a BreadcrumbList; without it (the website), /faq and each /vs/<tool> page have a FAQPage
+// with one Question per question rendered on the page. Usage: node ../scripts/check-structured-data.mjs <build dir> [--docs]
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -45,8 +45,8 @@ for (const file of htmlFiles(dir)) {
 	const indexable = page !== "404.html" && !/<meta[^>]+name=["']robots["'][^>]+noindex/i.test(html);
 	if (docs && indexable && !types.includes("BreadcrumbList")) problems.push(`${page}: no BreadcrumbList`);
 
-	if (!docs && (page === "faq.html" || page === "faq/index.html")) {
-		faqChecked = true;
+	if (!docs && /^(faq|vs\/[^/]+?)(\/index)?\.html$/.test(page) && !/^vs\/index\.html$/.test(page)) {
+		if (page.startsWith("faq")) faqChecked = true;
 		const faq = things.find((t) => t["@type"] === "FAQPage");
 		const questions = (html.match(/<dt[\s>]/g) ?? []).length;
 		if (!faq) problems.push(`${page}: no FAQPage`);

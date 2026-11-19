@@ -13,15 +13,16 @@ export function getStaticPaths() {
 
 const { a } = Astro.props as { a: Alternative };
 
-// The docs page that covers the Loopress side of each comparison.
-const docs: Record<string, [label: string, href: string]> = {
-  "acf-local-json": ["ACF field groups in Git", "https://docs.loopress.dev/acf/"],
-  "wp-staging": ["The push and pull workflow", "https://docs.loopress.dev/workflow/"],
-  "wp-migrate": ["The push and pull workflow", "https://docs.loopress.dev/workflow/"],
-  bedrock: ["Composer packages", "https://docs.loopress.dev/composer/"],
-  versionpress: ["Rolling back a deploy", "https://docs.loopress.dev/rollback/"],
+// FAQPage from the same array the page renders, so the markup and the questions never drift.
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: a.faq.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
 };
-const doc = docs[a.slug];
 
 const breadcrumbs = [
   { name: "Loopress", url: "https://loopress.dev/" },
@@ -30,7 +31,10 @@ const breadcrumbs = [
 ];
 ---
 
-<DocPage title={a.seoTitle} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide breadcrumbs={breadcrumbs}>
+<DocPage title={a.seoTitle} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide structuredData={structuredData} breadcrumbs={breadcrumbs}>
+  {a.intro.map((p) => <p>{p}</p>)}
+
+  <h2>{a.name} and Loopress, side by side</h2>
   <table class="vs">
     <thead>
       <tr><th></th><th>{a.name}</th><th>Loopress</th></tr>
@@ -77,9 +81,22 @@ const breadcrumbs = [
     </>
   )}
 
-  {doc && (
-    <p class="doc">Related docs: <a href={doc[1]}>{doc[0]}</a>.</p>
-  )}
+  <h2>Questions</h2>
+  <dl class="faq">
+    {a.faq.map((item) => (
+      <div>
+        <dt>{item.q}</dt>
+        <dd>{item.a}</dd>
+      </div>
+    ))}
+  </dl>
+
+  <h2>See it in the docs</h2>
+  <ul class="doc">
+    {a.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}
+    <li>Recipe: <a href={a.recipe[1]}>{a.recipe[0]}</a></li>
+    <li><a href="/faq">Loopress FAQ</a></li>
+  </ul>
 
   <p class="others">
     <a href="/vs">All comparisons</a> ·{" "}
@@ -107,7 +124,12 @@ const breadcrumbs = [
   .picks { display: grid; gap: 0 3rem; }
   @media (min-width: 768px) { .picks { grid-template-columns: 1fr 1fr; } }
 
-  .doc { margin-top: 2rem; font-size: 0.95rem; }
+  .vs { margin-top: 1.25rem; }
+  .faq { margin-top: 1.25rem; }
+  .faq > div { padding-block: 1.25rem; border-top: 1px solid color-mix(in oklch, currentColor 15%, transparent); }
+  .faq dt { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; }
+  .faq dd { margin-top: 0.5rem; }
+  .doc { font-size: 0.95rem; }
   .others { margin-top: 1.5rem; font-size: 0.95rem; }
   @media (max-width: 640px) {
     .vs thead { display: none; }
