@@ -120,7 +120,7 @@ export const alternatives: Alternative[] = [
     slug: "wp-staging",
     name: "WP Staging and Duplicator",
     kind: "staging and migration plugins",
-    heading: "A WP Staging alternative that never copies your content.",
+    heading: "A WP Staging alternative that never pushes your content.",
     seoTitle: "WP Staging and Duplicator Alternative for Developers - Loopress",
     lede: "Staging and migration plugins copy a whole site, database included. Loopress moves only the configuration and code you changed, and never the content.",
     intro: [

@@ -46,7 +46,7 @@ for (const file of htmlFiles(dir)) {
 	if (docs && indexable && !types.includes("BreadcrumbList")) problems.push(`${page}: no BreadcrumbList`);
 
 	if (!docs && /^(faq|vs\/[^/]+?)(\/index)?\.html$/.test(page) && !/^vs\/index\.html$/.test(page)) {
-		faqChecked = true;
+		if (page.startsWith("faq")) faqChecked = true;
 		const faq = things.find((t) => t["@type"] === "FAQPage");
 		const questions = (html.match(/<dt[\s>]/g) ?? []).length;
 		if (!faq) problems.push(`${page}: no FAQPage`);
