@@ -83,7 +83,7 @@ export default class Rm extends LoopressCommand {
     const found: string[] = []
     for (const kind of ['page', 'template', 'part', 'pattern'] as const) {
       const dir = resolveResourceDir(kind, this.localConfig)
-      found.push(...(await this.filesPlacing(dir, marker)))
+      for (const file of await this.filesPlacing(dir, marker)) found.push(file)
     }
 
     return found
