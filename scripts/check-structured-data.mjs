@@ -31,7 +31,9 @@ for (const file of htmlFiles(dir)) {
 	if (/<meta[^>]+http-equiv=["']refresh/i.test(html)) continue;
 
 	const things = [];
-	for (const [, json] of html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)) {
+	// Every <script> first, then its type, so attribute order and quoting do not hide a block.
+	for (const [, attrs, json] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+		if (!/\btype\s*=\s*["']?application\/ld\+json["']?/i.test(attrs)) continue;
 		try {
 			things.push(...nodes(JSON.parse(json)));
 		} catch (error) {
