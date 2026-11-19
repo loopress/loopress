@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build && node scripts/check-llms.mjs",
+    "build": "astro build && node scripts/check-llms.mjs && node ../scripts/check-seo-meta.mjs dist --max-only",
     "preview": "astro preview",
     "astro": "astro"
   },

@@ -1,5 +1,5 @@
 ---
-title: Import a CSV into WordPress with a REST Route and League CSV
+title: Import a CSV into WordPress with League CSV
 description: Upload a supplier CSV to a WordPress REST route that parses it with league/csv, creates draft products and reports every rejected row, editors only.
 kind: route
 ---

@@ -1,5 +1,5 @@
 ---
-title: Headless WordPress Sitemap for a Next.js or Astro Frontend
+title: Headless WordPress Sitemap for Next.js or Astro
 description: A Custom API Route that returns an XML sitemap with your frontend's own domain, built from WordPress posts and pages, since wp-sitemap.xml lists the CMS origin.
 kind: route
 ---

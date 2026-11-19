@@ -1,5 +1,5 @@
 ---
-title: Ticket QR Code Generation in a WordPress REST API Route
+title: QR Code Generation in a WordPress REST Route
 description: A Custom API Route renders a scannable QR code for an event ticket on request with endroid/qr-code, so no image file is stored per ticket sold or goes stale.
 kind: route
 ---

@@ -1,5 +1,5 @@
 ---
-title: WordPress Has a DX Problem, and Developers Are Paying for It
+title: WordPress Has a DX Problem, and Devs Pay for It
 description: WordPress powers a huge share of the web but treats developers like afterthoughts. This post explains the problem and what a better workflow looks like.
 date: 2026-07-08
 draft: false

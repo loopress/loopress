@@ -1,6 +1,6 @@
 ---
-title: How Loopress Light Got Into the WordPress.org Directory
-description: Loopress Light is on the official directory. Getting there meant an initial rejection, a failed appeal over snippet sync, and rebuilding the plugin around what the review team said they would accept.
+title: How Loopress Light Got Into WordPress.org
+description: "Loopress Light is in the official directory. How we got there: a rejection, a failed appeal over snippet sync, and a rebuild around what review accepts."
 date: 2026-09-06
 draft: false
 cliVersion: 0.23.0

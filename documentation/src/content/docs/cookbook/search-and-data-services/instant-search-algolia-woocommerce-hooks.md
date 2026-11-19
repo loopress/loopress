@@ -1,5 +1,5 @@
 ---
-title: Typo-Tolerant Instant Search in WooCommerce with Algolia
+title: Typo-Tolerant WooCommerce Search with Algolia
 description: Index a WooCommerce catalog into Algolia with a Hook, then replace the native search box with a typo-tolerant React app using the Algolia PHP and JS clients.
 kind: app
 youtubeId: vRuUAiyXhew

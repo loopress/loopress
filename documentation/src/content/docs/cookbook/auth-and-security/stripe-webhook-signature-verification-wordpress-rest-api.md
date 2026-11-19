@@ -1,5 +1,5 @@
 ---
-title: Verify Stripe Webhook Signatures in a WordPress REST Route
+title: Verify Stripe Webhook Signatures in WordPress
 description: Receive Stripe webhooks in WordPress and verify the Stripe-Signature header with stripe-php's constructEvent in one Loopress API route. No account needed.
 kind: route
 ---

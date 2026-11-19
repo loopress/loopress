@@ -1,5 +1,5 @@
 ---
-title: "Upcoming Events in WordPress: Custom Post Type and REST API"
+title: "WordPress Events Catalog: Custom Post Type in Git"
 description: "Build a WordPress events catalog in Git: an event post type, an event type taxonomy, date and venue meta, and a REST route listing upcoming events by date."
 kind: site
 ---

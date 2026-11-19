@@ -1,6 +1,6 @@
 ---
 title: When a WordPress REST Route Shouldn't Return JSON
-description: PDFs, spreadsheets, calendar feeds, Markdown, images. The WordPress REST API assumes JSON, but plenty of real endpoints shouldn't answer with it. Four response shapes for a custom route, and how to choose from who's calling.
+description: A custom WordPress REST route can return PDFs, spreadsheets, calendar feeds, Markdown or images. Four response shapes, and how to choose from who is calling.
 date: 2026-10-25
 draft: false
 cliVersion: 0.32.2

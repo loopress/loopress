@@ -24,7 +24,7 @@ const docs: Record<string, [label: string, href: string]> = {
 const doc = docs[a.slug];
 ---
 
-<DocPage title={`${a.heading.replace(/\.$/, "")} - Loopress`} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide>
+<DocPage title={a.seoTitle} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide>
   <table class="vs">
     <thead>
       <tr><th></th><th>{a.name}</th><th>Loopress</th></tr>

@@ -1,6 +1,6 @@
 ---
-title: Why wordpress.org Won't Let You Install Composer Packages From a Plugin
-description: We asked the wordpress.org plugin review team if a Composer package installer belonged in the official directory. The answer was no, and it reshaped how we ship the Loopress plugin.
+title: WordPress.org Rejects Composer Installers in Plugins
+description: We asked the wordpress.org plugin review team if a Composer installer belonged in the directory. They said no, and it reshaped how we ship the Loopress plugin.
 date: 2026-07-16
 draft: false
 cliVersion: 0.15.0

@@ -1,5 +1,5 @@
 ---
-title: Serve WordPress Posts as Markdown for LLMs and AI Search
+title: Serve WordPress Posts as Markdown for LLMs
 description: Add a public WordPress REST route that returns any published post as clean Markdown with league/html-to-markdown, ready for llms.txt, AI crawlers and RAG.
 kind: route
 ---
