@@ -282,7 +282,7 @@ export const restorePlugins: RollbackRestore = async (context) => {
 
   await restoreActiveStates(context, intent)
 
-  const kept = [...current.keys()].filter((slug) => !Object.hasOwn(snapshot.beforeState, slug) && !locked.has(slug))
+  const kept = current.keys().filter((slug) => !Object.hasOwn(snapshot.beforeState, slug) && !locked.has(slug)).toArray()
   if (kept.length > 0) warn(`Installed outside Loopress since that push, left as they are: ${kept.join(', ')}.`)
 }
 

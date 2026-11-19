@@ -78,12 +78,14 @@ export async function postDeployment(body: {command: string | undefined; plugins
 export type PushChange = {id: string; status: 'changed' | 'created' | 'removed' | 'unchanged'}
 
 export function pushChanges(local: ResourceState, remote: ResourceState, options: {mirror?: boolean; writes?: ((id: string) => boolean) | undefined} = {}): PushChange[] {
-  const changes: PushChange[] = [...local.keys()]
+  const changes: PushChange[] = local
+    .keys()
     .filter((id) => options.writes?.(id) ?? true)
-    .map((id) => {
+    .map((id): PushChange => {
       if (!remote.has(id)) return {id, status: 'created'}
       return {id, status: isDeepStrictEqual(local.get(id), remote.get(id)) ? 'unchanged' : 'changed'}
     })
+    .toArray()
   if (options.mirror) {
     for (const id of remote.keys()) if (!local.has(id)) changes.push({id, status: 'removed'})
   }
@@ -375,13 +377,16 @@ export abstract class PushCommand extends LoopressCommand {
       this.error(`Could not check for changes made on ${this.siteConfig.url} outside Loopress: ${errorMessage(error)}. Retry, or pass --overwrite.`)
     }
 
-    const overwritten = [...local.keys()].filter(
-      (id) =>
-        (writes?.(id) ?? true) &&
-        remote.get(id) !== undefined &&
-        !sameEntry(remote, expected, id) &&
-        !sameEntry(local, remote, id),
-    )
+    const overwritten = local
+      .keys()
+      .filter(
+        (id) =>
+          (writes?.(id) ?? true) &&
+          remote.get(id) !== undefined &&
+          !sameEntry(remote, expected, id) &&
+          !sameEntry(local, remote, id),
+      )
+      .toArray()
     if (overwritten.length === 0) return
 
     const message =

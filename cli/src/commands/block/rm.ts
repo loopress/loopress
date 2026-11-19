@@ -66,17 +66,24 @@ export default class Rm extends LoopressCommand {
     return {references, removed: true, slug, status: 'success'}
   }
 
+  private async filesPlacing(dir: string, marker: RegExp): Promise<string[]> {
+    const files: string[] = []
+    for (const entry of await readdirTolerant(dir, {recursive: true, withFileTypes: true})) {
+      if (!entry.isFile() || !entry.name.endsWith('.html')) continue
+      const file = join(entry.parentPath, entry.name)
+      if (marker.test(await readFile(file, 'utf8'))) files.push(relative(process.cwd(), file))
+    }
+
+    return files
+  }
+
   // The project's own files still placing the block: pages, templates, parts and patterns.
   private async localReferences(slug: string): Promise<string[]> {
     const marker = new RegExp(String.raw`<!--\s*wp:loopress/${slug}[\s/]`)
     const found: string[] = []
     for (const kind of ['page', 'template', 'part', 'pattern'] as const) {
       const dir = resolveResourceDir(kind, this.localConfig)
-      for (const entry of await readdirTolerant(dir, {recursive: true, withFileTypes: true})) {
-        if (!entry.isFile() || !entry.name.endsWith('.html')) continue
-        const file = join(entry.parentPath, entry.name)
-        if (marker.test(await readFile(file, 'utf8'))) found.push(relative(process.cwd(), file))
-      }
+      found.push(...(await this.filesPlacing(dir, marker)))
     }
 
     return found

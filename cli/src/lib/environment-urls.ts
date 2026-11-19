@@ -45,8 +45,7 @@ function urlsByHost(value: unknown, hosts: Map<string, string>): Map<string, Set
     for (const match of text.matchAll(ABSOLUTE_URL)) {
       const url = match[0].replaceAll(String.raw`\/`, '/')
       const host = hostOf(url)
-      if (host === undefined || !hosts.has(host)) continue
-      found.set(host, (found.get(host) ?? new Set()).add(url))
+      if (host !== undefined && hosts.has(host)) found.set(host, (found.get(host) ?? new Set()).add(url))
     }
   }
 

@@ -88,26 +88,25 @@ async function requiredPlugins(slug: string): Promise<string[]> {
   const found: string[] = []
   const queue = [slug]
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    let info: Record<string, unknown>
-    try {
-      info = await got('https://api.wordpress.org/plugins/info/1.2/', {
-        searchParams: {action: 'plugin_information', 'request[slug]': next},
-        timeout: {request: 10_000},
-      }).json<Record<string, unknown>>()
-    } catch {
-      continue
-    }
-
-    const requires = Array.isArray(info.requires_plugins) ? info.requires_plugins : []
-    for (const dep of requires) {
-      if (typeof dep !== 'string' || dep === slug || found.includes(dep)) {
-        continue
-      }
-
+    const fresh = new Set((await requiresOf(next)).filter((dep) => dep !== slug && !found.includes(dep)))
+    for (const dep of fresh) {
       found.push(dep)
       queue.push(dep)
     }
   }
 
   return found
+}
+
+// The `requires_plugins` of one plugin on WordPress.org, empty when it is unknown or unreachable.
+async function requiresOf(slug: string): Promise<string[]> {
+  try {
+    const info = await got('https://api.wordpress.org/plugins/info/1.2/', {
+      searchParams: {action: 'plugin_information', 'request[slug]': slug},
+      timeout: {request: 10_000},
+    }).json<Record<string, unknown>>()
+    return Array.isArray(info.requires_plugins) ? info.requires_plugins.filter((dep): dep is string => typeof dep === 'string') : []
+  } catch {
+    return []
+  }
 }

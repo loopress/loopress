@@ -15,6 +15,7 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "target": "es2024",
+    "lib": ["es2024", "es2025.iterator"],
     "moduleResolution": "node16",
     "types": ["node"],
     "verbatimModuleSyntax": true

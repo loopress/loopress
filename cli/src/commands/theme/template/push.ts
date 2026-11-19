@@ -179,7 +179,7 @@ export default class Push extends PushCommand {
     const localCss: ResourceState = new Map([...cssHashState(css)].map(([id, hash]) => [id.slice('css/'.length), hash]))
     const cssChanges: CssChange[] = child.css
       ? pushChanges(localCss, new Map(Object.entries(child.css)), {mirror: true})
-      : [...localCss.keys()].toSorted((a, b) => a.localeCompare(b)).map((id) => ({id, status: 'unknown'}))
+      : localCss.keys().toArray().toSorted((a, b) => a.localeCompare(b)).map((id) => ({id, status: 'unknown'}))
 
     return {
       css: cssChanges,
