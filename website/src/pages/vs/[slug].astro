@@ -22,9 +22,15 @@ const docs: Record<string, [label: string, href: string]> = {
   versionpress: ["Rolling back a deploy", "https://docs.loopress.dev/rollback/"],
 };
 const doc = docs[a.slug];
+
+const breadcrumbs = [
+  { name: "Loopress", url: "https://loopress.dev/" },
+  { name: "Compare", url: "https://loopress.dev/vs" },
+  { name: `Loopress vs ${a.name}`, url: `https://loopress.dev/vs/${a.slug}` },
+];
 ---
 
-<DocPage title={a.seoTitle} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide>
+<DocPage title={a.seoTitle} kicker={`compare · ${a.kind}`} heading={a.heading} lede={a.lede} wide breadcrumbs={breadcrumbs}>
   <table class="vs">
     <thead>
       <tr><th></th><th>{a.name}</th><th>Loopress</th></tr>

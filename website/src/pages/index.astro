@@ -8,6 +8,7 @@ import Layout from "@/layouts/Layout.astro";
 import Logo from "@/components/site/Logo.astro";
 import Editions from "@/components/site/Editions.astro";
 import Footer from "@/components/site/Footer.astro";
+import cli from "../../../cli/package.json";
 
 export const prerender = true;
 
@@ -24,6 +25,9 @@ const structuredData = {
   url: "https://loopress.dev",
   author: { "@id": "https://loopress.dev/#organization" },
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  // The CLI is what you install first, the plugin comes with lps project config.
+  downloadUrl: "https://www.npmjs.com/package/@loopress/cli",
+  softwareVersion: cli.version,
 };
 
 // Flat-top hexagon, same orientation and proportions as the logo.

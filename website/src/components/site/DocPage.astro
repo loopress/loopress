@@ -5,8 +5,10 @@ import Layout from "@/layouts/Layout.astro";
 import Logo from "@/components/site/Logo.astro";
 import Footer from "@/components/site/Footer.astro";
 
-const { title, description, kicker, heading, lede, wide = false } = Astro.props as {
+const { title, description, kicker, heading, lede, wide = false, structuredData, breadcrumbs } = Astro.props as {
   title: string;
+  structuredData?: object;
+  breadcrumbs?: { name: string; url: string }[];
   description?: string;
   kicker: string;
   heading: string;
@@ -21,6 +23,8 @@ const { title, description, kicker, heading, lede, wide = false } = Astro.props 
   ogTitle={title}
   ogDescription={description ?? lede}
   canonical={new URL(Astro.url.pathname.replace(/(.)\/$/, "$1"), "https://loopress.dev").href}
+  structuredData={structuredData}
+  breadcrumbs={breadcrumbs}
 >
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@500&display=swap" />
 
