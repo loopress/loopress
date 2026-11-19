@@ -1,6 +1,8 @@
 ---
 import Default from "@astrojs/starlight/components/Head.astro";
 import Analytics from "@vercel/analytics/astro";
+import { getCollection } from "astro:content";
+import { lastCommitDate } from "../lib/git-date";
 
 // Default social card for every page. Starlight emits `twitter:card` as
 // `summary_large_image` but no image, so shared links would show a bare card.
@@ -11,6 +13,90 @@ const ogAlt = "Loopress: version control for WordPress configuration and code";
 const path = Astro.url.pathname;
 const isThinBlogListing = /^\/blog\/((tags|authors)\/|\d+\/?$)/.test(path);
 const isBlogIndex = path === "/blog/" || path === "/blog";
+
+// JSON-LD. starlight-blog already emits BlogPosting + BreadcrumbList on posts: they get the
+// publisher and dateModified it leaves out. Every other docs and cookbook page gets a TechArticle
+// and a BreadcrumbList built from the ancestors that are pages themselves.
+const site = Astro.site ?? Astro.url;
+const route = Astro.locals.starlightRoute;
+const { entry } = route;
+const publisher = {
+	"@type": "Organization",
+	"@id": "https://loopress.dev/#organization",
+	name: "Loopress",
+	url: "https://loopress.dev",
+	logo: { "@type": "ImageObject", url: "https://loopress.dev/logo.png", width: 1024, height: 1024 },
+};
+const modified = (published?: string) => {
+	const date = entry.data.lastUpdated instanceof Date ? entry.data.lastUpdated : entry.filePath && lastCommitDate(entry.filePath);
+	if (!date) return undefined;
+	// A post committed before its publication date was not modified after it.
+	return published && date.toISOString() < published ? published : date.toISOString();
+};
+
+for (const item of route.head) {
+	if (item.tag !== "script" || item.attrs?.type !== "application/ld+json" || !item.content) continue;
+	const data = JSON.parse(item.content);
+	const posting = (data["@graph"] ?? [data]).find((thing: { "@type"?: string }) => thing["@type"] === "BlogPosting");
+	if (!posting) continue;
+	posting.publisher = publisher;
+	posting.dateModified ??= modified(posting.datePublished);
+	if (!posting.dateModified) delete posting.dateModified;
+	item.content = JSON.stringify(data);
+}
+
+let pageSchema: object | undefined;
+const breadcrumbList = (crumbs: { name: string; url: string }[]) => ({
+	"@type": "BreadcrumbList",
+	itemListElement: crumbs.map((crumb, i) => ({
+		"@type": "ListItem",
+		position: i + 1,
+		name: crumb.name,
+		item: crumb.url,
+	})),
+});
+if (isBlogIndex) {
+	// The blog root has its Blog and CollectionPage from starlight-blog, only the trail is missing.
+	pageSchema = {
+		"@context": "https://schema.org",
+		...breadcrumbList([
+			{ name: "Loopress Docs", url: new URL("/", site).href },
+			{ name: "Blog", url: new URL("/blog/", site).href },
+		]),
+	};
+} else if (entry.id !== "404" && !entry.id.startsWith("blog")) {
+	const titles = new Map((await getCollection("docs")).map((doc) => [doc.id, doc.data.title]));
+	const pageUrl = (id: string) => new URL(id === "index" ? "/" : `/${id}/`, site).href;
+	const segments = entry.id === "index" ? [] : entry.id.split("/");
+	const crumbs = [{ name: "Loopress Docs", url: pageUrl("index") }];
+	for (let i = 1; i < segments.length; i++) {
+		const id = segments.slice(0, i).join("/");
+		const title = titles.get(id);
+		if (title) crumbs.push({ name: title, url: pageUrl(id) });
+	}
+	if (segments.length) crumbs.push({ name: entry.data.title, url: pageUrl(entry.id) });
+
+	const url = pageUrl(entry.id);
+	const dateModified = modified();
+	pageSchema = {
+		"@context": "https://schema.org",
+		"@graph": [
+			{
+				"@type": "TechArticle",
+				headline: entry.data.title,
+				...(entry.data.description && { description: entry.data.description }),
+				url,
+				mainEntityOfPage: url,
+				inLanguage: "en",
+				image: ogImage,
+				...(dateModified && { dateModified }),
+				publisher,
+				isPartOf: { "@type": "WebSite", name: "Loopress Docs", url: pageUrl("index") },
+			},
+			breadcrumbList(crumbs),
+		],
+	};
+}
 ---
 
 <Default {...Astro.props} />
@@ -29,4 +115,5 @@ const isBlogIndex = path === "/blog/" || path === "/blog";
 		/>
 	)
 }
+{pageSchema && <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />}
 <Analytics />

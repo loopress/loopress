@@ -18,9 +18,30 @@ const synced = [
   ["The options you choose to track", "lps option pull · push"],
   ["Block theme styles", "lps theme style pull · push"],
 ];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Loopress Light",
+  applicationCategory: "DeveloperApplication",
+  applicationSubCategory: "WordPress plugin",
+  operatingSystem: "WordPress 6.2+",
+  description: "The free WordPress.org edition of the Loopress plugin: with the lps CLI, it puts a site's configuration in Git.",
+  url: "https://loopress.dev/light",
+  downloadUrl: "https://wordpress.org/plugins/loopress-light/",
+  sameAs: "https://wordpress.org/plugins/loopress-light/",
+  license: "https://www.gnu.org/licenses/gpl-2.0.html",
+  author: { "@id": "https://loopress.dev/#organization" },
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const breadcrumbs = [
+  { name: "Loopress", url: "https://loopress.dev/" },
+  { name: "Loopress Light", url: "https://loopress.dev/light" },
+];
 ---
 
-<DocPage title="Loopress Light: Put Your WordPress Config in Git" description="Loopress Light is the free WordPress.org plugin. The CLI turns your site's configuration into files you keep in Git, review, and push to any environment." kicker="loopress light · from wordpress.org" heading="You installed Light. Here's the other half." lede="Light is the plugin. The workflow lives in the CLI: it turns your site's configuration into files you keep in Git, review, and push to any environment.">
+<DocPage title="Loopress Light: Put Your WordPress Config in Git" description="Loopress Light is the free WordPress.org plugin. The CLI turns your site's configuration into files you keep in Git, review, and push to any environment." kicker="loopress light · from wordpress.org" heading="You installed Light. Here's the other half." lede="Light is the plugin. The workflow lives in the CLI: it turns your site's configuration into files you keep in Git, review, and push to any environment." structuredData={structuredData} breadcrumbs={breadcrumbs}>
   <h2>What Light puts in Git</h2>
   <table class="synced">
     <tbody>

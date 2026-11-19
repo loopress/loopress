@@ -13,9 +13,14 @@ const tables = [
 
 // "yes" / "no" read at a glance, anything longer is a nuance worth reading.
 const tone = (cell: string) => (cell === "yes" || cell === "always" || cell.startsWith("yes,") ? "y" : cell === "no" ? "n" : "m");
+
+const breadcrumbs = [
+  { name: "Loopress", url: "https://loopress.dev/" },
+  { name: "Compare", url: "https://loopress.dev/vs" },
+];
 ---
 
-<DocPage title="Loopress vs Other WordPress Deploy Tools - Loopress" kicker="compare" heading="Loopress, next to what you use today." lede="Most WordPress devs already have a way to move changes between sites. Here is where each one fits, and where Loopress does something different." wide>
+<DocPage title="Loopress vs Other WordPress Deploy Tools - Loopress" kicker="compare" heading="Loopress, next to what you use today." lede="Most WordPress devs already have a way to move changes between sites. Here is where each one fits, and where Loopress does something different." wide breadcrumbs={breadcrumbs}>
   {tables.map((t) => (
     <>
       <h2>{t.title}</h2>
