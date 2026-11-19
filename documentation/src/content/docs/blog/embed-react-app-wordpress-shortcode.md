@@ -1,6 +1,6 @@
 ---
-title: Embed a React App in a WordPress Page With One Shortcode
-description: Build a single-page app with your own toolchain, ship the bundle to WordPress with the Loopress CLI, and mount it with a shortcode. A real product-search widget, start to finish.
+title: Embed a React App in WordPress With a Shortcode
+description: Build a single-page app with your own toolchain, ship the bundle with the Loopress CLI and mount it in WordPress with a shortcode. A real search widget.
 date: 2026-09-05
 draft: false
 cliVersion: 0.23.0

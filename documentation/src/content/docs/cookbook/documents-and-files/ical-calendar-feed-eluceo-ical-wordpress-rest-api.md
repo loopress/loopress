@@ -1,5 +1,5 @@
 ---
-title: iCal Calendar Feed for WordPress Events with eluceo/ical
+title: iCal Calendar Feed for WordPress with eluceo/ical
 description: Serve your WordPress events as a live .ics calendar feed with eluceo/ical and a Custom API Route, so visitors subscribe once in Google or Apple Calendar.
 kind: route
 ---

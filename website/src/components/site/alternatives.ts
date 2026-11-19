@@ -7,6 +7,8 @@ export type Alternative = {
   name: string;
   kind: string;
   heading: string;
+  // <title> of the page, leads with the query people type.
+  seoTitle: string;
   lede: string;
   rows: [topic: string, them: string, us: string][];
   task?: { title: string; them: string[]; us: string };
@@ -58,6 +60,7 @@ export const alternatives: Alternative[] = [
     name: "ACF Local JSON",
     kind: "the built-in option",
     heading: "Loopress vs ACF Local JSON.",
+    seoTitle: "ACF Local JSON Alternative: Loopress vs Local JSON - Loopress",
     lede: "ACF can already save field groups as JSON in your theme. If field groups are all you need in Git, that may be enough. Loopress starts where it stops.",
     rows: [
       ["What's in Git", "ACF field groups, post types, taxonomies, options pages", "The same, plus menus, options, theme styles, and code with Full"],
@@ -80,6 +83,7 @@ export const alternatives: Alternative[] = [
     name: "WP Staging and Duplicator",
     kind: "staging and migration plugins",
     heading: "Loopress vs WP Staging and Duplicator.",
+    seoTitle: "WP Staging and Duplicator Alternative for Developers - Loopress",
     lede: "Staging and migration plugins copy a whole site, database included. Loopress moves only the configuration and code you changed, and never the content.",
     rows: [
       ["Unit of change", "A snapshot of the site, files and database", "One file: a field group, a menu, a hook"],
@@ -104,6 +108,7 @@ export const alternatives: Alternative[] = [
     name: "WP Migrate",
     kind: "database sync",
     heading: "Loopress vs WP Migrate.",
+    seoTitle: "WP Migrate Alternative: Sync WordPress Config via Git - Loopress",
     lede: "WP Migrate pushes and pulls databases between environments, with find and replace on URLs. Loopress moves configuration as files, one resource at a time.",
     rows: [
       ["Unit of change", "Database tables", "Files: one per field group, menu, option, hook"],
@@ -127,6 +132,7 @@ export const alternatives: Alternative[] = [
     name: "Roots Bedrock",
     kind: "a project structure",
     heading: "Loopress vs Bedrock.",
+    seoTitle: "WordPress Version Control Alternative to Bedrock - Loopress",
     lede: "Bedrock restructures a WordPress project around Composer. Loopress leaves the site as it is and puts its configuration and code in Git.",
     rows: [
       ["Project layout", "Its own: core in web/wp, code in web/app, settings in .env", "The stock wp-content layout your host already runs"],
@@ -150,6 +156,7 @@ export const alternatives: Alternative[] = [
     name: "VersionPress",
     kind: "archived",
     heading: "Loopress vs VersionPress.",
+    seoTitle: "VersionPress Alternative for WordPress Git Workflows - Loopress",
     lede: "VersionPress tried to put the whole database in Git, content included. Loopress takes the opposite constraint.",
     rows: [
       ["Scope", "Database and content", "Configuration and code only"],

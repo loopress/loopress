@@ -1,5 +1,5 @@
 ---
-title: "WordPress Landing Page in Git: Pattern and Theme Styles"
+title: "WordPress Landing Page in Git: Pattern, Styles"
 description: "Ship a WordPress landing page from your repository: a static HTML page, a block pattern for the hero and Global Styles for colors and fonts, pushed with lps."
 kind: site
 ---

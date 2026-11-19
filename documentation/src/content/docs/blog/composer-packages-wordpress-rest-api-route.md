@@ -1,6 +1,6 @@
 ---
 title: Composer Packages in a WordPress REST API Route
-description: How Loopress's two Full-only features connect. Any package installed through Composer dependency management is available to `use` inside a custom WordPress REST API route, autoloaded automatically, no wiring required.
+description: Composer packages installed with Loopress are autoloaded in any custom WordPress REST API route, so you can use them with no wiring.
 date: 2026-08-03
 draft: false
 cliVersion: 0.20.1

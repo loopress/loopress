@@ -1,6 +1,6 @@
 ---
 title: I Deleted 5,000 Lines of a Feature That Worked
-description: Loopress had an SEO module that synced Rank Math and Yoast data through Git. It worked, it was tested, it was on the homepage. I removed it, because it broke the one rule the product is built on.
+description: Loopress had an SEO module that synced Rank Math and Yoast data through Git. It worked, and I removed it because it broke the one rule the product is built on.
 date: 2026-10-24
 draft: false
 cover:

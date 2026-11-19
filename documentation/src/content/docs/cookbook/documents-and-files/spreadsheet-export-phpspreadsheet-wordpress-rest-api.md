@@ -1,5 +1,5 @@
 ---
-title: Exporting WooCommerce Orders to XLSX with PhpSpreadsheet
+title: Export WooCommerce Orders to XLSX in WordPress
 description: A Custom API Route that exports completed WooCommerce orders to a downloadable Excel .xlsx file with PhpSpreadsheet, for the client who wants the numbers.
 kind: route
 youtubeId: spDsmvUnBHM
