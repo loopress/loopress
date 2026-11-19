@@ -24,7 +24,13 @@ function* htmlFiles(d) {
 }
 
 const decode = (s) =>
-	s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+	s
+		.replaceAll("&lt;", "<")
+		.replaceAll("&gt;", ">")
+		.replaceAll("&quot;", '"')
+		.replaceAll("&#39;", "'")
+		.replaceAll("&#x27;", "'")
+		.replaceAll("&amp;", "&");
 const meta = (html, re) => {
 	const m = html.match(re);
 	return m ? decode(m[1]).trim() : "";
