@@ -32,7 +32,7 @@ for (const file of htmlFiles(dir)) {
 
 	const things = [];
 	// Every <script> first, then its type, so attribute order and quoting do not hide a block.
-	for (const [, attrs, json] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+	for (const [, attrs, json] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi)) {
 		if (!/\btype\s*=\s*["']?application\/ld\+json["']?/i.test(attrs)) continue;
 		try {
 			things.push(...nodes(JSON.parse(json)));
