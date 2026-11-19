@@ -10,6 +10,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('@inquirer/prompts', () => ({confirm: vi.fn()}))
 
@@ -123,7 +124,7 @@ describe('app pull', () => {
       const result = await cmd.run()
 
       expect(readFileSync(join(dir, 'search', 'dist', 'assets', 'app.js'), 'utf8')).toBe('export const v = 1')
-      expect(JSON.parse(readFileSync(join(dir, 'search', 'loopress.app.json'), 'utf8'))).toEqual({
+      expect(readJson(dir, 'search', 'loopress.app.json')).toEqual({
         assetsDir: 'dist',
         mountSelector: '#loopress-app-search',
         name: 'search',
@@ -145,7 +146,7 @@ describe('app pull', () => {
       await cmd.run()
 
       expect(readFileSync(join(dir, 'engine', 'dist', 'app', 'engine.js'), 'utf8')).toBe('run()')
-      expect(JSON.parse(readFileSync(join(dir, 'engine', 'loopress.app.json'), 'utf8'))).toEqual({
+      expect(readJson(dir, 'engine', 'loopress.app.json')).toEqual({
         assetsDir: 'dist/app',
         entry: {scripts: ['engine.js'], styles: []},
         mountSelector: '#loopress-app-engine',
@@ -160,13 +161,13 @@ describe('app pull', () => {
       internals.wpClient = {
         get: vi.fn(async (path: string) => {
           const res = await get(path)
-          return path.endsWith('/manifest') ? {...res, crossOrigin: 'same-origin'} : res
+          return path.endsWith('/manifest') && !Array.isArray(res) ? {...res, crossOrigin: 'same-origin'} : res
         }),
       }
 
       await cmd.run()
 
-      expect(JSON.parse(readFileSync(join(dir, 'search', 'loopress.app.json'), 'utf8'))).toMatchObject({
+      expect(readJson(dir, 'search', 'loopress.app.json')).toMatchObject({
         crossOrigin: 'same-origin',
       })
     })

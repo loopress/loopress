@@ -1,6 +1,6 @@
 import type * as FsPromises from 'node:fs/promises'
 
-import {existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -13,6 +13,7 @@ import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {SNIPPETS_ENDPOINT} from '../../../src/utils/snippet-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof FsPromises>()
@@ -256,7 +257,7 @@ describe('snippet push', () => {
       expect(files).toEqual(['8-demo.json', '8-demo.php'])
       expect(existsSync(join(dir, 'demo.php'))).toBe(false)
       expect(existsSync(join(dir, 'demo.json'))).toBe(false)
-      expect(JSON.parse(readFileSync(join(dir, '8-demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
+      expect(readJson(dir, '8-demo.json')).toEqual({id: 8, name: 'demo', type: 'php'})
     })
 
     it('renames a file with no sidecar at all', async () => {
@@ -317,7 +318,7 @@ describe('snippet push', () => {
       // the id: a retry of `snippet push` will read demo.php + demo.json and see the id,
       // so it PUTs an update instead of POSTing a duplicate create.
       expect(existsSync(join(dir, 'demo.php'))).toBe(true)
-      expect(JSON.parse(readFileSync(join(dir, 'demo.json'), 'utf8'))).toEqual({id: 8, name: 'demo', type: 'php'})
+      expect(readJson(dir, 'demo.json')).toEqual({id: 8, name: 'demo', type: 'php'})
     })
   })
 

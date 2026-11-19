@@ -8,6 +8,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 const menu = {items: [], name: 'Main Menu', revision: 'abc123', slug: 'main', warnings: []}
 
@@ -43,12 +44,12 @@ describe('menu pull', () => {
 
       await cmd.run()
 
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8'))).toEqual({
+      expect(readJson(dir, 'menus', 'main.json')).toEqual({
         items: [],
         name: 'Main Menu',
         slug: 'main',
       })
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'menu-locations.json'), 'utf8'))).toEqual({primary: 'main'})
+      expect(readJson(dir, 'menus', 'menu-locations.json')).toEqual({primary: 'main'})
     })
 
     it('never persists revision or warnings, server bookkeeping not tracked configuration', async () => {
@@ -56,7 +57,7 @@ describe('menu pull', () => {
 
       await cmd.run()
 
-      const written = JSON.parse(readFileSync(join(dir, 'menus', 'main.json'), 'utf8')) as Record<string, unknown>
+      const written = readJson(dir, 'menus', 'main.json') as Record<string, unknown>
       expect(written).not.toHaveProperty('revision')
       expect(written).not.toHaveProperty('warnings')
     })
@@ -97,7 +98,7 @@ describe('menu pull', () => {
       await cmd.run()
 
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('reserved'))
-      expect(JSON.parse(readFileSync(join(dir, 'menus', 'menu-locations.json'), 'utf8'))).toEqual({})
+      expect(readJson(dir, 'menus', 'menu-locations.json')).toEqual({})
     })
 
     it('does not write anything on a dry run', async () => {

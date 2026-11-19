@@ -24,9 +24,9 @@ function notFound(body?: string): Error {
 // path to, or an empty list so providers that query endpoints this test doesn't care about
 // stay silent. `getAll` here is a single lookup, not a real page walk (see wp-client.test.ts
 // for the pagination itself).
-function fakeWp(responses: Record<string, unknown>): WpClient {
+function fakeWp(responses: Record<string, unknown>, overrides: Record<string, unknown> = {}): WpClient {
   const lookup = vi.fn(async (path: string) => (Object.hasOwn(responses, path) ? responses[path] : []))
-  return {get: lookup, getAll: lookup} as unknown as WpClient
+  return {get: lookup, getAll: lookup, ...overrides} as unknown as WpClient
 }
 
 function provider(resource: string): ResourceStateProvider {
@@ -286,7 +286,7 @@ describe('resource-state providers', () => {
     it('compares local files as the site would store them, through its normalize route', async () => {
       const stored = {fields: [{key: 'field_1', name: 'price', type: 'number', wrapper: {class: '', id: '', width: ''}}], key: 'group_1'}
       const post = vi.fn(async () => [stored])
-      const wp = {...fakeWp({'loopress/v1/acf/field-groups': [stored]}), post} as unknown as WpClient
+      const wp = fakeWp({'loopress/v1/acf/field-groups': [stored]}, {post})
       mkdirSync(join(dir, 'field-groups'))
       const written = {fields: [{key: 'field_1', name: 'price', type: 'number'}], key: 'group_1'}
       writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify(written))
@@ -298,7 +298,7 @@ describe('resource-state providers', () => {
     })
 
     it('compares local files as written when the plugin has no normalize route yet', async () => {
-      const wp = {...fakeWp({}), post: vi.fn(async () => { throw notFound() })} as unknown as WpClient
+      const wp = fakeWp({}, {post: vi.fn(async () => { throw notFound() })})
       mkdirSync(join(dir, 'field-groups'))
       writeFileSync(join(dir, 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', title: 'Hero'}))
 

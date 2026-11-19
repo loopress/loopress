@@ -79,7 +79,8 @@ describe('theme push', () => {
 
   it('skips the versions step when loopress.json has no themes and there is no composer.json', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
-    vi.spyOn(process, 'cwd').mockReturnValue(mkdtempSync(join(tmpdir(), 'lps-theme-push-')))
+    const cwd = mkdtempSync(join(tmpdir(), 'lps-theme-push-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(cwd)
     const {cmd} = makePush({themes: {}})
 
     await cmd.run()
@@ -89,7 +90,8 @@ describe('theme push', () => {
 
   it('skips templates and parts when the project has none, even when it asks for the child theme', async () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
-    vi.spyOn(process, 'cwd').mockReturnValue(mkdtempSync(join(tmpdir(), 'lps-theme-push-')))
+    const cwd = mkdtempSync(join(tmpdir(), 'lps-theme-push-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(cwd)
     const {cmd} = makePush()
     ;(cmd as unknown as {localConfig: Record<string, unknown>}).localConfig = {activateChildTheme: true, themes: {astra: '4.0.0'}}
 

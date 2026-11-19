@@ -8,6 +8,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LocalOption} from '../../../src/utils/option-format.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 type PullInternals = {
   dryRun: boolean
@@ -49,7 +50,7 @@ describe('option pull', () => {
 
       expect(get).toHaveBeenCalledWith('loopress/v1/options/wpseo_titles')
       expect(result).toMatchObject({autoload: 'yes', name: 'wpseo_titles', readonly: true, value: {new: true}})
-      const written = JSON.parse(readFileSync(join(dir, 'wpseo_titles.json'), 'utf8')) as Record<string, unknown>
+      const written = readJson(dir, 'wpseo_titles.json') as Record<string, unknown>
       expect(written).toMatchObject({readonly: true, value: {new: true}})
     })
 
@@ -62,7 +63,7 @@ describe('option pull', () => {
       await internals.pullOption(dir, {autoload: 'yes', name: 'edd_settings', refs, value: {purchase_page: 'checkout'}})
 
       expect(get).toHaveBeenCalledWith(`loopress/v1/options/edd_settings?refs=${encodeURIComponent('{"purchase_page":"page"}')}`)
-      const written = JSON.parse(readFileSync(join(dir, 'edd_settings.json'), 'utf8')) as Record<string, unknown>
+      const written = readJson(dir, 'edd_settings.json') as Record<string, unknown>
       expect(written).toMatchObject({refs, value: {purchase_page: 'checkout'}})
     })
 

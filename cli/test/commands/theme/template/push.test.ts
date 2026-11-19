@@ -317,7 +317,7 @@ describe('template push', () => {
 
     await cmd.run()
 
-    expect(cmd.warn.mock.calls.map(([line]) => line)).toEqual([
+    expect(cmd.warn.mock.calls.map(([line]: unknown[]) => line)).toEqual([
       'twentytwentyfive-loopress is not the active theme, so nothing changed on the site yet. Run `lps theme activate`, or set "activateChildTheme": true in loopress.json.',
       'Edited in the Site Editor, their database copy still wins over the pushed file: templates/single, parts/header. Clear their customizations in Appearance > Editor to use the pushed version.',
       'No block registered on this site under these names, their CSS will never load: core/buton. Check the file name in theme/blocks/, or activate the plugin that provides the block.',

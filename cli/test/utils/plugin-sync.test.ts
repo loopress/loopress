@@ -12,9 +12,8 @@ describe('parseCollisions', () => {
   ]
 
   it('returns the collisions of a 422 unmanaged_plugins_present refusal', () => {
-    expect(parseCollisions(httpError(422, JSON.stringify({collisions, error: 'unmanaged_plugins_present'})))).toEqual(
-      collisions,
-    )
+    const body = JSON.stringify({collisions, error: 'unmanaged_plugins_present'})
+    expect(parseCollisions(httpError(422, body))).toEqual(collisions)
   })
 
   it.each([

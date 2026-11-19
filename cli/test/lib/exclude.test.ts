@@ -66,7 +66,8 @@ describe('exclusions in the listing layer', () => {
   it('matches a nested file of a directory given relative to the cwd', async () => {
     activateExclusions({config: {environments: {production: {exclude: ['hooks/feature/page.php']}}}, cwd: root, envName: 'production', honors: true})
 
-    expect((await walkFiles(relative(process.cwd(), join(root, 'hooks')))).toSorted((a, b) => a.localeCompare(b))).toEqual(['games.php', 'live.php'])
+    const walked = await walkFiles(relative(process.cwd(), join(root, 'hooks')))
+    expect(walked.toSorted((a, b) => a.localeCompare(b))).toEqual(['games.php', 'live.php'])
   })
 
   it('lists everything inside withoutExclusions', async () => {

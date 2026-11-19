@@ -188,7 +188,8 @@ describe('PushCommand.reportPushToSite()', () => {
     const command = new ReportingPush([], {} as never)
     command.id = 'acf:push'
 
-    await expect(command.testReport(vi.fn().mockRejectedValue(new Error('404')))).resolves.toBeUndefined()
+    const failingRequest = vi.fn().mockRejectedValue(new Error('404'))
+    await expect(command.testReport(failingRequest)).resolves.toBeUndefined()
   })
 
   describe('when the account has no environment for the URL', () => {

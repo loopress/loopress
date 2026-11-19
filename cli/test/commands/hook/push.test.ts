@@ -247,10 +247,8 @@ describe('hook push', () => {
 
       await cmd.run()
 
-      expect(post).toHaveBeenCalledWith(
-        'loopress/v1/hook-files/batch',
-        expect.objectContaining({files: [expect.objectContaining({expectedRevision: sha256(remoteContent), filename: 'hello'})]}),
-      )
+      const expectedFile = expect.objectContaining({expectedRevision: sha256(remoteContent), filename: 'hello'})
+      expect(post).toHaveBeenCalledWith('loopress/v1/hook-files/batch', expect.objectContaining({files: [expectedFile]}))
     })
 
     it('errors with the failed count, before ever calling the API, when a local file fails validation', async () => {

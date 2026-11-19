@@ -8,7 +8,9 @@ vi.mock('@inquirer/prompts', () => ({confirm: vi.fn()}))
 const interactive = vi.hoisted(() => ({value: false}))
 vi.mock('../../src/lib/interactive.js', () => ({isInteractive: () => interactive.value}))
 
-class Refused extends Error {}
+class RefusedError extends Error {
+  override name = 'RefusedError'
+}
 
 function run(options: {dryRun?: boolean; name?: string; type?: string; yes?: boolean}) {
   let refusals = 0
@@ -17,7 +19,7 @@ function run(options: {dryRun?: boolean; name?: string; type?: string; yes?: boo
   }
 
   const error = vi.fn((message: string): never => {
-    throw new Refused(message)
+    throw new RefusedError(message)
   })
   const done = guardProductionPush({
     dryRun: options.dryRun ?? false,
@@ -60,7 +62,7 @@ describe('guardProductionPush', () => {
   it('guards a production environment whatever its name', async () => {
     const {done} = run({name: 'live'})
 
-    await expect(done).rejects.toThrow(Refused)
+    await expect(done).rejects.toThrow(RefusedError)
   })
 
   it('refuses outside a TTY with the exact hint, after notifying onRefuse', async () => {
@@ -97,11 +99,11 @@ describe('guardProductionPush', () => {
       guardProductionPush({
         dryRun: false,
         error(message) {
-          throw new Refused(message)
+          throw new RefusedError(message)
         },
         siteConfig: {name: 'production', type: 'production', url: 'https://acme.com'},
         yes: false,
       }),
-    ).rejects.toThrow(Refused)
+    ).rejects.toThrow(RefusedError)
   })
 })

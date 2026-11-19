@@ -153,12 +153,8 @@ describe('validateLocal', () => {
 
     const result = await validateLocal(dir)
 
-    expect(result.problems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({file: join(dir, 'acf', 'a.json'), message: 'expected a JSON object'}),
-        expect.objectContaining({file: join(dir, 'forms', 'b.json'), message: 'expected a JSON object'}),
-      ]),
-    )
+    const flagged = result.problems.filter((p) => p.message === 'expected a JSON object').map((p) => p.file)
+    expect(flagged).toEqual(expect.arrayContaining([join(dir, 'acf', 'a.json'), join(dir, 'forms', 'b.json')]))
     expect(result.problems).toHaveLength(2)
   })
 
@@ -224,12 +220,8 @@ describe('validateLocal', () => {
 
     const result = await validateLocal(dir)
 
-    expect(result.problems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({file: join(dir, 'hooks', 'cleanup.php'), message: 'Hook file is empty'}),
-        expect.objectContaining({file: join(dir, 'hooks', 'content', 'filters.php'), message: 'Hook file is empty'}),
-      ]),
-    )
+    const flagged = result.problems.filter((p) => p.message === 'Hook file is empty').map((p) => p.file)
+    expect(flagged).toEqual(expect.arrayContaining([join(dir, 'hooks', 'cleanup.php'), join(dir, 'hooks', 'content', 'filters.php')]))
   })
 
   // Regression: validate passed a hook file push then rejected (no declare(strict_types=1)).
