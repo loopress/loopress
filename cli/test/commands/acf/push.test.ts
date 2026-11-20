@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -9,6 +9,7 @@ import {acfEndpoint} from '../../../src/utils/acf-format.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 // loadObjects() and pushObject() are private; the cast below is the same escape hatch used
 // throughout this CLI's test suite to unit-test command internals without going through the
@@ -58,7 +59,7 @@ describe('acf push', () => {
       await loadObjects(dir)
 
       expect(existsSync(join(dir, 'post_type_1.json'))).toBe(true)
-      expect(JSON.parse(readFileSync(join(dir, 'post_type_1.json'), 'utf8')).title).toBe('Original')
+      expect(readJson(dir, 'post_type_1.json').title).toBe('Original')
     })
 
     it('ignores non-.json files', async () => {

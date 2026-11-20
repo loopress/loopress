@@ -130,20 +130,11 @@ export default defineConfig([
       // Tests poke at parsed JSON and mock call args, which are `any` by nature.
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
       // Same reason: casting a fixture or a mock to the type under test is the point of a test.
       '@typescript-eslint/no-unsafe-type-assertion': 'off',
       '@typescript-eslint/strict-boolean-expressions': 'off',
-      // Default max of 3 flags the standard `expect(JSON.parse(readFileSync(join(...))))`
-      // one-liner used throughout these tests to read back a written file.
-      'unicorn/max-nested-calls': 'off',
       // Mock factories and request handlers read best inline, next to the test that uses them.
       'unicorn/consistent-function-scoping': 'off',
-      // Fakes are built by spreading other fakes, and throwaway error classes mark a test's own throws.
-      '@typescript-eslint/no-misused-spread': 'off',
-      'unicorn/custom-error-definition': 'off',
-      // `() => undefined` is the only no-op stub form object-shorthand and strict-void-return both accept.
-      'unicorn/no-useless-undefined': 'off',
     },
   },
 ])

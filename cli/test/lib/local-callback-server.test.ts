@@ -21,6 +21,7 @@ function startTokenWait(): Promise<{token: string}> {
 
       resolveWithPage('<html>ok</html>', {token})
     },
+    // eslint-disable-next-line unicorn/no-useless-undefined -- `() => undefined` is the only no-op form object-shorthand and strict-void-return both accept
     log: () => undefined,
     openingMessage: '',
     timeoutMessage: 'timed out',
@@ -89,6 +90,7 @@ describe('waitForLocalCallback', () => {
         allowedOrigins: ['https://relay.example'],
         buildUrl: (base, state) => `${base}/callback?state=${state}`,
         handleRequest,
+        // eslint-disable-next-line unicorn/no-useless-undefined -- same no-op stub as above
         log: extra.log ?? (() => undefined),
         openingMessage: 'Opening your browser...',
         timeoutMessage: 'timed out',

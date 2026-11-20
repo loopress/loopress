@@ -1,4 +1,4 @@
-import {existsSync, mkdtempSync, readFileSync, rmSync} from 'node:fs'
+import {existsSync, mkdtempSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -7,6 +7,7 @@ import Add from '../../../src/commands/option/add.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 type AddInternals = {
   dryRun: boolean
@@ -45,7 +46,7 @@ describe('option add', () => {
     await cmd.run()
 
     expect(get).toHaveBeenCalledWith('loopress/v1/options/wpseo_titles')
-    const written = JSON.parse(readFileSync(join(dir, 'wpseo_titles.json'), 'utf8')) as Record<string, unknown>
+    const written = readJson(dir, 'wpseo_titles.json') as Record<string, unknown>
     expect(written).toMatchObject({autoload: 'no', name: 'wpseo_titles', readonly: false, value: {titleSep: '-'}})
   })
 
@@ -56,7 +57,7 @@ describe('option add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(readFileSync(join(dir, 'wpseo_titles.json'), 'utf8')) as Record<string, unknown>
+    const written = readJson(dir, 'wpseo_titles.json') as Record<string, unknown>
     expect(written).not.toHaveProperty('revision')
   })
 
@@ -69,7 +70,7 @@ describe('option add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(readFileSync(join(dir, 'siteurl.json'), 'utf8')) as Record<string, unknown>
+    const written = readJson(dir, 'siteurl.json') as Record<string, unknown>
     expect(written.readonly).toBe(true)
   })
 

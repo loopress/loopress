@@ -1,5 +1,5 @@
 import {confirm} from '@inquirer/prompts'
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -9,6 +9,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
@@ -60,7 +61,7 @@ describe('composer init', () => {
 
     expect(confirm).not.toHaveBeenCalled()
     expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('not overwriting'))
-    expect(JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))).toEqual({kept: true})
+    expect(readJson(dir, 'composer.json')).toEqual({kept: true})
   })
 
   it('writes a composer.json wired to WPackagist', async () => {
@@ -68,7 +69,7 @@ describe('composer init', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))
+    const written = readJson(dir, 'composer.json')
     expect(written).toEqual({
       config: {
         'allow-plugins': {'composer/installers': true},
@@ -98,7 +99,7 @@ describe('composer init', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))
+    const written = readJson(dir, 'composer.json')
     expect(written.config['allow-plugins']['composer/installers']).toBe(true)
   })
 
@@ -131,7 +132,7 @@ describe('composer init', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(readFileSync(join(dir, 'composer.json'), 'utf8'))
+    const written = readJson(dir, 'composer.json')
     expect(written.require).toEqual({'composer/installers': '^2.0'})
   })
 

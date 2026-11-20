@@ -5,6 +5,7 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
 import {getResourceStateProvider} from '../../src/lib/resource-state.js'
 import {materializeSnapshot} from '../../src/lib/rollback-materialize.js'
+import {readJson} from '../helpers/read-json.js'
 
 const noWarn = (): void => {}
 
@@ -99,7 +100,7 @@ describe('rollback-materialize', () => {
   it('protects a known-dangerous option (siteurl) by default even though the snapshot has no readonly flag', async () => {
     await materializeSnapshot('option', {siteurl: {autoload: 'yes', value: 'https://example.com'}}, dir)
 
-    const local = JSON.parse(readFileSync(join(dir, 'siteurl.json'), 'utf8')) as {readonly?: boolean}
+    const local = readJson(dir, 'siteurl.json') as {readonly?: boolean}
 
     expect(local.readonly).toBe(true)
   })

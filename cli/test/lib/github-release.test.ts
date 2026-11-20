@@ -4,7 +4,7 @@ import {Readable} from 'node:stream'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 const {gotFn, gotJson, gotStream} = vi.hoisted(() => {
-  const gotJson = vi.fn()
+  const gotJson = vi.fn<() => unknown>()
   const gotStream = vi.fn()
   const gotFn = Object.assign(
     vi.fn((_url: string, _options: unknown) => ({json: () => gotJson()})),

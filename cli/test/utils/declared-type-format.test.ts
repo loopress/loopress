@@ -202,7 +202,8 @@ describe('declared-type-format', () => {
     })
 
     it('round-trips through formatPatternFile()', () => {
-      expect(parsePatternFile('hero', formatPatternFile(parsePatternFile('hero', file)))).toEqual(parsePatternFile('hero', file))
+      const parsed = parsePatternFile('hero', file)
+      expect(parsePatternFile('hero', formatPatternFile(parsed))).toEqual(parsed)
     })
 
     it('defaults the title to the slug', () => {

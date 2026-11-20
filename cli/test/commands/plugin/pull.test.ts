@@ -10,6 +10,7 @@ import {type WpNativePlugin} from '../../../src/types/plugin.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 const prompts = vi.hoisted(() => ({checkbox: vi.fn(), interactive: false}))
 vi.mock('@inquirer/prompts', () => ({checkbox: prompts.checkbox}))
@@ -166,7 +167,7 @@ describe('plugin pull', () => {
 
       expect(result.status).toBe('dry-run')
       expect(logs.log).toHaveBeenCalledWith('[dry-run] Would pin 2 plugins in composer.json')
-      expect(JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))).toEqual(composerJson)
+      expect(readJson(dir, 'composer.json')).toEqual(composerJson)
     })
 
     it('fails with an explicit message, without touching composer.json, when WordPress.org answers an error', async () => {
@@ -177,7 +178,7 @@ describe('plugin pull', () => {
       await expect(cmd.run()).rejects.toThrow(
         'Could not check whether the plugin "akismet" is on WordPress.org (HTTP 503), so composer.json was not modified.',
       )
-      expect(JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))).toEqual(composerJson)
+      expect(readJson(dir, 'composer.json')).toEqual(composerJson)
     })
 
     it('names the network error when WordPress.org is unreachable', async () => {

@@ -1,6 +1,6 @@
 import type * as FsPromises from 'node:fs/promises'
 
-import {existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {rename} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -11,6 +11,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof FsPromises>()
@@ -268,7 +269,7 @@ describe('form push', () => {
       expect(post).toHaveBeenCalledWith('loopress/v1/forms', {settings: {form_title: 'New'}})
       expect(readdirSync(dir).toSorted((a, b) => a.localeCompare(b))).toEqual(['42-new.json'])
       // Written into the file too, so the next push updates form 42 instead of creating another.
-      expect(JSON.parse(readFileSync(join(dir, '42-new.json'), 'utf8'))).toEqual({id: 42, settings: {form_title: 'New'}})
+      expect(readJson(dir, '42-new.json')).toEqual({id: 42, settings: {form_title: 'New'}})
     })
 
     it('skips the network entirely on a dry run, not even reading the current revision', async () => {

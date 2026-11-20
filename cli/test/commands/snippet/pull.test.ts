@@ -11,6 +11,7 @@ import {buildMetaFile, buildSnippetFile, type NormalizedSnippet} from '../../../
 import {listrInstances, outputsOf, resetListrInstances, titlesOf} from '../../helpers/listr.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('listr2', async () => {
   const {createListrMock} = await import('../../helpers/listr.js')
@@ -145,7 +146,7 @@ describe('pull helpers', () => {
       const result = await cmd.run()
 
       expect(readFileSync(join(runDir, '7-my-snippet.php'), 'utf8')).toBe("<?php\n\necho 'hi';")
-      const meta = JSON.parse(readFileSync(join(runDir, '7-my-snippet.json'), 'utf8'))
+      const meta = readJson(runDir, '7-my-snippet.json')
       expect(meta).toEqual({active: true, id: 7, location: 'everywhere', name: 'My Snippet', type: 'php'})
       expect(titlesOf(0)).toEqual(['Pull My Snippet'])
       expect(outputsOf(0)).toEqual(['Pulled: My Snippet'])
@@ -416,7 +417,9 @@ describe('pull helpers', () => {
 
     it('produces valid JSON ending with a newline', () => {
       const output = buildMetaFile(base)
-      expect(() => JSON.parse(output)).not.toThrow()
+      expect(() => {
+        JSON.parse(output)
+      }).not.toThrow()
       expect(output.endsWith('\n')).toBe(true)
     })
   })

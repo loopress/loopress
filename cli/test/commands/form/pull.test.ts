@@ -10,6 +10,7 @@ import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {outputsOf, resetListrInstances, titlesOf} from '../../helpers/listr.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
+import {readJson} from '../../helpers/read-json.js'
 
 vi.mock('listr2', async () => {
   const {createListrMock} = await import('../../helpers/listr.js')
@@ -137,7 +138,7 @@ describe('form pull', () => {
 
       await cmd.run()
 
-      const written = JSON.parse(readFileSync(join(dir, '9-contact-us.json'), 'utf8')) as Record<string, unknown>
+      const written = readJson(dir, '9-contact-us.json') as Record<string, unknown>
       expect(written).not.toHaveProperty('revision')
     })
 
