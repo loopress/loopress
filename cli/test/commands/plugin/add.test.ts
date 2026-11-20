@@ -166,7 +166,7 @@ describe('plugin add', () => {
 
     expect(logs.log).toHaveBeenCalledWith('Updated woocommerce (9.5.0). Run `lps plugin push` to apply.')
     const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
-    expect(written.plugins.woocommerce).toBe('9.5.0')
+    expect(written.plugins?.woocommerce).toBe('9.5.0')
   })
 
   it('is a no-op when the plugin is already pinned to the same value', async () => {

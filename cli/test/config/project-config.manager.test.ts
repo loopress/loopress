@@ -59,7 +59,8 @@ describe('ProjectConfigManager', () => {
     it('nulls out a legacy string currentProject but keeps well-formed projects intact', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.ensureConfigDir()
-      const raw: LoopressGlobalConfiguration = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      // A legacy shape the current type rejects, so not typed as LoopressGlobalConfiguration.
+      const raw: Record<string, unknown> = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
       raw.currentProject = 'acme'
       writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
 
