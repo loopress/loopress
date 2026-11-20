@@ -1,5 +1,15 @@
 # @loopress/wordpress-plugin
 
+## 2026.21.0
+
+### Minor Changes
+
+- 297cecb: Loopress Full's anonymous usage statistics are now off until an admin turns them on. The activation notice asks with "Turn on" and "No thanks", and no ping is sent before it is answered.
+
+### Patch Changes
+
+- 8a55cb3: The Loopress Light readme on wordpress.org now links to the full documentation and examples at loopress.dev/light, and lists two more tags. It takes effect at the next Light release.
+
 ## 2026.20.0
 
 ### Minor Changes
