@@ -241,7 +241,7 @@ describe('menu push', () => {
       cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
       mkdirSync(join(dir, 'menu-locations.json'))
 
-      await expect(cmd.pushLocations(dir)).rejects.toThrow(/EISDIR/)
+      await expect(cmd.pushLocations(dir)).rejects.toThrow(/EISDIR/u)
     })
 
     it('logs the exact pushed and failed lines', async () => {
@@ -354,7 +354,7 @@ describe('menu push', () => {
       const {cmd, post} = makeRunCmd()
       post.mockRejectedValue(new Error('boom'))
 
-      await expect(cmd.run()).rejects.toThrow(/1 menu.*failed to push/)
+      await expect(cmd.run()).rejects.toThrow(/1 menu.*failed to push/u)
     })
   })
 })

@@ -5,7 +5,7 @@ export const DEFAULT_API_NAMESPACE = 'loopress-api/v1'
 
 // Reserved for Loopress's own management endpoints.
 const RESERVED = 'loopress/v1'
-const PATTERN = /^[a-z][a-z0-9-]*\/v\d+$/
+const PATTERN = /^[a-z][a-z0-9-]*\/v\d+$/u
 
 // Returns why the value is refused, or undefined when it is fine.
 export function apiNamespaceProblem(value: unknown): string | undefined {

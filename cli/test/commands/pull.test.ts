@@ -224,7 +224,7 @@ describe('pull', () => {
     await cmd.run()
 
     expect(logs.warn).toHaveBeenCalledTimes(1)
-    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: no supported snippet plugin is active on staging\./)
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: no supported snippet plugin is active on staging\./u)
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })
@@ -291,7 +291,7 @@ describe('pull', () => {
 
     await cmd.run()
 
-    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/\n {2}forms: .*\n {2}snippets: /)
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/\n {2}forms: .*\n {2}snippets: /u)
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

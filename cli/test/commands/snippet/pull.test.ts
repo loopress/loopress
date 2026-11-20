@@ -3,6 +3,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressSnippetMetadata} from '../../../src/types/snippet.generated.js'
+
 import Pull from '../../../src/commands/snippet/pull.js'
 import {findOrphanedFiles as findOrphanedFilesLib, numericPrefixKey} from '../../../src/lib/find-orphaned-files.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
@@ -357,7 +359,7 @@ describe('pull helpers', () => {
 
   describe('buildMetaFile', () => {
     it('includes required fields', () => {
-      const meta = JSON.parse(buildMetaFile(base))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile(base))
       expect(meta.id).toBe(1)
       expect(meta.name).toBe('My Snippet')
       expect(meta.type).toBe('php')
@@ -366,52 +368,52 @@ describe('pull helpers', () => {
     })
 
     it('omits description when empty', () => {
-      const meta = JSON.parse(buildMetaFile({...base, description: ''}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, description: ''}))
       expect(meta).not.toHaveProperty('description')
     })
 
     it('includes description when present', () => {
-      const meta = JSON.parse(buildMetaFile({...base, description: 'A description'}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, description: 'A description'}))
       expect(meta.description).toBe('A description')
     })
 
     it('omits tags when empty', () => {
-      const meta = JSON.parse(buildMetaFile({...base, tags: []}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, tags: []}))
       expect(meta).not.toHaveProperty('tags')
     })
 
     it('includes tags when present', () => {
-      const meta = JSON.parse(buildMetaFile({...base, tags: ['sample', 'dates']}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, tags: ['sample', 'dates']}))
       expect(meta.tags).toEqual(['sample', 'dates'])
     })
 
     it('omits insertMethod when it is the default "auto"', () => {
-      const meta = JSON.parse(buildMetaFile({...base, insertMethod: 'auto'}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, insertMethod: 'auto'}))
       expect(meta).not.toHaveProperty('insertMethod')
     })
 
     it('includes insertMethod when it is "shortcode"', () => {
-      const meta = JSON.parse(buildMetaFile({...base, insertMethod: 'shortcode'}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, insertMethod: 'shortcode'}))
       expect(meta.insertMethod).toBe('shortcode')
     })
 
     it('omits priority when it is the default 10', () => {
-      const meta = JSON.parse(buildMetaFile({...base, priority: 10}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, priority: 10}))
       expect(meta).not.toHaveProperty('priority')
     })
 
     it('includes priority when it differs from the default', () => {
-      const meta = JSON.parse(buildMetaFile({...base, priority: 20}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, priority: 20}))
       expect(meta.priority).toBe(20)
     })
 
     it('omits shortcodeAttributes when empty', () => {
-      const meta = JSON.parse(buildMetaFile({...base, shortcodeAttributes: []}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, shortcodeAttributes: []}))
       expect(meta).not.toHaveProperty('shortcodeAttributes')
     })
 
     it('includes shortcodeAttributes when present', () => {
-      const meta = JSON.parse(buildMetaFile({...base, shortcodeAttributes: ['color', 'size']}))
+      const meta: LoopressSnippetMetadata = JSON.parse(buildMetaFile({...base, shortcodeAttributes: ['color', 'size']}))
       expect(meta.shortcodeAttributes).toEqual(['color', 'size'])
     })
 

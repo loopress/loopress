@@ -34,7 +34,7 @@ function b64(s: string): string {
 function remote(apps: Array<{committed: boolean; name: string}>, files: Record<string, Record<string, string>>) {
   return vi.fn(async (path: string) => {
     if (path === 'loopress/v1/apps') return apps
-    const manifestMatch = /^loopress\/v1\/apps\/([^/]+)\/manifest$/.exec(path)
+    const manifestMatch = /^loopress\/v1\/apps\/([^/]+)\/manifest$/u.exec(path)
     if (manifestMatch) {
       const [, name = ''] = manifestMatch
       return {
@@ -47,7 +47,7 @@ function remote(apps: Array<{committed: boolean; name: string}>, files: Record<s
       }
     }
 
-    const assetMatch = /^loopress\/v1\/apps\/([^/]+)\/asset\?path=(.+)$/.exec(path)
+    const assetMatch = /^loopress\/v1\/apps\/([^/]+)\/asset\?path=(.+)$/u.exec(path)
     if (assetMatch) {
       const [, name = '', encoded = ''] = assetMatch
       return {content: b64(files[name]?.[decodeURIComponent(encoded)] ?? '')}

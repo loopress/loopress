@@ -398,7 +398,7 @@ describe('plugin audit', () => {
     }))
     const {cmd} = make({plugins: {x: '1.0.0'}})
 
-    await expect(cmd.run()).rejects.toThrow(/Could not reach the vulnerability database.*"x".*ECONNREFUSED/)
+    await expect(cmd.run()).rejects.toThrow(/Could not reach the vulnerability database.*"x".*ECONNREFUSED/u)
   })
 
   it('aggregates advisories and health notes across every plugin in the manifest', async () => {

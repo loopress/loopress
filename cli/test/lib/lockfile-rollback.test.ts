@@ -112,7 +112,7 @@ describe('lockfile rollbacks', () => {
     const state = {lock: lock({'wpackagist-plugin/akismet': '5.3'}), plugins: [native('akismet', '5.3', true)]}
 
     const refused = site(state, state)
-    await expect(make(PluginRollback, refused).cmd.run()).rejects.toThrow(/downgrades akismet 5.3 to 5.2.*does not undo database migrations.*--force/s)
+    await expect(make(PluginRollback, refused).cmd.run()).rejects.toThrow(/downgrades akismet 5.3 to 5.2.*does not undo database migrations.*--force/su)
     expect(refused.post).not.toHaveBeenCalled()
 
     const preview = site(state, state)
@@ -135,7 +135,7 @@ describe('lockfile rollbacks', () => {
     const wp = site(state, state)
     const {cmd} = make(PluginRollback, wp)
 
-    await expect(cmd.run()).rejects.toThrow(/downgrades akismet 6.0 to 5.3/)
+    await expect(cmd.run()).rejects.toThrow(/downgrades akismet 6.0 to 5.3/u)
     expect(wp.post).not.toHaveBeenCalled()
   })
 
@@ -150,7 +150,7 @@ describe('lockfile rollbacks', () => {
     const state = {lock: lock({}), themes: [{status: 'active', stylesheet: 'astra', version: '4.7'}]}
     const wp = site(state, state)
 
-    await expect(make(ThemeVersionRollback, wp, ['--force']).cmd.run()).rejects.toThrow(/Refusing to take over "astra"/)
+    await expect(make(ThemeVersionRollback, wp, ['--force']).cmd.run()).rejects.toThrow(/Refusing to take over "astra"/u)
     expect(wp.post).not.toHaveBeenCalled()
   })
 
@@ -181,7 +181,7 @@ describe('lockfile rollbacks', () => {
     const state = {lock: lock({'wpackagist-theme/kadence': '1.2'}), themes: [{status: 'active', stylesheet: 'kadence', version: '1.2'}]}
     const wp = site(state, state)
 
-    await expect(make(ThemeVersionRollback, wp).cmd.run()).rejects.toThrow(/Refusing to uninstall "kadence"/)
+    await expect(make(ThemeVersionRollback, wp).cmd.run()).rejects.toThrow(/Refusing to uninstall "kadence"/u)
     expect(wp.post).not.toHaveBeenCalled()
   })
 
@@ -234,7 +234,7 @@ describe('lockfile rollbacks', () => {
     )
     const post = vi.fn()
 
-    await expect(make(ComposerRollback, {get, post}).cmd.run()).rejects.toThrow(/downgrades monolog\/monolog 3.6.0 to 3.5.0/)
+    await expect(make(ComposerRollback, {get, post}).cmd.run()).rejects.toThrow(/downgrades monolog\/monolog 3.6.0 to 3.5.0/u)
     expect(post).not.toHaveBeenCalled()
   })
 })

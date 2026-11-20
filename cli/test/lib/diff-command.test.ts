@@ -64,7 +64,7 @@ describe('DiffCommand.report', () => {
       '  + new',
       '  - gone',
       '  ~ b',
-      expect.stringMatching(/^ {4}\S/),
+      expect.stringMatching(/^ {4}\S/u),
       'Forms  in sync',
       'ACF  not configured, skipped',
       '',
@@ -161,7 +161,7 @@ describe('DiffCommand.report', () => {
     const start = lines.indexOf('  ~ route')
     const patch = lines.slice(start + 1, lines.indexOf('', start + 1))
     expect(patch.length).toBeGreaterThan(1)
-    for (const line of patch) expect(line).toMatch(/^ {4}/)
+    for (const line of patch) expect(line).toMatch(/^ {4}/u)
     expect(lines.slice(start + 1).includes(' '.repeat(4))).toBe(false)
   })
 

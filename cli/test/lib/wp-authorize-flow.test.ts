@@ -53,7 +53,7 @@ describe('authorizeWithBrowser', () => {
 
     expect(successUrl.protocol).toBe('http:')
     expect(successUrl.hostname).toBe('127.0.0.1')
-    expect(successUrl.searchParams.get('state')).toMatch(/^[a-f0-9]{64}$/)
+    expect(successUrl.searchParams.get('state')).toMatch(/^[a-f0-9]{64}$/u)
 
     await got(approvedBy(successUrl, {password: 'p', user_login: 'u'}))
     await result
@@ -92,7 +92,7 @@ describe('authorizeWithBrowser', () => {
     // while handling it, so attaching it after `await got(...)` is a real race, an unhandled
     // rejection between the reject and the assertion, not just a style preference.
     const [, res] = await Promise.all([
-      expect(result).rejects.toThrow(/state/i),
+      expect(result).rejects.toThrow(/state/iu),
       got(approvedBy(forged, {password: 'evil', user_login: 'attacker'}), {throwHttpErrors: false}),
     ])
     expect(res.statusCode).toBe(403)
@@ -105,7 +105,7 @@ describe('authorizeWithBrowser', () => {
     const {successUrl} = await openedAuthorizeUrl()
 
     const [, res] = await Promise.all([
-      expect(result).rejects.toThrow(/cross-origin/i),
+      expect(result).rejects.toThrow(/cross-origin/iu),
       got(approvedBy(successUrl, {password: 'evil', user_login: 'attacker'}), {
         headers: {origin: 'https://evil.example'},
         throwHttpErrors: false,
@@ -120,6 +120,6 @@ describe('authorizeWithBrowser', () => {
 
     // WordPress appends `success=false` to reject_url.
     rejectUrl.searchParams.set('success', 'false')
-    await Promise.all([expect(result).rejects.toThrow(/rejected/i), got(rejectUrl.href, {throwHttpErrors: false})])
+    await Promise.all([expect(result).rejects.toThrow(/rejected/iu), got(rejectUrl.href, {throwHttpErrors: false})])
   })
 })

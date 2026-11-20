@@ -44,7 +44,7 @@ const LF_RULE = '* text=auto eol=lf'
 export async function ensureLfGitattributes(): Promise<boolean> {
   const path = join(process.cwd(), '.gitattributes')
   const current = existsSync(path) ? await readFile(path, 'utf8') : ''
-  if (current.split(/\r?\n/).some((line) => line.trim() === LF_RULE)) return false
+  if (current.split(/\r?\n/u).some((line) => line.trim() === LF_RULE)) return false
 
   await writeFile(path, `${LF_RULE}\n${current}`, 'utf8')
   return true

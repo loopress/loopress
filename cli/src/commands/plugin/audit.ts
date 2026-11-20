@@ -212,7 +212,7 @@ function affects(version: string, range: Range): boolean {
 // Advisory names come HTML-encoded ("WPForms &#8211; AI Form Builder").
 function decodeEntities(text: string): string {
   return text
-    .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replaceAll(/&#(\d+);/gu, (_, code: string) => String.fromCodePoint(Number(code)))
     .replaceAll('&quot;', '"')
     .replaceAll('&amp;', '&')
 }
@@ -245,7 +245,7 @@ function describeHealth(slug: string, pinned: string, info: Record<string, unkno
 // WordPress.org's plugins API returns `last_updated` as "2015-03-04 10:00am GMT", which
 // Date.parse() reads as NaN. Rewrite that form to ISO, and leave anything else to Date.parse().
 function parseWordPressDate(value: string): number {
-  const match = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2})(am|pm) GMT$/i.exec(value)
+  const match = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2})(am|pm) GMT$/iu.exec(value)
   if (!match) return Date.parse(value)
   const [, day, hour, minute, half] = match
   const hours = (Number(hour) % 12) + (half?.toLowerCase() === 'pm' ? 12 : 0)

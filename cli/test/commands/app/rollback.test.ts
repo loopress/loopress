@@ -25,7 +25,7 @@ const sha256 = (content: string): string => createHash('sha256').update(content)
 // A fake AppsController: a commit needs every file uploaded with its hash, keeps the files of
 // the manifest and of the previous build, removes the rest.
 function fakeSite(site: Site) {
-  const route = (endpoint: string) => /^loopress\/v1\/apps\/([^/]+)\/(\w+)$/.exec(endpoint) ?? []
+  const route = (endpoint: string) => /^loopress\/v1\/apps\/([^/]+)\/(\w+)$/u.exec(endpoint) ?? []
   const get = vi.fn(async (endpoint: string) => {
     if (endpoint === 'loopress/v1/apps') return Object.keys(site.records).map((name) => ({committed: true, name}))
     const record = site.records[route(endpoint)[1] ?? '']
@@ -131,7 +131,7 @@ describe('app rollback', () => {
     build({'main.js': 'v1'})
     await push(wp)
 
-    await expect(command(ConcreteRollback, wp).run()).rejects.toThrow(/No copy of the build the site had before that push for search/)
+    await expect(command(ConcreteRollback, wp).run()).rejects.toThrow(/No copy of the build the site had before that push for search/u)
   })
 
   it('saves no snapshot, and says so, when the bundle is above the size cap, the push still succeeds', async () => {
@@ -143,7 +143,7 @@ describe('app rollback', () => {
     await push(wp, warn)
 
     expect(site.records.search).toBeDefined()
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^No rollback snapshot saved for this push: its bundles take/))
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^No rollback snapshot saved for this push: its bundles take/u))
     expect(await listSnapshots(dir, 'app', 'staging')).toEqual([])
   })
 })

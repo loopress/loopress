@@ -195,7 +195,7 @@ describe('sentry', () => {
       const context = runtimeContext()
 
       expect(context.node).toBe(process.version)
-      expect(context.os).toMatch(/^\S+ \S+$/)
+      expect(context.os).toMatch(/^\S+ \S+$/u)
     })
   })
 

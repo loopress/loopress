@@ -4,6 +4,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressProjectConfiguration} from '../../../src/types/project-config.generated.js'
+
 import Pull from '../../../src/commands/plugin/pull.js'
 import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {type WpNativePlugin} from '../../../src/types/plugin.js'
@@ -60,7 +62,7 @@ describe('plugin pull', () => {
     await cmd.run()
 
     expect(get).toHaveBeenCalledWith('wp/v2/plugins')
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({akismet: '5.3.3'})
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 plugins to loopress.json')
   })
@@ -74,7 +76,7 @@ describe('plugin pull', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({akismet: '5.3.3', 'hello-dolly': {active: false, version: '1.7.2'}})
     expect(logs.log).toHaveBeenCalledWith('  ~ Updated: hello-dolly 1.7.2 → 1.7.2 (inactive)')
   })
@@ -89,7 +91,7 @@ describe('plugin pull', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({akismet: '5.3.3'})
   })
 
@@ -131,7 +133,7 @@ describe('plugin pull', () => {
 
       const result = await cmd.run()
 
-      const written = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
+      const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
       expect(written).toEqual({
         ...composerJson,
         require: {
@@ -218,7 +220,7 @@ describe('plugin pull', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({akismet: '5.3.3', 'gravity-forms': '2.8.0'})
   })
 
@@ -229,7 +231,7 @@ describe('plugin pull', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('  ~ Updated: woocommerce 9.4.2 → 9.5.0')
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({woocommerce: '9.5.0'})
   })
 
@@ -276,7 +278,7 @@ describe('plugin pull', () => {
 
       expect(prompts.checkbox).not.toHaveBeenCalled()
       expect(result.untracked).toEqual(['wordfence', 'akismet'])
-      const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+      const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
       expect(written.plugins).toEqual({woocommerce: '9.5.0'})
       expect(logs.log).toHaveBeenCalledWith('  - Not tracked: wordfence, akismet (add one with `lps plugin pull --plugin <slug>`)')
     })
@@ -293,7 +295,7 @@ describe('plugin pull', () => {
       expect(choices.map((choice) => choice.value)).toEqual(['wordfence', 'akismet'])
       expect(choices.some((choice) => choice.checked)).toBe(false)
       expect(result.untracked).toEqual(['wordfence'])
-      const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+      const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
       expect(written.plugins).toEqual({akismet: {active: false, version: '5.3.3'}, woocommerce: '9.5.0'})
     })
 

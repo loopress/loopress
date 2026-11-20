@@ -634,7 +634,7 @@ describe('snippet push', () => {
           9,
           'demo',
         ),
-      ).rejects.toThrow(/EISDIR/)
+      ).rejects.toThrow(/EISDIR/u)
       expect(existsSync(join(dir, 'demo.php'))).toBe(true)
     })
   })
@@ -713,7 +713,7 @@ describe('snippet push', () => {
     it('errors cleanly when the snippets directory cannot be read', async () => {
       const {cmd} = makeRunCmd()
 
-      await expect(cmd.run()).rejects.toThrow(/Error loading snippets/)
+      await expect(cmd.run()).rejects.toThrow(/Error loading snippets/u)
     })
   })
 })

@@ -174,7 +174,7 @@ async function checkPatterns(dir: string, problems: Problem[]): Promise<number> 
     check(raw, join(dir, `${slug}.html`))
   }, {
     message: `the file name must be 1 to ${PATTERN_SPEC.slugMaxLength} lowercase letters, digits, "_" or "-"`,
-    pattern: new RegExp(`^[a-z0-9_-]{1,${PATTERN_SPEC.slugMaxLength}}$`),
+    pattern: new RegExp(`^[a-z0-9_-]{1,${PATTERN_SPEC.slugMaxLength}}$`, 'u'),
   })
   problems.push(...found)
   return files.length + found.length
@@ -202,7 +202,7 @@ async function checkPhpDir(dir: string, problems: Problem[], emptyMessage: strin
     }
 
     // The same checks push runs, so a file that passes here doesn't fail there.
-    const filename = relative(dir, filePath).replaceAll(sep, '/').replace(/\.php$/, '')
+    const filename = relative(dir, filePath).replaceAll(sep, '/').replace(/\.php$/u, '')
     for (const message of phpFileProblems(spec, filename, content)) problems.push({file: filePath, message})
   }
 

@@ -307,7 +307,7 @@ describe('app push', () => {
       const {cmd, post} = make()
       post.mockRejectedValue(new Error('commit boom'))
 
-      await expect(cmd.run()).rejects.toThrow(/1 app.*failed to push/)
+      await expect(cmd.run()).rejects.toThrow(/1 app.*failed to push/u)
     })
 
     it('does not push or record success on a dry run', async () => {

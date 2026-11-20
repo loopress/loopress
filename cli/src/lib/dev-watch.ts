@@ -69,7 +69,9 @@ export function createDebouncedBatcher(flush: (paths: string[]) => Promise<void>
   const schedule = (): void => {
     clearTimeout(timer)
     timer = setTimeout(() => {
-      runFlush().catch(() => {})
+      runFlush().catch(() => {
+        // A failed flush must not stop the watcher: the next change schedules another one.
+      })
     }, debounceMs)
   }
 

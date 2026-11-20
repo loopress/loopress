@@ -143,7 +143,7 @@ describe('page-format exact messages and edge cases', () => {
   })
 
   it('names the key and the value in a bad boolean error', () => {
-    expect(() => parsePageFile('a', '<!-- hide-title: 1 -->')).toThrow(/^"hide-title" must be "true" or "false", got "1"$/)
+    expect(() => parsePageFile('a', '<!-- hide-title: 1 -->')).toThrow(/^"hide-title" must be "true" or "false", got "1"$/u)
   })
 
   it('uses the slug-derived title when the header title is empty', () => {
@@ -163,8 +163,8 @@ describe('page-format exact messages and edge cases', () => {
   })
 
   it('lists every allowed key and quotes the offending line in header errors', () => {
-    expect(() => parsePageFile('a', '<!-- titel: x -->')).toThrow(/^unknown header key "titel" \(allowed: title, status, full-width, hide-title, template\)$/)
-    expect(() => parsePageFile('a', '<!--\n  Hero section  \n-->')).toThrow(/^header line "Hero section" is not a "key: value" pair$/)
+    expect(() => parsePageFile('a', '<!-- titel: x -->')).toThrow(/^unknown header key "titel" \(allowed: title, status, full-width, hide-title, template\)$/u)
+    expect(() => parsePageFile('a', '<!--\n  Hero section  \n-->')).toThrow(/^header line "Hero section" is not a "key: value" pair$/u)
   })
 
   it('reads every allowed header key', () => {
@@ -211,7 +211,7 @@ describe('readLocalPages exact problems', () => {
   it('rethrows a failure other than a missing directory', async () => {
     writeFileSync(join(dir, 'file'), '')
 
-    await expect(readLocalPages(join(dir, 'file'))).rejects.toThrow(/ENOTDIR/)
+    await expect(readLocalPages(join(dir, 'file'))).rejects.toThrow(/ENOTDIR/u)
   })
 
   it('drops repeated dashes from a title', () => {

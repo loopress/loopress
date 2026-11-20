@@ -56,7 +56,7 @@ describe('snapshot-store', () => {
   it('makes .loopress/ ignore itself in git, without overwriting an existing .gitignore there', async () => {
     const base = {afterState: new Map(), beforeState: new Map(), environment: 'local', resource: 'snippet'}
     await writeSnapshot({...base, rootDir})
-    expect(readFileSync(join(rootDir, '.loopress', '.gitignore'), 'utf8')).toMatch(/^\*$/m)
+    expect(readFileSync(join(rootDir, '.loopress', '.gitignore'), 'utf8')).toMatch(/^\*$/mu)
 
     const other = mkdtempSync(join(tmpdir(), 'lps-snapshot-store-own-ignore-'))
     try {
@@ -97,11 +97,11 @@ describe('snapshot-store', () => {
   })
 
   it('readSnapshot throws a clear error when there are no snapshots at all', async () => {
-    await expect(readSnapshot(rootDir, 'snippet', 'staging')).rejects.toThrow(/No snapshots found for "snippet" on "staging"/)
+    await expect(readSnapshot(rootDir, 'snippet', 'staging')).rejects.toThrow(/No snapshots found for "snippet" on "staging"/u)
   })
 
   it('readSnapshot throws a clear error for an unknown id', async () => {
-    await expect(readSnapshot(rootDir, 'snippet', 'staging', '123')).rejects.toThrow(/Snapshot "123" not found for "snippet" on "staging"/)
+    await expect(readSnapshot(rootDir, 'snippet', 'staging', '123')).rejects.toThrow(/Snapshot "123" not found for "snippet" on "staging"/u)
   })
 
   it('prunes down to the retention limit, oldest first, on every write', async () => {
@@ -156,7 +156,7 @@ describe('snapshot-store', () => {
     expect(latestForStaging.beforeState).toEqual({a: 'staging value'})
 
     // An explicit --to id from another environment must not be readable through this one.
-    await expect(readSnapshot(rootDir, 'snippet', 'staging', productionId)).rejects.toThrow(/not found/)
+    await expect(readSnapshot(rootDir, 'snippet', 'staging', productionId)).rejects.toThrow(/not found/u)
   })
 
   it('prunes only the current environment, never another one sharing the same resource', async () => {

@@ -96,7 +96,7 @@ describe('ApiClient', () => {
     })
 
     await expect(client.post('projects', {name: 1})).rejects.toThrow(
-      /Request failed \(400\) on http:\/\/127\.0\.0\.1:\d+\/projects: name must be a string; url must be a URL/,
+      /Request failed \(400\) on http:\/\/127\.0\.0\.1:\d+\/projects: name must be a string; url must be a URL/u,
     )
   })
 
@@ -106,7 +106,7 @@ describe('ApiClient', () => {
       res.end(JSON.stringify({error: 'Forbidden', message: 'Free plan is limited to 3 projects.', statusCode: 403}))
     })
 
-    await expect(client.post('projects', {name: 'acme'})).rejects.toThrow(/projects: Free plan is limited to 3 projects\.$/)
+    await expect(client.post('projects', {name: 'acme'})).rejects.toThrow(/projects: Free plan is limited to 3 projects\.$/u)
   })
 
   it('times out with an actionable message instead of hanging when the API does not respond', async () => {
@@ -115,7 +115,7 @@ describe('ApiClient', () => {
     }, 100)
 
     await expect(client.post('projects', {name: 'acme'})).rejects.toThrow(
-      /timed out after 0\.1s on http:\/\/127\.0\.0\.1:\d+\/projects.*network connection/,
+      /timed out after 0\.1s on http:\/\/127\.0\.0\.1:\d+\/projects.*network connection/u,
     )
   })
 
@@ -146,7 +146,7 @@ describe('ApiClient', () => {
       res.end()
     })
 
-    await expect(client.get('me')).rejects.toThrow(/^Not logged in or session expired on http:\/\/127\.0\.0\.1:\d+\/me\. Run `lps login` again\.$/)
+    await expect(client.get('me')).rejects.toThrow(/^Not logged in or session expired on http:\/\/127\.0\.0\.1:\d+\/me\. Run `lps login` again\.$/u)
   })
 
   it('falls back to the raw body of a 403 that is not JSON', async () => {
@@ -155,7 +155,7 @@ describe('ApiClient', () => {
       res.end('<h1>Blocked by proxy</h1>')
     })
 
-    await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: <h1>Blocked by proxy<\/h1>$/)
+    await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: <h1>Blocked by proxy<\/h1>$/u)
   })
 
   it('falls back to the error message of a 403 with an empty body', async () => {
@@ -164,7 +164,7 @@ describe('ApiClient', () => {
       res.end()
     })
 
-    await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: \S.*$/)
+    await expect(client.get('projects')).rejects.toThrow(/^Request rejected \(403\) on http:\/\/127\.0\.0\.1:\d+\/projects: \S.*$/u)
   })
 
   it.each([
@@ -179,7 +179,7 @@ describe('ApiClient', () => {
 
     const error = await rejectionOf(client.post('projects', {name: 'acme'}))
 
-    expect(error.message).not.toMatch(/^Request failed \(409\)/)
+    expect(error.message).not.toMatch(/^Request failed \(409\)/u)
     expect(error.message).toContain('409')
   })
 
@@ -210,6 +210,6 @@ describe('ApiClient', () => {
     })
     server = undefined
 
-    await expect(client.get('projects')).rejects.toThrow(new RegExp(`ECONNREFUSED.*${port}|${port}.*ECONNREFUSED`))
+    await expect(client.get('projects')).rejects.toThrow(new RegExp(`ECONNREFUSED.*${port}|${port}.*ECONNREFUSED`, 'u'))
   })
 })

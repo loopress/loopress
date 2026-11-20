@@ -70,7 +70,7 @@ describe('theme style pull', () => {
       return {}
     })
 
-    await expect(cmd.run()).rejects.toThrow(/classic theme/)
+    await expect(cmd.run()).rejects.toThrow(/classic theme/u)
   })
 
   it('writes nothing on a dry run', async () => {

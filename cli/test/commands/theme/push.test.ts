@@ -165,6 +165,6 @@ describe('theme pull', () => {
     cmd.setup()
     silenceLogs(cmd)
 
-    await expect(cmd.run()).rejects.toThrow(/^1 theme resource failed to pull\. Global Styles: classic theme$/)
+    await expect(cmd.run()).rejects.toThrow(/^1 theme resource failed to pull\. Global Styles: classic theme$/u)
   })
 })

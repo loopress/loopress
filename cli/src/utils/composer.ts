@@ -100,7 +100,7 @@ async function isOnWordPressOrg(kind: 'plugin' | 'theme', slug: string): Promise
 // Rewrites a JSON file the way it was indented (Composer itself writes 4 spaces), so a pull only
 // shows the entries it changed in the git diff. A file with no indentation to copy gets 4 spaces.
 function stringifyLike(original: string, value: unknown): string {
-  const indent = /^([ \t]+)"/m.exec(original)?.[1] ?? ' '.repeat(4)
+  const indent = /^([ \t]+)"/mu.exec(original)?.[1] ?? ' '.repeat(4)
   return JSON.stringify(value, null, indent) + (original.endsWith('\n') ? '\n' : '')
 }
 

@@ -194,7 +194,7 @@ describe('template push', () => {
     rmSync(join(dir, 'theme'), {force: true, recursive: true})
     const put = vi.fn()
 
-    await expect(makeCommand(put).run()).rejects.toThrow(/Nothing to push: no \S+theme[/\\]templates, \S+theme[/\\]parts, \S+theme[/\\]css or \S+theme[/\\]blocks directory\./)
+    await expect(makeCommand(put).run()).rejects.toThrow(/Nothing to push: no \S+theme[/\\]templates, \S+theme[/\\]parts, \S+theme[/\\]css or \S+theme[/\\]blocks directory\./u)
     expect(put).not.toHaveBeenCalled()
   })
 

@@ -5,7 +5,7 @@
 // adds its own). PHP has no tokenizer in Node, so this is a minimal lexer: it only needs to skip
 // comments, strings and heredocs correctly, and to see keywords, braces and ';'.
 const ALLOWED = new Set(['abstract', 'class', 'const', 'declare', 'enum', 'final', 'function', 'interface', 'namespace', 'readonly', 'trait', 'use'])
-const OPEN_TAG = /<\?php\b/i
+const OPEN_TAG = /<\?php\b/iu
 
 type Token = {text: string; type: 'attribute' | 'html' | 'punct' | 'string' | 'word'}
 
@@ -123,11 +123,11 @@ function* lex(source: string): Generator<Token> {
 function skipTrivia(source: string, start: number): number {
   let i = start
   for (;;) {
-    if (/\s/.test(source[i] ?? '')) {
+    if (/\s/u.test(source[i] ?? '')) {
       i += 1
     } else if (source.startsWith('//', i) || (source[i] === '#' && source[i + 1] !== '[')) {
       // A line comment also ends at a closing tag, PHP outputs what follows it.
-      const end = source.slice(i).search(/\n|\?>/)
+      const end = source.slice(i).search(/\n|\?>/u)
       i = end === -1 ? source.length : i + end
     } else if (source.startsWith('/*', i)) {
       const end = source.indexOf('*/', i + 2)
@@ -143,7 +143,7 @@ function readToken(source: string, i: number): [Token, number] {
     // Closing tag: everything up to the next <?php is output, but for one newline PHP eats.
     const next = source.slice(i + 2).search(OPEN_TAG)
     const html = next === -1 ? source.slice(i + 2) : source.slice(i + 2, i + 2 + next)
-    return [{text: html.replace(/^\r?\n/, ''), type: 'html'}, next === -1 ? source.length : i + 2 + next + 5]
+    return [{text: html.replace(/^\r?\n/u, ''), type: 'html'}, next === -1 ? source.length : i + 2 + next + 5]
   }
 
   if (source.startsWith('#[', i)) return [{text: '#[', type: 'attribute'}, i + 2]
@@ -151,7 +151,7 @@ function readToken(source: string, i: number): [Token, number] {
     return [{text: source[i] === '`' ? '`' : 'a string', type: 'string'}, skipString(source, i)]
   }
 
-  const word = /^[\w$\\]+/.exec(source.slice(i))
+  const word = /^[\w$\\]+/u.exec(source.slice(i))
   if (word) return [{text: word[0], type: 'word'}, i + word[0].length]
   return [{text: source.charAt(i), type: 'punct'}, i + 1]
 }
@@ -159,11 +159,11 @@ function readToken(source: string, i: number): [Token, number] {
 // Index right after the string (quoted, backtick, heredoc or nowdoc) starting at `i`.
 function skipString(source: string, i: number): number {
   if (source[i] === '<') {
-    const head = /^<<<[ \t]*(["']?)(\w+)\1\r?\n/.exec(source.slice(i))
+    const head = /^<<<[ \t]*(["']?)(\w+)\1\r?\n/u.exec(source.slice(i))
     if (!head) return i + 3
     // PHP 7.3+: the closing identifier may be indented and followed by anything but a word char.
     const bodyStart = i + head[0].length - 1
-    const close = new RegExp(String.raw`\n[ \t]*${head[2]}\b`).exec(source.slice(bodyStart))
+    const close = new RegExp(String.raw`\n[ \t]*${head[2]}\b`, 'u').exec(source.slice(bodyStart))
     return close ? bodyStart + close.index + close[0].length : source.length
   }
 

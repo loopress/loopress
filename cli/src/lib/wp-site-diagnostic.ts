@@ -67,8 +67,8 @@ export async function diagnoseWpSite(siteUrl: string): Promise<DiagnosticResult>
  */
 async function detectWpVersion(siteUrl: string): Promise<string | undefined> {
   const sources = [
-    {pattern: /<generator>[^<]*[?&]v=(\d+(?:\.\d+)*)/, url: `${siteUrl}/feed/`},
-    {pattern: /<meta name="generator" content="WordPress (\d+(?:\.\d+)*)/, url: `${siteUrl}/`},
+    {pattern: /<generator>[^<]*[?&]v=(\d+(?:\.\d+)*)/u, url: `${siteUrl}/feed/`},
+    {pattern: /<meta name="generator" content="WordPress (\d+(?:\.\d+)*)/u, url: `${siteUrl}/`},
   ]
 
   for (const {pattern, url} of sources) {

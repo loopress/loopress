@@ -255,7 +255,7 @@ export abstract class LoopressCommand extends Command {
       }
     }
 
-    for (const file of orphans) await rm(join(dir, file), {force: true})
+    await Promise.all(orphans.map(async (file) => rm(join(dir, file), {force: true})))
 
     // Non-interactive removals (no TTY, CI) keep the original warn so existing
     // scripts that parse stderr or check exit status are not broken. Confirmed

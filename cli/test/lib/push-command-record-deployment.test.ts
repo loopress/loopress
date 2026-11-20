@@ -208,7 +208,7 @@ describe('PushCommand.reportPushToSite()', () => {
     it.each([[500], [undefined]])('stays silent on %s', async (statusCode) => {
       vi.stubEnv('LOOPRESS_TOKEN', 'env-token')
       const warn = vi.spyOn(ux, 'warn').mockImplementation(() => {})
-      vi.mocked(got.post).mockRejectedValueOnce(Object.assign(new Error('boom'), statusCode ? {response: {statusCode}} : {}))
+      vi.mocked(got.post).mockRejectedValueOnce(Object.assign(new Error('boom'), statusCode === undefined ? {} : {response: {statusCode}}))
 
       await new TestPush([], {} as never).testRecordDeployment('success')
 

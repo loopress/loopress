@@ -8,7 +8,9 @@ export default class Rotate extends LoopressCommand {
 
   // The rotation above always runs, regardless of age; the background age-check in
   // LoopressCommand would just redo the same work a second time right after.
-  protected override async maybeAutoRotate(): Promise<void> {}
+  protected override async maybeAutoRotate(): Promise<void> {
+    // Intentionally skipped, see above.
+  }
 
   async run(): Promise<void> {
     const {name, token, url} = this.siteConfig

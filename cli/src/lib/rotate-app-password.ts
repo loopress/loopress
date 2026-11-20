@@ -38,7 +38,9 @@ export async function rotateAppPassword(env: EnvironmentConfig & {token: string}
     // retries on every subsequent run, so a persistent failure here would otherwise pile up
     // one abandoned 'Loopress' entry per attempt. Best-effort: a failure here shouldn't hide
     // the original, more informative error.
-    await oldClient.delete(`${APPLICATION_PASSWORDS_PATH}/${created.uuid}`).catch(() => {})
+    await oldClient.delete(`${APPLICATION_PASSWORDS_PATH}/${created.uuid}`).catch(() => {
+      // Best effort, see above: the original error is the one to throw.
+    })
     throw error
   }
 

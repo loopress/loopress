@@ -99,8 +99,7 @@ describe('composer init', () => {
 
     await cmd.run()
 
-    const written = readJson(dir, 'composer.json')
-    expect(written.config['allow-plugins']['composer/installers']).toBe(true)
+    expect(readJson(dir, 'composer.json')).toMatchObject({config: {'allow-plugins': {'composer/installers': true}}})
   })
 
   it('does not write anything on dry-run', async () => {
@@ -132,8 +131,7 @@ describe('composer init', () => {
 
     await cmd.run()
 
-    const written = readJson(dir, 'composer.json')
-    expect(written.require).toEqual({'composer/installers': '^2.0'})
+    expect(readJson(dir, 'composer.json')).toMatchObject({require: {'composer/installers': '^2.0'}})
   })
 
   it('writes composer.json under rootDir', async () => {

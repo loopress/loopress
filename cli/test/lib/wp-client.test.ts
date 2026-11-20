@@ -32,16 +32,16 @@ describe('assertSecureSiteUrl', () => {
     expect(() => { assertSecureSiteUrl('https://example.com', 'production') }).not.toThrow()
     // Locality comes from the config, not the URL: a "local"-looking host is still refused over
     // http when the environment is not the local one.
-    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'production') }).toThrow(/cleartext/i)
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'production') }).toThrow(/cleartext/iu)
     expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'local') }).not.toThrow()
   })
 
   it('refuses http for a non-local environment (cleartext credentials)', () => {
-    expect(() => { assertSecureSiteUrl('http://example.com', 'staging') }).toThrow(/cleartext/i)
+    expect(() => { assertSecureSiteUrl('http://example.com', 'staging') }).toThrow(/cleartext/iu)
   })
 
   it('is enforced by the WpClient constructor', () => {
-    expect(() => new WpClient('http://example.com', 'user:pw', 'production')).toThrow(/cleartext/i)
+    expect(() => new WpClient('http://example.com', 'user:pw', 'production')).toThrow(/cleartext/iu)
   })
 })
 /* eslint-enable unicorn/prefer-https, sonarjs/no-clear-text-protocols */
@@ -158,7 +158,7 @@ describe('WpClient', () => {
     })
 
     await expect(client.post('loopress/v1/composer/sync', {}, {timeoutMs: 100})).rejects.toThrow(
-      /timed out after 0\.1s/,
+      /timed out after 0\.1s/u,
     )
   })
 
@@ -168,7 +168,7 @@ describe('WpClient', () => {
       res.end('{}')
     })
 
-    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Authentication failed \(401\).*lps project config/)
+    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Authentication failed \(401\).*lps project config/u)
   })
 
   it('maps a 404 with no error body to a friendly missing-plugin error', async () => {
@@ -177,7 +177,7 @@ describe('WpClient', () => {
       res.end('{}')
     })
 
-    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Endpoint not found \(404\)/)
+    await expect(client.get('loopress/v1/plugins')).rejects.toThrow(/Endpoint not found \(404\)/u)
   })
 
   it("surfaces the server's own error message on a 404 instead of the generic missing-plugin one", async () => {
@@ -186,7 +186,7 @@ describe('WpClient', () => {
       res.end(JSON.stringify({error: 'composer.lock not found'}))
     })
 
-    await expect(client.get('loopress/v1/composer/lock')).rejects.toThrow(/composer\.lock not found/)
+    await expect(client.get('loopress/v1/composer/lock')).rejects.toThrow(/composer\.lock not found/u)
   })
 
   describe('getAll', () => {
@@ -234,7 +234,7 @@ describe('WpClient', () => {
         res.end('{}')
       })
 
-      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(500\)/)
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(500\)/u)
     })
 
     it('starts the query string with "?" for a path without one, honouring a custom page size', async () => {
@@ -278,7 +278,7 @@ describe('WpClient', () => {
         res.end(pageOf(req) === 1 ? '<html>bad</html>' : '')
       })
 
-      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/u)
     })
 
     it('rethrows a 400 with an empty body', async () => {
@@ -287,7 +287,7 @@ describe('WpClient', () => {
         res.end()
       })
 
-      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/u)
     })
 
     it('rethrows a 400 whose JSON code is not the pagination one', async () => {
@@ -296,7 +296,7 @@ describe('WpClient', () => {
         res.end(JSON.stringify({code: 'rest_invalid_param'}))
       })
 
-      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/)
+      await expect(client.getAll('wp/v2/pages')).rejects.toThrow(/Request failed \(400\)/u)
     })
   })
 
@@ -320,7 +320,7 @@ describe('WpClient', () => {
     })
 
     await expect(client.get('loopress/v1/snippets')).rejects.toThrow(
-      /Request failed \(500\).*Multiple snippet plugins are active at once\./,
+      /Request failed \(500\).*Multiple snippet plugins are active at once\./u,
     )
   })
 })
@@ -560,7 +560,7 @@ describe('isTimeoutError', () => {
     it('refuses a URL that does not parse, and names an unknown environment', () => {
       expect(() => {
         assertSecureSiteUrl('not a url', 'production')
-      }).toThrow(/^Invalid site URL: not a url$/)
+      }).toThrow(/^Invalid site URL: not a url$/u)
       // Built from parts: a lint autofix rewrites a plain-HTTP literal to HTTPS.
       const plainHttp = ['http', '//example.com'].join(':')
       expect(() => {

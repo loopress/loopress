@@ -226,8 +226,8 @@ describe('diff', () => {
     expect(result.resources.form).toBeUndefined()
     expect(result.resources['theme-style']).toBeUndefined()
     expect(process.exitCode).not.toBe(2)
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/))
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*not configured, skipped/u))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Theme styles.*not configured, skipped/u))
   })
 
   it('exits 0 on Light when the project uses none of what needs Full, Composer included', async () => {
@@ -240,7 +240,7 @@ describe('diff', () => {
     expect(get).not.toHaveBeenCalledWith('loopress/v1/hooks')
     expect(result.resources.composer).toBeUndefined()
     expect(process.exitCode).toBe(0)
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Hooks.*not configured, skipped/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Hooks.*not configured, skipped/u))
   })
 
   it('with --skip-unsupported, skips a used resource the site cannot hold, exits 0 and warns', async () => {
@@ -253,8 +253,8 @@ describe('diff', () => {
     expect(get).not.toHaveBeenCalledWith('loopress/v1/forms')
     expect(result.resources.form).toEqual({added: [], changed: [], reason: 'no supported form plugin is active on staging', removed: [], status: 'skipped'})
     expect(process.exitCode).toBe(0)
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*no supported form plugin is active on staging, skipped \(--skip-unsupported\)/))
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/Forms: no supported form plugin is active on staging\. Declare wpforms-lite/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/Forms.*no supported form plugin is active on staging, skipped \(--skip-unsupported\)/u))
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/Forms: no supported form plugin is active on staging\. Declare wpforms-lite/u))
   })
 
   it('without --skip-unsupported, still compares a used resource the site cannot hold', async () => {
@@ -383,7 +383,7 @@ describe('diff', () => {
     vi.spyOn(configManager, 'getEnvironment').mockReturnValue({addedAt: '2024-01-01', name: 'staging2', type: 'staging', token: '', url: 'https://x.com'})
     const {cmd} = make(['--against', 'staging2'], baselineGet())
 
-    await expect(cmd.run()).rejects.toThrow(/No credentials configured/)
+    await expect(cmd.run()).rejects.toThrow(/No credentials configured/u)
   })
 
   it('renders diff patches with the real environment names, not blank labels', async () => {
@@ -426,7 +426,7 @@ describe('diff', () => {
 
       expect(post).toHaveBeenCalledOnce()
       const [url, options] = post.mock.calls[0] as unknown as [string, {headers: unknown; json: unknown; timeout: unknown}]
-      expect(url).toMatch(/\/drift-reports$/)
+      expect(url).toMatch(/\/drift-reports$/u)
       expect(options.headers).toEqual({Authorization: 'Bearer tok'})
       expect(options.timeout).toEqual({request: 3000})
       expect(options.json).toEqual({

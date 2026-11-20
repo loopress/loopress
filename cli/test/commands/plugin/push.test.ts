@@ -195,7 +195,7 @@ describe('plugin push', () => {
 
   it('errors when loopress.json has no plugins', async () => {
     const {cmd} = make({})
-    await expect(cmd.run()).rejects.toThrow(/No plugins found/)
+    await expect(cmd.run()).rejects.toThrow(/No plugins found/u)
   })
 
   it('reports in-sync and posts nothing when the manifest matches a managed site', async () => {
@@ -235,7 +235,7 @@ describe('plugin push', () => {
       return [native('woocommerce', '9.4.2')]
     })
 
-    await expect(cmd.run()).rejects.toThrow(/--force/)
+    await expect(cmd.run()).rejects.toThrow(/--force/u)
   })
 
   it('refuses a downgrade without --force', async () => {
@@ -245,7 +245,7 @@ describe('plugin push', () => {
       path === 'loopress/v1/composer/lock' ? {composerLock: lock} : [native('woocommerce', '9.5.0')],
     )
 
-    await expect(cmd.run()).rejects.toThrow(/downgrade/)
+    await expect(cmd.run()).rejects.toThrow(/downgrade/u)
   })
 
   it('sends the plugins intent to /composer/sync on a real push', async () => {
@@ -391,7 +391,7 @@ describe('plugin push', () => {
     const config: Record<string, unknown> = {plugins: {akismet: {activate: false, version: '5.3.3'}}}
     const {cmd, post} = make(config)
 
-    await expect(cmd.run()).rejects.toThrow(/unknown key\(s\) "activate" \(did you mean "active"\?\)/)
+    await expect(cmd.run()).rejects.toThrow(/unknown key\(s\) "activate" \(did you mean "active"\?\)/u)
     expect(post).not.toHaveBeenCalled()
   })
 
@@ -478,7 +478,7 @@ describe('plugin push', () => {
     )
     post.mockRejectedValue(new Error('composer blew up'))
 
-    await expect(cmd.run()).rejects.toThrow(/composer blew up/)
+    await expect(cmd.run()).rejects.toThrow(/composer blew up/u)
 
     expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'inactive'})
     expect(put).toHaveBeenCalledWith('wp/v2/plugins/woocommerce/woocommerce.php', {status: 'active'})
@@ -669,7 +669,7 @@ describe('plugin push', () => {
       )
 
       await expect(cmd.run()).rejects.toThrow(
-        /^2 plugin\(s\) are already installed outside Loopress: (woocommerce \(9\.4\.2\), akismet \(5\.0\.0\)|akismet \(5\.0\.0\), woocommerce \(9\.4\.2\))\./,
+        /^2 plugin\(s\) are already installed outside Loopress: (woocommerce \(9\.4\.2\), akismet \(5\.0\.0\)|akismet \(5\.0\.0\), woocommerce \(9\.4\.2\))\./u,
       )
     })
 
@@ -679,7 +679,7 @@ describe('plugin push', () => {
         path === 'loopress/v1/composer/lock' ? {composerLock: lockOf('woocommerce')} : [native('woocommerce', '9.5.0')],
       )
 
-      await expect(cmd.run()).rejects.toThrow(/^Refusing to downgrade: woocommerce 9\.5\.0 to 9\.4\.2\./)
+      await expect(cmd.run()).rejects.toThrow(/^Refusing to downgrade: woocommerce 9\.5\.0 to 9\.4\.2\./u)
     })
 
     it('lets a downgrade through with --force', async () => {

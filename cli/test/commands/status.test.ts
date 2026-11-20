@@ -165,7 +165,7 @@ describe('status', () => {
       silenceLogs(cmd)
 
       await expect(cmd.run()).rejects.toThrow(
-        /Environment "nope" not found in project "acme"\. Available: production, staging/,
+        /Environment "nope" not found in project "acme"\. Available: production, staging/u,
       )
     })
   })

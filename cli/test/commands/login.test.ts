@@ -39,7 +39,7 @@ describe('login', () => {
 
     const callbackUrl = new URL(decodeURIComponent(consoleUrl.searchParams.get('callbackUrl') ?? ''))
     expect(callbackUrl.pathname).toBe('/callback')
-    expect(callbackUrl.searchParams.get('state')).toMatch(/^[a-f0-9]{64}$/)
+    expect(callbackUrl.searchParams.get('state')).toMatch(/^[a-f0-9]{64}$/u)
 
     await got(`${callbackUrl.href}&token=abc123`)
     await run

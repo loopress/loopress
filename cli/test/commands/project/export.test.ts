@@ -84,14 +84,14 @@ describe('project export', () => {
   })
 
   it('errors with the list of environments for an unknown one', async () => {
-    await expect(exported(['--env', 'nope'])).rejects.toThrow(/Available: local, production, staging/)
+    await expect(exported(['--env', 'nope'])).rejects.toThrow(/Available: local, production, staging/u)
   })
 
   it('refuses an environment without credentials', async () => {
-    await expect(exported(['--env', 'local'])).rejects.toThrow(/no credentials.*lps project config/)
+    await expect(exported(['--env', 'local'])).rejects.toThrow(/no credentials.*lps project config/u)
   })
 
   it('requires --env', async () => {
-    await expect(exported([])).rejects.toThrow(/Pass --env/)
+    await expect(exported([])).rejects.toThrow(/Pass --env/u)
   })
 })

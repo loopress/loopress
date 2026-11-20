@@ -59,7 +59,7 @@ describe('acf push', () => {
       await loadObjects(dir)
 
       expect(existsSync(join(dir, 'post_type_1.json'))).toBe(true)
-      expect(readJson(dir, 'post_type_1.json').title).toBe('Original')
+      expect(readJson(dir, 'post_type_1.json')).toMatchObject({title: 'Original'})
     })
 
     it('ignores non-.json files', async () => {

@@ -3,6 +3,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
+import type {LoopressGlobalConfiguration} from '../../src/types/global-config.generated.js'
+
 import {ProjectConfigManager} from '../../src/config/project-config.manager.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../src/types/config.js'
 
@@ -30,7 +32,7 @@ describe('ProjectConfigManager', () => {
   })
 
   const clearCurrent = (): void => {
-    const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+    const raw: LoopressGlobalConfiguration = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
     raw.currentProject = null
     writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
   }
@@ -57,7 +59,7 @@ describe('ProjectConfigManager', () => {
     it('nulls out a legacy string currentProject but keeps well-formed projects intact', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.ensureConfigDir()
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      const raw: LoopressGlobalConfiguration = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
       raw.currentProject = 'acme'
       writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
 
@@ -284,7 +286,7 @@ describe('ProjectConfigManager', () => {
     it('returns null when currentProject points at a project that no longer exists', () => {
       manager.setProject('id-acme', makeProject('acme'))
       manager.ensureConfigDir()
-      const raw = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
+      const raw: LoopressGlobalConfiguration = JSON.parse(readFileSync(manager.getConfigFilePath(), 'utf8'))
       raw.currentProject = {id: 'ghost'}
       writeFileSync(manager.getConfigFilePath(), JSON.stringify(raw))
 

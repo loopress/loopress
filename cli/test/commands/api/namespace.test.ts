@@ -72,7 +72,7 @@ describe('api namespace', () => {
       for (const namespace of ['loopress/v1', 'Bad Name', null]) {
         const cmd = new Push([], fakeOclifConfig)
         const {wp} = setup(cmd, 'loopress-api/v1', {api: {namespace}})
-        await expect(cmd.run()).rejects.toThrow(/api\.namespace/)
+        await expect(cmd.run()).rejects.toThrow(/api\.namespace/u)
         expect(wp.get).not.toHaveBeenCalled()
         expect(wp.put).not.toHaveBeenCalled()
       }

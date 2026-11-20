@@ -34,13 +34,14 @@ export default defineConfig([
   {
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
-      'no-await-in-loop': 'off',
+      // Warn, not error: some loops must run in order (one push after another on a live site).
+      'no-await-in-loop': 'warn',
       'perfectionist/sort-objects': 'off',
       // Every oclif Command subclass declares `static description`/`static flags`/`static args`
       // plain (never `readonly`) by framework convention; flagging all of them is just noise.
       'sonarjs/public-static-readonly': 'off',
-      // Idiomatic no-op patterns (fire-and-forget `.catch(() => {})`, mock stubs) shouldn't error.
-      '@typescript-eslint/no-empty-function': ['error', {allow: ['arrowFunctions', 'asyncMethods']}],
+      // An empty function in src/ is a swallowed error or a forgotten body: say why with a comment.
+      '@typescript-eslint/no-empty-function': 'error',
       // eslint-config-oclif's own override (`styles: {'node:path': {named: true}}`) is silently
       // ineffective against the newer eslint-plugin-unicorn pulled in by eslint-config-xo, so
       // named imports for node builtins ("import {join} from 'node:path'") still get flagged.
@@ -49,9 +50,10 @@ export default defineConfig([
       // contradicts oclif's own perfectionist/sort-classes group order (public methods before
       // private ones). Can't satisfy both at once.
       'unicorn/consistent-class-member-order': 'off',
-      // xo pins requireFlag: 'v', which tightens character-class escaping: adding it to the
-      // existing regexes wholesale risks turning valid patterns into runtime SyntaxErrors.
-      'require-unicode-regexp': 'off',
+      // xo pins requireFlag: 'v', which tightens character-class escaping and risks turning valid
+      // patterns into runtime SyntaxErrors. 'u' keeps the escaping rules and still fixes
+      // non-ASCII matching (file names, post titles).
+      'require-unicode-regexp': ['error', {requireFlag: 'u'}],
       // Flags established, unambiguous names (dryRun mirrors the --dry-run flag, disabled/active
       // match the API's own field names).
       'unicorn/consistent-boolean-name': 'off',
@@ -129,10 +131,10 @@ export default defineConfig([
       'vitest/valid-expect': ['error', {maxArgs: 2}],
       // Tests poke at parsed JSON and mock call args, which are `any` by nature.
       '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
       // Same reason: casting a fixture or a mock to the type under test is the point of a test.
       '@typescript-eslint/no-unsafe-type-assertion': 'off',
-      '@typescript-eslint/strict-boolean-expressions': 'off',
+      // Mock stubs (`() => {}`) are the point of a test double.
+      '@typescript-eslint/no-empty-function': ['error', {allow: ['arrowFunctions', 'asyncMethods']}],
       // Mock factories and request handlers read best inline, next to the test that uses them.
       'unicorn/consistent-function-scoping': 'off',
     },

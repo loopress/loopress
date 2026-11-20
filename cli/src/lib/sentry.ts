@@ -40,9 +40,9 @@ export function redactArgv(argv: string[]): string[] {
 
 // The site origin in front of a `/wp-json/` REST path: collapse it but keep the path, which is
 // Loopress's own API surface (identical on every site, no user data) and useful for triage.
-const SITE_PREFIX = /\bhttps?:\/\/[^\s"'<>)]*?\/wp-json\//gi
+const SITE_PREFIX = /\bhttps?:\/\/[^\s"'<>)]*?\/wp-json\//giu
 // Any other absolute URL (bare site root, a package URL on the summary line): blank it whole.
-const ANY_URL = /\bhttps?:\/\/[^\s"'<>)]+/gi
+const ANY_URL = /\bhttps?:\/\/[^\s"'<>)]+/giu
 
 // A WordPress request failure (`formatWpError`) puts the site URL on the first line and, for a
 // 4xx/5xx, appends the server's raw response body after a newline: a Composer trace, a WP fatal,

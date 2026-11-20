@@ -127,7 +127,7 @@ describe('promote', () => {
       vi.mocked(readLocalConfig).mockResolvedValue(localConfig)
       const {cmd} = make(['staging', 'production', '--dry-run'])
 
-      await expect(cmd.run()).rejects.toThrow(/--dry-run can't preview safely: .* is outside the project\. Run `lps diff --env <from> --against <to>` instead\./)
+      await expect(cmd.run()).rejects.toThrow(/--dry-run can't preview safely: .* is outside the project\. Run `lps diff --env <from> --against <to>` instead\./u)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     },
   )
@@ -135,7 +135,7 @@ describe('promote', () => {
   it('errors, listing the available environments, when <from> is unknown', async () => {
     const {cmd} = make(['nope', 'production', '--yes'])
 
-    await expect(cmd.run()).rejects.toThrow(/Environment "nope" not found in project "acme"\. Available: production, staging/)
+    await expect(cmd.run()).rejects.toThrow(/Environment "nope" not found in project "acme"\. Available: production, staging/u)
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
   })
 
@@ -168,7 +168,7 @@ describe('promote', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('2 resources failed to pull.'))
     const {cmd} = make(['staging', 'production', '--yes'])
 
-    await expect(cmd.run()).rejects.toThrow(/Pull from staging failed, nothing was pushed to production\. Your local files may already hold part of staging, review them before pushing\. 2 resources failed to pull\./)
+    await expect(cmd.run()).rejects.toThrow(/Pull from staging failed, nothing was pushed to production\. Your local files may already hold part of staging, review them before pushing\. 2 resources failed to pull\./u)
     expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(1)
   })
 
@@ -176,7 +176,7 @@ describe('promote', () => {
     it('refuses outside a TTY without --yes', async () => {
       const {cmd} = make(['staging', 'production'])
 
-      await expect(cmd.run()).rejects.toThrow(/overwrites local tracked files.*Pass --yes to confirm/s)
+      await expect(cmd.run()).rejects.toThrow(/overwrites local tracked files.*Pass --yes to confirm/su)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 

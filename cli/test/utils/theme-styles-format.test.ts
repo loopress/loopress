@@ -121,19 +121,19 @@ describe('theme-styles-format', () => {
     it('throws a clear error when the active theme is a classic theme', async () => {
       const wp = fakeWp([{status: 'active', stylesheet: 'astra', theme_supports: {'block-templates': false}}])
 
-      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/classic theme/)
+      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/classic theme/u)
     })
 
     it('throws when no theme is reported active', async () => {
       const wp = fakeWp([{status: 'inactive', stylesheet: 'astra'}])
 
-      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/Could not determine the active theme/)
+      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/Could not determine the active theme/u)
     })
 
     it('throws a clear error when the active block theme has no resolvable global styles link', async () => {
       const wp = fakeWp([{status: 'active', stylesheet: 'twentytwentyfour', theme_supports: {'block-templates': true}}])
 
-      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/Could not resolve the editable Global Styles post/)
+      await expect(getActiveThemeGlobalStyles(wp)).rejects.toThrow(/Could not resolve the editable Global Styles post/u)
     })
   })
 
@@ -222,7 +222,7 @@ describe('theme-styles-format', () => {
       await expect(getActiveThemeGlobalStyles({get} as unknown as WpClient)).rejects.toThrow(
         'Global Styles sync only supports block themes (Full Site Editing). The active theme "astra" is a classic theme.',
       )
-      await expect(getActiveThemeGlobalStyles(fakeWp([]))).rejects.toThrow(/^Could not determine the active theme on WordPress\.$/)
+      await expect(getActiveThemeGlobalStyles(fakeWp([]))).rejects.toThrow(/^Could not determine the active theme on WordPress\.$/u)
       await expect(
         getActiveThemeGlobalStyles(fakeWp([{status: 'active', stylesheet: 'tt4', theme_supports: {'block-templates': true}}])),
       ).rejects.toThrow(

@@ -400,7 +400,7 @@ describe('api push', () => {
       const {cmd, get} = makeResolvePruneList()
       get.mockResolvedValue([{filename: 'stale'}])
 
-      await expect(cmd.resolvePruneList(new Set(), 'api')).rejects.toThrow(/would prune .* not a TTY.*--no-prune/s)
+      await expect(cmd.resolvePruneList(new Set(), 'api')).rejects.toThrow(/would prune .* not a TTY.*--no-prune/su)
     })
 
     it('prunes without any prompt outside production, even in a non-TTY', async () => {
@@ -430,7 +430,7 @@ describe('api push', () => {
       const pruned = await cmd.resolvePruneList(new Set(), 'api')
 
       expect(pruned).toEqual(['stale'])
-      expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\[dry-run\] Would prune .*stale/))
+      expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\[dry-run\] Would prune .*stale/u))
     })
   })
 })

@@ -126,7 +126,7 @@ describe('snippet rollback', () => {
   it('rejects when there is no snapshot to roll back to', async () => {
     const {cmd} = make([], vi.fn())
 
-    await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet"/)
+    await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet"/u)
   })
 
   it('rolls back to the most recent snapshot when the environment has not moved since that push', async () => {
@@ -299,7 +299,7 @@ describe('snippet rollback', () => {
     const get = vi.fn(async () => [remoteRow(7)])
     const {cmd} = make([], get, {siteConfig: makeEnv('production', 'https://acme.com')})
 
-    await expect(cmd.run()).rejects.toThrow(/production/)
+    await expect(cmd.run()).rejects.toThrow(/production/u)
     expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
   })
 
@@ -399,7 +399,7 @@ describe('snippet rollback', () => {
     })
     const {cmd} = make([], vi.fn(), {siteConfig: makeEnv('production', 'https://acme.com')})
 
-    await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet" on "production"/)
+    await expect(cmd.run()).rejects.toThrow(/No snapshots found for "snippet" on "production"/u)
   })
 
   describe('human output', () => {
@@ -457,13 +457,13 @@ describe('snippet rollback', () => {
       await cmd.run()
       const output = lines(logs)
 
-      expect(output[0]).toMatch(new RegExp(String.raw`^Rolling back Snippets on https://staging\.acme\.com to the snapshot from \S+ \(${id}\)$`))
+      expect(output[0]).toMatch(new RegExp(String.raw`^Rolling back Snippets on https://staging\.acme\.com to the snapshot from \S+ \(${id}\)$`, 'u'))
       expect(output).toContain('Snippets has changed on https://staging.acme.com since that push:')
       expect(output).toContain('  + 9')
       expect(output).toContain('  - 8')
       expect(output).toContain('  ~ 7')
       expect(output).toContain('This would restore Snippets to:')
-      expect(output.at(-1)).toMatch(/^Rolled back Snippets to the snapshot from \S+\.$/)
+      expect(output.at(-1)).toMatch(/^Rolled back Snippets to the snapshot from \S+\.$/u)
       // A patch line is indented under its "~ id" header, blank lines are left empty.
       const patch = output[output.indexOf('  ~ 7') + 1]
       expect(patch?.split('\n').every((line) => line === '' || line.startsWith(' '.repeat(4)))).toBe(true)
@@ -532,7 +532,7 @@ describe('snippet rollback', () => {
 
       await cmd.run()
 
-      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^2 items present now .* \(8, 9\): .* Remove them by hand/))
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^2 items present now .* \(8, 9\): .* Remove them by hand/u))
     })
   })
 

@@ -117,13 +117,13 @@ describe('PushCommand', () => {
     it('refuses a production push without --yes outside a TTY', async () => {
       const cmd = make(false, PRODUCTION)
 
-      await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/)
+      await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/u)
     })
 
     it('matches the environment name case-insensitively', async () => {
       const cmd = make(false, {...PRODUCTION, name: 'Production'})
 
-      await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/)
+      await expect(cmd.testGuard()).rejects.toThrow(/production.*--yes/u)
     })
 
     it('lets a production push through with --yes without prompting', async () => {
@@ -244,7 +244,7 @@ describe('PushCommand', () => {
       await lastPushLeft([['1', {name: 'pushed'}]])
 
       await expect(capture({local: [['1', {name: 'pushed'}]], remote: [['1', {name: 'edited in wp-admin'}]]})).rejects.toThrow(
-        /outside Loopress since your last push .*overwrite: 1\. .*--overwrite/,
+        /outside Loopress since your last push .*overwrite: 1\. .*--overwrite/u,
       )
     })
 
@@ -327,7 +327,7 @@ describe('PushCommand', () => {
       })
 
       await expect(cmd.testCaptureBeforePushState(fakeProvider({local, remote: async () => new Map()}), rootDir)).rejects.toThrow(
-        /Could not check for changes made on .* outside Loopress: timeout\. Retry, or pass --overwrite\./,
+        /Could not check for changes made on .* outside Loopress: timeout\. Retry, or pass --overwrite\./u,
       )
     })
 

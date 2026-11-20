@@ -34,7 +34,7 @@ export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher:
 
 // The `<id>-<slug>.*` filename convention: the numeric prefix is the identity.
 export function numericPrefixKey(base: string): null | string {
-  const match = /^(\d+)-/.exec(base)
+  const match = /^(\d+)-/u.exec(base)
   return match?.[1] ?? null
 }
 

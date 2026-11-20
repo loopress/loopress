@@ -103,7 +103,7 @@ function checkMetaRest(key: string, type: string, rest: unknown): void {
 }
 
 function checkMetaKey(key: string, meta: unknown): void {
-  if (!/^[\w-]{1,255}$/.test(key)) throw new Error(`"${key}" is not a valid meta key: 1 to 255 letters, digits, "_" or "-"`)
+  if (!/^[\w-]{1,255}$/u.test(key)) throw new Error(`"${key}" is not a valid meta key: 1 to 255 letters, digits, "_" or "-"`)
   if (!isObject(meta)) throw new Error(`"${key}" must be a JSON object of register_post_meta() arguments`)
 
   const code = ['sanitize_callback', 'auth_callback'].find((name) => Object.hasOwn(meta, name))
@@ -196,7 +196,7 @@ function readPatternValue(header: string, type: string, value: string): unknown 
   }
 
   if (type === 'integer') {
-    if (!/^\d+$/.test(value)) throw new Error(`"${header}" must be a whole number, got "${value}"`)
+    if (!/^\d+$/u.test(value)) throw new Error(`"${header}" must be a whole number, got "${value}"`)
     return Number(value)
   }
 
@@ -295,7 +295,7 @@ export function parseDeclaredArgs(raw: string): DeclaredArgs {
 // `lps validate`'s check of one file: the file name is a valid slug, array arguments are arrays,
 // and no argument is code.
 export function declaredFileChecker(spec: DeclaredTypeSpec): (raw: string, filePath: string) => void {
-  const slugPattern = new RegExp(`^[a-z0-9_-]{1,${spec.slugMaxLength}}$`)
+  const slugPattern = new RegExp(`^[a-z0-9_-]{1,${spec.slugMaxLength}}$`, 'u')
 
   return (raw, filePath) => {
     const slug = basename(filePath, fileExtension(spec))

@@ -136,7 +136,7 @@ export abstract class PushCommand extends LoopressCommand {
       const remote = await this.previewRemote(provider, dir)
       await this.guardOutsideEdits(provider, dir, remote, writes)
       try {
-        const local = await provider.local(dir, () => {}, this.wp)
+        const local = await provider.local(dir, () => {/* no progress output */}, this.wp)
         this.previewStates = {local, remote}
         this.previewChanges = pushChanges(local, remote, {writes})
       } catch (error) {
@@ -211,7 +211,7 @@ export abstract class PushCommand extends LoopressCommand {
   // pre-apply check built on it, see what the real push will hit.
   protected async previewRemote(provider: ResourceStateProvider, dir: string): Promise<ResourceState> {
     try {
-      return await provider.remote(this.wp, () => {}, dir)
+      return await provider.remote(this.wp, () => {/* no progress output */}, dir)
     } catch (error) {
       this.error(`The site would refuse this push: ${errorMessage(error)}`)
     }
@@ -372,7 +372,7 @@ export abstract class PushCommand extends LoopressCommand {
     // Unreadable files are skipped with a warning, so a failure here is the site's (ACF's
     // normalize route): the check can't run, and a push must not go on unchecked.
     try {
-      local = await provider.local(dir, () => {}, this.wp)
+      local = await provider.local(dir, () => {/* no progress output */}, this.wp)
     } catch (error) {
       this.error(`Could not check for changes made on ${this.siteConfig.url} outside Loopress: ${errorMessage(error)}. Retry, or pass --overwrite.`)
     }
