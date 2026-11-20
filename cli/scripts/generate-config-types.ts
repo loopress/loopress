@@ -11,14 +11,16 @@ const schemas = [
   {out: 'src/types/snippet.generated.ts', schema: 'schemas/snippet.schema.json'},
 ]
 
-for (const {out, schema} of schemas) {
-  const banner = `// This file is generated from ${schema} by \`pnpm run schema:types\`. Do not edit by hand.\n\n`
+await Promise.all(
+  schemas.map(async ({out, schema}) => {
+    const banner = `// This file is generated from ${schema} by \`pnpm run schema:types\`. Do not edit by hand.\n\n`
 
-  const ts = await compileFromFile(join(cliRoot, schema), {
-    additionalProperties: false,
-    bannerComment: '',
-    style: {semi: false, singleQuote: true},
-  })
+    const ts = await compileFromFile(join(cliRoot, schema), {
+      additionalProperties: false,
+      bannerComment: '',
+      style: {semi: false, singleQuote: true},
+    })
 
-  await writeFile(join(cliRoot, out), banner + ts)
-}
+    await writeFile(join(cliRoot, out), banner + ts)
+  }),
+)

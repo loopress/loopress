@@ -4,6 +4,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressProjectConfiguration} from '../../../../src/types/project-config.generated.js'
+
 import Pull from '../../../../src/commands/theme/version/pull.js'
 import {type EnvironmentConfig} from '../../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../../src/utils/loopress-config.js'
@@ -55,7 +57,7 @@ describe('theme pull', () => {
     await cmd.run()
 
     expect(get).toHaveBeenCalledWith('wp/v2/themes')
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({generatepress: '3.4.0'})
     expect(logs.log).toHaveBeenCalledWith('Wrote 1 themes to loopress.json')
   })
@@ -66,7 +68,7 @@ describe('theme pull', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({twentytwentyfive: '1.5'})
     expect(logs.log).toHaveBeenCalledWith('  - Skipped: twentytwentyfive-loopress (no version to pin)')
   })
@@ -86,7 +88,7 @@ describe('theme pull', () => {
 
     const result = await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'composer.json'), 'utf8'))
     expect(written).toEqual({
       name: 'acme/site',
       require: {
@@ -112,7 +114,7 @@ describe('theme pull', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({astra: '4.0.0', generatepress: '3.4.0'})
   })
 
@@ -123,7 +125,7 @@ describe('theme pull', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('  ~ Updated: generatepress 3.3.0 → 3.4.0')
-    const written = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(dir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({generatepress: '3.4.0'})
   })
 

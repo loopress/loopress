@@ -84,7 +84,7 @@ describe('project config', () => {
     const cmd = make()
     silenceLogs(cmd)
 
-    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*--env/)
+    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*--env/u)
     expect(select).not.toHaveBeenCalled()
     expect(input).not.toHaveBeenCalled()
   })
@@ -346,7 +346,7 @@ describe('project config', () => {
     const {validate} = callByMessage(input, 'WordPress URL') as {validate: (value: string) => string | true}
     expect(validate('https://example.com')).toBe(true)
     // production is not the "local" environment, so plain http is refused.
-    expect(validate('http://example.com')).toMatch(/HTTPS/)
+    expect(validate('http://example.com')).toMatch(/HTTPS/u)
   })
 
   it('accepts an http:// URL for the local environment', async () => {

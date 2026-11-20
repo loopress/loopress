@@ -88,7 +88,7 @@ export function matchesAny(matchers: RegExp[], segments: string[]): boolean {
 // `**` any number of directories, `*` anything but '/', `?` one character but '/'. A leading
 // `./` is ignored, the rest is literal.
 export function globToRegExp(glob: string): RegExp {
-  let source = glob.trim().replace(/^\.\//, '')
+  let source = glob.trim().replace(/^\.\//u, '')
   while (source.endsWith('/')) source = source.slice(0, -1)
   let pattern = ''
   for (let i = 0; i < source.length; i++) {
@@ -106,9 +106,9 @@ export function globToRegExp(glob: string): RegExp {
     } else if (char === '?') {
       pattern += '[^/]'
     } else {
-      pattern += char.replaceAll(/[$()+.[\\\]^{|}]/g, String.raw`\$&`)
+      pattern += char.replaceAll(/[$()+.[\\\]^{|}]/gu, String.raw`\$&`)
     }
   }
 
-  return new RegExp(`^${pattern}$`)
+  return new RegExp(`^${pattern}$`, 'u')
 }

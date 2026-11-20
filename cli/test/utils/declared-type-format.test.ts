@@ -49,7 +49,7 @@ describe('declared-type-format', () => {
   it('names no alternative when only an object or array is allowed', () => {
     expect(() => {
       checkCptFile('{"labels": "Books"}', 'cpt/book.json')
-    }).toThrow(/^"labels" must be a JSON object or array$/)
+    }).toThrow(/^"labels" must be a JSON object or array$/u)
   })
 
   it('formats JSON arguments with a trailing newline', () => {

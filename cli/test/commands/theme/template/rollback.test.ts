@@ -108,7 +108,7 @@ describe('theme template rollback', () => {
 
     expect(site.templates).toEqual([{html: '<p>old</p>', slug: 'single'}])
     expect(site.css).toEqual(pushedCss)
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^The theme CSS is not restored/))
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^The theme CSS is not restored/u))
   })
 
   it("refuses to write one theme's snapshot into the child of another parent activated since", async () => {
@@ -123,7 +123,7 @@ describe('theme template rollback', () => {
     const cmd = command(ConcreteRollback, ['--yes'], wp)
     Object.assign(cmd, {yes: true})
 
-    await expect(cmd.run()).rejects.toThrow(/snapshot is of tt5-loopress, the child theme of the active theme is now tt4-loopress/)
+    await expect(cmd.run()).rejects.toThrow(/snapshot is of tt5-loopress, the child theme of the active theme is now tt4-loopress/u)
     expect(wp.put).not.toHaveBeenCalled()
   })
 

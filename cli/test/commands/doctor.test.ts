@@ -221,7 +221,7 @@ describe('doctor', () => {
     expect(result.ok).toBe(false)
     expect(process.exitCode).toBe(1)
     expect(logs.log).toHaveBeenCalledWith('✗ No leftover temporary admin accounts')
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^ {2}Found lps-temp-abc, left by/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^ {2}Found lps-temp-abc, left by/u))
     expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('lps-temp-jane'))
   })
 

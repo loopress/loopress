@@ -4,6 +4,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressProjectConfiguration} from '../../../src/types/project-config.generated.js'
+
 import Add from '../../../src/commands/plugin/add.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -48,7 +50,7 @@ describe('plugin add', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('Added woocommerce (latest). Run `lps plugin push` to apply.')
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({woocommerce: 'latest'})
   })
 
@@ -93,7 +95,7 @@ describe('plugin add', () => {
     expect(logs.log).toHaveBeenCalledWith(
       'Added dokan-pro-addon (latest), with required dokan-lite, woocommerce (latest). Run `lps plugin push` to apply.',
     )
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({
       acf: '6.3.0',
       'dokan-lite': 'latest',
@@ -109,7 +111,7 @@ describe('plugin add', () => {
     ).toBe('unchanged')
 
     await make(['dokan-lite'], {plugins: {'dokan-lite': 'latest'}}).cmd.run()
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({'dokan-lite': 'latest', woocommerce: 'latest'})
   })
 
@@ -137,14 +139,14 @@ describe('plugin add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({woocommerce: '9.4.2'})
   })
 
   it('rejects a Composer constraint passed to --version', async () => {
     const {cmd} = make(['woocommerce', '--version', '^9.4'])
 
-    await expect(cmd.run()).rejects.toThrow(/exact version/)
+    await expect(cmd.run()).rejects.toThrow(/exact version/u)
     await expect(readFile(join(tmpDir, 'loopress.json'), 'utf8')).rejects.toThrow()
   })
 
@@ -153,7 +155,7 @@ describe('plugin add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.plugins).toEqual({acf: '6.3.0', woocommerce: 'latest'})
   })
 
@@ -163,8 +165,8 @@ describe('plugin add', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('Updated woocommerce (9.5.0). Run `lps plugin push` to apply.')
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
-    expect(written.plugins.woocommerce).toBe('9.5.0')
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    expect(written.plugins?.woocommerce).toBe('9.5.0')
   })
 
   it('is a no-op when the plugin is already pinned to the same value', async () => {

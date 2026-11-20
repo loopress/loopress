@@ -3,6 +3,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressProjectConfiguration} from '../../src/types/project-config.generated.js'
+
 import {ensureLfGitattributes, readLocalConfig, writeLocalConfig} from '../../src/utils/loopress-config.js'
 
 // readLocalConfig / writeLocalConfig resolve against process.cwd(), so we
@@ -72,7 +74,7 @@ describe('loopress-config', () => {
 
       const {readFile} = await import('node:fs/promises')
       const content = await readFile(join(tmpDir, 'loopress.json'), 'utf8')
-      const parsed = JSON.parse(content)
+      const parsed: LoopressProjectConfiguration = JSON.parse(content)
       expect(parsed.plugins).toEqual({hello: '1.0.0'})
     })
   })

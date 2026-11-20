@@ -255,7 +255,7 @@ describe('hook push', () => {
       writeFileSync(join(dir, 'hello.php'), '<?php\nfinal class Hello {}\n') // missing declare(strict_types=1);
       const {cmd, post} = make([dir])
 
-      await expect(cmd.run()).rejects.toThrow(/1 hook file.*failed to push/)
+      await expect(cmd.run()).rejects.toThrow(/1 hook file.*failed to push/u)
       expect(post).not.toHaveBeenCalled()
     })
 
@@ -343,7 +343,7 @@ describe('hook push', () => {
     it('refuses to prune when the local directory is missing', async () => {
       const {cmd, post} = make([join(dir, 'missing')])
 
-      await expect(cmd.run()).rejects.toThrow(/Refusing to prune: .*missing is missing or holds no PHP file/)
+      await expect(cmd.run()).rejects.toThrow(/Refusing to prune: .*missing is missing or holds no PHP file/u)
       expect(post).not.toHaveBeenCalled()
     })
 

@@ -45,7 +45,7 @@ describe('downloadLatestFullZip', () => {
   it('throws when no wordpress-plugin@* release exists (e.g. the most recent release is a CLI release)', async () => {
     gotJson.mockResolvedValue([{assets: [], 'tag_name': '@loopress/cli@0.19.0'}])
 
-    await expect(downloadLatestFullZip()).rejects.toThrow(/No "wordpress-plugin@\*" release found/)
+    await expect(downloadLatestFullZip()).rejects.toThrow(/No "wordpress-plugin@\*" release found/u)
   })
 
   it('throws when the matching release has no loopress-full.zip asset', async () => {
@@ -56,6 +56,6 @@ describe('downloadLatestFullZip', () => {
       },
     ])
 
-    await expect(downloadLatestFullZip()).rejects.toThrow(/no "loopress-full\.zip" asset/)
+    await expect(downloadLatestFullZip()).rejects.toThrow(/no "loopress-full\.zip" asset/u)
   })
 })

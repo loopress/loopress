@@ -39,7 +39,7 @@ describe('bundleThemeCss', () => {
     const {css, problems} = await bundleThemeCss(cssDir, blocksDir)
 
     expect(problems).toEqual([])
-    expect(css.style).toMatch(/\.l-wrap\{max-width:60rem\}\s*\.c-card\{padding:1rem\}/)
+    expect(css.style).toMatch(/\.l-wrap\{max-width:60rem\}\s*\.c-card\{padding:1rem\}/u)
     expect(css.style).not.toContain('@import')
     expect(css.blocks).toEqual([{css: expect.stringContaining('.wp-block-button.is-style-outline{border-width:2px}'), name: 'core/button'}])
   })
@@ -52,7 +52,7 @@ describe('bundleThemeCss', () => {
     const {css, problems} = await bundleThemeCss(cssDir, blocksDir)
 
     expect(problems).toEqual([])
-    expect(css.assets).toEqual([{content: 'AAEC', path: expect.stringMatching(/^assets\/inter-\w+\.woff2$/)}])
+    expect(css.assets).toEqual([{content: 'AAEC', path: expect.stringMatching(/^assets\/inter-\w+\.woff2$/u)}])
     const asset = css.assets[0]?.path
     expect(css.style).toContain(`url("./${asset}")`)
     expect(css.blocks[0]?.css).toContain(`url("../../${asset}")`)

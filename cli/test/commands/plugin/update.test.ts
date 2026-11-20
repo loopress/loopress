@@ -87,7 +87,7 @@ describe('plugin update', () => {
 
   it('refuses a slug missing from loopress.json', async () => {
     const cmd = make({plugins: {akismet: '5.3.3'}}, ['nope'])
-    await expect(cmd.run()).rejects.toThrow(/Not in loopress.json: nope/)
+    await expect(cmd.run()).rejects.toThrow(/Not in loopress.json: nope/u)
     expect(gotFn).not.toHaveBeenCalled()
   })
 

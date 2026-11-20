@@ -4,6 +4,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import type {LoopressProjectConfiguration} from '../../../src/types/project-config.generated.js'
+
 import Add from '../../../src/commands/theme/add.js'
 import {type LoopressLocalConfig} from '../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
@@ -40,7 +42,7 @@ describe('theme add', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('Added generatepress (latest). Run `lps theme push` to apply.')
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({generatepress: 'latest'})
   })
 
@@ -49,14 +51,14 @@ describe('theme add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({generatepress: '3.4.0'})
   })
 
   it('rejects a Composer constraint passed to --version', async () => {
     const {cmd} = make(['generatepress', '--version', '^3.4'])
 
-    await expect(cmd.run()).rejects.toThrow(/exact version/)
+    await expect(cmd.run()).rejects.toThrow(/exact version/u)
     await expect(readFile(join(tmpDir, 'loopress.json'), 'utf8')).rejects.toThrow()
   })
 
@@ -65,7 +67,7 @@ describe('theme add', () => {
 
     await cmd.run()
 
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
     expect(written.themes).toEqual({astra: '4.0.0', generatepress: 'latest'})
   })
 
@@ -75,8 +77,8 @@ describe('theme add', () => {
     await cmd.run()
 
     expect(logs.log).toHaveBeenCalledWith('Updated generatepress (3.5.0). Run `lps theme push` to apply.')
-    const written = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
-    expect(written.themes.generatepress).toBe('3.5.0')
+    const written: LoopressProjectConfiguration = JSON.parse(await readFile(join(tmpDir, 'loopress.json'), 'utf8'))
+    expect(written.themes?.generatepress).toBe('3.5.0')
   })
 
   it('is a no-op when the theme is already pinned to the same value', async () => {

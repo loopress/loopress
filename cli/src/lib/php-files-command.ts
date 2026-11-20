@@ -131,7 +131,7 @@ export type RmFilesCommand = Omit<LoopressCommand, 'run'> & {run(): Promise<RmRe
 // an absent declare(strict_types=1); and one that appears more than once (it needs a single
 // unambiguous insertion point for the ABSPATH guard). Matching "exactly once" here, not just
 // presence, so a file that would still fail server-side doesn't falsely pass this check.
-const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/g
+const DECLARE_PATTERN = /declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/gu
 
 // What push checks on a route or hook file before sending it (the server rejects the same):
 // shared with `lps validate`. The server still runs what needs WordPress (PHP syntax, class-name
@@ -606,7 +606,7 @@ export const API_FILES_RESOURCE: PhpFilesResource = {
   // Mirrors ApiFilesController::isValidFilename(): kebab-case segments or a bracketed dynamic
   // segment like [order_id], joined by '/', and never a root "index" (api/index.php is
   // reserved; a nested orders/index.php is the /orders route).
-  filenamePattern: /^(?!index$)(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/,
+  filenamePattern: /^(?!index$)(?:[a-z0-9-]+|\[[A-Za-z_]\w*\])(?:\/(?:[a-z0-9-]+|\[[A-Za-z_]\w*\]))*$/u,
   invalidFilenameHint:
     'each path segment must be lowercase letters, digits, and hyphens, or a bracketed dynamic segment like "[order_id]" (e.g. "invoice-pdf/[order_id].php"), and a root "index.php" is reserved: name the file, or nest it (orders/index.php is the /orders route)',
   label: 'API routes',
@@ -628,7 +628,7 @@ export const HOOK_FILES_RESOURCE: PhpFilesResource = {
   endpoint: 'loopress/v1/hook-files',
   // Mirrors HookFilesController::isValidFilename(): kebab-case segments joined by '/', no
   // bracketed dynamic-segment alternative (a hook slug is never a URL path).
-  filenamePattern: /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/,
+  filenamePattern: /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/u,
   invalidFilenameHint:
     'each path segment must be lowercase letters, digits, and hyphens (e.g. "content-filters.php" or "content/filters.php")',
   label: 'hooks',

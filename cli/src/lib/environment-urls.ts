@@ -5,7 +5,7 @@ export type ScannedItem = {id: string; value: unknown}
 
 // `http(s)://` then the host, plain or JSON-escaped (`https:\/\/`), as block attributes and option
 // values can hold either.
-const ABSOLUTE_URL = /https?:(?:\/\/|\\\/\\\/)[^\s"'<>()\\]+/gi
+const ABSOLUTE_URL = /https?:(?:\/\/|\\\/\\\/)[^\s"'<>()\\]+/giu
 
 // Warns, never rewrites: an absolute URL whose host is another environment of the project keeps
 // pointing there once pushed (a staging link on production). A relative path, a link to the

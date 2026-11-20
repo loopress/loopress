@@ -12,7 +12,7 @@ export const BLOCKS_ENDPOINT = 'loopress/v1/block-files'
 export const BLOCK_FILES = ['block.json', 'render.php', 'style.css', 'view.js'] as const
 
 // WordPress's block name segment rule, capped like the plugin's slug pattern.
-export const BLOCK_SLUG = /^[a-z][a-z0-9-]{0,63}$/
+export const BLOCK_SLUG = /^[a-z][a-z0-9-]{0,63}$/u
 
 export type BlockFiles = Record<string, string>
 export type LocalBlock = {files: BlockFiles; slug: string}
@@ -24,7 +24,7 @@ function referencedFiles(metadata: Record<string, unknown>): string[] {
   return Object.values(metadata)
     .flatMap((value): unknown[] => (Array.isArray(value) ? (value as unknown[]) : [value]))
     .filter((value): value is string => typeof value === 'string' && value.startsWith('file:'))
-    .map((value) => value.slice('file:'.length).replace(/^\.\//, ''))
+    .map((value) => value.slice('file:'.length).replace(/^\.\//u, ''))
 }
 
 // Local checks `lps block push` and `lps validate` share. The site checks the same again,
@@ -72,10 +72,12 @@ export async function readLocalBlocks(dir: string): Promise<{blocks: LocalBlock[
   const problems: BlockProblem[] = []
   for (const entry of entries.filter((candidate) => candidate.isDirectory()).toSorted((a, b) => a.name.localeCompare(b.name))) {
     const slug = entry.name
-    const files: BlockFiles = {}
-    for (const file of await readdir(join(dir, slug), {withFileTypes: true})) {
-      if (file.isFile() && !file.name.startsWith('.')) files[file.name] = await readFile(join(dir, slug, file.name), 'utf8')
-    }
+    const names = (await readdir(join(dir, slug), {withFileTypes: true}))
+      .filter((file) => file.isFile() && !file.name.startsWith('.'))
+      .map((file) => file.name)
+    const files: BlockFiles = Object.fromEntries(
+      await Promise.all(names.map(async (name) => [name, await readFile(join(dir, slug, name), 'utf8')] as const)),
+    )
 
     // Checked whole, then the environment's excluded files are dropped: a push keeps the site's
     // copy of those (see blockFilesToPush), a diff holds the block back.
@@ -115,7 +117,7 @@ export function assertSafeBlock(block: LocalBlock): void {
 export async function writeBlock(dir: string, block: LocalBlock): Promise<void> {
   assertSafeBlock(block)
   await mkdir(join(dir, block.slug), {recursive: true})
-  for (const [name, content] of Object.entries(block.files)) await writeFile(join(dir, block.slug, name), content)
+  await Promise.all(Object.entries(block.files).map(async ([name, content]) => writeFile(join(dir, block.slug, name), content)))
 }
 
 export type RemoteBlock = LocalBlock & {error?: string; runtimeError?: {at: string; message: string}}

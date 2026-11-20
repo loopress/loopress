@@ -41,7 +41,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
     const payload = JSON.parse(seenBody)
 
     expect(admin.id).toBe(42)
-    expect(admin.username).toMatch(/^lps-temp-[\da-z]+$/)
+    expect(admin.username).toMatch(/^lps-temp-[\da-z]+$/u)
     expect(admin.password.length).toBeGreaterThan(20)
     expect(payload).toEqual({
       email: `${admin.username}@lps-temp.invalid`,
@@ -94,7 +94,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
     })
 
     await expect(deleteTempAdmin(wp, {id: 7, username: 'lps-temp-abc'})).rejects.toThrow(
-      /lps-temp-abc.*id 7/,
+      /lps-temp-abc.*id 7/u,
     )
   })
 
@@ -113,7 +113,7 @@ describe('createTempAdmin / deleteTempAdmin', () => {
     })
 
     await expect(deleteTempAdmin(wp, {id: 7, username: 'lps-temp-abc'})).rejects.toThrow(
-      /still exists after deletion/,
+      /still exists after deletion/u,
     )
   })
 

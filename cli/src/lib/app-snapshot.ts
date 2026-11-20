@@ -74,8 +74,9 @@ function buildIdOf(value: unknown): string | undefined {
 }
 
 export async function readBundle(distDir: string, manifest: AppManifest): Promise<AppBundle> {
-  const files: Record<string, string> = {}
-  for (const file of manifest.files) files[file.path] = (await readFile(join(distDir, file.path))).toString('base64')
+  const files: Record<string, string> = Object.fromEntries(
+    await Promise.all(manifest.files.map(async (file) => [file.path, (await readFile(join(distDir, file.path))).toString('base64')] as const)),
+  )
   return {buildId: manifest.buildId, files}
 }
 

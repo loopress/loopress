@@ -11,7 +11,7 @@ import {compareVersions as cmp, validate} from 'compare-versions'
 // shape here would let it slip past `isExactVersion` at `add` time, then have
 // `compareVersions`/`isDowngrade` silently treat it as unorderable, bypassing the --force
 // gate on a real downgrade.
-const EXACT_VERSION = /^\d+(?:\.\d+){0,3}$|^\d+(?:\.\d+){2,3}-[\d.a-z]+$/i
+const EXACT_VERSION = /^\d+(?:\.\d+){0,3}$|^\d+(?:\.\d+){2,3}-[\d.a-z]+$/iu
 
 export function isExactVersion(value: string): boolean {
   return EXACT_VERSION.test(value)
@@ -38,7 +38,7 @@ export function versionJump(from: string, to: string): null | VersionJump {
 }
 
 function numericSegments(version: string): number[] {
-  const core = (version.split('-', 1)[0] ?? version).replace(/^v/i, '')
+  const core = (version.split('-', 1)[0] ?? version).replace(/^v/iu, '')
   return core.split('.').map((part) => {
     const n = Number(part)
     return Number.isNaN(n) ? 0 : Math.trunc(n)

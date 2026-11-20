@@ -79,7 +79,7 @@ export default class Rm extends LoopressCommand {
 
   // The project's own files still placing the block: pages, templates, parts and patterns.
   private async localReferences(slug: string): Promise<string[]> {
-    const marker = new RegExp(String.raw`<!--\s*wp:loopress/${slug}[\s/]`)
+    const marker = new RegExp(String.raw`<!--\s*wp:loopress/${slug}[\s/]`, 'u')
     const found: string[] = []
     for (const kind of ['page', 'template', 'part', 'pattern'] as const) {
       const dir = resolveResourceDir(kind, this.localConfig)

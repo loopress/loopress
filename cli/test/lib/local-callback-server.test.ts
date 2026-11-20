@@ -73,7 +73,7 @@ describe('waitForLocalCallback', () => {
     // Assertion listed before the triggering request, see wp-authorize-flow.test.ts: the
     // rejection happens synchronously inside the request handler, before `got` resolves.
     const [, res] = await Promise.all([
-      expect(result).rejects.toThrow(/state/i),
+      expect(result).rejects.toThrow(/state/iu),
       got(callbackUrl.href, {throwHttpErrors: false}),
     ])
     expect(res.statusCode).toBe(403)
@@ -118,7 +118,7 @@ describe('waitForLocalCallback', () => {
       }, {callbackHost: '127.0.0.1'})
       const callbackUrl = await openedCallbackUrl()
 
-      expect(callbackUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/callback\?state=[\da-f]{64}$/)
+      expect(callbackUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/callback\?state=[\da-f]{64}$/u)
 
       await got(callbackUrl)
       await result
@@ -219,7 +219,7 @@ describe('waitForLocalCallback', () => {
       )
       const callbackUrl = await openedCallbackUrl()
 
-      expect(callbackUrl).toMatch(/^http:\/\/localhost:\d+\/callback\?state=[\da-f]{64}$/)
+      expect(callbackUrl).toMatch(/^http:\/\/localhost:\d+\/callback\?state=[\da-f]{64}$/u)
       expect(logged).toEqual([
         'Opening your browser...',
         `\nIf it doesn't open automatically, visit:\n${callbackUrl}\n`,

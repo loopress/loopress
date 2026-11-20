@@ -43,7 +43,7 @@ export function recordToState(record: Record<string, unknown>): ResourceState {
 // Environment names are free text (whatever `lps project config` was given), not guaranteed to
 // be filesystem-safe path segments; anything outside a conservative safe set becomes '-'.
 function sanitizeForPath(name: string): string {
-  return name.replaceAll(/[^\w-]/g, '-')
+  return name.replaceAll(/[^\w-]/gu, '-')
 }
 
 // Scoped by environment, not just resource: a project with multiple environments (staging,
@@ -68,7 +68,7 @@ function isEexist(error: unknown): boolean {
 // Snapshot ids are the millisecond timestamp they were written at: sortable, unique enough for
 // a single-machine CLI run, and directly usable as `--to <id>`.
 function isSnapshotFilename(name: string): boolean {
-  return /^\d+\.json$/.test(name)
+  return /^\d+\.json$/u.test(name)
 }
 
 // Writes a snapshot for `resource`/`environment`, then prunes down to `retain` (oldest first),

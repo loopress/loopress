@@ -314,7 +314,7 @@ describe('push', () => {
       const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
 
       await expect(cmd.run()).rejects.toThrow(
-        /Nothing was pushed[\s\S]*snippets: no supported snippet plugin is active on staging\. Declare code-snippets \(or insert-headers-and-footers\) \("code-snippets" in loopress\.json plugins\), then activate it/,
+        /Nothing was pushed[\s\S]*snippets: no supported snippet plugin is active on staging\. Declare code-snippets \(or insert-headers-and-footers\) \("code-snippets" in loopress\.json plugins\), then activate it/u,
       )
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
@@ -356,33 +356,33 @@ describe('push', () => {
         localConfig: {plugins: {'advanced-custom-fields': {active: false, version: '6.8.10'}}},
       })
 
-      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active on staging\. The project declares advanced-custom-fields, activate it/)
+      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active on staging\. The project declares advanced-custom-fields, activate it/u)
     })
 
     it('says to activate a plugin composer.json already declares', async () => {
       writeFileSync(join(projectDir, 'composer.json'), JSON.stringify({require: {'wpackagist-plugin/code-snippets': '3.6.0'}}))
       const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
 
-      await expect(cmd.run()).rejects.toThrow(/The project declares code-snippets, activate it: `lps plugin push --activate`/)
+      await expect(cmd.run()).rejects.toThrow(/The project declares code-snippets, activate it: `lps plugin push --activate`/u)
     })
 
     it('names every blocked resource at once, dry run included', async () => {
       const {cmd} = make({capabilities: makeCapabilities({integrations: {acf: false, form: false}}), dryRun: true})
 
-      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active[\s\S]*forms: no supported form plugin is active/)
+      await expect(cmd.run()).rejects.toThrow(/ACF: ACF is not active[\s\S]*forms: no supported form plugin is active/u)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
     it('points a Loopress Light site at Full for snippets', async () => {
       const {cmd} = make({capabilities: makeLightCapabilities()})
 
-      await expect(cmd.run()).rejects.toThrow(/snippets: snippets need Loopress Full on staging\. Install Loopress Full\./)
+      await expect(cmd.run()).rejects.toThrow(/snippets: snippets need Loopress Full on staging\. Install Loopress Full\./u)
     })
 
     it('refuses on Light a Full-only feature or plugins the project uses, dry run included', async () => {
       const {cmd} = make({capabilities: makeLightCapabilities(), dryRun: true})
 
-      await expect(cmd.run()).rejects.toThrow(/plugins: plugins and Composer need Loopress Full[\s\S]*hooks: hooks need Loopress Full/)
+      await expect(cmd.run()).rejects.toThrow(/plugins: plugins and Composer need Loopress Full[\s\S]*hooks: hooks need Loopress Full/u)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
@@ -398,7 +398,7 @@ describe('push', () => {
       expect(ran).toContain('page:push')
       expect(result.results).toContainEqual({label: 'ACF', reason: 'ACF is not active on staging', status: 'skipped'})
       expect(logs.log).toHaveBeenCalledWith('\n→ ACF: ACF is not active, skipped (--skip-unsupported)')
-      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/ACF: ACF is not active on staging\.[\s\S]*forms: no supported form plugin is active on staging\./))
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/ACF: ACF is not active on staging\.[\s\S]*forms: no supported form plugin is active on staging\./u))
     })
 
     it('with --skip-unsupported, skips a Full feature on Light and exits cleanly', async () => {
@@ -530,7 +530,7 @@ describe('push', () => {
     calls.mockRejectedValueOnce(new Error('bang'))
     const {cmd} = make()
 
-    await expect(cmd.run()).rejects.toThrow(/^snippets failed to push: bang\.$/)
+    await expect(cmd.run()).rejects.toThrow(/^snippets failed to push: bang\.$/u)
   })
 
   it('announces each resource, confirms what pushed and says what it skipped', async () => {
@@ -559,7 +559,7 @@ describe('push', () => {
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('boom'))
     const {cmd} = make({argv: ['--skip', 'taxonomy']})
 
-    await expect(cmd.run()).rejects.toThrow(/^post types failed to push: boom\. Not attempted: post meta, /)
+    await expect(cmd.run()).rejects.toThrow(/^post types failed to push: boom\. Not attempted: post meta, /u)
   })
 
   it('warns with the held back resources before stopping on a failure under --skip-unsupported', async () => {
@@ -569,7 +569,7 @@ describe('push', () => {
 
     await expect(cmd.run()).rejects.toThrow('plugins failed to push: boom.')
 
-    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: /))
+    expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/^Skipped with --skip-unsupported, this site can't hold them:\n {2}snippets: /u))
   })
 
   it('words the closing line for a dry run, narrowed or not', async () => {
@@ -602,7 +602,7 @@ describe('push', () => {
 
     await cmd.run()
 
-    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\n→ hooks: hooks need Loopress Full.*, skipped$/))
+    expect(logs.log).toHaveBeenCalledWith(expect.stringMatching(/^\n→ hooks: hooks need Loopress Full.*, skipped$/u))
   })
 
   it('treats an unreadable composer.json as declaring no plugin', async () => {
@@ -618,7 +618,7 @@ describe('push', () => {
   it('puts each blocked resource on its own indented line', async () => {
     const {cmd} = make({capabilities: makeLightCapabilities()})
 
-    await expect(cmd.run()).rejects.toThrow(/^Nothing was pushed, the project uses what this site can't hold:\n {2}plugins: .*\n {2}\S.*: .*Install Loopress Full/)
+    await expect(cmd.run()).rejects.toThrow(/^Nothing was pushed, the project uses what this site can't hold:\n {2}plugins: .*\n {2}\S.*: .*Install Loopress Full/u)
   })
 
   it('puts each resource held back by --skip-unsupported on its own indented line', async () => {
@@ -627,7 +627,7 @@ describe('push', () => {
 
     await cmd.run()
 
-    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/can't hold them:\n {2}\S.*\n {2}\S.*\nResources that depend on them/)
+    expect(String(logs.warn.mock.calls[0]?.[0])).toMatch(/can't hold them:\n {2}\S.*\n {2}\S.*\nResources that depend on them/u)
   })
 
   describe('production guard', () => {
@@ -657,7 +657,7 @@ describe('push', () => {
     it('refuses outside a TTY without --yes', async () => {
       const {cmd} = make({siteConfig: makeEnv('production', 'https://acme.com')})
 
-      await expect(cmd.run()).rejects.toThrow(/production.*--yes/)
+      await expect(cmd.run()).rejects.toThrow(/production.*--yes/u)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 

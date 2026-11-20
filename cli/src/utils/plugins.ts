@@ -72,7 +72,7 @@ export function mergePluginManifest<P extends PluginPin>(
 // A single-file plugin's bare id isn't always its real slug though: Hello Dolly ships as
 // `hello.php` but its WordPress.org (and WPackagist) slug is `hello-dolly`. When that happens,
 // trust the plugin's own `Plugin URI` header over the guessed id.
-const WP_ORG_PLUGIN_URI = /^https?:\/\/wordpress\.org\/plugins\/([^/]+)\/?$/
+const WP_ORG_PLUGIN_URI = /^https?:\/\/wordpress\.org\/plugins\/([^/]+)\/?$/u
 
 function slugFromPluginFile(file: string, pluginUri: string): string {
   if (file.includes('/')) return file.slice(0, file.indexOf('/'))

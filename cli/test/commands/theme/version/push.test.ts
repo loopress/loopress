@@ -76,7 +76,7 @@ describe('theme push', () => {
 
   it('errors when loopress.json has no themes', async () => {
     const {cmd} = make({})
-    await expect(cmd.run()).rejects.toThrow(/No themes found/)
+    await expect(cmd.run()).rejects.toThrow(/No themes found/u)
   })
 
   it('reports in-sync and posts nothing when the manifest matches a managed site', async () => {
@@ -97,7 +97,7 @@ describe('theme push', () => {
       path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('astra', '4.0.0')],
     )
 
-    await expect(cmd.run()).rejects.toThrow(/--force/)
+    await expect(cmd.run()).rejects.toThrow(/--force/u)
   })
 
   it('refuses a downgrade without --force', async () => {
@@ -106,7 +106,7 @@ describe('theme push', () => {
       path === 'loopress/v1/composer/lock' ? {composerLock: lockManaging('astra')} : [native('astra', '4.1.0')],
     )
 
-    await expect(cmd.run()).rejects.toThrow(/downgrade/)
+    await expect(cmd.run()).rejects.toThrow(/downgrade/u)
   })
 
   it("refuses to remove the site's active theme", async () => {
@@ -119,7 +119,7 @@ describe('theme push', () => {
         : [native('astra', '4.0.0', 'active'), native('generatepress', '3.4.0')],
     )
 
-    await expect(cmd.run()).rejects.toThrow(/active theme/)
+    await expect(cmd.run()).rejects.toThrow(/active theme/u)
   })
 
   it("refuses to force-take-over the site's active theme too", async () => {
@@ -128,7 +128,7 @@ describe('theme push', () => {
       path === 'loopress/v1/composer/lock' ? {composerLock: '{"packages":[]}'} : [native('astra', '4.0.0', 'active')],
     )
 
-    await expect(cmd.run()).rejects.toThrow(/active theme/)
+    await expect(cmd.run()).rejects.toThrow(/active theme/u)
   })
 
   it('sends the themes intent to /composer/sync on a real push', async () => {
@@ -190,7 +190,7 @@ describe('theme push', () => {
       }),
     )
 
-    await expect(cmd.run()).rejects.toThrow(/--force/)
+    await expect(cmd.run()).rejects.toThrow(/--force/u)
   })
 
   it('propagates a non-404 error fetching the instance lock', async () => {

@@ -49,7 +49,7 @@ describe('init', () => {
     const cmd = make()
     silenceLogs(cmd)
 
-    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*commit a loopress\.json/)
+    await expect(cmd.run()).rejects.toThrow(/needs a terminal.*commit a loopress\.json/u)
     expect(select).not.toHaveBeenCalled()
     expect(writeLocalConfig).not.toHaveBeenCalled()
   })

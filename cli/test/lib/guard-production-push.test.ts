@@ -90,7 +90,7 @@ describe('guardProductionPush', () => {
     vi.mocked(confirm).mockResolvedValueOnce(false)
     const {done, refusals} = run({})
 
-    await expect(done).rejects.toThrow(/^Aborted\.$/)
+    await expect(done).rejects.toThrow(/^Aborted\.$/u)
     expect(refusals()).toBe(1)
   })
 

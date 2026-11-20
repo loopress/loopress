@@ -70,14 +70,14 @@ describe('theme style push', () => {
     const {cmd, get} = make({rootDir: dir})
     get.mockResolvedValue([activeTheme('twentytwentyfour')])
 
-    await expect(cmd.run()).rejects.toThrow(/Run `lps theme style pull` first/)
+    await expect(cmd.run()).rejects.toThrow(/Run `lps theme style pull` first/u)
   })
 
   it('fails clearly when the active theme is a classic theme', async () => {
     const {cmd, get} = make({rootDir: dir})
     get.mockResolvedValue([activeTheme('astra', {isBlockTheme: false})])
 
-    await expect(cmd.run()).rejects.toThrow(/classic theme/)
+    await expect(cmd.run()).rejects.toThrow(/classic theme/u)
   })
 
   it('fails clearly when the editable global styles id cannot be resolved', async () => {
@@ -86,7 +86,7 @@ describe('theme style push', () => {
     const {cmd, get} = make({rootDir: dir})
     get.mockResolvedValue([activeTheme('twentytwentyfour', {withLink: false})])
 
-    await expect(cmd.run()).rejects.toThrow(/Could not resolve the editable Global Styles post/)
+    await expect(cmd.run()).rejects.toThrow(/Could not resolve the editable Global Styles post/u)
   })
 
   it('does not call the API on a dry run', async () => {
@@ -119,7 +119,7 @@ describe('theme style push', () => {
     const {cmd, get, post} = make({rootDir: dir})
     get.mockResolvedValue([activeTheme('tt4')])
 
-    await expect(cmd.run()).rejects.toThrow(/EISDIR/)
+    await expect(cmd.run()).rejects.toThrow(/EISDIR/u)
     expect(post).not.toHaveBeenCalled()
   })
 

@@ -22,7 +22,7 @@ export const STYLE_ENTRY = 'style.css'
 
 // WordPress's own block name rule (register_block_type): lowercase letters, digits and dashes,
 // starting with a letter, on both sides of the slash.
-const BLOCK_SEGMENT = /^[a-z][a-z0-9-]*$/
+const BLOCK_SEGMENT = /^[a-z][a-z0-9-]*$/u
 
 const ASSET_EXTENSIONS = ['.avif', '.eot', '.gif', '.jpeg', '.jpg', '.otf', '.png', '.svg', '.ttf', '.webp', '.woff', '.woff2']
 
@@ -44,7 +44,7 @@ async function readBlockEntries(blocksDir: string, problems: PageProblem[]): Pro
   for (const file of await listFiles(blocksDir)) {
     const segments = relative(blocksDir, file).split(sep)
     const [namespace, fileName] = segments
-    const block = fileName?.replace(/\.css$/, '')
+    const block = fileName?.replace(/\.css$/u, '')
     if (namespace === undefined || block === undefined || segments.length !== 2 || extname(file) !== '.css' || !BLOCK_SEGMENT.test(namespace) || !BLOCK_SEGMENT.test(block)) {
       problems.push({file, message: `must be <namespace>/<block>.css, named after a block (e.g. ${join(blocksDir, 'core', 'button.css')})`})
       continue

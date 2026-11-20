@@ -49,7 +49,7 @@ describe('composer push', () => {
 
   it('fails when there is no composer.json', async () => {
     const {cmd} = make(false)
-    await expect(cmd.run()).rejects.toThrow(/No composer\.json found/)
+    await expect(cmd.run()).rejects.toThrow(/No composer\.json found/u)
   })
 
   it('does not call the API on dry-run', async () => {
@@ -174,7 +174,7 @@ describe('composer push', () => {
       new Error('Request timed out after 600s. Is the site reachable?', {cause: {name: 'TimeoutError'}}),
     )
 
-    await expect(cmd.run()).rejects.toThrow(/may still be in progress/)
+    await expect(cmd.run()).rejects.toThrow(/may still be in progress/u)
   })
 
   it('tells the user to use --force when the server reports an unmanaged-package collision', async () => {
@@ -191,7 +191,7 @@ describe('composer push', () => {
       }),
     )
 
-    await expect(cmd.run()).rejects.toThrow(/--force/)
+    await expect(cmd.run()).rejects.toThrow(/--force/u)
   })
 
   it('logs the whole run, with a lock and the trimmed server output, for a single drifted package', async () => {
@@ -250,8 +250,8 @@ describe('composer push', () => {
     const timeout = make(false)
     timeout.post.mockRejectedValue(new Error('Request timed out after 600s.', {cause: {name: 'TimeoutError'}}))
 
-    await expect(collision.cmd.run()).rejects.toThrow(/^Plugins or themes are installed outside Loopress\. Re-run with --force to take them over\.$/)
-    await expect(timeout.cmd.run()).rejects.toThrow(/^Request timed out after 600s\. The Composer run may still be in progress on the server\.$/)
+    await expect(collision.cmd.run()).rejects.toThrow(/^Plugins or themes are installed outside Loopress\. Re-run with --force to take them over\.$/u)
+    await expect(timeout.cmd.run()).rejects.toThrow(/^Request timed out after 600s\. The Composer run may still be in progress on the server\.$/u)
   })
 
   it('rethrows any other sync failure unchanged', async () => {
@@ -259,6 +259,6 @@ describe('composer push', () => {
     const {cmd, post} = make(false)
     post.mockRejectedValue(new Error('composer blew up'))
 
-    await expect(cmd.run()).rejects.toThrow(/^composer blew up$/)
+    await expect(cmd.run()).rejects.toThrow(/^composer blew up$/u)
   })
 })

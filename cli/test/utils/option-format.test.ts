@@ -23,7 +23,7 @@ describe('option-format', () => {
   it('rejects Windows reserved device names, any case, with or without extension', () => {
     for (const name of ['CON', 'nul', 'Prn', 'AUX', 'com1', 'COM9', 'lpt1', 'LPT9', 'COM¹', 'lpt³', 'nul.backup']) {
       expect(isWindowsReservedName(name)).toBe(true)
-      expect(() => optionFileName(name)).toThrow(/reserved Windows file name/)
+      expect(() => optionFileName(name)).toThrow(/reserved Windows file name/u)
     }
 
     for (const name of ['console', 'com0', 'com10', 'lpt', 'my_nul', 'wpseo_titles']) {
@@ -32,7 +32,7 @@ describe('option-format', () => {
   })
 
   it('reports a reserved option name when parsing a local file', () => {
-    expect(() => parseLocalOption(JSON.stringify({autoload: 'no', name: 'NUL', value: 1}))).toThrow(/reserved Windows file name/)
+    expect(() => parseLocalOption(JSON.stringify({autoload: 'no', name: 'NUL', value: 1}))).toThrow(/reserved Windows file name/u)
   })
 
   it('flags names already owned by the plugin/theme resources as reserved', () => {
@@ -148,14 +148,14 @@ describe('option-format', () => {
 
   describe('parseLocalOption edge cases', () => {
     it.each([['null'], ['42'], ['"text"']])('rejects %s as not a JSON object', (raw) => {
-      expect(() => parseLocalOption(raw)).toThrow(/^not a JSON object$/)
+      expect(() => parseLocalOption(raw)).toThrow(/^not a JSON object$/u)
     })
 
     it.each([
       ['an empty name', {autoload: 'yes', name: '', value: 1}],
       ['a non-string name', {autoload: 'yes', name: 7, value: 1}],
     ])('rejects %s', (_label, data) => {
-      expect(() => parseLocalOption(JSON.stringify(data))).toThrow(/^missing a "name" string$/)
+      expect(() => parseLocalOption(JSON.stringify(data))).toThrow(/^missing a "name" string$/u)
     })
 
     it('reports a bad shape as a TypeError', () => {

@@ -78,7 +78,7 @@ describe('app-build', () => {
     it('fails with the build output and an install hint', async () => {
       writePackage({build: 'node -e "console.error(\'boom\'); process.exit(3)"'})
 
-      await expect(buildApp(dir)).rejects.toThrow(/`npm run build` failed[\s\S]*boom[\s\S]*run `npm install`/)
+      await expect(buildApp(dir)).rejects.toThrow(/`npm run build` failed[\s\S]*boom[\s\S]*run `npm install`/u)
     }, SPAWN_TIMEOUT_MS)
 
     it('keeps only the last 20 lines of stdout and stderr, without the install hint once installed', async () => {

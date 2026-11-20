@@ -57,7 +57,7 @@ export function getUserGlobalStylesId(theme: Pick<WpThemeSupportInfo, '_links'>)
   const href = theme._links?.[USER_GLOBAL_STYLES_REL]?.[0]?.href
   if (!href) return null
 
-  const match = /\/wp\/v2\/global-styles\/(\d+)/.exec(href)
+  const match = /\/wp\/v2\/global-styles\/(\d+)/u.exec(href)
   return match ? Number(match[1]) : null
 }
 

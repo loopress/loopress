@@ -7,7 +7,7 @@ export const CHILD_THEME_ENDPOINT = 'loopress/v1/child-theme'
 // follow sanitize_key(), so lowercase letters, digits, `_` and `-`.
 export const TEMPLATE_SLUG_RULE: SlugRule = {
   message: 'the file name must be lowercase letters, digits, "_" and "-" (e.g. "taxonomy-download_tag.html")',
-  pattern: /^[a-z0-9_-]+$/,
+  pattern: /^[a-z0-9_-]+$/u,
 }
 
 // theme/templates/<slug>.html. `title`/`postTypes` only when the header declares them: they become the
@@ -47,11 +47,11 @@ export type ChildTheme = {
 
 // A block delimiter as the first line (`<!-- wp:template-part ... /-->`, the usual one) is markup,
 // not a header.
-const BLOCK_START = /^\s*<!--\s*\/?wp:/
+const BLOCK_START = /^\s*<!--\s*\/?wp:/u
 
 // `{"slug":"header","theme":"twentytwentyfive"}` makes WordPress load the named theme's part, so
 // the child's own parts/header.html would be silently ignored.
-const THEMED_PART = /<!--\s*wp:template-part\s+\{[^}]*"theme"\s*:/
+const THEMED_PART = /<!--\s*wp:template-part\s+\{[^}]*"theme"\s*:/u
 
 function parseFile(raw: string, keys: readonly string[]): {body: string; meta: Record<string, string>} {
   const parsed = BLOCK_START.test(raw) ? {body: raw, meta: {}} : parseHtmlHeader(raw, keys)
@@ -73,7 +73,7 @@ export function parseTemplateFile(slug: string, raw: string): Template {
 // `area` defaults from the name, the way themes name their parts: header, header-large-title...
 export function parsePartFile(slug: string, raw: string): Part {
   const {body, meta} = parseFile(raw, ['title', 'area'])
-  const nameArea = /^(header|footer)(?:-|$)/.exec(slug)?.[1] ?? 'uncategorized'
+  const nameArea = /^(header|footer)(?:-|$)/u.exec(slug)?.[1] ?? 'uncategorized'
   return {area: (meta.area ?? '') || nameArea, html: body, slug, title: (meta.title ?? '') || titleFromSlug(slug)}
 }
 

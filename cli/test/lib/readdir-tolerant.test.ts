@@ -52,7 +52,7 @@ describe('readdir-tolerant', () => {
     it('rethrows any other failure, e.g. reading a file as a directory', async () => {
       writeFileSync(join(dir, 'file'), '')
 
-      await expect(readdirTolerant(join(dir, 'file'))).rejects.toThrow(/ENOTDIR/)
+      await expect(readdirTolerant(join(dir, 'file'))).rejects.toThrow(/ENOTDIR/u)
     })
   })
 

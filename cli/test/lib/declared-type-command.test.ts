@@ -231,7 +231,7 @@ describe('declared type commands', () => {
       const {cmd, internals} = make(CptRm, ['book'], {yes: true})
       internals.wpClient.delete.mockRejectedValue(notFound('rest_no_route'))
 
-      await expect(cmd.run()).rejects.toThrow(/^not found$/)
+      await expect(cmd.run()).rejects.toThrow(/^not found$/u)
     })
   })
 

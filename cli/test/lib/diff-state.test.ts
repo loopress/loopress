@@ -106,7 +106,7 @@ describe('compareStates', () => {
   it('truncates very long values in an object change', () => {
     const diff = compareStates(state({a: {blob: 'x'}}), state({a: {blob: 'y'.repeat(500)}}), labels)
 
-    expect(diff.changed[0]?.patch).toMatch(/…$/)
+    expect(diff.changed[0]?.patch).toMatch(/…$/u)
     expect(diff.changed[0]?.patch.length).toBeLessThan(260)
   })
 
@@ -146,7 +146,7 @@ describe('compareStates', () => {
 
   it('truncates a long object-field value one character past the limit, not exactly at it', () => {
     const at200 = compareStates(state({a: {blob: 'x'}}), state({a: {blob: 'a'.repeat(198)}}), labels) // JSON-stringified length: 200
-    expect(at200.changed[0]?.patch).not.toMatch(/…/)
+    expect(at200.changed[0]?.patch).not.toMatch(/…/u)
 
     const raw = 'a'.repeat(199) // JSON-stringified length: 201, one past the limit
     const at201 = compareStates(state({a: {blob: 'x'}}), state({a: {blob: raw}}), labels)

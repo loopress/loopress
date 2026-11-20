@@ -97,9 +97,9 @@ export function computeBuildId(files: AppFile[]): string {
 
 function normalizeAssetUrl(url: string): string {
   let path = url.trim()
-  const schemeMatch = /^(?:[a-z]+:)?\/\/[^/]+(\/.*)$/i.exec(path)?.[1]
+  const schemeMatch = /^(?:[a-z]+:)?\/\/[^/]+(\/.*)$/iu.exec(path)?.[1]
   if (schemeMatch) path = schemeMatch
-  path = path.replace(/^\.?\//, '')
+  path = path.replace(/^\.?\//u, '')
 
   return path
 }
@@ -108,16 +108,16 @@ function normalizeAssetUrl(url: string): string {
 // declares. This is what a bundler already writes; Loopress does not guess or reorder.
 export function deriveEntry(indexHtml: string): AppEntry {
   const scripts: string[] = []
-  for (const tag of indexHtml.match(/<script\b[^>]*>/gi) ?? []) {
-    if (!/\btype=["']module["']/i.test(tag)) continue
-    const src = /\bsrc=["']([^"']+)["']/i.exec(tag)?.[1]
+  for (const tag of indexHtml.match(/<script\b[^>]*>/giu) ?? []) {
+    if (!/\btype=["']module["']/iu.test(tag)) continue
+    const src = /\bsrc=["']([^"']+)["']/iu.exec(tag)?.[1]
     if (src) scripts.push(normalizeAssetUrl(src))
   }
 
   const styles: string[] = []
-  for (const tag of indexHtml.match(/<link\b[^>]*>/gi) ?? []) {
-    if (!/\brel=["']stylesheet["']/i.test(tag)) continue
-    const href = /\bhref=["']([^"']+)["']/i.exec(tag)?.[1]
+  for (const tag of indexHtml.match(/<link\b[^>]*>/giu) ?? []) {
+    if (!/\brel=["']stylesheet["']/iu.test(tag)) continue
+    const href = /\bhref=["']([^"']+)["']/iu.exec(tag)?.[1]
     if (href) styles.push(normalizeAssetUrl(href))
   }
 
@@ -172,7 +172,7 @@ export async function loadAppManifest(
   const config = parseAppConfig(await readFile(configPath, 'utf8'), appDir)
 
   const name = config.name ?? dirName
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(name)) {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/u.test(name)) {
     throw new Error(`Invalid app name "${name}": lowercase letters, digits and hyphens only, no leading or trailing hyphen`)
   }
 

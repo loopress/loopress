@@ -81,7 +81,7 @@ function resolvePriority(raw: unknown): number {
 // The WordPress plugin stores just the executable body, so it's stripped before push and restored
 // on pull (see buildSnippetFile below).
 export function stripPhpOpeningTag(code: string): string {
-  return code.replace(/^<\?php\s*/i, '')
+  return code.replace(/^<\?php\s*/iu, '')
 }
 
 export function buildSnippetFile(snippet: NormalizedSnippet): string {

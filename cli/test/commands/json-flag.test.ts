@@ -34,7 +34,7 @@ function commandIds(dir: string): string[] {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) return commandIds(path)
     // Forward slashes on every platform, so ids match NOT_WRAPPED_BY_MCP on Windows too.
-    return entry.name.endsWith('.ts') ? [relative(COMMANDS_DIR, path).split(sep).join('/').replace(/\.ts$/, '')] : []
+    return entry.name.endsWith('.ts') ? [relative(COMMANDS_DIR, path).split(sep).join('/').replace(/\.ts$/u, '')] : []
   })
 }
 

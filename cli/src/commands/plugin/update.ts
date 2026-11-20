@@ -134,7 +134,7 @@ export function pickUpdate(current: string, latest: string, versions: unknown, c
   let best: null | string = null
   for (const candidate of [...listed, latest]) {
     // Skips "trunk", prereleases and anything beyond the advertised latest release.
-    if (!/^\d+(?:\.\d+){0,3}$/.test(candidate) || !isExactVersion(candidate)) continue
+    if (!/^\d+(?:\.\d+){0,3}$/u.test(candidate) || !isExactVersion(candidate)) continue
     if ((compareVersions(candidate, latest) ?? 1) > 0) continue
     const jump = versionJump(current, candidate)
     if (!jump || jump === 'major' || (cap === 'patch' && jump === 'minor')) continue

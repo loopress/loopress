@@ -9,7 +9,9 @@ export default class Export extends LoopressCommand {
   static override examples = ['$ lps project export --env staging', '$ lps project export --env production | gh secret set LOOPRESS_CONFIG']
 
   // Only reads the config: no rotation, no site call.
-  protected override async maybeAutoRotate(): Promise<void> {}
+  protected override async maybeAutoRotate(): Promise<void> {
+    // Intentionally skipped, see above.
+  }
 
   async run(): Promise<void> {
     const {flags} = await this.parse(Export)

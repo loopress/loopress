@@ -470,7 +470,7 @@ describe('resource-state providers', () => {
         'wp/v2/themes': [{status: 'active', stylesheet: 'astra', theme_supports: {'block-templates': false}}],
       })
 
-      await expect(themeStylesProvider.remote(remote, noWarn, dir)).rejects.toThrow(/classic theme/)
+      await expect(themeStylesProvider.remote(remote, noWarn, dir)).rejects.toThrow(/classic theme/u)
     })
 
     it('matches a pulled file against the same active theme on the server', async () => {
@@ -588,7 +588,7 @@ describe('getResourceStateProvider', () => {
   })
 
   it('throws for an unknown resource', () => {
-    expect(() => getResourceStateProvider('ghost')).toThrow(/No resource-state provider/)
+    expect(() => getResourceStateProvider('ghost')).toThrow(/No resource-state provider/u)
   })
 })
 

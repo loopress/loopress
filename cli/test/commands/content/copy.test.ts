@@ -254,7 +254,7 @@ describe('content copy', () => {
       confirm.mockResolvedValue(false)
       const {cmd, local} = unconfirmed(['production'])
 
-      await expect(cmd.run()).rejects.toThrow(/^Aborted\.$/)
+      await expect(cmd.run()).rejects.toThrow(/^Aborted\.$/u)
       expect(local.post).not.toHaveBeenCalled()
     })
 

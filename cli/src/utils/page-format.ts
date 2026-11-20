@@ -8,7 +8,7 @@ export const PAGES_ENDPOINT = 'loopress/v1/pages'
 
 // Mirrored server-side in PagesController. No leading, trailing or doubled hyphen: WordPress's
 // sanitize_title() would rewrite those, and the page would no longer match its file name.
-export const PAGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const PAGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 
 // Which file names a flat `<slug>.html` folder accepts, and what to say when one doesn't match.
 export type SlugRule = {message: string; pattern: RegExp}
@@ -97,11 +97,11 @@ export function parsePageFile(slug: string, raw: string): Page {
 
 // Splits the optional `key: value` HTML comment header off `raw`. Shared with templates/.
 export function parseHtmlHeader(raw: string, keys: readonly string[]): {body: string; meta: Record<string, string>} {
-  const header = /^\s*<!--([\s\S]*?)-->\r?\n?/.exec(raw)
+  const header = /^\s*<!--([\s\S]*?)-->\r?\n?/u.exec(raw)
   const meta: Record<string, string> = {}
   if (!header) return {body: raw, meta}
 
-  for (const line of (header[1] ?? '').split(/\r?\n/)) {
+  for (const line of (header[1] ?? '').split(/\r?\n/u)) {
     if (line.trim() === '') continue
     const colon = line.indexOf(':')
     if (colon === -1) throw new Error(`header line "${line.trim()}" is not a "key: value" pair`)

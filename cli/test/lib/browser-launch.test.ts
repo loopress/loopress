@@ -54,7 +54,7 @@ describe('launchLocalBrowser', () => {
     const error = await rejectionOf(launchLocalBrowser())
 
     expect(error).toBeInstanceOf(Error)
-    expect(error.message).toMatch(/^No local Chrome, Edge, or Chromium install found\./)
+    expect(error.message).toMatch(/^No local Chrome, Edge, or Chromium install found\./u)
     expect(error.cause).toBe(last)
   })
 })

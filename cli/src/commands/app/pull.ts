@@ -146,7 +146,7 @@ export default class Pull extends LoopressCommand {
       }
     }
 
-    for (const name of orphans) await rm(join(path, name), {force: true, recursive: true})
+    await Promise.all(orphans.map(async (name) => rm(join(path, name), {force: true, recursive: true})))
 
     if (this.yes || isInteractive()) {
       this.log(`Removed ${description}`)

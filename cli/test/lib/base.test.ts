@@ -171,7 +171,7 @@ describe('LoopressCommand.init', () => {
     useActiveProject({production: makeEnv('production'), staging: makeEnv('staging')})
 
     await expect(initWith(['--env', 'nope'])).rejects.toThrow(
-      /Environment "nope" not found in project "acme"\. Available: production, staging/,
+      /Environment "nope" not found in project "acme"\. Available: production, staging/u,
     )
   })
 
@@ -191,14 +191,14 @@ describe('LoopressCommand.init', () => {
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'ghost'})
     vi.spyOn(configManager, 'getProject').mockReturnValue(null)
 
-    await expect(initWith([])).rejects.toThrow(/Project "ghost".*not found/)
+    await expect(initWith([])).rejects.toThrow(/Project "ghost".*not found/u)
   })
 
   it('errors when the project pinned by loopress.json has no environments configured', async () => {
     vi.mocked(readLocalConfig).mockResolvedValue({projectId: 'id-acme'})
     vi.spyOn(configManager, 'getProject').mockReturnValue(makeListedProject('id-acme', 'acme', {}))
 
-    await expect(initWith([])).rejects.toThrow(/has no environments configured/)
+    await expect(initWith([])).rejects.toThrow(/has no environments configured/u)
   })
 
   it('auto-picks the single environment of a loopress.json-pinned project when no --env is given', async () => {
@@ -235,7 +235,7 @@ describe('LoopressCommand.init', () => {
       }),
     )
 
-    await expect(initWith([])).rejects.toThrow(/has no "local" environment, pass --env.*Available: production, staging/)
+    await expect(initWith([])).rejects.toThrow(/has no "local" environment, pass --env.*Available: production, staging/u)
   })
 })
 
@@ -388,7 +388,7 @@ describe('LoopressCommand.maybeAutoRotate', () => {
     await cmd.init()
 
     expect(rotateAppPassword).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/older than 90 days.*lps project rotate/))
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/older than 90 days.*lps project rotate/u))
   })
 
   it('does not rotate when LOOPRESS_NO_AUTO_ROTATE is set (promote --dry-run preview)', async () => {
@@ -510,7 +510,7 @@ describe('LoopressCommand.wp', () => {
       token: '',
     }
 
-    expect(() => cmd.resolvedWp).toThrow(/No credentials configured/)
+    expect(() => cmd.resolvedWp).toThrow(/No credentials configured/u)
   })
 })
 

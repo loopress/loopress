@@ -79,7 +79,7 @@ describe('api rm', () => {
     interactive.value = false
     const {cmd, del} = make(['hello'])
 
-    await expect(cmd.run()).rejects.toThrow(/needs confirmation.*--yes/s)
+    await expect(cmd.run()).rejects.toThrow(/needs confirmation.*--yes/su)
     expect(del).not.toHaveBeenCalled()
   })
 
@@ -96,7 +96,7 @@ describe('api rm', () => {
   it('rejects an invalid filename before any network call', async () => {
     const {cmd, del} = make(['../../wp-config'], {yes: true})
 
-    await expect(cmd.run()).rejects.toThrow(/Invalid filename/)
+    await expect(cmd.run()).rejects.toThrow(/Invalid filename/u)
     expect(del).not.toHaveBeenCalled()
   })
 
@@ -108,7 +108,7 @@ describe('api rm', () => {
       }),
     )
 
-    await expect(cmd.run()).rejects.toThrow(/hello is not on https:\/\/acme\.com/)
+    await expect(cmd.run()).rejects.toThrow(/hello is not on https:\/\/acme\.com/u)
   })
 
   it('does not swallow a non-404 error, or a 404 with a different body, into "not on the server"', async () => {

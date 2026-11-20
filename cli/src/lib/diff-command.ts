@@ -126,7 +126,7 @@ export abstract class DiffCommand extends LoopressCommand {
 
     return {
       // Only against local files: they are what an exclude glob names.
-      heldBackFrom: holdsBack ? async () => withoutExclusions(async () => provider.local(dir, () => {}, wp)) : undefined,
+      heldBackFrom: holdsBack ? async () => withoutExclusions(async () => provider.local(dir, () => {/* no progress output */}, wp)) : undefined,
       isHeldBack: holdsBack ? (id) => excludedFileFor(dir, id, provider) : undefined,
       left: async () => provider.remote(wp, sides.warn, dir),
       resource: provider.resource,
