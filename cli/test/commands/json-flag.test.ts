@@ -12,6 +12,8 @@ const NOT_WRAPPED_BY_MCP = new Set([
   'api/publish',
   'composer/init',
   'dev',
+  // Writes a plugin folder for a human to install: not an MCP tool in its first version.
+  'eject',
   'init',
   'login',
   'logout',
