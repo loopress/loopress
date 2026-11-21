@@ -165,6 +165,10 @@ Once a resource has been pushed to a site, its own WordPress screens (ACF field 
 
 A CLI older than this feature simply doesn't report its pushes; the rest of the plugin works the same.
 
+## Leaving Loopress
+
+Post types, taxonomies, roles, hooks, static pages and the child theme CSS are registered by the plugin on every request: deactivating it removes them. Uninstalling it also deletes `wp-content/loopress/`. Before either, run [`lps eject`](/cli/eject/): it turns the project into one standard WordPress plugin that keeps the site working without Loopress.
+
 ## Related
 
 - [How Loopress Light Got Into the WordPress.org Directory](/blog/loopress-light-on-wordpress-org/)

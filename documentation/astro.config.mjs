@@ -238,6 +238,7 @@ export default defineConfig({
 										{ label: "loopress.json", slug: "loopress-json" },
 										{ label: "lps init", slug: "cli/init" },
 										{ label: "MCP Server", slug: "cli/mcp" },
+										{ label: "lps eject", slug: "cli/eject" },
 										{ label: "Loopress Account", slug: "account" },
 										{ label: "Editor Setup", slug: "editor-setup" },
 									],
