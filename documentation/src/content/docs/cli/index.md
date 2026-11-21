@@ -15,6 +15,7 @@ Run `lps <command> --help` for the exact arguments and flags of any command.
 | [`lps status`](/workflow/#lps-status) | Show which project and environment commands will target |
 | [`lps doctor`](/cli/doctor/) | Diagnose connectivity, plugin, credential and hook problems |
 | [`lps validate`](/workflow/#lps-validate) | Check local tracked files are push-ready, without contacting WordPress |
+| [`lps eject`](/cli/eject/) | Turn the project into one standard WordPress plugin, to leave Loopress |
 | [`lps telemetry enable` / `disable`](/concepts/#error-reporting) | Turn crash reporting to Sentry on or off |
 
 ## Projects and environments
