@@ -25,7 +25,7 @@ This page lists both, so you can plan the exit before you need it.
 | [Post meta](/post-meta/) | **Lost** registration, the values stay | `register_post_meta()` runs on every request: type, default and REST exposure are gone |
 | [Roles](/roles/) | **Lost**, users keep a role that no longer exists and lose its capabilities | Kept out of the roles option on purpose, added on every request |
 | [Hooks](/hooks/) | **Lost** | `#[Action]`, `#[Filter]` and `#[Cron]` are bound by the plugin |
-| [API routes](/api/), `lib/` | **Lost** | Dispatched by the plugin under `loopress-api/v1`, `LoopressLib\` autoloaded by it |
+| [API routes](/api/), `lib/` | **Lost** | Dispatched by the plugin under `loopress-api/v1` (or the configured `api.namespace`), `LoopressLib\` autoloaded by it |
 | [Composer libraries](/composer/) | **Lost** autoload, deleted on uninstall | `wp-content/loopress/vendor/`, loaded by the plugin |
 | [Dynamic blocks](/dynamic-blocks/), [block patterns](/block-patterns/) | **Lost** | Registered by the plugin from `wp-content/loopress/blocks/` and a stored option |
 | [Apps](/apps/) | **Lost** | The `[loopress_app]` shortcode and its assets come from the plugin, the files are deleted on uninstall |
@@ -35,15 +35,26 @@ ACF, WPForms, Code Snippets and WPCode resources survive only as long as those p
 
 ## Moving out by hand
 
-There is no command for this yet. Until there is, write one small plugin of your own (a regular plugin in `wp-content/plugins/`, not a theme's `functions.php`, so a theme switch keeps it). Install and activate it, deactivate Loopress, create the roles (see below), check the site, and only then uninstall Loopress. If something is missing, activating Loopress again brings it back while you fix your plugin.
+There is no command for this yet. Until there is, write one small plugin of your own (a regular plugin in `wp-content/plugins/`, not a theme's `functions.php`, so a theme switch keeps it). Make it register everything from a `plugins_loaded` callback that returns early while Loopress is active, so nothing (a hook, a cron job, a route) runs twice in between:
+
+```php
+add_action('plugins_loaded', function () {
+    if (defined('LOOPRESS_VERSION')) {
+        return; // Loopress still active, it registers everything itself
+    }
+    // register_post_type(), add_action(), register_rest_route(), ...
+});
+```
+
+Install and activate it, deactivate Loopress (your plugin takes over on the next request), create the roles (see below), check the site, and only then uninstall Loopress. If something is missing, activating Loopress again brings it back while you fix your plugin.
 
 What goes into that plugin, resource by resource:
 
 - **Custom post types and taxonomies**: one `register_post_type()` or `register_taxonomy()` call on `init` per file of `post-types/` and `taxonomies/`, with the same slug and arguments. Keep the slugs, or the existing posts and terms are orphaned. Visit **Settings → Permalinks** once afterwards to flush the rewrite rules.
 - **Post meta**: one `register_post_meta()` call per key, with the arguments from `post-meta/`.
 - **Roles**: one `add_role()` per file of `roles/`, with the same slug and capabilities, or `wp role create` with WP-CLI. Unlike Loopress, this writes the role to the database, which is what you want once it is gone. Do it after deactivating Loopress: while it is active, it strips its own role slugs from every save of the roles option, and `add_role()` does nothing for a slug that already exists.
-- **Hooks**: copy the hook classes and replace each attribute with the matching `add_action()`, `add_filter()` or `wp_schedule_event()` call, with the same hook name, priority and accepted arguments. Drop the `use Loopress\...` lines.
-- **API routes and `lib/`**: copy the route classes and `lib/`, and register each route with `register_rest_route('loopress-api/v1', ...)` on `rest_api_init`, so client URLs do not change. Give each one a `permission_callback` at least as strict as before (the default is `manage_options`), never `__return_true` for a route that was protected. Replace the `LoopressLib\` autoload with your own `require` lines or a PSR-4 autoloader.
+- **Hooks**: copy the hook classes and replace each `#[Action]` or `#[Filter]` attribute with the matching `add_action()` or `add_filter()` call, with the same hook name, priority and accepted arguments. A `#[Cron]` method needs both: `add_action()` to bind the method to its event hook, and `wp_schedule_event()` to schedule that hook, guarded by `wp_next_scheduled()` so it is scheduled only once. Drop the `use Loopress\...` lines.
+- **API routes and `lib/`**: copy the route classes and `lib/`, and register each route with `register_rest_route()` on `rest_api_init`, under the same namespace as before (`loopress-api/v1`, or the one set with [`api.namespace`](/loopress-json/#api)), so client URLs do not change. Give each one a `permission_callback` at least as strict as before (the default is `manage_options`), never `__return_true` for a route that was protected. Replace the `LoopressLib\` autoload with your own `require` lines or a PSR-4 autoloader.
 - **Composer libraries**: copy the project's `composer.json` (libraries only, plugins and themes are already installed) into your plugin, run `composer install` there, and `require` its `vendor/autoload.php`. A [snippet using a package](/composer/using-in-snippets/) needs that autoload loaded first.
 - **Dynamic blocks**: copy each block folder from `blocks/` and call `register_block_type()` on it.
 - **Block patterns**: one `register_block_pattern()` per pattern, with the content of its file.
