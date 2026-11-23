@@ -1,5 +1,6 @@
 {
   "framework": "astro",
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
