@@ -140,7 +140,7 @@ jobs:
         env:
           LOOPRESS_SKIP_DRIFT_GUARD: ${{ vars.LOOPRESS_SKIP_DRIFT_GUARD }}
         run: |
-          curl -fsSL https://raw.githubusercontent.com/loopress/setup-ci/v1/scripts/drift-guard.sh -o /tmp/drift-guard.sh
+          curl -fsSL https://raw.githubusercontent.com/loopress/setup-ci/main/scripts/drift-guard.sh -o /tmp/drift-guard.sh
           bash /tmp/drift-guard.sh production "${{ github.event.before }}"
       - run: lps push --env production --yes
       - run: lps diff --env production
@@ -150,7 +150,7 @@ How it works:
 
 - `fetch-depth: 0` gives the job the previous commit, `github.event.before`.
 - The guard runs `lps diff --env production --json` twice: in a temporary `git worktree` of the previous commit, and in the checkout being deployed. It needs `jq`, which GitHub-hosted runners include.
-- It blocks only on resources present in both reports. Those differ from the previous commit (so the site was edited outside the repository) and from the commit being deployed (so the push would overwrite the edit). Run `lps pull --env production`, commit the result and deploy again.
+- It blocks only on resources present in both reports. Those differ from the previous commit (so the site was edited outside the repository) and from the commit being deployed (so the push would overwrite the edit). Run `lps pull --env production`, commit the result and deploy again. `lps pull` does not cover static pages (they have no `pull`): for a blocked page, copy the wp-admin edit into the page's file by hand, commit and deploy again.
 - A comparison that exits `2` (a resource could not be compared) only warns.
 - With no previous commit (first push, new branch) or one that cannot be fetched, the guard is skipped with a warning.
 - `lps diff --env production` after the push verifies that the site now matches the repository.
