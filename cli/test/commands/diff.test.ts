@@ -94,9 +94,11 @@ describe('diff', () => {
     writeFileSync(join(dir, 'composer.json'), '{}')
     // Menu locations always exist server-side; a clean baseline needs the local counterpart.
     mkdirSync(join(dir, 'menus'))
+    writeFileSync(join(dir, 'menus', '.keep'), '')
     writeFileSync(join(dir, 'menus', 'menu-locations.json'), '{}')
     // Same for the active theme's Global Styles.
     mkdirSync(join(dir, 'theme'))
+    writeFileSync(join(dir, 'theme', '.keep'), '')
     writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))
     process.exitCode = 0
     delete process.env.LOOPRESS_TOKEN
@@ -123,6 +125,7 @@ describe('diff', () => {
 
   it('flags a local-only snippet as added and exits non-zero', async () => {
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
     writeFileSync(join(dir, 'snippets', '9-x.json'), JSON.stringify({active: true, id: 9, name: 'X', type: 'php'}))
 
@@ -149,6 +152,7 @@ describe('diff', () => {
 
   it('prints a tally line and renders the added item in its section', async () => {
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
     writeFileSync(join(dir, 'snippets', '9-x.json'), JSON.stringify({active: true, id: 9, name: 'X', type: 'php'}))
 
@@ -161,6 +165,7 @@ describe('diff', () => {
 
   it('tallies changed and removed counts accurately, not just added', async () => {
     mkdirSync(join(dir, 'acf', 'field-groups'), {recursive: true})
+    writeFileSync(join(dir, 'acf', 'field-groups', '.keep'), '')
     writeFileSync(join(dir, 'acf', 'field-groups', 'group_1.json'), JSON.stringify({key: 'group_1', title: 'Old'}))
 
     const get = vi.fn(async (path: string) => {
@@ -245,6 +250,7 @@ describe('diff', () => {
 
   it('with --skip-unsupported, skips a used resource the site cannot hold, exits 0 and warns', async () => {
     mkdirSync(join(dir, 'forms'))
+    writeFileSync(join(dir, 'forms', '.keep'), '')
     const get = baselineGet()
     const {cmd, logs} = make(['--skip-unsupported'], get, makeCapabilities({integrations: {form: false}}))
 
@@ -259,6 +265,7 @@ describe('diff', () => {
 
   it('without --skip-unsupported, still compares a used resource the site cannot hold', async () => {
     mkdirSync(join(dir, 'forms'))
+    writeFileSync(join(dir, 'forms', '.keep'), '')
     const get = baselineGet()
     const {cmd} = make([], get, makeCapabilities({integrations: {form: false}}))
 
@@ -287,6 +294,7 @@ describe('diff', () => {
 
   it('still reports a missing plugin as inconclusive when the project uses that resource', async () => {
     mkdirSync(join(dir, 'forms'))
+    writeFileSync(join(dir, 'forms', '.keep'), '')
     const get = vi.fn(async (path: string) => {
       if (path === 'loopress/v1/forms') throw new Error('No supported form plugin is active')
       return baselineGet()(path)
@@ -413,6 +421,7 @@ describe('diff', () => {
 
     function addLocalSnippet() {
       mkdirSync(join(dir, 'snippets'))
+      writeFileSync(join(dir, 'snippets', '.keep'), '')
       writeFileSync(join(dir, 'snippets', '9-x.php'), '<?php\n\nreturn 1;')
       writeFileSync(join(dir, 'snippets', '9-x.json'), JSON.stringify({active: true, id: 9, name: 'X', type: 'php'}))
     }

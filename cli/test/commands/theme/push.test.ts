@@ -1,4 +1,4 @@
-import {mkdirSync, mkdtempSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
@@ -11,6 +11,7 @@ import {makeEnv} from '../../helpers/project-fixtures.js'
 // A project with templates: the templates and parts step only runs when it has some.
 const projectWithTemplates = mkdtempSync(join(tmpdir(), 'lps-theme-push-templates-'))
 mkdirSync(join(projectWithTemplates, 'theme', 'templates'), {recursive: true})
+writeFileSync(join(projectWithTemplates, 'theme', 'templates', 'index.html'), '')
 
 class TestPush extends Push {
   setup(dryRun: boolean, yes: boolean, themes?: Record<string, string>) {

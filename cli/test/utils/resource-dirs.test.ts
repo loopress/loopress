@@ -1,7 +1,9 @@
+import {mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {describe, expect, it} from 'vitest'
 
-import {resolveResourceDir, RESOURCE_DIR_DEFAULTS} from '../../src/utils/resource-dirs.js'
+import {projectUses, resolveResourceDir, RESOURCE_DIR_DEFAULTS} from '../../src/utils/resource-dirs.js'
 
 describe('resolveResourceDir', () => {
   it('prefers an explicit override, as given', () => {
@@ -62,5 +64,16 @@ describe('resolveResourceDir', () => {
       template: 'theme/templates',
       themeStyles: 'theme',
     })
+  })
+})
+
+describe('projectUses', () => {
+  it('is false for a missing or empty directory, true once it holds a file', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lps-uses-'))
+    expect(projectUses('api', {rootDir: root})).toBe(false)
+    mkdirSync(join(root, 'api'))
+    expect(projectUses('api', {rootDir: root})).toBe(false)
+    writeFileSync(join(root, 'api', 'a.php'), '')
+    expect(projectUses('api', {rootDir: root})).toBe(true)
   })
 })

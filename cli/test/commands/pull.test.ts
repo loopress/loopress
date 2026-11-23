@@ -129,6 +129,7 @@ describe('pull', () => {
     beforeEach(() => {
       dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
       mkdirSync(join(dir, 'theme'))
+      writeFileSync(join(dir, 'theme', '.keep'), '')
       writeFileSync(join(dir, 'theme', 'bakery-global-styles.json'), '{}')
       vi.spyOn(process, 'cwd').mockReturnValue(dir)
       vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
@@ -203,6 +204,7 @@ describe('pull', () => {
   it('logs the reason when a resource the project uses cannot be pulled from the site', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
@@ -217,6 +219,7 @@ describe('pull', () => {
   it('warns exactly once with the skipped resources and what to declare', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
@@ -247,6 +250,7 @@ describe('pull', () => {
   it('fails, without asking the site, a resource whose plugin it lacks when the project uses it', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = make({capabilities: makeCapabilities({integrations: {snippets: false}})})
@@ -260,6 +264,7 @@ describe('pull', () => {
   it('with --skip-unsupported, skips a resource the project uses and the site cannot hold, then warns with the fix', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
@@ -284,7 +289,9 @@ describe('pull', () => {
   it('lists each skipped resource on its own line in the --skip-unsupported warning', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'snippets'))
+    writeFileSync(join(dir, 'snippets', '.keep'), '')
     mkdirSync(join(dir, 'forms'))
+    writeFileSync(join(dir, 'forms', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {form: false, snippets: false}})})
@@ -319,6 +326,7 @@ describe('pull', () => {
   it('fails a Full-only resource on Light when the project uses it', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'lps-pull-test-'))
     mkdirSync(join(dir, 'hooks'))
+    writeFileSync(join(dir, 'hooks', '.keep'), '')
     vi.spyOn(process, 'cwd').mockReturnValue(dir)
     vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
     const {cmd} = make({capabilities: makeLightCapabilities()})

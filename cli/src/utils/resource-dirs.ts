@@ -1,4 +1,4 @@
-import {existsSync} from 'node:fs'
+import {existsSync, readdirSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 
 import {type LoopressLocalConfig} from './loopress-config.js'
@@ -65,10 +65,16 @@ export function resolveResourceDir(kind: ResourceDirKind, localConfig: LoopressL
   return join(rootDir, typeof configured === 'string' ? configured : RESOURCE_DIR_DEFAULTS[kind])
 }
 
-// Whether the project uses a resource at all: its directory exists. What the aggregate `lps push`,
+// Whether the project uses a resource at all: its directory exists and holds something (an empty
+// directory is what `git` cannot even keep, and what a tool leaves behind). What the aggregate `lps push`,
 // `lps pull` and `lps diff` go by for a resource backed by a plugin the site may not have.
 export function projectUses(kind: ResourceDirKind, localConfig: LoopressLocalConfig): boolean {
-  return existsSync(resolve(resolveResourceDir(kind, localConfig)))
+  const dir = resolve(resolveResourceDir(kind, localConfig))
+  try {
+    return existsSync(dir) && readdirSync(dir).length > 0
+  } catch {
+    return false
+  }
 }
 
 // The project has files for the Loopress child theme to hold: templates, parts or CSS. Without

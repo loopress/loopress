@@ -56,6 +56,12 @@ export type PhpFilesResource = {
   syncsNamespace?: boolean
 }
 
+// The empty-dir guard fired. `lps push` tells it from a real failure: nothing was changed on the
+// site, so the steps after it can still run.
+export class PruneRefusedError extends Error {
+  override name = 'PruneRefusedError'
+}
+
 export const API_NAMESPACE_ENDPOINT = 'loopress/v1/api-namespace'
 
 type PhpFile = {
@@ -258,14 +264,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       // confirmation), but their removal itself happens inside the same atomic swap as the push
       // below, not as separate DELETE calls, so a mid-push failure can't remove server-side
       // files without also landing the new ones.
-      if (flags.prune && files.length === 0) {
-        this.error(
-          `Refusing to prune: ${path} is missing or holds no PHP file, so every ${spec.noun} on ${url} would be deleted. ` +
-            `Check the path, or pass --no-prune to push without deleting.`,
-        )
-      }
-
-      const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path) : []
+      const pruneList = flags.prune ? await this.resolvePruneList(new Set(files.map((file) => file.filename)), path, files.length === 0) : []
 
       // Routes register under the namespace, so it goes first.
       const previousNamespace = spec.syncsNamespace ? await this.pushNamespace() : undefined
@@ -372,11 +371,20 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     // routes. Only decides *which* filenames to prune; pushBatch() is what actually removes
     // them, atomically alongside the push. A file excluded from this environment
     // (loopress.json) is left alone, never pruned.
-    private async resolvePruneList(localFilenames: Set<string>, path: string): Promise<string[]> {
+    private async resolvePruneList(localFilenames: Set<string>, path: string, noLocalFile: boolean): Promise<string[]> {
       const remote = await this.wp.get<Array<{filename: string}>>(spec.endpoint)
       const orphans = remote.map((file) => file.filename).filter((name) => !localFilenames.has(name) && !isExcluded(join(path, `${name}.php`)))
 
       if (orphans.length === 0) return []
+
+      // An empty local dir against an empty site is a no-op (checked above). Against a site that
+      // holds files it is most likely a wrong path: refuse before anything is deleted.
+      if (noLocalFile) {
+        throw new PruneRefusedError(
+          `Refusing to prune: ${path} is missing or holds no PHP file, so every ${spec.noun} on ${this.siteConfig.url} would be deleted. ` +
+            `Check the path, or delete them on purpose with \`lps ${spec.cliName} rm\`, or pass --no-prune to \`lps ${spec.cliName} push\` (\`--skip ${spec.cliName}\` for \`lps push\`).`,
+        )
+      }
 
       const summary = `${pluralize(orphans.length, spec.noun)} on ${this.siteConfig.url} not present locally: ${orphans.join(', ')}`
 
