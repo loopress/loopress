@@ -63,6 +63,7 @@ describe('push deployment record', () => {
       mkdirSync(join(projectDir, dir))
       writeFileSync(join(projectDir, dir, '.keep'), '')
     }
+
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
   })
 
