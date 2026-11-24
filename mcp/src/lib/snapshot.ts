@@ -135,5 +135,21 @@ export async function writeBack(snapshotDir: string): Promise<WritebackResult> {
     result.copied.push(path)
   }
 
+  // A file the command removed or renamed away: remove it from the project too, but only if the
+  // project's copy is still what the preview saw.
+  for (const [path, before] of origin.baseline) {
+    if (now.has(path)) continue
+    const target = join(origin.source, path)
+    const current = await hashFile(target)
+    if (current === undefined) continue
+    if (current !== before) {
+      result.conflicts.push(path)
+      continue
+    }
+
+    await rm(target, {force: true})
+    result.copied.push(path)
+  }
+
   return result
 }

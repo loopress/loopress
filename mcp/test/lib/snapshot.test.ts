@@ -1,4 +1,4 @@
-import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises'
+import {mkdir, mkdtemp, readFile, rename, rm, stat, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
@@ -56,6 +56,28 @@ describe('writeBack', () => {
     expect(await readFile(join(source, '.loopress', 'rollback', 'snap.json'), 'utf8')).toBe('{}')
     expect(await readFile(join(source, 'snippets', 'demo.php'), 'utf8')).toBe('<?php echo "renamed";')
     removeSnapshot(snap)
+  })
+
+  it('removes the old path of a rename, unless the user edited it since the preview', async () => {
+    const snap = await createSnapshot(source)
+    await rename(join(snap, 'snippets', 'demo.php'), join(snap, 'snippets', '5-demo.php'))
+
+    const result = await writeBack(snap)
+
+    expect(result.conflicts).toEqual([])
+    expect(await readFile(join(source, 'snippets', '5-demo.php'), 'utf8')).toBe('<?php echo "safe";')
+    await expect(readFile(join(source, 'snippets', 'demo.php'), 'utf8')).rejects.toThrow()
+    removeSnapshot(snap)
+
+    const edited = await createSnapshot(source)
+    await rename(join(edited, 'snippets', '5-demo.php'), join(edited, 'snippets', '6-demo.php'))
+    await writeFile(join(source, 'snippets', '5-demo.php'), '<?php echo "user edit";')
+
+    const conflict = await writeBack(edited)
+
+    expect(conflict.conflicts).toEqual([join('snippets', '5-demo.php')])
+    expect(await readFile(join(source, 'snippets', '5-demo.php'), 'utf8')).toBe('<?php echo "user edit";')
+    removeSnapshot(edited)
   })
 
   it('never overwrites a file the user edited since the preview', async () => {
