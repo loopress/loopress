@@ -68,6 +68,8 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'form')} failed to push.`)
     }
 
+    this.failOnLeftOutFiles()
+
     if (this.dryRun) return {changes: this.previewChanges, path, status: 'dry-run'}
 
     await this.recordSuccess()
@@ -108,12 +110,12 @@ export default class Push extends PushCommand {
       try {
         parsed = JSON.parse(await readFile(filePath, 'utf8'))
       } catch (error) {
-        this.warn(`Skipping "${filePath}": ${errorMessage(error)}`)
+        this.skipFile(`Skipping "${filePath}": ${errorMessage(error)}`)
         continue
       }
 
       if (!isRecord(parsed)) {
-        this.warn(`Skipping "${filePath}": not a JSON object`)
+        this.skipFile(`Skipping "${filePath}": not a JSON object`)
         continue
       }
 

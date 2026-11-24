@@ -42,7 +42,7 @@ export default class Push extends PushCommand {
     const tracked = await loadFiles<LocalOption>(dir, {
       extension: '.json',
       onSkip: (message) => {
-        this.warn(message)
+        this.skipFile(message)
       },
       parse: parseLocalOption,
     })
@@ -80,6 +80,8 @@ export default class Push extends PushCommand {
 
     const skippedNames = skipped.map((option) => option.name)
 
+    this.failOnLeftOutFiles()
+
     if (this.dryRun) return {changes: this.previewChanges, pushed, skipped: skippedNames, status: 'dry-run'}
 
     await this.recordSuccess()
@@ -99,7 +101,9 @@ export default class Push extends PushCommand {
 
   private async pushOption(option: LocalOption, task?: {output: string}): Promise<void> {
     if (this.dryRun) {
-      if (task) task.output = `[dry-run] Would push: ${option.name}`
+      // The preview already printed `unchanged` for this option: one line per option, not two.
+      const unchanged = this.previewChanges.some((change) => change.id === option.name && change.status === 'unchanged')
+      if (task && !unchanged) task.output = `[dry-run] Would push: ${option.name}`
       return
     }
 

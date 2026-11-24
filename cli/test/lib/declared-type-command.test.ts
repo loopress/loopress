@@ -262,7 +262,7 @@ describe('declared type commands', () => {
       return {...made, seams}
     }
 
-    it('pushes every file, warns about a broken one, and records the success', async () => {
+    it('pushes every file, warns about a broken one, and fails the run naming it', async () => {
       writeFileSync(join(dir, 'book.json'), '{"public": true}')
       writeFileSync(join(dir, 'movie.json'), '{}')
       writeFileSync(join(dir, 'broken.json'), '{nope')
@@ -270,7 +270,7 @@ describe('declared type commands', () => {
       const post = vi.fn().mockResolvedValue({})
       const {cmd, logs, seams} = makePush([dir], {get, post})
 
-      expect(await cmd.run()).toEqual({path: dir, pushed: ['book', 'movie'], status: 'success'})
+      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/)
 
       expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {public: true}, slug: 'book'})
       expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {}, slug: 'movie'})
@@ -278,9 +278,9 @@ describe('declared type commands', () => {
       expect(logs.log).toHaveBeenCalledWith('Pushing post types to https://acme.com')
       expect(logs.log).toHaveBeenCalledWith(`Path: ${dir}`)
       expect(logs.log).toHaveBeenCalledWith('Found 2 post types to push')
-      expect(logs.log).toHaveBeenCalledWith('All post types pushed.')
+      expect(logs.log).not.toHaveBeenCalledWith('All post types pushed.')
       expect(seams.writeAfterPushSnapshot).toHaveBeenCalledWith(expect.objectContaining({resource: 'cpt'}), dir, expect.any(Map))
-      expect(seams.recordSuccess).toHaveBeenCalled()
+      expect(seams.recordSuccess).not.toHaveBeenCalled()
     })
 
     it('fails with the count of refused items', async () => {

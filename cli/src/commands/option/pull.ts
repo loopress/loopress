@@ -62,7 +62,7 @@ export default class Pull extends LoopressCommand {
       }
     }
 
-    await this.removeOrphanedFiles(dir, orphans, 'no longer exist on WordPress')
+    await this.removeOrphanedFiles(dir, orphans, `in ${dir} no longer present on WordPress`)
 
     this.log(`Pulled ${pluralize(refreshed.length, 'option')}`)
     return refreshed

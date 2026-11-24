@@ -12,6 +12,7 @@ import {makeEnv} from '../../helpers/project-fixtures.js'
 type PushInternals = {
   dryRun: boolean
   failedCount: number
+  failOnLeftOutFiles(): void
   pushLocations(basePath: string): Promise<void>
   pushMenuFile(filePath: string, task?: {output: string}): Promise<void>
   wpClient: {get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
@@ -97,28 +98,33 @@ describe('menu push', () => {
       expect(task.output).toContain('warning:')
     })
 
-    it('fails clearly when the file has no slug', async () => {
-      const {cmd} = makeCmd()
+    it('leaves out a file with no slug, warns, and fails the run at the end', async () => {
+      const {cmd, logs} = makeCmd()
       cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
       const file = join(dir, 'draft.json')
       writeFileSync(file, JSON.stringify({items: [], name: 'Draft'}))
       const task = {output: ''}
 
-      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('missing or invalid "slug"')
-      expect(cmd.failedCount).toBe(1)
+      await cmd.pushMenuFile(file, task)
+
+      expect(logs.warn).toHaveBeenCalledWith(`Skipping "${file}": missing or invalid "slug"`)
+      expect(cmd.failedCount).toBe(0)
+      expect(() => { cmd.failOnLeftOutFiles() }).toThrow('1 file left out')
     })
 
-    it('rejects a malformed "items" instead of clearing the remote menu', async () => {
-      const {cmd} = makeCmd()
+    it('leaves out a malformed "items" instead of clearing the remote menu', async () => {
+      const {cmd, logs} = makeCmd()
       const post = vi.fn()
       cmd.wpClient = {get: vi.fn(), post, put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, JSON.stringify({items: 'not-an-array', name: 'Main', slug: 'main'}))
       const task = {output: ''}
 
-      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('"items" must be an array')
+      await cmd.pushMenuFile(file, task)
+
       expect(post).not.toHaveBeenCalled()
-      expect(cmd.failedCount).toBe(1)
+      expect(logs.warn).toHaveBeenCalledWith(`Skipping "${file}": "items" must be an array`)
+      expect(cmd.failedCount).toBe(0)
     })
 
     it('defaults a missing "items" to an empty array', async () => {
@@ -264,15 +270,16 @@ describe('menu push', () => {
     it.each([
       ['a JSON null', 'null'],
       ['a bare number', '42'],
-    ])('rejects a file that is %s', async (_label, raw) => {
-      const {cmd} = makeCmd()
+    ])('leaves out a file that is %s', async (_label, raw) => {
+      const {cmd, logs} = makeCmd()
       cmd.wpClient = {get: vi.fn(), post: vi.fn(), put: vi.fn()}
       const file = join(dir, 'main.json')
       writeFileSync(file, raw)
       const task = {output: ''}
 
-      await expect(cmd.pushMenuFile(file, task)).rejects.toThrow('not a JSON object')
-      expect(task.output).toBe(`Failed to push ${file}: not a JSON object`)
+      await cmd.pushMenuFile(file, task)
+
+      expect(logs.warn).toHaveBeenCalledWith(`Skipping "${file}": not a JSON object`)
     })
 
     it('sends an empty name when the file has none', async () => {

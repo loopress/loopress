@@ -8,8 +8,10 @@ import {isDeepStrictEqual} from 'node:util'
 
 import {authManager} from '../config/auth.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
+import {pluralize} from '../utils/pluralize.js'
 import {pinActive, pinVersion} from '../types/plugin.js'
 import {API_URL} from './api-client.js'
+import {withCloudBudget} from './cloud-budget.js'
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
 import {environmentUrlWarnings, type ScannedItem} from './environment-urls.js'
@@ -61,11 +63,13 @@ export async function postDeployment(body: {command: string | undefined; plugins
 
   try {
     await withSpinner('Recording the deployment', async () =>
-      got.post(`${API_URL}/deployments`, {
-        headers: {Authorization: `Bearer ${token}`},
-        json: {...body, ...gitState()},
-        timeout: {request: 3000},
-      }),
+      withCloudBudget(async (timeoutMs) =>
+        got.post(`${API_URL}/deployments`, {
+          headers: {Authorization: `Bearer ${token}`},
+          json: {...body, ...gitState()},
+          timeout: {request: timeoutMs},
+        }),
+      ),
     )
   } catch (error) {
     // non-blocking, but an unlinked site is worth a hint
@@ -111,6 +115,9 @@ export abstract class PushCommand extends LoopressCommand {
   static override honorsExclude = true
 
   protected failedCount = 0
+  // Files the push could not read (corrupted JSON, ...), by their "Skipping ..." message. Warned
+  // once per run however many readers meet them, and the run ends non-zero naming them.
+  private readonly leftOutFiles = new Set<string>()
   // A dry run's per-item preview, set by captureBeforePushState: what the push would create,
   // change or leave as it is on the site.
   protected previewChanges: PushChange[] = []
@@ -154,7 +161,7 @@ export abstract class PushCommand extends LoopressCommand {
       remote = await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         dir,
       )
@@ -239,7 +246,7 @@ export abstract class PushCommand extends LoopressCommand {
       return await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         '',
       )
@@ -280,6 +287,27 @@ export abstract class PushCommand extends LoopressCommand {
     } catch {
       // non-blocking, see above
     }
+  }
+
+  // A file the push cannot read is left out with one warning (however many readers meet it), and
+  // `failOnLeftOutFiles` ends the run non-zero once the other files were handled.
+  protected skipFile(message: string): void {
+    if (this.leftOutFiles.has(message)) return
+    this.leftOutFiles.add(message)
+    this.warn(message)
+  }
+
+  // What a resource state reader reports: a file it skipped is left out of the run, anything
+  // else is a plain warning.
+  private warnProvider(message: string): void {
+    if (message.startsWith('Skipping "')) this.skipFile(message)
+    else this.warn(message)
+  }
+
+  protected failOnLeftOutFiles(): void {
+    if (this.leftOutFiles.size === 0) return
+    const names = [...this.leftOutFiles].map((message) => /^Skipping "(.*?)"/u.exec(message)?.[1] ?? message)
+    this.error(`${pluralize(names.length, 'file')} left out because they could not be read: ${names.join(', ')}.`)
   }
 
   // Reports one failed Listr task: status lines go through `task.output` when running inside a
@@ -339,7 +367,7 @@ export abstract class PushCommand extends LoopressCommand {
       const afterState = await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         dir,
       )

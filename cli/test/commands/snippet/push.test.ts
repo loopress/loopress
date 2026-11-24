@@ -753,7 +753,7 @@ describe('snippet push', () => {
       writeFileSync(join(dir, 'snippets', '9-gone.json'), '{broken')
       const {cmd, del} = makeRunCmd({argv: ['--yes'], remote: [{id: 9, name: 'Gone'}]})
 
-      await cmd.run()
+      await expect(cmd.run()).rejects.toThrow('1 file left out')
 
       expect(del).not.toHaveBeenCalled()
     })

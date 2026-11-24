@@ -182,14 +182,15 @@ describe('option push', () => {
       expect(logs.log).not.toHaveBeenCalledWith(expect.stringContaining('Skipping'))
     })
 
-    it('warns about an unparseable file instead of aborting the rest', async () => {
+    it('warns once about an unparseable file, pushes the rest, then fails the run', async () => {
       writeOption({autoload: 'yes', name: 'blogname', value: 'Hello'})
       writeFileSync(join(dir, 'options', 'broken.json'), JSON.stringify({autoload: 'yes', value: 1}))
       const {cmd, logs, put} = makeRunCmd()
 
-      await cmd.run()
+      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/)
 
       expect(put).toHaveBeenCalledTimes(1)
+      expect(logs.warn).toHaveBeenCalledTimes(1)
       expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('broken.json'))
     })
 

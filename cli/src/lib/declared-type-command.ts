@@ -69,7 +69,7 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
       const items = await loadFiles<LocalItem>(path, {
         extension: fileExtension(spec),
         onSkip: (message) => {
-          this.warn(message)
+          this.skipFile(message)
         },
         parse: (raw, filePath) => parseDeclaredFile(spec, filePath, raw),
       })
@@ -93,6 +93,8 @@ export function declaredPushCommand(spec: DeclaredTypeSpec, description: string)
       if (this.failedCount > 0) {
         this.error(`${pluralize(this.failedCount, spec.noun, spec.plural)} failed to push.`)
       }
+
+      this.failOnLeftOutFiles()
 
       if (this.dryRun) return {changes: this.previewChanges, path, pushed, status: 'dry-run'}
 

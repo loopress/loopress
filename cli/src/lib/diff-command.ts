@@ -8,6 +8,7 @@ import {configManager} from '../config/project-config.manager.js'
 import {localApiNamespace} from '../utils/api-namespace.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {API_URL} from './api-client.js'
+import {withCloudBudget} from './cloud-budget.js'
 import {LoopressCommand} from './base.js'
 import {type MissingIntegration} from './capabilities.js'
 import {compareStates, isEmptyDiff, type ResourceState, type StateChange, type StateDiff} from './diff-state.js'
@@ -212,11 +213,13 @@ export abstract class DiffCommand extends LoopressCommand {
       const token = process.env.LOOPRESS_TOKEN ?? authManager.getAuth()?.token ?? null
       if (!token) return
 
-      await got.post(`${API_URL}/drift-reports`, {
-        headers: {Authorization: `Bearer ${token}`},
-        json: {exitCode: process.exitCode ?? 0, items, status, url: this.siteConfig.url},
-        timeout: {request: 3000},
-      })
+      await withCloudBudget(async (timeoutMs) =>
+        got.post(`${API_URL}/drift-reports`, {
+          headers: {Authorization: `Bearer ${token}`},
+          json: {exitCode: process.exitCode ?? 0, items, status, url: this.siteConfig.url},
+          timeout: {request: timeoutMs},
+        }),
+      )
     } catch (error) {
       warnIfUnlinked(error, this.siteConfig.url)
       // non-blocking: reporting must never change the diff's outcome

@@ -52,6 +52,8 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'ACF object')} failed to push.`)
     }
 
+    this.failOnLeftOutFiles()
+
     if (this.dryRun) {
       const states = this.previewStates
       const changes = this.previewChanges.map((change): AcfChange => {
@@ -79,7 +81,7 @@ export default class Push extends PushCommand {
   private async loadObjects(dir: string): Promise<Array<Record<string, unknown>>> {
     return loadFiles<Record<string, unknown>>(dir, {
       extension: '.json',
-      onSkip: (message) => { this.warn(message) },
+      onSkip: (message) => { this.skipFile(message) },
       parse(raw) {
         const parsed: unknown = JSON.parse(raw)
         if (!isRecord(parsed) || getAcfKey(parsed) === null) {

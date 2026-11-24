@@ -51,6 +51,8 @@ export default class Push extends PushCommand {
       this.error(`${pluralize(this.failedCount, 'menu')} failed to push.`)
     }
 
+    this.failOnLeftOutFiles()
+
     if (this.dryRun) return {changes: this.previewChanges, path, status: 'dry-run'}
 
     await this.recordSuccess()
@@ -100,17 +102,29 @@ export default class Push extends PushCommand {
       return
     }
 
+    let slug: string
+    let name: string
+    let items: unknown[]
     try {
       const record: unknown = JSON.parse(await readFile(filePath, 'utf8'))
       if (!isRecord(record)) throw new Error('not a JSON object')
 
-      const slug = getMenuSlug(record)
-      if (slug === null) throw new Error('missing or invalid "slug"')
+      const recordSlug = getMenuSlug(record)
+      if (recordSlug === null) throw new Error('missing or invalid "slug"')
 
-      const name = typeof record.name === 'string' ? record.name : ''
-      const items = record.items ?? []
-      if (!Array.isArray(items)) throw new Error('"items" must be an array')
+      const recordItems = record.items ?? []
+      if (!Array.isArray(recordItems)) throw new Error('"items" must be an array')
 
+      slug = recordSlug
+      name = typeof record.name === 'string' ? record.name : ''
+      items = recordItems
+    } catch (error) {
+      // A file that cannot be read is left out like in every other resource, not a failed push.
+      this.skipFile(`Skipping "${filePath}": ${errorMessage(error)}`)
+      return
+    }
+
+    try {
       // Read the menu's current revision right before writing it, and send it back as
       // `expectedRevision`: WordPress refuses the write (412) if something else changed the menu
       // in between, instead of this push silently overwriting it (#234). No revision to condition
