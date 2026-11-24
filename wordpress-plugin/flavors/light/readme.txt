@@ -65,6 +65,13 @@ Only authenticated users with the `manage_options` capability (administrators). 
 
 The plugin is the site-side companion of the Loopress CLI (`lps`, installable from npm). Without the CLI, it does nothing beyond showing its admin page.
 
+== Screenshots ==
+
+1. The Loopress admin page in wp-admin, with the CLI pairing instructions.
+2. An ACF field group in the ACF editor, and the start of the JSON file `lps acf pull` wrote for it.
+3. `git diff` of that JSON file after the field group was edited in wp-admin and pulled again.
+4. `lps diff --only acf` listing the ACF difference between a locally edited JSON file and the site.
+
 == Changelog ==
 
 Every release is listed in [CHANGELOG.md](https://github.com/loopress/loopress/blob/main/wordpress-plugin/CHANGELOG.md).
