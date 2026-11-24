@@ -175,7 +175,7 @@ It is not a `pull`: nothing is written to your project files. It replaces the po
 - The source URL is rewritten to the local one in content and meta, including serialized values. JSON-escaped URLs (some page builders store them that way) are left as they are.
 - The plugin refuses the import on any site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is not `local`. LocalWP sets it, elsewhere add `define('WP_ENVIRONMENT_TYPE', 'local');` to `wp-config.php`.
 
-Content is never pushed: there is no `lps content push`.
+The content copy only goes down: there is no `lps content push`. The one exception is `lps page push`, which sends each page's HTML to WordPress. Adopting an existing same-slug page that Loopress does not manage, with `--overwrite`, clears its `post_content` (the previous content is kept as a revision).
 
 ## `lps validate`
 
