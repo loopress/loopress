@@ -1,4 +1,4 @@
-import {mkdir, readFile, writeFile} from 'node:fs/promises'
+import {mkdir, readFile, rename, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {z} from 'zod'
 
@@ -57,8 +57,11 @@ export async function writeLastSeen(
     if (errorCode(error) !== 'EEXIST') throw error
   }
 
+  // Written aside then renamed, so an interruption never leaves truncated JSON behind.
+  const temporary = `${path}.${process.pid}.tmp`
   await writeFile(
-    path,
+    temporary,
     JSON.stringify({keys: [...keys].toSorted((a, b) => a.localeCompare(b)), ...(state && {state: stateToRecord(state)}), updatedAt: new Date().toISOString()}, null, 2) + '\n',
   )
+  await rename(temporary, path)
 }

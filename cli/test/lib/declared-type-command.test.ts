@@ -20,7 +20,7 @@ import {makeEnv} from '../helpers/project-fixtures.js'
 // itself, the last-seen rules have their own tests (test/lib/last-seen.test.ts).
 vi.mock('../../src/lib/last-seen.js', () => ({
   readLastSeen: async () => ({keys: {has: () => true}, updatedAt: ''}),
-  writeLastSeen: async () => undefined,
+  async writeLastSeen() {},
 }))
 
 
