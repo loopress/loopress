@@ -14,28 +14,7 @@ lps snippet rollback --dry-run  # show what would be restored
 
 ## Which resources support it
 
-| Resource | Command |
-|----------|---------|
-| [Snippets](/snippets/) | `lps snippet rollback` |
-| [ACF](/acf/) | `lps acf rollback` |
-| [Forms](/forms/) | `lps form rollback` |
-| [Menus](/menus/) | `lps menu rollback` |
-| [Custom Post Types](/custom-post-types/) | `lps cpt rollback` |
-| [Taxonomies](/taxonomies/) | `lps taxonomy rollback` |
-| [Post Meta](/post-meta/) | `lps meta rollback` |
-| [Roles](/roles/) | `lps role rollback` |
-| [Options](/options/) | `lps option rollback` |
-| [Theme Styles](/theme-styles/) | `lps theme style rollback` |
-| [API routes](/api/cli/) | `lps api rollback` |
-| [Hooks](/hooks/) | `lps hook rollback` |
-| [Block Patterns](/block-patterns/) | `lps pattern rollback` |
-| [Dynamic Blocks](/dynamic-blocks/) | `lps block rollback` |
-| [Static pages](/pages/#lps-page-rollback) | `lps page rollback` |
-| [Templates, parts and theme CSS](/pages/#lps-theme-template-rollback) | `lps theme template rollback` |
-| [Plugins](/plugins/#lps-plugin-rollback) | `lps plugin rollback` |
-| [Theme versions](/themes/#lps-theme-version-rollback) | `lps theme version rollback` |
-| [Composer](/composer/cli/#lps-composer-rollback) | `lps composer rollback` |
-| [Apps](/apps/cli/#lps-app-rollback) | `lps app rollback` |
+Every resource that has a `push` has a `rollback`: see the `rollback` column of [What each command covers](/workflow/#what-each-command-covers). The command is always `lps <resource> rollback`, with the exact name in that table.
 
 Plugins, theme versions and Composer go through the site's Composer: the rollback runs it again with the earlier versions, so a package the push installed is uninstalled and one it uninstalled is reinstalled. Plugins and theme versions go back to the exact versions of the snapshot. Composer puts back the earlier `composer.json`, constraints included, and resolves it again: a package can land on another version than the snapshot's `composer.lock`, the rollback lists those. A rollback that downgrades a package warns, `--dry-run` included, and needs `--force`: a downgrade replaces files only, it does not undo the database migrations the newer version ran.
 

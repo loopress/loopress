@@ -20,30 +20,38 @@ All of them accept the [common flags](/concepts/#common-flags) where they apply.
 
 ## What each command covers
 
-Not every resource takes part in every aggregate command:
+Not every resource takes part in every command. This is the one place that lists what each resource supports: [rollback](/rollback/), the [WordPress plugin editions](/wordpress-plugin/#feature-comparison) and [leaving Loopress](/leaving-loopress/) link here instead of keeping their own list. A test (`cli/test/docs/capability-matrix.test.ts`) fails when this table and the CLI disagree.
 
-| Resource | `lps pull` | `lps push` | `lps diff` | `lps dev` |
-|----------|:---:|:---:|:---:|:---:|
-| [Plugins](/plugins/) | ✓ | ✓ | `lps plugin status` | ✓ |
-| [Composer](/composer/cli/) | ✓ | ✓ | ✓ | |
-| [Custom post types](/custom-post-types/) | ✓ | ✓ | ✓ | |
-| [Taxonomies](/taxonomies/) | ✓ | ✓ | ✓ | |
-| [Post meta](/post-meta/) | ✓ | ✓ | ✓ | |
-| [Roles](/roles/) | ✓ | ✓ | ✓ | |
-| [ACF](/acf/) | ✓ | ✓ | ✓ | |
-| [API routes](/api/cli/) | ✓ | ✓ | ✓ | ✓ |
-| [Hooks](/hooks/) | ✓ | ✓ | ✓ | ✓ |
-| [Forms](/forms/) | ✓ | ✓ | ✓ | |
-| [Block patterns](/block-patterns/) | ✓ | ✓ | ✓ | |
-| [Templates and parts](/pages/#templates-and-parts) | no pull | ✓ | ✓ | ✓ |
-| [Theme CSS](/pages/#theme-css) | no pull | ✓ | | ✓ |
-| [Static pages](/pages/) | no pull | ✓ | ✓ | ✓ |
-| [Menus](/menus/) | ✓ | ✓ | ✓ | |
-| [Options](/options/) | ✓ | ✓ | ✓ | |
-| [Snippets](/snippets/) | ✓ | ✓ | ✓ | ✓ |
-| [Theme Styles](/theme-styles/) | ✓ | ✓ | ✓ | |
-| [Themes](/themes/) | | | `lps theme status` | |
-| [Single-Page Apps](/apps/) | | | | |
+- **Edition**: the plugin edition that provides the resource. Light is on WordPress.org, Full adds everything that deploys or installs code, see [Light vs Full](/wordpress-plugin/#feature-comparison).
+- **`pull`, `push`, `diff`**: ✓ means the aggregate `lps pull`, `lps push` and `lps diff` cover it. A command name means the resource has its own command only, `no pull` means there is none.
+- **`promote`**: ✓ when the resource has both a `pull` and a `push`, since [`lps promote`](#lps-promote) is a pull followed by a push.
+- **`rollback`**: the resource's [`rollback`](/rollback/) command.
+- **`dev`**: ✓ when [`lps dev`](#lps-dev) watches it.
+- **Eject**: what [`lps eject`](/cli/eject/) does with it. `generated` is turned into plain WordPress code, `native` needs nothing (already plain WordPress data or files), `refused` makes the command stop, see [leaving Loopress](/leaving-loopress/) for what survives.
+
+| Resource | Edition | `pull` | `push` | `diff` | `promote` | `rollback` | `dev` | Eject |
+|----------|:---:|:---:|:---:|:---:|:---:|:---|:---:|:---:|
+| [ACF](/acf/) | Light | ✓ | ✓ | ✓ | ✓ | `lps acf rollback` | | native |
+| [Forms](/forms/) | Light | ✓ | ✓ | ✓ | ✓ | `lps form rollback` | | native |
+| [Menus](/menus/) | Light | ✓ | ✓ | ✓ | ✓ | `lps menu rollback` | | native |
+| [Custom post types](/custom-post-types/) | Light | ✓ | ✓ | ✓ | ✓ | `lps cpt rollback` | | generated |
+| [Taxonomies](/taxonomies/) | Light | ✓ | ✓ | ✓ | ✓ | `lps taxonomy rollback` | | generated |
+| [Post meta](/post-meta/) | Light | ✓ | ✓ | ✓ | ✓ | `lps meta rollback` | | generated |
+| [Roles](/roles/) | Light | ✓ | ✓ | ✓ | ✓ | `lps role rollback` | | generated |
+| [Options](/options/) | Light | ✓ | ✓ | ✓ | ✓ | `lps option rollback` | | native |
+| [Theme Styles](/theme-styles/) | Light | ✓ | ✓ | ✓ | ✓ | `lps theme style rollback` | | native |
+| [Snippets](/snippets/) | Full | ✓ | ✓ | ✓ | ✓ | `lps snippet rollback` | ✓ | native |
+| [API routes](/api/cli/) | Full | ✓ | ✓ | ✓ | ✓ | `lps api rollback` | ✓ | refused |
+| [Hooks](/hooks/) | Full | ✓ | ✓ | ✓ | ✓ | `lps hook rollback` | ✓ | generated |
+| [Dynamic blocks](/dynamic-blocks/) | Full | ✓ | ✓ | ✓ | ✓ | `lps block rollback` | ✓ | refused |
+| [Block patterns](/block-patterns/) | Full | ✓ | ✓ | ✓ | ✓ | `lps pattern rollback` | | generated |
+| [Templates and parts](/pages/#templates-and-parts) | Full | no pull | ✓ | ✓ | | [`lps theme template rollback`](/pages/#lps-theme-template-rollback) | ✓ | native |
+| [Theme CSS](/pages/#theme-css) | Full | no pull | ✓ | | | [`lps theme template rollback`](/pages/#lps-theme-template-rollback) | ✓ | generated |
+| [Static pages](/pages/) | Full | no pull | ✓ | ✓ | | [`lps page rollback`](/pages/#lps-page-rollback) | ✓ | generated |
+| [Plugins](/plugins/) | Full | ✓ | ✓ | `lps plugin status` | ✓ | [`lps plugin rollback`](/plugins/#lps-plugin-rollback) | ✓ | native |
+| [Themes](/themes/) | Full | `lps theme pull` | `lps theme push` | `lps theme status` | | [`lps theme version rollback`](/themes/#lps-theme-version-rollback) | | native |
+| [Composer](/composer/cli/) | Full | ✓ | ✓ | ✓ | ✓ | [`lps composer rollback`](/composer/cli/#lps-composer-rollback) | | refused |
+| [Single-Page Apps](/apps/) | Full | `lps app pull` | `lps app push` | no diff | | [`lps app rollback`](/apps/cli/#lps-app-rollback) | | refused |
 
 Global Styles take part only once the project tracks them (a `*-global-styles.json` file, see [Theme Styles](/theme-styles/)) and only when the site's active theme is a block theme. Otherwise they're skipped with a one-line note, so a run never breaks on a classic theme. `lps push` also needs the file of the active theme itself. Theme versions stay out of `lps push` and `lps pull`: installing or removing themes is [`lps theme push` / `lps theme pull`](/themes/#commands)'s call. Apps are pushed with [`lps app push`](/apps/cli/#lps-app-push).
 
