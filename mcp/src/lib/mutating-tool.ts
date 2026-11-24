@@ -1,7 +1,7 @@
 import {consumeConfirmation, createConfirmation} from './confirm-tokens.js'
 import {fingerprintPreview} from './preview-fingerprint.js'
 import {LpsError, RunLpsOptions, runLps} from './run-lps.js'
-import {createSnapshot, removeSnapshot} from './snapshot.js'
+import {createSnapshot, removeSnapshot, writeBack} from './snapshot.js'
 
 export interface MutatingToolResult {
   confirmToken?: string
@@ -10,6 +10,10 @@ export interface MutatingToolResult {
   preview?: unknown
   result?: unknown
   status: 'applied' | 'error' | 'preview'
+  // Present only when files the command wrote could not be copied back to the project.
+  writebackConflicts?: string[]
+  writebackError?: string
+  writebackSnapshot?: string
 }
 
 // Every mutating tool (anything that reaches a real WordPress site) follows the same two-call
@@ -149,8 +153,25 @@ export async function runMutatingTool(
   }
 
   const result = await runLps(consumed.args, {...options, cwd: consumed.snapshotDir})
-  removeSnapshot(consumed.snapshotDir)
+  // The command ran in a throwaway copy: bring back what it wrote (id sidecars, renames, .loopress/).
+  let writeback: Awaited<ReturnType<typeof writeBack>> | undefined
+  let writebackFailure: string | undefined
+  if (result.ok) {
+    try {
+      writeback = await writeBack(consumed.snapshotDir)
+    } catch (error) {
+      writebackFailure = error instanceof Error ? error.message : String(error)
+    }
+  }
+
+  // Keep the snapshot when the copy back failed: it holds the output not yet in the project.
+  if (!writebackFailure) removeSnapshot(consumed.snapshotDir)
   if (!result.ok) return {error: result.error, status: 'error'}
 
-  return {result: result.data, status: 'applied'}
+  return {
+    result: result.data,
+    status: 'applied',
+    ...(writeback?.conflicts.length ? {writebackConflicts: writeback.conflicts} : {}),
+    ...(writebackFailure ? {writebackError: writebackFailure, writebackSnapshot: consumed.snapshotDir} : {}),
+  }
 }
