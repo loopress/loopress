@@ -2,6 +2,20 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test } from "./helpers/environment.js";
+import { setPluginActive } from "./helpers/wp-admin.js";
+
+// Set up its own snippet backend instead of relying on an earlier spec leaving WPCode active:
+// pin the site to WPCode only, so the spec passes alone on a fresh site.
+test.beforeAll(async ({ requestUtils }) => {
+	await setPluginActive(requestUtils, "code-snippets", false);
+	await setPluginActive(requestUtils, "insert-headers-and-footers", true);
+});
+
+// Leave the single-provider baseline the other specs rely on (WPCode only).
+test.afterAll(async ({ requestUtils }) => {
+	await setPluginActive(requestUtils, "code-snippets", false);
+	await setPluginActive(requestUtils, "insert-headers-and-footers", true);
+});
 
 // `lps push` fans out to the resource-specific `push` commands in dependency order (plugins,
 // composer, ACF, api, hooks, forms, snippets...), each run non-interactively with --yes and
