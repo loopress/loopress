@@ -175,7 +175,7 @@ It is not a `pull`: nothing is written to your project files. It replaces the po
 - The source URL is rewritten to the local one in content and meta, including serialized values. JSON-escaped URLs (some page builders store them that way) are left as they are.
 - The plugin refuses the import on any site whose [environment type](https://developer.wordpress.org/reference/functions/wp_get_environment_type/) is not `local`. LocalWP sets it, elsewhere add `define('WP_ENVIRONMENT_TYPE', 'local');` to `wp-config.php`.
 
-Content never goes the other way: there is no `lps content push`.
+Content is never pushed: there is no `lps content push`.
 
 ## `lps validate`
 
