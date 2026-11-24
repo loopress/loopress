@@ -42,6 +42,18 @@ class OptionsService
         '/credential/i',
     ];
 
+    // Well-known credential formats, matched against string values on read (fixed prefix or
+    // shape, low false-positive rate). Complements the name denylist above, which cannot catch
+    // a key stored under an innocent name inside a plugin's settings array. Still best effort:
+    // no entropy heuristic, so a credential with no recognisable format passes.
+    private const DENY_VALUE_PATTERNS = [
+        '/(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{8,}/', '/whsec_[0-9A-Za-z]{8,}/',
+        '/gh[po]_[0-9A-Za-z]{20,}/', '/github_pat_[0-9A-Za-z_]{20,}/',
+        '/xox[abpr]-[0-9A-Za-z-]{10,}/', '/AKIA[0-9A-Z]{16}/', '/AIza[0-9A-Za-z_-]{35}/',
+        '/SG\.[0-9A-Za-z_-]{16,}\.[0-9A-Za-z_-]{16,}/',
+        '/-----BEGIN [A-Z ]*PRIVATE KEY-----/',
+    ];
+
     // Every option name WordPress core itself creates on install, extracted verbatim from
     // wp-admin/includes/schema.php's populate_options() (verified against a real 6.9 install,
     // not reconstructed from memory) plus 'initial_db_version' (added just after that array, on
@@ -417,6 +429,7 @@ class OptionsService
             return null;
         }
 
+        $this->assertValueReadable($name, $value);
         $this->assertJsonSafe($name, $value);
 
         /** @var \wpdb $wpdb */
@@ -548,6 +561,51 @@ class OptionsService
                 'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
             ));
         }
+    }
+
+    // Refuses a value holding a well-known credential format, scalar or nested in an array or
+    // object. The message names the path inside the value, never the value itself. The same
+    // loopress_option_readable filter overrides it.
+    private function assertValueReadable(string $name, mixed $value): void
+    {
+        $path = $this->findCredentialPath($value, '', 0);
+
+        if ($path !== null && !apply_filters('loopress_option_readable', false, $name)) {
+            $where = $path === '' ? 'its value' : "its value at \"{$path}\"";
+            throw new ProtectedOptionException(esc_html(
+                "\"{$name}\" holds what looks like a credential in {$where} and is not readable through the option resource. " .
+                'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
+            ));
+        }
+    }
+
+    // Returns the path ("" for the root, "a.b.0" nested) of the first string matching a
+    // credential format, or null. Depth-capped so a self-referencing object cannot loop.
+    private function findCredentialPath(mixed $value, string $path, int $depth): ?string
+    {
+        if (is_string($value)) {
+            foreach (self::DENY_VALUE_PATTERNS as $pattern) {
+                if (preg_match($pattern, $value) === 1) {
+                    return $path;
+                }
+            }
+
+            return null;
+        }
+
+        if ($depth >= 32 || (!is_array($value) && !is_object($value))) {
+            return null;
+        }
+
+        $children = is_array($value) ? $value : get_object_vars($value);
+        foreach ($children as $key => $child) {
+            $found = $this->findCredentialPath($child, $path === '' ? (string) $key : "{$path}.{$key}", $depth + 1);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     // Refuses to write a core option that changes site behaviour, or any loopress_* option
