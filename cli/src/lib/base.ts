@@ -2,7 +2,7 @@ import {confirm} from '@inquirer/prompts'
 import {Command, Flags} from '@oclif/core'
 import {Listr} from 'listr2'
 import {mkdir, rm} from 'node:fs/promises'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
@@ -13,7 +13,10 @@ import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {commandResourceKind, getCapabilities, missingIntegration, type SiteCapabilities, unsupportedMessage} from './capabilities.js'
 import {declaredPlugins} from './declared-plugins.js'
 import {activateExclusions} from './exclude.js'
+import {findOrphanedFiles, findUnpushedFiles, type OrphanMatcher} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
+import {readLastSeen, writeLastSeen} from './last-seen.js'
+import {getResourceStateProvider} from './resource-state.js'
 import {isAppPasswordStale, rotateAppPassword} from './rotate-app-password.js'
 import {withoutSpinner} from './spinner.js'
 import {WpClient} from './wp-client.js'
@@ -75,7 +78,10 @@ export abstract class LoopressCommand extends Command {
   protected projectId!: string
   protected siteConfig!: EnvironmentConfig
   protected yes = false
+  // Keys to record as last seen once the pull has written its files, per resource.
+  private readonly pendingSeen = new Map<string, Set<string>>()
   private typeChecked = false
+
   private wpClient?: WpClient
 
   protected get rootDir(): string {
@@ -104,6 +110,21 @@ export abstract class LoopressCommand extends Command {
     }
 
     return capabilities
+  }
+
+  // The local files a pull deletes: those whose key the site held at the last pull or push
+  // from this machine and no longer does. A file the site never had is kept and listed, and
+  // with nothing recorded (a fresh clone) every file is kept.
+  protected async findPullOrphans(resource: string, dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
+    const seen = (await readLastSeen(resolve(process.cwd(), this.rootDir), resource, this.siteConfig.name))?.keys ?? new Set<string>()
+    const orphans = await findOrphanedFiles(dir, keep, matcher, seen)
+    const unpushed = await findUnpushedFiles(dir, keep, matcher, seen)
+    if (unpushed.length > 0) {
+      this.log(`Kept ${pluralize(unpushed.length, 'local file')} not on the site yet: ${unpushed.join(', ')}`)
+    }
+
+    this.pendingSeen.set(resource, new Set([...(this.pendingSeen.get(resource) ?? []), ...keep]))
+    return orphans
   }
 
   override async init(): Promise<void> {
@@ -234,6 +255,7 @@ export abstract class LoopressCommand extends Command {
     })
 
     await this.removeOrphanedFiles(dir, orphans, options.orphanReason)
+    await this.commitLastSeen(dir)
 
     this.log(options.pulledMessage)
   }
@@ -328,6 +350,24 @@ export abstract class LoopressCommand extends Command {
     }
 
     return env
+  }
+
+  // Records what the site holds after a pull, the baseline of the next push's outside-edits
+  // guard and the reference for which local files a later pull may delete. Best effort: a
+  // failure only warns, the pull itself is done.
+  private async commitLastSeen(dir: string): Promise<void> {
+    const rootDir = resolve(process.cwd(), this.rootDir)
+    for (const [resource, keys] of this.pendingSeen) {
+      try {
+        const provider = getResourceStateProvider(resource)
+        const state = await provider.remote(this.wp, () => {/* warned by the pull itself */}, dir)
+        await writeLastSeen(rootDir, resource, this.siteConfig.name, {keys, state})
+      } catch (error) {
+        this.warn(`Could not record what ${this.siteConfig.url} holds for ${resource}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
+    this.pendingSeen.clear()
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

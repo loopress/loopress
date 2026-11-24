@@ -42,7 +42,7 @@ export function recordToState(record: Record<string, unknown>): ResourceState {
 
 // Environment names are free text (whatever `lps project config` was given), not guaranteed to
 // be filesystem-safe path segments; anything outside a conservative safe set becomes '-'.
-function sanitizeForPath(name: string): string {
+export function sanitizeForPath(name: string): string {
   return name.replaceAll(/[^\w-]/gu, '-')
 }
 

@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {type ResourceState} from '../../src/lib/diff-state.js'
+import {writeLastSeen} from '../../src/lib/last-seen.js'
 import {pushChanges, PushCommand} from '../../src/lib/push-command.js'
 import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
 import {listSnapshots, writeSnapshot} from '../../src/lib/snapshot-store.js'
@@ -244,8 +245,23 @@ describe('PushCommand', () => {
       await lastPushLeft([['1', {name: 'pushed'}]])
 
       await expect(capture({local: [['1', {name: 'pushed'}]], remote: [['1', {name: 'edited in wp-admin'}]]})).rejects.toThrow(
-        /outside Loopress since your last push .*overwrite: 1\. .*--overwrite/u,
+        /outside Loopress since this machine last pulled or pushed .*overwrite: 1\. .*--overwrite/u,
       )
+    })
+
+    // A pull brings the site's edit into the files and moves the baseline: no stop on the next push.
+    it('compares with what the last pull saw, not only the last push', async () => {
+      await lastPushLeft([['1', {name: 'pushed'}]])
+      await writeLastSeen(rootDir, 'snippet', 'test', {keys: ['1'], state: new Map([['1', {name: 'edited in wp-admin'}]])})
+
+      await expect(capture({local: [['1', {name: 'edited locally after pull'}]], remote: [['1', {name: 'edited in wp-admin'}]]})).resolves.toBeDefined()
+      await expect(capture({local: [['1', {name: 'mine'}]], remote: [['1', {name: 'edited again in wp-admin'}]]})).rejects.toThrow(/outside Loopress/u)
+    })
+
+    it('checks after a pull even when this machine never pushed', async () => {
+      await writeLastSeen(rootDir, 'snippet', 'test', {keys: ['1'], state: new Map([['1', {name: 'pulled'}]])})
+
+      await expect(capture({local: [['1', {name: 'mine'}]], remote: [['1', {name: 'edited in wp-admin'}]]})).rejects.toThrow(/outside Loopress/u)
     })
 
     // `lps <resource> rm` deletes on the site and leaves the local file: recreating loses nothing.

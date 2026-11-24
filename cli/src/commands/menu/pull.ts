@@ -3,7 +3,7 @@ import {mkdir, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
+import {basenameKey} from '../../lib/find-orphaned-files.js'
 import {type Menu, MENU_ENDPOINT, MENU_LOCATIONS_ENDPOINT, type MenuLocations} from '../../utils/menu-format.js'
 
 // The reserved local filename for menu locations (see pullLocations()): a menu genuinely slugged
@@ -64,7 +64,7 @@ export default class Pull extends LoopressCommand {
       return true
     })
 
-    const orphans = await findOrphanedFiles(dir, new Set(remote.map((menu) => menu.slug)), {
+    const orphans = await this.findPullOrphans('menu', dir, new Set(remote.map((menu) => menu.slug)), {
       extensions: ['.json'],
       key: (base) => (base === LOCATIONS_FILE_BASENAME ? null : basenameKey(base)),
     })

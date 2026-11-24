@@ -176,7 +176,8 @@ export async function pullIntoComposerJson(
     }
   }
 
-  if (!dryRun) {
+  // Nothing to pin: the file stays as it is, not rewritten with an empty `require` added.
+  if (!dryRun && Object.keys(result.merged).length > 0) {
     const require = {...composerJson.require}
     for (const [slug, version] of Object.entries(result.merged)) require[prefix + slug] = version
     // Atomic: an interrupted write must never leave the user's committed composer.json truncated.

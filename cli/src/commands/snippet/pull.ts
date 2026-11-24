@@ -3,7 +3,7 @@ import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
+import {numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {buildMetaFile, buildSnippetFile, normalizeSnippet, SNIPPETS_ENDPOINT, type SnippetType} from '../../utils/snippet-format.js'
 import {toSlug} from '../../utils/to-slug.js'
@@ -57,7 +57,7 @@ export default class Pull extends LoopressCommand {
     // Files following the `<id>-<slug>` convention whose id is no longer in the current
     // remote list belong to a snippet that was deleted on WordPress. Left on disk, they'd
     // silently come back to life the next time `snippet push` runs.
-    const orphans = await findOrphanedFiles(path, new Set(pullable.map((snippet) => String(snippet.id))), {
+    const orphans = await this.findPullOrphans('snippet', path, new Set(pullable.map((snippet) => String(snippet.id))), {
       extensions: ['.json', ...Object.values(EXTENSIONS).map((ext) => `.${ext}`)],
       key: numericPrefixKey,
     })

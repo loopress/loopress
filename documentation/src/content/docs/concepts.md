@@ -93,7 +93,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 
 ### Pull mirrors the site
 
-A `pull` writes one local file per object on WordPress, and **removes local files whose object no longer exists there**, so the directory always mirrors the site. In a terminal, the files about to be removed are listed and a confirmation is asked first (`--yes` skips it). In scripts and CI they are removed and reported, so existing pipelines keep working. Each feature page states which local files count as tracked, files outside that convention are never touched.
+A `pull` writes one local file per object on WordPress, and **removes local files whose object no longer exists there**, so the directory mirrors the site. Only a file the site held at your last pull or push from this machine is removed: a file you created and never pushed is kept and listed as "not on the site yet", and on a fresh clone (nothing recorded yet) every file is kept. In a terminal, the files about to be removed are listed and a confirmation is asked first (`--yes` skips it). In scripts and CI they are removed and reported, so existing pipelines keep working. Each feature page states which local files count as tracked, files outside that convention are never touched.
 
 Single-file resources (`menus/menu-locations.json`, Global Styles) are always overwritten in place.
 
@@ -139,17 +139,17 @@ Excluded means "leave alone", not "absent": an excluded file is never pushed, an
 
 ### Changes made outside Loopress
 
-Before writing, a push compares the site with the state your last push from this machine left it in. If an object was changed there since (an edit in wp-admin, another tool) and the push would write a different version over it, the push stops and names those objects:
+Before writing, a push compares the site with the state this machine last saw, left by its last `pull` or `push`. If an object was changed there since (an edit in wp-admin, another tool) and the push would write a different version over it, the push stops and names those objects:
 
 ```text
-Changed on https://acme.com outside Loopress since your last push (2026-10-12T09:14:02.000Z), this push would overwrite: header-menu.
+Changed on https://acme.com outside Loopress since this machine last pulled or pushed (2026-10-12T09:14:02.000Z), this push would overwrite: header-menu.
 ```
 
 Review the difference with `lps diff --only <resource>`, then either bring the site's version into your files (`pull`, or copy the change by hand), or push with `--overwrite` to replace it. In a terminal the push asks instead of stopping, and a `--dry-run` only warns.
 
 Objects added on the site and absent from your files are never flagged, a push doesn't touch them. Nor are objects deleted on the site (in wp-admin, or with a `remove` command): pushing them again overwrites nothing. Once a `pull` brings the change into your files, the push goes through.
 
-This relies on the [snapshots](/rollback/#where-snapshots-live) kept on the machine that pushed, so it protects a push from the same machine. The first push from a new clone or a CI runner has nothing to compare with and isn't checked. Templates and template parts don't need it: a Site Editor edit stays in the database and keeps winning over the pushed file, and the push warns about it.
+This relies on a record kept in `.loopress/last-seen/` (git-ignored) by every pull and push, next to the [snapshots](/rollback/#where-snapshots-live), so it protects a push from the same machine. The first push from a new clone or a CI runner has nothing to compare with and isn't checked. Templates and template parts don't need it: a Site Editor edit stays in the database and keeps winning over the pushed file, and the push warns about it.
 
 ### Links to another environment
 

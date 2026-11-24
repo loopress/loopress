@@ -153,6 +153,16 @@ describe('composer utils', () => {
         return new Response('{}', {status: status(slug)})
       })
 
+    it('leaves composer.json untouched when there is nothing to pin', async () => {
+      const raw = JSON.stringify({name: 'acme/site', extra: {a: 1}}, null, 4) + '\n'
+      writeFileSync(path, raw)
+      stubWordPressOrg(() => 200)
+
+      await pullIntoComposerJson(path, 'plugin', {}, {dryRun: false, log})
+
+      expect(readFileSync(path, 'utf8')).toBe(raw)
+    })
+
     it('pins exact versions, keeps constraints, skips require-dev and provided slugs, and adds what WordPress.org serves', async () => {
       writeFileSync(
         path,

@@ -3,7 +3,7 @@ import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {basenameKey, findOrphanedFiles} from '../../lib/find-orphaned-files.js'
+import {basenameKey} from '../../lib/find-orphaned-files.js'
 import {ACF_OBJECT_TYPES, acfEndpoint, type AcfObjectType, getAcfKey} from '../../utils/acf-format.js'
 
 type AcfPullResult = {path: string; status: 'dry-run' | 'success'; types: AcfObjectType[]}
@@ -51,7 +51,7 @@ export default class Pull extends LoopressCommand {
     // Every file in a type's subdirectory is unambiguously `<key>.json`: `key` is the stable
     // identity ACF itself already uses (see its own Local JSON mechanism), no numeric-id/slug
     // filename convention like snippets.
-    const orphans = await findOrphanedFiles(dir, new Set(withKey.map(({key}) => key)), {
+    const orphans = await this.findPullOrphans('acf', dir, new Set(withKey.map(({key}) => key)), {
       extensions: ['.json'],
       key: basenameKey,
     })

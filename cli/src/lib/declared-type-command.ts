@@ -16,7 +16,7 @@ import {
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {LoopressCommand} from './base.js'
-import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
+import {basenameKey} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles} from './load-files.js'
 import {errorMessage} from './narrow.js'
@@ -152,7 +152,7 @@ export function declaredPullCommand(spec: DeclaredTypeSpec, description: string)
       this.log(`Path: ${path}`)
 
       const remote = await this.wp.get<RemoteDeclaredType[]>(spec.endpoint)
-      const orphans = await findOrphanedFiles(path, new Set(remote.map(({slug}) => slug)), {extensions: [fileExtension(spec)], key: basenameKey})
+      const orphans = await this.findPullOrphans(spec.cliName, path, new Set(remote.map(({slug}) => slug)), {extensions: [fileExtension(spec)], key: basenameKey})
 
       await this.pullDirectory(path, remote, orphans, {
         dryRunMessage: `Would pull ${pluralize(remote.length, spec.noun, spec.plural)} to ${path}`,

@@ -11,6 +11,16 @@ import {outputsOf, resetListrInstances, titlesOf} from '../../helpers/listr.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+// Every key counts as held by the site at the last pull: these tests are about the deletion
+// itself, the last-seen rules have their own tests (test/lib/last-seen.test.ts).
+vi.mock('../../../src/lib/resource-state.js', () => ({
+  getResourceStateProvider: () => ({remote: async () => new Map()}),
+}))
+vi.mock('../../../src/lib/last-seen.js', () => ({
+  readLastSeen: async () => ({keys: {has: () => true}, updatedAt: ''}),
+  async writeLastSeen() {},
+}))
+
 vi.mock('listr2', async () => {
   const {createListrMock} = await import('../../helpers/listr.js')
   return createListrMock()

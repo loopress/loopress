@@ -3,7 +3,7 @@ import {writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
 import {LoopressCommand} from '../../lib/base.js'
-import {findOrphanedFiles, numericPrefixKey} from '../../lib/find-orphaned-files.js'
+import {numericPrefixKey} from '../../lib/find-orphaned-files.js'
 import {FORM_ENDPOINT, getFormId, getFormTitle} from '../../utils/form-format.js'
 import {pluralize} from '../../utils/pluralize.js'
 import {toSlug} from '../../utils/to-slug.js'
@@ -40,7 +40,7 @@ export default class Pull extends LoopressCommand {
 
     // Only matches files following the `<id>-<slug>.json` convention pull/push themselves
     // produce, same principle as `snippet pull`.
-    const orphans = await findOrphanedFiles(path, new Set(withId.map(({id}) => String(id))), {
+    const orphans = await this.findPullOrphans('form', path, new Set(withId.map(({id}) => String(id))), {
       extensions: ['.json'],
       key: numericPrefixKey,
     })
