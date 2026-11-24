@@ -49,7 +49,8 @@ final class SentryModule implements Module
 
     /**
      * Keeps only what the consent card lists: the error, its stack trace, the plugin version, the
-     * environment and the request's method and path. Drops the server name, the user, and every
+     * environment and the request's method and URL. Drops the server name, the user, the OS and
+     * runtime contexts (the OS kernel string carries the hostname), the Composer module list, and every
      * request field but the method and the URL without its query string (headers, cookies, body,
      * query string, env).
      */
@@ -57,6 +58,9 @@ final class SentryModule implements Module
     {
         $event->setServerName(null);
         $event->setUser(null);
+        $event->setOsContext(null);
+        $event->setRuntimeContext(null);
+        $event->setModules([]);
 
         $request  = $event->getRequest();
         $filtered = [];

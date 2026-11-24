@@ -31,8 +31,8 @@ export function SentryConsentAlert() {
                 <p style={{ marginTop: 0 }}>
                     <strong>Send crash reports to Loopress?</strong> Errors from Loopress&apos;s own code would be
                     sent to Loopress so we can fix bugs faster. Each report contains only: the error message and
-                    stack trace, the Loopress version, whether WP_DEBUG is on, and the request method and path
-                    (without its query string). It never contains request bodies, headers, cookies, query strings,
+                    stack trace, the Loopress version, whether WP_DEBUG is on, and the request method and URL
+                    (without its query string or fragment). It never contains request bodies, headers, cookies, query strings,
                     user or visitor data, the server name, or anything from your theme or other plugins.
                 </p>
                 <div style={{ display: 'flex', gap: 8 }}>
