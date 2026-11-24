@@ -136,7 +136,7 @@ describe('planEject', () => {
     )
     write('api/index.php', '<?php\n')
     write('lib/Mailer.php', '<?php\nnamespace LoopressLib;\nfinal class Mailer {}\n')
-    write('composer.json', JSON.stringify({require: {'monolog/monolog': '^3', php: '>=8.1', 'wpackagist-plugin/akismet': '*'}}))
+    write('composer.json', JSON.stringify({repositories: [{type: 'vcs', url: 'https://example.com/m.git'}], require: {'monolog/monolog': '^3', php: '>=8.1', 'wpackagist-plugin/akismet': '*'}}))
 
     const plan = await planEject(dir, {api: {namespace: 'acme/v2'}}, 'site')
     expect(plan.unsupported).toEqual([])
@@ -156,6 +156,13 @@ describe('planEject', () => {
     expect(bootstrap).toContain(String.raw`$prefix = 'LoopressLib\\';`)
     expect(plan.files.find((file) => file.path === 'composer.json')?.content).toContain('monolog/monolog')
     expect(plan.files.find((file) => file.path === 'composer.json')?.content).not.toContain('akismet')
+    expect(plan.files.find((file) => file.path === 'composer.json')?.content).toContain('https://example.com/m.git')
+  })
+
+  it('reads the namespace of a braced namespace block', async () => {
+    write('api/braced.php', '<?php\nnamespace Acme {\nclass Braced { public function get() {} }\n}\n')
+    const plan = await planEject(dir, {}, 'site')
+    expect(plan.files.find((file) => file.path === 'bootstrap.php')?.content).toContain(String.raw`\Acme\Braced::class`)
   })
 
   it('refuses a route file with two classes, and two files for one route', async () => {

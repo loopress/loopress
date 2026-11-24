@@ -204,7 +204,8 @@ async function readComposer(ctx: Context): Promise<undefined | {files: EjectFile
     const libraries = Object.keys(composer.require ?? {}).filter((name) => !NOT_A_LIBRARY.test(name) && name.includes('/'))
     if (libraries.length === 0) return undefined
     const require = Object.fromEntries(libraries.map((name) => [name, composer.require?.[name]]))
-    const manifest = {config: {platform: {php: '8.1'}}, name: 'site/ejected', require, type: 'wordpress-plugin'}
+    // Custom repositories stay: a library that lives only there would not resolve without them.
+    const manifest = {config: {platform: {php: '8.1'}}, name: 'site/ejected', repositories: composer.repositories, require, type: 'wordpress-plugin'}
     const files: EjectFile[] = [{content: `${JSON.stringify(manifest, null, 4)}\n`, path: 'composer.json'}]
     return {files, libraries}
   } catch (error) {
@@ -477,7 +478,7 @@ const KINDS = new Map<string, HookBinding['kind']>([
   ['Filter', 'filter'],
 ])
 const CLASS_LINE = /^(?:(?:abstract|final|readonly) )*class (\w+)/u
-const NAMESPACE_LINE = /^namespace ([\w\\]+);/u
+const NAMESPACE_LINE = /^namespace ([\w\\]+)\s*[;{]/u
 
 // One hook file: its class, its #[Action]/#[Filter]/#[Cron] methods (what HookLoader binds), and
 // the file as written minus the Loopress `use` lines and attributes, which no longer resolve.
