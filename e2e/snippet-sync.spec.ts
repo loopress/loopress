@@ -71,8 +71,10 @@ test("skips a snippet with a malformed sidecar instead of blocking the others", 
 	writeSnippet(snippetsDir, "good", goodName, "<?php echo 2;");
 
 	const result = await runCli(["snippet", "push"]);
-	expect(result.exitCode).toBe(0);
+	// The good snippet is still pushed, but the run ends non-zero naming what it left out.
+	expect(result.exitCode).not.toBe(0);
 	expect(result.stderr).toContain("Skipping");
+	expect(result.stderr).toContain("left out");
 	expect(result.stderr).toContain("broken.json");
 
 	const row = await findWpCodeSnippetRow(page, wp, goodName);

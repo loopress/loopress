@@ -58,8 +58,10 @@ test('skips a form with a malformed sidecar instead of blocking the others', asy
   writeForm(formsDir, 'good', title)
 
   const result = await runCli(['form', 'push'])
-  expect(result.exitCode, result.stderr).toBe(0)
+  // The good form is still pushed, but the run ends non-zero naming what it left out.
+  expect(result.exitCode, result.stderr).not.toBe(0)
   expect(unwrap(result.stderr)).toContain('Skipping')
+  expect(unwrap(result.stderr)).toContain('1 file left out')
   expect(unwrap(result.stderr)).toContain('broken.json')
 
   const listResult = await runCli(['form', 'list'])

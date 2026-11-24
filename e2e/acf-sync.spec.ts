@@ -54,8 +54,10 @@ test('skips field groups with a malformed or missing-key sidecar instead of bloc
 
   const result = await runCli(['acf', 'push'])
 
-  expect(result.exitCode).toBe(0)
+  // The good group is still pushed, but the run ends non-zero naming what it left out.
+  expect(result.exitCode).not.toBe(0)
   expect(unwrap(result.stderr)).toContain('Skipping')
+  expect(unwrap(result.stderr)).toContain('2 files left out')
   expect(unwrap(result.stderr)).toContain('corrupted.json')
   expect(unwrap(result.stderr)).toContain('no-key.json')
 
