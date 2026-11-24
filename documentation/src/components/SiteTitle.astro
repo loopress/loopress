@@ -5,7 +5,8 @@ import { Badge } from "@astrojs/starlight/components";
 const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
-<a href={siteTitleHref} class="site-title sl-flex">
+<div class="site-title sl-flex">
+<a href={siteTitleHref} class="site-title-link sl-flex">
 	{
 		config.logo && logos.dark && (
 			<>
@@ -32,10 +33,21 @@ const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
 	<span class:list={{ "sr-only": config.logo?.replacesTitle }} translate="no">
 		{siteTitle}
 	</span>
-	<Badge text="Alpha" variant="caution" size="small" />
 </a>
+	<a href="/releases/" class="alpha-badge"><Badge text="Alpha" variant="caution" size="small" /></a>
+</div>
 
 <style>
+	.site-title-link {
+		align-items: center;
+		gap: var(--sl-nav-gap);
+		text-decoration: none;
+		color: inherit;
+		font: inherit;
+	}
+	.alpha-badge {
+		text-decoration: none;
+	}
 	@layer starlight.core {
 		.site-title {
 			align-items: center;

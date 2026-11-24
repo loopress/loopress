@@ -235,6 +235,7 @@ export default defineConfig({
 										{ label: "WordPress Plugin", slug: "wordpress-plugin" },
 										{ label: "Connect a site to the console", slug: "wordpress-plugin/connect-console" },
 										{ label: "Leaving Loopress", slug: "leaving-loopress" },
+										{ label: "Releases and compatibility", slug: "releases" },
 										{ label: "CLI Commands", slug: "cli" },
 										{ label: "loopress.json", slug: "loopress-json" },
 										{ label: "lps init", slug: "cli/init" },
