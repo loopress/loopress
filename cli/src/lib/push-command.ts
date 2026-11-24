@@ -120,7 +120,7 @@ export abstract class PushCommand extends LoopressCommand {
   protected previewChanges: PushChange[] = []
   // Both sides those statuses were computed from, for a push that details a changed item.
   protected previewStates?: {local: ResourceState; remote: ResourceState}
-  // Files the push could not read (corrupted JSON, ...), by their "Skipping ..." message. Warned
+  // Files the push could not read (corrupted JSON, ...), by path. Warned
   // once per run however many readers meet them, and the run ends non-zero naming them.
   private readonly leftOutFiles = new Set<string>()
   // Refusals of the production guard never reach the site, so they must not pollute the
@@ -185,7 +185,7 @@ export abstract class PushCommand extends LoopressCommand {
 
   protected failOnLeftOutFiles(): void {
     if (this.leftOutFiles.size === 0) return
-    const names = [...this.leftOutFiles].map((message) => /^Skipping "(.*?)"/u.exec(message)?.[1] ?? message)
+    const names = [...this.leftOutFiles]
     this.error(`${pluralize(names.length, 'file')} left out because they could not be read: ${names.join(', ')}.`)
   }
 
@@ -332,8 +332,9 @@ export abstract class PushCommand extends LoopressCommand {
   // A file the push cannot read is left out with one warning (however many readers meet it), and
   // `failOnLeftOutFiles` ends the run non-zero once the other files were handled.
   protected skipFile(message: string): void {
-    if (this.leftOutFiles.has(message)) return
-    this.leftOutFiles.add(message)
+    const file = /^Skipping "(.*?)"/u.exec(message)?.[1] ?? message
+    if (this.leftOutFiles.has(file)) return
+    this.leftOutFiles.add(file)
     this.warn(message)
   }
 
