@@ -600,7 +600,11 @@ const themeStylesProvider: ResourceStateProvider = {
     })
 
     const state: ResourceState = new Map()
-    for (const {stylesheet, value} of entries) state.set(stylesheet, canonicalGlobalStyles(value))
+    for (const {stylesheet, value} of entries) {
+      const canonical = canonicalGlobalStyles(value)
+      if (!isEmptyCustomization(canonical)) state.set(stylesheet, canonical)
+    }
+
     return state
   },
   // Only the active theme's Global Styles are compared (see theme-styles-format.ts): a classic

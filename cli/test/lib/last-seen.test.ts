@@ -25,14 +25,29 @@ describe('last seen', () => {
     await expect(readLastSeen(dir, 'snippet', 'staging')).resolves.toBeUndefined()
   })
 
-  it('round-trips keys and state per environment, merging keys', async () => {
-    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group_a'], state: new Map([['group/group_a', {title: 'A'}]])})
-    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group_b']})
+  it('round-trips keys and state per environment, replacing the keys of the previous pull', async () => {
+    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group/group_a'], state: new Map([['group/group_a', {title: 'A'}]])})
+    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group/group_b']})
 
     const seen = await readLastSeen(dir, 'acf', 'staging')
-    expect([...(seen?.keys ?? [])]).toEqual(['group_a', 'group_b'])
+    expect([...(seen?.keys ?? [])]).toEqual(['group/group_b'])
     expect(seen?.state?.get('group/group_a')).toEqual({title: 'A'})
     await expect(readLastSeen(dir, 'acf', 'production')).resolves.toBeUndefined()
+  })
+
+  it('replaces only its scope, keeping the keys and state of the other types', async () => {
+    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group/a', 'post_type/p'], state: new Map([['group/a', 1], ['post_type/p', 2]])})
+    await writeLastSeen(dir, 'acf', 'staging', {keys: ['group/b'], scope: 'group/', state: new Map([['group/b', 3]])})
+
+    const seen = await readLastSeen(dir, 'acf', 'staging')
+    expect([...(seen?.keys ?? [])]).toEqual(['group/b', 'post_type/p'])
+    expect([...(seen?.state ?? [])]).toEqual([['group/b', 3], ['post_type/p', 2]])
+  })
+
+  it('keeps environments whose names sanitize alike in separate records', async () => {
+    await writeLastSeen(dir, 'snippet', 'staging.eu', {keys: ['1']})
+    await expect(readLastSeen(dir, 'snippet', 'staging-eu')).resolves.toBeUndefined()
+    await expect(readLastSeen(dir, 'snippet', 'staging.eu')).resolves.toBeDefined()
   })
 })
 

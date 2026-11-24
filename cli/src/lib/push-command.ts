@@ -338,8 +338,7 @@ export abstract class PushCommand extends LoopressCommand {
         resource: provider.resource,
         rootDir: resolve(process.cwd(), this.rootDir),
       })
-      // ACF states are keyed `<type>/<key>`, its files by `<key>`.
-      const keys = afterState.keys().map((key) => (provider.resource === 'acf' ? (key.split('/').pop() ?? key) : key)).toArray()
+      const keys = afterState.keys().toArray()
       await writeLastSeen(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name, {keys, state: afterState})
     } catch (error) {
       this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
@@ -367,18 +366,24 @@ export abstract class PushCommand extends LoopressCommand {
     const rootDir = resolve(process.cwd(), this.rootDir)
     // The last time this machine saw the site, by a pull or a push: a pull moves the baseline.
     const lastSeen = await readLastSeen(rootDir, provider.resource, this.siteConfig.name)
-    if (lastSeen?.state) {
+    let snapshot: Awaited<ReturnType<typeof readSnapshot>> | undefined
+    try {
+      snapshot = await readSnapshot(rootDir, provider.resource, this.siteConfig.name)
+    } catch {
+      // No earlier push from this machine.
+    }
+
+    // The newest observation wins: a push whose last-seen write failed leaves a snapshot newer
+    // than the record.
+    if (lastSeen?.state && !(snapshot && snapshot.createdAt > lastSeen.updatedAt)) {
       expected = lastSeen.state
       pushedAt = lastSeen.updatedAt
+    } else if (snapshot) {
+      expected = recordToState(snapshot.afterState)
+      pushedAt = snapshot.createdAt
     } else {
-      try {
-        const snapshot = await readSnapshot(rootDir, provider.resource, this.siteConfig.name)
-        expected = recordToState(snapshot.afterState)
-        pushedAt = snapshot.createdAt
-      } catch {
-        // Never pulled nor pushed from this machine.
-        return
-      }
+      // Never pulled nor pushed from this machine.
+      return
     }
 
     // Unreadable files are skipped with a warning, so a failure here is the site's (ACF's

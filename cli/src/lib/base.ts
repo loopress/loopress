@@ -79,7 +79,7 @@ export abstract class LoopressCommand extends Command {
   protected siteConfig!: EnvironmentConfig
   protected yes = false
   // Keys to record as last seen once the pull has written its files, per resource.
-  private readonly pendingSeen = new Map<string, Set<string>>()
+  private readonly pendingSeen = new Map<string, {keys: Set<string>; scope?: string}>()
   private typeChecked = false
 
   private wpClient?: WpClient
@@ -112,18 +112,41 @@ export abstract class LoopressCommand extends Command {
     return capabilities
   }
 
+  // Records what the site holds after a pull, the baseline of the next push's outside-edits
+  // guard and the reference for which local files a later pull may delete. Best effort: a
+  // failure only warns, the pull itself is done.
+  protected async commitLastSeen(dir: string): Promise<void> {
+    const rootDir = resolve(process.cwd(), this.rootDir)
+    for (const [resource, {keys, scope}] of this.pendingSeen) {
+      try {
+        const provider = getResourceStateProvider(resource)
+        const remote = await provider.remote(this.wp, () => {/* warned by the pull itself */}, dir)
+        // ACF reads every type at once, a pull of some types records only theirs.
+        const state = resource === 'acf' && scope ? new Map([...remote].filter(([key]) => key.startsWith(scope))) : remote
+        await writeLastSeen(rootDir, resource, this.siteConfig.name, {keys, state, ...(scope && {scope})})
+      } catch (error) {
+        this.warn(`Could not record what ${this.siteConfig.url} holds for ${resource}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
+    this.pendingSeen.clear()
+  }
+
   // The local files a pull deletes: those whose key the site held at the last pull or push
   // from this machine and no longer does. A file the site never had is kept and listed, and
   // with nothing recorded (a fresh clone) every file is kept.
-  protected async findPullOrphans(resource: string, dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
-    const seen = (await readLastSeen(resolve(process.cwd(), this.rootDir), resource, this.siteConfig.name))?.keys ?? new Set<string>()
+  // `scope`: the prefix of the state keys this pull covers (`<type>/` for ACF), recorded keys
+  // carry it while the files are matched by the bare key.
+  protected async findPullOrphans(resource: string, dir: string, keep: Set<string>, matcher: OrphanMatcher, scope = ''): Promise<string[]> {
+    const recorded = (await readLastSeen(resolve(process.cwd(), this.rootDir), resource, this.siteConfig.name))?.keys ?? new Set<string>()
+    const seen = {has: (key: string) => recorded.has(`${scope}${key}`)}
     const orphans = await findOrphanedFiles(dir, keep, matcher, seen)
     const unpushed = await findUnpushedFiles(dir, keep, matcher, seen)
     if (unpushed.length > 0) {
       this.log(`Kept ${pluralize(unpushed.length, 'local file')} not on the site yet: ${unpushed.join(', ')}`)
     }
 
-    this.pendingSeen.set(resource, new Set([...(this.pendingSeen.get(resource) ?? []), ...keep]))
+    this.pendingSeen.set(resource, {keys: new Set([...keep].map((key) => `${scope}${key}`)), ...(scope && {scope})})
     return orphans
   }
 
@@ -221,6 +244,7 @@ export abstract class LoopressCommand extends Command {
       // behavior); snippet pull sets this to true, its directory is created unconditionally
       // even with nothing to pull.
       alwaysCreateDir?: boolean
+      deferLastSeen?: boolean
       dryRunMessage: string
       orphanReason: string
       pulledMessage: string
@@ -255,7 +279,7 @@ export abstract class LoopressCommand extends Command {
     })
 
     await this.removeOrphanedFiles(dir, orphans, options.orphanReason)
-    await this.commitLastSeen(dir)
+    if (options.deferLastSeen !== true) await this.commitLastSeen(dir)
 
     this.log(options.pulledMessage)
   }
@@ -350,24 +374,6 @@ export abstract class LoopressCommand extends Command {
     }
 
     return env
-  }
-
-  // Records what the site holds after a pull, the baseline of the next push's outside-edits
-  // guard and the reference for which local files a later pull may delete. Best effort: a
-  // failure only warns, the pull itself is done.
-  private async commitLastSeen(dir: string): Promise<void> {
-    const rootDir = resolve(process.cwd(), this.rootDir)
-    for (const [resource, keys] of this.pendingSeen) {
-      try {
-        const provider = getResourceStateProvider(resource)
-        const state = await provider.remote(this.wp, () => {/* warned by the pull itself */}, dir)
-        await writeLastSeen(rootDir, resource, this.siteConfig.name, {keys, state})
-      } catch (error) {
-        this.warn(`Could not record what ${this.siteConfig.url} holds for ${resource}: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-
-    this.pendingSeen.clear()
   }
 
   private pickEnvironment(project: {environments: Record<string, EnvironmentConfig>; name: string}, envName: string): EnvironmentConfig {

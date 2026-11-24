@@ -494,7 +494,7 @@ describe('resource-state providers', () => {
     })
 
     it('keys local files by the stylesheet slug parsed from the "<slug>-global-styles.json" filename', async () => {
-      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {}, styles: {}}))
+      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {}, styles: {color: {background: '#fff'}}}))
 
       const state = await themeStylesProvider.local(dir, noWarn)
 

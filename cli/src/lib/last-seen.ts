@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto'
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {z} from 'zod'
@@ -22,7 +23,10 @@ const LAST_SEEN = z.object({
 export type LastSeen = {keys: Set<string>; state?: ResourceState; updatedAt: string}
 
 function lastSeenPath(rootDir: string, resource: string, environment: string): string {
-  return join(rootDir, '.loopress', 'last-seen', sanitizeForPath(resource), `${sanitizeForPath(environment)}.json`)
+  // `staging.eu` and `staging-eu` sanitize alike: a hash of the real name keeps their records apart.
+  const safe = sanitizeForPath(environment)
+  const name = safe === environment ? safe : `${safe}-${createHash('sha256').update(environment).digest('hex').slice(0, 8)}`
+  return join(rootDir, '.loopress', 'last-seen', sanitizeForPath(resource), `${name}.json`)
 }
 
 // Undefined when nothing was recorded (a fresh clone) or the file is unreadable: callers then
@@ -38,16 +42,22 @@ export async function readLastSeen(rootDir: string, resource: string, environmen
   }
 }
 
-// Keys are merged with what was there (ACF pulls one type at a time), state replaces it.
+// Replaces what was recorded, except for a `scope` (ACF pulls one type at a time, its keys
+// are `<type>/<key>`): the recorded keys and state entries outside that prefix are kept.
 export async function writeLastSeen(
   rootDir: string,
   resource: string,
   environment: string,
-  update: {keys: Iterable<string>; state?: ResourceState},
+  update: {keys: Iterable<string>; scope?: string; state?: ResourceState},
 ): Promise<void> {
   const previous = await readLastSeen(rootDir, resource, environment)
-  const keys = new Set([...(previous?.keys ?? []), ...update.keys])
-  const state = update.state ?? previous?.state
+  const {scope} = update
+  const outside = (key: string): boolean => scope !== undefined && !key.startsWith(scope)
+  const keys = new Set([...[...(previous?.keys ?? [])].filter((key) => outside(key)), ...update.keys])
+  const state: ResourceState | undefined =
+    scope === undefined
+      ? (update.state ?? previous?.state)
+      : new Map([...[...(previous?.state ?? [])].filter(([key]) => outside(key)), ...(update.state ?? [])])
   const path = lastSeenPath(rootDir, resource, environment)
   await mkdir(join(path, '..'), {recursive: true})
   // Same self-ignoring `.loopress/` as the snapshots: never committed.

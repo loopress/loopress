@@ -35,6 +35,8 @@ export default class Pull extends LoopressCommand {
 
     await this.pullMenus(path)
     await this.pullLocations(path)
+    // Recorded once the locations are saved too: the record covers both.
+    if (!this.dryRun) await this.commitLastSeen(path)
 
     return {path, status: this.dryRun ? 'dry-run' : 'success'}
   }
@@ -67,9 +69,10 @@ export default class Pull extends LoopressCommand {
     const orphans = await this.findPullOrphans('menu', dir, new Set(remote.map((menu) => menu.slug)), {
       extensions: ['.json'],
       key: (base) => (base === LOCATIONS_FILE_BASENAME ? null : basenameKey(base)),
-    })
+    }, 'menu/')
 
     await this.pullDirectory(dir, remote, orphans, {
+      deferLastSeen: true,
       dryRunMessage: `Would pull ${remote.length} menu(s) to ${dir}`,
       orphanReason: `in ${dir} no longer present on WordPress`,
       pulledMessage: `Pulled ${remote.length} menu(s) to ${dir}`,

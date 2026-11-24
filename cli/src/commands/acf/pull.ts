@@ -54,7 +54,7 @@ export default class Pull extends LoopressCommand {
     const orphans = await this.findPullOrphans('acf', dir, new Set(withKey.map(({key}) => key)), {
       extensions: ['.json'],
       key: basenameKey,
-    })
+    }, `${type}/`)
 
     await this.pullDirectory(dir, withKey, orphans, {
       dryRunMessage: `Would pull ${withKey.length} ${type} to ${dir}`,
