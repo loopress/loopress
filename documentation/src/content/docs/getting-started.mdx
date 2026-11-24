@@ -97,6 +97,33 @@ lps option diff   # "Everything is in sync." once the site matches
 
 You can also see the new tagline under **Settings → General** in wp-admin. Every other resource follows the same pull, edit, push loop.
 
+### 5. Pull a change made in wp-admin
+
+Sites change outside Git too. In wp-admin, change the tagline under **Settings → General** and save. `lps option diff` shows it, with the site's value on the left and your file's on the right:
+
+```bash
+lps option diff
+```
+
+```
+Options
+  ~ blogdescription
+    ~ value: "Changed in wp-admin" → "Hello from Git"
+
+1 compared: 1 changed, 0 added, 0 removed
+Drift detected.
+```
+
+Bring the edit back into your files, look at what changed, and commit it:
+
+```bash
+lps option pull
+git diff   # options/blogdescription.json now holds the new value
+git add options/ && git commit -m "chore: tagline changed in wp-admin"
+```
+
+Without this step, the next `lps option push` would put your old value back, or [stop](/concepts/#changes-made-outside-loopress) because the site changed since your last push. Pulling first keeps Git and the site telling the same story.
+
 Before going further, know what these commands do to your files and your site:
 
 - `pull` [mirrors the site](/concepts/#pull-mirrors-the-site): it overwrites local files and removes the ones whose object no longer exists on WordPress, after asking.
