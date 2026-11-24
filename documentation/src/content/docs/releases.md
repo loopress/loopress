@@ -29,7 +29,7 @@ A CLI release and a plugin release do not share a number.
 
 The CLI does not compare version numbers. Before acting on a site, it asks the plugin what it can do (`GET loopress/v1/capabilities`: edition, active modules, detected integrations) and works from that answer:
 
-- If the plugin is too old to answer (the route does not exist, or the answer lists no modules), the CLI stops with "The Loopress plugin on `<site>` is too old for this CLI. Update it, then try again."
+- If the plugin is too old to answer (the route does not exist, or the answer has no `modules` array), the CLI stops with "The Loopress plugin on `<site>` is too old for this CLI. Update it, then try again."
 - If the site cannot hold a kind of resource, the command says so and what to do about it instead of failing on the server's error. For instance, hooks, API routes, apps, pages and snippets answer "need Loopress Full" on Loopress Light, and ACF or forms say which plugin is not active.
 - `lps doctor` prints the plugin edition and version it found.
 
