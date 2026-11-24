@@ -34,8 +34,8 @@ function missingComposerLock(): Error {
   })
 }
 
-// The active theme every test's `wp/v2/themes` mock reports, and the matching local Global
-// Styles file `beforeEach` writes so the baseline stays drift-free.
+// The active theme every test's `wp/v2/themes` mock reports, never customized in the Site Editor
+// (empty Global Styles), so the baseline has no local file and stays drift-free.
 const ACTIVE_THEME = 'baseline-theme'
 
 const ACTIVE_THEME_GLOBAL_STYLES_ID = 7
@@ -96,10 +96,6 @@ describe('diff', () => {
     mkdirSync(join(dir, 'menus'))
     writeFileSync(join(dir, 'menus', '.keep'), '')
     writeFileSync(join(dir, 'menus', 'menu-locations.json'), '{}')
-    // Same for the active theme's Global Styles.
-    mkdirSync(join(dir, 'theme'))
-    writeFileSync(join(dir, 'theme', '.keep'), '')
-    writeFileSync(join(dir, 'theme', `${ACTIVE_THEME}-global-styles.json`), JSON.stringify({settings: {}, styles: {}}))
     process.exitCode = 0
     delete process.env.LOOPRESS_TOKEN
     vi.spyOn(authManager, 'getAuth').mockReturnValue(null)

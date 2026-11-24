@@ -133,7 +133,7 @@ describe('theme style push', () => {
 
     const result = await cmd.run()
 
-    expect(result).toEqual({changes: [{id: 'tt4', status: 'changed'}], file, status: 'dry-run'})
+    expect(result).toEqual({changes: [{id: 'tt4', status: 'created'}], file, status: 'dry-run'})
     expect(post).not.toHaveBeenCalled()
   })
 })
