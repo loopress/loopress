@@ -58,6 +58,8 @@ Upload `.php` files from a local directory to WordPress.
 - If the sidecar `.json` contains an `id`, that snippet is updated by ID.
 - If that id doesn't exist on the target site (e.g. a fresh WordPress install), a new snippet is created instead and the local sidecar is updated with the assigned id.
 - Otherwise, a new snippet is created.
+- A sidecar id is checked when this machine has no earlier push to that environment (a fresh clone, CI, or ids copied from another site): if the site's snippet at that id has a different name than the local one, the push refuses and names both. Pass `--overwrite` to replace it anyway.
+- Snippets on the site with no local file are deleted (the repo is the reference): they are listed first, `--dry-run` shows them, `--no-prune` keeps them, and a push to `production` asks before deleting. A push whose directory is empty while the site has snippets refuses, and nothing is pruned when a local file could not be read.
 
 After a push, local files that don't already follow the `<id>-<slug>` naming (a hand-created `demo.php`, or a stale slug after a rename) are renamed on disk to match, the same convention `lps snippet pull` writes.
 
@@ -71,7 +73,10 @@ lps snippet push [path]
 
 | Flag | Description |
 |------|-------------|
-| `--dry-run` / `-d` | Show what would be pushed without making any changes |
+| `--dry-run` / `-d` | Show what would be pushed and pruned without making any changes |
+| `--no-prune` | Keep site snippets that have no local file |
+| `--yes` / `-y` | Confirm the prune on `production` without asking |
+| `--overwrite` | Push over changes made outside Loopress, and over a snippet whose id belongs to a different snippet on the site |
 
 **Example:**
 
@@ -119,6 +124,18 @@ lps snippet diff --env staging --against production
 ```
 
 Exits `0` in sync, `1` on drift, `2` when the comparison failed.
+
+---
+
+### `lps snippet rm`
+
+Delete one snippet from WordPress by id (see `lps snippet list`). Local files are not touched: delete them too, or the next push creates the snippet again.
+
+```bash
+lps snippet rm <id>
+```
+
+`lps snippet remove` is an alias. `--yes` / `-y` skips the confirmation (required in a non-interactive shell), `--dry-run` / `-d` shows what would be removed.
 
 ---
 

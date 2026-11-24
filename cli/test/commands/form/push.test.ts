@@ -412,6 +412,27 @@ describe('form push', () => {
       expect(logs.log).toHaveBeenCalledWith('All forms pushed.')
     })
 
+    it('refuses a local id that is another form on a site it never pushed to', async () => {
+      writeForm('3-mine.json', {id: 3, settings: {form_title: 'Mine'}})
+      const {cmd, put} = makeRunCmd()
+      const get = vi.fn().mockResolvedValue({id: 3, revision: 'r', settings: {form_title: 'Newsletter'}})
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = get
+
+      await expect(cmd.run()).rejects.toThrow('failed to push')
+      expect(put).not.toHaveBeenCalled()
+    })
+
+    it('replaces that form with --overwrite', async () => {
+      writeForm('3-mine.json', {id: 3, settings: {form_title: 'Mine'}})
+      const {cmd, put} = makeRunCmd()
+      ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = vi.fn().mockResolvedValue({id: 3, revision: 'r', settings: {form_title: 'Newsletter'}})
+      ;(cmd as unknown as {overwrite: boolean}).overwrite = true
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalled()
+    })
+
     it('forwards --allow-notifications to every form payload', async () => {
       writeForm('contact.json', {settings: {form_title: 'Contact'}})
       const {cmd, post} = makeRunCmd(['--allow-notifications'])

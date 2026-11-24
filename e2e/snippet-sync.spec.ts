@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, test } from "./helpers/environment.js";
@@ -152,4 +152,39 @@ test("never touches a hand-created file with no numeric id prefix while cleaning
 	const result = await runCli(["snippet", "pull"]);
 	expect(result.exitCode).toBe(0);
 	expect(existsSync(join(snippetsDir, "hand-written.php"))).toBe(true);
+});
+
+test("deletes a snippet removed from the repo on push, and keeps it with --no-prune", async ({
+	page,
+	projectDir,
+	runCli,
+	wp,
+}) => {
+	const keepName = `E2E prune keep ${Date.now()}`;
+	const goneName = `E2E prune gone ${Date.now()}`;
+	const snippetsDir = join(projectDir, "snippets");
+	writeSnippet(snippetsDir, "keep", keepName, "<?php echo 1;");
+	writeSnippet(snippetsDir, "gone", goneName, "<?php echo 2;");
+	expect((await runCli(["snippet", "push"])).exitCode).toBe(0);
+
+	// Both files are now `<id>-<slug>`: remove the second one, as `git rm` would.
+	const goneFiles = readdirSync(snippetsDir).filter((f) => f.includes("gone"));
+	expect(goneFiles.length).toBeGreaterThan(0);
+	for (const file of goneFiles) rmSync(join(snippetsDir, file));
+
+	const kept = await runCli(["snippet", "push", "--no-prune"]);
+	expect(kept.exitCode).toBe(0);
+	await expect(await findWpCodeSnippetRow(page, wp, goneName)).toBeVisible();
+
+	const dry = await runCli(["snippet", "push", "--dry-run"]);
+	expect(dry.stdout).toContain("Would prune 1 snippet");
+	await expect(await findWpCodeSnippetRow(page, wp, goneName)).toBeVisible();
+
+	const pruned = await runCli(["snippet", "push", "--yes"]);
+	expect(pruned.exitCode).toBe(0);
+	expect(pruned.stdout).toContain("Pruned");
+	await expect(await findWpCodeSnippetRow(page, wp, keepName)).toBeVisible();
+	const listed = await runCli(["snippet", "list"]);
+	expect(listed.stdout).toContain(keepName);
+	expect(listed.stdout).not.toContain(goneName);
 });

@@ -18,7 +18,7 @@ import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
 import {errorMessage} from './narrow.js'
 import {type ResourceStateProvider} from './resource-state.js'
-import {readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
+import {listSnapshots, readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
 import {withoutSpinner, withSpinner} from './spinner.js'
 import {warnIfUnlinked} from './unlinked-report.js'
 
@@ -198,6 +198,19 @@ export abstract class PushCommand extends LoopressCommand {
       siteConfig: this.siteConfig,
       yes: this.yes || this.productionConfirmed,
     })
+  }
+
+  // True when this machine has pushed no `resource` to the current environment yet (no snapshot):
+  // an id found in a local file can then belong to another site (same WordPress post ids), so the
+  // caller checks it against the site's object at that id before writing over it. Never true under
+  // `--overwrite`, which is the way to force it.
+  protected async idsFromElsewhere(resource: string): Promise<boolean> {
+    if (this.overwrite) return false
+    try {
+      return (await listSnapshots(resolve(process.cwd(), this.rootDir), resource, this.siteConfig.name)).length === 0
+    } catch {
+      return false
+    }
   }
 
   override async init(): Promise<void> {
