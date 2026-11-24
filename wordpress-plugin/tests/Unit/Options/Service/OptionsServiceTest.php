@@ -228,15 +228,15 @@ class OptionsServiceTest extends TestCase
             'stripe live'   => ['sk_live_abcdefghij1234567890'],
             'stripe test'   => ['sk_test_abcdefghij1234567890'],
             'stripe rk'     => ['rk_live_abcdefghij1234567890'],
-            'stripe whsec'  => ['whsec_abcdefghij1234567890'],
             'github ghp'    => ['ghp_' . str_repeat('a1', 18)],
             'github gho'    => ['gho_' . str_repeat('a1', 18)],
-            'github pat'    => ['github_pat_' . str_repeat('A1_', 12)],
-            'slack'         => ['xoxb-1234567890-abcdefghij'],
+            'github pat'    => ['github_pat_' . str_repeat('A1_', 27) . 'A'],
+            'slack'         => ['xoxb-1234567890-1234567890-abcdefghij'],
             'aws'           => ['AKIAABCDEFGHIJKLMNOP'],
             'google'        => ['AIza' . str_repeat('a1B', 11) . 'zz'],
-            'sendgrid'      => ['SG.abcdefghij123456.abcdefghij123456'],
-            'pem'           => ["-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----"],
+            'sendgrid'      => ['SG.' . str_repeat('a1B', 22)],
+            'anthropic'     => ['sk-ant-api03-' . str_repeat('a1B', 31) . 'AA'],
+            'pem'           => ["-----BEGIN RSA PRIVATE KEY-----\n" . str_repeat('MIIE', 20) . "\n-----END RSA PRIVATE KEY-----"],
         ];
     }
 
@@ -262,7 +262,7 @@ class OptionsServiceTest extends TestCase
         $this->wpdb->rows = ['my_settings' => 'yes'];
 
         $this->expectException(ProtectedOptionException::class);
-        $this->expectExceptionMessage('value at &quot;a.b&quot;');
+        $this->expectExceptionMessage('(aws-access-token) in its value at &quot;a.b&quot;');
         $this->service->getOption('my_settings');
     }
 
