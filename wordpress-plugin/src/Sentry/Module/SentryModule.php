@@ -41,8 +41,38 @@ final class SentryModule implements Module
             'dsn'         => self::DSN,
             'environment' => (defined('WP_DEBUG') && WP_DEBUG) ? 'development' : 'production',
             'release'     => LOOPRESS_VERSION,
-            'before_send' => static fn(Event $event): ?Event => self::isOwnEvent($event) ? $event : null,
+            'send_default_pii'      => false,
+            'max_request_body_size' => 'never',
+            'before_send' => static fn(Event $event): ?Event => self::isOwnEvent($event) ? self::scrub($event) : null,
         ]);
+    }
+
+    /**
+     * Keeps only what the consent card lists: the error, its stack trace, the plugin version, the
+     * environment and the request's method and URL. Drops the server name, the user, the OS and
+     * runtime contexts (the OS kernel string carries the hostname), the Composer module list, and every
+     * request field but the method and the URL without its query string (headers, cookies, body,
+     * query string, env).
+     */
+    public static function scrub(Event $event): Event
+    {
+        $event->setServerName(null);
+        $event->setUser(null);
+        $event->setOsContext(null);
+        $event->setRuntimeContext(null);
+        $event->setModules([]);
+
+        $request  = $event->getRequest();
+        $filtered = [];
+        if (isset($request['method']) && is_string($request['method'])) {
+            $filtered['method'] = $request['method'];
+        }
+        if (isset($request['url']) && is_string($request['url'])) {
+            $filtered['url'] = explode('#', explode('?', $request['url'], 2)[0], 2)[0];
+        }
+        $event->setRequest($filtered);
+
+        return $event;
     }
 
     /** Kept public and side-effect free so it's testable without booting the SDK itself. */
