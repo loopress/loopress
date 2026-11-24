@@ -1,3 +1,5 @@
+import {isCi} from './ci.js'
+
 // The one spinner behind every pending wait: WpClient and ApiClient requests, the browser
 // callback, a build, a third-party lookup. Refcounted so overlapping waits share one line (the
 // outermost label wins), on stderr and only on an interactive one, so `--json`, pipes and CI
@@ -12,7 +14,7 @@ let frame = 0
 let stopSpinning: (() => void) | undefined
 
 function isEnabled(): boolean {
-  return process.stderr.isTTY && !process.env.CI
+  return process.stderr.isTTY && !isCi()
 }
 
 function start(): void {

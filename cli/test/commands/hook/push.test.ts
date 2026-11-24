@@ -323,6 +323,23 @@ describe('hook push', () => {
       expect(logs.log).toHaveBeenCalledWith('Pruned: stale')
     })
 
+    function makeTyped(name: string, type: string) {
+      writeFileSync(join(dir, 'hello.php'), validHook)
+      const made = make([dir])
+      ;(made.cmd as unknown as {siteConfig: unknown}).siteConfig = {...makeEnv(name, 'https://acme.com'), type}
+      made.get.mockResolvedValue([{filename: 'stale'}])
+      made.post.mockResolvedValue({files: [{filename: 'hello'}], pruned: ['stale']})
+      return made.cmd
+    }
+
+    it('asks to confirm a prune by type: an environment typed production needs it whatever its name', async () => {
+      await expect(makeTyped('live', 'production').run()).rejects.toThrow(/would prune .* stdin is not a TTY/u)
+    })
+
+    it('does not ask for a prune on an environment named production but typed staging', async () => {
+      await expect(makeTyped('production', 'staging').run()).resolves.toBeDefined()
+    })
+
     it('keeps server-side files with --no-prune', async () => {
       writeFileSync(join(dir, 'hello.php'), validHook)
       const {cmd, get, post} = make([dir, '--no-prune'])

@@ -6,6 +6,7 @@ import {type EnvironmentConfig} from '../../../src/types/config.js'
 import {fakeOclifConfig, silenceLogs} from '../../helpers/oclif.js'
 import {makeEnv} from '../../helpers/project-fixtures.js'
 
+vi.mock('../../../src/lib/ci.js', () => ({isCi: () => Boolean(process.env.CI), isKnownCiProvider: () => true}))
 vi.mock('@inquirer/prompts', () => ({confirm: vi.fn()}))
 
 const interactive = vi.hoisted(() => ({value: false}))

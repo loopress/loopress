@@ -19,7 +19,7 @@ test('copying from "local" into itself is refused', async ({runCli}) => {
   const copy = await runCli(['content', 'copy', 'local', '--yes'])
 
   expect(copy.exitCode).not.toBe(0)
-  expect(output(copy)).toContain('<from> must be another environment than "local"')
+  expect(output(copy)).toContain('<from> must be an environment that is not of type "local"')
 })
 
 test('an unknown source environment fails listing the available ones', async ({runCli}) => {
@@ -53,5 +53,5 @@ test('--env pointing at another environment than "local" is refused', async ({ho
   const copy = await runCli(['content', 'copy', 'local', '--env', 'production', '--yes'])
 
   expect(copy.exitCode).not.toBe(0)
-  expect(output(copy)).toContain('Content is only ever copied into the "local" environment')
+  expect(output(copy)).toContain('Content is only ever copied into an environment of type "local"')
 })

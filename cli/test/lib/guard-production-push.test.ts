@@ -8,6 +8,9 @@ vi.mock('@inquirer/prompts', () => ({confirm: vi.fn()}))
 const interactive = vi.hoisted(() => ({value: false}))
 vi.mock('../../src/lib/interactive.js', () => ({isInteractive: () => interactive.value}))
 
+const ci = vi.hoisted(() => ({provider: false}))
+vi.mock('../../src/lib/ci.js', () => ({isCi: () => ci.provider, isKnownCiProvider: () => ci.provider}))
+
 class RefusedError extends Error {
   override name = 'RefusedError'
 }
@@ -34,6 +37,7 @@ function run(options: {dryRun?: boolean; name?: string; type?: string; yes?: boo
 describe('guardProductionPush', () => {
   beforeEach(() => {
     interactive.value = false
+    ci.provider = false
     vi.mocked(confirm).mockReset()
   })
 
@@ -41,7 +45,7 @@ describe('guardProductionPush', () => {
     ['a non-production environment', {name: 'staging', type: 'staging'}],
     ['an environment named production but of another type', {name: 'production', type: 'staging'}],
     ['a dry run', {dryRun: true}],
-    ['--yes', {yes: true}],
+    ['--yes at a terminal', {yes: true}],
   ])('lets %s through without asking', async (_label, options) => {
     interactive.value = true
     const {done, refusals} = run(options)
@@ -49,6 +53,21 @@ describe('guardProductionPush', () => {
     await expect(done).resolves.toBeUndefined()
     expect(confirm).not.toHaveBeenCalled()
     expect(refusals()).toBe(0)
+  })
+
+  it('accepts --yes in a recognized CI provider', async () => {
+    ci.provider = true
+    const {done, refusals} = run({yes: true})
+
+    await expect(done).resolves.toBeUndefined()
+    expect(refusals()).toBe(0)
+  })
+
+  it('refuses --yes alone outside a recognized CI (a bare CI=true is not one)', async () => {
+    const {done, refusals} = run({yes: true})
+
+    await expect(done).rejects.toThrow(/--yes alone is not enough here: no CI provider was detected.*never with --yes alone/su)
+    expect(refusals()).toBe(1)
   })
 
   it('names the environment when it is not called production', async () => {
@@ -65,11 +84,17 @@ describe('guardProductionPush', () => {
     await expect(done).rejects.toThrow(RefusedError)
   })
 
+  it('refuses a recognized CI without --yes', async () => {
+    ci.provider = true
+
+    await expect(run({}).done).rejects.toThrow(/Pass --yes from a CI pipeline/u)
+  })
+
   it('refuses outside a TTY with the exact hint, after notifying onRefuse', async () => {
     const {done, refusals} = run({})
 
     await expect(done).rejects.toThrow(
-      'Target environment "production" is of type "production". Pass --yes to confirm the push in a non-interactive run.',
+      'Target environment "production" is of type "production". Pass --yes from a CI pipeline to confirm. Production can be changed from a terminal (answer the prompt) or from CI, never with --yes alone.',
     )
     expect(refusals()).toBe(1)
     expect(confirm).not.toHaveBeenCalled()

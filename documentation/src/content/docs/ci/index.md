@@ -32,7 +32,17 @@ lps doctor --env staging
 lps push --env staging --yes
 ```
 
-`--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment of type `production` (whatever its name) requires it in a non-interactive run.
+`--env` targets an environment by name and does not depend on which environment was last active. `--yes` answers confirmations; pushing to an environment of type `production` (whatever its name) requires it in a non-interactive run, see below.
+
+### Production needs a CI provider
+
+Changing an environment of type `production` (push, promote, rollback, removals) without a terminal needs `--yes` **and** a CI provider the CLI recognizes. `--yes` alone in a plain shell is refused, and so is a bare `CI=true`: production is changed from a terminal, where you answer the prompt, or from a CI pipeline. This keeps an AI agent running commands in a shell from confirming a production change on its own. Other environment types are unchanged.
+
+Providers are detected by [`ci-info`](https://www.npmjs.com/package/ci-info) from the variables each one sets (GitHub Actions, GitLab CI, CircleCI, Jenkins, Bitbucket Pipelines and many more), so a pipeline on one of them needs nothing extra.
+
+Limits: detection reads environment variables, so setting one on purpose fakes a CI. An agent that runs inside your pipeline (an agent job in GitHub Actions or GitLab) passes the check too: there, rely on the pipeline's own protections (protected branch, required review, environment approval).
+
+On a self-hosted or unknown CI, set your provider's usual variable (for instance `GITHUB_ACTIONS=true` or `GITLAB_CI=true`), or run the deploy interactively.
 
 ### Refreshing the secret
 

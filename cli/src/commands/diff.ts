@@ -67,7 +67,7 @@ export default class Diff extends DiffCommand {
     ]
 
     if (skipUnsupported) {
-      const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+      const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteConfig: this.siteConfig})
       for (const {unsupported} of targets) {
         if (unsupported) unsupported.fix = integrationFix(unsupported.missing, declared)
       }

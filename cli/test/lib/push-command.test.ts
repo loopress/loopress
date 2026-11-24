@@ -10,6 +10,7 @@ import {type ResourceStateProvider} from '../../src/lib/resource-state.js'
 import {listSnapshots, writeSnapshot} from '../../src/lib/snapshot-store.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 
+vi.mock('../../src/lib/ci.js', () => ({isCi: () => Boolean(process.env.CI), isKnownCiProvider: () => true}))
 vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
 }))

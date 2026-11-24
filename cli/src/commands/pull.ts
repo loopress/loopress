@@ -165,7 +165,7 @@ export default class Pull extends LoopressCommand {
 
   private async warnUnsupported(): Promise<void> {
     if (this.unsupported.length === 0) return
-    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteConfig: this.siteConfig})
     const lines = this.unsupported.map(({label, missing}) => {
       const fix = integrationFix(missing, declared)
       const fixSentence = fix ? ` ${fix}.` : ''

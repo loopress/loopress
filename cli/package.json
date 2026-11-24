@@ -17,6 +17,7 @@
     "@oclif/plugin-warn-if-update-available": "^4.0.5",
     "@sentry/node": "^11.11.0",
     "chokidar": "^6.0.0",
+    "ci-info": "4.4.0",
     "compare-versions": "^6.1.1",
     "diff": "^9.0.0",
     "esbuild": "0.28.2",

@@ -85,7 +85,7 @@ These flags work the same way on every command that accepts them. Feature pages 
 |------|-------------|
 | `--env <name>` | Target this environment instead of the default one (`local`, or the project's only environment). Accepted by every command that talks to WordPress. |
 | `--dry-run` / `-d` | Show what would happen without changing anything, see [dry runs](#dry-runs). |
-| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to an environment of type `production` (including the files `api push` and `hook push` delete there), `--prune`, removals, rollbacks. |
+| `--yes` / `-y` | Answer yes to confirmations: deleting local files on pull, pushing to an environment of type `production` (including the files `api push` and `hook push` delete there), `--prune`, removals, rollbacks. For an environment of type `production`, a non-interactive run also needs a [recognized CI provider](/ci/#production-needs-a-ci-provider): `--yes` alone in a plain shell is refused. |
 | `--overwrite` | Push even over changes made on the site outside Loopress since your last push, see [changes made outside Loopress](#changes-made-outside-loopress). Not implied by `--yes`. |
 | `--json` | Print a structured result instead of formatted text, for scripts and the [MCP server](/cli/mcp/). |
 

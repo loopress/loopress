@@ -46,7 +46,7 @@ export default class ComposerPush extends PushCommand {
     }
 
     const parsed = parseComposerJson(await readFile(composerJsonPath, 'utf8'))
-    const require = requireToInstall(parsed, isLocalEnvironment(this.siteConfig.name))
+    const require = requireToInstall(parsed, isLocalEnvironment(this.siteConfig))
     const packageCount = Object.keys(require).length
     const intent = toIntent(require)
 

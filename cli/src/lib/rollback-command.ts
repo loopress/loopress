@@ -60,7 +60,7 @@ function indentPatch(patch: string): string {
 // the RESOURCE_STATE_PROVIDERS lookup.
 // `current` is the state read for the drift check, `force` the `--force` flag of a resource with
 // `downgrades`, `remove` the items present now that the restore removes (see `removable`).
-export type RollbackRestore = (context: {current: ResourceState; environment: string; force: boolean; ids: string[]; log: (message: string) => void; remove?: string[]; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
+export type RollbackRestore = (context: {current: ResourceState; environment: {type?: string}; force: boolean; ids: string[]; log: (message: string) => void; remove?: string[]; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
 
 // The versions a restore would downgrade (`akismet 5.3 to 5.2`), for a resource whose rollback
 // installs packages. A downgrade replaces files only, it does not undo the database migrations
@@ -185,7 +185,7 @@ export function resourceRollbackCommand(
       if (options.restore) {
         await options.restore({
           current: currentState,
-          environment: this.siteConfig.name,
+          environment: this.siteConfig,
           force,
           ids: options.mirror ? Object.keys(snapshot.beforeState) : [...idsToRestore],
           log: (message) => {

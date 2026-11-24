@@ -18,30 +18,31 @@ import {
 } from '../../src/lib/wp-client.js'
 
 describe('isLocalEnvironment', () => {
-  it('is true only for the environment named "local"', () => {
-    expect(isLocalEnvironment('local')).toBe(true)
-    for (const name of ['staging', 'production', 'Local', 'local2', undefined]) {
-      expect(isLocalEnvironment(name)).toBe(false)
-    }
+  it('is true only for an environment of type "local", whatever its name', () => {
+    expect(isLocalEnvironment({type: 'local'})).toBe(true)
+    expect(isLocalEnvironment({type: 'production'})).toBe(false)
+    expect(isLocalEnvironment({type: 'staging'})).toBe(false)
+    expect(isLocalEnvironment({})).toBe(false)
+    expect(isLocalEnvironment(undefined)).toBe(false)
   })
 })
 
 /* eslint-disable unicorn/prefer-https, sonarjs/no-clear-text-protocols -- exercising exactly the http handling this function gates on */
 describe('assertSecureSiteUrl', () => {
   it('allows https for any environment and http only for the local one', () => {
-    expect(() => { assertSecureSiteUrl('https://example.com', 'production') }).not.toThrow()
+    expect(() => { assertSecureSiteUrl('https://example.com', {name: 'production', type: 'production'}) }).not.toThrow()
     // Locality comes from the config, not the URL: a "local"-looking host is still refused over
     // http when the environment is not the local one.
-    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'production') }).toThrow(/cleartext/iu)
-    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', 'local') }).not.toThrow()
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', {name: 'production', type: 'production'}) }).toThrow(/cleartext/iu)
+    expect(() => { assertSecureSiteUrl('http://27-sep-night.local', {name: 'local', type: 'local'}) }).not.toThrow()
   })
 
   it('refuses http for a non-local environment (cleartext credentials)', () => {
-    expect(() => { assertSecureSiteUrl('http://example.com', 'staging') }).toThrow(/cleartext/iu)
+    expect(() => { assertSecureSiteUrl('http://example.com', {name: 'staging', type: 'staging'}) }).toThrow(/cleartext/iu)
   })
 
   it('is enforced by the WpClient constructor', () => {
-    expect(() => new WpClient('http://example.com', 'user:pw', 'production')).toThrow(/cleartext/iu)
+    expect(() => new WpClient('http://example.com', 'user:pw', {name: 'production', type: 'production'})).toThrow(/cleartext/iu)
   })
 })
 /* eslint-enable unicorn/prefer-https, sonarjs/no-clear-text-protocols */
@@ -62,7 +63,7 @@ describe('WpClient', () => {
     })
     const {port} = server.address() as AddressInfo
     const siteUrl = `http://127.0.0.1:${port}`
-    return {client: new WpClient(siteUrl, 'user:pass', 'local'), siteUrl}
+    return {client: new WpClient(siteUrl, 'user:pass', {name: 'local', type: 'local'}), siteUrl}
   }
 
   it('GETs a wp-json path with basic auth and parses the JSON response', async () => {
@@ -559,14 +560,14 @@ describe('isTimeoutError', () => {
 
     it('refuses a URL that does not parse, and names an unknown environment', () => {
       expect(() => {
-        assertSecureSiteUrl('not a url', 'production')
+        assertSecureSiteUrl('not a url', {name: 'production', type: 'production'})
       }).toThrow(/^Invalid site URL: not a url$/u)
       // Built from parts: a lint autofix rewrites a plain-HTTP literal to HTTPS.
       const plainHttp = ['http', '//example.com'].join(':')
       expect(() => {
         assertSecureSiteUrl(plainHttp, undefined)
       }).toThrow(
-        'Refusing to send credentials over plain HTTP for the "unknown" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "local" environment.',
+        'Refusing to send credentials over plain HTTP for the "unknown" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for an environment of type "local".',
       )
     })
 
@@ -639,5 +640,18 @@ describe('isTimeoutError', () => {
     ])('formats %j exactly', (error, expected) => {
       expect(formatWpError(error, url)).toBe(expected)
     })
+  })
+})
+
+describe('plain HTTP follows the environment type, not its name', () => {
+  // Built from parts: a lint autofix rewrites a plain-HTTP literal to HTTPS.
+  const plainHttp = ['http', '//127.0.0.1'].join(':')
+
+  it('allows it for a local-typed environment with any name', () => {
+    expect(() => { assertSecureSiteUrl(plainHttp, {name: 'dev-box', type: 'local'}) }).not.toThrow()
+  })
+
+  it('refuses it for an environment named local but of another type', () => {
+    expect(() => { assertSecureSiteUrl(plainHttp, {name: 'local', type: 'production'}) }).toThrow(/cleartext/iu)
   })
 })

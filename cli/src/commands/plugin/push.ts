@@ -300,7 +300,7 @@ export default class Push extends PushCommand {
     const composerJsonPath = join(process.cwd(), this.rootDir, 'composer.json')
     if (existsSync(composerJsonPath)) {
       const composerJson = parseComposerJson(await readFile(composerJsonPath, 'utf8'))
-      const includeDev = isLocalEnvironment(this.siteConfig.name)
+      const includeDev = isLocalEnvironment(this.siteConfig)
       const manifest = wpackagistRequire(composerJson, 'plugin', includeDev)
       if (Object.keys(manifest).length === 0) {
         this.error(

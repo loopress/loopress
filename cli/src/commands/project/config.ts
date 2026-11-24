@@ -10,7 +10,7 @@ import {isLoopressFullActive} from '../../lib/plugin-detection.js'
 import {withSpinner} from '../../lib/spinner.js'
 import {sweepTempAdmins} from '../../lib/temp-admin.js'
 import {authorizeWithBrowser} from '../../lib/wp-authorize-flow.js'
-import {isLocalEnvironment, LOCAL_ENVIRONMENT_NAME, WpClient} from '../../lib/wp-client.js'
+import {WpClient} from '../../lib/wp-client.js'
 import {diagnoseWpSite} from '../../lib/wp-site-diagnostic.js'
 import {type EnvironmentConfig, type ProjectConfig} from '../../types/config.js'
 import {ENVIRONMENT_TYPES, type EnvironmentType} from '../../types/environment-type.js'
@@ -79,8 +79,8 @@ export default class Config extends Command {
           return 'URL must start with http:// or https://'
         }
 
-        if ((envType !== 'local' || !isLocalEnvironment(envName)) && parsed.protocol === 'http:') {
-          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment, of type "local" (this one is "${envName}", of type "${envType}").`
+        if (envType !== 'local' && parsed.protocol === 'http:') {
+          return `Plain HTTP would send the Application Password in cleartext. Use HTTPS. Plain HTTP is allowed only for an environment of type "local" (this one is "${envName}", of type "${envType}").`
         }
 
         return true
@@ -122,10 +122,10 @@ export default class Config extends Command {
   }
 
   private async maybeBootstrapLoopressFull(env: EnvironmentConfig): Promise<void> {
-    const {name, token, url} = env
+    const {token, url} = env
     if (!token) return // env was just built with one a few lines up; guard only narrows the type
 
-    const wp = new WpClient(url, token, name)
+    const wp = new WpClient(url, token, env)
 
     // Before the "already active" early return: an install killed mid-way (SIGKILL, power loss)
     // may have activated Full and still left its temp admin behind, and re-running this command

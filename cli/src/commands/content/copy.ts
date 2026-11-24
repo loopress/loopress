@@ -6,7 +6,7 @@ import {LoopressCommand} from '../../lib/base.js'
 import {activateTheme, getCapabilities, type SiteCapabilities} from '../../lib/capabilities.js'
 import {isInteractive} from '../../lib/interactive.js'
 import {stdoutToStderr} from '../../lib/json-delegation.js'
-import {isLocalEnvironment, LOCAL_ENVIRONMENT_NAME, WpClient} from '../../lib/wp-client.js'
+import {isLocalEnvironment, WpClient} from '../../lib/wp-client.js'
 import {type InstalledPlugin, type WpNativePlugin} from '../../types/plugin.js'
 import {parseInstalledPlugins} from '../../utils/plugins.js'
 import {pluralize} from '../../utils/pluralize.js'
@@ -59,12 +59,12 @@ export default class Copy extends LoopressCommand {
   async run(): Promise<ContentCopyResult> {
     const {args} = await this.parse(Copy)
     const {from} = args
-    if (!isLocalEnvironment(this.siteConfig.name)) {
-      this.error(`Content is only ever copied into the "${LOCAL_ENVIRONMENT_NAME}" environment. Run \`lps project config\` to add it if the project has none.`)
+    if (!isLocalEnvironment(this.siteConfig)) {
+      this.error(`Content is only ever copied into an environment of type "local". Run \`lps project config\` to add it if the project has none.`)
     }
 
-    if (isLocalEnvironment(from)) {
-      this.error(`<from> must be another environment than "${LOCAL_ENVIRONMENT_NAME}", e.g. \`lps content copy production\`.`)
+    if (isLocalEnvironment(configManager.getProject(this.projectId)?.environments[from])) {
+      this.error(`<from> must be an environment that is not of type "local", e.g. \`lps content copy production\`.`)
     }
 
     const source = this.sourceWp(from)
@@ -89,12 +89,12 @@ export default class Copy extends LoopressCommand {
 
     const summary = `${pluralize(posts, 'post')} and ${pluralize(terms, 'term')}`
     if (this.dryRun) {
-      this.log(`\n[dry-run] Would replace the local content with ${summary} from ${from}, then push the project to ${LOCAL_ENVIRONMENT_NAME}.`)
+      this.log(`\n[dry-run] Would replace the local content with ${summary} from ${from}, then push the project to ${this.siteConfig.name}.`)
       return {from, posts, status: 'dry-run', terms}
     }
 
-    this.log(`\n→ Pushing the project to ${LOCAL_ENVIRONMENT_NAME}...`)
-    await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', ['--env', LOCAL_ENVIRONMENT_NAME, '--yes']))
+    this.log(`\n→ Pushing the project to ${this.siteConfig.name}...`)
+    await stdoutToStderr(this.jsonEnabled(), async () => this.config.runCommand('push', ['--env', this.siteConfig.name, '--yes']))
     // The push may have activated it already, through the project's activateChildTheme.
     if (pendingChild && (await activateTheme(this.wp, pendingChild)).changed) this.log(`Activated ${pendingChild}, like on ${from}.`)
 
@@ -112,7 +112,7 @@ export default class Copy extends LoopressCommand {
 
     if (!env.token) this.error(`No credentials configured for ${env.url}. Run \`lps project config\` to add them.`)
 
-    return new WpClient(env.url, env.token, env.name)
+    return new WpClient(env.url, env.token, env)
   }
 
   // Activates locally the plugins active on <from> but inactive here. Never installs: a plugin
@@ -171,7 +171,7 @@ export default class Copy extends LoopressCommand {
   private async confirmReplace(from: string): Promise<void> {
     if (this.yes) return
 
-    const message = `This deletes the posts, pages and terms of the "${LOCAL_ENVIRONMENT_NAME}" site and replaces them with ${from}'s.`
+    const message = `This deletes the posts, pages and terms of the "${this.siteConfig.name}" site and replaces them with ${from}'s.`
     if (!isInteractive()) this.error(`${message} Pass --yes to confirm.`)
 
     const isProceed = await confirm({default: true, message: `${message} Continue?`})
