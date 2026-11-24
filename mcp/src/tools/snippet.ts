@@ -7,10 +7,14 @@ export function registerSnippetTools(server: McpServer): void {
     descriptions: {
       list: 'List snippets currently on WordPress.',
       pull: 'Pull snippets from WordPress into local files.',
-      push: 'Push local snippet files to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.',
+      push: 'Push local snippet files to WordPress (also deletes site snippets not present locally, `noPrune` keeps them). Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.',
+      rm: 'Remove one snippet from WordPress by id. Its local files are not touched.',
+      rmTarget: 'The id of the snippet to remove (see snippet_list)',
     },
     pathNoun: 'snippets directory',
     resource: 'snippet',
+    supportsPrune: true,
+    supportsRm: true,
     supportsRollback: true,
   })
 }

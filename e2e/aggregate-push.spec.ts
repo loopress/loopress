@@ -47,6 +47,14 @@ test("lps push runs every resource, pushing what's local and skipping what isn't
 	// snippets/ exists but is empty: an empty resource directory counts as unused, so it is
 	// skipped like a missing one rather than pushed.
 	mkdirSync(join(projectDir, "snippets"), { recursive: true });
+	// `snippet push` refuses an empty directory while the site holds snippets (it would delete
+	// them all), and other specs leave some behind: start from a site with none.
+	const existing = JSON.parse(
+		(await runCli(["snippet", "list", "--json"])).stdout,
+	) as Array<{ id: number }>;
+	for (const { id } of existing) {
+		expect((await runCli(["snippet", "rm", String(id), "--yes"])).exitCode).toBe(0);
+	}
 
 	const push = await runCli(["push"]);
 

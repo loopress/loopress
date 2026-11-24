@@ -651,15 +651,23 @@ describe('snippet push', () => {
       }
     }
 
-    function makeRunCmd() {
-      const cmd = new TestPush([], fakeOclifConfig)
-      cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+    function makeRunCmd(options: {argv?: string[]; env?: string; existing?: Record<string, unknown>; remote?: Array<Record<string, unknown>>} = {}) {
+      const argv = options.argv ?? []
+      const cmd = new TestPush(argv.filter((a) => a === '--no-prune'), fakeOclifConfig)
+      cmd.setup({rootDir: dir}, makeEnv(options.env ?? 'production', 'https://acme.com'))
+      Object.assign(cmd, {dryRun: argv.includes('--dry-run'), overwrite: argv.includes('--overwrite'), yes: argv.includes('--yes')})
       const logs = silenceLogs(cmd)
-      const get = vi.fn().mockRejectedValue(notFoundError())
+      const get = vi.fn().mockImplementation(async (url: string) => {
+        if (url === SNIPPETS_ENDPOINT) return options.remote ?? []
+        const found = options.existing?.[url.split('/').pop() ?? '']
+        if (found !== undefined) return found
+        throw notFoundError()
+      })
       const post = vi.fn().mockResolvedValue({id: 42, name: 'Hello'})
       const put = vi.fn().mockResolvedValue({})
-      ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
-      return {cmd, logs, post, put}
+      const del = vi.fn().mockResolvedValue({})
+      ;(cmd as unknown as {wpClient: unknown}).wpClient = {delete: del, get, post, put}
+      return {cmd, del, logs, post, put}
     }
 
     function writeSnippet(base: string, meta: Record<string, unknown>): void {
@@ -687,6 +695,92 @@ describe('snippet push', () => {
       expect(logs.log).toHaveBeenCalledWith('All snippets pushed.')
     })
 
+    it('prunes site snippets with no local file', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      const {cmd, del} = makeRunCmd({
+        argv: ['--yes'],
+        remote: [{id: 7, name: 'Existing'}, {id: 9, name: 'Gone'}],
+      })
+
+      const result = await cmd.run()
+
+      expect(del).toHaveBeenCalledTimes(1)
+      expect(del).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/9`)
+      expect(result.pruned).toEqual([{id: 9, name: 'Gone'}])
+    })
+
+    it('keeps site snippets with --no-prune', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      const {cmd, del} = makeRunCmd({argv: ['--no-prune'], remote: [{id: 9, name: 'Gone'}]})
+
+      await cmd.run()
+
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('lists what it would prune on a dry run and deletes nothing', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      const {cmd, del, logs} = makeRunCmd({argv: ['--dry-run'], remote: [{id: 9, name: 'Gone'}]})
+
+      const result = await cmd.run()
+
+      expect(del).not.toHaveBeenCalled()
+      expect(result.pruned).toEqual([{id: 9, name: 'Gone'}])
+      expect(logs.log).toHaveBeenCalledWith(expect.stringContaining('[dry-run] Would prune 1 snippet'))
+    })
+
+    it('refuses to prune when the directory holds no snippet but the site does', async () => {
+      mkdirSync(join(dir, 'snippets'), {recursive: true})
+      const {cmd, del} = makeRunCmd({argv: ['--yes'], remote: [{id: 9, name: 'Gone'}]})
+
+      await expect(cmd.run()).rejects.toThrow('Refusing to prune')
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('is a no-op on an empty directory and an empty site', async () => {
+      mkdirSync(join(dir, 'snippets'), {recursive: true})
+      const {cmd, del} = makeRunCmd({argv: ['--yes']})
+
+      const result = await cmd.run()
+
+      expect(result.status).toBe('success')
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('does not prune when a local file could not be read', async () => {
+      writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
+      writeFileSync(join(dir, 'snippets', '9-gone.php'), '<?php echo 1;')
+      writeFileSync(join(dir, 'snippets', '9-gone.json'), '{broken')
+      const {cmd, del} = makeRunCmd({argv: ['--yes'], remote: [{id: 9, name: 'Gone'}]})
+
+      await cmd.run()
+
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('refuses a sidecar id that is another snippet on a site it never pushed to', async () => {
+      writeSnippet('3-mine', {id: 3, name: 'Mine', type: 'php'})
+      const {cmd, put} = makeRunCmd({
+        argv: ['--no-prune'],
+        existing: {'3': {id: 3, name: 'Allow smilies', revision: 'r'}},
+      })
+
+      await expect(cmd.run()).rejects.toThrow('failed to push')
+      expect(put).not.toHaveBeenCalled()
+    })
+
+    it('replaces that snippet with --overwrite', async () => {
+      writeSnippet('3-mine', {id: 3, name: 'Mine', type: 'php'})
+      const {cmd, put} = makeRunCmd({
+        argv: ['--no-prune', '--overwrite'],
+        existing: {'3': {id: 3, name: 'Allow smilies', revision: 'r'}},
+      })
+
+      await cmd.run()
+
+      expect(put).toHaveBeenCalledWith(`${SNIPPETS_ENDPOINT}/3`, expect.objectContaining({name: 'Mine'}))
+    })
+
     it('returns a dry-run status without writing or reporting success', async () => {
       writeSnippet('7-existing', {id: 7, name: 'Existing', type: 'php'})
       const {cmd, logs, post, put} = makeRunCmd()
@@ -695,7 +789,7 @@ describe('snippet push', () => {
 
       const result = await cmd.run()
 
-      expect(result).toEqual({changes: [{id: '7', status: 'created'}], pushed: [{id: 7, name: 'Existing'}], status: 'dry-run'})
+      expect(result).toEqual({changes: [{id: '7', status: 'created'}], pruned: [], pushed: [{id: 7, name: 'Existing'}], status: 'dry-run'})
       expect(post).not.toHaveBeenCalled()
       expect(put).not.toHaveBeenCalled()
       expect(logs.log).not.toHaveBeenCalledWith('All snippets pushed.')

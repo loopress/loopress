@@ -47,9 +47,10 @@ When an agent connects, the server tells it what a Loopress project is and links
 
 | Tool | Mutating | Description |
 |------|----------|-------------|
-| `snippet_push` | Yes | Push local snippet files to WordPress |
+| `snippet_push` | Yes | Push local snippet files to WordPress (also removes site snippets absent locally, `noPrune` keeps them) |
 | `snippet_pull` | No | Pull snippets from WordPress into local files |
 | `snippet_list` | No | List snippets currently on WordPress |
+| `snippet_rm` | Yes | Remove one snippet from WordPress by id |
 | `snippet_rollback` | Yes | Restore snippets to the snapshot saved automatically before an earlier `snippet_push` (`list` shows what's available) |
 | `api_push` | Yes | Push local custom API route files to WordPress (also removes server-side files absent locally, `noPrune` keeps them) |
 | `api_pull` | No | Pull custom API route files from WordPress |

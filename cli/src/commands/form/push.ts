@@ -1,6 +1,6 @@
 import {Args, Flags} from '@oclif/core'
 import {readFile, writeFile} from 'node:fs/promises'
-import {dirname, extname, join} from 'node:path'
+import {basename, dirname, extname, join} from 'node:path'
 
 import {errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
@@ -37,6 +37,9 @@ export default class Push extends PushCommand {
 
   private allowNotifications = false
 
+  // No earlier push to this environment: a local id may come from another site.
+  private idsUnverified = false
+
   async run(): Promise<FormPushResult> {
     const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
@@ -49,6 +52,7 @@ export default class Push extends PushCommand {
     const provider = getResourceStateProvider('form')
     const beforeState = await this.captureBeforePushState(provider, path)
 
+    this.idsUnverified = await this.idsFromElsewhere('form')
     const files = await this.loadFiles(path)
     this.log(`Found ${pluralize(files.length, 'form')} to push`)
 
@@ -71,10 +75,9 @@ export default class Push extends PushCommand {
     return {path, status: 'success'}
   }
 
-  private async currentRevision(id: number): Promise<string | undefined> {
+  private async currentForm(id: number): Promise<RemoteForm | undefined> {
     try {
-      const current = await this.wp.get<RemoteForm>(formEndpoint(id))
-      return current.revision
+      return await this.wp.get<RemoteForm>(formEndpoint(id))
     } catch (error) {
       if (isNotFoundError(error)) return undefined
       throw error
@@ -139,7 +142,15 @@ export default class Push extends PushCommand {
       // 404s below and falls back to create): that PUT attempt just 404s too, same as before
       // this existed. Kept out of the POST fallback body (`postPayload`): it is a precondition
       // on an existing resource, meaningless (and never persisted) on a freshly created one.
-      const expectedRevision = id === null ? undefined : await this.currentRevision(id)
+      const current = id === null ? undefined : await this.currentForm(id)
+      if (id !== null && current !== undefined && this.idsUnverified && getFormTitle(current) !== title) {
+        throw new Error(
+          `${basename(filePath)} has id ${id}, but form ${id} on this site is "${getFormTitle(current)}", not "${title}": the id may come from another site. ` +
+            'Pass --overwrite to replace it anyway.',
+        )
+      }
+
+      const expectedRevision = current?.revision
       const putPayload = expectedRevision === undefined ? payload : {...payload, expectedRevision}
 
       const {body, created} = await putOrCreate(this.wp, {

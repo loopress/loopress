@@ -1,7 +1,11 @@
-import {Args} from '@oclif/core'
-import {readFile, rm, writeFile} from 'node:fs/promises'
+import {confirm} from '@inquirer/prompts'
+import {Args, Flags} from '@oclif/core'
+import {readdir, readFile, rm, writeFile} from 'node:fs/promises'
 import {basename, dirname, extname, join} from 'node:path'
 
+import {isExcluded} from '../../lib/exclude.js'
+import {numericPrefixKey} from '../../lib/find-orphaned-files.js'
+import {isInteractive} from '../../lib/interactive.js'
 import {loadSnippets as loadSnippetsFromDisk} from '../../lib/load-snippets.js'
 import {errorCode, errorMessage, isRecord} from '../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../lib/push-command.js'
@@ -22,6 +26,7 @@ type PushedSnippet = {
 
 type PushResult = {
   changes?: PushChange[]
+  pruned?: PushedSnippet[]
   pushed: PushedSnippet[]
   status: 'dry-run' | 'success'
 }
@@ -35,14 +40,26 @@ export default class Push extends PushCommand {
     'Push local snippet files to WordPress. Local snippet files created or updated remotely are renamed on disk to the `<id>-<slug>` convention.'
 
   static override enableJsonFlag = true
-  static override examples = ['$ lps snippet push', '$ lps snippet push ./snippets']
+  static override examples = ['$ lps snippet push', '$ lps snippet push ./snippets', '$ lps snippet push --no-prune']
   static override flags = {
     ...PushCommand.dryRunFlag,
     ...PushCommand.yesFlag,
+    prune: Flags.boolean({
+      allowNo: true,
+      default: true,
+      description: 'Delete site snippets not present locally (default), --no-prune keeps them',
+    }),
   }
 
+  // True when the environment has no earlier snapshot: a sidecar id can then come from another
+  // site (same WordPress post ids), so it is checked against the site's snippet at that id.
+  private idsUnverified = false
+
+  // Local files that could not be read: their snippets are unknown, so nothing is pruned.
+  private skippedFiles = 0
+
   async run(): Promise<PushResult> {
-    const {args} = await this.parse(Push)
+    const {args, flags} = await this.parse(Push)
     const {url} = this.siteConfig
     const path = this.resolveSnippetsPath(args.path)
 
@@ -52,7 +69,9 @@ export default class Push extends PushCommand {
     const provider = getResourceStateProvider('snippet')
     const beforeState = await this.captureBeforePushState(provider, path)
 
-    const snippets = this.withoutDuplicateIds(await this.loadSnippets(path))
+    const loaded = await this.loadSnippets(path)
+    const snippets = this.withoutDuplicateIds(loaded)
+    this.idsUnverified = await this.idsFromElsewhere('snippet')
     this.log(`Found ${pluralize(snippets.length, 'snippet')} to push`)
 
     const pushed: PushedSnippet[] = []
@@ -66,23 +85,27 @@ export default class Push extends PushCommand {
       },
     )
 
-    await this.writeAfterPushSnapshot(provider, path, beforeState)
-
     if (this.failedCount > 0) {
+      await this.writeAfterPushSnapshot(provider, path, beforeState)
       this.error(`${pluralize(this.failedCount, 'snippet')} failed to push.`)
     }
 
-    if (this.dryRun) return {changes: this.previewChanges, pushed, status: 'dry-run'}
+    const keep = new Set<number>(loaded.flatMap((snippet) => (snippet.id === undefined ? [] : [snippet.id])))
+    for (const {id} of pushed) if (id !== undefined) keep.add(id)
+    const pruned = flags.prune ? await this.pruneRemote(path, keep, loaded.length) : []
+
+    await this.writeAfterPushSnapshot(provider, path, beforeState)
+
+    if (this.dryRun) return {changes: this.previewChanges, pruned, pushed, status: 'dry-run'}
 
     await this.recordSuccess()
     this.log('All snippets pushed.')
-    return {pushed, status: 'success'}
+    return {pruned, pushed, status: 'success'}
   }
 
-  private async currentRevision(id: number): Promise<string | undefined> {
+  private async currentSnippet(id: number): Promise<ReturnType<typeof normalizeSnippet> | undefined> {
     try {
-      const current = await this.wp.get<Record<string, unknown>>(`${SNIPPETS_ENDPOINT}/${id}`)
-      return normalizeSnippet(current).revision
+      return normalizeSnippet(await this.wp.get<Record<string, unknown>>(`${SNIPPETS_ENDPOINT}/${id}`))
     } catch (error) {
       if (isNotFoundError(error)) return undefined
       throw error
@@ -126,12 +149,76 @@ export default class Push extends PushCommand {
     await rm(oldMetaPath, {force: true})
   }
 
+  // Ids of local files left out of this run on purpose (`exclude` in loopress.json): their site
+  // snippet must stay.
+  private async excludedIds(path: string): Promise<number[]> {
+    const files = await readdir(path).catch(() => [] as string[])
+    return files
+      .filter((file) => isExcluded(join(path, file)))
+      .flatMap((file) => {
+        const key = numericPrefixKey(basename(file, extname(file)))
+        return key === null ? [] : [Number(key)]
+      })
+  }
+
   private async loadSnippets(path: string): Promise<Snippet[]> {
     try {
-      return await loadSnippetsFromDisk(path, (message) => { this.warn(message) })
+      return await loadSnippetsFromDisk(path, (message) => {
+        this.skippedFiles++
+        this.warn(message)
+      })
     } catch (error) {
       this.error(errorMessage(error))
     }
+  }
+
+  // Mirror of `hook push` / `api push`: a snippet on the site with no local file is deleted
+  // (the repo is the reference), `--no-prune` opts out. Production asks first.
+  private async pruneRemote(path: string, keep: Set<number>, localCount: number): Promise<PushedSnippet[]> {
+    const remote = (await this.wp.get<Array<Record<string, unknown>>>(SNIPPETS_ENDPOINT)).map((r) => normalizeSnippet(r))
+    for (const id of await this.excludedIds(path)) keep.add(id)
+    const orphans = remote.filter((snippet) => !keep.has(snippet.id)).map(({id, name}) => ({id, name}))
+
+    if (this.skippedFiles > 0) {
+      if (orphans.length > 0) this.warn(`Not pruning: ${pluralize(this.skippedFiles, 'local file')} could not be read, so the site's snippets cannot be compared safely.`)
+      return []
+    }
+
+    if (localCount === 0 && orphans.length > 0) {
+      this.error(
+        `Refusing to prune: ${path} is missing or holds no snippet, so every snippet on ${this.siteConfig.url} would be deleted. ` +
+          'Check the path, or pass --no-prune to push without deleting.',
+      )
+    }
+
+    if (orphans.length === 0) return []
+
+    const summary = `${pluralize(orphans.length, 'snippet')} on ${this.siteConfig.url} not present locally: ${orphans.map((o) => o.id + ' "' + o.name + '"').join(', ')}`
+    if (this.dryRun) {
+      this.log(`[dry-run] Would prune ${summary}`)
+      return orphans
+    }
+
+    if (!this.yes && this.siteConfig.name.toLowerCase() === 'production') {
+      if (!isInteractive()) {
+        this.error(`Pushing would prune ${pluralize(orphans.length, 'site snippet')} but stdin is not a TTY. Re-run with --yes to confirm, or with --no-prune.`)
+      }
+
+      if (!(await confirm({default: false, message: `Prune ${summary}?`}))) {
+        this.log('Kept the site snippets, nothing pruned.')
+        return []
+      }
+    }
+
+    const done: PushedSnippet[] = []
+    for (const orphan of orphans) {
+      // eslint-disable-next-line no-await-in-loop -- one DELETE at a time, a failure stops the run with the rest untouched
+      await this.wp.delete(`${SNIPPETS_ENDPOINT}/${orphan.id}`)
+      done.push(orphan)
+    }
+
+    this.log(`Pruned ${summary}`)
+    return done
   }
 
   private async pushSnippet(snippet: Snippet, task?: {output: string}): Promise<number | undefined> {
@@ -152,8 +239,15 @@ export default class Push extends PushCommand {
       // create would be meaningless there.
       let putPayload: Record<string, unknown> = payload
       if (snippet.id !== undefined) {
-        const expectedRevision = await this.currentRevision(snippet.id)
-        if (expectedRevision !== undefined) putPayload = {...payload, expectedRevision}
+        const current = await this.currentSnippet(snippet.id)
+        if (current !== undefined && this.idsUnverified && current.name !== snippet.name) {
+          throw new Error(
+            `${basename(snippet.path)} has id ${snippet.id}, but snippet ${snippet.id} on this site is "${current.name}", not "${snippet.name}": the id may come from another site. ` +
+              'Pass --overwrite to replace it anyway.',
+          )
+        }
+
+        if (current?.revision !== undefined) putPayload = {...payload, expectedRevision: current.revision}
       }
 
       // The id recorded locally may not exist on this site (e.g. a fresh install): putOrCreate
