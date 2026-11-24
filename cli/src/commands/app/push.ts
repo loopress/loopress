@@ -11,7 +11,7 @@ import {
   diffFiles,
   loadAppManifest,
 } from '../../lib/app-manifest.js'
-import {APP_RESOURCE, APP_SNAPSHOT_MAX_BYTES, type AppBundles, appSnapshotPayload, appsState, readBundle} from '../../lib/app-snapshot.js'
+import {APP_RESOURCE, APP_SNAPSHOT_MAX_BYTES, type AppBundle, type AppBundles, appSnapshotPayload, appsState, megabytes, readBundle, replacedBundle} from '../../lib/app-snapshot.js'
 import {type ResourceState} from '../../lib/diff-state.js'
 import {withoutExcluded} from '../../lib/exclude.js'
 import {errorCode, errorMessage} from '../../lib/narrow.js'
@@ -52,9 +52,17 @@ export default class Push extends PushCommand {
     ...PushCommand.yesFlag,
   }
 
+  // The apps on the site before this push (see readBeforeState), unset on a dry run.
+  private beforeState: ResourceState | undefined
   private build = true
-  // What this push sent, for `lps app rollback` (see writeAppSnapshot).
+  // What `lps app rollback` needs from this push (see writeAppSnapshot): the apps it created,
+  // the bundles it sent, the ones it replaced, and why a replaced one has no copy.
+  private readonly createdApps: string[] = []
+  // Every app on the site before this push, committed or not: the others are the ones it creates.
+  private readonly existingApps = new Set<string>()
+  private missingBundles: Record<string, string> = {}
   private pushedBundles: AppBundles = {}
+  private replacedBundles: Record<string, AppBundle> = {}
 
   async run(): Promise<PushResult> {
     const {args, flags} = await this.parse(Push)
@@ -69,7 +77,7 @@ export default class Push extends PushCommand {
     this.log(`Found ${pluralize(dirNames.length, 'app')} to push`)
 
     const pushed: PushedApp[] = []
-    const beforeState = this.dryRun ? undefined : await this.readBeforeState()
+    this.beforeState = this.dryRun ? undefined : await this.readBeforeState()
 
     await this.runPushTasks(
       dirNames,
@@ -80,7 +88,7 @@ export default class Push extends PushCommand {
       },
     )
 
-    if (beforeState) await this.writeAppSnapshot(beforeState)
+    if (this.beforeState) await this.writeAppSnapshot(this.beforeState)
 
     if (this.failedCount > 0) {
       this.error(`${pluralize(this.failedCount, 'app')} failed to push.`)
@@ -126,11 +134,36 @@ export default class Push extends PushCommand {
     return names
   }
 
+  // Once its commit succeeded: what this push sent, and whether it created the app.
   private async keepBundle(distDir: string, manifest: AppManifest): Promise<void> {
+    if (this.beforeState && !this.existingApps.has(manifest.name)) this.createdApps.push(manifest.name)
     try {
       this.pushedBundles[manifest.name] = {after: await readBundle(distDir, manifest)}
     } catch (error) {
       this.warn(`${manifest.name}: could not keep a copy of the bundle for \`lps app rollback\`: ${errorMessage(error)}`)
+    }
+  }
+
+  // Before the upload overwrites it, the build this push replaces, for `lps app rollback`. A
+  // site that cannot give it back only costs that rollback, never the push.
+  private async keepReplaced(distDir: string, manifest: AppManifest, task?: {output: string}): Promise<void> {
+    const {name} = manifest
+    if (!this.beforeState?.has(name)) return
+
+    if (task) task.output = `${name}: keeping a copy of the build it replaces`
+    try {
+      const bundle = await replacedBundle({
+        after: manifest,
+        before: this.beforeState.get(name),
+        distDir,
+        environment: this.siteConfig.name,
+        rootDir: resolve(process.cwd(), this.rootDir),
+        wp: this.wp,
+      })
+      if (bundle) this.replacedBundles[name] = bundle
+    } catch (error) {
+      this.missingBundles[name] = `could not read it from the site: ${errorMessage(error)}`
+      this.warn(`${name}: could not keep a copy of the build this push replaces, \`lps app rollback\` cannot put it back: ${errorMessage(error)}`)
     }
   }
 
@@ -164,6 +197,8 @@ export default class Push extends PushCommand {
       return undefined
     }
 
+    await this.keepReplaced(distDir, manifest, task)
+
     for (const [index, file] of changed.entries()) {
       if (task) task.output = `${manifest.name}: uploading ${file.path} (${index + 1}/${changed.length})`
       await this.uploadAsset(manifest.name, distDir, file)
@@ -193,7 +228,7 @@ export default class Push extends PushCommand {
   // cannot list them only costs the snapshot, never the push.
   private async readBeforeState(): Promise<ResourceState | undefined> {
     try {
-      return await appsState(this.wp)
+      return await appsState(this.wp, this.existingApps)
     } catch (error) {
       this.warn(`Could not read the apps on the site, this push saves no rollback snapshot: ${errorMessage(error)}`)
       return undefined
@@ -229,26 +264,28 @@ export default class Push extends PushCommand {
     }
   }
 
-  // `lps app rollback`'s restore point. The site cannot give a bundle back (a commit overwrites
-  // same-path files), so the snapshot keeps the bundles this push sent and, when an earlier
-  // snapshot has it, the one the site had before (see appSnapshotPayload).
+  // `lps app rollback`'s restore point. The site cannot give a bundle back once a commit has
+  // overwritten its files, so the snapshot keeps the bundles this push sent and the ones it
+  // replaced (see keepReplaced and appSnapshotPayload).
   private async writeAppSnapshot(beforeState: ResourceState): Promise<void> {
     if (Object.keys(this.pushedBundles).length === 0) return
 
     try {
       const rootDir = resolve(process.cwd(), this.rootDir)
-      const environment = this.siteConfig.name
-      const {bytes, payload} = await appSnapshotPayload({beforeState, environment, pushed: this.pushedBundles, rootDir})
-      if (!payload) {
-        const mb = (size: number) => `${(size / 1024 / 1024).toFixed(1)} MB`
+      const {bytes, overCap, payload} = appSnapshotPayload({
+        created: this.createdApps,
+        missing: this.missingBundles,
+        pushed: this.pushedBundles,
+        replaced: this.replacedBundles,
+      })
+      if (overCap) {
         this.warn(
-          `No rollback snapshot saved for this push: its bundles take ${mb(bytes)}, above the ${mb(APP_SNAPSHOT_MAX_BYTES)} a snapshot keeps. ` +
+          `This push's bundles take ${megabytes(bytes)}, above the ${megabytes(APP_SNAPSHOT_MAX_BYTES)} a rollback snapshot keeps: \`lps app rollback\` cannot put back the builds it replaced. ` +
             'Undo it by checking out the previous build in Git and pushing again.',
         )
-        return
       }
 
-      await writeSnapshot({afterState: await appsState(this.wp), beforeState, environment, payload, resource: APP_RESOURCE, rootDir})
+      await writeSnapshot({afterState: await appsState(this.wp), beforeState, environment: this.siteConfig.name, payload, resource: APP_RESOURCE, rootDir})
     } catch (error) {
       this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
     }

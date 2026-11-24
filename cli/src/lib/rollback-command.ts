@@ -59,8 +59,8 @@ function indentPatch(patch: string): string {
 // the project, so restoring also removes what the snapshot doesn't have. `provider` overrides
 // the RESOURCE_STATE_PROVIDERS lookup.
 // `current` is the state read for the drift check, `force` the `--force` flag of a resource with
-// `downgrades`.
-export type RollbackRestore = (context: {current: ResourceState; environment: string; force: boolean; ids: string[]; log: (message: string) => void; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
+// `downgrades`, `remove` the items present now that the restore removes (see `removable`).
+export type RollbackRestore = (context: {current: ResourceState; environment: string; force: boolean; ids: string[]; log: (message: string) => void; remove?: string[]; snapshot: Snapshot; warn: (message: string) => void; wp: WpClient}) => Promise<void>
 
 // The versions a restore would downgrade (`akismet 5.3 to 5.2`), for a resource whose rollback
 // installs packages. A downgrade replaces files only, it does not undo the database migrations
@@ -69,7 +69,17 @@ export type RollbackDowngrades = (context: {current: ResourceState; snapshot: Sn
 
 export function resourceRollbackCommand(
   resource: string,
-  options: {command?: string; description: string; downgrades?: RollbackDowngrades; mirror?: boolean; pathNoun: string; provider?: ResourceStateProvider; restore?: RollbackRestore},
+  options: {
+    command?: string
+    description: string
+    downgrades?: RollbackDowngrades
+    mirror?: boolean
+    pathNoun: string
+    provider?: ResourceStateProvider
+    // The items the original push created, which `restore` removes (passed as `remove`) when they are still there.
+    removable?: (snapshot: Snapshot) => string[]
+    restore?: RollbackRestore
+  },
 ): typeof LoopressCommand {
   const command = options.command ?? resource
   class ResourceRollback extends LoopressCommand {
@@ -157,15 +167,7 @@ export function resourceRollbackCommand(
 
       this.renderDiff(`This would restore ${provider.title} to:`, restoreDiff)
 
-      // `<resource> push` only creates and updates, it never deletes (see each resource's own
-      // push command, e.g. option push's "upsert only, never deletes an untracked option"):
-      // an item present now but absent from the snapshot stays present after "restoring" it.
-      if (restoreDiff.removed.length > 0 && !options.mirror) {
-        this.warn(
-          `${pluralize(restoreDiff.removed.length, 'item')} present now but not in this snapshot will NOT be removed ` +
-            `(${restoreDiff.removed.join(', ')}): restoring only creates and updates, the same as \`lps ${command} push\`. Remove ${restoreDiff.removed.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
-        )
-      }
+      const remove = this.planRemovals(snapshot, restoreDiff.removed)
 
       const force = (flags as {force?: boolean}).force === true
       this.guardDowngrades(options.downgrades?.({current: currentState, snapshot}) ?? [], force)
@@ -189,6 +191,7 @@ export function resourceRollbackCommand(
           log: (message) => {
             this.log(message)
           },
+          remove,
           snapshot,
           warn,
           wp: this.wp,
@@ -253,6 +256,28 @@ export function resourceRollbackCommand(
         'database migrations the newer version ran, which can break the site.'
       if (!force && !this.dryRun) this.error(`${message} Re-run with --force to roll back anyway.`)
       this.warn(message)
+    }
+
+    // `<resource> push` only creates and updates, it never deletes (see each resource's own
+    // push command, e.g. option push's "upsert only, never deletes an untracked option"): an
+    // item present now but absent from the snapshot stays present after "restoring" it, unless
+    // the resource is `removable` and the original push created it. Returns those to remove.
+    private planRemovals(snapshot: Snapshot, removed: string[]): string[] {
+      const created = new Set(options.removable?.(snapshot))
+      const remove = removed.filter((id) => created.has(id))
+      const kept = removed.filter((id) => !created.has(id))
+      if (remove.length > 0) {
+        this.log(`${this.dryRun ? 'Would remove' : 'Removes'} what that push created: ${remove.join(', ')}`)
+      }
+
+      if (kept.length > 0 && !options.mirror) {
+        this.warn(
+          `${pluralize(kept.length, 'item')} present now but not in this snapshot will NOT be removed ` +
+            `(${kept.join(', ')}): restoring only creates and updates, the same as \`lps ${command} push\`. Remove ${kept.length === 1 ? 'it' : 'them'} by hand if that's part of undoing the original push.`,
+        )
+      }
+
+      return remove
     }
 
     private renderDiff(heading: string, diff: StateDiff): void {
