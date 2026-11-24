@@ -180,7 +180,7 @@ export default class Push extends LoopressCommand {
       }
     }
 
-    if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}`)
+    if (blockers.length > 0) this.error(`Nothing was pushed, the project uses what this site can't hold:\n  ${blockers.join('\n  ')}\nPass --skip-unsupported to push everything else and leave these out.`)
   }
 
   // Every delegated push always gets --yes: either this command's own guard already confirmed
