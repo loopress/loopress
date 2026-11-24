@@ -221,6 +221,71 @@ class OptionsServiceTest extends TestCase
         $this->assertSame('Acme Blog', $option['value']);
     }
 
+    /** @return array<string, array{string}> */
+    public static function credentialProvider(): array
+    {
+        return [
+            'stripe live'   => ['sk_live_abcdefghij1234567890'],
+            'stripe test'   => ['sk_test_abcdefghij1234567890'],
+            'stripe rk'     => ['rk_live_abcdefghij1234567890'],
+            'github ghp'    => ['ghp_' . str_repeat('a1', 18)],
+            'github gho'    => ['gho_' . str_repeat('a1', 18)],
+            'github pat'    => ['github_pat_' . str_repeat('A1_', 27) . 'A'],
+            'slack'         => ['xoxb-1234567890-1234567890-abcdefghij'],
+            'aws'           => ['AKIAABCDEFGHIJKLMNOP'],
+            'google'        => ['AIza' . str_repeat('a1B', 11) . 'zz'],
+            'sendgrid'      => ['SG.' . str_repeat('a1B', 22)],
+            'anthropic'     => ['sk-ant-api03-' . str_repeat('a1B', 31) . 'AA'],
+            'pem'           => ["-----BEGIN RSA PRIVATE KEY-----\n" . str_repeat('MIIE', 20) . "\n-----END RSA PRIVATE KEY-----"],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('credentialProvider')]
+    public function test_get_option_refuses_a_credential_value_scalar_and_nested(string $secret): void
+    {
+        $this->wpdb->rows = ['my_settings' => 'yes'];
+
+        foreach ([$secret, ['a' => ['b' => $secret]], ['a' => ['b' => (object) ['c' => $secret]]]] as $value) {
+            Functions\when('get_option')->justReturn($value);
+            try {
+                $this->service->getOption('my_settings');
+                $this->fail('Expected the credential value to be refused');
+            } catch (ProtectedOptionException $e) {
+                $this->assertStringNotContainsString($secret, $e->getMessage());
+            }
+        }
+    }
+
+    public function test_get_option_names_the_path_of_the_matching_value(): void
+    {
+        Functions\when('get_option')->justReturn(['a' => ['b' => 'AKIAABCDEFGHIJKLMNOP']]);
+        $this->wpdb->rows = ['my_settings' => 'yes'];
+
+        $this->expectException(ProtectedOptionException::class);
+        $this->expectExceptionMessage('(aws-access-token) in its value at &quot;a.b&quot;');
+        $this->service->getOption('my_settings');
+    }
+
+    public function test_get_option_allows_a_settings_array_without_credentials(): void
+    {
+        Functions\when('get_option')->justReturn(['color' => 'blue', 'note' => 'sk_ is a prefix', 'n' => 3]);
+        $this->wpdb->rows = ['my_settings' => 'yes'];
+
+        $this->assertNotNull($this->service->getOption('my_settings'));
+    }
+
+    public function test_get_option_filter_lets_a_credential_value_through(): void
+    {
+        Functions\when('get_option')->justReturn('sk_live_abcdefghij1234567890');
+        $this->wpdb->rows = ['my_settings' => 'yes'];
+        Functions\when('apply_filters')->alias(
+            static fn (string $hook, mixed $value = null, mixed $name = null): mixed =>
+                $hook === 'loopress_option_readable' && $name === 'my_settings' ? true : $value,
+        );
+
+        $this->assertNotNull($this->service->getOption('my_settings'));
+    }
+
     public function test_get_option_read_denylist_is_filterable(): void
     {
         Functions\when('get_option')->justReturn('let-me-in');

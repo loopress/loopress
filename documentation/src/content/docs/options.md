@@ -174,7 +174,7 @@ The Loopress plugin enforces its own limits, whatever the local files say:
   ```php
   add_filter('loopress_option_readable', fn ($allowed, $name) => $name === 'my_plugin_public_key' ? true : $allowed, 10, 2);
   ```
-
+- **Credential-looking values are not readable either**: an option whose value, or any string nested in an array or object, matches a well-known credential format is refused: the prefix-based rules of [gitleaks](https://github.com/gitleaks/gitleaks)' default config, about a hundred formats (Stripe, GitHub, GitLab, Slack, AWS, Google API, SendGrid, OpenAI, Anthropic, Shopify, PEM private keys, ...). The error names the format and the path inside the value, never the value. Same best-effort caveat: a credential with no recognisable format passes. The same filter allows it.
 - **Options that change who can do what are not writable**: `default_role`, `users_can_register`, `siteurl`, `home`, `cron`, `uninstall_plugins`, `db_version`, `initial_db_version`, the `mailserver_*` options, and every `loopress_*` option. The `loopress_option_writable` filter re-allows a name the same way.
 - **Values that aren't plain data**: an option holding a serialized PHP object can't be represented as JSON without losing information, so it's refused rather than corrupted.
 

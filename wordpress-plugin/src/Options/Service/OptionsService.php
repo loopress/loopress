@@ -417,6 +417,7 @@ class OptionsService
             return null;
         }
 
+        $this->assertValueReadable($name, $value);
         $this->assertJsonSafe($name, $value);
 
         /** @var \wpdb $wpdb */
@@ -548,6 +549,53 @@ class OptionsService
                 'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
             ));
         }
+    }
+
+    // Refuses a value holding a well-known credential format (see CredentialPatterns), scalar or
+    // nested in an array or object. The message names the format and the path inside the value,
+    // never the value itself. The same loopress_option_readable filter overrides it.
+    private function assertValueReadable(string $name, mixed $value): void
+    {
+        $found = $this->findCredential($value, '', 0);
+
+        if ($found !== null && !apply_filters('loopress_option_readable', false, $name)) {
+            [$rule, $path] = $found;
+            $where = $path === '' ? 'its value' : "its value at \"{$path}\"";
+            throw new ProtectedOptionException(esc_html(
+                "\"{$name}\" holds what looks like a credential ({$rule}) in {$where} and is not readable through the option resource. " .
+                'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
+            ));
+        }
+    }
+
+    // Returns [rule id, path] ("" for the root, "a.b.0" nested) of the first string matching a
+    // credential format, or null. Depth-capped so a self-referencing object cannot loop.
+    /** @return array{string, string}|null */
+    private function findCredential(mixed $value, string $path, int $depth): ?array
+    {
+        if (is_string($value)) {
+            foreach (CredentialPatterns::RULES as $rule => $pattern) {
+                if (preg_match($pattern, $value) === 1) {
+                    return [$rule, $path];
+                }
+            }
+
+            return null;
+        }
+
+        if ($depth >= 32 || (!is_array($value) && !is_object($value))) {
+            return null;
+        }
+
+        $children = is_array($value) ? $value : get_object_vars($value);
+        foreach ($children as $key => $child) {
+            $found = $this->findCredential($child, $path === '' ? (string) $key : "{$path}.{$key}", $depth + 1);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     // Refuses to write a core option that changes site behaviour, or any loopress_* option
