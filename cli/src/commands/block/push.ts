@@ -20,8 +20,8 @@ export default class Push extends PushCommand {
   }
 
   static override description =
-    'Push local dynamic blocks (blocks/<slug>/ holding block.json, render.php, and optionally style.css and view.js) to WordPress, ' +
-    'registered as loopress/<slug> and placed with <!-- wp:loopress/<slug> /-->. Each block is replaced as a whole. Create or update only, never deletes a block (use `lps block rm`).'
+    'Push local dynamic blocks (`blocks/<slug>/` holding block.json, render.php, and optionally style.css and view.js) to WordPress, ' +
+    'registered as loopress/<slug> and placed with `<!-- wp:loopress/<slug> /-->`. Each block is replaced as a whole. Create or update only, never deletes a block (use `lps block rm`).'
 
   static override enableJsonFlag = true
   static override examples = ['$ lps block push', '$ lps block push --dry-run']

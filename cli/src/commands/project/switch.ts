@@ -4,7 +4,7 @@ import {Command} from '@oclif/core'
 import {configManager} from '../../config/project-config.manager.js'
 
 export default class Switch extends Command {
-  static override description = 'Switch the active project (pass --env to target a non-local environment)'
+  static override description = 'Switch the active project'
   static override examples = ['$ lps project switch']
 
   async run(): Promise<void> {

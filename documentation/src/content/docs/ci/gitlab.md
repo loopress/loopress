@@ -7,7 +7,7 @@ Reference the template via remote include. Do not copy the file: reference it so
 
 ```yaml
 include:
-  - remote: 'https://raw.githubusercontent.com/loopress/setup-ci/v1/gitlab/template.yml'
+  - remote: 'https://raw.githubusercontent.com/loopress/setup-ci/main/gitlab/template.yml'
 
 test:
   extends: .loopress-test
@@ -26,7 +26,17 @@ deploy:
 | `LOOPRESS_WP_PORT` | WordPress port | `8080` |
 | `LOOPRESS_ENV` | Environment name for deploy jobs (`--env`) | `staging` |
 | `LOOPRESS_CONFIG` | File-type CI/CD variable, required by deploy jobs: the output of `lps project export --env <name>` (see below) | |
+| `LOOPRESS_INSTALL_CLI` | Set to `false` to skip `npm install -g @loopress/cli` when the CLI is already in the image | `true` |
 | `LOOPRESS_TOKEN` | Optional Loopress cloud token | |
+
+The template also takes a `version` input: the Git ref of `loopress/setup-ci` the job downloads its compose file and scripts from. It defaults to `main`; pin it to a tag or a commit to freeze them:
+
+```yaml
+include:
+  - remote: 'https://raw.githubusercontent.com/loopress/setup-ci/main/gitlab/template.yml'
+    inputs:
+      version: main
+```
 
 ## Available templates
 
