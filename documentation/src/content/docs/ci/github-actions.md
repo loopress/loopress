@@ -104,6 +104,66 @@ jobs:
 
 Store the secret with `cfg=$(lps project export --env production) && gh secret set LOOPRESS_CONFIG --body "$cfg"`; see [Refreshing the secret](/ci/#refreshing-the-secret) for the 90-day rotation.
 
+## Guard against wp-admin edits before a deploy
+
+`lps push` overwrites what was changed on the site outside the repository. On a laptop, `lps push` checks this against its last snapshot. A CI job has no snapshot, so this workflow runs the setup-ci drift guard before the push. It fails the deploy when it would overwrite an edit made in wp-admin, and names the resources.
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: loopress-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g @loopress/cli
+      - name: Restore site credentials
+        env:
+          LOOPRESS_CONFIG: ${{ secrets.LOOPRESS_CONFIG }}
+        run: |
+          mkdir -p ~/.config/loopress
+          printf '%s' "$LOOPRESS_CONFIG" > ~/.config/loopress/config.json
+      - name: Drift guard
+        env:
+          LOOPRESS_SKIP_DRIFT_GUARD: ${{ vars.LOOPRESS_SKIP_DRIFT_GUARD }}
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/loopress/setup-ci/main/scripts/drift-guard.sh -o /tmp/drift-guard.sh
+          bash /tmp/drift-guard.sh production "${{ github.event.before }}"
+      - run: lps push --env production --yes
+      - run: lps diff --env production
+```
+
+How it works:
+
+- `fetch-depth: 0` gives the job the previous commit, `github.event.before`.
+- The guard runs `lps diff --env production --json` twice: in a temporary `git worktree` of the previous commit, and in the checkout being deployed. It needs `jq`, which GitHub-hosted runners include.
+- It blocks only on resources present in both reports. Those differ from the previous commit (so the site was edited outside the repository) and from the commit being deployed (so the push would overwrite the edit). Run `lps pull --env production`, commit the result and deploy again. `lps pull` does not cover static pages (they have no `pull`): for a blocked page, copy the wp-admin edit into the page's file by hand, commit and deploy again.
+- A comparison that exits `2` (a resource could not be compared) only warns.
+- With no previous commit (first push, new branch) or one that cannot be fetched, the guard is skipped with a warning.
+- `lps diff --env production` after the push verifies that the site now matches the repository.
+- `concurrency` keeps two runs from deploying to the same environment at once.
+
+### Why two diffs
+
+Comparing the site with the previous commit alone would refuse the very commit that pulls a wp-admin edit into the repository: the site still differs from the previous commit, but the deployed files now contain the edit, so nothing would be overwritten. Requiring the id in both reports lets that commit through.
+
+### Limit
+
+The guard assumes the previous commit was deployed. After a failed or skipped deploy, the site legitimately differs from it and the guard can raise a false alarm. Set the repository variable `LOOPRESS_SKIP_DRIFT_GUARD` to `1` to skip it for one run, then remove it.
+
 ## Preview what a pull request will change
 
 On a pull request, `lps diff` previews tracked resource changes on an environment, so a reviewer sees more than file diffs. The preview excludes plugins declared in `loopress.json`; see [Drift detection](/ci/drift-detection/#preview-a-pull-request). The job needs no secret beyond `LOOPRESS_CONFIG`, and it does not post a comment: the summary is in the job log.

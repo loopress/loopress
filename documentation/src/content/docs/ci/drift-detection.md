@@ -141,6 +141,10 @@ Reporting is best effort: it never changes the exit code nor the `--json` output
 
 `lps diff --env production --json` on a pull request previews tracked resource changes, with no secret beyond `LOOPRESS_CONFIG`. It excludes plugins declared in `loopress.json`: without a `composer.json`, run `lps plugin status --env production` to check plugin drift (floating versions can still update on push). See [GitHub Actions](/ci/github-actions/#preview-what-a-pull-request-will-change).
 
+## Guard a deploy
+
+To stop a deploy from overwriting a wp-admin edit, run the drift guard before `lps push`. It compares the site with the previous commit and with the commit being deployed, and blocks only on resources that differ from both. See [Guard against wp-admin edits before a deploy](/ci/github-actions/#guard-against-wp-admin-edits-before-a-deploy).
+
 ## Variations
 
 - Compare two environments instead of local files: `lps diff --env staging --against production --json`.
