@@ -16,7 +16,7 @@ import {makeEnv} from '../../helpers/project-fixtures.js'
 vi.mock('../../../src/lib/interactive.js', () => ({isInteractive: () => false}))
 
 type Manifest = {buildId: string; files: Array<{path: string; sha256: string; size: number}>; name: string}
-type Site = {disk: Record<string, Record<string, string>>; records: Record<string, Manifest & {previous: string[]}>}
+type Site = {disk: Record<string, Record<string, string>>; records: Record<string, Manifest & {committed?: false; previous: string[]}>}
 
 const notFound = new Error('not found', {cause: {response: {statusCode: 404}}})
 const sha256 = (content: string): string => createHash('sha256').update(content).digest('hex')
@@ -26,7 +26,7 @@ const sha256 = (content: string): string => createHash('sha256').update(content)
 function fakeSite(site: Site) {
   const route = (endpoint: string) => /^loopress\/v1\/apps\/([^/]+)\/(\w+)$/u.exec(endpoint) ?? []
   const get = vi.fn(async (endpoint: string) => {
-    if (endpoint === 'loopress/v1/apps') return Object.keys(site.records).map((name) => ({committed: true, name}))
+    if (endpoint === 'loopress/v1/apps') return Object.values(site.records).map((record) => ({committed: record.committed !== false, name: record.name}))
     const asset = /^loopress\/v1\/apps\/([^/]+)\/asset\?path=(.+)$/u.exec(endpoint)
     if (asset) {
       const content = site.disk[asset[1] ?? '']?.[decodeURIComponent(asset[2] ?? '')]
@@ -35,7 +35,7 @@ function fakeSite(site: Site) {
     }
 
     const record = site.records[route(endpoint)[1] ?? '']
-    if (!record) throw notFound
+    if (!record || record.committed === false) throw notFound
     const {buildId, files, name} = record
     return {buildId, crossOrigin: null, entry: {scripts: [], styles: []}, files: structuredClone(files), mountSelector: null, name, routing: 'hash'}
   })
@@ -235,6 +235,24 @@ describe('app rollback', () => {
     expect(site.records.blog).toBeUndefined()
     expect(served(site, 'search')).toEqual(before)
     expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('never removes an app that was on the site before the push, uploaded but not committed', async () => {
+    const site: Site = {disk: {}, records: {}}
+    const wp = fakeSite(site)
+    build({'main.js': 'v1'})
+    await push(wp)
+    site.records.blog = {buildId: 'draft', committed: false, files: [], name: 'blog', previous: []}
+    build({'main.js': 'v2'})
+    build({'main.js': 'blog'}, 'blog')
+    await push(wp)
+
+    const rollback = command(ConcreteRollback, wp)
+    Object.assign(rollback, {yes: true})
+    await rollback.run()
+
+    expect(wp.delete).not.toHaveBeenCalled()
+    expect(site.records.blog).toBeDefined()
   })
 
   it('leaves an app the push did not create, even when the snapshot does not have it', async () => {

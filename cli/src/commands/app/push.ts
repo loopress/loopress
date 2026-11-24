@@ -58,6 +58,8 @@ export default class Push extends PushCommand {
   // What `lps app rollback` needs from this push (see writeAppSnapshot): the apps it created,
   // the bundles it sent, the ones it replaced, and why a replaced one has no copy.
   private readonly createdApps: string[] = []
+  // Every app on the site before this push, committed or not: the others are the ones it creates.
+  private readonly existingApps = new Set<string>()
   private missingBundles: Record<string, string> = {}
   private pushedBundles: AppBundles = {}
   private replacedBundles: Record<string, AppBundle> = {}
@@ -132,7 +134,9 @@ export default class Push extends PushCommand {
     return names
   }
 
+  // Once its commit succeeded: what this push sent, and whether it created the app.
   private async keepBundle(distDir: string, manifest: AppManifest): Promise<void> {
+    if (this.beforeState && !this.existingApps.has(manifest.name)) this.createdApps.push(manifest.name)
     try {
       this.pushedBundles[manifest.name] = {after: await readBundle(distDir, manifest)}
     } catch (error) {
@@ -143,12 +147,8 @@ export default class Push extends PushCommand {
   // Before the upload overwrites it, the build this push replaces, for `lps app rollback`. A
   // site that cannot give it back only costs that rollback, never the push.
   private async keepReplaced(distDir: string, manifest: AppManifest, task?: {output: string}): Promise<void> {
-    if (!this.beforeState) return
     const {name} = manifest
-    if (!this.beforeState.has(name)) {
-      this.createdApps.push(name)
-      return
-    }
+    if (!this.beforeState?.has(name)) return
 
     if (task) task.output = `${name}: keeping a copy of the build it replaces`
     try {
@@ -228,7 +228,7 @@ export default class Push extends PushCommand {
   // cannot list them only costs the snapshot, never the push.
   private async readBeforeState(): Promise<ResourceState | undefined> {
     try {
-      return await appsState(this.wp)
+      return await appsState(this.wp, this.existingApps)
     } catch (error) {
       this.warn(`Could not read the apps on the site, this push saves no rollback snapshot: ${errorMessage(error)}`)
       return undefined

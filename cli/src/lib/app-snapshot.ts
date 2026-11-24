@@ -47,11 +47,12 @@ function manifestState(manifest: RemoteManifest): Record<string, unknown> {
 }
 
 // Every committed app on the site, keyed by name. An app uploaded but never committed has no
-// manifest to restore, it is left out.
-export async function appsState(wp: WpClient): Promise<ResourceState> {
+// manifest to restore, it is left out, but still added to `names` (every app on the site) when given.
+export async function appsState(wp: WpClient, names?: Set<string>): Promise<ResourceState> {
   const state: ResourceState = new Map()
   const apps = await wp.get<RemoteApp[]>('loopress/v1/apps')
   for (const app of apps) {
+    names?.add(app.name)
     if (!app.committed) continue
     try {
       state.set(app.name, manifestState(await wp.get<RemoteManifest>(`loopress/v1/apps/${app.name}/manifest`)))
@@ -90,7 +91,7 @@ async function findBundle(rootDir: string, environment: string, name: string, bu
   for (const summary of await listSnapshots(rootDir, APP_RESOURCE, environment)) {
     const snapshot = await readSnapshot(rootDir, APP_RESOURCE, environment, summary.id)
     const bundles = APP_BUNDLES.safeParse(snapshot.payload?.bundles)
-    const entry = bundles.success ? bundles.data[name] : undefined
+    const entry = bundles.success ? own(bundles.data, name) : undefined
     for (const bundle of [entry?.after, entry?.before]) {
       if (bundle?.buildId === buildId) return bundle
     }
@@ -142,6 +143,11 @@ export function megabytes(size: number): string {
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
+// An own entry of a record keyed by app name: `constructor` is a valid app name.
+function own<T>(record: Record<string, T> | undefined, name: string): T | undefined {
+  return record && Object.hasOwn(record, name) ? record[name] : undefined
+}
+
 function bundleBytes(bundle: AppBundle): number {
   return Object.values(bundle.files).reduce((total, content) => total + content.length, 0)
 }
@@ -160,7 +166,7 @@ export function appSnapshotPayload(options: {
   const bundles: AppBundles = {}
   let bytes = 0
   for (const [name, {after}] of Object.entries(pushed)) {
-    const before = replaced[name]
+    const before = own(replaced, name)
     bundles[name] = {after, ...(before && {before})}
     bytes += bundleBytes(after) + (before ? bundleBytes(before) : 0)
   }
@@ -198,14 +204,14 @@ export const restoreApps: RollbackRestore = async ({ids, log, remove = [], snaps
   for (const name of ids) {
     const manifest = snapshot.beforeState[name]
     const buildId = buildIdOf(manifest)
-    const entry = bundles[name]
+    const entry = own(bundles, name)
     const bundle = [entry?.before, entry?.after].find((candidate) => candidate !== undefined && candidate.buildId === buildId)
     // Every file, not only those the committed manifest lists with another hash: a push that
     // failed before its commit can leave other bytes on disk under a committed path.
     const files = filesOf(manifest)
     const absent = bundle ? files.find((file) => bundle.files[file.path] === undefined) : undefined
     if (absent !== undefined || !bundle || !isRecord(manifest)) {
-      const reason = payload?.missing?.[name] ?? (absent ? `the snapshot has no copy of ${absent.path}` : 'the snapshot has no copy of it')
+      const reason = own(payload?.missing, name) ?? (absent ? `the snapshot has no copy of ${absent.path}` : 'the snapshot has no copy of it')
       missing.push(`${name} (${reason})`)
       continue
     }

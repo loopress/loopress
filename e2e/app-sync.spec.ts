@@ -160,9 +160,13 @@ test("rollback restores a build pushed from another machine byte for byte, and r
 	writeFileSync(join(dist, "chunk-old.js"), "export const old = 1");
 	expect((await runCli(["app", "push", name])).exitCode).toBe(0);
 
-	const assetOf = async (app: string, path: string) =>
-		request.get(`${wp.url}/wp-content/loopress/apps/${app}/assets/${path}`);
-	const v1 = {chunk: await (await assetOf(name, "chunk-old.js")).text(), main: await (await assetOf(name, "index-abc.js")).text()};
+	const assetOf = async (app: string, path: string) => {
+		const response = await request.get(`${wp.url}/wp-content/loopress/apps/${app}/assets/${path}`);
+		expect(response.ok(), path).toBe(true);
+		return response.text();
+	};
+	const v1 = {chunk: await assetOf(name, "chunk-old.js"), main: await assetOf(name, "index-abc.js")};
+	expect(v1).toEqual({chunk: "export const old = 1", main: "export const v = 1"});
 
 	// v2 pushed from another checkout: none of the snapshots of the v1 push are there.
 	rmSync(join(projectDir, ".loopress", "snapshots"), {force: true, recursive: true});
@@ -179,8 +183,8 @@ test("rollback restores a build pushed from another machine byte for byte, and r
 	const rollback = await runCli(["app", "rollback", "--yes"]);
 	expect(rollback.exitCode, rollback.stderr).toBe(0);
 
-	expect(await (await assetOf(name, "index-abc.js")).text()).toBe(v1.main);
-	expect(await (await assetOf(name, "chunk-old.js")).text()).toBe(v1.chunk);
+	expect(await assetOf(name, "index-abc.js")).toBe(v1.main);
+	expect(await assetOf(name, "chunk-old.js")).toBe(v1.chunk);
 	const apps = await request.get(`${wp.url}/wp-json/loopress/v1/apps`, {headers: {Authorization: authHeader(wp)}});
 	expect(((await apps.json()) as Array<{name: string}>).map((app) => app.name)).not.toContain(created);
 
