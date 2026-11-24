@@ -3,14 +3,19 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {runLps} from '../../src/lib/run-lps.js'
 import {runMutatingTool} from '../../src/lib/mutating-tool.js'
 import {registerRollbackTool} from '../../src/lib/resource-tools.js'
-import {createSnapshot, removeSnapshot} from '../../src/lib/snapshot.js'
+import {createSnapshot, removeSnapshot, writeBack} from '../../src/lib/snapshot.js'
 
 vi.mock('../../src/lib/run-lps.js', () => ({runLps: vi.fn()}))
-vi.mock('../../src/lib/snapshot.js', () => ({createSnapshot: vi.fn(), removeSnapshot: vi.fn()}))
+vi.mock('../../src/lib/snapshot.js', () => ({
+  createSnapshot: vi.fn(),
+  removeSnapshot: vi.fn(),
+  writeBack: vi.fn(async () => ({conflicts: [], copied: []})),
+}))
 
 const mockedRunLps = vi.mocked(runLps)
 const mockedCreateSnapshot = vi.mocked(createSnapshot)
 const mockedRemoveSnapshot = vi.mocked(removeSnapshot)
+const mockedWriteBack = vi.mocked(writeBack)
 
 type LpsReply = Awaited<ReturnType<typeof runLps>>
 
@@ -179,6 +184,19 @@ describe('runMutatingTool', () => {
     expect(mockedRunLps).toHaveBeenLastCalledWith(['snippet', 'push', 'demo/snippets', '--env', 'staging'], {cwd: SNAP})
     expect(mockedRemoveSnapshot).toHaveBeenCalledWith(SNAP)
     expect(applied).toEqual({result: {pushed: ['a'], status: 'success'}, status: 'applied'})
+    expect(mockedWriteBack).toHaveBeenCalledWith(SNAP)
+  })
+
+  it('reports files it could not copy back to the project', async () => {
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    const preview = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'])
+    queued.push({data: {status: 'dry-run'}, ok: true})
+    queued.push({data: {status: 'success'}, ok: true})
+    mockedWriteBack.mockResolvedValueOnce({conflicts: ['snippets/5-a.json'], copied: []})
+    const applied = await runMutatingTool('snippet_push', ['snippet', 'push', '--env', 'staging'], preview.confirmToken)
+
+    expect(applied.status).toBe('applied')
+    expect(applied.writebackConflicts).toEqual(['snippets/5-a.json'])
   })
 
   it('refuses a confirmed call when the environment became production since the preview', async () => {

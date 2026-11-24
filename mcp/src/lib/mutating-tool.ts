@@ -1,7 +1,7 @@
 import {consumeConfirmation, createConfirmation} from './confirm-tokens.js'
 import {fingerprintPreview} from './preview-fingerprint.js'
 import {LpsError, RunLpsOptions, runLps} from './run-lps.js'
-import {createSnapshot, removeSnapshot} from './snapshot.js'
+import {createSnapshot, removeSnapshot, writeBack} from './snapshot.js'
 
 export interface MutatingToolResult {
   confirmToken?: string
@@ -10,6 +10,8 @@ export interface MutatingToolResult {
   preview?: unknown
   result?: unknown
   status: 'applied' | 'error' | 'preview'
+  // Present only when files the command wrote could not be copied back to the project.
+  writebackConflicts?: string[]
 }
 
 // Every mutating tool (anything that reaches a real WordPress site) follows the same two-call
@@ -149,8 +151,14 @@ export async function runMutatingTool(
   }
 
   const result = await runLps(consumed.args, {...options, cwd: consumed.snapshotDir})
+  // The command ran in a throwaway copy: bring back what it wrote (id sidecars, renames, .loopress/).
+  const writeback = result.ok ? await writeBack(consumed.snapshotDir).catch(() => undefined) : undefined
   removeSnapshot(consumed.snapshotDir)
   if (!result.ok) return {error: result.error, status: 'error'}
 
-  return {result: result.data, status: 'applied'}
+  return {
+    result: result.data,
+    status: 'applied',
+    ...(writeback?.conflicts.length ? {writebackConflicts: writeback.conflicts} : {}),
+  }
 }

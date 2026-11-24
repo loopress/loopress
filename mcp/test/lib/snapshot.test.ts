@@ -3,7 +3,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
-import {createSnapshot, removeSnapshot} from '../../src/lib/snapshot.js'
+import {createSnapshot, removeSnapshot, writeBack} from '../../src/lib/snapshot.js'
 
 let source = ''
 
@@ -37,6 +37,46 @@ describe('createSnapshot', () => {
 
     expect(await readFile(join(snap, 'snippets', 'demo.php'), 'utf8')).toBe('<?php echo "safe";')
 
+    removeSnapshot(snap)
+  })
+})
+
+describe('writeBack', () => {
+  it('copies back sidecars, renames and .loopress files the command wrote', async () => {
+    const snap = await createSnapshot(source)
+    await writeFile(join(snap, 'snippets', '5-mcp-snip.json'), '{"id":5}')
+    await mkdir(join(snap, '.loopress', 'rollback'), {recursive: true})
+    await writeFile(join(snap, '.loopress', 'rollback', 'snap.json'), '{}')
+    await writeFile(join(snap, 'snippets', 'demo.php'), '<?php echo "renamed";')
+
+    const result = await writeBack(snap)
+
+    expect(result.conflicts).toEqual([])
+    expect(await readFile(join(source, 'snippets', '5-mcp-snip.json'), 'utf8')).toBe('{"id":5}')
+    expect(await readFile(join(source, '.loopress', 'rollback', 'snap.json'), 'utf8')).toBe('{}')
+    expect(await readFile(join(source, 'snippets', 'demo.php'), 'utf8')).toBe('<?php echo "renamed";')
+    removeSnapshot(snap)
+  })
+
+  it('never overwrites a file the user edited since the preview', async () => {
+    const snap = await createSnapshot(source)
+    await writeFile(join(snap, 'snippets', 'demo.php'), '<?php echo "from command";')
+    await writeFile(join(source, 'snippets', 'demo.php'), '<?php echo "user edit";')
+
+    const result = await writeBack(snap)
+
+    expect(result.conflicts).toEqual([join('snippets', 'demo.php')])
+    expect(await readFile(join(source, 'snippets', 'demo.php'), 'utf8')).toBe('<?php echo "user edit";')
+    removeSnapshot(snap)
+  })
+
+  it('leaves unchanged files alone and keeps .git reachable from the snapshot', async () => {
+    await mkdir(join(source, '.git'))
+    await writeFile(join(source, '.git', 'HEAD'), 'ref: refs/heads/main')
+    const snap = await createSnapshot(source)
+
+    expect(await readFile(join(snap, '.git', 'HEAD'), 'utf8')).toBe('ref: refs/heads/main')
+    expect(await writeBack(snap)).toEqual({conflicts: [], copied: []})
     removeSnapshot(snap)
   })
 })
