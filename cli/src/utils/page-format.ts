@@ -100,6 +100,8 @@ export function parseHtmlHeader(raw: string, keys: readonly string[]): {body: st
   const header = /^\s*<!--([\s\S]*?)-->\r?\n?/u.exec(raw)
   const meta: Record<string, string> = {}
   if (!header) return {body: raw, meta}
+  // A comment opening with `wp:` or `/wp:` is block markup (a block editor export), not a header.
+  if (/^\s*\/?wp:/u.test(header[1] ?? '')) return {body: raw, meta}
 
   for (const line of (header[1] ?? '').split(/\r?\n/u)) {
     if (line.trim() === '') continue

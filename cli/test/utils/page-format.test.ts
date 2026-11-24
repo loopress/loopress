@@ -218,3 +218,15 @@ describe('readLocalPages exact problems', () => {
     expect(titleFromSlug('legal--notice-')).toBe('Legal notice')
   })
 })
+
+describe('parsePageFile block markup', () => {
+  it('keeps a leading block comment as content', () => {
+    const raw = '<!-- wp:paragraph -->\n<p>Hi</p>\n<!-- /wp:paragraph -->\n'
+    expect(parsePageFile('hello', raw).html).toBe(raw)
+  })
+
+  it('still parses a real header and refuses an unknown key', () => {
+    expect(parsePageFile('a', '<!--\ntitle: T\n-->\n<p>x</p>').title).toBe('T')
+    expect(() => parsePageFile('a', '<!--\nbogus: 1\n-->\n<p>x</p>')).toThrow(/unknown header key/u)
+  })
+})
