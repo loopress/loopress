@@ -9,8 +9,10 @@ import {isDeepStrictEqual} from 'node:util'
 import {authManager} from '../config/auth.manager.js'
 import {type EnvironmentConfig} from '../types/config.js'
 import {pinActive, pinVersion} from '../types/plugin.js'
+import {pluralize} from '../utils/pluralize.js'
 import {API_URL} from './api-client.js'
 import {LoopressCommand} from './base.js'
+import {withCloudBudget} from './cloud-budget.js'
 import {type ResourceState} from './diff-state.js'
 import {environmentUrlWarnings, type ScannedItem} from './environment-urls.js'
 import {heldBackPaths} from './exclude.js'
@@ -61,11 +63,13 @@ export async function postDeployment(body: {command: string | undefined; plugins
 
   try {
     await withSpinner('Recording the deployment', async () =>
-      got.post(`${API_URL}/deployments`, {
-        headers: {Authorization: `Bearer ${token}`},
-        json: {...body, ...gitState()},
-        timeout: {request: 3000},
-      }),
+      withCloudBudget(async (timeoutMs) =>
+        got.post(`${API_URL}/deployments`, {
+          headers: {Authorization: `Bearer ${token}`},
+          json: {...body, ...gitState()},
+          timeout: {request: timeoutMs},
+        }),
+      ),
     )
   } catch (error) {
     // non-blocking, but an unlinked site is worth a hint
@@ -116,6 +120,9 @@ export abstract class PushCommand extends LoopressCommand {
   protected previewChanges: PushChange[] = []
   // Both sides those statuses were computed from, for a push that details a changed item.
   protected previewStates?: {local: ResourceState; remote: ResourceState}
+  // Files the push could not read (corrupted JSON, ...), by path. Warned
+  // once per run however many readers meet them, and the run ends non-zero naming them.
+  private readonly leftOutFiles = new Set<string>()
   // Refusals of the production guard never reach the site, so they must not pollute the
   // deployment history with failure records.
   private refusedByGuard = false
@@ -154,7 +161,7 @@ export abstract class PushCommand extends LoopressCommand {
       remote = await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         dir,
       )
@@ -174,6 +181,12 @@ export abstract class PushCommand extends LoopressCommand {
     }
 
     await super.catch(err)
+  }
+
+  protected failOnLeftOutFiles(): void {
+    if (this.leftOutFiles.size === 0) return
+    const names = [...this.leftOutFiles]
+    this.error(`${pluralize(names.length, 'file')} left out because they could not be read: ${names.join(', ')}.`)
   }
 
   // Lists what the environment's `exclude` globs (loopress.json) kept out of this push, so a
@@ -239,7 +252,7 @@ export abstract class PushCommand extends LoopressCommand {
       return await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         '',
       )
@@ -316,6 +329,15 @@ export abstract class PushCommand extends LoopressCommand {
     })
   }
 
+  // A file the push cannot read is left out with one warning (however many readers meet it), and
+  // `failOnLeftOutFiles` ends the run non-zero once the other files were handled.
+  protected skipFile(message: string): void {
+    const file = /^Skipping "(.*?)"/u.exec(message)?.[1] ?? message
+    if (this.leftOutFiles.has(file)) return
+    this.leftOutFiles.add(file)
+    this.warn(message)
+  }
+
   // Absolute URLs to another environment of the project in what this push sends: warned about,
   // never rewritten, on a dry run too.
   protected warnEnvironmentUrls(items: ScannedItem[]): void {
@@ -339,7 +361,7 @@ export abstract class PushCommand extends LoopressCommand {
       const afterState = await provider.remote(
         this.wp,
         (message) => {
-          this.warn(message)
+          this.warnProvider(message)
         },
         dir,
       )
@@ -423,6 +445,13 @@ export abstract class PushCommand extends LoopressCommand {
     if (status !== 'success' || this.id !== 'plugin:push') return {}
     const plugins = Object.entries(this.localConfig.plugins ?? {}).map(([slug, pin]) => ({active: pinActive(pin), slug, version: pinVersion(pin)}))
     return {plugins}
+  }
+
+  // What a resource state reader reports: a file it skipped is left out of the run, anything
+  // else is a plain warning.
+  private warnProvider(message: string): void {
+    if (message.startsWith('Skipping "')) this.skipFile(message)
+    else this.warn(message)
   }
 }
 

@@ -192,10 +192,10 @@ function pathArg(pathNoun: string) {
 
 // relative()'s separator is OS-specific ('\\' on Windows); the server only ever expects '/',
 // same as any URL or import path.
-async function loadPhpFiles(command: LoopressCommand, dir: string): Promise<PhpFile[]> {
+async function loadPhpFiles(onSkip: (message: string) => void, dir: string): Promise<PhpFile[]> {
   return loadDirectoryFiles<PhpFile>(dir, {
     extension: '.php',
-    onSkip(message) { command.warn(message) },
+    onSkip,
     parse: (raw, filePath) => ({
       content: raw,
       filename: relative(dir, filePath).slice(0, -'.php'.length).split(sep).join('/'),
@@ -271,6 +271,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
 
       if (this.dryRun) {
         await this.writeAfterPushSnapshot(provider, path, beforeState)
+        this.failOnLeftOutFiles()
         return {changes: this.previewChanges, pruned: pruneList, pushed: files.map((file) => file.filename), status: 'dry-run'}
       }
 
@@ -289,6 +290,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
       const {pruned, pushed} = batch
 
       await this.writeAfterPushSnapshot(provider, path, beforeState)
+      this.failOnLeftOutFiles()
 
       await this.recordSuccess()
       this.log(`All ${spec.label} pushed.`)
@@ -296,7 +298,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
     }
 
     private async loadFiles(path: string): Promise<PhpFile[]> {
-      return loadPhpFiles(this, path)
+      return loadPhpFiles((message) => { this.skipFile(message) }, path)
     }
 
     // One request stages every file and every pruned filename, then swaps them all into place

@@ -204,7 +204,8 @@ test('a malformed file is skipped with a warning and does not block the other po
 
   const push = await runCli(['cpt', 'push'])
 
-  expect(push.exitCode, output(push)).toBe(0)
+  // The other post type is still pushed, but the run ends non-zero naming what it left out.
+  expect(push.exitCode, output(push)).not.toBe(0)
   expect(output(push)).toContain('broken.json')
   expect((await restGet(request, wp, `wp/v2/types/${slug}`)).ok()).toBe(true)
 })

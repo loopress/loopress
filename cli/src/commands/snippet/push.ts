@@ -96,6 +96,8 @@ export default class Push extends PushCommand {
 
     await this.writeAfterPushSnapshot(provider, path, beforeState)
 
+    this.failOnLeftOutFiles()
+
     if (this.dryRun) return {changes: this.previewChanges, pruned, pushed, status: 'dry-run'}
 
     await this.recordSuccess()
@@ -165,7 +167,7 @@ export default class Push extends PushCommand {
     try {
       return await loadSnippetsFromDisk(path, (message) => {
         this.skippedFiles++
-        this.warn(message)
+        this.skipFile(message)
       })
     } catch (error) {
       this.error(errorMessage(error))
