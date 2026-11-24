@@ -131,7 +131,7 @@ export abstract class LoopressCommand extends Command {
     this.localConfig = await readLocalConfig()
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
-    if ((this.ctor as typeof LoopressCommand).optionalEnvironment) {
+    if ((this.ctor as typeof LoopressCommand).optionalEnvironment && !flags.env) {
       try {
         const resolved = this.resolveEnvironment(flags.env)
         this.siteConfig = resolved.env

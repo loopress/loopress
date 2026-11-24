@@ -105,7 +105,7 @@ export default class Pull extends LoopressCommand {
       // Each failure's own reason, not just the count: under --json the per-resource lines above
       // never reach stdout, and this message is all an MCP caller or a script gets to see.
       const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull. ${failures.join('; ')}`)
+      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull. ${failures.join('; ')}${this.refusedUnsupported ? '. Pass --skip-unsupported to leave the unsupported ones out.' : ''}`)
     }
 
     this.log('\nAll resources pulled.')
@@ -156,10 +156,13 @@ export default class Pull extends LoopressCommand {
     }
 
     this.failedCount++
+    this.refusedUnsupported = true
     const error = `${missing.reason} on ${this.siteConfig.name}`
     this.log(`\n✗ ${target.label} failed: ${error}. Pass --skip-unsupported to leave it out.`)
     return {error, label: target.label, status: 'failed'}
   }
+
+  private refusedUnsupported = false
 
   private async warnUnsupported(): Promise<void> {
     if (this.unsupported.length === 0) return
