@@ -70,7 +70,7 @@ lps pull --dry-run
 
 Composer runs before plugins, so that with a `composer.json` the live plugin versions are merged into the freshly pulled file. ACF, forms and snippets are skipped, not failed, when the site lacks their plugin and the project has no directory for them. On Loopress Light, Composer is always skipped, and the Full-only resources (API routes, hooks, patterns, snippets) are skipped the same way when the project has no directory for them, and fail when it does. A failing resource doesn't stop the others: the command reports each one, then exits non-zero with every failure's reason.
 
-With `--skip-unsupported`, a resource the project uses but the site can't hold is reported `skipped` with its reason instead of failing, and the run exits `0`. See [skipping what a site can't hold](#skipping-what-a-site-cant-hold).
+With `--skip-unsupported`, a resource the project uses but the site can't hold is reported `skipped` with its reason instead of failing, and the run exits `0`. Without it, the refusal ends with a hint to pass the flag. See [skipping what a site can't hold](#skipping-what-a-site-cant-hold).
 
 ## `lps push`
 
@@ -120,7 +120,7 @@ lps diff --skip composer
 | `--against <env>` | Compare the target environment with this second environment instead of local files |
 | `--only <resources>` | Only compare these resources. Comma-separated or repeated |
 | `--skip <resources>` | Compare every resource except these. Comma-separated or repeated |
-| `--skip-unsupported` | Skip, instead of comparing, a resource the project uses but a site can't hold, see [below](#skipping-what-a-site-cant-hold) |
+| `--skip-unsupported` | Skip, instead of reporting it as failed with the reason (`Not supported by <site>: ...`), a resource the project uses but a site can't hold, see [below](#skipping-what-a-site-cant-hold) |
 
 Resource names: `snippet`, `form`, `acf`, `api`, `hook`, `page`, `template`, `part`, `menu`, `cpt`, `taxonomy`, `meta`, `role`, `pattern`, `option`, `theme-style`, `composer`.
 

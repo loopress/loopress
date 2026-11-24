@@ -127,6 +127,30 @@ export function commandResourceKind(commandId: string | undefined): ResourceDirK
   return TOPIC_KINDS[topic]
 }
 
+// The commands that need a Loopress Full feature though they act on no single kind of resource:
+// Composer, apps, plugin sync and block themes' templates.
+const COMMAND_MODULES: Record<string, [module: string, what: string]> = {
+  'app:list': ['apps', 'apps'],
+  'composer:push': ['dependencies', 'Composer files'],
+  'plugin:push': ['dependencies', 'Composer files'],
+  'theme:template:diff': ['pages', 'templates and parts'],
+  'theme:template:list': ['pages', 'templates and parts'],
+  'theme:template:push': ['pages', 'templates and parts'],
+  'theme:template:rollback': ['pages', 'templates and parts'],
+}
+
+export function commandNeedsCapabilities(commandId: string | undefined): boolean {
+  return commandResourceKind(commandId) !== undefined || COMMAND_MODULES[commandId ?? ''] !== undefined
+}
+
+// Why the site can't run this command, or undefined when it can (or needs no module).
+export function missingForCommand(commandId: string | undefined, capabilities: SiteCapabilities): MissingIntegration | undefined {
+  const kind = commandResourceKind(commandId)
+  if (kind) return missingIntegration(kind, capabilities)
+  const requirement = COMMAND_MODULES[commandId ?? '']
+  return requirement ? missingModule(requirement[0], requirement[1], capabilities) : undefined
+}
+
 // "Not supported by <site>: <reason>. <fix>.", for the single-resource commands.
 export function unsupportedMessage(missing: MissingIntegration, site: string, declared: {fromComposer: boolean; plugins: string[]}): string {
   const fix = integrationFix(missing, declared)

@@ -211,7 +211,7 @@ describe('pull', () => {
 
     await expect(cmd.run()).rejects.toThrow()
 
-    expect(logs.log).toHaveBeenCalledWith('\n✗ snippets failed: no supported snippet plugin is active on staging')
+    expect(logs.log).toHaveBeenCalledWith('\n✗ snippets failed: no supported snippet plugin is active on staging. Pass --skip-unsupported to leave it out.')
     vi.mocked(process.cwd).mockRestore()
     rmSync(dir, {force: true, recursive: true})
   })

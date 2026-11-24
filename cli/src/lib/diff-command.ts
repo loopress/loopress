@@ -57,6 +57,9 @@ export type DiffTarget = {
   title: string
   // With --skip-unsupported, the resource is used by the project and skipped for the site's sake.
   unsupported?: {fix?: string | undefined; missing: MissingIntegration; reason: string}
+  // Without --skip-unsupported: the site can't hold a resource the project uses. Reported as the
+  // failure, instead of the raw error the site answers when asked for it.
+  unsupportedError?: string
 }
 
 // `left` is always the primary environment. `right` is a second environment (`--against`) or
@@ -251,6 +254,10 @@ export abstract class DiffCommand extends LoopressCommand {
   ): Promise<{drift: boolean; json: ResourceDiffJson; resource: string; skipped?: boolean; stateDiff?: StateDiff; title: string; unsupported?: DiffTarget['unsupported']}> {
     const empty = {added: [], changed: [], removed: []}
     if (target.skip) return {drift: false, json: empty, resource: target.resource, skipped: true, title: target.title, unsupported: target.unsupported}
+
+    if (target.unsupportedError) {
+      return {drift: false, json: {...empty, error: target.unsupportedError}, resource: target.resource, title: target.title}
+    }
 
     try {
       const [leftState, rightState, fullState] = await Promise.all([target.left(), target.right(), target.heldBackFrom?.()])

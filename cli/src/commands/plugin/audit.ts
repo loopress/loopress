@@ -41,6 +41,7 @@ export default class Audit extends LoopressCommand {
   static override enableJsonFlag = true
   static override examples = ['$ lps plugin audit']
   static override flags = {}
+  static override optionalEnvironment = true
 
   async run(): Promise<AuditResult> {
     const manifest = {...this.localConfig.plugins}

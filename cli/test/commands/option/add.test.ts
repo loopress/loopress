@@ -50,6 +50,15 @@ describe('option add', () => {
     expect(written).toMatchObject({autoload: 'no', name: 'wpseo_titles', readonly: false, value: {titleSep: '-'}})
   })
 
+  it('refuses a reserved Windows name before any request to the site', async () => {
+    const {cmd, internals} = makeCmd(['con', '--path', dir])
+    const get = vi.fn()
+    internals.wpClient = {get}
+
+    await expect(cmd.run()).rejects.toThrow(/reserved Windows file name/u)
+    expect(get).not.toHaveBeenCalled()
+  })
+
   it('never persists the remote revision field locally', async () => {
     const {cmd, internals} = makeCmd(['wpseo_titles', '--path', dir])
     const get = vi.fn().mockResolvedValueOnce({autoload: 'no', name: 'wpseo_titles', revision: 'abc123', value: {titleSep: '-'}})

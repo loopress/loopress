@@ -30,6 +30,7 @@ export default class Update extends LoopressCommand {
     'Rewrite plugin versions in loopress.json to the latest WordPress.org releases (loopress.json only, run `lps plugin push` to apply)'
 
   static override enableJsonFlag = true
+
   static override examples = [
     '$ lps plugin update',
     '$ lps plugin update woocommerce akismet',
@@ -42,6 +43,8 @@ export default class Update extends LoopressCommand {
     minor: Flags.boolean({description: 'Stay on the current major version (minor and patch releases only)', exclusive: ['patch']}),
     patch: Flags.boolean({description: 'Stay on the current minor version (patch releases only)', exclusive: ['minor']}),
   }
+
+  static override optionalEnvironment = true
 
   static override strict = false
 

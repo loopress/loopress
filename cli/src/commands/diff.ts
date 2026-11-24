@@ -127,7 +127,10 @@ export default class Diff extends DiffCommand {
   ): DiffTarget {
     if (!lacking) return target
     if (!used) return {...target, skip: true}
-    if (!skipUnsupported) return target
+    if (!skipUnsupported) {
+      return {...target, unsupportedError: `Not supported by ${lacking.site}: ${lacking.missing.reason}. Pass --skip-unsupported to leave it out of the comparison.`}
+    }
+
     return {...target, skip: true, unsupported: {missing: lacking.missing, reason: `${lacking.missing.reason} on ${lacking.site}`}}
   }
 }

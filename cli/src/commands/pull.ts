@@ -157,7 +157,7 @@ export default class Pull extends LoopressCommand {
 
     this.failedCount++
     const error = `${missing.reason} on ${this.siteConfig.name}`
-    this.log(`\n✗ ${target.label} failed: ${error}`)
+    this.log(`\n✗ ${target.label} failed: ${error}. Pass --skip-unsupported to leave it out.`)
     return {error, label: target.label, status: 'failed'}
   }
 

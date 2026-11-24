@@ -19,6 +19,7 @@ export default class Outdated extends LoopressCommand {
   static override enableJsonFlag = true
   static override examples = ['$ lps plugin outdated', '$ lps plugin outdated --json']
   static override flags = {}
+  static override optionalEnvironment = true
 
   async run(): Promise<OutdatedResult> {
     const entries = Object.entries(this.localConfig.plugins ?? {})
