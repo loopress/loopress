@@ -7,6 +7,7 @@ import {basename, isAbsolute, join, relative, resolve} from 'node:path'
 
 import {configManager} from '../config/project-config.manager.js'
 import {LoopressCommand} from '../lib/base.js'
+import {productionRefusal} from '../lib/guard-production-push.js'
 import {isInteractive} from '../lib/interactive.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
@@ -49,7 +50,7 @@ export default class Promote extends Command {
       this.error('<from> and <to> must be different environments.')
     }
 
-    if (!dryRun) await this.confirmPromotion(from.name, to.name, to.url, yes)
+    if (!dryRun) await this.confirmPromotion(from.name, to, yes)
 
     // A dry-run pull writes nothing, so a dry-run push right after would preview the current
     // local files instead of <from>. Instead, really pull into a throwaway copy of the project
@@ -111,11 +112,17 @@ export default class Promote extends Command {
   // target, not just production, so it needs its own confirmation regardless of the name. That
   // prompt also calls out production when relevant, making a second production-only guard
   // redundant.
-  private async confirmPromotion(from: string, to: string, toUrl: string, yes: boolean): Promise<void> {
-    if (yes) return
-
-    const isProduction = to.toLowerCase() === 'production'
+  private async confirmPromotion(from: string, toEnv: EnvironmentConfig, yes: boolean): Promise<void> {
+    const {name: to, url: toUrl} = toEnv
+    const isProduction = toEnv.type === 'production'
     const warning = isProduction ? ` "${to}" is a production environment.` : ''
+
+    if (isProduction && !isInteractive()) {
+      const refusal = productionRefusal(toEnv, yes)
+      if (refusal !== null) this.error(refusal)
+    }
+
+    if (yes) return
 
     if (!isInteractive()) {
       this.error(

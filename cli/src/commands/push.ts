@@ -204,7 +204,7 @@ export default class Push extends LoopressCommand {
     if (!hasComposerJson) return Object.keys(this.localConfig.plugins ?? {})
     try {
       const composerJson = parseComposerJson(await readFile(this.composerJsonPath(), 'utf8'))
-      return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig.name)))
+      return Object.keys(wpackagistRequire(composerJson, 'plugin', isLocalEnvironment(this.siteConfig)))
     } catch {
       return []
     }

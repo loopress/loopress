@@ -8,20 +8,20 @@ export const REQUEST_TIMEOUT_MS = 30_000
 
 type HttpMethod = 'delete' | 'get' | 'post' | 'put'
 
-// The one environment allowed to talk plain HTTP: Loopress's local dev environment, identified
-// by its config name (the same "local" environment `lps dev` targets), never by the URL's host.
-// Locality is a property of the configured environment, not of a hostname, so a real remote site
-// can never opt into cleartext just by resolving to a `.local`/loopback-looking name.
+// The environments allowed to talk plain HTTP are the ones of type "local" (the same type
+// `lps dev` targets), never decided by the environment's name nor by the URL's host. Locality is
+// a property of the configured environment's type, not of a hostname or a label, so a real remote
+// site can never opt into cleartext just by resolving to a `.local`/loopback-looking name.
 export const LOCAL_ENVIRONMENT_NAME = 'local'
 
-export function isLocalEnvironment(environmentName: string | undefined): boolean {
-  return environmentName === LOCAL_ENVIRONMENT_NAME
+export function isLocalEnvironment(environment: undefined | {type?: string}): boolean {
+  return environment?.type === 'local'
 }
 
-// Throws when a URL would send credentials in cleartext: http:// for any environment other than
-// the local one. The trust boundary is here, at the client, so a hand-edited config.json or
+// Throws when a URL would send credentials in cleartext: http:// for any environment not of type
+// "local". The trust boundary is here, at the client, so a hand-edited config.json or
 // loopress.json cannot bypass the check the interactive prompt also applies.
-export function assertSecureSiteUrl(siteUrl: string, environmentName: string | undefined): void {
+export function assertSecureSiteUrl(siteUrl: string, environment: undefined | {name?: string; type?: string}): void {
   let parsed: URL
   try {
     parsed = new URL(siteUrl)
@@ -29,9 +29,9 @@ export function assertSecureSiteUrl(siteUrl: string, environmentName: string | u
     throw new Error(`Invalid site URL: ${siteUrl}`)
   }
 
-  if (parsed.protocol === 'http:' && !isLocalEnvironment(environmentName)) {
+  if (parsed.protocol === 'http:' && !isLocalEnvironment(environment)) {
     throw new Error(
-      `Refusing to send credentials over plain HTTP for the "${environmentName ?? 'unknown'}" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for the "${LOCAL_ENVIRONMENT_NAME}" environment.`,
+      `Refusing to send credentials over plain HTTP for the "${environment?.name ?? 'unknown'}" environment: the Application Password would travel in cleartext. Use HTTPS. Plain HTTP is allowed only for an environment of type "local".`,
     )
   }
 }
@@ -47,9 +47,9 @@ export class WpClient {
   constructor(
     siteUrl: string,
     token: string,
-    environmentName?: string,
+    environment?: {name?: string; type?: string},
   ) {
-    assertSecureSiteUrl(siteUrl, environmentName)
+    assertSecureSiteUrl(siteUrl, environment)
     this.siteUrl = siteUrl
     this.client = got.extend({
       headers: {Authorization: `Basic ${Buffer.from(token).toString('base64')}`},

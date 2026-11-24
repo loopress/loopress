@@ -393,7 +393,7 @@ export function resourcePushCommand(spec: PhpFilesResource): CommandClass<PushFi
         return orphans
       }
 
-      if (!this.yes && this.siteConfig.name.toLowerCase() === 'production') {
+      if (!this.yes && this.siteConfig.type === 'production') {
         if (!isInteractive()) {
           const count = pluralize(orphans.length, `server-side ${spec.noun}`)
           this.error(`Pushing would prune ${count} but stdin is not a TTY. Re-run with --yes to confirm, or with --no-prune.`)

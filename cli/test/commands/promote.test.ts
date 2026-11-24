@@ -23,6 +23,9 @@ vi.mock('../../src/lib/interactive.js', () => ({
   isInteractive: () => interactive.value,
 }))
 
+const ci = vi.hoisted(() => ({provider: true}))
+vi.mock('../../src/lib/ci.js', () => ({isCi: () => ci.provider, isKnownCiProvider: () => ci.provider}))
+
 const PROJECT = makeListedProject(
   'id-acme',
   'acme',
@@ -44,6 +47,7 @@ describe('promote', () => {
     resetFakeOclifConfig()
     vi.clearAllMocks()
     interactive.value = false
+    ci.provider = true
     vi.mocked(readLocalConfig).mockResolvedValue({})
     vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(PROJECT)
   })
@@ -176,7 +180,7 @@ describe('promote', () => {
     it('refuses outside a TTY without --yes', async () => {
       const {cmd} = make(['staging', 'production'])
 
-      await expect(cmd.run()).rejects.toThrow(/overwrites local tracked files.*Pass --yes to confirm/su)
+      await expect(cmd.run()).rejects.toThrow(/is of type "production".*Pass --yes from a CI pipeline/su)
       expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
@@ -199,6 +203,44 @@ describe('promote', () => {
 
       expect(confirm).toHaveBeenCalledWith(expect.objectContaining({default: true}))
       expect(fakeOclifConfig.runCommand).toHaveBeenCalledTimes(2)
+    })
+
+    it('goes by the environment type, not its name: a production-typed "live" warns and defaults to no', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
+        makeListedProject('id-acme', 'acme', {live: {...makeEnv('live', 'https://acme.com'), type: 'production'}, staging: makeEnv('staging', 'https://staging.acme.com')}, true),
+      )
+      const {cmd} = make(['staging', 'live'])
+
+      await cmd.run()
+
+      expect(confirm).toHaveBeenCalledWith(
+        expect.objectContaining({default: false, message: expect.stringContaining('"live" is a production environment')}),
+      )
+    })
+
+    it('does not treat an environment named production but typed staging as production', async () => {
+      interactive.value = true
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      vi.mocked(fakeOclifConfig.runCommand).mockResolvedValue({})
+      vi.spyOn(configManager, 'getCurrentProject').mockReturnValue(
+        makeListedProject('id-acme', 'acme', {production: {...makeEnv('production'), type: 'staging'}, staging: makeEnv('staging', 'https://staging.acme.com')}, true),
+      )
+      const {cmd} = make(['staging', 'production'])
+
+      await cmd.run()
+
+      expect(confirm).toHaveBeenCalledWith(expect.objectContaining({default: true}))
+    })
+
+    it('refuses --yes alone into a production-typed environment outside a recognized CI', async () => {
+      ci.provider = false
+      const {cmd} = make(['staging', 'production', '--yes'])
+
+      await expect(cmd.run()).rejects.toThrow(/never with --yes alone/u)
+      expect(fakeOclifConfig.runCommand).not.toHaveBeenCalled()
     })
 
     it('defaults the prompt to no and names production when <to> is production', async () => {

@@ -12,6 +12,7 @@ import {makeCapabilities, makeLightCapabilities, stubCapabilities} from '../help
 import {fakeOclifConfig, resetFakeOclifConfig, silenceLogs} from '../helpers/oclif.js'
 import {makeEnv} from '../helpers/project-fixtures.js'
 
+vi.mock('../../src/lib/ci.js', () => ({isCi: () => Boolean(process.env.CI), isKnownCiProvider: () => true}))
 vi.mock('@inquirer/prompts', () => ({
   confirm: vi.fn(),
 }))

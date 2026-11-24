@@ -11,6 +11,7 @@ import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-confi
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
 import {commandNeedsCapabilities, getCapabilities, missingForCommand, type SiteCapabilities, unsupportedMessage} from './capabilities.js'
+import {isCi} from './ci.js'
 import {declaredPlugins} from './declared-plugins.js'
 import {activateExclusions} from './exclude.js'
 import {isInteractive} from './interactive.js'
@@ -87,12 +88,12 @@ export abstract class LoopressCommand extends Command {
 
   protected get wp(): WpClient {
     if (!this.wpClient) {
-      const {name, token, url} = this.siteConfig
+      const {token, url} = this.siteConfig
       if (!token) {
         this.error(`No credentials configured for ${url}. Run \`lps project config\` to add them.`)
       }
 
-      this.wpClient = new WpClient(url, token, name)
+      this.wpClient = new WpClient(url, token, this.siteConfig)
     }
 
     return this.wpClient
@@ -185,7 +186,7 @@ export abstract class LoopressCommand extends Command {
     // Set by `lps promote --dry-run` around its delegated pull: a preview must not revoke anything.
     if (process.env.LOOPRESS_NO_AUTO_ROTATE) return
 
-    if (process.env.CI) {
+    if (isCi()) {
       this.warn(
         `The app password for "${this.siteConfig.name}" is older than 90 days. Auto-rotation is skipped in CI, run \`lps project rotate\` where this config.json lives, then update the CI secret.`,
       )
@@ -332,7 +333,7 @@ export abstract class LoopressCommand extends Command {
     }
 
     if (!missing) return
-    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteName: this.siteConfig.name})
+    const declared = await declaredPlugins({localConfig: this.localConfig, rootDir: this.rootDir, siteConfig: this.siteConfig})
     this.error(unsupportedMessage(missing, this.siteConfig.name, declared))
   }
 

@@ -1,11 +1,13 @@
 import {confirm} from '@inquirer/prompts'
 
+import {isCi} from './ci.js'
+
 // Whether prompts can be shown at all: a real terminal on both ends, and not a CI runner.
 // CI=1 with a pseudo-TTY still counts as non-interactive, which is what CI users expect.
 // Every command that prompts routes its decision through this so the CLI never hangs on a
 // question nobody can answer.
 export function isInteractive(): boolean {
-  return process.stdin.isTTY && process.stdout.isTTY && !process.env.CI
+  return process.stdin.isTTY && process.stdout.isTTY && !isCi()
 }
 
 // The "about to uninstall N plugins/themes from the site" gate shared by `plugin push` and

@@ -43,7 +43,7 @@ const PRODUCTION_BLOCKED: MutatingToolResult = {
   error: {
     message:
       'Refusing to change an environment of type "production" from the MCP server: there is no human confirmation on this path. ' +
-      'Run this command with the lps CLI, where production changes are confirmed interactively.',
+      'Production is changed by a human in a terminal, who confirms it, or by a CI pipeline: it is not something to run on their behalf.',
     name: 'PRODUCTION_BLOCKED',
   },
   status: 'error',

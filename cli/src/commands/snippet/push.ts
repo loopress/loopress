@@ -199,7 +199,7 @@ export default class Push extends PushCommand {
       return orphans
     }
 
-    if (!this.yes && this.siteConfig.name.toLowerCase() === 'production') {
+    if (!this.yes && this.siteConfig.type === 'production') {
       if (!isInteractive()) {
         this.error(`Pushing would prune ${pluralize(orphans.length, 'site snippet')} but stdin is not a TTY. Re-run with --yes to confirm, or with --no-prune.`)
       }

@@ -1,12 +1,13 @@
 import {confirm} from '@inquirer/prompts'
 
 import {configManager} from '../config/project-config.manager.js'
+import {isCi} from './ci.js'
 
 const QUESTION =
   'Send anonymous crash reports to Loopress? A report has the command name, its flag names (never their values or arguments), your Node.js and OS versions, and the error message with site URLs removed. Never WordPress credentials or content. Change it anytime with `lps telemetry enable|disable`.'
 
 function isInteractive(): boolean {
-  return process.stdin.isTTY && process.stdout.isTTY && !process.env.CI
+  return process.stdin.isTTY && process.stdout.isTTY && !isCi()
 }
 
 // Asks once, the first time an interactive command runs. Non-interactive shells and CI never

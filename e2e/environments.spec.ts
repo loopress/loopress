@@ -53,7 +53,7 @@ test.describe('environment resolution', () => {
 
     expect(list.exitCode).not.toBe(0)
     expect(output(list)).toContain('Refusing to send credentials over plain HTTP for the "staging" environment')
-    expect(output(list)).toContain('Plain HTTP is allowed only for the "local" environment')
+    expect(output(list)).toContain('Plain HTTP is allowed only for an environment of type "local"')
   })
 
   test('an environment without a type is refused, with the way forward', async ({homeDir, runCli}) => {

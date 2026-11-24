@@ -354,7 +354,7 @@ export abstract class DiffCommand extends LoopressCommand {
       this.error(`No credentials configured for "${envName}". Run \`lps project config\` to add them.`)
     }
 
-    return new WpClient(env.url, env.token, env.name)
+    return new WpClient(env.url, env.token, env)
   }
 }
 

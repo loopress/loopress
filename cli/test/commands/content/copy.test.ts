@@ -214,6 +214,7 @@ describe('content copy', () => {
 
   it('refuses to copy the local site onto itself', async () => {
     const {cmd, local} = make(['local'])
+    vi.spyOn(configManager, 'getProject').mockReturnValue({environments: {local: makeEnv('local')}, id: 'acme', name: 'Acme'} as never)
 
     await expect(cmd.run()).rejects.toThrow('lps content copy production')
     expect(local.post).not.toHaveBeenCalled()
@@ -222,7 +223,7 @@ describe('content copy', () => {
   it('refuses a project without a local environment to copy into', async () => {
     const {cmd, local} = make(['production'], 'production')
 
-    await expect(cmd.run()).rejects.toThrow('only ever copied into the "local" environment')
+    await expect(cmd.run()).rejects.toThrow('only ever copied into an environment of type "local"')
     expect(local.post).not.toHaveBeenCalled()
   })
 
