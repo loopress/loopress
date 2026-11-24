@@ -146,3 +146,43 @@ test("rollback puts back the build of the previous push: a file it changed, one 
 
 	await runCli(["app", "remove", name, "--yes"]);
 });
+
+test("rollback restores a build pushed from another machine byte for byte, and removes an app the push created", async ({
+	projectDir,
+	request,
+	runCli,
+	wp,
+}) => {
+	const name = `e2e-rollback-site-${Date.now()}`;
+	const created = `${name}-new`;
+	const dist = join(projectDir, "apps", name, "dist", "assets");
+	scaffoldApp(projectDir, name, "export const v = 1");
+	writeFileSync(join(dist, "chunk-old.js"), "export const old = 1");
+	expect((await runCli(["app", "push", name])).exitCode).toBe(0);
+
+	const assetOf = async (app: string, path: string) =>
+		request.get(`${wp.url}/wp-content/loopress/apps/${app}/assets/${path}`);
+	const v1 = {chunk: await (await assetOf(name, "chunk-old.js")).text(), main: await (await assetOf(name, "index-abc.js")).text()};
+
+	// v2 pushed from another checkout: none of the snapshots of the v1 push are there.
+	rmSync(join(projectDir, ".loopress", "snapshots"), {force: true, recursive: true});
+	writeFileSync(join(dist, "index-abc.js"), "export const v = 2");
+	rmSync(join(dist, "chunk-old.js"));
+	scaffoldApp(projectDir, created, "export const created = 1");
+	const push = await runCli(["app", "push"]);
+	expect(push.exitCode, push.stderr).toBe(0);
+
+	const dryRun = await runCli(["app", "rollback", "--dry-run"]);
+	expect(dryRun.exitCode, dryRun.stderr).toBe(0);
+	expect(dryRun.stdout).toContain(`Would remove what that push created: ${created}`);
+
+	const rollback = await runCli(["app", "rollback", "--yes"]);
+	expect(rollback.exitCode, rollback.stderr).toBe(0);
+
+	expect(await (await assetOf(name, "index-abc.js")).text()).toBe(v1.main);
+	expect(await (await assetOf(name, "chunk-old.js")).text()).toBe(v1.chunk);
+	const apps = await request.get(`${wp.url}/wp-json/loopress/v1/apps`, {headers: {Authorization: authHeader(wp)}});
+	expect(((await apps.json()) as Array<{name: string}>).map((app) => app.name)).not.toContain(created);
+
+	await runCli(["app", "remove", name, "--yes"]);
+});

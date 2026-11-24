@@ -57,7 +57,7 @@ lps app push [name]
 
 Pushing never deletes anything on WordPress. A build that fails to upload or commit leaves the previous build serving.
 
-Every real push also saves a [snapshot](/rollback/) for `lps app rollback`, with a copy of the bundles it sent. When those bundles (plus the copy of the build each app had before) are above 25 MB, the push saves no snapshot and says so: undo it by checking out the previous build in Git and pushing again.
+Every real push also saves a [snapshot](/rollback/) for `lps app rollback`, with a copy of the bundles it sent and of the builds it replaced. Before uploading, the push reads the build it replaces from an earlier snapshot of this machine or, when none has it (a build pushed from CI or another machine), from the site: only the files the new build overwrites or drops are downloaded. When the site cannot give that build back, or when both builds take more than 25 MB, the push still succeeds and says so: a rollback that needs those files refuses before changing anything, undo the push by checking out the previous build in Git and pushing again.
 
 ### `lps app rollback`
 
@@ -67,7 +67,7 @@ Put back the builds the last `lps app push` replaced: the CLI uploads the files 
 lps app rollback
 ```
 
-The site cannot give a bundle back, so the build before a push is only restorable when this machine has a copy of it: a build pushed from here and still in a kept snapshot. Otherwise (the first push of that app from this machine, a build pushed from somewhere else since), the rollback refuses for that app and says so. An app the push created is not removed: use `lps app rm`.
+The rollback uploads each app's previous build from the snapshot and commits it, and removes the apps the push created (`--dry-run` lists them). An app that existed before the push, or was created since by someone else, is never removed. When the snapshot has no full copy of a build to put back (see the size limit above), the rollback refuses, says why, and changes nothing.
 
 ### `lps app pull`
 
