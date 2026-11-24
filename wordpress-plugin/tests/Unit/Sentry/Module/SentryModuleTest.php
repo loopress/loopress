@@ -11,6 +11,7 @@ use Sentry\Event;
 use Sentry\ExceptionDataBag;
 use Sentry\Frame;
 use Sentry\Stacktrace;
+use Sentry\UserDataBag;
 
 class SentryModuleTest extends TestCase
 {
@@ -34,6 +35,31 @@ class SentryModuleTest extends TestCase
         $event->setExceptions([new ExceptionDataBag(new RuntimeException('boom'))]);
 
         $this->assertFalse(SentryModule::isOwnEvent($event));
+    }
+
+    public function test_scrub_drops_body_query_string_headers_and_server_name(): void
+    {
+        $event = Event::createEvent();
+        $event->setServerName('web-01.client.example');
+        $event->setUser(UserDataBag::createFromUserIpAddress('203.0.113.9'));
+        $event->setRequest([
+            'url'          => 'https://client.example/wp-json/loopress/v1/x?token=secret&email=a@b.c',
+            'method'       => 'POST',
+            'query_string' => 'token=secret&email=a@b.c',
+            'data'         => ['password' => 'hunter2'],
+            'headers'      => ['Authorization' => 'Basic abc', 'Cookie' => 'wordpress_logged_in=1'],
+            'cookies'      => ['wordpress_logged_in' => '1'],
+            'env'          => ['REMOTE_ADDR' => '203.0.113.9'],
+        ]);
+
+        $scrubbed = SentryModule::scrub($event);
+
+        $this->assertNull($scrubbed->getServerName());
+        $this->assertNull($scrubbed->getUser());
+        $this->assertSame(
+            ['method' => 'POST', 'url' => 'https://client.example/wp-json/loopress/v1/x'],
+            $scrubbed->getRequest()
+        );
     }
 
     private function eventWithFrameFile(string $file): Event
