@@ -44,8 +44,8 @@ test("lps push runs every resource, pushing what's local and skipping what isn't
 			"",
 		].join("\n"),
 	);
-	// snippets/ exists but is empty: proves an empty resource succeeds as a no-op rather than
-	// failing the run (unlike plugins/composer below, which have nothing to be empty *of*).
+	// snippets/ exists but is empty: an empty resource directory counts as unused, so it is
+	// skipped like a missing one rather than pushed.
 	mkdirSync(join(projectDir, "snippets"), { recursive: true });
 
 	const push = await runCli(["push"]);
@@ -53,12 +53,12 @@ test("lps push runs every resource, pushing what's local and skipping what isn't
 	// Unconfigured is skipped, not failed: plugins and composer, ACF and forms without their
 	// directory, hooks without a hooks directory, Global Styles without a tracked file.
 	expect(push.exitCode).toBe(0);
-	for (const label of ["plugins", "composer", "ACF", "hooks", "forms", "Global Styles"]) {
+	for (const label of ["plugins", "composer", "ACF", "hooks", "forms", "Global Styles", "snippets"]) {
 		expect(push.stdout).toContain(`→ ${label}: not configured, skipped`);
 	}
 
 	// Every other resource ran and succeeded, in the documented order.
-	const succeeded = ["API routes", "snippets"];
+	const succeeded = ["API routes"];
 	for (const label of succeeded) {
 		expect(push.stdout).toContain(`✓ ${label} pushed`);
 	}

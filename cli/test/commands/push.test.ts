@@ -5,6 +5,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../src/commands/push.js'
+import {PruneRefusedError} from '../../src/lib/php-files-command.js'
 import {type EnvironmentConfig} from '../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../src/utils/loopress-config.js'
 import {makeCapabilities, makeLightCapabilities, stubCapabilities} from '../helpers/capabilities.js'
@@ -107,7 +108,12 @@ describe('push', () => {
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-test-'))
     // Plugin-backed pushes and Global Styles are skipped when the project doesn't use them, see
     // the dedicated tests below.
-    for (const dir of [...CORE_DIRS, 'acf', 'forms', 'snippets', 'theme', 'theme/templates']) mkdirSync(join(projectDir, dir))
+    for (const dir of [...CORE_DIRS, 'acf', 'forms', 'snippets', 'theme', 'theme/templates']) {
+      mkdirSync(join(projectDir, dir))
+      // A directory counts as used only when it holds something.
+      writeFileSync(join(projectDir, dir, 'placeholder.txt'), '')
+    }
+
     writeFileSync(join(projectDir, 'theme', 'bakery-global-styles.json'), '{}')
     themes.value = ACTIVE_BLOCK_THEME
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
@@ -524,6 +530,22 @@ describe('push', () => {
     expect(logs.log).toHaveBeenCalledWith('✗ post types failed: boom')
   })
 
+  it('does not double the final period of a step message', async () => {
+    vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('Nope.'))
+    const {cmd} = make()
+
+    await expect(cmd.run()).rejects.toThrow(/^plugins failed to push: Nope\.( Not attempted|$)/u)
+  })
+
+  it('runs the steps after a refused prune, then fails the run naming it', async () => {
+    const calls = vi.mocked(fakeOclifConfig.runCommand)
+    calls.mockResolvedValueOnce({}).mockRejectedValueOnce(new PruneRefusedError('Refusing to prune: x.')).mockResolvedValue({})
+    const {cmd} = make()
+
+    await expect(cmd.run()).rejects.toThrow(/refused:\n {2}post types: Refusing to prune: x\./u)
+    expect(calls.mock.calls.length).toBeGreaterThan(2)
+  })
+
   it('names nothing as skipped when the last resource fails', async () => {
     const calls = vi.mocked(fakeOclifConfig.runCommand)
     for (let i = 0; i < DELEGATED_IDS.length - 1; i++) calls.mockResolvedValueOnce({})
@@ -563,7 +585,6 @@ describe('push', () => {
   })
 
   it('warns with the held back resources before stopping on a failure under --skip-unsupported', async () => {
-    mkdirSync(join(projectDir, 'snippets'), {recursive: true})
     vi.mocked(fakeOclifConfig.runCommand).mockRejectedValueOnce(new Error('boom'))
     const {cmd, logs} = make({argv: ['--skip-unsupported'], capabilities: makeCapabilities({integrations: {snippets: false}})})
 

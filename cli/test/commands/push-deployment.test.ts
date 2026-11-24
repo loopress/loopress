@@ -1,6 +1,6 @@
 import got from 'got'
 import {execFileSync} from 'node:child_process'
-import {mkdirSync, mkdtempSync, rmSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -59,7 +59,11 @@ describe('push deployment record', () => {
       throw new Error('not a git repository')
     })
     projectDir = mkdtempSync(join(tmpdir(), 'lps-push-record-'))
-    for (const dir of ['options', 'menus']) mkdirSync(join(projectDir, dir))
+    for (const dir of ['options', 'menus']) {
+      mkdirSync(join(projectDir, dir))
+      writeFileSync(join(projectDir, dir, '.keep'), '')
+    }
+
     vi.spyOn(process, 'cwd').mockReturnValue(projectDir)
   })
 

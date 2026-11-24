@@ -7,6 +7,7 @@ import {integrationFix, type MissingIntegration, missingIntegration, missingModu
 import {guardProductionPush} from '../lib/guard-production-push.js'
 import {stdoutToStderr} from '../lib/json-delegation.js'
 import {errorMessage} from '../lib/narrow.js'
+import {PruneRefusedError} from '../lib/php-files-command.js'
 import {postDeployment, PushCommand, startDeploymentCollector, stopDeploymentCollector} from '../lib/push-command.js'
 import {parseSelectionFlag, selectionFlags, selectResources} from '../lib/resource-selection.js'
 import {isLocalEnvironment} from '../lib/wp-client.js'
@@ -114,6 +115,7 @@ export default class Push extends LoopressCommand {
       await postDeployment({command: 'push', status, steps, url: this.siteConfig.url, ...(collected.plugins && {plugins: collected.plugins})})
     }
 
+    const refused: string[] = []
     for (const target of PUSH_TARGETS) {
       const skip = skips.get(target.commandId)
       if (skip) {
@@ -131,16 +133,25 @@ export default class Push extends LoopressCommand {
         const message = errorMessage(error)
         this.log(`✗ ${target.label} failed: ${message}`)
         results.push({error: message, label: target.label, status: 'failed'})
+        // The prune guard changed nothing on the site: carry on, report the step at the end.
+        if (error instanceof PruneRefusedError) {
+          refused.push(`${target.label}: ${message}`)
+          continue
+        }
+
         // Stop here: later targets depend on earlier ones (hooks use what composer installs,
         // pages need their templates), so pushing them anyway can ship a silently broken site.
-        const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1)
-          .filter((next) => !skips.has(next.commandId))
-          .map((next) => next.label)
-        const skippedNote = skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+        const skippedNote = this.notAttemptedNote(target, skips)
         this.warnUnsupported()
         await record('failure')
-        this.error(`${target.label} failed to push: ${message}.${skippedNote}`)
+        this.error(`${target.label} failed to push: ${message.endsWith('.') ? message.slice(0, -1) : message}.${skippedNote}`)
       }
+    }
+
+    if (refused.length > 0) {
+      this.warnUnsupported()
+      await record('failure')
+      this.error(this.refusedMessage(refused))
     }
 
     await record('success')
@@ -224,6 +235,17 @@ export default class Push extends LoopressCommand {
       siteConfig: this.siteConfig,
       yes: this.yes,
     })
+  }
+
+  private notAttemptedNote(target: PushTarget, skips: Map<string, Skip>): string {
+    const skipped = PUSH_TARGETS.slice(PUSH_TARGETS.indexOf(target) + 1)
+      .filter((next) => !skips.has(next.commandId))
+      .map((next) => next.label)
+    return skipped.length > 0 ? ` Not attempted: ${skipped.join(', ')}.` : ''
+  }
+
+  private refusedMessage(refused: string[]): string {
+    return `The rest was pushed, but ${refused.length === 1 ? 'a step was' : 'some steps were'} refused:\n  ${refused.join('\n  ')}`
   }
 
   // Unconfigured is not a failure: a project that doesn't manage plugins or composer through

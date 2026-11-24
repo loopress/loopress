@@ -43,6 +43,7 @@ describe('template push', () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'lps-template-push-test-'))
     mkdirSync(join(dir, 'theme', 'templates'), {recursive: true})
+    writeFileSync(join(dir, 'theme', 'templates', '.keep'), '')
     mkdirSync(join(dir, 'theme', 'parts'), {recursive: true})
   })
 

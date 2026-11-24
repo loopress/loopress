@@ -334,14 +334,31 @@ describe('hook push', () => {
     })
 
     it('refuses to prune, naming the path, when the local directory holds no PHP file', async () => {
-      const {cmd, post} = make([dir])
+      const {cmd, get, post} = make([dir])
+      get.mockResolvedValue([{filename: 'stale'}])
 
       await expect(cmd.run()).rejects.toThrow(`Refusing to prune: ${dir}`)
       expect(post).not.toHaveBeenCalled()
     })
 
+    it('names a way out that exists, in the refusal', async () => {
+      const {cmd, get} = make([dir])
+      get.mockResolvedValue([{filename: 'stale'}])
+
+      await expect(cmd.run()).rejects.toThrow(/lps hook rm.*--no-prune.*--skip hook/u)
+    })
+
+    it('is a no-op, not a refusal, when the directory is empty and so is the site', async () => {
+      const {cmd, get, post} = make([dir])
+      get.mockResolvedValue([])
+
+      expect(await cmd.run()).toEqual({pruned: [], pushed: [], status: 'success'})
+      expect(post).not.toHaveBeenCalled()
+    })
+
     it('refuses to prune when the local directory is missing', async () => {
-      const {cmd, post} = make([join(dir, 'missing')])
+      const {cmd, get, post} = make([join(dir, 'missing')])
+      get.mockResolvedValue([{filename: 'stale'}])
 
       await expect(cmd.run()).rejects.toThrow(/Refusing to prune: .*missing is missing or holds no PHP file/u)
       expect(post).not.toHaveBeenCalled()

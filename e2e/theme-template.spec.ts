@@ -41,12 +41,13 @@ test.describe('theme template sync (block theme)', () => {
     await requestUtils.activateTheme(previousActiveTheme)
   })
 
-  // Leaves the child theme empty, whatever a test pushed into it. An empty templates directory,
-  // since with none at all the push refuses with "Nothing to push".
+  // Leaves the child theme empty, whatever a test pushed into it. A templates directory holding
+  // only a .gitkeep, since a missing or empty one makes the push refuse with "Nothing to push".
   test.afterEach(async ({projectDir, requestUtils, runCli}) => {
     await requestUtils.activateTheme(BLOCK_THEME)
     rmSync(join(projectDir, 'theme'), {force: true, recursive: true})
     mkdirSync(join(projectDir, 'theme', 'templates'), {recursive: true})
+    writeFileSync(join(projectDir, 'theme', 'templates', '.gitkeep'), '')
     const cleanup = await runCli(['theme', 'template', 'push', '--yes'])
     expect(cleanup.exitCode, output(cleanup)).toBe(0)
   })
