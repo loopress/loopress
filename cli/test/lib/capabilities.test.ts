@@ -1,6 +1,6 @@
 import {describe, expect, it, vi} from 'vitest'
 
-import {activateTheme, getCapabilities, integrationFix, missingIntegration, missingModule} from '../../src/lib/capabilities.js'
+import {activateTheme, commandNeedsCapabilities, getCapabilities, integrationFix, missingForCommand, missingIntegration, missingModule} from '../../src/lib/capabilities.js'
 import {type WpClient} from '../../src/lib/wp-client.js'
 import {makeCapabilities, makeLightCapabilities} from '../helpers/capabilities.js'
 
@@ -117,5 +117,23 @@ describe('integrationFix', () => {
   it('gives the fixed remedy, or nothing when there is none', () => {
     expect(integrationFix({fix: 'Install Loopress Full', reason: 'x'}, {fromComposer: true, plugins: []})).toBe('Install Loopress Full')
     expect(integrationFix({reason: 'classic theme'}, {fromComposer: true, plugins: []})).toBeUndefined()
+  })
+})
+
+describe('missingForCommand', () => {
+  it.each(['composer:push', 'app:list', 'plugin:push', 'theme:template:list', 'theme:template:push'])('refuses %s on Light, asking for Full', (id) => {
+    expect(missingForCommand(id, makeLightCapabilities())?.needsFull).toBe(true)
+    expect(commandNeedsCapabilities(id)).toBe(true)
+  })
+
+  it('lets those commands run on Full', () => {
+    expect(missingForCommand('composer:push', makeCapabilities())).toBeUndefined()
+    expect(missingForCommand('app:list', makeCapabilities())).toBeUndefined()
+  })
+
+  it('keeps the per-resource commands and ignores the others', () => {
+    expect(missingForCommand('hook:push', makeLightCapabilities())?.needsFull).toBe(true)
+    expect(missingForCommand('plugin:status', makeLightCapabilities())).toBeUndefined()
+    expect(commandNeedsCapabilities('plugin:status')).toBe(false)
   })
 })

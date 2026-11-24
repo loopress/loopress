@@ -113,3 +113,9 @@ describe('versionJump', () => {
     expect(versionJump('latest', '2.0.0')).toBeNull()
   })
 })
+
+describe('plugin outdated without a configured environment', () => {
+  it('opts out of the environment requirement, like validate', () => {
+    expect(Outdated.optionalEnvironment).toBe(true)
+  })
+})

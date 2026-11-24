@@ -263,7 +263,7 @@ describe('diff', () => {
     expect(logs.warn).toHaveBeenCalledWith(expect.stringMatching(/Forms: no supported form plugin is active on staging\. Declare wpforms-lite/u))
   })
 
-  it('without --skip-unsupported, still compares a used resource the site cannot hold', async () => {
+  it('without --skip-unsupported, reports the capability reason for a used resource the site cannot hold, without asking the site', async () => {
     mkdirSync(join(dir, 'forms'))
     writeFileSync(join(dir, 'forms', '.keep'), '')
     const get = baselineGet()
@@ -272,7 +272,8 @@ describe('diff', () => {
     const result = await cmd.run()
 
     expect(result.resources.form?.status).toBeUndefined()
-    expect(get).toHaveBeenCalledWith('loopress/v1/forms')
+    expect(result.resources.form?.error).toMatch(/^Not supported by staging: .*--skip-unsupported/u)
+    expect(get).not.toHaveBeenCalledWith('loopress/v1/forms')
   })
 
   it('skips nothing when the capabilities cannot be read, so the run stays inconclusive (exit 2), not drift', async () => {
@@ -303,7 +304,7 @@ describe('diff', () => {
 
     const result = await cmd.run()
 
-    expect(result.resources.form?.error).toBe('No supported form plugin is active')
+    expect(result.resources.form?.error).toBe('Not supported by staging: no supported form plugin is active. Pass --skip-unsupported to leave it out of the comparison.')
     expect(process.exitCode).toBe(2)
   })
 

@@ -10,7 +10,7 @@ import {isEnvironmentType} from '../types/environment-type.js'
 import {type LoopressLocalConfig, readLocalConfig} from '../utils/loopress-config.js'
 import {pluralize} from '../utils/pluralize.js'
 import {resolveResourceDir} from '../utils/resource-dirs.js'
-import {commandResourceKind, getCapabilities, missingIntegration, type SiteCapabilities, unsupportedMessage} from './capabilities.js'
+import {commandNeedsCapabilities, getCapabilities, missingForCommand, type SiteCapabilities, unsupportedMessage} from './capabilities.js'
 import {declaredPlugins} from './declared-plugins.js'
 import {activateExclusions} from './exclude.js'
 import {isInteractive} from './interactive.js'
@@ -50,6 +50,9 @@ export abstract class LoopressCommand extends Command {
   // Whether the environment's `exclude` globs in loopress.json apply (lib/exclude.ts): push and
   // diff commands only, never pull.
   static honorsExclude = false
+  // The command works from loopress.json alone: no configured project or environment is needed, and
+  // `siteConfig` is then undefined when none resolves (like `lps validate`, `lps plugin outdated`).
+  static optionalEnvironment = false
 
   // Opt-in on push, pull, diff and promote: a resource the project uses but the site can't hold
   // (see lib/capabilities.ts) is reported skipped, with a final warning, instead of failing the run.
@@ -127,9 +130,22 @@ export abstract class LoopressCommand extends Command {
     this.productionConfirmed = Boolean(flags['production-confirmed'])
     this.localConfig = await readLocalConfig()
 
-    const resolved = this.resolveEnvironment(flags.env)
-    this.siteConfig = resolved.env
-    this.projectId = resolved.projectId
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- see above
+    if ((this.ctor as typeof LoopressCommand).optionalEnvironment && !flags.env) {
+      try {
+        const resolved = this.resolveEnvironment(flags.env)
+        this.siteConfig = resolved.env
+        this.projectId = resolved.projectId
+      } catch {
+        // No usable environment: the command only needs loopress.json.
+        return
+      }
+    } else {
+      const resolved = this.resolveEnvironment(flags.env)
+      this.siteConfig = resolved.env
+      this.projectId = resolved.projectId
+    }
+
     activateExclusions({
       config: this.localConfig,
       cwd: process.cwd(),
@@ -307,11 +323,10 @@ export abstract class LoopressCommand extends Command {
   // site can't hold it, instead of failing on the 404. A site whose capabilities can't be read
   // (too old a plugin, unreachable) lets the command run and report its own error.
   private async assertSiteSupportsResource(): Promise<void> {
-    const kind = commandResourceKind(this.id)
-    if (!kind) return
+    if (!commandNeedsCapabilities(this.id)) return
     let missing
     try {
-      missing = missingIntegration(kind, await this.capabilities())
+      missing = missingForCommand(this.id, await this.capabilities())
     } catch {
       return
     }

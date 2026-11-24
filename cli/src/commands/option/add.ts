@@ -38,6 +38,14 @@ export default class Add extends LoopressCommand {
       this.error(`"${name}" is managed by \`lps plugin\`/\`lps theme\`, not \`lps option\`.`)
     }
 
+    // Throws for a reserved Windows name: before any request to the site.
+    let file: string
+    try {
+      file = join(dir, optionFileName(name))
+    } catch (error) {
+      this.error(error instanceof Error ? error.message : String(error))
+    }
+
     let remote: RemoteOption
     try {
       remote = await this.wp.get<RemoteOption>(optionEndpoint(name))
@@ -50,7 +58,6 @@ export default class Add extends LoopressCommand {
     }
 
     const local: LocalOption = {autoload: remote.autoload, name: remote.name, readonly: defaultReadonlyFor(name), value: remote.value}
-    const file = join(dir, optionFileName(name))
 
     if (this.dryRun) {
       this.log(`[dry-run] Would track "${name}" at ${file}`)

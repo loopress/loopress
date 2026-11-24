@@ -62,6 +62,7 @@ export default class Pull extends LoopressCommand {
   }
 
   private failedCount = 0
+  private refusedUnsupported = false
   // Stryker disable next-line BooleanLiteral: always overwritten from the flag at the top of run()
   private skipUnsupported = false
   // What --skip-unsupported held back: the target and why, for the final warning.
@@ -105,7 +106,7 @@ export default class Pull extends LoopressCommand {
       // Each failure's own reason, not just the count: under --json the per-resource lines above
       // never reach stdout, and this message is all an MCP caller or a script gets to see.
       const failures = results.filter((result) => result.status === 'failed').map((result) => `${result.label}: ${result.error}`)
-      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull. ${failures.join('; ')}`)
+      this.error(`${pluralize(this.failedCount, 'resource')} failed to pull. ${failures.join('; ')}${this.refusedUnsupported ? '. Pass --skip-unsupported to leave the unsupported ones out.' : ''}`)
     }
 
     this.log('\nAll resources pulled.')
@@ -156,8 +157,9 @@ export default class Pull extends LoopressCommand {
     }
 
     this.failedCount++
+    this.refusedUnsupported = true
     const error = `${missing.reason} on ${this.siteConfig.name}`
-    this.log(`\n✗ ${target.label} failed: ${error}`)
+    this.log(`\n✗ ${target.label} failed: ${error}. Pass --skip-unsupported to leave it out.`)
     return {error, label: target.label, status: 'failed'}
   }
 
