@@ -26,6 +26,12 @@ Both commands require being logged in.
 | `lps project link` | Create a matching project and environment on your Loopress account for each one configured locally, or link to the one already there, and remember the ids locally. Your WordPress Application Passwords never leave your machine. Run it again after adding projects or environments: it only creates what's missing. `lps project config` offers the same step when you are logged in. |
 | `lps project import` | Fetch the projects and environments already on your account and add the ones not configured locally yet. Useful when setting up a new machine. The account holds no Application Password, so run `lps project config` for each imported environment. |
 
+## Logging in is your consent
+
+Nothing leaves your machine for Loopress until you say yes. Logging in, with `lps login` or by setting `LOOPRESS_TOKEN`, is that yes: it is your consent to send the deployment records and drift reports described below. Without a token, nothing is sent and nothing else changes: every command works the same. No credential (Application Password, token) and no content (posts, options values, file contents, patches) is ever part of what is sent.
+
+To stop, run `lps logout` or unset `LOOPRESS_TOKEN`. The next command sends nothing.
+
 ## Deployment history
 
 When a token is available, each real push is reported to the console (target URL and success or failure). Each record carries the target URL, the status, the command that ran (for example `theme:push`), and, when the project is a Git repository, the current commit hash, its subject line and whether the working tree had uncommitted changes. Nothing else from your repository is sent, and outside a Git repository the commit is simply omitted. This is best effort: it never blocks or fails a push. The account matches the target URL against the environments of your projects: when none matches, the CLI prints a one-line warning and tells you to run `lps project link`. `lps diff` drift reports follow the same rule.

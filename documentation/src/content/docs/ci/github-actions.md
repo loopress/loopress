@@ -20,6 +20,7 @@ steps:
 | `site-id` | Loopress site ID | `ci` |
 | `port` | WordPress port on the runner | `8080` |
 | `token` | Optional Loopress cloud token (not needed to push) | |
+| `install-cli` | Install `@loopress/cli` globally. Set to `false` to skip it when the CLI is already available | `true` |
 
 ## Outputs
 

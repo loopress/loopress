@@ -7,7 +7,7 @@ import DocPage from "@/components/site/DocPage.astro";
 
 export const prerender = true;
 
-const LAST_UPDATED = "October 8, 2026";
+const LAST_UPDATED = "November 24, 2026";
 ---
 
 <DocPage title="Loopress Privacy Policy: What Data Reaches Us" description="Privacy policy of Loopress: it runs on your machine and your sites. Here is the little that reaches us, and how to turn it off." kicker={`privacy · last updated ${LAST_UPDATED}`} heading="Privacy." lede="Loopress runs on your machine and your sites. Here is the little that reaches us, and how to turn it off.">
@@ -46,6 +46,34 @@ const LAST_UPDATED = "October 8, 2026";
     <li><strong>Analytics</strong>: Vercel Analytics, aggregated and without cookies.</li>
     <li><strong>Theme</strong>: one local storage entry remembers light or dark mode. No tracking or advertising cookies.</li>
   </ul>
+
+  <h2>Logging in with the CLI</h2>
+  <p>
+    Nothing is sent from the CLI to the console until you log in. Logging in, with <code>lps login</code>
+    or by setting <code>LOOPRESS_TOKEN</code>, is your consent to send two kinds of report, and it is
+    the legal basis for processing them (consent, GDPR article 6(1)(a)):
+  </p>
+  <ul>
+    <li>
+      <strong>Deployment records</strong>, after each real push: the target URL, the status (success or
+      failure), the command that ran, and, when the project is a Git repository, the commit hash, its
+      subject line and whether the working tree had uncommitted changes. A full <code>lps push</code>
+      also lists its steps with their status. After a plugin push, the plugins listed in
+      <code>loopress.json</code> (slug, pinned version, whether active).
+    </li>
+    <li>
+      <strong>Drift reports</strong>, after <code>lps diff</code>: the target URL, the verdict, the exit
+      code, and for each difference the resource, the id and the kind of change. Never file contents or
+      patches. <code>lps plugin audit</code> sends its advisories the same way: plugin slug, version,
+      CVE, severity, fixed version, title and health notes.
+    </li>
+  </ul>
+  <p>
+    No credential (Application Password, token) and no content (posts, option values, file contents) is
+    part of these reports. To stop, run <code>lps logout</code> or unset <code>LOOPRESS_TOKEN</code>:
+    nothing is sent afterwards, and nothing else changes. Withdrawing consent does not affect what was
+    sent before; ask us to delete it through the <a href="/contact">contact page</a>.
+  </p>
 
   <h2>The Loopress console</h2>
   <p>

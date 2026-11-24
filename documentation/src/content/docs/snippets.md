@@ -191,7 +191,7 @@ snippets/
 | `description` | Optional description shown in the WordPress admin. |
 | `type` | Snippet type: `php`, `css`, `js`, `html`, or `text`. |
 | `tags` | Array of tag strings. |
-| `active` | Whether the snippet is active (`true` / `false`). |
+| `active` | Whether the snippet is active (`true` / `false`). A snippet pushed without a sidecar is created inactive, so set `"active": true` for it to run. |
 | `location` | Where the snippet runs: `everywhere`, `frontend`, `admin`, `header`, `body`, `footer` or `once`. Which values work depends on the snippet plugin and the snippet type. Written on every pull. |
 | `insertMethod` | `auto` (the default) or `shortcode`. |
 | `priority` | Execution priority, lower runs earlier. `10` by default. |

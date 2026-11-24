@@ -4,7 +4,7 @@ import DocPage from "@/components/site/DocPage.astro";
 
 export const prerender = true;
 
-const LAST_UPDATED = "October 1, 2026";
+const LAST_UPDATED = "November 24, 2026";
 ---
 
 <DocPage title="Loopress Terms of Use: Open Source Alpha Software" description="Terms of use of Loopress: it is open source and in alpha, so test before production. Licenses, the alpha status, your credentials and the console." kicker={`terms · last updated ${LAST_UPDATED}`} heading="Terms of use." lede="Short version: it's open source, it's alpha, test before production.">
@@ -33,6 +33,12 @@ const LAST_UPDATED = "October 1, 2026";
     The console (console.loopress.dev) is a hosted service, free during the alpha, with no uptime or
     durability guarantee. Don't abuse its infrastructure. We may suspend accounts that do, and you can
     delete yours at any time through the <a href="/contact">contact page</a>.
+  </p>
+  <p>
+    Logging in to the CLI, with <code>lps login</code> or <code>LOOPRESS_TOKEN</code>, is your consent
+    to send the console deployment records and drift reports listed in the
+    <a href="/privacy">privacy policy</a>. They never contain a credential or site content. Run
+    <code>lps logout</code> or unset the token to stop; the CLI works the same without it.
   </p>
 
   <h2>No warranty</h2>
