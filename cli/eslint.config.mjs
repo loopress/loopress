@@ -36,6 +36,8 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-assertion': 'error',
       // Warn, not error: some loops must run in order (one push after another on a live site).
       'no-await-in-loop': 'warn',
+      // Key order is behavior here (JSON written to disk, composer.json entries, which field
+      // error is reported first): the autofix reorders them and breaks tests.
       'perfectionist/sort-objects': 'off',
       // Every oclif Command subclass declares `static description`/`static flags`/`static args`
       // plain (never `readonly`) by framework convention; flagging all of them is just noise.
