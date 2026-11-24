@@ -270,7 +270,7 @@ describe('declared type commands', () => {
       const post = vi.fn().mockResolvedValue({})
       const {cmd, logs, seams} = makePush([dir], {get, post})
 
-      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/)
+      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/u)
 
       expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {public: true}, slug: 'book'})
       expect(post).toHaveBeenCalledWith('loopress/v1/post-types', {args: {}, slug: 'movie'})

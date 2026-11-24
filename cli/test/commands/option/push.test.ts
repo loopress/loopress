@@ -187,7 +187,7 @@ describe('option push', () => {
       writeFileSync(join(dir, 'options', 'broken.json'), JSON.stringify({autoload: 'yes', value: 1}))
       const {cmd, logs, put} = makeRunCmd()
 
-      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/)
+      await expect(cmd.run()).rejects.toThrow(/1 file left out because they could not be read: .*broken\.json/u)
 
       expect(put).toHaveBeenCalledTimes(1)
       expect(logs.warn).toHaveBeenCalledTimes(1)
