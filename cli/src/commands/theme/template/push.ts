@@ -33,7 +33,7 @@ type PushResult = {
 
 export default class Push extends PushCommand {
   static override description =
-    'Push block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css, bundled with esbuild) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.'
+    'Push block templates (`theme/templates/<slug>.html`), template parts (`theme/parts/<slug>.html`) and the theme CSS (theme/css/style.css, `theme/blocks/<namespace>/<block>.css`, bundled with esbuild) as the files of a child theme of the active block theme, `<parent>-loopress`. The child mirrors the project: files removed locally are removed from it. It is activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.'
 
   static override enableJsonFlag = true
   static override examples = ['$ lps theme template push', '$ lps theme template push --dry-run']

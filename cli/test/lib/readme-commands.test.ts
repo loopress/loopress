@@ -1,5 +1,5 @@
 import {readdirSync, readFileSync} from 'node:fs'
-import {dirname, join, relative} from 'node:path'
+import {dirname, join, relative, sep} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {describe, expect, it} from 'vitest'
 
@@ -12,7 +12,7 @@ function commandIds(dir: string): string[] {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) return commandIds(path)
     if (!entry.name.endsWith('.ts')) return []
-    return [relative(commandsDir, path).replace(/\.ts$/u, '').replaceAll('/', ' ')]
+    return [relative(commandsDir, path).replace(/\.ts$/u, '').split(sep).join(' ')]
   })
 }
 

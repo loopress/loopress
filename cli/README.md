@@ -869,7 +869,7 @@ _See code: [src/commands/block/pull.ts](https://github.com/loopress/loopress/blo
 
 ## `lps block push [PATH]`
 
-Push local dynamic blocks (blocks/<slug>/ holding block.json, render.php, and optionally style.css and view.js) to WordPress, registered as loopress/<slug> and placed with <!-- wp:loopress/<slug> /-->. Each block is replaced as a whole. Create or update only, never deletes a block (use `lps block rm`).
+Push local dynamic blocks (`blocks/<slug>/` holding block.json, render.php, and optionally style.css and view.js) to WordPress, registered as loopress/<slug> and placed with `<!-- wp:loopress/<slug> /-->`. Each block is replaced as a whole. Create or update only, never deletes a block (use `lps block rm`).
 
 ```
 USAGE
@@ -889,8 +889,8 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  Push local dynamic blocks (blocks/<slug>/ holding block.json, render.php, and optionally style.css and view.js) to
-  WordPress, registered as loopress/<slug> and placed with <!-- wp:loopress/<slug> /-->. Each block is replaced as a
+  Push local dynamic blocks (`blocks/<slug>/` holding block.json, render.php, and optionally style.css and view.js) to
+  WordPress, registered as loopress/<slug> and placed with `<!-- wp:loopress/<slug> /-->`. Each block is replaced as a
   whole. Create or update only, never deletes a block (use `lps block rm`).
 
 EXAMPLES
@@ -1239,7 +1239,7 @@ _See code: [src/commands/cpt/pull.ts](https://github.com/loopress/loopress/blob/
 
 ## `lps cpt push [PATH]`
 
-Push local custom post types (cpt/<slug>.json, register_post_type() arguments) to WordPress. Create or update only, never deletes a post type: use `lps cpt rm` for that.
+Push local custom post types (`cpt/<slug>.json`, register_post_type() arguments) to WordPress. Create or update only, never deletes a post type: use `lps cpt rm` for that.
 
 ```
 USAGE
@@ -1259,7 +1259,7 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  Push local custom post types (cpt/<slug>.json, register_post_type() arguments) to WordPress. Create or update only,
+  Push local custom post types (`cpt/<slug>.json`, register_post_type() arguments) to WordPress. Create or update only,
   never deletes a post type: use `lps cpt rm` for that.
 
 EXAMPLES
@@ -3313,14 +3313,14 @@ _See code: [src/commands/project/rotate.ts](https://github.com/loopress/loopress
 
 ## `lps project switch`
 
-Switch the active project (pass --env to target a non-local environment)
+Switch the active project
 
 ```
 USAGE
   $ lps project switch
 
 DESCRIPTION
-  Switch the active project (pass --env to target a non-local environment)
+  Switch the active project
 
 EXAMPLES
   $ lps project switch
@@ -4655,7 +4655,7 @@ _See code: [src/commands/theme/template/list.ts](https://github.com/loopress/loo
 
 ## `lps theme template push`
 
-Push block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS (theme/css/style.css, theme/blocks/<namespace>/<block>.css, bundled with esbuild) as the files of a child theme of the active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.
+Push block templates (`theme/templates/<slug>.html`), template parts (`theme/parts/<slug>.html`) and the theme CSS (theme/css/style.css, `theme/blocks/<namespace>/<block>.css`, bundled with esbuild) as the files of a child theme of the active block theme, `<parent>-loopress`. The child mirrors the project: files removed locally are removed from it. It is activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.
 
 ```
 USAGE
@@ -4672,9 +4672,9 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  Push block templates (theme/templates/<slug>.html), template parts (theme/parts/<slug>.html) and the theme CSS
-  (theme/css/style.css, theme/blocks/<namespace>/<block>.css, bundled with esbuild) as the files of a child theme of the
-  active block theme, <parent>-loopress. The child mirrors the project: files removed locally are removed from it. It is
+  Push block templates (`theme/templates/<slug>.html`), template parts (`theme/parts/<slug>.html`) and the theme CSS
+  (theme/css/style.css, `theme/blocks/<namespace>/<block>.css`, bundled with esbuild) as the files of a child theme of the
+  active block theme, `<parent>-loopress`. The child mirrors the project: files removed locally are removed from it. It is
   activated only when loopress.json sets "activateChildTheme": true, see `lps theme activate`.
 
 EXAMPLES

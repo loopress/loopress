@@ -28,9 +28,9 @@ Both commands require being logged in.
 
 ## Logging in is your consent
 
-Nothing leaves your machine for Loopress until you say yes. Logging in, with `lps login` or by setting `LOOPRESS_TOKEN`, is that yes: it is your consent to send the deployment records and drift reports described below. Without a token, nothing is sent and nothing else changes: every command works the same. No credential (Application Password, token) and no content (posts, options values, file contents, patches) is ever part of what is sent.
+Nothing leaves your machine for Loopress until you say yes. Logging in, with `lps login` or by setting `LOOPRESS_TOKEN`, is that yes: it is your consent to send the deployment records and drift reports described below. Without a token, no deployment record, drift report or plugin audit report is sent and nothing else changes: every command works the same. Crash reports are a separate setting, off until you opt in. No credential (Application Password, token) and no content (posts, options values, file contents, patches) is ever part of what is sent.
 
-To stop, run `lps logout` or unset `LOOPRESS_TOKEN`. The next command sends nothing.
+To stop, run `lps logout` and make sure `LOOPRESS_TOKEN` is unset: if both a stored login and the variable are present, either one is enough to keep sending. The next command sends nothing.
 
 ## Deployment history
 

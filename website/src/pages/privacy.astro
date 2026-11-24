@@ -70,16 +70,17 @@ const LAST_UPDATED = "November 24, 2026";
   </ul>
   <p>
     No credential (Application Password, token) and no content (posts, option values, file contents) is
-    part of these reports. To stop, run <code>lps logout</code> or unset <code>LOOPRESS_TOKEN</code>:
-    nothing is sent afterwards, and nothing else changes. Withdrawing consent does not affect what was
+    part of these reports, apart from the commit subject line, which is sent as written (truncated to
+    255 characters): do not put a secret in a commit subject. To stop, run <code>lps logout</code> and make sure <code>LOOPRESS_TOKEN</code> is unset (either
+    one is enough to keep sending): nothing is sent afterwards, and nothing else changes. Withdrawing consent does not affect what was
     sent before; ask us to delete it through the <a href="/contact">contact page</a>.
   </p>
 
   <h2>The Loopress console</h2>
   <p>
     If you sign in to console.loopress.dev with Google, we store your email address and a Google
-    account identifier, never your Google password. Running <code>lps login</code> connects a project
-    to that account and syncs its metadata and WordPress credentials, encrypted at rest.
+    account identifier, never your Google password. Running <code>lps login</code> stores a console token and your
+    email address on your machine. It sends no WordPress credential and no project metadata.
   </p>
 
   <h2>Who processes it</h2>
