@@ -55,6 +55,7 @@ export default class Eject extends Command {
     }
 
     this.log(`${plan.files.length} file(s) written. Nothing changed on any site. To switch:`)
+    for (const note of plan.notes) this.log(`  0. ${note}`)
     this.log(`  1. Install ${slug}/ on the site and activate it (it stays idle while Loopress is active).`)
     this.log('  2. Deactivate Loopress, then check the site.')
     this.log('  3. Uninstall Loopress (it deletes wp-content/loopress/, which nothing uses anymore).')

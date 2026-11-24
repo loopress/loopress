@@ -64,7 +64,7 @@ final class Orders
 
   it('refuses what it cannot turn into a plain call', () => {
     expect(() => ejectHookFile('a', "<?php\nclass A {\n#[Action(self::HOOK)]\npublic function a(): void {}\n}\n")).toThrow('not a plain string or integer')
-    expect(() => ejectHookFile('a', "<?php\nuse LoopressLib\\Mailer;\nclass A {\n#[Action('init')]\npublic function a(): void {}\n}\n")).toThrow('Loopress classes')
+    expect(() => ejectHookFile('a', "<?php\nclass A {\n#[Action('init')]\npublic function a(): void { new \\Loopress\\Mailer(); }\n}\n")).toThrow('Loopress classes')
     expect(() => ejectHookFile('a', '<?php\nclass A {}\nclass B {}\n')).toThrow('exactly one class')
     expect(() => ejectHookFile('a', '<?php\nclass A { public function a(): void {} }\n')).toThrow('no public')
   })
@@ -116,23 +116,54 @@ describe('planEject', () => {
   })
 
   it('lists every resource it cannot eject yet, all at once', async () => {
-    write('api/orders.php', '<?php\n')
     write('apps/shop/index.html', '')
     write('blocks/acme/card/block.json', '{}')
-    write('lib/Mailer.php', '<?php\n')
-    write('composer.json', JSON.stringify({require: {'monolog/monolog': '^3', php: '>=8.1', 'wpackagist-plugin/akismet': '*'}}))
     write('hooks/broken.php', '<?php\n')
     write('apps/.gitkeep', '')
 
     const plan = await planEject(dir, {}, 'site')
     expect(plan.unsupported).toEqual([
-      'API routes (api/)',
       'apps (apps/)',
       'dynamic blocks (blocks/)',
-      'shared PHP classes (lib/)',
-      'Composer libraries (monolog/monolog)',
       'hooks/broken.php: expected exactly one class declaration, found 0',
     ])
+  })
+
+  it('ships API routes, lib/ and Composer libraries', async () => {
+    write(
+      'api/orders/[id].php',
+      "<?php\nnamespace Acme;\nuse Loopress\\Api\\Attribute\\Permission;\n#[Permission(public: true)]\nfinal class Order\n{\n    public function get(): array { return []; }\n}\n",
+    )
+    write('api/index.php', '<?php\n')
+    write('lib/Mailer.php', '<?php\nnamespace LoopressLib;\nfinal class Mailer {}\n')
+    write('composer.json', JSON.stringify({require: {'monolog/monolog': '^3', php: '>=8.1', 'wpackagist-plugin/akismet': '*'}}))
+
+    const plan = await planEject(dir, {api: {namespace: 'acme/v2'}}, 'site')
+    expect(plan.unsupported).toEqual([])
+    expect(plan.files.map((file) => file.path).toSorted((a, b) => a.localeCompare(b))).toEqual([
+      'api/orders/[id].php',
+      'bootstrap.php',
+      'composer.json',
+      'lib/Mailer.php',
+      'runtime/api-attributes.php',
+      'site.php',
+    ])
+    expect(plan.notes).toHaveLength(1)
+    const bootstrap = plan.files.find((file) => file.path === 'bootstrap.php')?.content ?? ''
+    expect(bootstrap).toContain(String.raw`['orders/[id].php', '/orders/(?P<id>[^/]+)', \Acme\Order::class],`)
+    expect(bootstrap).toContain("register_rest_route('acme/v2', $route, $endpoints);")
+    expect(bootstrap).toContain("require_once __DIR__ . '/vendor/autoload.php';")
+    expect(bootstrap).toContain(String.raw`$prefix = 'LoopressLib\\';`)
+    expect(plan.files.find((file) => file.path === 'composer.json')?.content).toContain('monolog/monolog')
+    expect(plan.files.find((file) => file.path === 'composer.json')?.content).not.toContain('akismet')
+  })
+
+  it('refuses a route file with two classes, and two files for one route', async () => {
+    write('api/a.php', '<?php\nclass A {}\nclass B {}\n')
+    write('api/orders.php', '<?php\nclass O1 {}\n')
+    write('api/orders/index.php', '<?php\nclass O2 {}\n')
+    const plan = await planEject(dir, {}, 'site')
+    expect(plan.unsupported).toEqual(['api/a.php: expected exactly one class declaration, found 2', 'api/orders/index.php: same route as api/orders.php'])
   })
 
   it('follows the directories loopress.json sets', async () => {

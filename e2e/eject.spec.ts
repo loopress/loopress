@@ -73,6 +73,8 @@ test('the ejected plugin serves the same site once Loopress is deactivated', asy
   const pageSlug = `${type}-page`
   const hookFile = `${type}-hooks`
   const className = `Eject${type.replaceAll(/[^a-z0-9]/gu, '')}`
+  const routeSlug = `${type}-route`
+  const routeClass = `${className}Route`
 
   write(projectDir, `cpt/${type}.json`, JSON.stringify({label: 'Ejected things', public: true, rewrite: {slug: type}, show_in_rest: true, supports: ['title', 'custom-fields']}))
   write(projectDir, `taxonomies/${tax}.json`, JSON.stringify({label: 'Ejected kinds', object_type: [type], public: true, show_in_rest: true}))
@@ -85,6 +87,13 @@ test('the ejected plugin serves the same site once Loopress is deactivated', asy
     `<?php\ndeclare(strict_types=1);\n\nuse Loopress\\Hooks\\Attribute\\Action;\nuse Loopress\\Hooks\\Attribute\\Filter;\n\nfinal class ${className}\n{\n` +
       `    #[Action('init')]\n    public function shortcode(): void\n    {\n        add_shortcode('${type}_hello', static fn (): string => '<b>hello from a hook</b>');\n    }\n\n` +
       `    #[Filter('body_class', priority: 20)]\n    public function bodyClass(array $classes): array\n    {\n        $classes[] = '${type}-body';\n        return $classes;\n    }\n}\n`,
+  )
+  write(
+    projectDir,
+    `api/${routeSlug}.php`,
+    `<?php\ndeclare(strict_types=1);\n\nuse Loopress\\Api\\Attribute\\Permission;\n\nfinal class ${routeClass}\n{\n` +
+      `    #[Permission(public: true)]\n    public function get(WP_REST_Request $request): array\n    {\n        return ['hello' => 'from a route', 'echo' => $request->get_param('q')];\n    }\n\n` +
+      `    public function post(): array\n    {\n        return ['secret' => true];\n    }\n}\n`,
   )
   write(projectDir, `pages/${pageSlug}.html`, `<!--\ntitle: Ejected page\nstatus: publish\nhide-title: true\n-->\n<p>[${type}_hello]</p>\n<!-- wp:pattern {"slug":"loopress/${type}"} /-->\n`)
 
@@ -101,6 +110,8 @@ test('the ejected plugin serves the same site once Loopress is deactivated', asy
   const pageUrl = `${wp.url}/?pagename=${pageSlug}`
   const snapshot = async (): Promise<Record<string, string>> => ({
     page: await (await request.get(pageUrl)).text(),
+    route: await (await request.get(`${wp.url}/wp-json/loopress-api/v1/${routeSlug}?q=1`)).text(),
+    routeClosed: String((await request.post(`${wp.url}/wp-json/loopress-api/v1/${routeSlug}`)).status()),
     post: await (await request.get(`${wp.url}/wp-json/wp/v2/${type}/${postId}`)).text(),
     user: JSON.stringify(((await (await restGet(request, wp, `wp/v2/users/${userId}?context=edit`)).json()) as {capabilities: unknown}).capabilities),
   })
@@ -109,6 +120,8 @@ test('the ejected plugin serves the same site once Loopress is deactivated', asy
   expect(before.page).toContain('From the pattern')
   expect(before.page).toContain(`${type}-body`)
   expect(before.post).toContain('400 g')
+  expect(before.route).toContain('from a route')
+  expect(before.routeClosed).toBe('401')
 
   const dryRun = await runCli(['eject', '--dry-run'])
   expect(dryRun.exitCode, output(dryRun)).toBe(0)
@@ -142,17 +155,17 @@ test('the ejected plugin serves the same site once Loopress is deactivated', asy
     await restDelete(request, wp, `wp/v2/${type}/${postId}?force=true`)
     const pages = (await (await restGet(request, wp, `wp/v2/pages?slug=${pageSlug}&status=any`)).json()) as Array<{id: number}>
     for (const {id} of pages) await restDelete(request, wp, `wp/v2/pages/${id}?force=true`)
-    for (const args of [['cpt', 'rm', type], ['taxonomy', 'rm', tax], ['meta', 'rm', type], ['role', 'rm', role], ['pattern', 'rm', type], ['hook', 'rm', hookFile]]) {
+    for (const args of [['cpt', 'rm', type], ['taxonomy', 'rm', tax], ['meta', 'rm', type], ['role', 'rm', role], ['pattern', 'rm', type], ['hook', 'rm', hookFile], ['api', 'rm', routeSlug]]) {
       await runCli([...args, '--yes'])
     }
   }
 })
 
 test('refuses, writing nothing, when the project uses a resource it cannot eject yet', async ({projectDir, runCli}) => {
-  write(projectDir, 'api/orders.php', '<?php\n')
+  write(projectDir, 'blocks/acme/card/block.json', '{}')
 
   const eject = await runCli(['eject'])
   expect(eject.exitCode).not.toBe(0)
-  expect(eject.stderr).toContain('API routes (api/)')
+  expect(eject.stderr).toContain('dynamic blocks (blocks/)')
   expect(() => statSync(join(projectDir, 'eject'))).toThrow()
 })

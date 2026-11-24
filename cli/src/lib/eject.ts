@@ -3,6 +3,7 @@ import {existsSync} from 'node:fs'
 import {readFile} from 'node:fs/promises'
 import {join, resolve} from 'node:path'
 
+import {localApiNamespace} from '../utils/api-namespace.js'
 import {COMPOSER_JSON} from '../utils/composer.js'
 import {
   CPT_SPEC,
@@ -32,6 +33,8 @@ export type EjectPlan = {
   files: EjectFile[]
   // What the plugin takes over, one line per resource kind, for the summary and --dry-run.
   generated: string[]
+  // What to do by hand before the plugin is zipped and installed.
+  notes: string[]
   slug: string
   // Resources this version cannot eject: the command refuses with this list, never a partial eject.
   unsupported: string[]
@@ -59,7 +62,7 @@ export async function planEject(cwd: string, config: LoopressLocalConfig, slug: 
   const root = join(cwd, typeof config.rootDir === 'string' ? config.rootDir : '.')
   const ctx: Context = {config, cwd, root, unsupported: []}
 
-  await refuseUnsupported(ctx, cwd)
+  await refuseUnsupported(ctx)
 
   const taxonomies = await readDeclared(ctx, TAXONOMY_SPEC)
   const postTypes = await readDeclared(ctx, CPT_SPEC)
@@ -68,6 +71,9 @@ export async function planEject(cwd: string, config: LoopressLocalConfig, slug: 
   const roles = await readDeclared(ctx, ROLE_SPEC)
   const hooks = await readHooks(ctx)
   const pages = await readPages(ctx)
+  const api = await readApi(ctx)
+  const lib = await readLib(ctx)
+  const composer = await readComposer(ctx)
   const css = (await hasFiles(dir(ctx, 'css'))) || (await hasFiles(dir(ctx, 'blockCss')))
   const blockCss = await hasFiles(dir(ctx, 'blockCss'))
 
@@ -135,9 +141,37 @@ export async function planEject(cwd: string, config: LoopressLocalConfig, slug: 
     for (const hook of hooks) files.push({content: hook.content, path: `hooks/${hook.slug}.php`})
   }
 
+  const notes: string[] = []
+  shipCode(ctx, {api, composer, lib}, {files, generated, notes, sections})
+
   files.unshift({content: mainFile(slug), path: `${slug}.php`}, {content: bootstrapFile(sections), path: 'bootstrap.php'})
 
-  return {files, generated, slug, unsupported: ctx.unsupported}
+  return {files, generated, notes, slug, unsupported: ctx.unsupported}
+}
+
+type Shipped = {api: EjectedRoute[]; composer: Awaited<ReturnType<typeof readComposer>>; lib: EjectFile[]}
+
+// The code a project ships as files: Composer libraries, lib/ and API routes.
+function shipCode(ctx: Context, {api, composer, lib}: Shipped, out: {files: EjectFile[]; generated: string[]; notes: string[]; sections: string[]}): void {
+  if (composer) {
+    out.generated.push(`${pluralize(composer.libraries.length, 'Composer library', 'Composer libraries')}: composer.json and vendor/autoload.php`)
+    out.sections.unshift(composerSection())
+    out.files.push(...composer.files)
+    out.notes.push('Run `composer install --no-dev --optimize-autoloader` in the plugin folder before zipping it: vendor/ is not part of the repository.')
+  }
+
+  if (lib.length > 0) {
+    out.generated.push(`${pluralize(lib.length, 'shared class file')} (lib/): a PSR-4 autoloader for LoopressLib\\`)
+    out.sections.splice(composer ? 1 : 0, 0, libSection())
+    for (const file of lib) out.files.push({content: file.content, path: `lib/${file.path}`})
+  }
+
+  if (api.length > 0) {
+    out.generated.push(`${pluralize(api.length, 'API route file')} (api/): register_rest_route()`)
+    out.sections.push(apiSection(api, localApiNamespace(ctx.config)))
+    out.files.push({content: API_ATTRIBUTES_FILE, path: 'runtime/api-attributes.php'})
+    for (const route of api) out.files.push({content: route.content, path: `api/${route.file}`})
+  }
 }
 
 function dir(ctx: Context, kind: ResourceDirKind): string {
@@ -149,28 +183,251 @@ async function hasFiles(path: string): Promise<boolean> {
 }
 
 // Runtime pieces with no generator yet. Listed all at once, so one run shows everything left.
-async function refuseUnsupported(ctx: Context, cwd: string): Promise<void> {
+async function refuseUnsupported(ctx: Context): Promise<void> {
   const checks: Array<[string, string]> = [
-    [dir(ctx, 'api'), 'API routes (api/)'],
     [dir(ctx, 'apps'), 'apps (apps/)'],
     [dir(ctx, 'block'), 'dynamic blocks (blocks/)'],
-    [join(ctx.root, 'lib'), 'shared PHP classes (lib/)'],
   ]
   for (const [path, label] of checks) {
     if (await hasFiles(path)) ctx.unsupported.push(label)
   }
+}
 
-  const composerPath = join(cwd, 'composer.json')
-  if (!existsSync(composerPath)) return
+// Libraries only: plugins and themes are already installed on the site, Composer is not what ships them.
+const NOT_A_LIBRARY = /^(?:wpackagist-(?:plugin|theme)\/|php$|ext-|lib-)/u
+
+async function readComposer(ctx: Context): Promise<undefined | {files: EjectFile[]; libraries: string[]}> {
+  const path = join(ctx.cwd, 'composer.json')
+  if (!existsSync(path)) return undefined
   try {
-    const composer = COMPOSER_JSON.parse(JSON.parse(await readFile(composerPath, 'utf8')))
-    const libraries = Object.keys(composer.require ?? {}).filter(
-      (name) => !name.startsWith('wpackagist-plugin/') && !name.startsWith('wpackagist-theme/') && name.includes('/'),
-    )
-    if (libraries.length > 0) ctx.unsupported.push(`Composer libraries (${libraries.join(', ')})`)
+    const composer = COMPOSER_JSON.parse(JSON.parse(await readFile(path, 'utf8')))
+    const libraries = Object.keys(composer.require ?? {}).filter((name) => !NOT_A_LIBRARY.test(name) && name.includes('/'))
+    if (libraries.length === 0) return undefined
+    const require = Object.fromEntries(libraries.map((name) => [name, composer.require?.[name]]))
+    const manifest = {config: {platform: {php: '8.1'}}, name: 'site/ejected', require, type: 'wordpress-plugin'}
+    const files: EjectFile[] = [{content: `${JSON.stringify(manifest, null, 4)}\n`, path: 'composer.json'}]
+    return {files, libraries}
   } catch (error) {
     ctx.unsupported.push(`composer.json: ${errorMessage(error)}`)
+    return undefined
   }
+}
+
+function composerSection(): string {
+  return `// Composer libraries (composer.json). vendor/ is installed in the plugin folder before it is zipped.
+if (is_file(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+} else {
+    error_log('vendor/autoload.php is missing, run composer install in the plugin folder'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}`
+}
+
+// wp-content/loopress/lib/, autoloaded as LoopressLib\ (LoopressEnvironment): same prefix kept.
+async function readLib(ctx: Context): Promise<EjectFile[]> {
+  const path = join(ctx.root, 'lib')
+  const files: EjectFile[] = []
+  for (const file of (await walkFiles(path)).toSorted((a, b) => a.localeCompare(b))) {
+    if (file === 'index.php' || !file.endsWith('.php') || file.split('/').some((part) => part.startsWith('.'))) continue
+    const raw = await readFile(join(path, file), 'utf8')
+    files.push({content: withAbspathGuard(raw), path: file})
+  }
+
+  return files
+}
+
+function libSection(): string {
+  return String.raw`// Shared classes (lib/), the LoopressLib\\ namespace the route and hook files already use.
+spl_autoload_register(static function (string $class): void {
+    $prefix = 'LoopressLib\\';
+    if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
+        return;
+    }
+    $file = __DIR__ . '/lib/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+    if (is_file($file)) {
+        require_once $file;
+    }
+});`
+}
+
+type EjectedRoute = {className: string; content: string; file: string; route: string}
+
+// Same rule as ApiDirectory::routeSlug() and RouteLoader::segmentToRegex(): a trailing "index"
+// names its folder, a "[id]" segment becomes a named capture group.
+function routeFor(slug: string): string {
+  return `/${slug
+    .replace(/\/index$/u, '')
+    .split('/')
+    .map((segment) => {
+      const dynamic = /^\[([A-Za-z_]\w*)\]$/u.exec(segment)
+      return dynamic ? `(?P<${dynamic[1]}>[^/]+)` : segment.replaceAll(/[$()*+.?[\\\]^{|}-]/gu, String.raw`\$&`)
+    })
+    .join('/')}`
+}
+
+async function readApi(ctx: Context): Promise<EjectedRoute[]> {
+  const path = dir(ctx, 'api')
+  const routes: EjectedRoute[] = []
+  const seen = new Map<string, string>()
+  const names = (await walkFiles(path)).filter((name) => name.endsWith('.php') && name !== 'index.php' && name.split('/').every((part) => !part.startsWith('.')))
+  for (const file of names.toSorted((a, b) => a.localeCompare(b))) {
+    try {
+      const raw = await readFile(join(path, file), 'utf8')
+      const lines = raw.split('\n').map((line) => line.trim())
+      const classes = lines.map((line) => CLASS_LINE.exec(line)?.[1]).filter((name) => name !== undefined)
+      if (classes.length !== 1) throw new Error(`expected exactly one class declaration, found ${classes.length}`)
+      const namespace = lines.map((line) => NAMESPACE_LINE.exec(line)?.[1]).find((name) => name !== undefined)
+      const slug = file.slice(0, -'.php'.length)
+      const route = routeFor(slug)
+      const other = seen.get(route)
+      if (other !== undefined) throw new Error(`same route as api/${other}`)
+      seen.set(route, file)
+      routes.push({className: namespace === undefined ? `\\${classes[0]}` : `\\${namespace}\\${classes[0]}`, content: withAbspathGuard(raw), file, route})
+    } catch (error) {
+      ctx.unsupported.push(`api/${file}: ${errorMessage(error)}`)
+    }
+  }
+
+  return routes
+}
+
+// The attributes route files import, declared here since the Loopress plugin is not there to
+// declare them (this file only loads while Loopress is inactive).
+const API_ATTRIBUTES_FILE = String.raw`<?php
+
+declare(strict_types=1);
+
+namespace Loopress\Api\Attribute;
+
+defined('ABSPATH') || exit;
+
+#[\Attribute(\Attribute::TARGET_CLASS)]
+final class Hidden
+{
+}
+
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
+final class Permission
+{
+    /** @param string|array{0: class-string, 1: string}|null $callback */
+    public function __construct(
+        public readonly bool $public = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.publicFound
+        public readonly ?string $capability = null,
+        public readonly string|array|null $callback = null,
+    ) {
+        if (($this->public ? 1 : 0) + ($this->capability !== null ? 1 : 0) + ($this->callback !== null ? 1 : 0) > 1) {
+            throw new \InvalidArgumentException('#[Permission] accepts only one of public, capability, or callback.');
+        }
+    }
+}
+`
+
+function apiSection(routes: EjectedRoute[], namespace: string): string {
+  const table = routes.map(({className, file, route}) => `    [${php(file)}, ${php(route)}, ${className}::class],`).join('\n')
+  return String.raw`// API routes (api/): one REST route per file under ${namespace}, one endpoint per public
+// get/post/put/patch/delete method. Permission: #[Permission] on the method, on the class, the file's
+// permission(), else manage_options. A throwing callback answers 500 (permission: denies), never a fatal.
+require_once __DIR__ . '/runtime/api-attributes.php';
+
+add_action('rest_api_init', static function (): void {
+    $log = static function (string $message): void {
+        error_log('api: ' . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    };
+    $guard = static function (object|string $target, string $method) use ($log): callable {
+        return static function (\WP_REST_Request $request) use ($target, $method, $log): bool {
+            $callback = [$target, $method];
+            if (!is_callable($callback)) {
+                return false;
+            }
+            try {
+                $result = call_user_func($callback, $request);
+            } catch (\Throwable $e) {
+                $log("{$method}() threw: " . $e->getMessage());
+                return false;
+            }
+            return $result === true;
+        };
+    };
+    $files = [
+${table}
+    ];
+    $verbs = ['get' => 'GET', 'post' => 'POST', 'put' => 'PUT', 'patch' => 'PATCH', 'delete' => 'DELETE'];
+
+    foreach ($files as [$file, $route, $class]) {
+        try {
+            require_once __DIR__ . '/api/' . $file;
+            $instance = new $class();
+            $reflection = new \ReflectionClass($instance);
+            $hidden = $reflection->getAttributes(\Loopress\Api\Attribute\Hidden::class) !== [];
+            $endpoints = [];
+            foreach ($verbs as $method => $httpMethod) {
+                if (!method_exists($instance, $method) || !(new \ReflectionMethod($instance, $method))->isPublic()) {
+                    continue;
+                }
+                $attributes = (new \ReflectionMethod($instance, $method))->getAttributes(\Loopress\Api\Attribute\Permission::class)
+                    ?: $reflection->getAttributes(\Loopress\Api\Attribute\Permission::class);
+                $permission = $attributes === [] ? null : $attributes[0]->newInstance();
+                if ($permission === null) {
+                    $check = method_exists($instance, 'permission') && (new \ReflectionMethod($instance, 'permission'))->isPublic()
+                        ? $guard($instance, 'permission')
+                        : static fn (): bool => current_user_can('manage_options');
+                } elseif ($permission->public) {
+                    $check = static fn (): bool => true;
+                } elseif ($permission->callback !== null) {
+                    $check = is_array($permission->callback) ? $guard($permission->callback[0], $permission->callback[1]) : $guard($instance, $permission->callback);
+                } else {
+                    $capability = $permission->capability ?? 'manage_options';
+                    $check = static fn (): bool => current_user_can($capability);
+                }
+                $endpoint = [
+                    'methods'             => $httpMethod,
+                    'callback'            => static function (\WP_REST_Request $request) use ($instance, $method, $log): mixed {
+                        try {
+                            return $instance->$method($request);
+                        } catch (\Throwable $e) {
+                            $log("{$method}() threw: " . $e->getMessage());
+                            return new \WP_REST_Response(['error' => 'Internal error'], 500);
+                        }
+                    },
+                    'permission_callback' => $check,
+                ];
+                if ($hidden) {
+                    $endpoint['show_in_index'] = false;
+                }
+                if (method_exists($instance, 'headers')) {
+                    $endpoint['loopress_instance'] = $instance;
+                }
+                $endpoints[] = $endpoint;
+            }
+            if ($endpoints === []) {
+                $log("{$file}: no public get/post/put/patch/delete method");
+                continue;
+            }
+            register_rest_route(${php(namespace)}, $route, $endpoints);
+        } catch (\Throwable $e) {
+            $log("{$file}: failed to load: " . $e->getMessage());
+        }
+    }
+
+    // The files' headers(), CORS and the like, applied once per request they match.
+    add_filter('rest_pre_serve_request', static function (bool $served, mixed $result, \WP_REST_Request $request) use ($log): bool {
+        $instance = $request->get_attributes()['loopress_instance'] ?? null;
+        if (!is_object($instance)) {
+            return $served;
+        }
+        try {
+            $headers = $instance->headers();
+        } catch (\Throwable $e) {
+            $log('headers() threw: ' . $e->getMessage());
+            return $served;
+        }
+        foreach (is_array($headers) ? $headers : [] as $name => $value) {
+            if (is_string($name) && is_string($value)) {
+                header("{$name}: {$value}"); // phpcs:ignore WordPress.Security.SafeRedirect -- not a redirect
+            }
+        }
+        return $served;
+    }, 10, 3);
+});`
 }
 
 async function readDeclared(ctx: Context, spec: DeclaredTypeSpec): Promise<Array<{args: DeclaredArgs; slug: string}>> {
@@ -251,7 +508,7 @@ export function ejectHookFile(slug: string, raw: string): EjectedHook {
   if (classes.length !== 1) throw new Error(`expected exactly one class declaration, found ${classes.length}`)
   if (bindings.length === 0) throw new Error('no public #[Action], #[Filter], or #[Cron] method found, each attribute on its own line')
   if (/#\[\s*(?:Action|Cron|Filter)\b/u.test(content)) throw new Error('put each #[Action], #[Filter] and #[Cron] attribute on its own line')
-  if (/\bLoopress(?:Lib)?\\/u.test(content)) throw new Error('uses Loopress classes other than the hook attributes')
+  if (/\bLoopress\\/u.test(content)) throw new Error('uses Loopress classes other than the hook attributes')
 
   const namespace = kept.map((line) => NAMESPACE_LINE.exec(line.trim())?.[1]).find((name) => name !== undefined)
   const className = namespace === undefined ? `\\${classes[0]}` : `\\${namespace}\\${classes[0]}`
