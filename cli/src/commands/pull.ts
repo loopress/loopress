@@ -62,6 +62,7 @@ export default class Pull extends LoopressCommand {
   }
 
   private failedCount = 0
+  private refusedUnsupported = false
   // Stryker disable next-line BooleanLiteral: always overwritten from the flag at the top of run()
   private skipUnsupported = false
   // What --skip-unsupported held back: the target and why, for the final warning.
@@ -161,8 +162,6 @@ export default class Pull extends LoopressCommand {
     this.log(`\n✗ ${target.label} failed: ${error}. Pass --skip-unsupported to leave it out.`)
     return {error, label: target.label, status: 'failed'}
   }
-
-  private refusedUnsupported = false
 
   private async warnUnsupported(): Promise<void> {
     if (this.unsupported.length === 0) return
