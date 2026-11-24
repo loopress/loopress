@@ -82,6 +82,19 @@ describe('registerResourceTools', () => {
     expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push'], undefined)
   })
 
+  it('api_push without noPrune leaves the CLI default (prune, guarded by the CLI) and forwards env, path and overwrite', async () => {
+    const tools = register({supportsPrune: true})
+
+    await tools.get('api_push')!({})
+    expect(runMutatingTool).toHaveBeenLastCalledWith('api_push', ['api', 'push'], undefined)
+
+    await tools.get('api_push')!({confirmToken: 'tok', env: 'staging', noPrune: true, overwrite: true, path: 'routes'})
+    const args = runMutatingTool.mock.calls.at(-1)![1] as string[]
+    expect(args.slice(0, 2)).toEqual(['api', 'push'])
+    expect(args).toEqual(expect.arrayContaining(['--env', 'staging', '--overwrite', 'routes', '--no-prune']))
+    expect(args).not.toContain('--yes')
+  })
+
   it('registers api_rollback only when opted in', () => {
     expect([...register().keys()]).not.toContain('api_rollback')
     expect([...register({supportsRollback: true}).keys()]).toContain('api_rollback')
