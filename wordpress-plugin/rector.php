@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Rector\CodingStyle\Rector\ArrowFunction\ArrowFunctionDelegatingCallToFirstClassCallableRector;
 use Rector\CodingStyle\Rector\FuncCall\FunctionFirstClassCallableRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
-use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
+use Rector\CodeQuality\Rector\If_\ExplicitNullableObjectInstanceRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 use Rector\DeadCode\Rector\Concat\RemoveConcatAutocastRector;
@@ -16,7 +16,7 @@ use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php81\Rector\Array_\ArrayToFirstClassCallableRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
-use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
+use Rector\TypeDeclaration\Rector\StmtsAwareInterface\SafeDeclareStrictTypesRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -26,7 +26,7 @@ return RectorConfig::configure()
     ->withPhpSets(php82: true)
     ->withPreparedSets(typeDeclarations: true, deadCode: true, codeQuality: true)
     ->withRules([
-        DeclareStrictTypesRector::class,
+        SafeDeclareStrictTypesRector::class,
         ClassPropertyAssignToConstructorPromotionRector::class,
     ])
     ->withSkip([
@@ -47,7 +47,7 @@ return RectorConfig::configure()
         // wrappers): their parameters are the caller's contract, used or not.
         RemoveUnusedPublicMethodParameterRector::class,
         // `$x !== null` already reads as intended; `instanceof \Fully\Qualified` adds noise.
-        FlipTypeControlToUseExclusiveTypeRector::class,
+        ExplicitNullableObjectInstanceRector::class,
         // Passes `$e->getCode()` to the new exception, but a Throwable's code can be a
         // string (PDOException), which RuntimeException's int $code rejects with a TypeError.
         ThrowWithPreviousExceptionRector::class,

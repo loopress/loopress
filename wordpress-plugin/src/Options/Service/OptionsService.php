@@ -543,7 +543,7 @@ class OptionsService
             }
         }
 
-        if (!apply_filters('loopress_option_readable', !$denied, $name)) {
+        if (!(bool) apply_filters('loopress_option_readable', !$denied, $name)) {
             throw new ProtectedOptionException(esc_html(
                 "\"{$name}\" looks like a stored secret and is not readable through the option resource. " .
                 'Allow it explicitly with the loopress_option_readable filter if that is wrong.',
@@ -558,7 +558,7 @@ class OptionsService
     {
         $found = $this->findCredential($value, '', 0);
 
-        if ($found !== null && !apply_filters('loopress_option_readable', false, $name)) {
+        if ($found !== null && !(bool) apply_filters('loopress_option_readable', false, $name)) {
             [$rule, $path] = $found;
             $where = $path === '' ? 'its value' : "its value at \"{$path}\"";
             throw new ProtectedOptionException(esc_html(
@@ -611,7 +611,7 @@ class OptionsService
             || str_starts_with($name, 'loopress_')
             || str_ends_with($name, 'user_roles');
 
-        if (!apply_filters('loopress_option_writable', !$denied, $name)) {
+        if (!(bool) apply_filters('loopress_option_writable', !$denied, $name)) {
             throw new ProtectedOptionException(esc_html(
                 "\"{$name}\" is a protected option and cannot be written through the option resource. " .
                 'Allow it explicitly with the loopress_option_writable filter if you need to.',
