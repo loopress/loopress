@@ -1,5 +1,18 @@
 # @loopress/wordpress-plugin
 
+## 2026.21.0
+
+### Minor Changes
+
+- 297cecb: Loopress Full's anonymous usage statistics are now off until an admin turns them on. The activation notice asks with "Turn on" and "No thanks", and no ping is sent before it is answered.
+
+### Patch Changes
+
+- 46cbe6c: The Loopress Light listing on wordpress.org now has four screenshots: the admin page with its CLI pairing instructions, an ACF field group next to the JSON file `lps acf pull` wrote, the `git diff` after an edit in wp-admin, and `lps diff` before a push. They appear at the next Light release.
+- 8a55cb3: The Loopress Light readme on wordpress.org now links to the full documentation and examples at loopress.dev/light, and lists two more tags. It takes effect at the next Light release.
+- c492490: The options resource now also refuses to read an option whose value holds a well-known credential format (about a hundred, from gitleaks' prefix-based rules: Stripe, GitHub, Slack, AWS, Google API, OpenAI, Anthropic keys, PEM private keys, ...), including inside a settings array, so a live key under an innocent option name no longer ends up in the JSON you commit. The error names the format and the path inside the value, never the value, and the `loopress_option_readable` filter overrides it.
+- 67b40ff: Crash reports now carry only what the consent card lists: the error, its stack trace, the Loopress version, the environment, and the request method and path. The server name, request bodies, headers, cookies and query strings are no longer sent, and the card lists every field.
+
 ## 2026.20.0
 
 ### Minor Changes
