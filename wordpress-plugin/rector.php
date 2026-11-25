@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Rector\CodingStyle\Rector\ArrowFunction\ArrowFunctionDelegatingCallToFirstClassCallableRector;
 use Rector\CodingStyle\Rector\FuncCall\FunctionFirstClassCallableRector;
 use Rector\CodeQuality\Rector\Catch_\ThrowWithPreviousExceptionRector;
-use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
 use Rector\DeadCode\Rector\Concat\RemoveConcatAutocastRector;
@@ -47,7 +46,6 @@ return RectorConfig::configure()
         // wrappers): their parameters are the caller's contract, used or not.
         RemoveUnusedPublicMethodParameterRector::class,
         // `$x !== null` already reads as intended; `instanceof \Fully\Qualified` adds noise.
-        FlipTypeControlToUseExclusiveTypeRector::class,
         // Passes `$e->getCode()` to the new exception, but a Throwable's code can be a
         // string (PDOException), which RuntimeException's int $code rejects with a TypeError.
         ThrowWithPreviousExceptionRector::class,

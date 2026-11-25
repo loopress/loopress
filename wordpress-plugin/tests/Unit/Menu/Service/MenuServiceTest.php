@@ -736,7 +736,7 @@ class MenuServiceTest extends TestCase
 
         Functions\when('wp_get_nav_menu_object')->alias(
             function () use ($capture, $termId): WP_Term|false {
-                if (!$capture->created) {
+                if (!(bool) $capture->created) {
                     return false;
                 }
                 $name = $capture->insertedName;
