@@ -338,7 +338,8 @@ export abstract class PushCommand extends LoopressCommand {
         resource: provider.resource,
         rootDir: resolve(process.cwd(), this.rootDir),
       })
-      const keys = afterState.keys().toArray()
+      // A menu's state keys are `menu/<slug>`, a pull matches its files by the bare slug.
+      const keys = afterState.keys().map((key) => (provider.resource === 'menu' && key.startsWith('menu/') ? key.slice('menu/'.length) : key)).toArray()
       await writeLastSeen(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name, {keys, state: afterState})
     } catch (error) {
       this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
