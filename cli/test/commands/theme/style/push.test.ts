@@ -4,6 +4,7 @@ import {join} from 'node:path'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import Push from '../../../../src/commands/theme/style/push.js'
+import {writeLastSeen} from '../../../../src/lib/last-seen.js'
 import {type EnvironmentConfig} from '../../../../src/types/config.js'
 import {type LoopressLocalConfig} from '../../../../src/utils/loopress-config.js'
 import {fakeOclifConfig, silenceLogs} from '../../../helpers/oclif.js'
@@ -135,5 +136,41 @@ describe('theme style push', () => {
 
     expect(result).toEqual({changes: [{id: 'tt4', status: 'changed'}], file, status: 'dry-run'})
     expect(post).not.toHaveBeenCalled()
+  })
+
+  // An empty file has no state entry (diff stays quiet on an uncustomized site), but pushing it
+  // clears the site's customizations: the outside-edits guard and the dry run must see it.
+  describe('an empty file, a reset', () => {
+    function siteHolds(get: ReturnType<typeof make>['get'], styles: Record<string, unknown>) {
+      get.mockImplementation(async (path: string) => (path === 'wp/v2/themes' ? [activeTheme('tt4')] : {settings: {}, styles}))
+    }
+
+    beforeEach(() => {
+      mkdirSync(join(dir, 'theme'), {recursive: true})
+      writeFileSync(join(dir, 'theme', 'tt4-global-styles.json'), JSON.stringify({settings: {}, styles: {}}))
+    })
+
+    it('stops before clearing styles changed on the site outside Loopress', async () => {
+      await writeLastSeen(dir, 'theme-style', 'production', {keys: ['tt4'], state: new Map([['tt4', {settings: {}, styles: {color: {text: 'red'}}}]])})
+      const {cmd, get, post} = make({rootDir: dir})
+      siteHolds(get, {color: {text: 'blue'}})
+
+      await expect(cmd.run()).rejects.toThrow(/outside Loopress.*overwrite: tt4/u)
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('previews a reset of a customized site as a change', async () => {
+      const {cmd, get} = make({rootDir: dir}, [], true)
+      siteHolds(get, {color: {text: 'red'}})
+
+      expect(await cmd.run()).toMatchObject({changes: [{id: 'tt4', status: 'changed'}], status: 'dry-run'})
+    })
+
+    it('previews a reset of an uncustomized site as unchanged', async () => {
+      const {cmd, get} = make({rootDir: dir}, [], true)
+      siteHolds(get, {})
+
+      expect(await cmd.run()).toMatchObject({changes: [{id: 'tt4', status: 'unchanged'}], status: 'dry-run'})
+    })
   })
 })
