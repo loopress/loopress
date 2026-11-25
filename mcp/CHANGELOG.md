@@ -1,5 +1,31 @@
 # @loopress/mcp
 
+## 0.37.0
+
+### Minor Changes
+
+- 8f83acb: Changing an environment of type `production` without a terminal now needs `--yes` and a recognized CI provider (GitHub Actions, GitLab CI, CircleCI and the other providers `ci-info` knows). `--yes` alone in a plain shell, or with a bare `CI=true`, is refused. Production checks (the promote warning, the prune confirmation) and the plain HTTP allowance for local environments now follow the environment's type, never its name.
+- 831cc0a: `lps snippet push` (and the snippets step of `lps push`) now deletes site snippets that have no local file, like `lps hook push` and `lps api push`: they are listed first, `--dry-run` shows them, `--no-prune` keeps them, and production asks before deleting. It refuses when the snippets directory is empty but the site has snippets. New `lps snippet rm <id>` (and `snippet_rm` in the MCP server). A snippet id in a sidecar that has never been pushed to the environment is now checked against the site: if the snippet there has another name, the push refuses and names both, `--overwrite` forces it.
+
+### Patch Changes
+
+- 1cfd53c: The npm READMEs match the code again: the CLI README is regenerated (no more removed `seo` and `theme-styles` commands, about 60 missing commands added) and a test now fails when a command is missing from it, and the MCP README lists `lps eject` under the commands without a tool.
+- 504fd02: A confirmed MCP write now leaves its traces in the project: the id files and renamed files the command wrote, and the `.loopress/` rollback snapshots, are copied back from the throwaway copy the command ran in, so a following CLI push does not create duplicates and `snippet_rollback` can list the snapshot. A file you edited in the project between the preview and the confirm is never overwritten: it is reported in `writebackConflicts`. The project's `.git` is reachable from the copy, so the deployment record finds its commit.
+- Updated dependencies [146aa7d]
+- Updated dependencies [04337d0]
+- Updated dependencies [13a13ae]
+- Updated dependencies [1cfd53c]
+- Updated dependencies [08c1048]
+- Updated dependencies [c4cd08d]
+- Updated dependencies [073f0c4]
+- Updated dependencies [b75b9f1]
+- Updated dependencies [2f54acb]
+- Updated dependencies [8f83acb]
+- Updated dependencies [2beccdd]
+- Updated dependencies [831cc0a]
+- Updated dependencies [297cecb]
+  - @loopress/cli@0.37.0
+
 ## 0.36.0
 
 ### Minor Changes
