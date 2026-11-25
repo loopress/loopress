@@ -121,8 +121,11 @@ export abstract class LoopressCommand extends Command {
       try {
         const provider = getResourceStateProvider(resource)
         const remote = await provider.remote(this.wp, () => {/* warned by the pull itself */}, dir)
-        // ACF reads every type at once, a pull of some types records only theirs.
-        const state = resource === 'acf' && scope ? new Map([...remote].filter(([key]) => key.startsWith(scope))) : remote
+        // ACF reads every type at once, a pull of some types records only theirs. Except on the
+        // first record: the other types then have no baseline at all, and without one the push
+        // guard would take each of their ids for an item created outside Loopress.
+        const firstRecord = (await readLastSeen(rootDir, resource, this.siteConfig.name))?.state === undefined
+        const state = resource === 'acf' && scope && !firstRecord ? new Map([...remote].filter(([key]) => key.startsWith(scope))) : remote
         await writeLastSeen(rootDir, resource, this.siteConfig.name, {keys, state, ...(scope && {scope})})
       } catch (error) {
         this.warn(`Could not record what ${this.siteConfig.url} holds for ${resource}: ${error instanceof Error ? error.message : String(error)}`)
