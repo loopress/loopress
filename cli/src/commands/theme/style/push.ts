@@ -4,8 +4,8 @@ import {join} from 'node:path'
 
 import {errorCode, isRecord} from '../../../lib/narrow.js'
 import {type PushChange, PushCommand} from '../../../lib/push-command.js'
-import {getResourceStateProvider} from '../../../lib/resource-state.js'
-import {getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
+import {getResourceStateProvider, type ResourceStateProvider} from '../../../lib/resource-state.js'
+import {canonicalGlobalStyles, getActiveThemeGlobalStyles, globalStylesEndpoint, themeStylesFileName} from '../../../utils/theme-styles-format.js'
 
 type ThemeStylePushResult = {changes?: PushChange[]; file: string; status: 'dry-run' | 'success'}
 
@@ -45,16 +45,35 @@ export default class Push extends PushCommand {
       throw error
     }
 
-    // Only the active theme's file is pushed, whatever else the directory holds.
-    const provider = getResourceStateProvider('theme-style')
-    const beforeState = await this.captureBeforePushState(provider, dir, (name) => name === stylesheet)
-
-    if (this.dryRun) return {changes: this.previewChanges, file, status: 'dry-run'}
-
     const local: unknown = JSON.parse(raw)
     // Never fall back to empty settings/styles: that push would wipe the site's customizations.
     if (!isRecord(local)) throw new Error(`${file} is not a JSON object`)
     const {settings, styles} = local
+
+    // Only the active theme's file is pushed, whatever else the directory holds.
+    const stored = getResourceStateProvider('theme-style')
+    // An empty file has no state entry, like an uncustomized site, so diff reports no drift. For
+    // this push it is a reset that clears the site's customizations: the outside-edits guard and
+    // the dry run must see it, so the push's local state keeps it.
+    let reset = false
+    const provider: ResourceStateProvider = {
+      ...stored,
+      async local(localDir, onWarn, wp) {
+        const state = await stored.local(localDir, onWarn, wp)
+        reset = !state.has(stylesheet)
+        if (reset) state.set(stylesheet, canonicalGlobalStyles({settings, styles}))
+        return state
+      },
+    }
+    const beforeState = await this.captureBeforePushState(provider, dir, (name) => name === stylesheet)
+
+    // The active theme always has a Global Styles record: an uncustomized one has no state entry,
+    // yet the push updates it, it never creates one. A reset of an uncustomized site changes nothing.
+    if (this.dryRun) {
+      const changes = this.previewChanges.map((change): PushChange => (change.status === 'created' ? {...change, status: reset ? 'unchanged' : 'changed'} : change))
+      return {changes, file, status: 'dry-run'}
+    }
+
     await this.wp.post(globalStylesEndpoint(id), {settings: settings ?? {}, styles: styles ?? {}})
     this.log(`Pushed: ${file}`)
 

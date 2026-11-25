@@ -12,7 +12,7 @@ import {resolveResourceDir, RESOURCE_DIR_DEFAULTS, type ResourceDirKind} from '.
 import {LoopressCommand} from './base.js'
 import {type ResourceState} from './diff-state.js'
 import {isExcluded} from './exclude.js'
-import {basenameKey, findOrphanedFiles} from './find-orphaned-files.js'
+import {basenameKey} from './find-orphaned-files.js'
 import {isInteractive} from './interactive.js'
 import {loadFiles as loadDirectoryFiles} from './load-files.js'
 import {errorMessage} from './narrow.js'
@@ -463,7 +463,7 @@ export function resourcePullCommand(spec: PhpFilesResource): CommandClass<PullFi
       // A `<filename>.php` no longer present remotely was deleted on WordPress (push stays
       // additive-only, but pull already cleans up locally, same as `snippet pull`). The
       // unreadable ones still exist remotely, so keep them out of the orphan set.
-      const orphans = await findOrphanedFiles(path, new Set(files.map((file) => file.filename)), {
+      const orphans = await this.findPullOrphans(spec.cliName, path, new Set(files.map((file) => file.filename)), {
         extensions: ['.php'],
         key: basenameKey,
         recursive: true,

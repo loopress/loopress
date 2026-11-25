@@ -577,6 +577,10 @@ const optionsProvider: ResourceStateProvider = {
 
 // ---- Theme styles (Global Styles) ----------------------------------------------------------
 
+function isEmptyCustomization(canonical: Record<string, unknown>): boolean {
+  return Object.values(canonical).every((part) => typeof part === 'object' && part !== null && Object.keys(part).length === 0)
+}
+
 // Local files are named `<stylesheet>-global-styles.json`, keyed by stylesheet so a directory
 // that has accumulated files from more than one previously-active theme still compares each one
 // individually rather than colliding on a single key.
@@ -596,7 +600,11 @@ const themeStylesProvider: ResourceStateProvider = {
     })
 
     const state: ResourceState = new Map()
-    for (const {stylesheet, value} of entries) state.set(stylesheet, canonicalGlobalStyles(value))
+    for (const {stylesheet, value} of entries) {
+      const canonical = canonicalGlobalStyles(value)
+      if (!isEmptyCustomization(canonical)) state.set(stylesheet, canonical)
+    }
+
     return state
   },
   // Only the active theme's Global Styles are compared (see theme-styles-format.ts): a classic
@@ -606,7 +614,10 @@ const themeStylesProvider: ResourceStateProvider = {
     const {id, stylesheet} = await getActiveThemeGlobalStyles(wp)
     const item = await wp.get<GlobalStylesRecord>(globalStylesEndpoint(id))
 
-    return new Map([[stylesheet, canonicalGlobalStyles(item)]])
+    // A theme never customized in the Site Editor has no Global Styles to track: no entry, so the
+    // diff of a project that tracks none is not "removed".
+    const canonical = canonicalGlobalStyles(item)
+    return isEmptyCustomization(canonical) ? new Map() : new Map([[stylesheet, canonical]])
   },
   resource: 'theme-style',
   title: 'Theme styles',

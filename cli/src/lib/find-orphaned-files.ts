@@ -18,17 +18,30 @@ export type OrphanMatcher = {
   recursive?: boolean
 }
 
-export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher): Promise<string[]> {
+// `seen`: the identities the site held at the last pull or push from this machine. A local
+// file is an orphan only when its key is in it (it existed on the site and is gone). A file
+// never on the site is kept (see `findUnpushedFiles`), and with no `seen` at all (a fresh
+// clone) every file is kept. Left out, the older behavior: any key missing from `keep`.
+export async function findOrphanedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher, seen?: Pick<Set<string>, 'has'>): Promise<string[]> {
+  return (await keyedFiles(dir, matcher)).filter(({key}) => !keep.has(key) && (seen === undefined || seen.has(key))).map(({file}) => file)
+}
+
+// The files `findOrphanedFiles` keeps because the site never had them.
+export async function findUnpushedFiles(dir: string, keep: Set<string>, matcher: OrphanMatcher, seen: Pick<Set<string>, 'has'>): Promise<string[]> {
+  return (await keyedFiles(dir, matcher)).filter(({key}) => !keep.has(key) && !seen.has(key)).map(({file}) => file)
+}
+
+async function keyedFiles(dir: string, matcher: OrphanMatcher): Promise<Array<{file: string; key: string}>> {
   // walkFiles already returns '/'-joined identities regardless of platform: matched against
   // `keep`, filenames the server sends with '/', never the OS separator.
   const files = matcher.recursive ? await walkFiles(dir) : await readdirTolerant(dir)
 
-  return files.filter((file) => {
+  return files.flatMap((file) => {
     const ext = extname(file)
-    if (!matcher.extensions.includes(ext)) return false
+    if (!matcher.extensions.includes(ext)) return []
 
     const key = matcher.key(file.slice(0, -ext.length))
-    return key !== null && !keep.has(key)
+    return key === null ? [] : [{file, key}]
   })
 }
 

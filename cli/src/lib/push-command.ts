@@ -18,6 +18,7 @@ import {environmentUrlWarnings, type ScannedItem} from './environment-urls.js'
 import {heldBackPaths} from './exclude.js'
 import {guardProductionPush} from './guard-production-push.js'
 import {isInteractive} from './interactive.js'
+import {readLastSeen, writeLastSeen} from './last-seen.js'
 import {errorMessage} from './narrow.js'
 import {type ResourceStateProvider} from './resource-state.js'
 import {listSnapshots, readSnapshot, recordToState, writeSnapshot} from './snapshot-store.js'
@@ -372,6 +373,9 @@ export abstract class PushCommand extends LoopressCommand {
         resource: provider.resource,
         rootDir: resolve(process.cwd(), this.rootDir),
       })
+      // A menu's state keys are `menu/<slug>`, a pull matches its files by the bare slug.
+      const keys = afterState.keys().map((key) => (provider.resource === 'menu' && key.startsWith('menu/') ? key.slice('menu/'.length) : key)).toArray()
+      await writeLastSeen(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name, {keys, state: afterState})
     } catch (error) {
       this.warn(`Could not save a rollback snapshot after this push: ${errorMessage(error)}`)
     }
@@ -395,12 +399,26 @@ export abstract class PushCommand extends LoopressCommand {
     let expected: ResourceState
     let local: ResourceState
     let pushedAt: string
+    const rootDir = resolve(process.cwd(), this.rootDir)
+    // The last time this machine saw the site, by a pull or a push: a pull moves the baseline.
+    const lastSeen = await readLastSeen(rootDir, provider.resource, this.siteConfig.name)
+    let snapshot: Awaited<ReturnType<typeof readSnapshot>> | undefined
     try {
-      const snapshot = await readSnapshot(resolve(process.cwd(), this.rootDir), provider.resource, this.siteConfig.name)
-      expected = recordToState(snapshot.afterState)
-      pushedAt = snapshot.createdAt
+      snapshot = await readSnapshot(rootDir, provider.resource, this.siteConfig.name)
     } catch {
       // No earlier push from this machine.
+    }
+
+    // The newest observation wins: a push whose last-seen write failed leaves a snapshot newer
+    // than the record.
+    if (lastSeen?.state && !(snapshot && snapshot.createdAt > lastSeen.updatedAt)) {
+      expected = lastSeen.state
+      pushedAt = lastSeen.updatedAt
+    } else if (snapshot) {
+      expected = recordToState(snapshot.afterState)
+      pushedAt = snapshot.createdAt
+    } else {
+      // Never pulled nor pushed from this machine.
       return
     }
 
@@ -425,7 +443,7 @@ export abstract class PushCommand extends LoopressCommand {
     if (overwritten.length === 0) return
 
     const message =
-      `Changed on ${this.siteConfig.url} outside Loopress since your last push (${pushedAt}), this push would overwrite: ${overwritten.join(', ')}. ` +
+      `Changed on ${this.siteConfig.url} outside Loopress since this machine last pulled or pushed (${pushedAt}), this push would overwrite: ${overwritten.join(', ')}. ` +
       `Review with \`lps diff --only ${provider.resource}\`, bring the site's version into your files, or pass --overwrite.`
     // A dry run only previews: say what the real push would stop on.
     if (this.dryRun) {

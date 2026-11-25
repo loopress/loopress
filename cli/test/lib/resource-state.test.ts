@@ -454,15 +454,23 @@ describe('resource-state providers', () => {
       expect([...state]).toEqual([['twentytwentyfour', {settings: {color: {palette: []}}, styles: {}}]])
     })
 
+    // A theme never customized in the Site Editor: nothing to track, so a project that tracks none
+    // is not told the site has an extra "removed" entry.
+    it('reads a theme without customization as no entry', async () => {
+      const remote = fakeWp({'wp/v2/global-styles/7': {id: 7, settings: [], styles: []}, 'wp/v2/themes': [activeTheme()]})
+
+      expect([...(await themeStylesProvider.remote(remote, noWarn, dir))]).toEqual([])
+    })
+
     it('drops WordPress bookkeeping (id, _links) from the compared value', async () => {
       const remote = fakeWp({
-        'wp/v2/global-styles/7': {_links: {self: [{href: 'x'}]}, id: 7, settings: {}, styles: {}},
+        'wp/v2/global-styles/7': {_links: {self: [{href: 'x'}]}, id: 7, settings: {}, styles: {color: {text: 'red'}}},
         'wp/v2/themes': [activeTheme()],
       })
 
       const state = await themeStylesProvider.remote(remote, noWarn, dir)
 
-      expect(state.get('twentytwentyfour')).toEqual({settings: {}, styles: {}})
+      expect(state.get('twentytwentyfour')).toEqual({settings: {}, styles: {color: {text: 'red'}}})
     })
 
     it('rejects a classic active theme with a clear error instead of a raw REST failure', async () => {
@@ -486,7 +494,7 @@ describe('resource-state providers', () => {
     })
 
     it('keys local files by the stylesheet slug parsed from the "<slug>-global-styles.json" filename', async () => {
-      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {}, styles: {}}))
+      writeFileSync(join(dir, 'twentytwentyfour-global-styles.json'), JSON.stringify({settings: {}, styles: {color: {background: '#fff'}}}))
 
       const state = await themeStylesProvider.local(dir, noWarn)
 
