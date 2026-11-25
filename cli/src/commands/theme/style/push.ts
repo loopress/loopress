@@ -49,7 +49,12 @@ export default class Push extends PushCommand {
     const provider = getResourceStateProvider('theme-style')
     const beforeState = await this.captureBeforePushState(provider, dir, (name) => name === stylesheet)
 
-    if (this.dryRun) return {changes: this.previewChanges, file, status: 'dry-run'}
+    // The active theme always has a Global Styles record: an uncustomized one has no state entry
+    // (so diff does not call it removed), yet the push updates it, it never creates one.
+    if (this.dryRun) {
+      const changes = this.previewChanges.map((change): PushChange => (change.status === 'created' ? {...change, status: 'changed'} : change))
+      return {changes, file, status: 'dry-run'}
+    }
 
     const local: unknown = JSON.parse(raw)
     // Never fall back to empty settings/styles: that push would wipe the site's customizations.
