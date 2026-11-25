@@ -15,7 +15,7 @@ use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php81\Rector\Array_\ArrayToFirstClassCallableRector;
 use Rector\TypeDeclaration\Rector\ClassMethod\NarrowObjectReturnTypeRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrowFunctionParamArrayWhereDimFetchRector;
-use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
+use Rector\TypeDeclaration\Rector\StmtsAwareInterface\SafeDeclareStrictTypesRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -25,7 +25,7 @@ return RectorConfig::configure()
     ->withPhpSets(php82: true)
     ->withPreparedSets(typeDeclarations: true, deadCode: true, codeQuality: true)
     ->withRules([
-        DeclareStrictTypesRector::class,
+        SafeDeclareStrictTypesRector::class,
         ClassPropertyAssignToConstructorPromotionRector::class,
     ])
     ->withSkip([
