@@ -37,7 +37,7 @@ function makeCommand(put = vi.fn()): PushInternals {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   const internals = cmd as unknown as PushInternals
-  internals.wpClient = {put}
+  internals.wpClient = {get: vi.fn().mockResolvedValue([]), put}
   internals.siteConfig = makeEnv('local')
   internals.recordSuccess = async () => {}
   return internals

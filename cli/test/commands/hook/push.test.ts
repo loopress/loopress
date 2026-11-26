@@ -213,9 +213,10 @@ describe('hook push', () => {
       rmSync(dir, {force: true, recursive: true})
     })
 
-    function make(argv: string[] = []) {
+    function make(argv: string[] = [], overwrite = false) {
       const cmd = new TestPush(argv, fakeOclifConfig)
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
+      Object.assign(cmd, {overwrite})
       const logs = silenceLogs(cmd)
       const post = vi.fn<(...args: unknown[]) => Promise<BatchPushResult>>().mockResolvedValue({files: [{filename: 'hello'}], pruned: []})
       const get = vi.fn().mockResolvedValue([])
@@ -249,6 +250,27 @@ describe('hook push', () => {
 
       const expectedFile = expect.objectContaining({expectedRevision: sha256(remoteContent), filename: 'hello'})
       expect(post).toHaveBeenCalledWith('loopress/v1/hook-files/batch', expect.objectContaining({files: [expectedFile]}))
+    })
+
+    it('stops before any write when the remote state cannot be read', async () => {
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, get, post} = make([dir])
+      get.mockRejectedValue(new Error('site unreachable'))
+
+      await expect(cmd.run()).rejects.toThrow(/--overwrite to skip the check/u)
+
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('pushes with --overwrite and warns that no rollback snapshot was saved when the remote state cannot be read', async () => {
+      writeFileSync(join(dir, 'hello.php'), '<?php\n\ndeclare(strict_types=1);\n\nfinal class Hello {}\n')
+      const {cmd, get, logs, post} = make([dir], true)
+      get.mockRejectedValueOnce(new Error('site unreachable'))
+
+      await cmd.run()
+
+      expect(post).toHaveBeenCalled()
+      expect(logs.warn).toHaveBeenCalledWith(expect.stringContaining('no rollback snapshot was saved'))
     })
 
     it('errors with the failed count, before ever calling the API, when a local file fails validation', async () => {

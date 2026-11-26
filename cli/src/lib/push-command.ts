@@ -129,10 +129,11 @@ export abstract class PushCommand extends LoopressCommand {
   private refusedByGuard = false
 
   // Reads `provider`'s remote state right before a real push, for `writeAfterPushSnapshot` to
-  // pair with the actual post-push remote state once the push completes. Best-effort: a read
-  // failure (the site briefly unreachable) must never block the push itself, the same "never
-  // interrupt the push flow" stance recordDeployment takes; `undefined` tells
-  // `writeAfterPushSnapshot` there is no restore point to complete.
+  // pair with the actual post-push remote state once the push completes. This read is the
+  // WordPress site the push writes to, not the cloud: when it fails, the outside-edit check
+  // cannot run, so the push stops before any write (rule 6) unless `--overwrite` skips that
+  // check, in which case it warns and goes on with no restore point (`undefined` tells
+  // `writeAfterPushSnapshot` there is nothing to complete).
   //
   // On a dry run, the same read is the preview's check against the site (see previewRemote), and
   // the reference for its per-item statuses (`previewChanges`).
@@ -167,7 +168,11 @@ export abstract class PushCommand extends LoopressCommand {
         dir,
       )
     } catch (error) {
-      this.warn(`Could not read remote state for a rollback snapshot: ${errorMessage(error)}`)
+      if (!this.overwrite) {
+        this.error(`Could not read the state of ${this.siteConfig.url}, so changes made there outside Loopress cannot be checked: ${errorMessage(error)}. Retry, or pass --overwrite to skip the check.`)
+      }
+
+      this.warn(`Could not read remote state, no rollback snapshot was saved: ${errorMessage(error)}`)
       return undefined
     }
 
