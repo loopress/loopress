@@ -424,4 +424,21 @@ class AppsControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertNull(self::at($response->data, 'crossOrigin'));
     }
+
+    public function test_commit_keeps_the_previous_build_files_when_the_crossOrigin_write_fails(): void
+    {
+        $this->directory->method('listAssets')->willReturn([
+            'assets/index-x.js'  => ['sha256' => self::HASH_JS, 'size' => 10],
+            'assets/index-y.css' => ['sha256' => self::HASH_CSS, 'size' => 20],
+            'assets/ancient.js'  => ['sha256' => str_repeat('6', 64), 'size' => 6],
+        ]);
+        $this->directory->method('writeCrossOriginPolicy')->willThrowException(new \RuntimeException('disk full'));
+        $this->directory->expects($this->never())->method('removeAsset');
+        $this->store->expects($this->never())->method('put');
+
+        $request = RestRequest::with(['crossOrigin' => 'same-origin'] + $this->validManifestBody());
+        $request->set_param('name', 'search');
+
+        $this->assertSame(500, $this->controller->commit($request)->status);
+    }
 }
