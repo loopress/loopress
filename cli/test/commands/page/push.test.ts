@@ -23,7 +23,7 @@ type PushInternals = {
   recordSuccess: () => Promise<void>
   run(): Promise<unknown>
   siteConfig: unknown
-  wpClient: {put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 const notManaged = (): Error =>
