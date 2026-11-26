@@ -732,6 +732,48 @@ class ApiFilesControllerTest extends TestCase
         $this->assertSame([], self::at($response->data, 'pruned'));
     }
 
+    public function test_push_batch_commits_when_the_resulting_directory_is_within_the_total_budget(): void
+    {
+        $this->directory->method('listStagedSlugs')->willReturn(['hello', 'kept']);
+        $this->directory->method('stagedFileSize')->willReturn(400);
+        $this->directory->method('maxTotalBytes')->willReturn(800);
+        $this->directory->expects($this->once())->method('commitBatch');
+        $this->directory->expects($this->never())->method('abortBatch');
+
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [$this->validFile()]]));
+
+        $this->assertSame(200, $response->status);
+    }
+
+    public function test_push_batch_refuses_a_resulting_directory_over_the_total_budget_and_leaves_it_unchanged(): void
+    {
+        $this->directory->method('listStagedSlugs')->willReturn(['hello', 'kept']);
+        $this->directory->method('stagedFileSize')->willReturn(401);
+        $this->directory->method('maxTotalBytes')->willReturn(800);
+        $this->directory->expects($this->once())->method('abortBatch');
+        $this->directory->expects($this->never())->method('commitBatch');
+
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [$this->validFile()]]));
+
+        $this->assertSame(413, $response->status);
+        $error = self::stringAt($response->data, 'error');
+        $this->assertStringContainsString('802 bytes', $error);
+        $this->assertStringContainsString('800 byte total budget', $error);
+    }
+
+    public function test_push_batch_honours_a_raised_total_budget(): void
+    {
+        // Same 802 byte directory as above, accepted once the loopress_max_files_total_bytes filter raises the budget.
+        $this->directory->method('listStagedSlugs')->willReturn(['hello', 'kept']);
+        $this->directory->method('stagedFileSize')->willReturn(401);
+        $this->directory->method('maxTotalBytes')->willReturn(1000);
+        $this->directory->expects($this->once())->method('commitBatch');
+
+        $response = $this->controller->push_batch(RestRequest::with(['files' => [$this->validFile()]]));
+
+        $this->assertSame(200, $response->status);
+    }
+
     public function test_push_batch_returns_a_revision_for_each_staged_file(): void
     {
         $content = "<?php\ndeclare(strict_types=1);\nfinal class Hello {}\n";
