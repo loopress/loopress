@@ -317,6 +317,26 @@ abstract class AbstractFilesController
             $pushed[] = $outcome;
         }
 
+        // The loader skips files past the total budget on boot, so a batch that would end over
+        // it is refused here, with the live directory untouched, rather than reported as pushed.
+        $total = 0;
+        foreach ($this->directory()->listStagedSlugs() as $slug) {
+            $total += $this->directory()->stagedFileSize($slug) ?? 0;
+        }
+
+        $budget = $this->directory()->maxTotalBytes();
+        if ($total > $budget) {
+            $this->directory()->abortBatch();
+            return new WP_REST_Response([
+                'error' => sprintf(
+                    'The resulting %s directory would be %d bytes, over the %d byte total budget. Prune or shrink files, or raise the loopress_max_files_total_bytes filter.',
+                    $this->label(),
+                    $total,
+                    $budget,
+                ),
+            ], 413);
+        }
+
         try {
             $this->directory()->commitBatch();
         } catch (\RuntimeException $e) {

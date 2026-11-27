@@ -425,7 +425,7 @@ A single bad route file can never take down the site or the rest of its REST API
 - A parse error or fatal error while loading the file
 - A file that doesn't declare exactly one class (zero, or more than one)
 - A class name that is already taken by WordPress core, another plugin, or another route file
-- A file over the 512 KB size limit, or a whole `api/` directory over 8 MB total (a last-resort guard against a runaway directory; both are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters). A file skipped this way is not returned by `lps api pull`.
+- A file over the 512 KB size limit, or a whole `api/` directory over 8 MB total (a last-resort guard against a runaway directory; both are adjustable with the `loopress_max_file_bytes` and `loopress_max_files_total_bytes` filters). A push that would take the directory over the total is refused with a 413 and nothing is written. A file skipped this way is not returned by `lps api pull`.
 
 Every other route file keeps working, and so does everything else on the site. A throwing `permission()` is a different, narrower failure mode, not a load failure: the file still loads and the route stays registered, only the individual request that hit the throw is denied, see [Authentication and permissions](#authentication-and-permissions).
 
