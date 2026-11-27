@@ -1,6 +1,6 @@
 ---
 title: Take Over an Existing Site
-description: Put a WordPress site built in wp-admin, or one you inherited, under Git. The two blockers to check first, what the connection does to the site, and what the first pull captures.
+description: Put a WordPress site built in wp-admin, or inherited, under Git. The two blockers to check first, what connecting does to the site, and what the first pull captures.
 ---
 
 This guide is for a site that already exists and was built by clicking in wp-admin: a client site, an inherited site, one you built before using Git. Nothing on the site has to be restructured and the host stays the same. Two things can stop you, so check them first.
