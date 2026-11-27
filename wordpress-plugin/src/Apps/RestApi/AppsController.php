@@ -239,11 +239,6 @@ final class AppsController
         // generation's files, drop anything older.
         $previous      = $this->store->get($name);
         $previousFiles = $previous['files'] ?? null;
-        $removed       = $this->removeStaleAssets($name, array_keys($onDisk), [
-            ...array_column($manifest['files'], 'path'),
-            ...$this->previousPaths($previous),
-        ]);
-
         try {
             $crossOriginApplied = $this->directory->writeCrossOriginPolicy($name, $manifest['crossOrigin']);
         } catch (\RuntimeException | \InvalidArgumentException $e) {
@@ -259,6 +254,12 @@ final class AppsController
             'files'            => $manifest['files'],
             'previousManifest' => is_array($previousFiles) ? $previousFiles : [],
             'deployedAt'       => gmdate('c'),
+        ]);
+
+        // Cleanup comes last: the manifest is saved, so the old files are no longer needed by it.
+        $removed = $this->removeStaleAssets($name, array_keys($onDisk), [
+            ...array_column($manifest['files'], 'path'),
+            ...$this->previousPaths($previous),
         ]);
 
         return new WP_REST_Response([
@@ -282,7 +283,11 @@ final class AppsController
         $removed = [];
         foreach ($onDisk as $existing) {
             if (!in_array($existing, $keepPaths, true)) {
-                $this->directory->removeAsset($name, $existing);
+                try {
+                    $this->directory->removeAsset($name, $existing);
+                } catch (\RuntimeException) {
+                    continue; // the commit is saved, a leftover file is retried by the next one
+                }
                 $removed[] = $existing;
             }
         }
