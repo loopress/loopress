@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Loopress brand banner</title>
+<!--
+  Single source of the social image (og:image) and the WordPress.org banner.
+  Render with: node assets/brand/render-banner.mjs
+  Variants are chosen with the URL hash: #og (1200x630) or #wporg (772x250, scaled for 1544x500).
+-->
+<style>
+  @font-face { font-family: "Bricolage Grotesque"; src: url("../../website/public/fonts/bricolage-grotesque-latin.woff2"); font-weight: 200 800; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../website/public/fonts/jetbrains-mono-latin.woff2"); font-weight: 100 800; }
+  :root { --navy: oklch(0.22 0.05 255); --cyan: oklch(0.76 0.14 215); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--navy); }
+  body { color: #fff; font-family: "Bricolage Grotesque", system-ui, sans-serif; overflow: hidden; }
+  .banner { position: relative; background: var(--navy); display: flex; flex-direction: column; justify-content: center; }
+  .banner::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 85% 20%, oklch(0.76 0.14 215 / 0.18), transparent 55%); pointer-events: none; }
+  .mark { position: absolute; }
+  h1 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+  h1 span { color: var(--cyan); }
+  p { color: oklch(0.88 0.02 255); }
+  .cta { font-family: "JetBrains Mono", ui-monospace, monospace; color: var(--cyan); font-weight: 600; }
+  .wporg-only, .og-only { display: none; }
+
+  /* og: 1200x630, text kept inside the central safe area */
+  body.og .banner { width: 1200px; height: 630px; padding: 0 150px; }
+  body.og .og-only { display: block; }
+  body.og .mark { width: 96px; top: 96px; left: 150px; }
+  body.og h1 { font-size: 80px; margin-top: 70px; max-width: 880px; }
+  body.og p { font-size: 34px; margin-top: 28px; }
+  body.og .cta { font-size: 34px; margin-top: 40px; }
+
+  /* wporg: 772x250. The plugin name is overlaid at the bottom left: keep it empty */
+  body.wporg .banner { width: 772px; height: 250px; padding: 0 40px 0 250px; justify-content: flex-start; padding-top: 38px; }
+  body.wporg .wporg-only { display: block; }
+  body.wporg .mark { width: 84px; top: 36px; left: 40px; }
+  body.wporg h1 { font-size: 34px; max-width: 480px; }
+  body.wporg p { font-size: 17px; margin-top: 12px; }
+  body.wporg .cta { font-size: 16px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <img class="mark" alt="" src="../loopress-logo-white.svg">
+  <h1>Build, review and ship WordPress, in one <span>loop.</span></h1>
+  <p class="og-only">Configuration and code of WordPress sites, in Git</p>
+  <p class="wporg-only">Configuration of your WordPress site, in Git</p>
+  <div class="cta">loopress.dev</div>
+</div>
+<script>document.body.className = location.hash.slice(1) || "og";</script>
+</body>
+</html>
