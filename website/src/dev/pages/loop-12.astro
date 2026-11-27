@@ -189,8 +189,8 @@ $ git commit -am "chore: sync client menu edit"`,
         <div class="wrap py-24">
           <h2 class="max-w-3xl">Everything but the content, in Git.</h2>
           <p class="mt-5 max-w-2xl text-lg leading-relaxed">
-            Your repo holds how the site is built and behaves. What your client writes stays in
-            WordPress, where it belongs.
+            Your repo holds how the site is built and behaves: configuration, code and the static
+            pages you write as files. Posts, orders and users stay on the site and are never pushed.
           </p>
           <div class="scope-grid">
             <pre class="tree"><span class="dim">$ tree client-site</span>{"\n"}client-site/{"\n"}├── {tree.map(([line, comment, kind]) => (
@@ -206,7 +206,7 @@ $ git commit -am "chore: sync client menu edit"`,
                     </tr>
                   ))}
                   <tr class="never">
-                    <td>Posts, pages content, orders, users, media</td>
+                    <td>Posts, orders, users, media</td>
                     <td class="ed">never</td>
                   </tr>
                 </tbody>

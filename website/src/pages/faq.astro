@@ -16,7 +16,7 @@ const sections = [
       },
       {
         q: "Does it touch my content?",
-        a: "No, by design. Posts, page content, orders, users and media are never written to the repo and never overwritten by a push. Versioning content is what sank earlier attempts at Git for WordPress, so Loopress stays on what a diff and a rollback can safely handle.",
+        a: "Posts, orders and users are never pushed to a site, and media are never pushed either. The only content Loopress manages is the static pages you choose to write as files (pages/), pushed with lps page push; a page the site already has is never taken over without --overwrite or your confirmation. lps content copy copies content the other way, from an environment down to your local site.",
       },
       {
         q: "Who is it for?",
@@ -24,7 +24,7 @@ const sections = [
       },
       {
         q: "Is it free?",
-        a: "Yes. The CLI is open source under MPL-2.0, the WordPress plugin under GPL, and both editions of the plugin are free.",
+        a: "The CLI and both editions of the plugin are free and open source (MPL-2.0 and GPL).",
       },
       {
         q: "Is it ready?",
@@ -111,19 +111,22 @@ const structuredData = {
   ),
 };
 
+// Stable anchors so other pages can link one question, e.g. /faq#does-it-touch-my-content.
+const anchor = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 const breadcrumbs = [
   { name: "Loopress", url: "https://loopress.dev/" },
   { name: "FAQ", url: "https://loopress.dev/faq" },
 ];
 ---
 
-<DocPage title="Loopress FAQ: Git Workflow for WordPress Config and Code" description="Answers about Loopress: what goes in Git, how it treats your site and content, how code and config are managed, and how it compares." kicker="faq" heading="Questions, answered." lede="Something missing? Open an issue on GitHub or send a message." structuredData={structuredData} breadcrumbs={breadcrumbs}>
+<DocPage title="Loopress FAQ: Content, Hosting, Editions and Alpha Status" description="Answers about Loopress: what goes in Git, how it treats your site and content, how code and config are managed, and how it compares." kicker="faq" heading="Questions, answered." lede="Something missing? Open an issue on GitHub or send a message." structuredData={structuredData} breadcrumbs={breadcrumbs}>
   {sections.map((s) => (
     <section class="faq-section">
       <h2>{s.title}</h2>
       <dl>
         {s.items.map((item) => (
-          <div>
+          <div id={anchor(item.q)}>
             <dt>{item.q}</dt>
             <dd>{item.a}{item.link && <> <a href={item.link.href}>{item.link.label}</a></>}</dd>
           </div>

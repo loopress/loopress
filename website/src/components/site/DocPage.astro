@@ -2,7 +2,7 @@
 // Shared frame for the content pages (faq, contact, privacy, terms, ...): the home's header, footer
 // and palette around a single reading column.
 import Layout from "@/layouts/Layout.astro";
-import Logo from "@/components/site/Logo.astro";
+import Header from "@/components/site/Header.astro";
 import Footer from "@/components/site/Footer.astro";
 
 const { title, description, kicker, heading, lede, wide = false, structuredData, breadcrumbs } = Astro.props as {
@@ -27,13 +27,7 @@ const { title, description, kicker, heading, lede, wide = false, structuredData,
   breadcrumbs={breadcrumbs}
 >
   <div class="page">
-    <header class="wrap flex items-center justify-between gap-4 py-6">
-      <a href="/" class="text-lg font-extrabold"><Logo class="h-9 w-9" /></a>
-      <nav class="topnav hidden text-sm font-medium md:flex">
-        <a href="/#scope">What's in Git</a><a href="/#week">A week in the loop</a><a href="/#editions">Light & Full</a><a href="https://docs.loopress.dev">Docs</a>
-      </nav>
-      <a href="https://github.com/loopress" class="mono text-xs">★ GitHub</a>
-    </header>
+    <Header />
 
     <main class:list={["wrap doc", { "doc-wide": wide }]}>
       <p class="mono kicker">{kicker}</p>
@@ -65,7 +59,6 @@ const { title, description, kicker, heading, lede, wide = false, structuredData,
   .wrap { margin-inline: auto; max-width: 72rem; padding-inline: 1.5rem; }
   .mono { font-family: var(--font-mono); }
   a:hover { color: var(--cyan-ink); }
-  .topnav { gap: 1.75rem; }
 
   .doc { max-width: 44rem; padding-block: 4rem 7rem; }
   .doc-wide { max-width: 56rem; }

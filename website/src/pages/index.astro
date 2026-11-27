@@ -5,15 +5,19 @@
 // and the Light / Full toggle. Earlier iterations live under /dev (astro dev only).
 // Every command, flag, path and behaviour shown here was checked in cli/ and the docs.
 import Layout from "@/layouts/Layout.astro";
-import Logo from "@/components/site/Logo.astro";
+import Header from "@/components/site/Header.astro";
 import Editions from "@/components/site/Editions.astro";
 import Footer from "@/components/site/Footer.astro";
 import cli from "../../../cli/package.json";
 
 export const prerender = true;
 
+const title = "Loopress: Git Workflow for WordPress Config and Code";
 const description =
-  "Model your content types, write hooks and APIs in modern PHP, review every change in a PR and ship it to every environment. Pull live changes back.";
+  "Put a WordPress site's field groups, menus, options, hooks and plugin versions in Git, review them in a PR, push them over the REST API. Free, open source.";
+const install = "npm i -g @loopress/cli";
+const hexLabel =
+  "The Loopress hexagon as a loop. The dark side is your repo, with Build and Review. The cyan side is your live site. Ship crosses from repo to site at the top, Pull back crosses from site to repo at the bottom.";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -46,10 +50,17 @@ const travel = `M${L} L${TL} L${TR} L${R} L${BR} L${BL} Z`; // clockwise, from B
 // Each stage is a vertex. Ship and Pull back are the two joints between the logo's pieces.
 const stageAt: Record<string, readonly [number, number]> = { Build: L, Review: TL, Ship: TR, "Pull back": BR };
 
-const sites = ["bakery", "law-firm", "shop", "school", "studio"];
+// Tabs named by situation, site in small. The plugin update comes second, one click away.
+const sites = [
+  ["bakery", "client edit"],
+  ["shop", "plugin update"],
+  ["law-firm", "new form"],
+  ["school", "server hotfix"],
+  ["studio", "new brand"],
+] as const;
 
 const tree = [
-  ["acf/", "", ""],
+  ["├── acf/", "", ""],
   ["│   └── group_product_delivery.json", "field groups", "light"],
   ["├── menus/  options/  theme/", "configuration", "light"],
   ["├── cpt/  taxonomies/  meta/  roles/", "post types, taxonomies, meta keys, roles", "light"],
@@ -69,6 +80,14 @@ const tracked = [
   ["Apps, pages, block templates and patterns", "Full"],
   ["Plugin lockfile", "Full"],
   ["Composer", "Full"],
+];
+
+// Each answer is one line and a link, written to be quoted on its own.
+const beforeYouInstall = [
+  { q: "Will it touch my content?", a: "Posts, orders and users are never pushed.", href: "/faq#does-it-touch-my-content", link: "FAQ" },
+  { q: "Do I need to change hosts or restructure the site?", a: "No: WordPress 6.2+, PHP 8.2+, the REST API, no SSH.", href: "/faq#which-sites-does-it-work-with", link: "Which sites does it work with?" },
+  { q: "I already use ACF Local JSON, WP Migrate or Bedrock.", a: "See what each one does, and what Loopress doesn't.", href: "/vs", link: "Compare" },
+  { q: "Is it ready?", a: "Alpha: it runs real sites, things still change between releases.", href: "/changelog", link: "Changelog" },
 ];
 
 type Moment = {
@@ -310,41 +329,39 @@ $ lps theme pull --env production`,
 ---
 
 <Layout
-  title="Loopress - Build, review and ship WordPress, in one loop"
+  title={title}
   description={description}
   canonical="https://loopress.dev/"
-  ogTitle="Loopress - Build, review and ship WordPress, in one loop"
+  ogTitle={title}
   ogDescription={description}
   structuredData={structuredData}
 >
   <div class="page">
-    <header class="wrap flex items-center justify-between gap-4 py-6">
-      <a href="#top" class="text-lg font-extrabold"><Logo class="h-9 w-9" /></a>
-      <nav class="topnav hidden text-sm font-medium md:flex">
-        <a href="#scope">What's in Git</a><a href="#week">A week in the loop</a><a href="#editions">Light & Full</a><a href="https://docs.loopress.dev">Docs</a>
-      </nav>
-      <a href="https://github.com/loopress" class="mono text-xs">★ GitHub</a>
-    </header>
+    <Header />
 
     <main id="top">
       <!-- Hero: the loop IS the logo -->
       <section class="wrap hero">
         <div>
+          <p class="mono kicker">For developers who look after several client WordPress sites</p>
           <h1>Build, review and ship WordPress, in one <span class="hl">loop.</span></h1>
           <p class="lede">
             Model your content types, write hooks and APIs in modern PHP, review every change in a
-            PR and ship it to every environment. When the live site changes, pull it back and go
+            PR and ship it to every environment of the site you already run. When the live site changes, pull it back and go
             around again. Posts, orders and users are never pushed.
           </p>
           <div class="ctas">
-            <code class="chip">$ npm i -g @loopress/cli</code>
+            <button type="button" class="chip" data-copy={install} aria-label={`Copy ${install}`}>
+              <code>$ {install}</code><span class="chip-act" aria-hidden="true">copy</span>
+            </button>
             <a href="https://docs.loopress.dev/getting-started/" class="btn">Get started</a>
           </div>
           <p class="mono hint">then <code>lps project config</code> connects your site and installs the plugin for you.</p>
+          <p class="mono trust">free and open source · WordPress 6.2+, PHP 8.2+ · no SSH, no host change · <a href="/changelog">alpha, moving fast →</a></p>
         </div>
 
         <figure>
-          <svg viewBox="-110 10 660 390" class="w-full" role="img" aria-label="The Loopress hexagon as a loop. The dark side is your repo, with Build and Review. The cyan side is your live site. Ship crosses from repo to site at the top, Pull back crosses from site to repo at the bottom.">
+          <svg viewBox="-110 10 660 390" class="hex hex-wide w-full" role="img" aria-label={hexLabel}>
             <path d={repoSide} class="seg-repo" />
             <path d={siteSide} class="seg-site" />
             <circle r="9" class="dot"><animateMotion dur="8s" repeatCount="indefinite" path={travel} /></circle>
@@ -360,9 +377,25 @@ $ lps theme pull --env production`,
             <text x={BL[0]} y={BL[1] + 64} text-anchor="middle" class="sub">config + code</text>
             <text x={R[0] + 34} y={R[1] - 4} class="lbl lbl-site">your live site</text>
             <text x={R[0] + 34} y={R[1] + 18} class="sub">wp-admin edits happen here</text>
-            <text x="200" y="205" text-anchor="middle" class="sub">posts, orders, users never pushed</text>
           </svg>
-          <figcaption class="aside text-center">the whole idea, on one hexagon.</figcaption>
+          <!-- Under 640px: a tighter viewBox with only the stage labels, the two sides as HTML, so nothing drops under 16px. -->
+          <svg viewBox="-40 28 420 340" class="hex hex-narrow w-full" role="img" aria-label={hexLabel}>
+            <path d={repoSide} class="seg-repo" />
+            <path d={siteSide} class="seg-site" />
+            <circle cx={L[0]} cy={L[1]} r="15" class="node" />
+            <circle cx={TL[0]} cy={TL[1]} r="15" class="node" />
+            <circle cx={TR[0]} cy={TR[1]} r="15" class="node node-cross" />
+            <circle cx={BR[0]} cy={BR[1]} r="15" class="node node-cross" />
+            <text x={TL[0]} y={TL[1] - 30} text-anchor="middle" class="lbl">Review</text>
+            <text x={TR[0]} y={TR[1] - 30} text-anchor="middle" class="lbl">Ship →</text>
+            <text x={L[0] - 30} y={L[1] + 8} text-anchor="end" class="lbl">Build</text>
+            <text x={BR[0]} y={BR[1] + 46} text-anchor="middle" class="lbl">← Pull back</text>
+          </svg>
+          <dl class="hex-sides">
+            <div><dt>your repo</dt><dd class="mono">config + code</dd></div>
+            <div><dt class="site">your live site</dt><dd class="mono">wp-admin edits happen here</dd></div>
+          </dl>
+          <figcaption class="aside hex-cap">posts, orders and users are never pushed</figcaption>
         </figure>
       </section>
 
@@ -371,12 +404,12 @@ $ lps theme pull --env production`,
         <div class="wrap py-24">
           <h2 class="max-w-3xl">Everything but the content, in Git.</h2>
           <p class="mt-5 max-w-2xl text-lg leading-relaxed">
-            Your repo holds how the site is built and behaves. What your client writes stays in
-            WordPress, where it belongs.
+            Your repo holds how the site is built and behaves: configuration, code and the static
+            pages you write as files. Posts, orders and users stay on the site and are never pushed.
           </p>
           <div class="scope-grid">
-            <pre class="tree"><span class="dim">$ tree client-site</span>{"\n"}client-site/{"\n"}├── {tree.map(([line, comment, kind]) => (
-              <>{line}{comment && <span class={`cmt ${kind}`}>{"  "}# {comment}</span>}{"\n"}</>
+            <pre class="tree"><span class="dim">$ tree client-site</span>{"\n"}client-site/{"\n"}{tree.map(([line, comment, kind]) => (
+              <span class="row">{line}{comment && <span class={`cmt ${kind}`}>{"  "}# {comment}</span>}</span>
             ))}</pre>
             <div>
               <table class="tracked">
@@ -388,7 +421,7 @@ $ lps theme pull --env production`,
                     </tr>
                   ))}
                   <tr class="never">
-                    <td>Posts, pages content, orders, users, media</td>
+                    <td>Posts, orders, users, media</td>
                     <td class="ed">never</td>
                   </tr>
                 </tbody>
@@ -407,14 +440,14 @@ $ lps theme pull --env production`,
           <!-- Site picker: radio inputs + CSS (:has), no JS. Arrow keys move between sites. -->
           <fieldset class="sites mt-8">
             <legend class="sr-only">Client site</legend>
-            {sites.map((s, i) => (
+            {sites.map(([s, situation], i) => (
               <label>
                 <input type="radio" name="week-site" id={`site-${s}`} value={s} checked={i === 0} class="sr-only" />
-                <span>{s}</span>
+                <span>{situation} <small>· {s}</small></span>
               </label>
             ))}
           </fieldset>
-          {sites.map((id) => (
+          {sites.map(([id]) => (
             <ol class="timeline panel mt-16" id={`week-${id}`}>
               {scenarios[id].map((e) => (
                 <li class={e.stage === "Pull back" ? "is-pull" : ""}>
@@ -442,19 +475,31 @@ $ lps theme pull --env production`,
       <!-- Editions: one plugin, a switch turns the code half on (Editions toggle variant). -->
       <section id="editions" class="wrap editions">
         <div>
-          <h2><span class="h-light">Config first.</span><br /><span class="h-full">Code later.</span></h2>
-          <p class="free mt-5"><span>Both free</span><span>Both open source, GPL</span></p>
+          <h2>Nothing to choose: install the CLI.</h2>
           <p class="mt-6 text-lg leading-relaxed">
-            <strong>Light</strong> puts your configuration in Git. It is on WordPress.org.
+            <code class="mono">lps project config</code> connects your site and offers to install
+            Loopress Full, configuration and code. Say no and you stay on Loopress Light,
+            configuration only, the edition on WordPress.org. Both are free and open source (GPL).
           </p>
-          <p class="mt-4 text-lg leading-relaxed">
-            <strong>Full</strong> is the same plugin with the code half switched on, with
-            conventions instead of <code class="mono">functions.php</code>.{" "}
-            <code class="mono">lps project config</code> installs it for you.
-          </p>
-          <p class="aside mt-6">WordPress.org doesn't host plugins that deploy code, that's the whole reason there are two. <a href="https://docs.loopress.dev/blog/loopress-light-on-wordpress-org/" class="underline">The full story</a>.</p>
+          <p class="aside mt-6">Why two editions? WordPress.org doesn't host plugins that deploy code. <a href="https://docs.loopress.dev/blog/loopress-light-on-wordpress-org/" class="underline">The full story</a>.</p>
         </div>
         <Editions variant="toggle" />
+      </section>
+
+      <!-- Before you install: the four questions asked before a first try, one line and a link each. -->
+      <section id="before" class="before">
+        <div class="wrap py-20">
+          <h2>Before you install</h2>
+          <ul class="before-grid">
+            {beforeYouInstall.map((item) => (
+              <li>
+                <h3>{item.q}</h3>
+                <p>{item.a} <a href={item.href} class="mono">{item.link} →</a></p>
+              </li>
+            ))}
+          </ul>
+          <p class="mt-10"><a href="https://github.com/loopress/demo-bakery" class="mono underline">Browse a real client site in Git →</a></p>
+        </div>
       </section>
 
       <section class="close">
@@ -463,7 +508,7 @@ $ lps theme pull --env production`,
           <p class="mono install">$ npm i -g @loopress/cli<span class="caret" aria-hidden="true">_</span></p>
           <div class="mt-8 flex flex-wrap items-center gap-5">
             <a href="https://docs.loopress.dev/getting-started/" class="btn btn-invert">Get started</a>
-            <a href="https://github.com/loopress" class="mono text-sm underline">★ Star on GitHub</a>
+            <a href="https://github.com/loopress/loopress" class="mono text-sm underline">★ Star on GitHub</a>
           </div>
         </div>
       </section>
@@ -472,6 +517,23 @@ $ lps theme pull --env production`,
     <Footer />
   </div>
 </Layout>
+
+<script>
+  // Install chip: copy the command, say so for two seconds.
+  for (const chip of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+    chip.addEventListener("click", async () => {
+      const label = chip.querySelector(".chip-act");
+      try {
+        await navigator.clipboard.writeText(chip.dataset.copy ?? "");
+      } catch {
+        return;
+      }
+      if (!label) return;
+      label.textContent = "copied";
+      setTimeout(() => (label.textContent = "copy"), 2000);
+    });
+  }
+</script>
 
 <style>
   /* Hallmark · macrostructure: Brand-led loop + scope + timeline · tone: graphic, warm-technical · anchor hue: 215 (logo cyan) */
@@ -495,7 +557,6 @@ $ lps theme pull --env production`,
   .wrap { margin-inline: auto; max-width: 72rem; padding-inline: 1.5rem; }
   .mono { font-family: var(--font-mono); }
   a:hover { color: var(--cyan-ink); }
-  .topnav { gap: 1.75rem; }
   h1, h2, h3 { font-weight: 800; letter-spacing: -0.035em; line-height: 1; overflow-wrap: anywhere; min-width: 0; }
   h1 { font-size: clamp(2.6rem, 5.5vw, 4.6rem); }
   h2 { font-size: clamp(2rem, 4vw, 3.25rem); }
@@ -510,7 +571,12 @@ $ lps theme pull --env production`,
   .lede { margin-top: 1.75rem; max-width: 34rem; font-size: 1.15rem; line-height: 1.6; }
   .ctas { margin-top: 2.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
   .hint { margin-top: 1rem; font-size: 0.75rem; opacity: 0.7; }
-  .chip { font-family: var(--font-mono); border: 2px solid var(--navy); padding: 0.6rem 1rem; border-radius: 0.5rem; background: var(--paper); }
+  .kicker { margin-bottom: 1rem; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cyan-ink); }
+  .chip { display: inline-flex; align-items: center; gap: 0.9rem; cursor: pointer; font-family: var(--font-mono); border: 2px solid var(--navy); padding: 0.6rem 1rem; border-radius: 0.5rem; background: var(--paper); color: var(--navy); }
+  .chip:hover, .chip:focus-visible { border-color: var(--cyan-ink); }
+  .chip-act { font-size: 0.72rem; color: var(--cyan-ink); }
+  .trust { margin-top: 0.6rem; font-size: 0.75rem; opacity: 0.7; }
+  .trust a:hover { text-decoration: underline; }
   .btn { display: inline-flex; align-items: center; height: 2.9rem; padding-inline: 1.4rem; border-radius: 0.5rem; background: var(--navy); color: var(--paper); font-weight: 800; }
   .btn:hover { background: var(--cyan); color: var(--navy); }
   .btn-invert { background: var(--yellow); color: var(--navy); }
@@ -524,6 +590,17 @@ $ lps theme pull --env production`,
   .lbl { font-size: 20px; font-weight: 800; fill: var(--navy); }
   .lbl-site { fill: var(--cyan-ink); }
   .sub { font-family: var(--font-mono); font-size: 11px; fill: var(--navy); opacity: 0.7; }
+  .hex-narrow, .hex-sides { display: none; }
+  .hex-cap { margin-top: 0.5rem; text-align: center; font-size: 1rem; }
+  @media (max-width: 639px) {
+    .hex-wide { display: none; }
+    .hex-narrow { display: block; }
+    .hex-narrow .lbl { font-size: 24px; }
+    .hex-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; font-size: 1rem; }
+    .hex-sides dt { font-weight: 800; }
+    .hex-sides dt.site { color: var(--cyan-ink); }
+    .hex-sides dd { font-size: 0.85rem; opacity: 0.7; }
+  }
 
   /* Scope */
   .scope { background: var(--navy); color: var(--paper); }
@@ -531,6 +608,12 @@ $ lps theme pull --env production`,
   .scope-grid { margin-top: 3rem; display: grid; gap: 2.5rem; align-items: start; }
   @media (min-width: 1024px) { .scope-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
   .tree { background: oklch(0.17 0.04 255); border-radius: 0.75rem; padding: 1.4rem 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.85; overflow-x: auto; }
+  .tree .row { display: block; }
+  /* Mobile: each comment wraps under its line instead of being clipped. */
+  @media (max-width: 639px) {
+    .tree { white-space: pre-wrap; }
+    .tree .cmt { display: block; padding-left: 4ch; text-indent: -2ch; line-height: 1.5; margin-bottom: 0.35rem; }
+  }
   .dim { opacity: 0.6; }
   .cmt { opacity: 0.55; }
   .cmt.light { color: var(--cyan); opacity: 1; }
@@ -545,6 +628,12 @@ $ lps theme pull --env production`,
   /* The week */
   .week { background: var(--paper-2); }
   .sites { display: flex; flex-wrap: wrap; gap: 0.5rem; border: 0; padding: 0; margin-inline: 0; }
+  .sites small { font-size: 0.7rem; opacity: 0.7; }
+  @media (max-width: 639px) {
+    /* Sticky single row: switching site never means scrolling the whole week back up. */
+    .sites { position: sticky; top: 0; z-index: 2; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block: 0.75rem; margin-inline: -1.5rem; padding-inline: 1.5rem; background: var(--paper-2); }
+    .sites span { white-space: nowrap; }
+  }
   .sites span { display: block; cursor: pointer; font-family: var(--font-mono); font-size: 0.8rem; padding: 0.35rem 1rem; background: color-mix(in oklch, var(--navy) 14%, transparent); color: var(--navy); clip-path: polygon(0.6rem 0, calc(100% - 0.6rem) 0, 100% 50%, calc(100% - 0.6rem) 100%, 0.6rem 100%, 0 50%); }
   .sites input:checked + span { background: var(--navy); color: var(--paper); }
   .sites input:focus-visible + span { background: var(--cyan); color: var(--navy); }
@@ -585,12 +674,18 @@ $ lps theme pull --env production`,
   }
 
   /* Editions */
-  .free { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .free span { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500; padding: 0.35rem 0.8rem; border-radius: 0.4rem; background: var(--navy); color: var(--paper); }
-  .h-light { color: var(--cyan); }
-  .h-full { color: var(--violet); }
   .editions { display: grid; gap: 3rem; padding-block: 7rem; align-items: center; }
   @media (min-width: 1024px) { .editions { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+
+  /* Before you install */
+  .before { background: var(--paper-2); }
+  .before-grid { margin-top: 2.5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  @media (min-width: 768px) { .before-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .before-grid li { background: var(--paper); border-radius: 0.75rem; padding: 1.5rem; }
+  .before-grid h3 { font-size: 1.25rem; }
+  .before-grid p { margin-top: 0.6rem; font-size: 1.05rem; line-height: 1.6; }
+  .before-grid a { color: var(--cyan-ink); }
+  .before-grid a:hover { text-decoration: underline; }
 
   /* Close */
   .close { background: var(--navy); color: var(--paper); }
