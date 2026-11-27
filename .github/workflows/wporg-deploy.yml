@@ -57,8 +57,11 @@ jobs:
       # is a no-op rewrite of the value already there.
       - name: Resolve version
         id: version
+        # Through env, never interpolated into the script: an input is text, not shell.
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
-          V="${{ inputs.version }}"
+          V="$VERSION_INPUT"
           [ -n "$V" ] || V=$(jq -r '.version' wordpress-plugin/package.json)
           tmp=$(mktemp)
           jq --arg v "$V" '.version = $v' wordpress-plugin/package.json > "$tmp"
