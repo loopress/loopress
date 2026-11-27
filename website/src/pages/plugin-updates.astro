@@ -16,7 +16,9 @@ const breadcrumbs = [
   <h2>Versions are pinned in the repo</h2>
   <p>
     Plugins are listed with their version in <code>loopress.json</code>. Every environment installs
-    exactly that version, and an update is a one-line diff.
+    exactly that version, and an update is a one-line diff. This applies to projects without a
+    <code>composer.json</code>: when one exists, <code>lps plugin push</code> uses Composer's versions and
+    <code>lps plugin status</code> does not compare these pins, so update plugins through Composer instead.
   </p>
   <pre>$ lps plugin update --minor
 $ git diff loopress.json
@@ -37,7 +39,7 @@ $ git diff loopress.json
     opened.
   </p>
   <p>
-    It is a workflow you copy into your repository, not a hosted service: no token, no account, and none
+    Add each plugin with an exact version (<code>lps plugin add woocommerce --version 9.4.2</code>): the default <code>latest</code> is never updated, so the workflow would report no change. It is a workflow you copy into your repository, not a hosted service: no token, no account, and none
     of your real sites is touched. It installs on a throwaway WordPress, so it tells you a version
     installs, not that your site still works: you still review the pull request. <a href="https://docs.loopress.dev/ci/plugin-update-prs/">Get the workflow file</a>.
   </p>

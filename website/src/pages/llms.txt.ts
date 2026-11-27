@@ -17,7 +17,7 @@ export const GET: APIRoute = () => {
     "",
     "- [Home](https://loopress.dev/): what Loopress is and how the loop works",
     "- [Loopress Light](https://loopress.dev/light): the plugin from WordPress.org",
-    "- [Plugin updates](https://loopress.dev/plugin-updates): pin plugin versions in Git and test updates on a throwaway WordPress",
+    "- [Plugin updates](https://loopress.dev/plugin-updates): pin plugin versions in Git and install updates on a throwaway WordPress",
     "- [FAQ](https://loopress.dev/faq): common questions",
     "- [Changelog](https://loopress.dev/changelog): releases",
     "- [Comparisons](https://loopress.dev/vs): Loopress next to other tools",
