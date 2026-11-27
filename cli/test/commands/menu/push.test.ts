@@ -326,7 +326,11 @@ describe('menu push', () => {
       const put = vi.fn().mockResolvedValue({})
       // No existing menu on this environment for any of these tests: pushMenuFile()'s revision
       // read 404s, so every push here falls back to an unconditional create (see push.ts).
-      const get = vi.fn().mockRejectedValue(notFoundError())
+      const get = vi.fn(async (path: string): Promise<unknown> => {
+        if (/\/menus\/?$/u.test(path)) return []
+        if (/\/menu-locations\/?$/u.test(path)) return {}
+        throw notFoundError()
+      })
       const post = vi.fn().mockResolvedValue({items: [], name: 'Main', revision: 'rev-1', slug: 'main', warnings: []})
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
       return {cmd, get, logs, post, put}

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { expect, test, unwrap } from "./helpers/environment.js";
+import { expect, output, test, unwrap } from "./helpers/environment.js";
 import { setPluginActive } from "./helpers/wp-admin.js";
 
 // Regression test: when both snippet plugins are active at once, Loopress must fail loudly
@@ -43,7 +43,7 @@ test.describe("two snippet plugins active at once", () => {
 		const result = await runCli(["snippet", "push"]);
 
 		expect(result.exitCode).not.toBe(0);
-		expect(unwrap(result.stderr)).toContain(
+		expect(output(result)).toContain(
 			"Multiple snippet plugins are active",
 		);
 	});

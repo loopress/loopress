@@ -386,7 +386,11 @@ describe('form push', () => {
       const cmd = new TestPush(argv, fakeOclifConfig)
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
-      const get = vi.fn().mockRejectedValue(notFoundError())
+      // Empty site: the list read before the push gives nothing, one form lookup is a 404.
+      const get = vi.fn(async (path: string): Promise<unknown[]> => {
+        if (/\/forms\/?$/u.test(path)) return []
+        throw notFoundError()
+      })
       const post = vi.fn().mockResolvedValue({id: 12})
       const put = vi.fn().mockResolvedValue({})
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post, put}
@@ -415,7 +419,8 @@ describe('form push', () => {
     it('refuses a local id that is another form on a site it never pushed to', async () => {
       writeForm('3-mine.json', {id: 3, settings: {form_title: 'Mine'}})
       const {cmd, put} = makeRunCmd()
-      const get = vi.fn().mockResolvedValue({id: 3, revision: 'r', settings: {form_title: 'Newsletter'}})
+      const other = {id: 3, revision: 'r', settings: {form_title: 'Newsletter'}}
+      const get = vi.fn(async (path: string): Promise<unknown> => (/\/forms\/?$/u.test(path) ? [other] : other))
       ;(cmd as unknown as {wpClient: {get: unknown}}).wpClient.get = get
 
       await expect(cmd.run()).rejects.toThrow('failed to push')

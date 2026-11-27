@@ -432,8 +432,20 @@ describe('PushCommand', () => {
       ).rejects.toThrow('The site would refuse this push: ACF is not active')
     })
 
-    it('captureBeforePushState warns and returns undefined when the remote read fails', async () => {
+    it('captureBeforePushState stops the push when the remote read fails', async () => {
       const cmd = makeWithClient(false, SITE)
+      const provider = fakeProvider({
+        async remote() {
+          throw new Error('site unreachable')
+        },
+      })
+
+      await expect(cmd.testCaptureBeforePushState(provider, rootDir)).rejects.toThrow(/site unreachable.*--overwrite to skip the check/u)
+    })
+
+    it('captureBeforePushState warns and returns undefined when the remote read fails under --overwrite', async () => {
+      const cmd = makeWithClient(false, SITE)
+      cmd.setOverwrite(true)
       const warn = vi.spyOn(cmd, 'warn').mockImplementation((input) => input)
 
       const beforeState = await cmd.testCaptureBeforePushState(
@@ -446,7 +458,7 @@ describe('PushCommand', () => {
       )
 
       expect(beforeState).toBeUndefined()
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining('site unreachable'))
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('no rollback snapshot was saved'))
     })
 
     it('writeAfterPushSnapshot pairs beforeState with a fresh post-push remote read, not the local files', async () => {

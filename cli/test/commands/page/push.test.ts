@@ -23,7 +23,7 @@ type PushInternals = {
   recordSuccess: () => Promise<void>
   run(): Promise<unknown>
   siteConfig: unknown
-  wpClient: {put: ReturnType<typeof vi.fn>}
+  wpClient: {get: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn>}
 }
 
 const notManaged = (): Error =>
@@ -37,7 +37,7 @@ function makeCommand(put = vi.fn()): PushInternals {
   const cmd = new Push([], fakeOclifConfig)
   silenceLogs(cmd)
   const internals = cmd as unknown as PushInternals
-  internals.wpClient = {put}
+  internals.wpClient = {get: vi.fn().mockResolvedValue([]), put}
   internals.siteConfig = makeEnv('local')
   internals.recordSuccess = async () => {}
   return internals

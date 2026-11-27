@@ -216,7 +216,12 @@ describe('acf push', () => {
       const cmd = new TestPush(argv, fakeOclifConfig)
       cmd.setup({rootDir: dir}, makeEnv('production', 'https://acme.com'))
       const logs = silenceLogs(cmd)
-      const get = vi.fn().mockRejectedValue(notFoundError())
+      // The site is empty: listing a type (the remote read before the push) gives nothing, looking
+      // up one object is a 404.
+      const get = vi.fn(async (path: string): Promise<unknown[]> => {
+        if (/\/(?:field-groups|post-types|taxonomies|options-pages|ui-options-pages)\/?$/u.test(path)) return []
+        throw notFoundError()
+      })
       // Writes resolve to `{}`; ACF's normalize route, read-only, echoes the objects back.
       const post = vi.fn(async (path: string, body: {objects?: unknown[]}) => (path.startsWith('loopress/v1/acf/normalize/') ? body.objects : {}))
       ;(cmd as unknown as {wpClient: unknown}).wpClient = {get, post}
