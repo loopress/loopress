@@ -315,4 +315,64 @@ export const alternatives: Alternative[] = [
     docs: [["Rollback and snapshots", `${docs}/rollback/`], ["Core concepts", `${docs}/concepts/`]],
     recipe: ["Undo a bad deploy with lps diff and rollback", `${docs}/cookbook/site-as-code/undo-bad-deploy-lps-diff-rollback-wordpress/`],
   },
+  {
+    slug: "wp-cfm",
+    name: "WP-CFM",
+    kind: "closed on WordPress.org",
+    heading: "A WP-CFM alternative: your options in Git, over the REST API.",
+    seoTitle: "WP-CFM Alternative After Its Closure - Loopress",
+    lede: "WP-CFM was closed on WordPress.org in January 2026. Loopress keeps options as files in Git, reviewed in a PR, and adds ACF, menus and code.",
+    intro: [
+      "WP-CFM copied database configuration to and from the filesystem: you chose a bundle of settings, it wrote one file per bundle, and you committed those files. Its directory page is closed permanently, the last release listed is 1.7.10, so a new site can't install it from wp-admin anymore. If you searched for a WP-CFM alternative, you probably still want the same thing: settings as files, reviewed in a pull request.",
+      "Loopress keeps that. Each option you track is a JSON file in your project, committed and reviewed like code. What changes is the transport. WP-CFM runs on the site itself, so moving a bundle means deploying the files to the server by other means (Git, rsync, your host) and then pulling them in on that site. Loopress talks to each site over the REST API from your machine or from CI: lps option push sends the files, with no deploy of the files first. It also covers what WP-CFM did not: ACF field groups, menus, post types, roles, theme styles and, with Full, hooks and code.",
+      "One thing to know before you start: the words go the other way. In WP-CFM, push exports the database settings to the filesystem and pull imports the files into the database. In Loopress, pull brings a site's configuration into your files and push sends your files to the site. Migrating, read every command with that in mind.",
+      "There is no import command for a WP-CFM bundle. Migrating is manual and short: open each bundle file, list the option names in it, run lps option add <name> for each one on the site that has the right values, then commit the files in options/. Option values are copied as is, so check that none embeds a post, term or user id before you push it to another environment. WP-CFM's other data types are covered unevenly, see the table.",
+    ],
+    rows: [
+      ["What it versions", "wp_options, multisite wp_sitemeta, taxonomy terms and Custom Field Suite field groups, in bundles", "The options you choose to track, plus ACF field groups, menus, post types, taxonomy registration, roles, theme styles, and code with Full"],
+      ["What it moves", "One file per bundle (JSON, or YAML through a filter), in wp-content/config/ by default", "One JSON file per option or resource, in your project"],
+      ["How it deploys", "Commit the files, deploy them to the server by other means, then run wp config pull <bundle> on that site", "lps option push --env production, over the REST API"],
+      ["Content touched", "Taxonomy terms are part of its data", "No: posts, terms and users are never pushed. lps taxonomy push registers a taxonomy and never touches its terms"],
+      ["Multisite", "wp_sitemeta bundles, with --network", "No network-wide options: each site is its own environment"],
+      ["Before shipping", "wp config diff <bundle>, and a diff viewer in the admin, on the site the files are on", "lps option diff against any environment, or two environments against each other, with no SSH"],
+      ["Status", "Closed on WordPress.org, permanently, last release 1.7.10", "Alpha, actively developed"],
+      ["Undo", "Not compared here", "lps option rollback, to the snapshot taken before the push"],
+    ],
+    task: {
+      title: "Ship a changed option to production",
+      them: ["Edit the setting, then export its bundle to the filesystem (wp config push <bundle>)", "Commit the bundle file and deploy it to production by other means", "Run wp config diff <bundle>, then wp config pull <bundle> on production"],
+      us: `$ lps option pull --env staging
+$ git commit -am "Update the site title"
+$ lps option diff --env production
+$ lps option push --env production`,
+    },
+    theirs: "You already run it, your needs are options and taxonomy terms in bundles, and you accept a plugin closed on WordPress.org, whose last listed release is 1.7.10.",
+    ours: "You want a maintained way to keep options in Git, you need ACF, menus or code too, or you want to diff and ship to any environment from the terminal or CI, without deploying files to each server first.",
+    matrix: ["yes", "no", "options only", "yes, on the site the files are on", "no, it can copy terms", "no"],
+    gaps: ["no", "no", "taxonomy terms only", "no"],
+    faq: [
+      {
+        q: "Is WP-CFM still available?",
+        a: "It was closed on WordPress.org on 2026-01-14, permanently, at the author's request. The last release listed on the directory is 1.7.10. You can no longer install it from wp-admin.",
+      },
+      {
+        q: "Can Loopress import a WP-CFM bundle?",
+        a: "No. There is no import command. Read the option names in each bundle file, run lps option add <name> for each one against the site that holds the right values, and commit the resulting files. lps option list shows the option names available on a site.",
+      },
+      {
+        q: "Does Loopress cover everything WP-CFM did?",
+        a: "Options, yes, one by one. Multisite wp_sitemeta bundles and Custom Field Suite field groups, no. Taxonomy terms, no: lps taxonomy covers the registration of a taxonomy, never its terms, which stay content in WordPress.",
+      },
+      {
+        q: "Are push and pull the same as in WP-CFM?",
+        a: "No, they are reversed. In WP-CFM, push exports the database to files and pull imports files into the database. In Loopress, lps option pull brings the site's value into your files and lps option push sends your files to the site.",
+      },
+      {
+        q: "How do I move an option between environments?",
+        a: "lps option pull --env staging writes the tracked options to your files, you commit them, and lps option push --env production sends them. lps option diff shows what a push would change first, and an option marked readonly in its file is skipped by push.",
+      },
+    ],
+    docs: [["Options in Git", `${docs}/options/`], ["Rollback and snapshots", `${docs}/rollback/`]],
+    recipe: ["Undo a bad deploy with lps diff and rollback", `${docs}/cookbook/site-as-code/undo-bad-deploy-lps-diff-rollback-wordpress/`],
+  },
 ];
