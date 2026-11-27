@@ -15,9 +15,11 @@ tags:
 excerpt: We built a Composer UI for the WordPress admin, then asked wordpress.org's review team if it belonged in the official directory. Guideline 8 says no, dynamically installed executable code is never acceptable there, no matter how it's used. Here's the rule, and the one-codebase, two-edition architecture we shipped instead.
 ---
 
+*Updated 2026-11-27: the Composer UI in the admin installs packages only on local and development sites. Other sites change dependencies from the repository with `lps composer push`.*
+
 WordPress doesn't have a package manager. If you want a PHP library in your project, be it Guzzle for HTTP calls or a PDF generation library in a snippet, you're either vendoring the code by hand or running Composer somewhere the WordPress admin can't see.
 
-We built a feature to fix that: a Composer UI inside the WordPress admin. Search Packagist, install a package, audit it for known vulnerabilities, all without SSH access ([full walkthrough here](/blog/wordpress-composer-without-ssh/)). Before shipping it, we asked the wordpress.org plugin review team whether it would be acceptable in the official directory.
+We built a feature to fix that: a Composer UI inside the WordPress admin of local and development sites (the other sites change dependencies from the repository, with `lps composer push`). Search Packagist, install a package, audit it for known vulnerabilities, all without SSH access ([full walkthrough here](/blog/wordpress-composer-without-ssh/)). Before shipping it, we asked the wordpress.org plugin review team whether it would be acceptable in the official directory.
 
 The answer was no.
 

@@ -15,7 +15,9 @@ tags:
 excerpt: Composer dependency management and Custom API Routes were built as two separate Loopress Full features. They were also built to fit together. Here's the mechanism connecting them, and what it opens up.
 ---
 
-Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package straight from the WordPress admin, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint, deployed with the [Loopress CLI](/getting-started/) once it's set up for the project. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
+*Updated 2026-11-27: installing from the admin works only on a development site. Other sites get the same packages from the repository with `lps composer push`.*
+
+Two Loopress Full features, each useful on their own: [Composer dependency management](/blog/wordpress-composer-without-ssh/) installs any Packagist package from the admin of a development site, or from your repo with `lps composer push`, and [Custom API Routes](/blog/custom-wordpress-endpoint-without-writing-a-plugin/) turn a version-controlled PHP file into a live REST endpoint, deployed with the [Loopress CLI](/getting-started/) once it's set up for the project. They were built separately, but not independently: a route file can `use` any package Composer installed, no extra step in between.
 
 ## Why reach for a package at all
 
@@ -75,7 +77,7 @@ Both features ship with Loopress Full, free:
 npm install -g @loopress/cli
 ```
 
-[Composer dependency management](/composer/) covers installing and auditing packages from the admin. [Writing Route Files](/api/routes/) covers everything a route can do beyond this: authentication, CORS, the security model.
+[Composer dependency management](/composer/) covers installing and auditing packages from the admin of a development site, and `lps composer push` for the other sites. [Writing Route Files](/api/routes/) covers everything a route can do beyond this: authentication, CORS, the security model.
 
 ## Related docs
 
