@@ -12,12 +12,14 @@ tags:
   - php
   - wordpress
   - dependencies
-excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The Loopress plugin does this from the admin panel.
+excerpt: Need to pull in a Packagist package on a WordPress site? The usual path is SSH into the server, install Composer, run composer require, and pray. The Loopress plugin does this from the admin panel of a development site, and from your repo with `lps composer push` everywhere else.
 ---
 
 import composerInstallVideo from '../../videos/composer-install-admin-ui.webm';
 import snippetUsingComposerVideo from '../../videos/snippet-using-composer.webm';
 import PluginDownload from '../../../components/PluginDownload.astro';
+
+*Updated 2026-11-27: the admin panel installs, updates and removes packages only on a local or development site. On staging and production it is read-only, and dependencies change through your repository and `lps composer push`. The post now says so.*
 
 You need to add a PHP dependency to a WordPress site. Maybe a PDF generation library, a CSV parser, an image manipulation package. Something available on Packagist.
 
@@ -46,7 +48,7 @@ Neither option is good.
 
 ## What Loopress does differently
 
-**Loopress Full** adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access.
+**Loopress Full** adds a **Dependency Management** panel to your WordPress admin. It talks to Packagist, runs Composer server-side through a sandboxed process, and handles the install without you needing a terminal or SSH access. Installing from the panel works on a **local or development site**; on staging and production the panel is read-only, see [On staging and production](#on-staging-and-production).
 
 This is Loopress Full specifically, not Loopress Light (the free edition on wordpress.org). wordpress.org's plugin guidelines don't allow a plugin to install executable code from a third-party registry like Packagist, so this feature ships separately, from [loopress.dev](https://loopress.dev), rather than the official directory. [Here's why](/blog/wordpress-org-composer-rejection/), if you're curious.
 
@@ -54,11 +56,13 @@ This is Loopress Full specifically, not Loopress Light (the free edition on word
 
 ### Installing a package
 
-Here's what that looks like from the admin, in under a minute:
+Here's what that looks like from the admin of a development site, in under a minute:
 
 <video controls width="100%" src={composerInstallVideo}>
   <p>Your browser doesn't support HTML5 video. <a href={composerInstallVideo}>Download the video</a> instead.</p>
 </video>
+
+*The video shows a development site.*
 
 1. Navigate to **WordPress Admin → Loopress → Dependencies**.
 2. Search for a package by name (`guzzlehttp/guzzle`, or whatever you need). Loopress queries Packagist directly and shows you available versions.
@@ -103,16 +107,22 @@ If you manage multiple client sites, the usual Composer workflow means either:
 - Teaching clients how to run terminal commands (not happening)
 - Keeping a pile of FTP credentials and manually uploading `vendor/` directories
 
-With Loopress, the dependency management surface moves into the WordPress admin. You can install, update, and remove packages from the same interface you use to manage everything else. No server access required.
+With Loopress, you can install, update, and remove packages from the admin of a local or development site, and ship the same `composer.json` to every other site from your repository. No server access required.
 
 ### Seeing what's installed
 
 The **Dependencies** panel shows:
 - All installed packages with their current versions
 - Available updates from Packagist
-- A one-click update path
+- A one-click update path on a local or development site
 
-This is the equivalent of `composer show` and `composer outdated`, surfaced in the UI.
+This is the equivalent of `composer show` and `composer outdated`, surfaced in the UI. On other sites the list is read-only.
+
+## On staging and production
+
+Install, update, remove and repair answer only on a `local` or `development` site. Everywhere else the panel is read-only: it lists what is installed, and the server refuses changes (HTTP 403). Dependencies change in the repository instead: add the packages to `composer.json`, then run `lps composer push`. Still no SSH, and the change is reviewed and versioned like any other.
+
+See [Production sites and read-only mode](/composer/admin-ui/#production-sites-and-read-only-mode) for the details.
 
 ## What Loopress doesn't replace
 

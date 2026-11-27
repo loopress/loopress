@@ -89,7 +89,7 @@ Worth knowing if you are in this queue now: the review emails are partly automat
 
 If you sync ACF field groups and SEO settings, install [Loopress Light](https://wordpress.org/plugins/loopress-light/) from the directory and let it update itself.
 
-If you also need snippet sync, WPForms sync, version-controlled REST API routes, or Composer packages managed from the admin, that is [Loopress Full](/wordpress-plugin/), a separate download, for the reasons above.
+If you also need snippet sync, WPForms sync, version-controlled REST API routes, or Composer packages (managed from the admin of a development site, or from your repo with `lps composer push`), that is [Loopress Full](/wordpress-plugin/), a separate download, for the reasons above.
 
 ## Thanks
 
