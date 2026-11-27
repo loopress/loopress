@@ -59,7 +59,7 @@ export default defineConfig({
 						{
 							label: "Core concepts",
 							description: "getting started, concepts, workflow and project layout",
-							paths: ["getting-started", "concepts", "workflow", "loopress-json", "rollback"],
+							paths: ["getting-started", "concepts", "workflow", "loopress-json", "rollback", "safety"],
 						},
 						{
 							label: "CLI reference",
@@ -133,6 +133,7 @@ export default defineConfig({
 						"plugins",
 						"post-meta",
 						"roles",
+						"safety",
 						"snippets",
 						"taxonomies",
 						"theme-styles",
@@ -160,6 +161,7 @@ export default defineConfig({
 								{ label: "Concepts", slug: "concepts" },
 								{ label: "Multi-Environment Workflow", slug: "workflow" },
 								{ label: "Rollback", slug: "rollback" },
+								{ label: "Safe by Default", slug: "safety" },
 								{
 									label: "Code",
 									items: [

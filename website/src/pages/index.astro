@@ -1,6 +1,7 @@
 ---
 // Home. The loop is the logo: the dark C is your repo (Build, Review), the cyan chevron the live
-// site, Ship and Pull back are the two joints between them. Below, what's in Git, a week of five
+// site, Ship and Pull back are the two joints between them. Below, what's in Git, what happens
+// when your code is wrong or the site changed without you, a week of five
 // client sites as tabs (radio inputs + CSS, no JS), one scenario per kind of WordPress project,
 // and the Light / Full toggle. Earlier iterations live under /dev (astro dev only).
 // Every command, flag, path and behaviour shown here was checked in cli/ and the docs.
@@ -43,6 +44,7 @@ const hexPoints = (cx: number, cy: number, r: number) =>
 
 // Loop vertices: R, BR, BL, L, TL, TR (angles 0..300, y grows downward).
 const [R, BR, BL, L, TL, TR] = hexPoints(200, 200, 130);
+const markHex = hexPoints(12, 12, 11).join(" "); // the safety table markers: the logo hexagon, small
 const repoSide = `M${BR} L${BL} L${L} L${TL} L${TR}`; // the dark "C" of the logo: your repo
 const siteSide = `M${TR} L${R} L${BR}`; // the cyan chevron: the live site
 const travel = `M${L} L${TL} L${TR} L${R} L${BR} L${BL} Z`; // clockwise, from Build
@@ -88,6 +90,26 @@ const beforeYouInstall = [
   { q: "Do I need to change hosts or restructure the site?", a: "No: WordPress 6.2+, PHP 8.2+, the REST API, no SSH.", href: "/faq#which-sites-does-it-work-with", link: "Which sites does it work with?" },
   { q: "I already use ACF Local JSON, WP Migrate or Bedrock.", a: "See what each one does, and what Loopress doesn't.", href: "/vs", link: "Compare" },
   { q: "Is it ready?", a: "Alpha: it runs real sites, things still change between releases.", href: "/changelog", link: "Changelog" },
+];
+
+// When your code is wrong: each row maps to the plugin code and its test, listed on docs.loopress.dev/safety/.
+// The limit row stays next to them: never claim more than the rows say.
+// `code` in a string renders as <code>.
+const segments = (text: string) => text.split("`");
+const failures = [
+  ["A PHP syntax error.", "Refused at push, with PHP's own parser, so it works on managed hosts that disable `exec`. Nothing is written."],
+  ["A hook that throws.", "Caught and logged, the other hooks keep running. `lps hook list` and `lps doctor` show the last error."],
+  ["A filter that throws.", "Returns the value it was given, so a bug on `the_content` leaves the post as it was, not blank."],
+  ["A cron job that throws.", "Caught and logged, like a hook."],
+  ["A route handler that throws.", "Answers a clean 500 to that request, the rest of the site is unaffected."],
+  ["A route you forgot to protect.", "Closed by default: only administrators can call it, until you mark it public or write its `permission()`. A permission check that throws denies."],
+];
+
+// When the site changed without you: the push guard, the production confirmation, the rollback check.
+const siteChanged = [
+  ["A push stops on outside edits.", "It names any tracked item edited on the site since this machine last pulled or pushed, unless you pass `--overwrite`."],
+  ["Production asks first.", "A push to production asks for confirmation, or needs `--yes` in a recognized CI."],
+  ["A rollback checks first.", "It looks for edits made after the push it undoes before it restores the snapshot."],
 ];
 
 type Moment = {
@@ -432,6 +454,51 @@ $ lps theme pull --env production`,
         </div>
       </section>
 
+      <!-- When your code is wrong: what the plugin does with a bug, and where it stops (the limit row). -->
+      <section id="safety" class="safety">
+        <div class="wrap py-24">
+          <h2 class="max-w-3xl">When your code is wrong, the site keeps running.</h2>
+          <p class="mt-5 max-w-2xl text-lg leading-relaxed">
+            You will push a bug one day. Here is what Loopress does with it, and where it stops.
+          </p>
+          <dl class="failures">
+            {failures.map(([situation, behavior]) => (
+              <div class="failure">
+                <dt>
+                  <svg viewBox="0 0 24 24" class="mark mark-bug" aria-hidden="true"><polygon points={markHex} /><path d="M9 9 L15 15 M15 9 L9 15" /></svg>
+                  {situation}
+                </dt>
+                <dd>
+                  <svg viewBox="0 0 24 24" class="mark mark-ok" aria-hidden="true"><polygon points={markHex} /><path d="M8 12.5 L11 15 L16 9" /></svg>
+                  <span>{segments(behavior).map((part, i) => (i % 2 ? <code class="mono">{part}</code> : part))}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div class="limit">
+            <p class="limit-title">What it can't catch.</p>
+            <p>
+              Fatal errors that are not exceptions, like memory exhaustion or a method declared twice,
+              still stop the request. Test on staging first: <code class="mono">lps promote staging production</code> ships what staging ran.
+            </p>
+          </div>
+          <p class="mt-10"><a href="https://docs.loopress.dev/safety/" class="mono underline">Safe by default, the details →</a></p>
+        </div>
+      </section>
+
+      <!-- When the site changed: the guards against overwriting what someone else did. -->
+      <section id="site-changed" class="wrap py-24 site-changed">
+        <h2 class="max-w-3xl">And when the site changed without you.</h2>
+        <div class="changed-grid">
+          {siteChanged.map(([what, how]) => (
+            <div>
+              <h3>{what}</h3>
+              <p>{segments(how).map((part, i) => (i % 2 ? <code class="mono">{part}</code> : part))}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <!-- The week: stages as moments, marked by the hexagon segment they light -->
       <section id="week" class="week">
         <div class="wrap py-24">
@@ -624,6 +691,30 @@ $ lps theme pull --env production`,
   .ed-light { color: var(--cyan); }
   .ed-full { color: oklch(0.78 0.13 290); }
   .never td { opacity: 0.6; border-bottom: 0; }
+
+  /* When your code is wrong: a darker navy than the scope section above, so the two dark sections read apart. */
+  .safety { background: oklch(0.17 0.04 255); color: var(--paper); }
+  .safety a:hover { color: var(--yellow); }
+  .failures { margin-top: 3rem; border-top: 1px solid oklch(1 0 0 / 0.14); }
+  .failure { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; padding-block: 1.1rem; border-bottom: 1px solid oklch(1 0 0 / 0.14); }
+  @media (min-width: 768px) { .failure { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 2rem; } }
+  .failure dt { display: flex; align-items: baseline; gap: 0.75rem; font-size: 1.125rem; font-weight: 800; }
+  .failure dd { display: flex; align-items: baseline; gap: 0.75rem; font-size: 1rem; line-height: 1.6; opacity: 0.9; }
+  @media (max-width: 767px) { .failure dd { padding-left: 1.85rem; } .failure dd .mark { display: none; } }
+  .mark { flex: none; width: 1.1rem; height: 1.1rem; align-self: center; }
+  .mark path { fill: none; stroke: var(--navy); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .mark-bug polygon { fill: oklch(0.68 0.19 40); }
+  .mark-ok polygon { fill: oklch(0.75 0.17 150); }
+  .limit { margin-top: 3rem; max-width: 46rem; border-left: 4px solid oklch(0.8 0.16 75); padding: 0.25rem 0 0.25rem 1.25rem; font-size: 1rem; line-height: 1.6; }
+  .limit-title { font-size: 1.125rem; font-weight: 800; margin-bottom: 0.4rem; }
+  .limit code, .failure code { color: var(--cyan); font-size: 0.9em; }
+  .changed-grid code { font-size: 0.9em; }
+
+  /* When the site changed */
+  .changed-grid { margin-top: 2.5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  @media (min-width: 1024px) { .changed-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem; } }
+  .changed-grid h3 { font-size: 1.25rem; }
+  .changed-grid p { margin-top: 0.6rem; font-size: 1.05rem; line-height: 1.6; }
 
   /* The week */
   .week { background: var(--paper-2); }

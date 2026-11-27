@@ -66,6 +66,11 @@ const sections = [
         a: "WordPress actions and filters written as PHP classes, one per file, declared with attributes like #[Filter('the_title')] instead of add_filter calls scattered across functions.php. Loopress wires them onto the native hook system, no runtime of its own.",
       },
       {
+        q: "What if my code has a bug?",
+        a: "A PHP syntax error is refused at push and nothing is written. A hook or cron job that throws is caught and logged, a filter that throws returns the value it was given, a route that throws answers a clean 500, and a route is only callable by administrators until you open it. Fatal errors that are not exceptions, like memory exhaustion or a method declared twice, still stop the request: test on staging first.",
+        link: { href: "https://docs.loopress.dev/safety/", label: "Safe by default" },
+      },
+      {
         q: "How does the plugin lockfile work?",
         a: "lps plugin pull writes the plugins installed on the site, each pinned to its running version, into loopress.json (or composer.json if your repo has one). lps plugin push installs the same set through Composer and WPackagist, keeps inactive plugins inactive, and uninstalls what you removed, after a confirmation.",
       },
