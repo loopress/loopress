@@ -385,7 +385,7 @@ $ lps option push --env production`,
     intro: [
       "If you searched for a Code Snippets plugin alternative or for WordPress snippets version control, you probably like the plugin and dislike where the code lives: in the database of each site, edited in wp-admin, with no history, no review and no copy of what ran last week. Code Snippets and WPCode are good at what they do: a place to paste a function without editing the theme.",
       "Loopress does not replace them first, it reads them. With either plugin active on the site, lps snippet pull writes each snippet as a code file with a JSON sidecar (name, type, active, description, tags, location, insert method, priority and shortcode attributes), and lps snippet push sends the files back. The plugin keeps running the snippet, the repo becomes the reference.",
-      "The other path is to stop using a snippet plugin for a given piece of code: move it to a hook file, a PHP class in hooks/ whose methods carry #[Action], #[Filter] or #[Cron]. A hook file is checked for PHP syntax when you push and nothing is written if it is invalid. A hook that throws at run time is caught and logged, and the other hooks keep running. Snippet sync and hook files need Loopress Full.",
+      "The other path is to stop using a snippet plugin for a given piece of code: move it to a hook file, a PHP class in hooks/ whose methods carry #[Action], #[Filter] or #[Cron]. A hook file is checked for PHP syntax when you push, and nothing is written if the check finds an error. If the host cannot run the check, the CLI reports that it was skipped and the file is written. A hook that throws at run time is caught and logged, and the other hooks keep running. Snippet sync and hook files need Loopress Full.",
     ],
     rows: [
       ["What it versions", "Snippets stored in the database, edited in wp-admin", "Each snippet as a code file and a JSON sidecar, or a hook file in hooks/"],
@@ -397,10 +397,11 @@ $ lps option push --env production`,
       ["Bad code", "Not compared here", "A hook file with a PHP syntax error is refused at push; a throwing hook is caught and logged"],
     ],
     task: {
-      title: "Put the snippets of a site in Git, then ship a change",
-      them: ["Open the snippet in wp-admin on staging, edit it, test it", "Open the same snippet on production and paste the change", "Hope nobody edited it there in the meantime"],
-      us: `$ lps snippet pull --env staging
-$ git commit -am "Fix the price formatter"
+      title: "Put the snippets of a site in Git, then change one",
+      them: ["Open the snippet in wp-admin and edit it", "Hope nobody else edited it in the meantime", "No diff, no review, no copy of the old version"],
+      us: `$ lps snippet pull --env production
+$ git add -A && git commit -m "Snippets as they are on the site"
+# edit the price formatter in your editor
 $ lps snippet diff --env production
 $ lps snippet push --env production`,
     },
@@ -412,7 +413,7 @@ $ lps snippet push --env production`,
     faq: [
       {
         q: "Does Loopress work with Code Snippets and WPCode?",
-        a: "Yes. The Loopress plugin detects whichever of the two is active on the site, and the CLI commands are the same either way. If the site has neither, lps plugin add code-snippets installs one. Snippet sync needs Loopress Full.",
+        a: "Yes. The Loopress plugin detects whichever of the two is active on the site, and the CLI commands are the same either way. If the site has neither, run lps plugin add code-snippets, then lps plugin push to install it on the site. Snippet sync needs Loopress Full.",
       },
       {
         q: "What does lps snippet pull write?",
