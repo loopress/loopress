@@ -121,6 +121,7 @@ type Moment = {
   body: string;
   code: string;
   note: string;
+  more?: { href: string; label: string };
 };
 
 // One scenario per site, each one around the whole loop.
@@ -222,6 +223,7 @@ $ git diff loopress.json
 -    "woocommerce": "9.4.2",
 +    "woocommerce": "9.5.0",`,
       note: "the update is a one-line diff.",
+      more: { href: "/plugin-updates", label: "Plugin updates, the weekly PR" },
     },
     {
       stage: "Review", when: "Monday 14:45", site: "shop",
@@ -531,6 +533,7 @@ $ lps theme pull --env production`,
                   <div class="side">
                     <pre>{e.code}</pre>
                     <p class="aside">{e.note}</p>
+                    {e.more && <p class="aside"><a href={e.more.href} class="underline">{e.more.label} →</a></p>}
                   </div>
                 </li>
               ))}

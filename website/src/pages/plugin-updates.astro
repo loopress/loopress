@@ -1,0 +1,77 @@
+---
+// Landing for people who maintain WordPress sites and dread plugin updates. Facts from
+// documentation/src/content/docs/ci/plugin-update-prs.md and cli/src/commands/plugin/
+// (update.ts, audit.ts, add.ts, push.ts).
+import DocPage from "@/components/site/DocPage.astro";
+
+export const prerender = true;
+
+const breadcrumbs = [
+  { name: "Loopress", url: "https://loopress.dev/" },
+  { name: "Plugin updates", url: "https://loopress.dev/plugin-updates" },
+];
+---
+
+<DocPage title="Test WordPress Plugin Updates Before Production" description="Pin plugin versions in Git, bump them with one command, and let a weekly CI job install the new versions on a throwaway WordPress and open a pull request." kicker="plugin updates · wordpress · git" heading="A plugin update is a pull request, not a click on production." lede="WooCommerce updates itself, the checkout breaks, and nobody can say what changed. Pin the versions in Git and the update becomes a diff you review before it reaches a client site." breadcrumbs={breadcrumbs}>
+  <h2>Versions are pinned in the repo</h2>
+  <p>
+    Plugins are listed with their version in <code>loopress.json</code>. Every environment installs
+    exactly that version, and an update is a one-line diff. This applies to projects without a
+    <code>composer.json</code>: when one exists, <code>lps plugin push</code> uses Composer's versions and
+    <code>lps plugin status</code> does not compare these pins, so update plugins through Composer instead.
+  </p>
+  <pre>$ lps plugin update --minor
+$ git diff loopress.json
+-    "woocommerce": "9.4.2",
++    "woocommerce": "9.5.0",</pre>
+  <p>
+    <code>lps plugin update</code> rewrites <code>loopress.json</code> only. Nothing changes on a site
+    until <code>lps plugin push</code>. <code>--minor</code> stays on the current major version,
+    <code>--patch</code> takes patch releases only, and <code>lps plugin update woocommerce</code> bumps
+    one plugin.
+  </p>
+
+  <h2>A weekly pull request, from CI</h2>
+  <p>
+    A GitHub Actions workflow runs <code>lps plugin update</code> every Monday, installs the new
+    versions on a throwaway WordPress booted inside the job, runs the audit, and opens a pull request
+    with a before and after table. If a version does not install, the job fails and no pull request is
+    opened.
+  </p>
+  <p>
+    Add each plugin with an exact version (<code>lps plugin add woocommerce --version 9.4.2</code>): the default <code>latest</code> is never updated, so the workflow would report no change. It is a workflow you copy into your repository, not a hosted service: no token, no account, and none
+    of your real sites is touched. It installs on a throwaway WordPress, so it tells you a version
+    installs, not that your site still works: you still review the pull request. <a href="https://docs.loopress.dev/ci/plugin-update-prs/">Get the workflow file</a>.
+  </p>
+
+  <h2>Audit the versions you pin</h2>
+  <pre>$ lps plugin audit
+$ lps plugin status --env staging</pre>
+  <p>
+    <code>lps plugin audit</code> checks every pinned version against the <a href="https://www.wpvulnerability.net/">wpvulnerability.net</a> database and exits non-zero when a
+    known vulnerability affects one of them. <code>lps plugin status</code> shows how far a site is
+    from the pins.
+  </p>
+
+  <h2>When an update goes wrong</h2>
+  <p>
+    Pin the previous version back and push. A downgrade needs <code>--force</code>: the old files come
+    back, but the database migrations the new version ran do not. Read the changelog first.
+  </p>
+  <pre>$ lps plugin add woocommerce --version 9.4.2
+$ lps plugin push --env production --force</pre>
+
+  <div class="ctas">
+    <a href="https://docs.loopress.dev/ci/plugin-update-prs/" class="btn">Get the workflow</a>
+    <a href="https://docs.loopress.dev/getting-started/">Get started</a>
+    <a href="/">See the whole loop</a>
+  </div>
+  <p class="trust">free and open source · WordPress 6.2+, PHP 8.2+ · no SSH, no host change · <a href="/changelog">alpha, moving fast</a></p>
+</DocPage>
+
+<style>
+  pre + p { margin-top: 1.25rem; }
+  .ctas { margin-top: 3rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; }
+  .btn { display: inline-flex; align-items: center; height: 2.9rem; padding-inline: 1.4rem; border-radius: 0.5rem; background: oklch(0.22 0.05 255); color: oklch(0.975 0.008 95); font-weight: 800; text-decoration: none !important; }
+  .trust { margin-top: 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; }
+</style>
