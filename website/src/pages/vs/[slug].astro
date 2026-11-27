@@ -121,7 +121,8 @@ const breadcrumbs = [
   .ways ol li + li { margin-top: 0.5rem; }
   .ways pre { margin-top: 0; }
 
-  .picks { display: grid; gap: 0 3rem; }
+  /* Its h2s are first children, so DocPage drops their top margin: the block carries it. */
+  .picks { margin-top: 3.5rem; display: grid; gap: 0 3rem; }
   @media (min-width: 768px) { .picks { grid-template-columns: 1fr 1fr; } }
 
   .vs { margin-top: 1.25rem; }

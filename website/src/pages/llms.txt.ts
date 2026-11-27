@@ -11,6 +11,8 @@ export const GET: APIRoute = () => {
     "",
     "> Loopress puts the configuration and code of a WordPress site in Git: pull, diff, push and roll back with the lps CLI, on the site you already have. Content (posts, orders, users) is never overwritten.",
     "",
+    "For developers who look after several client WordPress sites. Free and open source (CLI MPL-2.0, plugin GPL). Alpha. Requires WordPress 6.2+, PHP 8.2+ and the REST API. Does not back up sites, push content (posts, orders, users, media) to a site, or manage the WordPress core version.",
+    "",
     "## Site",
     "",
     "- [Home](https://loopress.dev/): what Loopress is and how the loop works",

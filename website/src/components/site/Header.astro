@@ -1,0 +1,23 @@
+---
+// Shared site header (home and content pages). Absolute links only, so it works on every page.
+import Logo from "@/components/site/Logo.astro";
+
+const nav = [
+  ["Docs", "https://docs.loopress.dev"],
+  ["Compare", "/vs"],
+  ["FAQ", "/faq"],
+  ["Cookbook", "https://docs.loopress.dev/cookbook/"],
+];
+---
+
+<header class="wrap flex items-center justify-between gap-4 py-6">
+  <a href="/" class="text-lg font-extrabold"><Logo class="h-9 w-9" /></a>
+  <nav class="topnav hidden text-sm font-medium md:flex">
+    {nav.map(([label, href]) => <a href={href}>{label}</a>)}
+  </nav>
+  <a href="https://github.com/loopress/loopress" class="mono text-xs">★ GitHub</a>
+</header>
+
+<style>
+  .topnav { gap: 1.75rem; }
+</style>
