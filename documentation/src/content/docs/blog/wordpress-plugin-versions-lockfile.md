@@ -83,7 +83,7 @@ akismet      5.3.3    5.3.3   -
 
 You can push that to staging, look at it for a day, then push the same file to production.
 
-The step after that is to stop running the command yourself. A [weekly CI workflow](/ci/plugin-update-prs/) runs `lps plugin update`, installs the new versions on a throwaway WordPress inside the job, runs `lps plugin audit`, and opens a pull request with a before/after table. A version that fails to install fails the job, so no pull request is opened for it. No real site is touched, and no token is needed. What the job checks is that the new versions install and activate. It doesn't check that your checkout still works: that part is still yours, on staging.
+The step after that is to stop running the command yourself. A [weekly CI workflow](/ci/plugin-update-prs/) runs `lps plugin update`, installs the new versions on a throwaway WordPress inside the job, runs `lps plugin audit`, and opens a pull request with a before/after table. A version that fails to install fails the job, so no pull request is opened for it. No real site is touched, and no token is needed. What the job checks is that the new versions install, and that the plugins `loopress.json` marks active still activate. A plugin it marks inactive stays inactive, so its activation isn't tested. It doesn't check that your checkout still works: that part is still yours, on staging.
 
 ## Why a downgrade needs `--force`
 

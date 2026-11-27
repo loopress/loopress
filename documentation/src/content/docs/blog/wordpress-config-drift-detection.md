@@ -76,7 +76,9 @@ Loopress doesn't let you do that by accident. Before writing, a push compares th
 Changed on https://shop.example.com outside Loopress since this machine last pulled or pushed (2026-11-28T16:42:10.000Z), this push would overwrite: group_product_delivery.
 ```
 
-In a terminal it asks you instead. In a script it stops, and `--overwrite` is how you say "yes, replace it". `--yes` doesn't imply it. An edit made in wp-admin is never overwritten silently.
+In a terminal it asks you instead. In a script it stops, and `--overwrite` is how you say "yes, replace it". `--yes` doesn't imply it.
+
+The guard has two limits. It needs that last pull or push: on a machine that has never done either for this site, there is nothing to compare with, so run `lps diff --only acf` before that first push. And it covers objects the site still has: a field group deleted in wp-admin is recreated by the push, without a warning. If a deletion on the site was intended, check `lps diff --only acf` before pushing.
 
 **Both are partly right.** Pull, resolve the difference in Git like any other conflict, push.
 
