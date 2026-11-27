@@ -1,10 +1,10 @@
 ---
 title: Undoing a Bad WordPress Deploy Without Restoring a Backup
 description: A backup restore rolls back everything, including the orders and comments that arrived since. Loopress snapshots each resource before every push, so you can undo just the change that broke the site.
-date: 2026-10-01
+date: 2027-01-05
 draft: true
-cliVersion: 0.26.0
-wordpressPluginVersion: 2026.11.0
+cliVersion: 0.37.0
+wordpressPluginVersion: 2026.21.0
 authors:
   - maxime
 tags:
@@ -64,17 +64,19 @@ Snippets has changed on https://example.com since that push:
 
 (Snippets are identified by their WordPress id, `12` here, followed by a patch of what changed.)
 
-In a terminal, you're asked whether to overwrite those later changes, and the default answer is no. In CI, the command refuses outright unless you pass `--yes`. You decide with the evidence in front of you, instead of finding out from the editor on Monday.
+In a terminal, you're asked whether to overwrite those later changes, and the default answer is no. In a script or CI, the command refuses outright unless you pass `--yes`. You decide with the evidence in front of you, instead of finding out from the editor on Monday.
+
+The same idea protects the push itself: a push that would overwrite something edited on the site since your last pull or push stops and names it, unless you pass `--overwrite`. More on that in [A client changed a field group in wp-admin](/blog/wordpress-config-drift-detection/).
 
 ## What it covers
 
-Rollback exists for every resource whose state Loopress can read back from the site: snippets, ACF objects, API routes, hooks, forms, menus, tracked options, and theme styles. Each has its own command (`lps acf rollback`, `lps hook rollback`, and so on), because each push takes its own snapshot. The aggregate `lps push` goes through the same per-resource pushes, so a full deploy leaves one snapshot per resource it touched.
+Every resource that has a `push` has a `rollback`: snippets, ACF objects, API routes, hooks, forms, menus, tracked options, theme styles, pages, apps, and the rest. Each has its own command (`lps acf rollback`, `lps hook rollback`, and so on), because each push takes its own snapshot. The aggregate `lps push` goes through the same per-resource pushes, so a full deploy leaves one snapshot per resource it touched.
 
-Plugins, Composer dependencies, static pages, and single-page apps have no rollback. For plugins and Composer, pin exact versions in Git and push the previous commit instead.
+Plugins, theme versions and Composer dependencies go through the site's Composer: their rollback runs it again with the earlier versions. A rollback that downgrades a package needs `--force`, for the reason any downgrade does: it replaces files, it doesn't undo the database migrations the newer version ran.
 
 ## Two limits worth knowing before you rely on it
 
-**Restoring creates and updates, it never deletes.** If your bad push *added* a new snippet, rolling back restores everything that push changed, but the new snippet stays. The command tells you so, naming each item present now but absent from the snapshot, so you can remove it by hand. This is deliberate: a push never deletes, so a rollback, which is a push of the old state, doesn't either.
+**For most resources, restoring creates and updates, it never deletes.** If your bad push *added* a new snippet, rolling back restores everything that push changed, but the new snippet stays. The command tells you so, naming each item present now but absent from the snapshot, so you can remove it by hand. This is deliberate: a snippet push never deletes, so a rollback, which is a push of the old state, doesn't either. The exceptions are the resources whose push installs a whole set: a plugin, theme or Composer package the push installed is uninstalled by the rollback, an app the push created is removed, and a theme template rollback writes the whole child theme back.
 
 **Snapshots live on the machine that pushed.** They're written to `.loopress/snapshots/` at the root of your project, and that directory ignores itself in Git: a snapshot holds the environment's full state for that resource, not something to commit. The flip side is that a push from a CI runner leaves its snapshot on the runner, which is gone once the job ends. If production deploys only happen in CI, a rollback from your laptop has nothing to restore. For that setup, the undo path is Git: revert the commit, let CI push again.
 
@@ -88,4 +90,4 @@ Backups are still your disaster recovery. A broken server, a corrupted database,
 npm install -g @loopress/cli
 ```
 
-Rollback works for every resource your edition of the plugin syncs. The [CLI overview](/cli/) lists each resource and links to its own `rollback` reference.
+Rollback works for every resource your edition of the plugin syncs. The [Rollback reference](/rollback/) covers every flag and the exact behavior of each resource.

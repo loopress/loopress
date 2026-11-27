@@ -1,10 +1,10 @@
 ---
 title: Managing Twenty Client WordPress Sites as Code
 description: Agencies running dozens of WordPress sites need to know what each one runs and change it without logging into twenty admin panels. One repository per client, one loopress.json per repository, and a for loop.
-date: 2026-12-10
+date: 2027-01-12
 draft: true
-cliVersion: 0.26.0
-wordpressPluginVersion: 2026.11.0
+cliVersion: 0.37.0
+wordpressPluginVersion: 2026.21.0
 authors:
   - maxime
 tags:
@@ -29,7 +29,6 @@ acme-corp/
   snippets/
   hooks/
   acf/
-    field-groups/
   menus/
   options/
 ```
@@ -62,13 +61,14 @@ That's the whole mental model: the repository says what the site should be, `--e
 Most client sites weren't built this way, and they don't have to be. Point Loopress at production and pull what's there:
 
 ```bash
-mkdir acme-corp && cd acme-corp && git init
 lps project config       # add the site; creates an application password via the browser
+mkdir acme-corp && cd acme-corp && git init
 lps init                 # writes loopress.json for this client
 lps pull --env production
-lps plugin pull --env production
 git add . && git commit -m "Snapshot of production as of today"
 ```
+
+`lps pull` only reads from the site and only writes local files, so it's safe on a live site. It brings down field groups, menus, options, hooks, snippets, plugin versions and the rest of the configuration; it never reads posts, orders, users or media. The [Take over an existing site](/existing-site/) guide covers the two things that can stop you (PHP older than 8.2, and `DISALLOW_FILE_MODS`) and what the first pull captures.
 
 Day one, you haven't changed anything. You've written down what the site runs. From then on, `lps diff --env production` tells you whether that's still true.
 
@@ -90,7 +90,11 @@ for repo in ~/clients/*/; do
 done
 ```
 
-Each client gets the file as a reviewed commit in their own history, lands on staging first, and goes to production on that client's own schedule. When one client's staging rejects the file (a class name collision with one of their plugins, a PHP version too old), it fails for that client only, with the reason, and the loop moves on.
+Each client gets the file as a reviewed commit in their own history, lands on staging first, and goes to production on that client's own schedule. When one client's staging rejects the file (a syntax error, a class name already declared by one of their plugins), it fails for that client only, with the reason, and the loop moves on.
+
+## Plugin updates, one pull request per client
+
+The other chore that grows with the number of sites is plugin updates. With versions pinned in each client's `loopress.json`, an update is a one-line diff, and a [weekly CI workflow](/ci/plugin-update-prs/) can open it for you: it bumps the pins, installs the new versions on a throwaway WordPress inside the job, audits them against a vulnerability database, and opens a pull request. Twenty clients, twenty small pull requests on Monday morning, each one merged when that client's staging has had a look. More in [A lockfile for WordPress plugins](/blog/wordpress-plugin-versions-lockfile/).
 
 ## Deploying from CI instead of your laptop
 
@@ -101,7 +105,7 @@ lps doctor --env production
 lps push --env production --yes
 ```
 
-Run `lps diff --env production` on a schedule in the same pipeline, and a client's admin-screen tweak shows up as a red build the next morning, instead of as a surprise in your next deploy.
+Run `lps diff --env production` on a schedule in the same pipeline, and a client's admin-screen tweak shows up as a red build the next morning, instead of as a surprise in your next deploy. See [A client changed a field group in wp-admin](/blog/wordpress-config-drift-detection/).
 
 ## Where WP-CLI still fits
 
@@ -113,4 +117,4 @@ WP-CLI remains the right tool for server-side operations: search-replace after a
 npm install -g @loopress/cli
 ```
 
-[Getting Started](/getting-started/) walks through `lps project config` and `lps init`. ACF, menus, and options sync with Loopress Light; hooks, snippets, and plugin pinning need [Loopress Full](/wordpress-plugin/).
+[Getting Started](/getting-started/) walks through `lps project config` and `lps init`, and [Take over an existing site](/existing-site/) covers a site built in wp-admin. ACF, menus, and options sync with Loopress Light; hooks, snippets, and plugin pinning need [Loopress Full](/wordpress-plugin/).
