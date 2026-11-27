@@ -1,10 +1,10 @@
 ---
 title: A Lockfile for WordPress Plugins, So Staging and Production Run the Same Versions
-description: Knowing WooCommerce is installed isn't a spec. Pin exact WordPress.org plugin versions in loopress.json and Loopress installs the identical set on every environment through Composer and WPackagist, without SSH.
-date: 2026-11-19
+description: Pin exact WordPress.org plugin versions in loopress.json, install the same set on every environment without SSH, and turn every plugin update into a pull request you review.
+date: 2026-12-01
 draft: true
-cliVersion: 0.26.0
-wordpressPluginVersion: 2026.11.0
+cliVersion: 0.37.0
+wordpressPluginVersion: 2026.21.0
 authors:
   - maxime
 tags:
@@ -12,7 +12,7 @@ tags:
   - composer
   - reproducibility
   - wordpress
-excerpt: Your JavaScript project has a lockfile. Your WordPress site has whatever versions each environment happened to auto-update to. Here's how to pin plugins like dependencies, and why downgrades are refused by default.
+excerpt: Your JavaScript project has a lockfile. Your WordPress site has whatever versions each environment happened to auto-update to. Here's how to pin plugins like dependencies, review every update as a pull request, and why downgrades are refused by default.
 ---
 
 A bug shows up on production and not on staging. Twenty minutes later you find out why: production auto-updated WooCommerce last night, staging didn't. Same plugins, different versions, different behaviour.
@@ -38,7 +38,7 @@ Keys are WordPress.org slugs. A value is either an exact version, installed as-i
 lps plugin pull --env production
 ```
 
-That writes every plugin installed on production into `loopress.json`, each pinned to the version running there right now. It's the fastest way to turn "what production happens to run" into a spec.
+It lists the plugins installed on production and asks which ones the project should track. Leave out the ones that only belong on that environment, a cache or a backup plugin for example. Every plugin you tick is pinned to the version running there right now. It's the fastest way to turn "what production happens to run" into a spec.
 
 ## Install the same set everywhere
 
@@ -53,23 +53,49 @@ Pushing plugins to https://staging.example.com
 
 To install (1):
   + contact-form-7 6.0.5
+
 To re-pin (1):
   ~ woocommerce 9.5.0 to 9.4.2
 ```
 
 Push the same `loopress.json` to production and it lands on the same versions. That's the whole point of exact pins. `latest` is there for plugins you genuinely want to float, but it's not reproducible: two environments pushed a day apart can resolve to two different versions.
 
-## Why that re-pin needs `--force`
+## An update is a one-line diff
 
-The plan above would actually be refused. Going from 9.5.0 back to 9.4.2 is a downgrade, and `lps plugin push` won't do one unless you pass `--force`.
+Once versions are pinned, updating a plugin stops being a button on a live site and becomes a change in your repo:
+
+```bash
+lps plugin outdated
+```
+
+```text
+PLUGIN       CURRENT  LATEST  JUMP
+woocommerce  9.4.2    9.5.1   minor
+akismet      5.3.3    5.3.3   -
+```
+
+`lps plugin update` rewrites the pins in `loopress.json` (`--minor` or `--patch` to stay within a range), and nothing touches a site until you push:
+
+```diff title="loopress.json"
+-    "woocommerce": "9.4.2",
++    "woocommerce": "9.5.1",
+```
+
+You can push that to staging, look at it for a day, then push the same file to production.
+
+The step after that is to stop running the command yourself. A [weekly CI workflow](/ci/plugin-update-prs/) runs `lps plugin update`, installs the new versions on a throwaway WordPress inside the job, runs `lps plugin audit`, and opens a pull request with a before/after table. A version that fails to install fails the job, so no pull request is opened for it. No real site is touched, and no token is needed. What the job checks is that the new versions install and activate. It doesn't check that your checkout still works: that part is still yours, on staging.
+
+## Why a downgrade needs `--force`
+
+Now the other direction. The plan above would actually be refused: going from 9.5.0 back to 9.4.2 is a downgrade, and `lps plugin push` won't do one unless you pass `--force`.
 
 The reason is the database. When WooCommerce 9.5.0 first ran on that site, it may have migrated tables, added columns, rewritten options. Putting the 9.4.2 files back doesn't undo any of that, it just runs old code against a schema it's never seen. Sometimes that's fine. Sometimes it's the start of a very long afternoon. A downgrade is a decision, so Loopress makes you state it.
 
-The same caution applies to a plugin that was installed by hand, by uploading a zip or through the admin. Composer can't cleanly install over a folder it doesn't manage, so Loopress refuses to take it over without `--force`, which replaces its files.
+The same caution applies to a plugin that was installed by hand, by uploading a zip or through the admin. Composer can't cleanly install over a folder it doesn't manage, so Loopress refuses to take it over without `--force`, which replaces its files with the WPackagist build.
 
 ## Removing a line uninstalls the plugin
 
-The lockfile is declarative in both directions. Delete `contact-form-7` from `loopress.json`, push, and it's uninstalled. The plan shows it, and you're asked to confirm. There's no separate "remove" step to forget, which also means a careless edit to `loopress.json` shows up in code review as what it is: an uninstall.
+The lockfile is declarative in both directions. Delete `contact-form-7` from `loopress.json`, push, and Loopress uninstalls it. The plan lists it under "To uninstall", and in a terminal you're asked to confirm. In CI, with nobody to ask, the push goes ahead, so the review happens where it should: a careless edit to `loopress.json` shows up in the pull request as what it is, an uninstall.
 
 ## Check drift in CI
 
@@ -85,18 +111,18 @@ Active but untracked: hello-dolly
 
 It exits non-zero on drift, so it drops straight into a scheduled CI job: the day someone clicks "Update" on production, the job goes red and tells you which plugin moved.
 
-For the other direction, known vulnerabilities in the versions you've pinned:
+And for known vulnerabilities in the versions you've pinned:
 
 ```bash
 lps plugin audit
 ```
 
-It checks every pinned plugin against [wpvulnerability.net](https://www.wpvulnerability.net/) and the WordPress.org API (removed from the directory, PHP requirements, abandonment), and exits non-zero when a known vulnerability affects a pinned version. Pinning versions only makes sense if you also find out when a pinned version turns into a liability.
+It checks every pinned plugin against [wpvulnerability.net](https://www.wpvulnerability.net/) and the WordPress.org API (closed plugins, PHP requirements, no update in over two years), and exits non-zero when a known vulnerability affects a pinned version. Pinning versions only makes sense if you also find out when a pinned version turns into a liability.
 
 ## What it doesn't do
 
-- **Premium plugins.** ACF Pro, Gravity Forms, and friends aren't on WordPress.org, so they aren't on WPackagist, and Loopress can't install or version them. `plugin pull` will still list them in `loopress.json`: delete those lines. And be careful with `--prune`, which deactivates every active plugin missing from `loopress.json`, premium ones included.
-- **Database rollbacks.** A downgrade replaces files, never data.
+- **Premium plugins.** ACF Pro, Gravity Forms and the like aren't on WordPress.org, so they aren't on WPackagist, and Loopress can't install or version them. `plugin pull` still offers them in its list: leave them unticked. And be careful with `--prune`, which deactivates every active plugin missing from `loopress.json`, premium ones included.
+- **Database rollbacks.** A downgrade replaces files, never data. [`lps plugin rollback`](/plugins/#lps-plugin-rollback) puts the previous versions back, with the same limit.
 - **Multisite.** Plugin pinning isn't supported on multisite networks yet.
 
 ---
