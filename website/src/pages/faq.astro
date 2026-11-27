@@ -40,6 +40,21 @@ const sections = [
         a: "Any self-hosted site on WordPress 6.2+ and PHP 8.2+, with the REST API enabled. It works on the stock wp-content layout your host already runs: no restructuring, no host change, no SSH.",
       },
       {
+        q: "Does it work on my host?",
+        a: "Almost any host, with two blockers to check first: PHP 8.2 or newer, and DISALLOW_FILE_MODS. When that constant is true, WordPress refuses plugin installs and uploads, so Composer cannot install packages and the automatic install of Full fails. Light, the configuration half, still works. Beyond that, no SSH and no host change.",
+        link: { href: "https://docs.loopress.dev/existing-site/", label: "Take over an existing site" },
+      },
+      {
+        q: "Can I put a site that already exists in Git?",
+        a: "Yes, that is the usual case. lps project config connects it, lps pull writes its configuration and code as files, and you commit. Posts, orders, users and media are not pulled.",
+        link: { href: "https://docs.loopress.dev/existing-site/", label: "Take over an existing site" },
+      },
+      {
+        q: "Can I undo a client's change?",
+        a: "Yes. Push your version back: a push stops first when the site changed since your last pull or push, names what it would overwrite, and goes ahead with --overwrite. That check relies on what your working copy last saw, so from a new clone or CI, pull or diff first. A push is additive, so something the client created is not removed. Most pushes can also be rolled back.",
+        link: { href: "https://docs.loopress.dev/existing-site/#undoing-a-change-made-on-the-site", label: "Undoing a change made on the site" },
+      },
+      {
         q: "Light or Full?",
         a: "Same plugin, two builds. Light puts your configuration in Git (ACF field groups, forms, menus, custom post types, taxonomies, post meta keys, roles, options, block theme styles) and is on WordPress.org. Full adds code: hooks, API routes, apps, pages, block templates and patterns, and the plugin lockfile. WordPress.org does not host plugins that deploy code, so Full ships from loopress.dev, and lps project config installs it for you.",
       },
