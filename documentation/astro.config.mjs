@@ -158,6 +158,7 @@ export default defineConfig({
 							icon: "open-book",
 							items: [
 								{ label: "Getting Started", slug: "getting-started" },
+								{ label: "Take Over an Existing Site", slug: "existing-site" },
 								{ label: "Concepts", slug: "concepts" },
 								{ label: "Multi-Environment Workflow", slug: "workflow" },
 								{ label: "Rollback", slug: "rollback" },
