@@ -16,6 +16,8 @@ const title = "Loopress: Git Workflow for WordPress Config and Code";
 const description =
   "Put a WordPress site's field groups, menus, options, hooks and plugin versions in Git, review them in a PR, push them over the REST API. Free, open source.";
 const install = "npm i -g @loopress/cli";
+const hexLabel =
+  "The Loopress hexagon as a loop. The dark side is your repo, with Build and Review. The cyan side is your live site. Ship crosses from repo to site at the top, Pull back crosses from site to repo at the bottom.";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -359,7 +361,7 @@ $ lps theme pull --env production`,
         </div>
 
         <figure>
-          <svg viewBox="-110 10 660 390" class="hex hex-wide w-full" role="img" aria-label="The Loopress hexagon as a loop. The dark side is your repo, with Build and Review. The cyan side is your live site. Ship crosses from repo to site at the top, Pull back crosses from site to repo at the bottom.">
+          <svg viewBox="-110 10 660 390" class="hex hex-wide w-full" role="img" aria-label={hexLabel}>
             <path d={repoSide} class="seg-repo" />
             <path d={siteSide} class="seg-site" />
             <circle r="9" class="dot"><animateMotion dur="8s" repeatCount="indefinite" path={travel} /></circle>
@@ -377,7 +379,7 @@ $ lps theme pull --env production`,
             <text x={R[0] + 34} y={R[1] + 18} class="sub">wp-admin edits happen here</text>
           </svg>
           <!-- Under 640px: a tighter viewBox with only the stage labels, the two sides as HTML, so nothing drops under 16px. -->
-          <svg viewBox="-40 28 420 340" class="hex hex-narrow w-full" aria-hidden="true">
+          <svg viewBox="-40 28 420 340" class="hex hex-narrow w-full" role="img" aria-label={hexLabel}>
             <path d={repoSide} class="seg-repo" />
             <path d={siteSide} class="seg-site" />
             <circle cx={L[0]} cy={L[1]} r="15" class="node" />
