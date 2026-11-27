@@ -433,7 +433,7 @@ A skipped file also shows up as a warning in the plugin's **API Routes** admin t
 
 Most of these never make it that far: `lps api push` rejects the same problems immediately, before anything is written, so they surface as a CLI error at push time instead of a log line discovered later:
 
-- **Invalid PHP syntax**: a server-side `php -l` check on each file. On hosts where it can't run (no PHP CLI binary, `exec` disabled), the push goes through and a broken file is caught by the isolation above instead.
+- **Invalid PHP syntax**: checked with PHP's own parser on the server, which needs no `exec` and no PHP CLI binary, then with `php -l` where it can run. The parser only parses: an error it accepts, such as a method declared twice, gets through where `php -l` cannot run, and is a fatal error the isolation above does not catch. See [what it can't catch](/safety/#what-it-cant-catch).
 - **Zero or more than one class declared.**
 - **A class name collision**, checked against WordPress core, every other active plugin, and every other `api/` file already on the site.
 
