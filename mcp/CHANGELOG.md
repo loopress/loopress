@@ -1,5 +1,12 @@
 # @loopress/mcp
 
+## 0.37.1
+
+### Patch Changes
+
+- Updated dependencies [313de90]
+  - @loopress/cli@0.37.1
+
 ## 0.37.0
 
 ### Minor Changes

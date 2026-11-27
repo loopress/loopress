@@ -1,5 +1,12 @@
 # @loopress/wordpress-plugin
 
+## 2026.21.1
+
+### Patch Changes
+
+- 350ae09: Committing an app build now saves the new manifest before removing the previous build's stale files, so a failed commit no longer leaves the stored manifest pointing at deleted files.
+- 827c057: A push of API routes or hooks that would take the directory over the total size budget (8 MB by default, `loopress_max_files_total_bytes` filter) is now refused with an error naming the budget and the resulting size, and nothing is written. Before, the push reported success while the files past the budget were skipped at load time.
+
 ## 2026.21.0
 
 ### Minor Changes
