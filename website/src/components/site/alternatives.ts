@@ -375,4 +375,64 @@ $ lps option push --env production`,
     docs: [["Options in Git", `${docs}/options/`], ["Rollback and snapshots", `${docs}/rollback/`]],
     recipe: ["Undo a bad deploy with lps diff and rollback", `${docs}/cookbook/site-as-code/undo-bad-deploy-lps-diff-rollback-wordpress/`],
   },
+  {
+    slug: "code-snippets",
+    name: "Code Snippets and WPCode",
+    kind: "snippet plugins",
+    heading: "A Code Snippets alternative: your snippets in Git, or in a hook file.",
+    seoTitle: "Code Snippets Plugin Alternative: Snippets in Git - Loopress",
+    lede: "Code Snippets and WPCode keep PHP snippets in the admin, in the database. Loopress puts those same snippets in Git, or moves them to a hook file.",
+    intro: [
+      "If you searched for a Code Snippets plugin alternative or for WordPress snippets version control, you probably like the plugin and dislike where the code lives: in the database of each site, edited in wp-admin, with no history, no review and no copy of what ran last week. Code Snippets and WPCode are good at what they do: a place to paste a function without editing the theme.",
+      "Loopress does not replace them first, it reads them. With either plugin active on the site, lps snippet pull writes each snippet as a code file with a JSON sidecar (name, type, active, description, tags, location, insert method, priority and shortcode attributes), and lps snippet push sends the files back. The plugin keeps running the snippet, the repo becomes the reference.",
+      "The other path is to stop using a snippet plugin for a given piece of code: move it to a hook file, a PHP class in hooks/ whose methods carry #[Action], #[Filter] or #[Cron]. A hook file is checked for PHP syntax when you push, and nothing is written if the check finds an error. If the host cannot run the check, the CLI reports that it was skipped and the file is written. A hook that throws at run time is caught and logged, and the other hooks keep running. Snippet sync and hook files need Loopress Full.",
+    ],
+    rows: [
+      ["What it versions", "Snippets stored in the database, edited in wp-admin", "Each snippet as a code file and a JSON sidecar, or a hook file in hooks/"],
+      ["What it moves", "Snippets, inside the plugin", "Plain files: PHP, CSS, JS, HTML or text for snippets, PHP for hooks"],
+      ["How it deploys", "Edit on each site, in wp-admin", "lps snippet push or lps hook push over the REST API, no SSH"],
+      ["Content touched", "No", "No: posts and media are never read or written"],
+      ["Before shipping", "No diff against your files", "lps snippet diff against any environment, or two environments against each other"],
+      ["Undo", "Not compared here", "lps snippet rollback and lps hook rollback, to the snapshot taken before the push"],
+      ["Bad code", "Not compared here", "A hook file with a PHP syntax error is refused at push; a throwing hook is caught and logged"],
+    ],
+    task: {
+      title: "Put the snippets of a site in Git, then change one",
+      them: ["Open the snippet in wp-admin and edit it", "Hope nobody else edited it in the meantime", "No diff, no review, no copy of the old version"],
+      us: `$ lps snippet pull --env production
+$ git add -A && git commit -m "Snippets as they are on the site"
+# edit the price formatter in your editor
+$ lps snippet diff --env production
+$ lps snippet push --env production`,
+    },
+    theirs: "You are happy managing snippets in wp-admin on one site, or your clients edit them there and you want the plugin's own interface.",
+    ours: "You manage more than one environment, you want a diff and a pull request before a snippet goes live, an undo after it, or you want a piece of code to be a PHP file in the repo instead of a row in a table.",
+    together: "Keep the plugin and put its snippets in Git: lps snippet pull brings them into your repo, and lps snippet push sends your files back to the site, where Code Snippets or WPCode keeps running them. Later, move a snippet to a hook file with lps hook when you want it to be plain PHP in the repo, syntax checked at push and isolated when it throws, then delete the snippet from the plugin so it doesn't run twice.",
+    matrix: ["yes", "no", "no", "no", "always", "yes"],
+    gaps: ["no", "no", "no", "no"],
+    faq: [
+      {
+        q: "Does Loopress work with Code Snippets and WPCode?",
+        a: "Yes. The Loopress plugin detects whichever of the two is active on the site, and the CLI commands are the same either way. If the site has neither, run lps plugin add code-snippets, then lps plugin push to install it on the site. Snippet sync needs Loopress Full.",
+      },
+      {
+        q: "What does lps snippet pull write?",
+        a: "One code file and one JSON sidecar per snippet, named <id>-<slug>. The sidecar holds the id, name, type, active flag, description, tags, location, insert method, priority and shortcode attributes. Local files whose snippet is no longer on the site are removed on pull, so the directory mirrors the site.",
+      },
+      {
+        q: "What does push do to snippets that are not in my files?",
+        a: "It deletes them from the site, because the repo is the reference. They are listed first, --dry-run shows them, --no-prune keeps them, and a push to production asks before deleting. A push from an empty directory refuses.",
+      },
+      {
+        q: "Should I move my snippets to hook files?",
+        a: "Not necessarily. Snippet sync already puts them in Git. A hook file is worth it for code you want as a plain PHP class in the repo: a syntax error is refused at push, and a hook that throws is logged and skipped while the others keep running. Moving one is manual: write the hook file, push it, then delete the snippet.",
+      },
+      {
+        q: "Can I undo a snippet push?",
+        a: "Yes. Every real push saves a snapshot of what it replaced. lps snippet rollback restores it, --list shows the snapshots and --dry-run shows what would be restored first.",
+      },
+    ],
+    docs: [["Snippets in Git", `${docs}/snippets/`], ["Hooks as PHP files", `${docs}/hooks/`], ["Safe by default", `${docs}/safety/`]],
+    recipe: ["Version control your WordPress code snippets", `${docs}/blog/version-control-wordpress-code-snippets/`],
+  },
 ];
