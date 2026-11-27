@@ -51,7 +51,7 @@ const sections = [
       },
       {
         q: "Can I undo a client's change?",
-        a: "Yes. Push your version back: a push stops first when the site changed since your last pull or push, names what it would overwrite, and goes ahead with --overwrite. A push is additive, so something the client created is not removed. Most pushes can also be rolled back.",
+        a: "Yes. Push your version back: a push stops first when the site changed since your last pull or push, names what it would overwrite, and goes ahead with --overwrite. That check relies on what your working copy last saw, so from a new clone or CI, pull or diff first. A push is additive, so something the client created is not removed. Most pushes can also be rolled back.",
         link: { href: "https://docs.loopress.dev/existing-site/#undoing-a-change-made-on-the-site", label: "Undoing a change made on the site" },
       },
       {
